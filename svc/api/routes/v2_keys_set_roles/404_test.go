@@ -24,7 +24,6 @@ func TestNotFoundErrors(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -183,7 +182,7 @@ func TestNotFoundErrors(t *testing.T) {
 			IdentityID:        sql.NullString{Valid: false},
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			RemainingRequests: sql.NullInt64{Valid: false},
 		})
 		require.NoError(t, err)
 

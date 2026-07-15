@@ -106,10 +106,10 @@ type FindKeyForVerificationRow struct {
 	Expires             sql.NullTime   `db:"expires"`
 	DeletedAtM          sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay           sql.NullInt16  `db:"refill_day"`
-	RefillAmount        sql.NullInt32  `db:"refill_amount"`
+	RefillAmount        sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt        sql.NullTime   `db:"last_refill_at"`
 	Enabled             bool           `db:"enabled"`
-	RemainingRequests   sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests   sql.NullInt64  `db:"remaining_requests"`
 	PendingMigrationID  sql.NullString `db:"pending_migration_id"`
 	IpWhitelist         sql.NullString `db:"ip_whitelist"`
 	ApiWorkspaceID      string         `db:"api_workspace_id"`

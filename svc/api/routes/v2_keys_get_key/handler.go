@@ -8,13 +8,15 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -27,7 +29,6 @@ type (
 // Handler implements zen.Route interface for the v2 keys.getKey endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Vault     vault.VaultServiceClient
 }
@@ -42,8 +43,7 @@ func (h *Handler) Path() string {
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyData := db.ToKeyData(key)
 
 	// Validate key belongs to authorized workspace
-	if keyData.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if keyData.Key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -95,7 +95,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
-	)))
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.ReadKey{},
+		),
+	))
 	if err != nil {
 		return err
 	}
@@ -104,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var plaintext string
 	decrypt := ptr.SafeDeref(req.Decrypt, false)
 	if decrypt {
-		rawKey, decryptErr := h.decryptKey(ctx, auth, keyData)
+		rawKey, decryptErr := h.decryptKey(ctx, principal, keyData)
 		if decryptErr != nil {
 			return decryptErr
 		}
@@ -139,7 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
 			Refill:    nil,
-			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
+			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int64)),
 		}
 
 		if keyData.Key.RefillAmount.Valid {
@@ -151,7 +155,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Amount:    int64(keyData.Key.RefillAmount.Int64),
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
@@ -201,7 +205,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for _, rl := range keyData.Ratelimits {
 			ratelimitResp := openapi.RatelimitResponse{
 				Id:        rl.ID,
-				Duration:  rl.Duration,
+				Duration:  int64(rl.Duration),
 				Limit:     int64(rl.Limit),
 				Name:      rl.Name,
 				AutoApply: rl.AutoApply,
@@ -244,7 +248,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyData *db.KeyData) (*string, error) {
+func (h *Handler) decryptKey(ctx context.Context, principal *principal.Principal, keyData *db.KeyData) (*string, error) {
 	if h.Vault == nil {
 		return nil, fault.New("vault missing",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -253,7 +257,7 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 	}
 
 	// Permission check for decryption
-	err := auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err := principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -264,7 +268,11 @@ func (h *Handler) decryptKey(ctx context.Context, auth *keys.KeyVerifier, keyDat
 			ResourceID:   keyData.Api.ID,
 			Action:       rbac.DecryptKey,
 		}),
-	)))
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.DecryptKey{},
+		),
+	))
 	if err != nil {
 		return nil, err
 	}

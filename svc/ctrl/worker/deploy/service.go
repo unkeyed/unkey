@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -34,8 +34,8 @@ type RegistryConfig struct {
 //
 // This workflow manages the complete deployment lifecycle including deploying new versions,
 // rolling back to previous versions, and promoting deployments to live. It coordinates
-// between container orchestration (Krane), database updates, domain routing, and sentinel
-// configuration to ensure consistent deployment state.
+// between container orchestration (Krane), database updates, and domain routing to ensure
+// consistent deployment state.
 //
 // The workflow uses Restate virtual objects keyed by app ID to ensure that only one
 // deployment operation runs per app at any time, preventing race conditions during
@@ -47,7 +47,6 @@ type Workflow struct {
 
 	defaultDomain string
 	vault         vault.VaultServiceClient
-	sentinelImage string
 
 	github githubclient.GitHubClient
 
@@ -74,9 +73,6 @@ type Config struct {
 
 	// Vault provides encryption/decryption services for secrets.
 	Vault vault.VaultServiceClient
-
-	// SentinelImage is the Docker image used for sentinel containers.
-	SentinelImage string
 
 	// GitHub provides access to GitHub API for downloading tarballs.
 	GitHub githubclient.GitHubClient
@@ -110,12 +106,15 @@ type Config struct {
 
 // New creates a new deployment workflow instance.
 func New(cfg Config) *Workflow {
+	// Reclaim build workspaces orphaned by a previous crash. Runs before any
+	// handler is bound, so no live workspace can match.
+	cleanupStaleRailpackWorkspaces()
+
 	return &Workflow{
 		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
 		db:                               cfg.DB,
 		defaultDomain:                    cfg.DefaultDomain,
 		vault:                            cfg.Vault,
-		sentinelImage:                    cfg.SentinelImage,
 
 		github:                          cfg.GitHub,
 		depotConfig:                     cfg.DepotConfig,

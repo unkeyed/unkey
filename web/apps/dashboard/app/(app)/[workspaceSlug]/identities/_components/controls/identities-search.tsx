@@ -15,6 +15,7 @@ export const IdentitiesSearch = () => {
 
   return (
     <LLMSearch
+      placeholder="Search and filter Identities..."
       exampleQueries={[
         "Find identity with ID 'user_123'",
         "Show identities with external ID containing 'test'",
@@ -25,6 +26,9 @@ export const IdentitiesSearch = () => {
       searchMode="allowTypeDuringSearch"
       onSearch={(query) => {
         setSearch(query);
+      }}
+      onClear={() => {
+        setSearch(null);
       }}
     />
   );

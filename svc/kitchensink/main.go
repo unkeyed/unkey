@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/unkeyed/unkey/svc/kitchensink/buildinfo"
 	"github.com/unkeyed/unkey/svc/kitchensink/echo"
 	"github.com/unkeyed/unkey/svc/kitchensink/env"
 	"github.com/unkeyed/unkey/svc/kitchensink/headers"
@@ -39,6 +40,7 @@ var routes = []route{
 	{"GET /", "This page — lists every registered route.", index.Handler},
 	{"GET /hello", "Smoke test — returns 'hello, world'.", hello.Handler},
 	{"GET /env", "Process environment as JSON. Filter with ?prefix=.", env.Handler},
+	{"GET /buildinfo", "Returns the build-time Version injected via -ldflags -X.", buildinfo.Handler},
 	{"GET /principal", "Decodes X-Unkey-Principal and returns it.", principal.Handler},
 	{"GET /headers", "Incoming request headers as JSON.", headers.Handler},
 	{"POST /echo", "Returns the request body verbatim.", echo.Handler},

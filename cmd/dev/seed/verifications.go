@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -44,6 +45,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -57,7 +59,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
-	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, clickhouse.BufferConfig{
 		Name:          "seed-key-verifications",
 		BatchSize:     50_000,
 		BufferSize:    50_000,
@@ -69,14 +71,13 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		RateLimiter:      nil,
-		RBAC:             nil,
-		KeyVerifications: keyVerifications,
-		Region:           "test",
-		UsageLimiter:     nil,
-		KeyCache:         nil,
-		QuotaCache:       nil,
+		DB:           db.ToMySQL(database),
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Region:       "test",
+		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
+		KeyCache:     nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -286,9 +287,9 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 			ForWorkspaceID:     sql.NullString{},
 			Meta:               sql.NullString{},
 			Expires:            sql.NullTime{},
-			RemainingRequests:  sql.NullInt32{},
+			RemainingRequests:  sql.NullInt64{},
 			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt32{},
+			RefillAmount:       sql.NullInt64{},
 			PendingMigrationID: sql.NullString{Valid: false, String: ""},
 		}
 
@@ -489,6 +490,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			ExternalID:   externalID,
 			Latency:      latency,
 			SpentCredits: credit,
+			Source:       schema.SourceAPI,
 		})
 
 		// Log progress periodically

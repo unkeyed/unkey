@@ -1,25 +1,21 @@
-import { getCookie } from "@/lib/auth/cookies";
+import { getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
-  type EmailAuthResult,
   type Organization,
   PENDING_SESSION_COOKIE,
+  type PendingAuthChallengeResponse,
   type PendingOrgSelectionResponse,
-  type PendingTurnstileResponse,
   SIGN_IN_URL,
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
+import { toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
-import {
-  resendAuthCode,
-  signInViaEmail,
-  verifyAuthCode,
-  verifyTurnstileAndRetry,
-} from "../actions";
+import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
 import { SignInContext } from "../context/signin-context";
+import { useRadarSignals } from "../radar/radar-signals";
 import { consumeRedirectUrl, isSafeRedirectPath } from "../sign-in/redirect-utils";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
@@ -35,13 +31,10 @@ function isPendingOrgSelection(result: VerificationResult): result is PendingOrg
   );
 }
 
-function isPendingTurnstileChallenge(result: EmailAuthResult): result is PendingTurnstileResponse {
-  return (
-    !result.success &&
-    result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
-    "email" in result &&
-    "challengeParams" in result
-  );
+function isPendingAuthChallenge(
+  result: VerificationResult,
+): result is PendingAuthChallengeResponse {
+  return !result.success && "challengeType" in result;
 }
 
 export function useSignIn() {
@@ -51,11 +44,23 @@ export function useSignIn() {
   }
 
   const searchParams = useSearchParams();
+  const { getToken } = useRadarSignals();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [hasPendingAuth, setHasPendingAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
   const { setError, setIsVerifying, setEmail, setAccountNotFound } = context;
+
+  // A Radar block is a hard, support-actionable failure; surface it as a toast
+  // (consistent with the sign-up flow) rather than the inline banner used for
+  // ordinary, recoverable errors.
+  const surfaceError = (result: AuthErrorResponse) => {
+    if (result.code === AuthErrorCode.AUTHENTICATION_BLOCKED) {
+      toast.error(result.message);
+      return;
+    }
+    setError(result.message);
+  };
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -99,12 +104,8 @@ export function useSignIn() {
     try {
       setEmail(email);
       setError(null);
-      const result = await signInViaEmail(email);
-
-      // Return result for Turnstile challenge handling
-      if (isPendingTurnstileChallenge(result)) {
-        return result;
-      }
+      const signalsId = await getToken();
+      const result = await signInViaEmail(email, signalsId);
 
       // Check if the operation was successful
       if (result.success) {
@@ -118,7 +119,7 @@ export function useSignIn() {
           setAccountNotFound(true);
           setEmail(email);
         } else {
-          setError(result.message);
+          surfaceError(result);
         }
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
@@ -132,12 +133,19 @@ export function useSignIn() {
     }
   };
 
-  const handleVerification = async (code: string, invitationToken?: string): Promise<void> => {
+  /**
+   * Verifies the emailed code and navigates to the next step on success.
+   * Returns true when a navigation was started so callers can keep their
+   * loading UI up until the browser actually leaves the page.
+   */
+  const handleVerification = async (code: string, invitationToken?: string): Promise<boolean> => {
     try {
+      const signalsId = await getToken();
       const result = await verifyAuthCode({
         email: context.email,
         code,
         invitationToken,
+        signalsId,
       });
 
       // Preserve the redirect param for deep link support, validated to prevent open redirects
@@ -155,14 +163,26 @@ export function useSignIn() {
           return result.redirectTo;
         }
 
-        // Only show org selector if we don't have an invitation token
+        // MFA or Radar interrupted the sign-in; the challenge cookies are set,
+        // so route to the matching challenge UI.
+        if (isPendingAuthChallenge(result)) {
+          const redirectSuffix =
+            redirectParam && redirectParam !== "/apis"
+              ? `&redirect=${encodeURIComponent(redirectParam)}`
+              : "";
+          return `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
+        }
+
+        // Only handle org selection if we don't have an invitation token.
+        // /auth/continue auto-selects the last used organization server-side
+        // and falls back to the manual selector.
         if (!invitationToken && isPendingOrgSelection(result)) {
           const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
           const redirectSuffix =
             redirectParam && redirectParam !== "/apis"
               ? `&redirect=${encodeURIComponent(redirectParam)}`
               : "";
-          return `${SIGN_IN_URL}?orgs=${orgsParam}${redirectSuffix}`;
+          return `/auth/continue?orgs=${orgsParam}${redirectSuffix}`;
         }
 
         if (result.success) {
@@ -175,15 +195,16 @@ export function useSignIn() {
       // If we have a redirect URL, navigate to it
       if (redirectUrl) {
         window.location.href = redirectUrl;
-        return;
+        return true;
       }
 
       // Handle error case - only set error message if we have an error response
       if (isAuthErrorResponse(result)) {
-        setError(result.message);
+        surfaceError(result);
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
+      return false;
     } catch (error) {
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       throw error;
@@ -192,45 +213,11 @@ export function useSignIn() {
 
   const handleResendCode = async (): Promise<void> => {
     try {
-      const result = await resendAuthCode(context.email);
+      const signalsId = await getToken();
+      const result = await resendAuthCode(context.email, signalsId);
       if (!result.success) {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
         return;
-      }
-    } catch (error) {
-      setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-      throw error;
-    }
-  };
-
-  const handleTurnstileVerification = async (
-    turnstileToken: string,
-    challengeData: PendingTurnstileResponse,
-    userData?: { firstName: string; lastName: string },
-  ): Promise<void> => {
-    try {
-      setError(null);
-      const result = await verifyTurnstileAndRetry({
-        turnstileToken,
-        email: challengeData.email,
-        challengeParams: challengeData.challengeParams,
-        userData,
-      });
-
-      if (result.success) {
-        setIsVerifying(true);
-        return;
-      }
-
-      if (isAuthErrorResponse(result)) {
-        if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
-          setAccountNotFound(true);
-          setEmail(challengeData.email);
-        } else {
-          setError(result.message);
-        }
-      } else {
-        setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
     } catch (error) {
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
@@ -243,8 +230,6 @@ export function useSignIn() {
     handleSignInViaEmail,
     handleVerification,
     handleResendCode,
-    handleTurnstileVerification,
-    isPendingTurnstileChallenge,
     orgs,
     loading,
     hasPendingAuth,

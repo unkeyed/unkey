@@ -12,7 +12,7 @@ post:
   operationId: keys.migrateKeys
   x-speakeasy-name-override: migrateKeys
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

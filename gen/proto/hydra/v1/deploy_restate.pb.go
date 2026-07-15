@@ -27,16 +27,10 @@ import (
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
-// sentinel key since it does not relate to any single environment.
-//
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
-//
-// ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby.
 type DeployServiceClient interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -53,22 +47,14 @@ type DeployServiceClient interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
-	// ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
-	// deployment to standby that has received zero requests in the last 6 hours.
-	// Intended to be called by a cron job.
-	ScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
-	// NotifyInstancesReady is called by the control plane (from
-	// ReportDeploymentStatus) when enough instances have become healthy across
-	// the required regions. It resolves the awakeable stored by a suspended
-	// Deploy workflow, unblocking it so the deployment can proceed to the
-	// network/finalize phases.
-	//
-	// SHARED so it can run concurrently with a suspended Deploy on the same VO
-	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
-	// shared across every deployment in that environment — the handler
-	// verifies the request's deployment_id matches the one currently awaiting,
-	// so a late status report from a previous deployment never resolves the
-	// awakeable of a newer one.
+	// StopDeployment schedules desired_state=stopped for a running deployment.
+	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
+	// WakeDeployment schedules desired_state=running for a stopped deployment
+	// and waits until enough instances are running again.
+	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// NotifyInstancesReady is called by the control plane when enough instances
+	// have become healthy across the required regions. It resolves the awakeable
+	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -110,12 +96,20 @@ func (c *deployServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client
 	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeployService", c.key, "Promote", cOpts...))
 }
 
-func (c *deployServiceClient) ScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse] {
+func (c *deployServiceClient) StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*ScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*ScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.DeployService", c.key, "ScaleDownIdlePreviewDeployments", cOpts...))
+	return sdk_go.WithRequestType[*StopDeploymentRequest](sdk_go.Object[*StopDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "StopDeployment", cOpts...))
+}
+
+func (c *deployServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "WakeDeployment", cOpts...))
 }
 
 func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
@@ -145,22 +139,14 @@ type DeployServiceIngressClient interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
-	// ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
-	// deployment to standby that has received zero requests in the last 6 hours.
-	// Intended to be called by a cron job.
-	ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
-	// NotifyInstancesReady is called by the control plane (from
-	// ReportDeploymentStatus) when enough instances have become healthy across
-	// the required regions. It resolves the awakeable stored by a suspended
-	// Deploy workflow, unblocking it so the deployment can proceed to the
-	// network/finalize phases.
-	//
-	// SHARED so it can run concurrently with a suspended Deploy on the same VO
-	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
-	// shared across every deployment in that environment — the handler
-	// verifies the request's deployment_id matches the one currently awaiting,
-	// so a late status report from a previous deployment never resolves the
-	// awakeable of a newer one.
+	// StopDeployment schedules desired_state=stopped for a running deployment.
+	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
+	// WakeDeployment schedules desired_state=running for a stopped deployment
+	// and waits until enough instances are running again.
+	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
+	// NotifyInstancesReady is called by the control plane when enough instances
+	// have become healthy across the required regions. It resolves the awakeable
+	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -193,9 +179,14 @@ func (c *deployServiceIngressClient) Promote() ingress.Requester[*PromoteRequest
 	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
 }
 
-func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse] {
+func (c *deployServiceIngressClient) StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdlePreviewDeployments", &c.key, &codec)
+	return ingress.NewRequester[*StopDeploymentRequest, *StopDeploymentResponse](c.client, c.serviceName, "StopDeployment", &c.key, &codec)
+}
+
+func (c *deployServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
@@ -219,16 +210,10 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
-// sentinel key since it does not relate to any single environment.
-//
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
-//
-// ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby.
 type DeployServiceServer interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -245,22 +230,14 @@ type DeployServiceServer interface {
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
 	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
-	// ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
-	// deployment to standby that has received zero requests in the last 6 hours.
-	// Intended to be called by a cron job.
-	ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error)
-	// NotifyInstancesReady is called by the control plane (from
-	// ReportDeploymentStatus) when enough instances have become healthy across
-	// the required regions. It resolves the awakeable stored by a suspended
-	// Deploy workflow, unblocking it so the deployment can proceed to the
-	// network/finalize phases.
-	//
-	// SHARED so it can run concurrently with a suspended Deploy on the same VO
-	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
-	// shared across every deployment in that environment — the handler
-	// verifies the request's deployment_id matches the one currently awaiting,
-	// so a late status report from a previous deployment never resolves the
-	// awakeable of a newer one.
+	// StopDeployment schedules desired_state=stopped for a running deployment.
+	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
+	// WakeDeployment schedules desired_state=running for a stopped deployment
+	// and waits until enough instances are running again.
+	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
+	// NotifyInstancesReady is called by the control plane when enough instances
+	// have become healthy across the required regions. It resolves the awakeable
+	// stored by a suspended deploy or wake workflow so it can continue.
 	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
 }
 
@@ -280,8 +257,11 @@ func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *
 func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
 }
-func (UnimplementedDeployServiceServer) ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ScaleDownIdlePreviewDeployments not implemented"), 501)
+func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
@@ -308,7 +288,8 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
 	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
-	router = router.Handler("ScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.ScaleDownIdlePreviewDeployments))
+	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
+	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }

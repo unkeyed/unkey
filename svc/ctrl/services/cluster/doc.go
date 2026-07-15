@@ -5,17 +5,16 @@
 //
 // Krane agents run in each region and manage their local Kubernetes clusters. They maintain
 // long-lived streaming connections to the control plane, receiving desired state for
-// deployments and sentinels via [Service.WatchDeployments] and [Service.WatchSentinels].
-// Agents report observed state back through [Service.ReportDeploymentStatus] and
-// [Service.ReportSentinelStatus], enabling drift detection and health tracking.
+// deployments and Cilium network policies. Agents report observed state back through
+// [Service.ReportDeploymentStatus], enabling drift detection and health tracking.
 //
 // # State Synchronization Model
 //
 // Synchronization uses version-based cursors for resumable streaming. Each resource
-// (deployment_topology, sentinel) has a version column updated on every mutation. Agents
-// track the maximum version seen and reconnect with that version to resume without
-// replaying history. When version is 0 (new agent or reset), all resources are streamed
-// in version order for a full bootstrap.
+// (deployment_topology, cilium_network_policy) has a version column updated on every
+// mutation. Agents track the maximum version seen and reconnect with that version to
+// resume without replaying history. When version is 0 (new agent or reset), all
+// resources are streamed in version order for a full bootstrap.
 //
 // The streaming RPCs poll the database every second when no new versions are available.
 // Each poll fetches up to 100 resources with versions greater than the cursor.
@@ -30,14 +29,11 @@
 //
 // # Authentication
 //
-// All RPCs require bearer token authentication via the Authorization header. Agents must
-// also provide their region in the X-Krane-Region header for region-scoped operations.
+// All RPCs require bearer token authentication via the Authorization header. Region-scoped
+// RPCs carry a [ctrlv1.RegionKey] (platform + region name) on the request message.
 //
 // # Key Types
 //
-// [Service] implements [ctrlv1connect.ClusterServiceHandler] with six RPCs: two streaming
-// watchers ([Service.WatchDeployments], [Service.WatchSentinels]), two point queries
-// ([Service.GetDesiredDeploymentState], [Service.GetDesiredSentinelState]), and two
-// status reporters ([Service.ReportDeploymentStatus], [Service.ReportSentinelStatus]).
-// Configuration is provided through [Config].
+// [Service] implements [ctrlv1connect.ClusterServiceHandler]. Configuration is provided
+// through [Config].
 package cluster

@@ -1,0 +1,56 @@
+---
+title: "Transactional emails"
+description: "How Go services send email and how to edit the templates"
+---
+
+Go services send email through `pkg/email` by naming a published Resend
+template and its variables. The template content is authored in this repo as
+react-email components in `web/internal/resend/emails/` and uploaded to
+Resend by `web/internal/resend/scripts/sync-templates.tsx`. Copy or design
+changes are TypeScript edits plus one command, no Go deploy.
+
+Without a `RESEND_API_KEY`, `pkg/email` falls back to a noop sender that only
+logs, so local and CI never send real mail.
+
+## Editing an email
+
+Edit the component in `web/internal/resend/emails/`, then:
+
+```bash
+# live preview
+mise exec -- pnpm --dir=web/internal/resend dev
+
+# render test
+mise exec -- pnpm --dir=web/internal/resend test
+```
+
+## Publishing
+
+```bash
+# upload draft versions
+RESEND_API_KEY=... mise exec -- pnpm --dir=web/internal/resend sync-templates
+
+# upload and publish
+RESEND_API_KEY=... mise exec -- pnpm --dir=web/internal/resend sync-templates --publish
+```
+
+Drafts are invisible to sends; Go keeps sending the last published version
+until you publish. Publishing takes effect immediately. The key lives in
+`dev/.env.resend` locally (see `dev/.env.resend.example`).
+
+## Adding a new email
+
+Write the component with string props for every dynamic value, then register
+it in the `templates` array in `scripts/sync-templates.tsx`: alias, name,
+subject, from, the element with `{{{VARIABLE}}}` placeholder props, and the
+variable declarations with fallbacks. Include a `Preview` component for the
+inbox snippet.
+
+Do not rename an alias a deployed service sends with, and keep the variable
+keys identical to the map the Go caller passes; Resend rejects sends with
+missing variables.
+
+Set `Email.IdempotencyKey` when a caller may retry after a transient failure
+(e.g. a Restate handler re-invocation). Resend dedupes identical sends for 24
+hours. Use a stable key per logical message, such as
+`budget-alert/{workspace_id}:{period}`.

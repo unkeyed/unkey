@@ -17,8 +17,8 @@
     "vitest": "1.6.1"
   },
   "dependencies": {
-    "@clickhouse/client-web": "1.11.1",
+    "@clickhouse/client-web": "catalog:",
     "@unkey/error": "workspace:^",
-    "zod": "4.3.5"
+    "zod": "catalog:"
   }
 }

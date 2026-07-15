@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Complete guide to using the Unkey Python SDK for API key management, verification, and rate limiting in your Python applications and APIs."
+description: "Complete guide to using the Unkey Python SDK for issuing keys, verifying requests, and rate limiting in your Python applications and APIs."
 ---
 
 The `unkey.py` SDK provides full access to Unkey's API for managing keys, verifying requests, and rate limiting.
@@ -316,7 +316,7 @@ except ApiError as e:
 Rate limiting is included in key verification, but you can also use the standalone rate limit API:
 
 ```python
-result = unkey.ratelimits.limit(
+result = unkey.ratelimit.limit(
     namespace="my-app",
     identifier="user_123",
     limit=100,

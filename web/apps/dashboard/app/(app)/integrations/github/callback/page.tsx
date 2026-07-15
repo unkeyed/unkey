@@ -1,5 +1,6 @@
 "use client";
 import { LoadingState } from "@/components/loading-state";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +11,10 @@ export default function Page() {
   const searchParams = useSearchParams();
   const installationId = searchParams?.get("installation_id") ?? null;
   const state = searchParams?.get("state") ?? null;
+  // OAuth code GitHub returns when the App requests user authorization during
+  // installation. The server uses it to verify the caller can access this
+  // installation before binding it to their workspace.
+  const code = searchParams?.get("code") ?? null;
   const installationIdNumber = useMemo(() => {
     if (!installationId) {
       return null;
@@ -22,10 +27,21 @@ export default function Page() {
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
       if (data.returnTo === "settings") {
-        router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
+        router.replace(
+          routes.projects.apps.settings({
+            workspaceSlug: data.workspaceSlug,
+            projectId: data.projectId,
+            appId: data.appId,
+          }),
+        );
       } else {
         router.replace(
-          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}`,
+          routes.projects.apps.new({
+            workspaceSlug: data.workspaceSlug,
+            projectId: data.projectId,
+            step: "select-repo",
+            appId: data.appId,
+          }),
         );
       }
     },
@@ -40,12 +56,16 @@ export default function Page() {
     }
 
     if (mutation.isIdle) {
+      // `code` is absent when an existing user returns from editing an
+      // already-authorized installation. The server only requires it when
+      // binding an installation the workspace does not already own.
       mutation.mutate({
         state,
         installationId: installationIdNumber,
+        code: code ?? undefined,
       });
     }
-  }, [mutation, state, installationIdNumber]);
+  }, [mutation, state, installationIdNumber, code]);
 
   if (!state) {
     return (

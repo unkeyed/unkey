@@ -32,14 +32,11 @@
         "UNKEY_KEY_AUTH_ID",
         "UNKEY_WEBHOOK_KEYS_API_ID",
         "UNKEY_WORKSPACE_ID",
-        "VERCEL_INTEGRATION_CLIENT_ID",
-        "VERCEL_INTEGRATION_CLIENT_SECRET",
         "AUTH_PROVIDER",
         "WORKOS_COOKIE_PASSWORD",
         "WORKOS_API_KEY",
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-        "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
         "SENTRY_AUTH_TOKEN"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
@@ -53,6 +50,21 @@
     },
     "@unkey/nuxt#build": {
       "dependsOn": ["@unkey/nuxt#dev:prepare"]
+    },
+    "@unkey/dashboard#dev": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/dashboard#test": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/dashboard#typecheck": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/api#build": {
+      "outputs": ["esm/**"]
     },
     "fmt": {
       "cache": false

@@ -31,6 +31,12 @@ const (
 
 	// Deploy represents deployment resources and operations
 	Project ResourceType = "project"
+
+	// App represents app resources within a project
+	App ResourceType = "app"
+
+	// Environment represents environment resources within an app
+	Environment ResourceType = "environment"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -175,8 +181,63 @@ const (
 	// ReadDeployment permits viewing deployment details
 	ReadDeployment ActionType = "read_deployment"
 
+	// StopDeployment permits stopping a running preview deployment
+	StopDeployment ActionType = "stop_deployment"
+
+	// StartDeployment permits starting a stopped preview deployment
+	StartDeployment ActionType = "start_deployment"
+
+	// PromoteDeployment permits promoting a deployment to live
+	PromoteDeployment ActionType = "promote_deployment"
+
+	// RollbackDeployment permits rolling back to a previous deployment
+	RollbackDeployment ActionType = "rollback_deployment"
+
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
+
+	// CreateProject permits creating new projects
+	CreateProject ActionType = "create_project"
+
+	// ReadProject permits reading and listing projects
+	ReadProject ActionType = "read_project"
+
+	// UpdateProject permits modifying existing projects
+	UpdateProject ActionType = "update_project"
+
+	// DeleteProject permits deleting projects
+	DeleteProject ActionType = "delete_project"
+)
+
+// Predefined app actions. These constants define operations that can be
+// performed on app resources within a project.
+const (
+	// CreateApp permits creating new apps within a project
+	CreateApp ActionType = "create_app"
+
+	// ReadApp permits reading apps within a project
+	ReadApp ActionType = "read_app"
+
+	// UpdateApp permits modifying existing apps within a project
+	UpdateApp ActionType = "update_app"
+
+	// DeleteApp permits deleting apps within a project
+	DeleteApp ActionType = "delete_app"
+)
+
+// Predefined environment actions. These constants define operations that can
+// be performed on environment resources within an app.
+const (
+	// ReadEnvironment permits reading a specific environment
+	ReadEnvironment ActionType = "read_environment"
+	// UpdateEnvironment permits updating a specific environment's settings
+	UpdateEnvironment ActionType = "update_environment"
+	// SetEnvironmentVariables permits replacing a specific environment's variables
+	SetEnvironmentVariables ActionType = "set_environment_variables"
+	// RemoveEnvironmentVariables permits removing variables from a specific environment
+	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
+	// ReadEnvironmentVariables permits reading a specific environment's variables
+	ReadEnvironmentVariables ActionType = "read_environment_variables"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

@@ -8,7 +8,8 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // how long a deployment must be idle for before we scale it down to 0
@@ -20,15 +21,18 @@ var idleTime = 6 * time.Hour
 // branches that are no longer actively used, so this workflow paginates through
 // all preview environments and transitions idle deployments to archived by
 // checking request counts in ClickHouse.
-func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.ScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.ScaleDownIdlePreviewDeploymentsResponse, error) {
-
-	cutoff := time.Now().Add(-idleTime).UnixMilli()
+func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cutoff := now.Add(-idleTime).UnixMilli()
 
 	cursor := uint64(0)
 	for {
 
 		environments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Environment, error) {
-			return db.Query.ListPreviewEnvironments(runCtx, w.db.RO(), db.ListPreviewEnvironmentsParams{
+			return w.db.ListPreviewEnvironments(runCtx, db.ListPreviewEnvironmentsParams{
 				PaginationCursor: cursor,
 				Limit:            100,
 			})
@@ -45,7 +49,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 		for _, environment := range environments {
 
 			deployments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Deployment, error) {
-				return db.Query.ListDeploymentsByEnvironmentIdAndStatus(runCtx, w.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
+				return w.db.ListDeploymentsByEnvironmentIdAndStatus(runCtx, db.ListDeploymentsByEnvironmentIdAndStatusParams{
 					EnvironmentID: environment.ID,
 					Status:        db.DeploymentsStatusReady,
 					CreatedBefore: cutoff,
@@ -61,6 +65,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 					return w.clickhouse.GetDeploymentRequestCount(runCtx, clickhouse.GetDeploymentRequestCountRequest{
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
+						AppID:         deployment.AppID,
 						EnvironmentID: deployment.EnvironmentID,
 						DeploymentID:  deployment.ID,
 						Duration:      idleTime,
@@ -73,9 +78,8 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 				if requests == 0 {
 					_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).ScheduleDesiredStateChange().Request(&hydrav1.ScheduleDesiredStateChangeRequest{
 						DelayMillis: 0,
-						State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+						State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 					})
-
 					if err != nil {
 						return nil, err
 					}
@@ -86,5 +90,5 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 
 	}
 
-	return &hydrav1.ScaleDownIdlePreviewDeploymentsResponse{}, nil
+	return &hydrav1.RunScaleDownIdlePreviewDeploymentsResponse{}, nil
 }

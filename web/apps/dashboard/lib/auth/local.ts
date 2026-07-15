@@ -6,11 +6,14 @@ import {
   type EmailAuthResult,
   type Invitation,
   type InvitationListResponse,
+  LOCAL_AUTH_PERMISSIONS,
   LOCAL_ORG_ID,
   LOCAL_ORG_ROLE,
   LOCAL_USER_ID,
   type Membership,
   type MembershipListResponse,
+  type MfaEnrollmentStart,
+  type MfaFactor,
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
@@ -97,7 +100,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
       shouldRefresh: false,
       userId: this.USER_ID,
       orgId: this.ORG_ID,
+      permissions: LOCAL_AUTH_PERMISSIONS,
       role: this.ROLE,
+      user: this.user,
     };
   }
 
@@ -117,7 +122,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
       session: {
         userId: this.USER_ID,
         orgId: this.ORG_ID,
+        permissions: LOCAL_AUTH_PERMISSIONS,
         role: this.ROLE,
+        user: this.user,
       },
     };
   }
@@ -265,9 +272,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
   }
 
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
-    const { membershipId, role } = params;
-    if (!membershipId || !role) {
-      throw new Error("Membership id and role are required.");
+    const { membershipId, role, orgId } = params;
+    if (!membershipId || !role || !orgId) {
+      throw new Error("Membership id, role, and organization id are required.");
     }
 
     if (membershipId !== this.membership.id) {
@@ -278,14 +285,25 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error("Cannot update the default membership in local development mode");
   }
 
-  async removeMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async removeMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     // Cannot remove the only membership
     if (membershipId === this.membership.id) {
       throw new Error("Cannot remove the default membership");
+    }
+    throw new Error(`Membership ${membershipId} not found`);
+  }
+
+  async deactivateMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
+    }
+
+    if (membershipId === this.membership.id) {
+      throw new Error("Cannot deactivate the default membership");
     }
     throw new Error(`Membership ${membershipId} not found`);
   }
@@ -331,9 +349,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return null;
   }
 
-  async revokeOrgInvitation(invitationId: string): Promise<void> {
-    if (!invitationId) {
-      throw new Error("Invitation Id is required");
+  async revokeOrgInvitation(invitationId: string, orgId: string): Promise<void> {
+    if (!invitationId || !orgId) {
+      throw new Error("Invitation id and organization id are required.");
     }
 
     // No-op implementation
@@ -368,7 +386,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     _params: UserData & {
       ipAddress?: string;
       userAgent?: string;
-      bypassRadar?: boolean;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult> {
     // always successful
@@ -379,13 +397,19 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
-    bypassRadar?: boolean;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
   }
 
-  async resendAuthCode(_email: string): Promise<EmailAuthResult> {
+  async resendAuthCode(_params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
+    signalsId?: string;
+  }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
   }
@@ -394,6 +418,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     code: string;
     invitationToken?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult> {
     // always successful
     return {
@@ -461,6 +489,70 @@ export class LocalAuthProvider extends BaseAuthProvider {
         },
       ],
     };
+  }
+
+  // MFA and Radar challenges never occur in local mode
+  async completeMfaChallenge(_params: {
+    code: string;
+    challengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async beginMfaEnrollment(_params: {
+    userId: string;
+    email: string;
+  }): Promise<MfaEnrollmentStart> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async verifyMfaEnrollment(_params: {
+    challengeId: string;
+    code: string;
+  }): Promise<boolean> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async listMfaFactors(_userId: string): Promise<MfaFactor[]> {
+    return [];
+  }
+
+  async removeMfaFactor(_factorId: string): Promise<void> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async completeRadarEmailChallenge(_params: {
+    code: string;
+    radarChallengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("Radar challenges are not supported in local development mode");
+  }
+
+  async sendRadarSmsCode(_params: {
+    userId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<{ verificationId: string; phoneNumber: string }> {
+    throw new Error("Radar challenges are not supported in local development mode");
+  }
+
+  async completeRadarSmsChallenge(_params: {
+    code: string;
+    verificationId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("Radar challenges are not supported in local development mode");
   }
 
   async getSignOutUrl(): Promise<string | null> {

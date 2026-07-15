@@ -10,7 +10,7 @@ const defaultAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 // New generates a prefixed random identifier.
 //
 // The identifier consists of the prefix, an underscore separator, and random
-// alphanumeric characters. Default random portion is 8 characters; pass a
+// alphanumeric characters. Default random portion is 9 characters; pass a
 // custom length to override.
 //
 // Pass an empty prefix to generate an identifier without a prefix.
@@ -18,7 +18,7 @@ const defaultAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 // Uses math/rand/v2 which is NOT cryptographically secure. Do not use for
 // API keys, tokens, or security-sensitive purposes.
 func New(prefix Prefix, length ...int) string {
-	n := 8
+	n := 9
 	if len(length) > 0 {
 		n = length[0]
 	}

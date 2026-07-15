@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/deploy"
 	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
-	"github.com/unkeyed/unkey/cmd/run"
 	"github.com/unkeyed/unkey/cmd/version"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -28,7 +27,6 @@ func main() {
 		Commands: []*cli.Command{
 			api.Cmd(),
 			auth.Cmd,
-			run.Cmd,
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,

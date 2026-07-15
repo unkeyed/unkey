@@ -1,15 +1,17 @@
 "use client";
 import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { INSTANCE_STATUSES } from "./instance-status";
+import { validateProjectIdInQuery } from "./utils";
 
-const schema = z.object({
+export const deploymentSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   environmentId: z.string(),
   gitCommitSha: z.string().nullable(),
   gitBranch: z.string(),
@@ -19,13 +21,25 @@ const schema = z.object({
   gitCommitTimestamp: z.number().int().nullable(),
   prNumber: z.number().int().nullable(),
   forkRepositoryFullName: z.string().nullable(),
-  // OpenAPI
+  image: z.string().nullable(),
   hasOpenApiSpec: z.boolean(),
-  // Deployment status
   status: z.enum(DEPLOYMENT_STATUSES),
+  desiredState: z.enum(["running", "stopped"]),
   instances: z.array(
     z.object({
       id: z.string(),
+      region: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+      }),
+      flagCode: z.enum(flagCodes),
+      status: z.enum(INSTANCE_STATUSES),
+    }),
+  ),
+  desiredInstanceCount: z.number().int(),
+  desiredRegions: z.array(
+    z.object({
       region: z.object({
         id: z.string(),
         name: z.string(),
@@ -37,10 +51,61 @@ const schema = z.object({
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
+  port: z.number().int(),
+  upstreamProtocol: z.enum(["http1", "h2c"]),
+  healthcheck: z
+    .object({
+      method: z.enum(["GET", "POST"]),
+      path: z.string(),
+      intervalSeconds: z.number(),
+      timeoutSeconds: z.number(),
+      failureThreshold: z.number(),
+      initialDelaySeconds: z.number(),
+    })
+    .nullable(),
+  shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
+  trigger: z.enum(["unknown", "github", "api", "cli", "dashboard", "unkey"]),
+  triggeredBy: z.string().nullable(),
+  triggerReason: z.string().nullable(),
   createdAt: z.number(),
+  updatedAt: z.number().nullable(),
+  // When the build/deploy pipeline finished, from deployment_steps (the only
+  // timing stop/wake don't mutate). Null while a build is still in progress or
+  // when a deployment has no steps. Powers the row's duration display.
+  buildEndedAt: z.number().nullable(),
+  // Most-recent exit info across the deployment's instances. Null when
+  // no instance has reported a termination yet (healthy deployments).
+  // Powers the header "OOMKilled · exit=137" badge — see
+  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
+  // instances.containerStatus on the trpc layer; the flat shape is kept
+  // here so consumers don't have to walk the JSON's optional sub-fields.
+  lastExit: z
+    .object({
+      restartCount: z.number().int(),
+      exitCode: z.number().int().nullable(),
+      signal: z.number().int().nullable(),
+      reason: z.string().nullable(),
+      finishedAt: z.number().nullable(),
+      statusReason: z.string().nullable(),
+    })
+    .nullable(),
 });
 
-export type Deployment = z.infer<typeof schema>;
+export type Deployment = z.infer<typeof deploymentSchema>;
+
+export const DEPLOYMENTS_DEFAULT_LIMIT = 100;
+
+type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
+
+function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "string" ? value : undefined;
+}
+
+function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "number" ? value : undefined;
+}
 
 /**
  * Global deployments collection.
@@ -52,23 +117,38 @@ export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["deployments", projectId] : ["deployments"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const appId = extractStringFilter(filters, "appId", "eq");
+      const startTime = extractNumberFilter(filters, "createdAt", "gte");
+      const endTime = extractNumberFilter(filters, "createdAt", "lte");
+      return projectId
+        ? ["deployments", projectId, appId ?? null, startTime ?? null, endTime ?? null]
+        : ["deployments"];
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
       validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(options);
+      const projectId = extractStringFilter(filters, "projectId", "eq");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return trpcClient.deploy.deployment.list.query({ projectId });
+      const appId = extractStringFilter(filters, "appId", "eq");
+      const startTime = extractNumberFilter(filters, "createdAt", "gte");
+      const endTime = extractNumberFilter(filters, "createdAt", "lte");
+
+      return trpcClient.deploy.deployment.list.query({
+        projectId,
+        ...(appId !== undefined && { appId }),
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+      });
     },
     getKey: (item) => item.id,
     id: "deployments",

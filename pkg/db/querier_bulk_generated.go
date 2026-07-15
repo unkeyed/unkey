@@ -14,10 +14,9 @@ type BulkQuerier interface {
 	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
-	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
-	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
+	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
 	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
@@ -30,6 +29,7 @@ type BulkQuerier interface {
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
+	InsertHorizontalAutoscalingPolicies(ctx context.Context, db DBTX, args []InsertHorizontalAutoscalingPolicyParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
 	UpsertIdentity(ctx context.Context, db DBTX, args []UpsertIdentityParams) error
@@ -46,13 +46,16 @@ type BulkQuerier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
 	UpsertOpenApiSpec(ctx context.Context, db DBTX, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
+	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
+	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
+	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
+	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
-	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

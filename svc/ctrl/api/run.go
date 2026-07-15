@@ -13,18 +13,28 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
+	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/uid"
+	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -32,6 +42,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
@@ -58,6 +69,10 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
@@ -91,14 +106,12 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("ctrl")
 
 	// Initialize database
-	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-	})
+	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-api", cfg.Region))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -118,14 +131,61 @@ func Run(ctx context.Context, cfg Config) error {
 		APIKey:  cfg.Restate.APIKey,
 	})
 
-	c := cluster.New(cluster.Config{
-		Database: database,
-		Restate:  restateClient,
-		Bearer:   cfg.AuthToken,
+	clk := clock.New()
+	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
+		Fresh:    5 * time.Minute,
+		Stale:    30 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_topology_min_replicas",
+		Clock:    clk,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create topology cache: %w", err)
+	}
+
+	// Set up the ClickHouse buffer that absorbs container lifecycle events
+	// reported by krane. Falls back to a noop when no URL is configured so
+	// the api still serves traffic in environments without ClickHouse: the
+	// dashboard's events panel will simply be empty.
+	//
+	// When a URL *is* configured but the client fails to construct, we fail
+	// the boot — same fail-fast policy every other configured backend uses
+	// (database, topology cache, cluster service, GitHub client). Logging
+	// and continuing with the noop sink would silently drop every event for
+	// the lifetime of the process and the failure would be invisible until
+	// someone notices the dashboard is empty.
+	instanceEvents := batch.NewNoop[schema.InstanceEventV1]()
+	if cfg.ClickHouse.URL != "" {
+		chClient, chErr := clickhouse.New(clickhouse.Config{URL: cfg.ClickHouse.URL})
+		if chErr != nil {
+			return fmt.Errorf("failed to create clickhouse client: %w", chErr)
+		}
+		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, clickhouse.BufferConfig{
+			Name:          "instance_events",
+			BatchSize:     1_000,
+			BufferSize:    2_000,
+			FlushInterval: 2 * time.Second,
+			Consumers:     1,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		r.Defer(func() error { instanceEvents.Close(); return nil })
+		r.Defer(chClient.Close)
+	}
+
+	c, err := cluster.New(cluster.Config{
+		Database:       database,
+		Restate:        restateClient,
+		Bearer:         cfg.AuthToken,
+		Clock:          clk,
+		TopologyCache:  topologyCache,
+		InstanceEvents: instanceEvents,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create cluster service: %w", err)
+	}
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
-	clk := clock.New()
 	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{
 		Fresh:    5 * time.Minute,
 		Stale:    10 * time.Minute,
@@ -169,12 +229,25 @@ func Run(ctx context.Context, cfg Config) error {
 	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
-		Database:     database,
-		Restate:      restateClient,
-		RestateAdmin: restateAdminClient,
-		GitHub:       ghClient,
-		Bearer:       cfg.AuthToken,
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
+	deploymentSvc := deployment.New(deployment.Config{
+		Database:                        database,
+		Restate:                         restateClient,
+		RestateAdmin:                    restateAdminClient,
+		GitHub:                          ghClient,
+		Auditlogs:                       auditlogSvc,
+		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		Bearer:                          cfg.AuthToken,
+	})
+	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
+	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
+		DeploymentService: deploymentSvc,
+		Bearer:            cfg.AuthToken,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{
@@ -185,6 +258,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:             database,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
+		Bearer:         cfg.AuthToken,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 	// Domain Connect signing key (optional)
@@ -208,26 +282,37 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:                     cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
-		Database: database,
-		Restate:  restateClient,
-		Bearer:   cfg.AuthToken,
+		Database:  database,
+		Restate:   restateClient,
+		Auditlogs: auditlogSvc,
+		Bearer:    cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database:   database,
-		Restate:    restateClient,
-		AppService: appSvc,
-		Bearer:     cfg.AuthToken,
+		Database:          database,
+		Restate:           restateClient,
+		Bearer:            cfg.AuthToken,
+		EnforceDeployGate: cfg.DeployGate.Enforce,
+		Auditlogs:         auditlogSvc,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
-		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			restate:       restateClient,
-			webhookSecret: cfg.GitHub.WebhookSecret,
-		})
+		mux.Handle("POST /webhooks/github", githubwebhook.New(restateClient, cfg.GitHub.WebhookSecret))
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
+		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
+			restateClient,
+			stripesdk.NewClient(cfg.Stripe.SecretKey),
+			database,
+			cfg.Stripe.WebhookSecret,
+		))
+		logger.Info("Stripe webhook handler registered")
+	} else {
+		logger.Info("Stripe webhook handler not registered, no webhook secret configured")
 	}
 
 	// Configure server

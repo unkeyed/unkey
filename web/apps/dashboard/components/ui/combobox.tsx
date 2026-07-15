@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Check, ChevronExpandY } from "@unkey/icons";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { Button, Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cva } from "class-variance-authority";
 import * as React from "react";
 
@@ -86,7 +86,8 @@ type ComboboxProps = {
   creatable?: boolean;
   /** Hide the chevron icon in the trigger */
   hideChevron?: boolean;
-  /** Additional accessibility attributes */
+  /** Class name applied to the popover content container */
+  popoverClassName?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
   "aria-required"?: boolean;
@@ -109,6 +110,7 @@ export function Combobox({
   id,
   creatable = false,
   hideChevron = false,
+  popoverClassName,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
@@ -150,51 +152,54 @@ export function Combobox({
     >
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
-          <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+          <div className="absolute left-3 z-10 flex items-center pointer-events-none">
+            {leftIcon}
+          </div>
         )}
-        <PopoverTrigger asChild className="w-full">
-          <Button
-            variant="outline"
-            // biome-ignore lint/a11y/useSemanticElements: <explanation>
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            id={id}
-            aria-describedby={ariaDescribedby}
-            aria-invalid={ariaInvalid}
-            aria-required={ariaRequired}
-            className={cn(
-              comboboxTriggerVariants({ variant }),
-              "px-3 py-0",
-              leftIcon && "pl-9",
-              !hideChevron && "pr-9", // Space for the chevron icon when visible
-              "justify-between font-normal w-full [&_svg]:size-3",
-              className,
-            )}
-            {...otherProps}
-          >
-            {selectedOption ? (
-              <div className="py-0 w-full text-left">
-                {selectedOption.selectedLabel || selectedOption.label}
-              </div>
-            ) : value && creatable ? (
-              <div className="py-0 w-full text-left">{value}</div>
-            ) : (
-              <div className="text-left w-full">{placeholder}</div>
-            )}
-            {!hideChevron && <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />}
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          className="w-full"
+          render={
+            <Button
+              variant="outline"
+              // biome-ignore lint/a11y/useSemanticElements: <explanation>
+              role="combobox"
+              aria-expanded={open}
+              disabled={disabled}
+              id={id}
+              aria-describedby={ariaDescribedby}
+              aria-invalid={ariaInvalid}
+              aria-required={ariaRequired}
+              className={cn(
+                comboboxTriggerVariants({ variant }),
+                "px-3 py-0",
+                leftIcon && "pl-9",
+                !hideChevron && "pr-9", // Space for the chevron icon when visible
+                "justify-between font-normal w-full [&_svg]:size-3",
+                className,
+              )}
+              {...otherProps}
+            >
+              {selectedOption ? (
+                <div className="py-0 w-full text-left truncate">
+                  {selectedOption.selectedLabel || selectedOption.label}
+                </div>
+              ) : value && creatable ? (
+                <div className="py-0 w-full text-left truncate">{value}</div>
+              ) : (
+                <div className="text-left w-full">{placeholder}</div>
+              )}
+              {!hideChevron && (
+                <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
+              )}
+            </Button>
+          }
+        />
       </div>
       <PopoverContent
-        className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
-        onOpenAutoFocus={(e) => {
-          // Let the CommandInput receive focus so users can type immediately
-          e.preventDefault();
-          if (e.currentTarget instanceof HTMLElement) {
-            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
-          }
-        }}
+        className={cn(
+          "p-0 w-full min-w-(--anchor-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
+          popoverClassName,
+        )}
       >
         <Command
           onKeyDown={(e) => {
@@ -214,9 +219,14 @@ export function Combobox({
             onValueChange={setSearch}
             onInput={onChange}
             onKeyDown={(e) => {
-              // Prevent propagation to Dialog but allow command list navigation
-              e.stopPropagation();
-              // When creatable and Enter is pressed with no matching option, submit the typed value
+              if (
+                e.key !== "ArrowDown" &&
+                e.key !== "ArrowUp" &&
+                e.key !== "Enter" &&
+                e.key !== "Escape"
+              ) {
+                e.stopPropagation();
+              }
               if (creatable && e.key === "Enter" && search.trim()) {
                 const hasMatch = effectiveOptions.some(
                   (o) => (o.searchValue || o.value).toLowerCase() === search.trim().toLowerCase(),
@@ -247,9 +257,9 @@ export function Combobox({
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0 text-gray-9 text-xs"
+                  className="flex items-center py-1 mt-0 text-gray-9 text-xs overflow-hidden"
                 >
-                  Use "{search.trim()}"
+                  <span className="truncate">Use "{search.trim()}"</span>
                 </CommandItem>
               )}
               {effectiveOptions.map((option) => (
@@ -268,13 +278,16 @@ export function Combobox({
                     }
                   }}
                   className={cn(
-                    "flex items-center py-1 mt-0",
+                    "flex items-center py-1 mt-0 overflow-hidden",
                     option.disabled && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {option.label}
+                  <span className="truncate">{option.label}</span>
                   <Check
-                    className={cn("ml-auto", value === option.value ? "opacity-100" : "opacity-0")}
+                    className={cn(
+                      "ml-auto shrink-0",
+                      value === option.value ? "opacity-100" : "opacity-0",
+                    )}
                     iconSize="sm-regular"
                   />
                 </CommandItem>
@@ -282,6 +295,10 @@ export function Combobox({
             </CommandGroup>
           </CommandList>
         </Command>
+        {/* Base UI only enables the modal focus trap when a Close element is
+            rendered inside the popup, so keep this even though it is visually
+            hidden. */}
+        <PopoverClose className="sr-only">Close</PopoverClose>
       </PopoverContent>
     </Popover>
   );

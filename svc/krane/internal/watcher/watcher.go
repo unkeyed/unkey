@@ -9,9 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
-	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"golang.org/x/sync/semaphore"
 )
@@ -24,12 +22,10 @@ const (
 )
 
 // Watcher consumes the unified WatchDeploymentChanges stream and dispatches
-// events to the deployment, sentinel, and cilium controllers.
+// events to the deployment and cilium controllers.
 type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
-	sentinels   *sentinel.Controller
-	cilium      *cilium.Controller
 	sem         *semaphore.Weighted
 	region      string
 	platform    string
@@ -39,8 +35,6 @@ type Watcher struct {
 type Config struct {
 	Cluster     ctrl.ClusterServiceClient
 	Deployments *deployment.Controller
-	Sentinels   *sentinel.Controller
-	Cilium      *cilium.Controller
 	Region      string
 	Platform    string
 }
@@ -50,12 +44,14 @@ func New(cfg Config) *Watcher {
 	return &Watcher{
 		cluster:     cfg.Cluster,
 		deployments: cfg.Deployments,
-		sentinels:   cfg.Sentinels,
-		cilium:      cfg.Cilium,
 		sem:         semaphore.NewWeighted(maxConcurrentDispatches),
 		region:      cfg.Region,
 		platform:    cfg.Platform,
 	}
+}
+
+func (s *Watcher) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: s.platform, Name: s.region}
 }
 
 // Watch runs two independent loops:
@@ -87,7 +83,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
-			Region:          s.region,
+			Region:          s.regionKey(),
 			VersionLastSeen: versionLastSeen,
 		})
 		if err != nil {
@@ -151,7 +147,9 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	metrics.WatcherFullSyncsTotal.Inc()
 	start := time.Now()
 
-	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{})
+	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{
+		Region: s.regionKey(),
+	})
 	if err != nil {
 		logger.Error("full sync: error opening connection", "error", err)
 		return
@@ -188,10 +186,6 @@ func eventResourceType(event *ctrlv1.DeploymentChangeEvent) string {
 	switch event.GetEvent().(type) {
 	case *ctrlv1.DeploymentChangeEvent_Deployment:
 		return "deployment"
-	case *ctrlv1.DeploymentChangeEvent_Sentinel:
-		return "sentinel"
-	case *ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy:
-		return "cilium_network_policy"
 	default:
 		return "unknown"
 	}
@@ -211,32 +205,6 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 			return s.deployments.DeleteDeployment(ctx, op.Delete)
 		default:
 			return fmt.Errorf("unhandled deployment state type %T at version %d", op, event.GetVersion())
-		}
-
-	case *ctrlv1.DeploymentChangeEvent_Sentinel:
-		if e.Sentinel == nil {
-			return fmt.Errorf("received sentinel change event with nil sentinel state at version %d", event.GetVersion())
-		}
-		switch op := e.Sentinel.GetState().(type) {
-		case *ctrlv1.SentinelState_Apply:
-			return s.sentinels.ApplySentinel(ctx, op.Apply)
-		case *ctrlv1.SentinelState_Delete:
-			return s.sentinels.DeleteSentinel(ctx, op.Delete)
-		default:
-			return fmt.Errorf("unhandled sentinel state type %T at version %d", op, event.GetVersion())
-		}
-
-	case *ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy:
-		if e.CiliumNetworkPolicy == nil {
-			return fmt.Errorf("received cilium policy change event with nil policy state at version %d", event.GetVersion())
-		}
-		switch op := e.CiliumNetworkPolicy.GetState().(type) {
-		case *ctrlv1.CiliumNetworkPolicyState_Apply:
-			return s.cilium.ApplyCiliumNetworkPolicy(ctx, op.Apply)
-		case *ctrlv1.CiliumNetworkPolicyState_Delete:
-			return s.cilium.DeleteCiliumNetworkPolicy(ctx, op.Delete)
-		default:
-			return fmt.Errorf("unhandled cilium policy state type %T at version %d", op, event.GetVersion())
 		}
 
 	case nil:

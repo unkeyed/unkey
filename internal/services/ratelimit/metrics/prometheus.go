@@ -93,21 +93,22 @@ var (
 	// RatelimitDecision counts rate-limit decisions.
 	//
 	// Labels:
+	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
 	//     "origin" when a cold-window or strict-mode Redis fetch was required.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
-	//   metrics.RatelimitDecision.WithLabelValues("local", "passed").Inc()
-	//   metrics.RatelimitDecision.WithLabelValues("origin", "denied").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "local", "passed").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "origin", "denied").Inc()
 	RatelimitDecision = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
-		[]string{"source", "outcome"},
+		[]string{"workspace_id", "source", "outcome"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS
@@ -127,52 +128,68 @@ var (
 	)
 
 	// RatelimitStrictModeActivations counts how often a denial triggered strict
-	// mode for a (name, identifier, duration) tuple. Until the deadline passes,
-	// subsequent requests on that tuple force a synchronous origin fetch to
-	// converge local state. Spikes correlate with sustained denial pressure
-	// and an increase in origin-fetch latency on the hot path.
+	// mode for a (workspace, namespace, identifier, duration) tuple. Until the
+	// deadline passes, subsequent requests on that tuple force a synchronous
+	// origin fetch to converge local state. Spikes correlate with sustained
+	// denial pressure and an increase in origin-fetch latency on the hot path.
+	//
+	// Labels:
+	//   - workspace_id: the workspace whose tuple entered strict mode.
 	//
 	// Example usage:
-	//   metrics.RatelimitStrictModeActivations.Inc()
-	RatelimitStrictModeActivations = lazy.NewCounter(
+	//   metrics.RatelimitStrictModeActivations.WithLabelValues(workspaceID).Inc()
+	RatelimitStrictModeActivations = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "strict_mode_activations_total",
-			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple.",
+			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple, labeled by workspace_id.",
 		},
+		[]string{"workspace_id"},
 	)
 )
 
 // Origin (Redis) health: latency and error rates for the operations that
 // keep nodes eventually consistent.
 //
-// Both metrics share an "op" label:
+// These metrics share an "op" label:
 //
-//   - op="fetch" — GET on the request path (cold windows and strict mode).
-//     Latency here directly affects request p99.
-//   - op="sync"  — INCR from the replay workers. Latency here predicts how
+//   - op="fetch_cold" — first GET for a local counter entry.
+//   - op="fetch_stale" — periodic GET for a warm counter entry.
+//   - op="fetch_strict" — forced GET after strict mode activates.
+//   - op="sync" — INCR from the replay workers. Latency here predicts how
 //     quickly local counters across nodes converge.
-//
-// Total operations per op are available as the histogram's implicit _count
-// series, e.g. ratelimit_origin_latency_seconds_count{op="fetch"}.
 var (
+	// RatelimitOriginOperations counts origin operations attempted by the
+	// ratelimit service. Use this as the primary source for operation rates;
+	// use RatelimitOriginLatency for duration and RatelimitOriginErrors for
+	// failures.
+	//
+	// Example usage:
+	//   metrics.RatelimitOriginOperations.WithLabelValues("fetch_stale").Inc()
+	//   metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
+	RatelimitOriginOperations = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "origin_operations_total",
+			Help:      "Total number of origin operations attempted, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
+		},
+		[]string{"op"},
+	)
+
 	// RatelimitOriginLatency observes the wall-clock latency of origin
 	// operations.
 	//
-	// Labels:
-	//   - op: "fetch" for hot-path GET calls (cold window / strict mode);
-	//     "sync" for replay-worker INCR calls.
-	//
 	// Example usage:
-	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(seconds)
+	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch_stale").Observe(seconds)
 	//   metrics.RatelimitOriginLatency.WithLabelValues("sync").Observe(seconds)
 	RatelimitOriginLatency = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "origin_latency_seconds",
-			Help:      "Latency of origin operations in seconds, labeled by op (fetch|sync).",
+			Help:      "Latency of origin operations in seconds, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
 			Buckets:   latencyBuckets,
 		},
 		[]string{"op"},
@@ -181,26 +198,118 @@ var (
 	// RatelimitOriginErrors counts origin operations that returned an error
 	// (including circuit-breaker trips and hot-path timeouts).
 	//
-	// Labels:
-	//   - op: "fetch" for hot-path GET calls (cold window / strict mode);
-	//     "sync" for replay-worker INCR calls.
-	//   - reason: "timeout" when the per-call deadline elapsed (e.g. the
-	//     150ms hot-path budget on fetch); "other" for any other error
-	//     surface (Redis returned an error, circuit breaker open, etc.).
-	//     Sustained timeouts on op="fetch" are alert-worthy: they mean
-	//     the rate-limit decision is falling back to local state because
-	//     Redis is slow, which loosens cross-node convergence.
-	//
-	// Example usage:
-	//   metrics.RatelimitOriginErrors.WithLabelValues("fetch", "timeout").Inc()
-	//   metrics.RatelimitOriginErrors.WithLabelValues("sync", "other").Inc()
+	// reason: "circuit_open" (breaker short-circuit — dominates the count once
+	// open, not a real failure), "timeout" (deadline or socket timeout), or
+	// "other" (Redis/network error). For root cause, look at reason!="circuit_open".
 	RatelimitOriginErrors = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "origin_errors_total",
-			Help:      "Total number of origin operations that returned an error, labeled by op (fetch|sync) and reason (timeout|other).",
+			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (circuit_open|timeout|other).",
 		},
 		[]string{"op", "reason"},
+	)
+)
+
+// Cross-region G-Counter propagation: tracks the per-region count
+// flush/sync path that shares observed counts across regions so each
+// region can fold cross-region traffic into its sliding-window math.
+var (
+	// RatelimitGlobalPushTotal counts rows successfully upserted to
+	// ratelimit_global_counters by the cross-region push. Reflects
+	// throughput of the count-sharing channel; combined with the active
+	// global counter it characterizes write pressure on MySQL.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalPushTotal.Add(float64(len(batch)))
+	RatelimitGlobalPushTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_push_total",
+			Help:      "Total number of rows written to the cross-region ratelimit_global_counters table.",
+		},
+	)
+
+	// RatelimitGlobalPushErrors counts cross-region push attempts
+	// that failed (MySQL error or circuit-breaker trip). The events were
+	// dropped; the next flush tick re-emits any entry that still
+	// satisfies the change and utilization filters. Sustained non-zero
+	// values indicate the propagation channel is impaired.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalPushErrors.Inc()
+	RatelimitGlobalPushErrors = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_push_errors_total",
+			Help:      "Total number of cross-region pushes that failed.",
+		},
+	)
+
+	// RatelimitGlobalPullRowsApplied counts rows pulled from
+	// ratelimit_global_counters and applied to local
+	// counterEntry.globalCount on each pull tick. Idempotent across
+	// ticks: applying the same row twice is a no-op via atomicMax on the
+	// per-key sum.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
+	RatelimitGlobalPullRowsApplied = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_pull_rows_applied_total",
+			Help:      "Total number of cross-region rows applied to local globalCount state.",
+		},
+	)
+
+	// RatelimitGlobalPullErrors counts pull ticks that failed to read
+	// ratelimit_global_counters. Local globalCount state remains as it
+	// was at the previous successful sync.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalPullErrors.Inc()
+	RatelimitGlobalPullErrors = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_pull_errors_total",
+			Help:      "Total number of cross-region pull ticks that returned an error.",
+		},
+	)
+
+	// RatelimitGlobalEntriesCreated counts counterEntry instances
+	// created by the cross-region pull loop because no local traffic had
+	// touched the matching key yet. Separate from RatelimitWindowsCreated
+	// so the traffic-driven cardinality signal stays clean.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalEntriesCreated.Inc()
+	RatelimitGlobalEntriesCreated = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_entries_created_total",
+			Help:      "Total number of counterEntry instances created by the cross-region pull loop.",
+		},
+	)
+
+	// RatelimitGlobalPullRowsLastPoll is the row count returned by the
+	// most recent cross-region pull query. Set on every successful sync
+	// tick. Multiplied by region count and sync frequency, this is the
+	// dominant read load the count-sharing channel puts on MySQL.
+	//
+	// Example usage:
+	//   metrics.RatelimitGlobalPullRowsLastPoll.Set(float64(len(rows)))
+	RatelimitGlobalPullRowsLastPoll = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "global_pull_rows_last_poll",
+			Help:      "Number of rows returned by the most recent cross-region pull query.",
+		},
 	)
 )

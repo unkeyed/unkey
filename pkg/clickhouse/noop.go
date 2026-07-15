@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
 // noop implements the ClickHouse interface but discards all operations.
@@ -23,9 +24,19 @@ func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, ye
 	return 0, nil
 }
 
+// GetVerificationsByExternalID implements the Querier interface but always returns nil.
+func (n *noop) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
+	return nil, nil
+}
+
 // GetBillableUsageAboveThreshold implements the Querier interface but always returns an empty map.
 func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error) {
 	return make(map[string]int64), nil
+}
+
+// GetInstanceMeterUsage implements the Querier interface but always returns an empty slice.
+func (n *noop) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error) {
+	return nil, nil
 }
 
 // GetDeploymentRequestCount implements the Querier interface but always returns 0.
@@ -36,6 +47,11 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 // GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
 func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	return nil, nil
+}
+
+// InsertAuditLogs implements the Querier interface but discards the input.
+func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error {
+	return nil
 }
 
 func (n *noop) Conn() ch.Conn {

@@ -3,14 +3,18 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -21,8 +25,7 @@ type (
 
 // Handler implements zen.Route interface for the v2 identities list identities endpoint
 type Handler struct {
-	DB   db.Database
-	Keys keys.KeyService
+	DB db.Database
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,8 +40,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -49,15 +51,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor)
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
+	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Deleted:     false,
-		IDCursor:    cursor,
-		Limit:       int32(limit + 1), // nolint:gosec
+		IDCursor:    p.Cursor,
+		Search:      search,
+		Limit:       p.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -65,14 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results than the requested limit
-	hasMore := len(identities) > limit
-	var newCursor *string
-	if hasMore {
-		newCursor = ptr.P(identities[len(identities)-1].ID)
-		// Trim the results to the requested limit
-		identities = identities[:limit]
-	}
+	identities, pg := pagination.Paginate(identities, p, func(r db.ListIdentitiesRow) string { return r.ID })
 
 	// Check permissions for all identities before processing
 	for _, id := range identities {
@@ -88,9 +83,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "*",
 				Action:       rbac.ReadIdentity,
 			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+				permissions.ReadIdentity{},
+			),
 		)
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(permissionCheck))
+		err = principal.Authorize(permissionCheck)
 		if err != nil {
 			return err
 		}
@@ -115,7 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Id:        r.ID,
 				Name:      r.Name,
 				Limit:     int64(r.Limit),
-				Duration:  r.Duration,
+				Duration:  int64(r.Duration),
 				AutoApply: r.AutoApply,
 			})
 		}
@@ -141,11 +140,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
-		Pagination: openapi.Pagination{
-			HasMore: hasMore,
-			Cursor:  newCursor,
-		},
+		Data:       data,
+		Pagination: pg,
 	}
 
 	return s.JSON(http.StatusOK, response)

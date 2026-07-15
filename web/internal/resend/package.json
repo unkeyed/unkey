@@ -9,10 +9,12 @@
   "license": "AGPL-3.0",
   "scripts": {
     "dev": "email dev",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync-templates": "tsx ./scripts/sync-templates.tsx"
   },
   "devDependencies": {
     "@types/node": "20.14.9",
+    "tsx": "4.19.1",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.5",
     "@unkey/tsconfig": "workspace:^",

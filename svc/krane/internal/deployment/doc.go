@@ -24,13 +24,14 @@
 //
 // All user workloads run with gVisor isolation (RuntimeClass "gvisor") since they
 // execute untrusted code. Each namespace gets a CiliumNetworkPolicy that restricts
-// ingress to only sentinels with matching workspace and environment IDs.
+// ingress to only the frontline namespace on the deployment's container port.
 //
 // # Scheduling
 //
-// Deployment pods are spread across availability zones using TopologySpreadConstraints
-// with maxSkew=1 for high availability. Pod affinity prefers scheduling in the same
-// zone as the environment's sentinels to minimize cross-AZ latency.
+// Deployment pods are spread across both nodes and availability zones using
+// TopologySpreadConstraints with maxSkew=1 for high availability. The hostname
+// constraint keeps a deployment's replicas from stacking on a single node; the
+// zone constraint adds cross-AZ redundancy once the cluster spans multiple zones.
 //
 // # Usage
 //

@@ -23,7 +23,6 @@ func TestWorkspaceRateLimit_NoQuota_FailsOpen(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
@@ -65,7 +64,6 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
@@ -105,7 +103,6 @@ func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)
@@ -146,7 +143,6 @@ func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 	h.Register(route)

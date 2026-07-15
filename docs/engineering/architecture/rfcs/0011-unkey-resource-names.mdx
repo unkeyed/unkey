@@ -6,6 +6,15 @@ authors:
   - Andreas Thomas
 ---
 
+<Note>
+  This RFC records the original proposal. The implemented `v1` resource-name
+  contract is documented in [Unkey Resource Names](/architecture/resources/unkey-resource-names)
+  and [Resource permissions](/architecture/authorization/resource-permissions).
+  The implemented contract uses `unkey:v1:{workspace_id}:{resource_path}` and
+  includes resource-name patterns with `*` and trailing `/**` for authorization
+  grants.
+</Note>
+
 ## 1. Background
 
 As we grow Unkey from a single API authentication product into a comprehensive API infrastructure platform with multiple services, we face increasing complexity in resource identification and error handling. Our current approach lacks a consistent, scalable system for uniquely identifying resources across services and providing structured error information to developers.

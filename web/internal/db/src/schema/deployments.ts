@@ -14,7 +14,6 @@ import { environments } from "./environments";
 import { instances } from "./instances";
 import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
-import { sentinels } from "./sentinels";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -57,9 +56,7 @@ export const deployments = mysqlTable(
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),
-    desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
-      .notNull()
-      .default("running"),
+    desiredState: mysqlEnum("desired_state", ["running", "stopped"]).notNull().default("running"),
 
     // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
     // Encrypted values from environment_variables at deploy time
@@ -115,6 +112,25 @@ export const deployments = mysqlTable(
     ])
       .notNull()
       .default("pending"),
+
+    // What surface triggered this deployment.
+    // "unknown" is used for historical rows inserted before this column existed.
+    trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])
+      .notNull()
+      .default("unknown"),
+
+    // Polymorphic actor id, interpreted based on `trigger`:
+    //   dashboard -> user_id
+    //   api / cli -> root_key_id
+    //   github    -> github sender_login (pusher; the commit author is
+    //                stored separately in git_commit_author_handle)
+    //   unkey     -> internal user_id
+    //   unknown   -> null
+    triggeredBy: varchar("triggered_by", { length: 256 }),
+
+    // Free-form reason, populated mostly for trigger=unkey
+    // (e.g. "rebuild after image loss").
+    triggerReason: varchar("trigger_reason", { length: 512 }),
     ...lifecycleDates,
   },
   (table) => [
@@ -143,7 +159,6 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
     references: [openapiSpecs.deploymentId],
   }),
 
-  sentinels: many(sentinels),
   instances: many(instances),
   steps: many(deploymentSteps),
 }));

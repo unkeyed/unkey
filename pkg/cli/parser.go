@@ -196,12 +196,32 @@ func (c *Command) initFlagMap() {
 	}
 }
 
-// validateRequiredFlags checks that all required flags have been set
+// validateRequiredFlags checks that all required flags have been set and that
+// every RequireOneOf group has exactly one of its flags set.
 func (c *Command) validateRequiredFlags() error {
 	for _, flag := range c.Flags {
 		if flag.Required() && !flag.HasValue() {
 			return fmt.Errorf("required flag missing: %s", flag.Name())
 		}
 	}
+
+	for _, group := range c.RequireOneOf {
+		set := 0
+		for _, name := range group {
+			flag, ok := c.flagMap[name]
+			if !ok {
+				// A group naming a flag the command does not define is a
+				// programming error in the command definition, not user input.
+				return fmt.Errorf("RequireOneOf references unknown flag: %s", name)
+			}
+			if flag.HasValue() {
+				set++
+			}
+		}
+		if set != 1 {
+			return fmt.Errorf("exactly one of --%s is required", strings.Join(group, " or --"))
+		}
+	}
+
 	return nil
 }

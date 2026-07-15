@@ -34,7 +34,8 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   ) => {
     const descriptionAsTooltip = descriptionPosition === "label";
     const textareaVariant = error ? "error" : variant;
-    const textareaId = id || React.useId();
+    const generatedId = React.useId();
+    const textareaId = id || generatedId;
     const descriptionId = `${textareaId}-helper`;
     const errorId = `${textareaId}-error`;
 

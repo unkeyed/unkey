@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -25,20 +26,25 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -47,12 +53,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
+
+	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
-	workersentinel "github.com/unkeyed/unkey/svc/ctrl/worker/sentinel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -78,6 +84,14 @@ import (
 // fails, or during server startup. Context cancellation results in
 // clean shutdown with nil error.
 func Run(ctx context.Context, cfg Config) error {
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
+	}
+	cfg.CnameDomain = strings.TrimSuffix(strings.TrimSpace(cfg.CnameDomain), ".")
+
 	// Disable CNAME following in lego to prevent it from following wildcard CNAMEs
 	// (e.g., *.example.com -> loadbalancer.aws.com) and failing Route53 zone lookup.
 	// Must be set before creating any ACME DNS providers.
@@ -115,6 +129,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("worker")
 
@@ -132,10 +147,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize database
-	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-	})
+	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-worker", cfg.Region))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -160,6 +172,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	// Billing usage reader is the concrete *clickhouse.Client: the meter query
+	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
+	// ClickHouse is configured, which leaves the billing push disabled.
+	var billingUsageReader deploybilling.UsageReader
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
@@ -171,8 +187,9 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
 			ch = chClient
+			billingUsageReader = chClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -181,7 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -198,8 +215,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Restate Server - uses logging.GetHandler() for slog integration
-	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
+	// Restate Server. The SDK logs "Handling invocation" / "Invocation
+	// completed successfully" at INFO on every invocation, and several crons
+	// tick every minute, so its INFO chatter drowns out real signal. Give it a
+	// WARN-gated view of our handler: its warnings and errors (e.g. invocation
+	// panics) still surface, its routine success noise is dropped, and the
+	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
+	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
 
 	// Shared Restate admin client used both for service registration and
 	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
@@ -217,7 +239,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
-		SentinelImage: cfg.SentinelImage,
 
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
@@ -226,7 +247,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -286,18 +307,43 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
-		DB: database,
-	})))
-	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
-		DB: database,
-	})))
-	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
-		DB: database,
-	})))
+	// Deletion workflows write their audit logs as durable steps, so the audit
+	// record is tied to the retried deletion unit rather than the enqueueing RPC.
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
+	projectSvc, err := workerproject.New(workerproject.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create project worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectSvc))
+
+	appSvc, err := workerapp.New(workerapp.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create app worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
+
+	envSvc, err := workerenvironment.New(workerenvironment.Config{
+		DB:        database,
+		Admin:     restateAdminClient,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create environment worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc))
 
 	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
 	// journals have no debugging value (each invocation just reads state,
@@ -325,15 +371,6 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.PauseOnMaxAttempts(),
 		),
 	))
-
-	restateSrv.Bind(hydrav1.NewSentinelServiceServer(workersentinel.New(workersentinel.Config{
-		DB: database,
-	})))
-
-	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
-		DB:              database,
-		SlackWebhookURL: cfg.Slack.SentinelRolloutWebhookURL,
-	})))
 
 	// Initialize domain cache for ACME providers
 	clk := cfg.Clock
@@ -423,62 +460,123 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Quota check service for monitoring workspace usage
-	var quotaHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.QuotaCheckURL != "" {
-		quotaHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.QuotaCheckURL)
-	}
-	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
-		DB:              database,
-		Clickhouse:      ch,
-		Heartbeat:       quotaHeartbeat,
-		SlackWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
+	// Unified CronService — every scheduled task is a handler on one
+	// hydra.v1.CronService VO. No service-level retry/journal-retention
+	// defaults: each task previously lived in its own service with its
+	// own (or no) overrides, and a blanket default would silently change
+	// failure semantics — e.g. forcing PauseOnMaxAttempts on singleton-
+	// keyed VOs wedges every subsequent tick under that key. Per-handler
+	// options below mirror each task's pre-consolidation behavior.
+	cronSvc, err := cron.New(cron.Config{
+		DB:                        database,
+		Clickhouse:                ch,
+		Clock:                     clk,
+		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
+		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
+		BillingUsageReader:        billingUsageReader,
+		StripeSecretKey:           cfg.Billing.StripeSecretKey,
+		// Derived from StripeSecretKey; only tests inject these directly.
+		BillingPusher: nil,
+		BillingCloser: nil,
+		Heartbeats: cron.Heartbeats{
+			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
+		},
 	})
 	if err != nil {
-		return fmt.Errorf("create quota check service: %w", err)
+		return fmt.Errorf("create cron service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
-	logger.Info("QuotaCheckService enabled")
-
-	// Key refill service for scheduled key usage limit refills
-	var keyRefillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.KeyRefillURL != "" {
-		keyRefillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyRefillURL)
-	}
-
-	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
-		DB:        database,
-		Heartbeat: keyRefillHeartbeat,
-	})
-	if err != nil {
-		return fmt.Errorf("create key refill service: %w", err)
-	}
-	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
-	logger.Info("KeyRefillService enabled")
-
-	// Key last used sync: orchestrator + partition services
-	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
-		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
-	}
-
-	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
-		Heartbeat: keyLastUsedSyncHeartbeat,
-	})
-	if err != nil {
-		return fmt.Errorf("create key last used sync service: %w", err)
-	}
-	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
-	// Pause on exhaustion so stuck invocations are visible rather than silently discarded.
-	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
+	// Tighter policy for KeyLastUsedSync: deadlocks resolve fast and
+	// the orchestrator just fans out to partition VOs, so capping retries
+	// short makes a wedged sync visible quickly. Kill (not Pause) on
+	// exhaustion: the orchestrator fans out to 8 partition children and
+	// waits on each future sequentially, so a paused partition blocks
+	// the whole sync until an operator cancels it (incident: partitions
+	// 0/1/6/7 hit a Restate 404 and sat paused, suspending the run). The
+	// sync is idempotent and cron-triggered, has no compensation, and
+	// surfaces failures via the missing end-of-run heartbeat — so killing
+	// on retry exhaustion lets the orchestrator's future resolve with a
+	// terminal error, the run fails fast, and the next cron tick retries
+	// from the persisted cursor.
+	cronKeyLastUsedRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// Ratelimit global-counters cleanup keeps the pre-consolidation
+	// 5-attempt / 100ms-5s policy with PauseOnMaxAttempts: stateless
+	// DELETE that the hot path doesn't depend on, so pausing for an
+	// operator to inspect a real failure is better than killing silently.
+	cronRatelimitGCCRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
 		restate.PauseOnMaxAttempts(),
 	)
-	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
+	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy: a
+	// stateless, cutoff-bounded DELETE the hot path doesn't depend on, so
+	// pausing for an operator to inspect a real failure beats killing
+	// silently. The daily cadence means a paused run is caught well before
+	// the next tick.
+	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.PauseOnMaxAttempts(),
+	)
+	// AuditLogExport runs every minute and is idempotent: any failure is
+	// recovered by the next tick, not by replaying journals from
+	// yesterday. 1h journal retention keeps enough debugging headroom for
+	// an oncall to inspect a recent failure without bloating the journal
+	// store with ~1440 dead invocations/day. No retry override — SDK
+	// default behavior was the pre-consolidation contract.
+	// DeployBillingClose is idempotent and cron-backed; per-workspace
+	// failures are journaled as deferred so one bad customer cannot wedge
+	// the period VO. Kill on exhaustion so the backup cron can retry with
+	// a fresh idempotency key instead of sitting behind a wedged webhook
+	// invocation.
+	cronDeployBillingCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// DeployBillingPush is the hourly month-to-date push orchestrator, keyed by
+	// billing period (YYYY-MM) so every hourly tick shares one VO. Its own reads
+	// (list workspaces, the ClickHouse scan) can fail non-terminally, and without
+	// a cap that invocation retries forever on the period VO while later ticks
+	// queue behind it. The push is idempotent (absolute month-to-date total,
+	// Stripe aggregates with "last"), so kill on exhaustion and let the next tick
+	// retry from a clean slate.
+	cronDeployBillingPushRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
+		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
+		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
+		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry))
+	logger.Info("CronService enabled")
 
+	// KeyLastUsedPartitionService is the per-partition VO fanned out from
+	// the orchestrator. Stays standalone — it's not cron-triggered.
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
 		Clickhouse: ch,
@@ -486,8 +584,30 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create key last used partition service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
-	logger.Info("KeyLastUsedSyncService enabled")
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
+	logger.Info("KeyLastUsedPartitionService enabled")
+
+	// DeployBillingPushService is the per-workspace push VO fanned out from the
+	// deploy billing orchestrator. Standalone, not cron-triggered.
+	//
+	// The handler bounds its provider push to a 2-minute retry window and returns
+	// a TerminalError on exhaustion, so today it always completes terminally and
+	// the awaiting orchestrator resolves. This explicit kill policy is the
+	// backstop. If a non-terminal failure ever reached the handler (a second Run
+	// step, a framework error), the SDK default of infinite retries would leave
+	// the child retrying forever while the orchestrator suspends on the period
+	// VO. That is the wedge this fan-out exists to prevent. Cap and kill so the
+	// child fails visibly and the next tick re-sends the absolute total. Mirrors
+	// KeyLastUsedPartitionService.
+	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
+	logger.Info("DeployBillingPushService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
@@ -497,7 +617,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-	mux.Handle("/", restateHandler)
+	mux.Handle("/", sqlcomment.WrapRestateInvokeHandler(restateHandler))
 
 	h2cHandler := h2c.NewHandler(mux, &http2.Server{
 		MaxHandlers:                  0,
@@ -577,4 +697,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Worker shut down successfully")
 	return nil
+}
+
+// cronHeartbeat returns a Checkly heartbeat for url, or a noop if url is
+// empty. Used to wire each cron task's monitoring URL without scattering
+// nil-or-noop branches through the cron service.
+func cronHeartbeat(url string) healthcheck.Heartbeat {
+	if url == "" {
+		return healthcheck.NewNoop()
+	}
+	return healthcheck.NewChecklyHeartbeat(url)
 }

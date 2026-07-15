@@ -1,6 +1,9 @@
 package openapi
 
 import (
+	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -44,4 +47,37 @@ func TestValidateSpecPath(t *testing.T) {
 			require.NotNil(t, parsed)
 		})
 	}
+}
+
+// TestReadOpenAPISpecBodyRejectsOversizedBody guarantees tenant-controlled specs
+// cannot force ctrl to buffer more than the configured OpenAPI spec limit.
+func TestReadOpenAPISpecBodyRejectsOversizedBody(t *testing.T) {
+	body := bytes.NewReader(bytes.Repeat([]byte("a"), maxOpenAPISpecBytes+1))
+
+	_, err := readOpenAPISpecBody(body)
+
+	require.ErrorIs(t, err, errOpenAPISpecTooLarge)
+}
+
+func TestHTTPClientRefusesRedirects(t *testing.T) {
+	internalHit := false
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		internalHit = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(internal.Close)
+
+	deployment := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Redirect(w, &http.Request{}, internal.URL, http.StatusFound)
+	}))
+	t.Cleanup(deployment.Close)
+
+	client := New(Config{}).httpClient
+
+	resp, err := client.Get(deployment.URL)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	require.Equal(t, http.StatusFound, resp.StatusCode)
+	require.False(t, internalHit, "client must not follow redirect to internal host")
 }

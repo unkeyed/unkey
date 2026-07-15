@@ -18,8 +18,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_roles"
 	"golang.org/x/sync/errgroup"
 )
@@ -30,7 +32,6 @@ func TestSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -182,20 +183,18 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, newRoleID, finalRoles[0].ID)
 
 		// Verify audit logs show both removal and addition
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
 		require.NotEmpty(t, auditLogs)
-
 		foundDisconnectEvent := false
 		foundConnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.disconnect_role_and_key" {
+		for _, ev := range auditLogs {
+			if ev.Event == "authorization.disconnect_role_and_key" {
 				foundDisconnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Removed role admin_replace_old from key")
+				require.Contains(t, ev.Description, "Removed role admin_replace_old from key")
 			}
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
+			if ev.Event == "authorization.connect_role_and_key" {
 				foundConnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Added role editor_replace_new to key")
+				require.Contains(t, ev.Description, "Added role editor_replace_new to key")
 			}
 		}
 		require.True(t, foundDisconnectEvent, "Should find a role disconnect audit log event")
@@ -267,15 +266,13 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, finalRoles, 0)
 
 		// Verify audit log shows removal
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
 		require.NotEmpty(t, auditLogs)
-
 		foundDisconnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.disconnect_role_and_key" {
+		for _, ev := range auditLogs {
+			if ev.Event == "authorization.disconnect_role_and_key" {
 				foundDisconnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Removed role admin_remove_all from key")
+				require.Contains(t, ev.Description, "Removed role admin_remove_all from key")
 				break
 			}
 		}
@@ -319,11 +316,6 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Count existing audit logs
-		auditLogsBefore, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		auditLogCountBefore := len(auditLogsBefore)
-
 		// Set roles to the same role (no change)
 		req := handler.Request{
 			KeyId: keyID,
@@ -350,11 +342,14 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, roleID, finalRoles[0].ID)
 
-		// Verify no new audit logs were created (no changes)
-		auditLogsAfter, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		auditLogCountAfter := len(auditLogsAfter)
-		require.Equal(t, auditLogCountBefore, auditLogCountAfter, "No new audit logs should be created when no changes are made")
+		// Verify no connect/disconnect audit logs were created (no changes).
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
+		for _, ev := range auditLogs {
+			require.NotEqual(t, "authorization.connect_role_and_key", ev.Event,
+				"No new connect events should be created when no changes are made")
+			require.NotEqual(t, "authorization.disconnect_role_and_key", ev.Event,
+				"No new disconnect events should be created when no changes are made")
+		}
 	})
 }
 
@@ -368,7 +363,6 @@ func TestSetRolesConcurrent(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -447,55 +441,45 @@ func TestSetRolesConcurrent(t *testing.T) {
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
 
-	// Suppress logs — 10k requests produce too much output for Bazel.
+	// Suppress logs because 10k requests produce too much output for CI.
 	logger.SetSampler(logger.TailSampler{SampleRate: 0})
 
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
-
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
-
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
+	// This regression test intentionally registers the keys.setRoles OpenAPI
+	// operation without the real handler. The historical failure was in request
+	// validation for this operation's schema, not in role mutation. Calling the
+	// real handler here would turn the test into a 100k-request MySQL write/load
+	// test that serializes on the same key row and can run for minutes.
+	route := zen.NewRoute("POST", "/v2/keys.setRoles", func(_ context.Context, s *zen.Session) error {
+		return s.JSON(http.StatusOK, handler.Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: nil,
+		})
 	})
 
-	keyResponse := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("validation-stress-test-key"),
-	})
+	h.Register(route, h.PublicMiddleware()...)
 
 	// Create a pool of roles so each request uses a different one,
 	// defeating any schema cache that might hide the race.
 	const numRoles = 100
 	roles := make([]string, numRoles)
 	for i := range numRoles {
-		r := h.CreateRole(seed.CreateRoleRequest{
-			WorkspaceID: workspace.ID,
-			Name:        fmt.Sprintf("stress.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Stress test role %d", i)),
-		})
-		roles[i] = r.Name
+		roles[i] = fmt.Sprintf("stress.role.%d", i)
 	}
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Authorization": {"Bearer test"},
 	}
+	keyID := uid.New(uid.KeyPrefix)
 
 	// Warm up the validator's schema cache with a single request so the
 	// concurrent burst doesn't race on first-time schema rendering.
 	warmupBody, err := json.Marshal(handler.Request{
-		KeyId: keyResponse.KeyID,
+		KeyId: keyID,
 		Roles: []string{roles[0]},
 	})
 	require.NoError(t, err)
@@ -516,7 +500,7 @@ func TestValidationConcurrencyStress(t *testing.T) {
 	for i := range totalRequests {
 		g.Go(func() error {
 			body, err := json.Marshal(handler.Request{
-				KeyId: keyResponse.KeyID,
+				KeyId: keyID,
 				Roles: []string{roles[i%numRoles]},
 			})
 			if err != nil {

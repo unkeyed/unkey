@@ -24,7 +24,6 @@ func TestSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -40,6 +39,40 @@ func TestSuccess(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+
+	t.Run("urn update_key permission can set permissions", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: workspace.ID,
+		})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Name:        ptr.P("urn-set-permission-key"),
+		})
+		permission := h.CreatePermission(seed.CreatePermissionRequest{
+			WorkspaceID: workspace.ID,
+			Name:        "documents.write.urn.set",
+			Slug:        "documents.write.urn.set",
+		})
+
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+		urnHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", urnRootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, urnHeaders, handler.Request{
+			KeyId:       key.KeyID,
+			Permissions: []string{permission.Name},
+		})
+
+		require.Equal(t, 200, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Data)
+		require.Len(t, res.Body.Data, 1)
+		require.Equal(t, permission.ID, res.Body.Data[0].Id)
+	})
 
 	t.Run("set permissions using permission IDs", func(t *testing.T) {
 		// Create API with keyring using testutil helper
@@ -443,7 +476,6 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}

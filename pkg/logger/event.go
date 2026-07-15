@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -26,6 +27,10 @@ type Event struct {
 	attrs    []slog.Attr
 	errors   []error
 	written  bool
+	// pc is the program counter captured at [StartWideEvent] so the emitted
+	// log record's source attribute points at the caller that opened the
+	// event, not at this file. Zero means no PC was captured.
+	pc uintptr
 }
 
 // Add appends attributes to the event. These attributes will be included
@@ -86,21 +91,33 @@ func (e *Event) End() {
 		))
 	}
 
-	casted := []any{
+	attrs := make([]slog.Attr, 0, len(e.attrs)+2)
+	attrs = append(attrs,
 		slog.GroupAttrs("errors", errors...),
 		slog.GroupAttrs("log_meta",
 			slog.Time("start", e.start),
 			slog.Duration("duration", time.Since(e.start)),
 		),
-	}
-	for _, attr := range e.attrs {
-		casted = append(casted, attr)
-	}
+	)
+	attrs = append(attrs, e.attrs...)
 
+	level := slog.LevelInfo
+	msg := e.message
 	if len(e.errors) > 0 {
-		logger.Error("error", casted...)
-	} else {
-		logger.Info(e.message, casted...)
+		level = slog.LevelError
+		msg = "error"
 	}
 
+	ctx := context.Background()
+	if !logger.Enabled(ctx, level) {
+		return
+	}
+
+	// Build the record manually so the source attribute points at the
+	// caller of StartWideEvent (the handler/middleware that opened the
+	// event), not at this file. Using logger.Error/Info here would capture
+	// the PC of this line instead, which is useless for debugging.
+	r := slog.NewRecord(time.Now(), level, msg, e.pc)
+	r.AddAttrs(attrs...)
+	_ = logger.Handler().Handle(ctx, r)
 }

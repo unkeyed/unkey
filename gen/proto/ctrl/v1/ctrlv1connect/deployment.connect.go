@@ -49,6 +49,12 @@ const (
 	// DeployServiceCancelDeploymentProcedure is the fully-qualified name of the DeployService's
 	// CancelDeployment RPC.
 	DeployServiceCancelDeploymentProcedure = "/ctrl.v1.DeployService/CancelDeployment"
+	// DeployServiceStopDeploymentProcedure is the fully-qualified name of the DeployService's
+	// StopDeployment RPC.
+	DeployServiceStopDeploymentProcedure = "/ctrl.v1.DeployService/StopDeployment"
+	// DeployServiceWakeDeploymentProcedure is the fully-qualified name of the DeployService's
+	// WakeDeployment RPC.
+	DeployServiceWakeDeploymentProcedure = "/ctrl.v1.DeployService/WakeDeployment"
 )
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
@@ -69,6 +75,10 @@ type DeployServiceClient interface {
 	// transition the deployment to failed and release any held build slot.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
+	// Stop a ready non-production deployment by scaling it down.
+	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
+	// Wake a stopped deployment by scaling it back up.
+	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
 }
 
 // NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
@@ -118,6 +128,18 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("CancelDeployment")),
 			connect.WithClientOptions(opts...),
 		),
+		stopDeployment: connect.NewClient[v1.StopDeploymentRequest, v1.StopDeploymentResponse](
+			httpClient,
+			baseURL+DeployServiceStopDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
+			connect.WithClientOptions(opts...),
+		),
+		wakeDeployment: connect.NewClient[v1.WakeDeploymentRequest, v1.WakeDeploymentResponse](
+			httpClient,
+			baseURL+DeployServiceWakeDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -129,6 +151,8 @@ type deployServiceClient struct {
 	promote             *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
 	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
 	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
+	stopDeployment      *connect.Client[v1.StopDeploymentRequest, v1.StopDeploymentResponse]
+	wakeDeployment      *connect.Client[v1.WakeDeploymentRequest, v1.WakeDeploymentResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
@@ -161,6 +185,16 @@ func (c *deployServiceClient) CancelDeployment(ctx context.Context, req *connect
 	return c.cancelDeployment.CallUnary(ctx, req)
 }
 
+// StopDeployment calls ctrl.v1.DeployService.StopDeployment.
+func (c *deployServiceClient) StopDeployment(ctx context.Context, req *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error) {
+	return c.stopDeployment.CallUnary(ctx, req)
+}
+
+// WakeDeployment calls ctrl.v1.DeployService.WakeDeployment.
+func (c *deployServiceClient) WakeDeployment(ctx context.Context, req *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error) {
+	return c.wakeDeployment.CallUnary(ctx, req)
+}
+
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
 	// Create a new deployment from a docker image or by auto-detecting
@@ -179,6 +213,10 @@ type DeployServiceHandler interface {
 	// transition the deployment to failed and release any held build slot.
 	// Idempotent: returns success if the deployment is already terminal.
 	CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error)
+	// Stop a ready non-production deployment by scaling it down.
+	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
+	// Wake a stopped deployment by scaling it back up.
+	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
 }
 
 // NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -224,6 +262,18 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("CancelDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deployServiceStopDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceStopDeploymentProcedure,
+		svc.StopDeployment,
+		connect.WithSchema(deployServiceMethods.ByName("StopDeployment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	deployServiceWakeDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceWakeDeploymentProcedure,
+		svc.WakeDeployment,
+		connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeployServiceCreateDeploymentProcedure:
@@ -238,6 +288,10 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceAuthorizeDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceCancelDeploymentProcedure:
 			deployServiceCancelDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceStopDeploymentProcedure:
+			deployServiceStopDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceWakeDeploymentProcedure:
+			deployServiceWakeDeploymentHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -269,4 +323,12 @@ func (UnimplementedDeployServiceHandler) AuthorizeDeployment(context.Context, *c
 
 func (UnimplementedDeployServiceHandler) CancelDeployment(context.Context, *connect.Request[v1.CancelDeploymentRequest]) (*connect.Response[v1.CancelDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.CancelDeployment is not implemented"))
+}
+
+func (UnimplementedDeployServiceHandler) StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.StopDeployment is not implemented"))
+}
+
+func (UnimplementedDeployServiceHandler) WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.WakeDeployment is not implemented"))
 }

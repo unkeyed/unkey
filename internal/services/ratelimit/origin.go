@@ -3,25 +3,35 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"net"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
-// errorReason classifies err for the origin_errors_total{reason} label.
-// We only single out timeouts because they are the most actionable signal
-// (the per-call budget elapsed, not a Redis-side problem); everything else
-// — Redis errors, circuit-breaker trips, network failures — collapses to
-// "other".
+// errorReason buckets err for the origin_errors_total{reason} label so breaker
+// short-circuits don't drown out the real failures that tripped it.
 func errorReason(err error) string {
-	if errors.Is(err, context.DeadlineExceeded) {
+	if isCircuitOpen(err) {
+		return "circuit_open"
+	}
+	// go-redis surfaces a blown deadline as a socket timeout that doesn't unwrap
+	// to context.DeadlineExceeded, so check net.Error too.
+	var netErr net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
 		return "timeout"
 	}
 	return "other"
+}
+
+// isCircuitOpen reports whether err is the breaker short-circuiting rather than a real origin failure.
+func isCircuitOpen(err error) bool {
+	return circuitbreaker.IsErrTripped(err) || circuitbreaker.IsErrTooManyRequests(err)
 }
 
 // originFetchTimeout caps how long a single Redis GET on the hot path may
@@ -31,17 +41,32 @@ func errorReason(err error) string {
 // times out we treat the origin as unavailable for this request — local
 // state is used, the circuit breaker tracks the failure, and the next
 // caller will retry.
-const originFetchTimeout = 150 * time.Millisecond
+const originFetchTimeout = 300 * time.Millisecond
 
-// fetchFromOrigin returns the current counter value from the origin. The
-// call is wrapped in the origin circuit breaker so that Redis outages fail
-// fast instead of stalling every request in strict mode. On any failure
-// (circuit tripped, timeout, or Redis error) it returns 0 — callers feed
-// this into atomicMax, which is a no-op against any existing positive
-// counter, so failed fetches preserve whatever local state is already
-// there.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
+// originBreakerOpenTimeout caps how long the breaker stays open — i.e. how long
+// ratelimiting runs local-only after a blip. Far below the 60s library default
+// since in-region Redis recovers fast.
+const originBreakerOpenTimeout = 5 * time.Second
+
+// The origin breaker trips on failure *rate*, not an absolute count. A pod runs
+// hundreds of origin ops/s, and individual timeouts already degrade gracefully
+// (the request falls back to local state). An absolute threshold trips on
+// harmless sub-1% blips — e.g. the cold-key herd at window rollover — and then
+// fail-fasts every tenant on the pod. A rate only fires when a real outage
+// makes most ops fail, independent of throughput.
+const (
+	originBreakerFailureRatio = 0.5 // open when >=50% of origin ops in the window fail
+	originBreakerMinRequests  = 20  // ...but only after a meaningful sample
+)
+
+// fetchFromOrigin returns the current counter value from the origin. The call is
+// wrapped in the origin circuit breaker so that Redis outages fail fast instead
+// of stalling every request in strict mode. On any failure (circuit tripped,
+// timeout, or Redis error) it returns ok=false so callers can preserve local
+// state without marking it fresh.
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string) (count int64, ok bool) {
 	rk := key.redisKey()
+	metrics.RatelimitOriginOperations.WithLabelValues(op).Inc()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
@@ -50,18 +75,22 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
 
 		res, err := s.origin.Get(timeout, rk)
 
-		metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(time.Since(start).Seconds())
+		metrics.RatelimitOriginLatency.WithLabelValues(op).Observe(time.Since(start).Seconds())
 		return res, err
 	})
 	if err != nil {
-		metrics.RatelimitOriginErrors.WithLabelValues("fetch", errorReason(err)).Inc()
-		logger.Error("unable to get counter value from origin",
-			"key", rk,
-			"error", err.Error(),
-		)
-		return 0
+		metrics.RatelimitOriginErrors.WithLabelValues(op, errorReason(err)).Inc()
+		// Don't log breaker short-circuits — they'd flood the log for the whole
+		// open window; the circuit_open metric already tracks them.
+		if !isCircuitOpen(err) {
+			logger.Error("unable to get counter value from origin",
+				"key", rk,
+				"error", err.Error(),
+			)
+		}
+		return 0, false
 	}
-	return res
+	return res, true
 }
 
 // replayRequests processes buffered rate limit events by synchronizing them
@@ -73,7 +102,8 @@ func (s *service) replayRequests() {
 			continue
 		}
 		err := s.syncWithOrigin(context.Background(), *ptr)
-		if err != nil {
+		// Don't log breaker short-circuits (see fetchFromOrigin).
+		if err != nil && !isCircuitOpen(err) {
 			logger.Error("failed to replay request", "error", err.Error())
 		}
 	}
@@ -97,13 +127,16 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		return err
 	}
 
+	metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
+
 	durationMs := req.Duration.Milliseconds()
 	sequence := calculateSequence(req.Time, req.Duration)
 	key := counterKey{
-		name:       req.Name,
-		identifier: req.Identifier,
-		durationMs: durationMs,
-		sequence:   sequence,
+		workspaceID: req.WorkspaceID,
+		namespace:   req.Namespace,
+		identifier:  req.Identifier,
+		durationMs:  durationMs,
+		sequence:    sequence,
 	}
 
 	newCounter, err := s.originCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
@@ -126,6 +159,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	// CAS-merge: update local counter if Redis value is higher.
 	counter := s.loadCounter(key)
 	atomicMax(&counter.val, newCounter)
+	atomicMax(&counter.originFreshUntilMs, s.clock.Now().Add(originFreshDuration).UnixMilli())
 
 	return nil
 }

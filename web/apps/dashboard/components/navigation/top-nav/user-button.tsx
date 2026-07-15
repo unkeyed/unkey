@@ -1,0 +1,96 @@
+"use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { signOut } from "@/lib/auth/utils";
+import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { Laptop2, MoonStars, Sun } from "@unkey/icons";
+import { useTheme } from "next-themes";
+import type React from "react";
+
+type UserButtonProps = {
+  isCollapsed?: boolean;
+  isMobile?: boolean;
+  isMobileSidebarOpen?: boolean;
+  className?: string;
+};
+
+export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, className }) => {
+  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
+          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
+          className,
+        )}
+      >
+        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+          <Avatar className="size-6 rounded-full border border-grayA-6">
+            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+            <AvatarFallback name={user?.email ?? "Username"} />
+          </Avatar>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
+        {user?.email && (
+          <>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <span
+                  title={user.email}
+                  className="text-accent-11 text-xs truncate max-w-44 secret"
+                >
+                  {user.email}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuGroup className="w-full">
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <Tabs value={theme} onValueChange={setTheme}>
+            <TabsList className="w-full">
+              <TabsTrigger className="w-full cursor-pointer" value="light">
+                <Sun className="size-4" />
+              </TabsTrigger>
+              <TabsTrigger className="w-full cursor-pointer" value="dark">
+                <MoonStars className="size-4" />
+              </TabsTrigger>
+              <TabsTrigger className="w-full cursor-pointer" value="system">
+                <Laptop2 className="size-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuGroup className="w-full">
+          <DropdownMenuItem
+            render={<span className="text-accent-12 text-sm font-medium">Sign out</span>}
+            className="cursor-pointer"
+            onClick={async () => {
+              queryClient.clear();
+              await signOut();
+            }}
+          />
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};

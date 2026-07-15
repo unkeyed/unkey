@@ -1,6 +1,8 @@
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
+import { routes } from "@/lib/navigation/routes";
+import type { Route } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
@@ -41,11 +43,11 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
     } catch {
       // Ignore header read errors
     }
-    redirect(signInUrl);
+    redirect(signInUrl as Route);
   }
 
   if (!authResult.orgId && !authResult.role) {
-    redirect("/new");
+    redirect(routes.workspaces.create());
   }
 
   return authResult as GetAuthResult;
@@ -67,7 +69,7 @@ export async function getCurrentUser(): Promise<AuthenticatedUser> {
 
   const user = await auth.getUser(userId); // getAuth will redirect if there's no userId
   if (!user) {
-    redirect("/auth/sign-in");
+    redirect("/auth/sign-in" as Route);
   }
   return { ...user, orgId, role, impersonator };
 }

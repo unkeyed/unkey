@@ -27,7 +27,7 @@ type CreditChange struct {
 	KeyID string
 
 	// Cost is the number of credits that we should deduct
-	Cost int32
+	Cost int64
 }
 
 // RedisConfig holds configuration options for the Redis usage limiter.
@@ -177,6 +177,10 @@ func (s *counterService) Limit(ctx context.Context, req UsageRequest) (UsageResp
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.Limit")
 	defer span.End()
 
+	if err := assert.GreaterOrEqual(req.Cost, 0, "usagelimiter cost must not be negative"); err != nil {
+		return UsageResponse{}, err
+	}
+
 	redisKey := s.redisKey(req.KeyID)
 
 	// Attempt decrement if key already exists in Redis
@@ -213,13 +217,13 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 		})
 
 		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-		return UsageResponse{Valid: true, Remaining: int32(remaining)} //nolint: gosec
+		return UsageResponse{Valid: true, Remaining: remaining}
 
 	}
 
 	// Insufficient credits - return actual current count for accurate response
 	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
-	return UsageResponse{Valid: false, Remaining: int32(remaining)} //nolint: gosec
+	return UsageResponse{Valid: false, Remaining: remaining}
 }
 
 // initializeFromDatabase loads credits from DB and initializes the counter.

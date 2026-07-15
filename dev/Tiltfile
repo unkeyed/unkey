@@ -1,15 +1,34 @@
 load('ext://namespace', 'namespace_create')
-load('ext://restart_process',  'docker_build_with_restart')
 load('ext://secret', 'secret_create_generic')
+load('ext://helm_remote', 'helm_remote')
+load('ext://restart_process', 'docker_build_with_restart')
 
+config.define_string('topolvm_backing_size')
 cfg = config.parse()
+# Sparse loopback file size. Sparse means this is a ceiling, not a reservation —
+# 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
+TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
-update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
+# Tilt's background docker pruner: drop stale tilt-* tags it created earlier.
+docker_prune_settings(
+  num_builds=5,
+  keep_recent=1,
+  max_age_mins=60,
+)
 
 # Check which optional credential files exist
 has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
+
+# The stripe CLI is "logged in" when it has a configured account. When it is,
+# Tilt writes the shared webhook signing secret into both env files and forwards
+# test events to the dashboard and ctrl-api webhooks; otherwise this is skipped.
+has_stripe_login = str(local(
+    "stripe config --list 2>/dev/null | grep -q account_id && echo yes || echo no",
+    quiet=True,
+    echo_off=True,
+)).strip() == "yes"
 
 local_resource(
   'namespace',
@@ -18,14 +37,14 @@ local_resource(
 )
 
 local_resource(
-  'sentinel',
-  'kubectl apply -f k8s/manifests/sentinel.yaml',
+  'rbac',
+  'kubectl apply -f k8s/manifests/rbac.yaml',
   labels=['setup'],
 )
 
 local_resource(
-  'rbac',
-  'kubectl apply -f k8s/manifests/rbac.yaml',
+  'node-labels',
+  'kubectl label node --all node-class=untrusted --overwrite',
   labels=['setup'],
 )
 
@@ -67,7 +86,81 @@ EOF
 local_resource(
   'cilium-policies',
   'kubectl apply -f k8s/manifests/cilium-policies.yaml',
+  resource_deps=['namespace'],
   labels=['setup'],
+)
+
+# ─── TopoLVM (real LVM-backed PVCs for dev) ────────────────────────────────
+#
+# Customer pods get ephemeral PVCs via the StorageClass krane reads from
+# config (`topolvm-ssd`). TopoLVM dynamically carves an LV per PVC out of
+# `topolvm-vg`, formats it ext4, and mounts it in the customer pod — same
+# semantics as ebs-csi-gp3 in prod, just backed by a loopback file inside
+# the minikube node instead of an EBS volume.
+#
+# Three steps that have to run in order on every `tilt up`:
+#   1. setup-vg.sh: create/reattach the loopback device + activate the VG
+#      (idempotent, also handles `minikube stop`/`start` recovery).
+#   2. helm install topolvm with the cert-manager-free / no-webhook config.
+#   3. apply our StorageClass (provisioner: topolvm.io, fsType: ext4).
+#
+# The kubernetes-sigs csi-hostpath-driver addon is replaced — TopoLVM gives
+# us per-volume filesystems so heimdall's statfs reports accurate per-pod
+# usage and `df` inside the customer pod shows the allocated size, not the
+# host disk.
+local_resource(
+  'topolvm-disable-old-csi',
+  'minikube addons disable csi-hostpath-driver 2>&1 | tail -1 || true',
+  labels=['storage'],
+)
+
+local_resource(
+  'topolvm-vg',
+  # Copy the script onto the node first and then run it with no stdin.
+  # `minikube ssh -- bash < file` would work, but `minikube ssh` always
+  # allocates a PTY and the wrapping SSH session keeps the terminal open
+  # after the script exits, hanging Tilt. Copy + exec avoids the PTY trap.
+  'minikube cp k8s/topolvm/setup-vg.sh /tmp/topolvm-setup-vg.sh && ' +
+  'minikube ssh -- sudo bash /tmp/topolvm-setup-vg.sh ' + TOPOLVM_BACKING_SIZE,
+  deps=['k8s/topolvm/setup-vg.sh'],
+  resource_deps=['topolvm-disable-old-csi'],
+  labels=['storage'],
+)
+
+helm_remote(
+  'topolvm',
+  repo_name='topolvm',
+  repo_url='https://topolvm.github.io/topolvm',
+  version='15.5.4',
+  namespace='topolvm-system',
+  create_namespace=True,
+  values=['k8s/topolvm/values.yaml'],
+)
+# Force ordering so the helm install can't run before the VG exists.
+# topolvm-lvmd-0 is the lvmd sidecar DaemonSet (one device class = one
+# numbered DaemonSet); topolvm-node is the CSI node plugin DaemonSet.
+k8s_resource(
+  workload='topolvm-controller',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+k8s_resource(
+  workload='topolvm-node',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+k8s_resource(
+  workload='topolvm-lvmd-0',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+
+local_resource(
+  'topolvm-storageclass',
+  'kubectl apply -f k8s/topolvm/storageclass.yaml',
+  deps=['k8s/topolvm/storageclass.yaml'],
+  resource_deps=['topolvm-controller', 'topolvm-node', 'topolvm-lvmd-0'],
+  labels=['storage'],
 )
 
 local_resource(
@@ -120,6 +213,41 @@ local_resource(
     allow_parallel=True,
 )
 
+# When the stripe CLI is logged in, capture its signing secret (stable per
+# account) and upsert it into both env files, so ctrl-api and the dashboard
+# verify forwarded events with the same secret. Runs before the consumers below.
+stripe_secret_dep = []
+if has_stripe_login:
+    local_resource(
+        'stripe-webhook-secret',
+        '''
+        set -eu
+        whsec=$(stripe listen --print-secret)
+        for f in ./.env.stripe ../web/apps/dashboard/.env; do
+          touch "$f"
+          if grep -q '^STRIPE_WEBHOOK_SECRET=' "$f"; then
+            sed -i.bak "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$whsec|" "$f" && rm -f "$f.bak"
+          else
+            printf 'STRIPE_WEBHOOK_SECRET=%s\\n' "$whsec" >> "$f"
+          fi
+        done
+        echo "Wrote STRIPE_WEBHOOK_SECRET to .env.stripe and dashboard .env"
+        ''',
+        resource_deps=['namespace'],
+        labels=['setup'],
+        allow_parallel=True,
+    )
+    stripe_secret_dep = ['stripe-webhook-secret']
+
+local_resource(
+    'stripe-credentials',
+    'if [ -f ./.env.stripe ]; then kubectl -n unkey create secret generic stripe-credentials --from-env-file=./.env.stripe -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping stripe-credentials (no .env.stripe file)"; fi',
+    resource_deps=['namespace'] + stripe_secret_dep,
+    deps=['./.env.stripe'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
 local_resource(
     'webhooks-config',
     'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
@@ -132,7 +260,7 @@ local_resource(
 # Frontline TLS certificates - generates certs with mkcert if they don't exist
 local_resource(
     'frontline-certs',
-    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n unkey create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
+    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n frontline create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
     resource_deps=['namespace'],
     labels=['setup'],
 )
@@ -142,7 +270,15 @@ k8s_yaml('k8s/manifests/redis.yaml')
 k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
 
 # MySQL service
-docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
+# MySQL image — only rebuild when schema/seed inputs change. Context is the
+# repo root, so without `only` any file change (including .jj metadata) would
+# trigger a rebuild and restart the pod.
+docker_build(
+    'unkey/mysql:local',
+    '..',
+    dockerfile='./Dockerfile.mysql',
+    only=['pkg/mysql/schema', 'dev/04-seed-workspace.sql'],
+)
 k8s_yaml('k8s/manifests/mysql.yaml')
 k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
 
@@ -154,7 +290,17 @@ local_resource(
 )
 
 # ClickHouse service
-docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
+# ClickHouse image — same `only` guard as mysql: context is repo root.
+docker_build(
+    'unkey/clickhouse:local',
+    '..',
+    dockerfile='./Dockerfile.clickhouse',
+    only=[
+        'pkg/clickhouse/migrations',
+        'dev/clickhouse-local-admin.sql',
+        'dev/init-clickhouse.sh',
+    ],
+)
 k8s_yaml('k8s/manifests/clickhouse.yaml')
 k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=[], labels=['database'])
 
@@ -162,7 +308,7 @@ k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_dep
 k8s_yaml('k8s/manifests/vector-logs.yaml')
 k8s_resource('vector-logs', resource_deps=['clickhouse', 'rbac'], labels=['observability'])
 
-# S3 (MinIO) service
+# S3 (Garage) service
 k8s_yaml('k8s/manifests/s3.yaml')
 k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
 
@@ -186,54 +332,107 @@ k8s_yaml(helm('k8s/charts/restate-cronjobs'))
 k8s_resource('restate-key-last-used-sync', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-ratelimit-global-counters-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
-# Build Go binaries locally (auto-detect arch from minikube)
-local_resource(
-    'build-unkey',
-    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/unkey .',
-    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
-    labels=['build'],
-)
+# Service binaries are compiled on the host so rebuilds hit the local Go
+# build cache (incremental, shared across all services). The image is only
+# built once; after that, live_update syncs the fresh binary straight into
+# the running container and the restart_process wrapper re-execs it — no
+# image build, no registry push, no pod rollout. Building inside Docker
+# (dev/Dockerfile) recompiles the whole module from scratch on every change,
+# seven times in parallel — that Dockerfile stays around for the dashboard
+# docker-compose setup, but Tilt deliberately avoids it.
+#
+# Each service watches only the repo-local packages it actually imports, so
+# editing one service's code re-fires just that compile, not all seven. Edits
+# to a widely-shared package still fan out to every service that imports it,
+# which is correct. GOARCH follows the host because the minikube node runs the
+# same architecture as the machine hosting it.
 
+# Broad fallback: watch all Go sources if the per-service import graph can't be
+# computed (e.g. the service doesn't currently compile).
+GO_SERVICE_DEPS = ['../build', '../svc', '../internal', '../pkg', '../gen', '../go.mod', '../go.sum']
 
-# Single docker image for all Go services - k8s manifests use `args` to specify which service to run
-docker_build_with_restart(
-    'unkey/go:latest',
-    '..',
-    dockerfile='./Dockerfile.tilt',
-    entrypoint=['/unkey'],
-    only=['./bin'],
-    live_update=[sync('./bin/unkey', '/unkey')]
-)
+# Scoped deps are absolute repo paths outside dev/, so the test-file ignore is
+# anchored at the repo root (an ignore glob relative to dev/ wouldn't match
+# them). Editing a _test.go then never recompiles or restarts a service.
+REPO_ROOT = os.path.abspath('..')
+GO_TEST_IGNORE = [REPO_ROOT + '/**/*_test.go']
 
+def go_local_deps(name):
+    # Repo-local package dirs this service imports, resolved once at tilt up via
+    # `go list -deps`. We select packages in the main module (.Module.Main) so
+    # the filter is independent of where the repo is checked out; matching on
+    # the filesystem path would only work when the clone happens to live under
+    # a matching directory. Adding a brand-new import needs a Tiltfile reload
+    # before the new edge is watched. `|| true` keeps a broken build from
+    # crashing the Tiltfile; we then fall back to the broad list so a service
+    # never silently stops rebuilding.
+    out = str(local(
+        'cd .. && go list -deps -f "{{if .Module}}{{if .Module.Main}}{{.Dir}}{{end}}{{end}}" ./build/%s 2>/dev/null || true' % name,
+        quiet=True, echo_off=True,
+    )).strip()
+    dirs = [d for d in out.split('\n') if d]
+    if not dirs:
+        return GO_SERVICE_DEPS
+    return dirs + ['../go.mod', '../go.sum']
 
+def go_service_image(ref, name):
+    # The context dir must exist when the Tiltfile is evaluated, before the
+    # compile resource has produced a binary (fresh clone case).
+    local('mkdir -p bin/' + name, quiet=True, echo_off=True)
+    compile_name = name + '-compile'
+    local_resource(
+        compile_name,
+        'cd .. && ' +
+        'CGO_ENABLED=0 GOOS=linux GOARCH=$(go env GOARCH) ' +
+        'go build -o dev/bin/%s/unkey ./build/%s' % (name, name),
+        deps=go_local_deps(name),
+        ignore=GO_TEST_IGNORE,
+        labels=['build'],
+        allow_parallel=True,
+    )
+    docker_build_with_restart(
+        ref=ref,
+        context='bin/' + name,
+        dockerfile='Dockerfile.binary',
+        entrypoint=['/unkey'],
+        live_update=[sync('bin/%s/unkey' % name, '/unkey')],
+    )
+    return compile_name
 
-# Vault service
+# ─── Vault ─────────────────────────────────────────────────────────────────
+go_service_image('unkey/vault:dev', 'vault')
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
   port_forwards='8060:8060',
-  resource_deps=['s3', 'build-unkey'],
+  resource_deps=['s3', 'vault-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# API service
+# ─── API ───────────────────────────────────────────────────────────────────
+go_service_image('unkey/api:dev', 'api')
 k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'build-unkey'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Ctrl service
+# ─── Ctrl API ──────────────────────────────────────────────────────────────
+go_service_image('unkey/control-api:dev', 'control-api')
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'github-credentials', 'domain-connect-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -245,9 +444,10 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Worker service (Restate workflow handlers)
+# ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
+go_service_image('unkey/control-worker:dev', 'control-worker')
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-unkey', 'webhooks-config', 'github-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -259,24 +459,49 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Frontline service (TLS termination proxy for *.unkey.local)
+# ─── GitHub webhook tunnel (ngrok -> ctrl-api) ─────────────────────────────
+# Auto-updates the GitHub App webhook URL when credentials are present.
+if has_github_credentials:
+    local_resource(
+        'github-tunnel',
+        serve_cmd='cd .. && go run . dev github tunnel',
+        resource_deps=['ctrl-api'],
+        labels=['unkey'],
+        auto_init=True,
+        links=['http://localhost:4040'],
+    )
+
+# ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
+go_service_image('unkey/frontline:dev', 'frontline')
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
   port_forwards=['9443:7443', '9080:7070'],
-  resource_deps=['mysql', 'ctrl-api', 'vault', 'build-unkey', 'frontline-certs'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs', 'frontline-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
   links=['https://app.unkey.local'],
 )
 
-# Krane service
+# ─── Krane ─────────────────────────────────────────────────────────────────
+go_service_image('unkey/krane:dev', 'krane')
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image', 'depot-credentials'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# ─── Heimdall (resource metering agent) ────────────────────────────────────
+go_service_image('unkey/heimdall:dev', 'heimdall')
+k8s_yaml('k8s/manifests/heimdall.yaml')
+k8s_resource(
+  'heimdall',
+  resource_deps=['clickhouse', 'rbac', 'heimdall-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -284,18 +509,26 @@ k8s_resource(
 
 
 
-
-# Sentinel image (same Go binary, used by ctrl to spawn sentinels)
-# Build locally and load into minikube
+# Portal - standalone K8s service for local development.
+# Build the portal Docker image and load into minikube
 local_resource(
-    'build-sentinel-image',
-    'docker build -t unkey/sentinel:latest -f Dockerfile.tilt .. && minikube image load unkey/sentinel:latest && kubectl rollout restart deployment -n sentinel --selector=app.kubernetes.io/component=sentinel 2>/dev/null || true',
-    deps=['../bin'],
-    resource_deps=['build-unkey'],
+    'build-portal-image',
+    'docker build -t unkey/portal:local -f ../web/apps/portal/Dockerfile .. && minikube image load unkey/portal:local',
+    deps=['../web/apps/portal', '../web/internal/ui', '../web/internal/icons', '../web/internal/id'],
     labels=['build'],
+    auto_init=False,
 )
 
-
+k8s_yaml('k8s/manifests/portal.yaml')
+k8s_resource(
+    'portal',
+    port_forwards='3100:3000',
+    resource_deps=['api', 'build-portal-image'],
+    labels=['unkey'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    links=['http://localhost:3100'],
+)
 
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
@@ -310,12 +543,33 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['mysql', 'clickhouse', 'ctrl-api'],
+    resource_deps=['mysql', 'clickhouse', 'ctrl-api'] + stripe_secret_dep,
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),
     links=['http://localhost:3000'],
 )
+
+# ─── Stripe webhook listeners (stripe CLI -> dashboard + ctrl-api) ──────────
+# Forward test-mode events to both webhook endpoints so local billing flows
+# (subscribe, invoice.created close) fire end to end. Only when logged in; the
+# signing secret was written into both env files by stripe-webhook-secret above.
+# --forward-to takes one URL, so one listener per endpoint.
+if has_stripe_login:
+    local_resource(
+        'stripe-listen-dashboard',
+        serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
+        resource_deps=['dashboard'],
+        labels=['unkey'],
+        auto_init=True,
+    )
+    local_resource(
+        'stripe-listen-ctrl',
+        serve_cmd='stripe listen --forward-to http://localhost:7091/webhooks/stripe',
+        resource_deps=['ctrl-api'],
+        labels=['unkey'],
+        auto_init=True,
+    )
 
 print("""
 Tilt is ready!

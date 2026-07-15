@@ -10,11 +10,11 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -36,7 +36,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// Filters by environment slug based on branch vs project default_branch in SQL.
 	// Fork PRs always go to preview via the is_fork_pr flag.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
-		return db.Query.ListRepoConnectionDeployContexts(runCtx, s.db.RO(), db.ListRepoConnectionDeployContextsParams{
+		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
@@ -58,7 +58,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	// Single query: all env vars for the matched apps
 	allEnvVars, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListEnvVarsForRepoConnectionsRow, error) {
-		return db.Query.ListEnvVarsForRepoConnections(runCtx, s.db.RO(), db.ListEnvVarsForRepoConnectionsParams{
+		return s.db.ListEnvVarsForRepoConnections(runCtx, db.ListEnvVarsForRepoConnectionsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
@@ -114,6 +114,20 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		buildSettings := row.AppBuildSetting
 
+		if !buildSettings.AutoDeploy {
+			logger.Info("skipping deployment: auto_deploy disabled",
+				"app_id", app.ID,
+				"environment", env.Slug,
+			)
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+			}
+			continue
+		}
+
 		// Watch paths: skip if configured patterns don't match changed files
 		if !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles) {
 			logger.Info("skipping deployment: watch paths don't match changed files",
@@ -122,10 +136,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"changed_files", changedFiles,
 			)
 
-			// Create skipped deployment record for visibility
-			_, _ = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-				return insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
-			}, restate.WithName("insert skipped deployment"))
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+			}
 			continue
 		}
 
@@ -184,8 +200,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					Repository:     repo.RepositoryFullName,
 					CommitSha:      req.GetAfter(),
 					ContextPath:    row.AppBuildSetting.DockerContext,
-					DockerfilePath: row.AppBuildSetting.Dockerfile,
+					DockerfilePath: row.AppBuildSetting.Dockerfile.String,
+					BuildCommand:   row.AppBuildSetting.BuildCommand.String,
 					PrNumber:       req.GetPrNumber(),
+					ForkRepository: req.GetForkRepositoryFullName(),
 				},
 			},
 		})
@@ -198,7 +216,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			return nil, fmt.Errorf("restate returned empty invocation id for deployment %s", deploymentID)
 		}
 		_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentInvocationID(runCtx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+			return s.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
 				ID:           deploymentID,
 				InvocationID: sql.NullString{Valid: true, String: invocationID},
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -292,7 +310,7 @@ func insertDeploymentRecord(
 	commitTimestamp := req.GetCommitTimestamp()
 
 	err := db.Tx(ctx, rw, func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+		if txErr := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
 			ID:                            deploymentID,
 			K8sName:                       uid.DNS1035(12),
 			WorkspaceID:                   project.WorkspaceID,
@@ -320,11 +338,14 @@ func insertDeploymentRecord(
 			Healthcheck:                   runtimeSettings.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
+			DeploymentTrigger:             db.DeploymentsTriggerGithub,
+			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
+			TriggerReason:                 sql.NullString{Valid: false},
 		}); txErr != nil {
 			return txErr
 		}
 
-		return db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+		return db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 			WorkspaceID:   app.WorkspaceID,
 			ProjectID:     app.ProjectID,
 			AppID:         app.ID,

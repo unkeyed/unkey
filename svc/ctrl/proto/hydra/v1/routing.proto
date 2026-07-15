@@ -19,7 +19,7 @@ service RoutingService {
   // updates apps.current_deployment_id to point at the target deployment,
   // returning the previously-live deployment ID. Setting set_rollback_flag
   // toggles apps.is_rolled_back. The caller is responsible for any follow-up
-  // work like scheduling the previous deployment for standby.
+  // work like scheduling the previous deployment to stop.
   rpc SwapLiveDeployment(SwapLiveDeploymentRequest) returns (SwapLiveDeploymentResponse) {}
 }
 
@@ -29,7 +29,14 @@ message AssignFrontlineRoutesRequest {
   repeated string frontline_route_ids = 2;
 }
 
-message AssignFrontlineRoutesResponse {}
+message AssignFrontlineRoutesResponse {
+  repeated ReassignedFrontlineRoute reassigned_routes = 1;
+}
+
+message ReassignedFrontlineRoute {
+  string frontline_route_id = 1;
+  string previous_deployment_id = 2;
+}
 
 message SwapLiveDeploymentRequest {
   string deployment_id = 1;
@@ -42,6 +49,6 @@ message SwapLiveDeploymentRequest {
 message SwapLiveDeploymentResponse {
   // The deployment_id that was previously live for this app, or empty if
   // there was no previous live deployment. Useful for the caller to schedule
-  // the previous deployment for standby.
+  // the previous deployment to stop.
   string previous_deployment_id = 1;
 }

@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ActorInfo } from "./actor_pb";
+import { file_ctrl_v1_actor } from "./actor_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/project.proto.
  */
 export const file_ctrl_v1_project: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiSAoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCSIjChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USCgoCaWQYASABKAkiKgoURGVsZXRlUHJvamVjdFJlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCSIXChVEZWxldGVQcm9qZWN0UmVzcG9uc2UytAEKDlByb2plY3RTZXJ2aWNlElAKDUNyZWF0ZVByb2plY3QSHS5jdHJsLnYxLkNyZWF0ZVByb2plY3RSZXF1ZXN0Gh4uY3RybC52MS5DcmVhdGVQcm9qZWN0UmVzcG9uc2UiABJQCg1EZWxldGVQcm9qZWN0Eh0uY3RybC52MS5EZWxldGVQcm9qZWN0UmVxdWVzdBoeLmN0cmwudjEuRGVsZXRlUHJvamVjdFJlc3BvbnNlIgBCiwEKC2NvbS5jdHJsLnYxQgxQcm9qZWN0UHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiawoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIiMKFUNyZWF0ZVByb2plY3RSZXNwb25zZRIKCgJpZBgBIAEoCSJNChREZWxldGVQcm9qZWN0UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iFwoVRGVsZXRlUHJvamVjdFJlc3BvbnNlMrQBCg5Qcm9qZWN0U2VydmljZRJQCg1DcmVhdGVQcm9qZWN0Eh0uY3RybC52MS5DcmVhdGVQcm9qZWN0UmVxdWVzdBoeLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlc3BvbnNlIgASUAoNRGVsZXRlUHJvamVjdBIdLmN0cmwudjEuRGVsZXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkRlbGV0ZVByb2plY3RSZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIMUHJvamVjdFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateProjectRequest
@@ -30,6 +32,11 @@ export type CreateProjectRequest = Message<"ctrl.v1.CreateProjectRequest"> & {
    * @generated from field: string slug = 3;
    */
   slug: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 4;
+   */
+  actor?: ActorInfo;
 };
 
 /**
@@ -64,6 +71,11 @@ export type DeleteProjectRequest = Message<"ctrl.v1.DeleteProjectRequest"> & {
    * @generated from field: string project_id = 1;
    */
   projectId: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 2;
+   */
+  actor?: ActorInfo;
 };
 
 /**

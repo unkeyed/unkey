@@ -1,0 +1,23 @@
+---
+title: ctrl
+---
+
+Control-plane data user, used by both `ctrl-api` and `ctrl-worker` via `[clickhouse].url` (sourced from `unkey/control.UNKEY_CLICKHOUSE_URL`). Distinct from the admin user (`unkey_admin`, used by `ctrl-worker`'s `[clickhouse].admin_url` for `ClickhouseUserService`).
+
+Direct grants instead of `insertonly_role` / `readonly_role` because ctrl's footprint is a small, named set of tables — keeping it explicit prevents the user from picking up new tables that show up in `default.*`.
+
+```sql
+CREATE USER IF NOT EXISTS ctrl IDENTIFIED WITH sha256_password BY '<password>';
+
+-- Writes
+GRANT INSERT ON default.build_steps_v1          TO ctrl;  -- ctrl-worker (build pipeline)
+GRANT INSERT ON default.build_step_logs_v1      TO ctrl;  -- ctrl-worker (build pipeline)
+GRANT INSERT ON default.instance_events_raw_v1  TO ctrl;  -- ctrl-api (ReportInstanceEvents, v2.0.137+)
+GRANT INSERT ON default.audit_logs_raw_v1       TO ctrl;  -- ctrl-worker AuditLogExportService (drainer) + AuditLogBackfillService
+
+-- Reads
+GRANT SELECT ON default.billable_verifications_per_month_v2 TO ctrl;  -- ctrl-worker quotacheck
+GRANT SELECT ON default.billable_ratelimits_per_month_v2    TO ctrl;  -- ctrl-worker quotacheck
+GRANT SELECT ON default.sentinel_requests_raw_v1            TO ctrl;  -- ctrl-worker scale-down idle previews
+GRANT SELECT ON default.key_last_used_v1                    TO ctrl;  -- ctrl-worker key-last-used sync
+```

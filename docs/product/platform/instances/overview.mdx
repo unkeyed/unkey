@@ -1,21 +1,21 @@
 ---
 title: Instances
-description: "Understand instances in Unkey — running container replicas of your app deployed to specific regions with automatic scaling and routing."
+description: "Understand instances in Unkey, running copies of your app deployed to specific regions with automatic scaling and routing."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are ephemeral — [ephemeral storage](/platform/apps/settings#storage) does not persist across deployments or restarts.
+An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are ephemeral, [ephemeral storage](/platform/apps/settings#storage) does not persist across deployments or restarts.
 
 During deployments and scale-down, Unkey sends the configured [shutdown signal](/platform/apps/settings#shutdown-signal) (default `SIGTERM`) to give your app time to drain connections and finish in-flight requests before the instance stops.
 
 ## How instances fit in
 
-Instances sit at the bottom of the Unkey Deploy hierarchy. A [deployment](/build-and-deploy/deployments) produces instances across your configured regions:
+Instances sit at the bottom of the deployment hierarchy. A [deployment](/build-and-deploy/deployments) produces instances across your configured regions:
 
-```
+```text
 Workspace
   └── Project
         └── App
@@ -24,7 +24,7 @@ Workspace
                           └── Instances (1+ per region)
 ```
 
-A deployment with two regions and two instances per region creates four instances total. Each instance receives traffic through the [Sentinel](/platform/sentinel/overview) gateway running in the same region.
+A deployment with two regions and two instances per region creates four instances total. Each instance receives traffic through the [gateway](/platform/gateway/overview) in the same region.
 
 ## Configure instance count
 
@@ -35,6 +35,22 @@ Running multiple instances in a region provides redundancy and distributes load.
 <Note>
   During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
 </Note>
+
+## High availability
+
+High availability depends on how many instances you run in each region and how many regions you select. If you configure too few instances, Unkey can't guarantee that your app stays available during infrastructure interruptions.
+
+Use this model when choosing an instance count:
+
+| Instances per region | Availability expectation |
+| -------------------- | ------------------------ |
+| 1                    | No high availability guarantee. If the instance stops, your app can become unavailable in that region. |
+| 2                    | Designed to keep at least 1 instance available during one underlying infrastructure interruption in the region. |
+| 3                    | Designed to keep at least 2 instances available during one underlying infrastructure interruption in the region. |
+
+For production workloads that need high availability, configure at least 2 instances per region. Use 3 instances when you want extra capacity during an interruption.
+
+Regional availability is separate from instance availability. To tolerate a regional outage, deploy to at least 2 regions. Each region still needs enough instances for the availability level you want.
 
 ## Resource allocation
 
@@ -61,7 +77,7 @@ See [App settings](/platform/apps/settings#cpu) for details on each option.
 
 ## Load balancing
 
-The [Sentinel](/platform/sentinel/overview) gateway in each region distributes incoming requests uniformly at random across all running instances. Each instance has an equal probability of handling any given request.
+The [gateway](/platform/gateway/overview) in each region distributes incoming requests uniformly at random across all running instances. Each instance has an equal probability of handling any given request.
 
 If no running instances exist in the local region, traffic reroutes to the nearest region that has healthy instances.
 

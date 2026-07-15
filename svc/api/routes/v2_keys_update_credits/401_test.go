@@ -18,7 +18,6 @@ func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -37,7 +36,7 @@ func TestKeyUpdateCreditsUnauthorized(t *testing.T) {
 	})
 
 	keyName := "test-key"
-	remainingRequests := int32(100)
+	remainingRequests := int64(100)
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,

@@ -18,7 +18,6 @@ func TestPreconditionError(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:    h.DB,
-		Keys:  h.Keys,
 		Vault: h.Vault,
 	}
 
@@ -87,7 +86,6 @@ func TestPreconditionError(t *testing.T) {
 
 		route := &handler.Handler{
 			DB:        h.DB,
-			Keys:      h.Keys,
 			Auditlogs: h.Auditlogs,
 			Vault:     h.Vault,
 		}
@@ -137,7 +135,6 @@ func TestPreconditionError(t *testing.T) {
 		// Create route with nil vault
 		routeNoVault := &handler.Handler{
 			DB:        h.DB,
-			Keys:      h.Keys,
 			Auditlogs: h.Auditlogs,
 			Vault:     nil, // No vault
 		}

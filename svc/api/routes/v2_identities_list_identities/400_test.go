@@ -17,8 +17,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 	}
 
 	// Register the route with the harness
@@ -119,6 +118,19 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		// Excessive limits should be rejected with a 400 status code
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+
+		// Verify error type
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
+	})
+
+	t.Run("search exceeding max length", func(t *testing.T) {
+		tooLongSearch := strings.Repeat("a", 257)
+		req := handler.Request{
+			Search: &tooLongSearch,
+		}
+
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 

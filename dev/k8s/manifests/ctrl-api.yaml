@@ -14,13 +14,17 @@ data:
     auth_token = "your-local-dev-key"
     default_domain = "unkey.local"
     cname_domain = "unkey.local"
-
-    [database]
-    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [restate]
     url = "http://restate:8080"
     admin_url = "http://restate:9070"
+
+    [clickhouse]
+    # Used by ReportInstanceEvents to absorb container lifecycle events from
+    # krane into instance_events_raw_v1. Without this URL the buffer falls
+    # back to a noop and the dashboard's events panel stays empty.
+    url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 
     [domain_connect]
     private_key_pem = """${UNKEY_DOMAIN_CONNECT_PRIVATE_KEY}"""
@@ -29,6 +33,14 @@ data:
     webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
     app_id = ${UNKEY_GITHUB_APP_ID}
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
+
+    # Stripe webhook for the month-end Deploy billing close. Both come from the
+    # optional stripe-credentials secret (dev/.env.stripe); empty leaves
+    # /webhooks/stripe unregistered. The webhook_secret is whatever
+    # `stripe listen` prints (whsec_...); the secret_key is a test-mode sk_test_.
+    [stripe]
+    webhook_secret = "${STRIPE_WEBHOOK_SECRET}"
+    secret_key = "${STRIPE_SECRET_KEY}"
 
 ---
 apiVersion: apps/v1
@@ -51,8 +63,8 @@ spec:
       serviceAccountName: unkey-serviceaccount
       containers:
         - name: ctrl-api
-          image: unkey/go:latest
-          args: ["run", "ctrl", "api", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/control-api:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091
@@ -93,6 +105,14 @@ spec:
                   name: domain-connect-credentials
                   key: UNKEY_DOMAIN_CONNECT_PRIVATE_KEY
                   optional: true
+          envFrom:
+            # Every key from the optional stripe-credentials secret
+            # (dev/.env.stripe): the webhook secret, the API key, and the Deploy
+            # price lookup_keys CancelDeploy uses. One block instead of a
+            # secretKeyRef per key, so new stripe keys need no manifest change.
+            - secretRef:
+                name: stripe-credentials
+                optional: true
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -103,7 +123,7 @@ spec:
             name: ctrl-api-config
       initContainers:
         - name: wait-for-dependencies
-          image: busybox:1.36
+          image: busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
           command:
             [
               "sh",

@@ -2,6 +2,7 @@
 
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Fingerprint } from "@unkey/icons";
 import { CreateIdentityDialog } from "./_components/dialogs/create-identity-dialog";
 
@@ -11,7 +12,10 @@ export function Navigation() {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
-        <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/identities`} active>
+        <Navbar.Breadcrumbs.Link
+          href={routes.identities.list({ workspaceSlug: workspace.slug })}
+          active
+        >
           Identities
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>

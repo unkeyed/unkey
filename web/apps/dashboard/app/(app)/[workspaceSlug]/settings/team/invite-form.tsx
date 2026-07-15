@@ -174,7 +174,14 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                     control={control}
                     name={`invites.${index}.role`}
                     render={({ field: roleField }) => (
-                      <Select onValueChange={roleField.onChange} value={roleField.value}>
+                      <Select
+                        onValueChange={roleField.onChange}
+                        value={roleField.value}
+                        items={[
+                          { value: "basic_member", label: "Member" },
+                          { value: "admin", label: "Admin" },
+                        ]}
+                      >
                         <SelectTrigger id={`invites.${index}.role`}>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>

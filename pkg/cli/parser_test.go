@@ -260,3 +260,60 @@ func TestParser_SingleDashArg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"-"}, capturedArgs)
 }
+
+func TestParser_RequireOneOf(t *testing.T) {
+	newCmd := func(ran *bool) *Command {
+		return &Command{
+			Name: "advance",
+			Flags: []Flag{
+				String("customer", "customer id"),
+				String("clock", "clock id"),
+			},
+			RequireOneOf: [][]string{{"customer", "clock"}},
+			Action: func(ctx context.Context, c *Command) error {
+				*ran = true
+				return nil
+			},
+		}
+	}
+
+	t.Run("one flag set passes", func(t *testing.T) {
+		ran := false
+		err := newCmd(&ran).parse(context.Background(), []string{"--customer=cus_123"})
+		require.NoError(t, err)
+		require.True(t, ran)
+	})
+
+	t.Run("other flag set passes", func(t *testing.T) {
+		ran := false
+		err := newCmd(&ran).parse(context.Background(), []string{"--clock=tc_123"})
+		require.NoError(t, err)
+		require.True(t, ran)
+	})
+
+	t.Run("neither flag set fails", func(t *testing.T) {
+		ran := false
+		err := newCmd(&ran).parse(context.Background(), []string{})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "exactly one of --customer or --clock is required")
+		require.False(t, ran)
+	})
+
+	t.Run("both flags set fails", func(t *testing.T) {
+		ran := false
+		err := newCmd(&ran).parse(context.Background(), []string{"--customer=cus_123", "--clock=tc_123"})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "exactly one of --customer or --clock is required")
+		require.False(t, ran)
+	})
+
+	t.Run("group referencing unknown flag fails", func(t *testing.T) {
+		ran := false
+		cmd := newCmd(&ran)
+		cmd.RequireOneOf = [][]string{{"customer", "nonexistent"}}
+		err := cmd.parse(context.Background(), []string{"--customer=cus_123"})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unknown flag: nonexistent")
+		require.False(t, ran)
+	})
+}

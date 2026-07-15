@@ -2,14 +2,14 @@ export * from "./apis";
 export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";
-export * from "./vercel_integration";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
 export * from "./quota";
-export * from "./audit_logs";
+export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
+export * from "./shared_secrets";
 
 // Deployment platform tables
 export * from "./projects";
@@ -28,7 +28,6 @@ export * from "./acme_users";
 export * from "./custom_domains";
 export * from "./acme_challenges";
 
-export * from "./sentinels";
 export * from "./instances";
 export * from "./certificates";
 export * from "./frontline_routes";
@@ -39,3 +38,9 @@ export * from "./clusters";
 export * from "./regions";
 export * from "./horizontal_autoscaling_policies";
 export * from "./deployment_changes";
+
+// Portal tables
+export * from "./portal_configurations";
+export * from "./portal_branding";
+export * from "./portal_session_tokens";
+export * from "./portal_sessions";

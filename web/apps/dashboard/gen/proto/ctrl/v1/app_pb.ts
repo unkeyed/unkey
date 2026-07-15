@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ActorInfo } from "./actor_pb";
+import { file_ctrl_v1_actor } from "./actor_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJYChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCSIfChFDcmVhdGVBcHBSZXNwb25zZRIKCgJpZBgBIAEoCSIiChBEZWxldGVBcHBSZXF1ZXN0Eg4KBmFwcF9pZBgBIAEoCSITChFEZWxldGVBcHBSZXNwb25zZTKYAQoKQXBwU2VydmljZRJECglDcmVhdGVBcHASGS5jdHJsLnYxLkNyZWF0ZUFwcFJlcXVlc3QaGi5jdHJsLnYxLkNyZWF0ZUFwcFJlc3BvbnNlIgASRAoJRGVsZXRlQXBwEhkuY3RybC52MS5EZWxldGVBcHBSZXF1ZXN0GhouY3RybC52MS5EZWxldGVBcHBSZXNwb25zZSIAQocBCgtjb20uY3RybC52MUIIQXBwUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJ7ChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIhCgVhY3RvchgFIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -35,6 +37,11 @@ export type CreateAppRequest = Message<"ctrl.v1.CreateAppRequest"> & {
    * @generated from field: string slug = 4;
    */
   slug: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 5;
+   */
+  actor?: ActorInfo;
 };
 
 /**
@@ -69,6 +76,11 @@ export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
    * @generated from field: string app_id = 1;
    */
   appId: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 2;
+   */
+  actor?: ActorInfo;
 };
 
 /**

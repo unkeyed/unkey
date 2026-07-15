@@ -108,6 +108,14 @@
                 "package": "dbtype",
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
               }
+            },
+            {
+              "column": "instances.container_status",
+              "go_type": {
+                "type": "ContainerStatus",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
             }
           ]
         }
@@ -118,7 +126,7 @@
     {
       "name": "bulk-insert",
       "process": {
-        "cmd": "./plugins/dist/bulk-insert"
+        "cmd": "../mysql/plugins/dist/bulk-insert"
       }
     }
   ]

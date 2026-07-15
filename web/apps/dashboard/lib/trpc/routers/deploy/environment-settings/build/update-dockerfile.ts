@@ -8,7 +8,8 @@ export const updateDockerfile = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      dockerfile: z.string().min(1),
+      // Empty means "no Dockerfile configured": the app builds with Railpack.
+      dockerfile: z.string().trim(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -23,15 +24,18 @@ export const updateDockerfile = workspaceProcedure
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
+    // NULL is the canonical "no Dockerfile configured" representation.
+    const dockerfile = input.dockerfile === "" ? null : input.dockerfile;
+
     await db
       .insert(appBuildSettings)
       .values({
         workspaceId: ctx.workspace.id,
         appId: env.appId,
         environmentId: input.environmentId,
-        dockerfile: input.dockerfile,
+        dockerfile,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
-      .onDuplicateKeyUpdate({ set: { dockerfile: input.dockerfile, updatedAt: Date.now() } });
+      .onDuplicateKeyUpdate({ set: { dockerfile, updatedAt: Date.now() } });
   });

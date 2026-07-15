@@ -17,9 +17,9 @@ SELECT remaining_requests FROM ` + "`" + `keys` + "`" + ` k WHERE k.id = ?
 // FindKeyCredits
 //
 //	SELECT remaining_requests FROM `keys` k WHERE k.id = ?
-func (q *Queries) FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt32, error) {
+func (q *Queries) FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error) {
 	row := db.QueryRowContext(ctx, findKeyCredits, id)
-	var remaining_requests sql.NullInt32
+	var remaining_requests sql.NullInt64
 	err := row.Scan(&remaining_requests)
 	return remaining_requests, err
 }

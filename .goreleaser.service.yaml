@@ -1,0 +1,50 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: service
+    main: "./build/{{ .ProjectName }}"
+    binary: unkey
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Version={{.Version}}'
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Revision={{.FullCommit}}'
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.BuildTime={{.Date}}'
+
+dockers_v2:
+  - ids:
+      - service
+    dockerfile: Dockerfile.release
+    images:
+      - "ghcr.io/unkeyed/{{ .ProjectName }}"
+    tags:
+      - "v{{ .Version }}"
+    labels:
+      "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+archives:
+  - formats: [binary]
+
+checksum:
+  disable: true
+
+release:
+  prerelease: auto
+  name_template: "{{ .ProjectName }} {{ .Version }}"
+
+changelog:
+  use: github
+  sort: asc

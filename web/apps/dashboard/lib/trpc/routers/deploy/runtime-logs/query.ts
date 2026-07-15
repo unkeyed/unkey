@@ -25,7 +25,7 @@ export const queryRuntimeLogs = workspaceProcedure
       columns: { id: true },
       with: {
         environments: {
-          columns: { id: true, appId: true },
+          columns: { id: true, appId: true, slug: true },
         },
       },
     });
@@ -37,16 +37,14 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
-    const environment = input.environmentId
-      ? project.environments.find((e) => e.id === input.environmentId)
-      : project.environments[0];
-
-    if (!environment) {
+    if (project.environments.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "No environment found for this project",
       });
     }
+
+    const defaultEnvironment = project.environments[0];
 
     // Resolve instanceIds to k8sPodNames for ClickHouse filtering,
     // and build the reverse map to avoid a redundant DB query later.
@@ -65,7 +63,7 @@ export const queryRuntimeLogs = workspaceProcedure
       });
 
       if (instances.length === 0) {
-        return { logs: [], hasMore: false, total: 0 };
+        return { logs: [], total: 0 };
       }
 
       k8sPodNames = instances.map((inst) => inst.k8sName);
@@ -75,19 +73,34 @@ export const queryRuntimeLogs = workspaceProcedure
     }
 
     const transformedInputs = transformFilters(input);
-    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
-      ...transformedInputs,
-      k8sPodNames,
-      workspaceId: ctx.workspace.id,
-      projectId: project.id,
-      deploymentId: input.deploymentId ?? null,
-      environmentId: environment.id,
-      appId: environment.appId,
-    });
 
-    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+    // App-scoped view: default to the production environment when the user
+    // hasn't picked one. Without an appId the view is project-wide: every
+    // app, no forced environment.
+    const appId = input.appId || null;
+    if (appId && transformedInputs.environmentId.length === 0) {
+      const prod =
+        project.environments.find((e) => e.appId === appId && e.slug === "production") ??
+        project.environments.find((e) => e.appId === appId) ??
+        defaultEnvironment;
+      transformedInputs.environmentId = [prod.id];
+    }
 
-    if (countResult.err || logsResult.err) {
+    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs(
+      {
+        ...transformedInputs,
+        k8sPodNames,
+        workspaceId: ctx.workspace.id,
+        projectId: project.id,
+        deploymentId: input.deploymentId,
+        appId,
+      },
+      { includeTotal: input.includeTotal },
+    );
+
+    const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
+
+    if (logsResult.err || totalResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
@@ -95,6 +108,7 @@ export const queryRuntimeLogs = workspaceProcedure
     }
 
     const chLogs = logsResult.val;
+    const total = totalResult.val;
 
     const unknownEntries = uniqueK8sRegionEntries(chLogs, knownK8sToInstanceId);
     const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownEntries, ctx.workspace.id);
@@ -112,9 +126,7 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const response: RuntimeLogsResponseSchema = {
       logs,
-      hasMore: logs.length === input.limit,
-      total: countResult.val[0].total_count,
-      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
+      total,
     };
 
     return response;

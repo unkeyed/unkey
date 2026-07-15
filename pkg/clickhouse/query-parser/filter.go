@@ -4,6 +4,22 @@ import (
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
 )
 
+// parenthesize wraps an expression in parentheses so a caller-supplied WHERE
+// cannot defeat an injected filter through operator precedence. AND binds
+// tighter than OR, so prepending `<injected> AND <where>` to a where like
+// `x = 'a' OR 1=1` would parse as `(<injected> AND x = 'a') OR 1=1` and bypass
+// the filter entirely. Wrapping yields `<injected> AND (x = 'a' OR 1=1)`.
+//
+// This parser has no dedicated grouping node; it represents `( ... )` as a
+// single-item ParamExprList, which is what we construct here.
+func parenthesize(expr clickhouse.Expr) clickhouse.Expr {
+	return &clickhouse.ParamExprList{
+		Items: &clickhouse.ColumnExprList{
+			Items: []clickhouse.Expr{expr},
+		},
+	}
+}
+
 func (p *Parser) injectWorkspaceFilter() {
 	// Walk the AST to inject workspace filter only on SELECT statements that directly access tables
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
@@ -41,15 +57,17 @@ func (p *Parser) injectWorkspaceFilterOnSelect(stmt *clickhouse.SelectQuery) {
 	stmt.Where.Expr = &clickhouse.BinaryOperation{
 		LeftExpr:  filter,
 		Operation: "AND",
-		RightExpr: stmt.Where.Expr,
+		RightExpr: parenthesize(stmt.Where.Expr),
 	}
 }
 
 func (p *Parser) injectSecurityFilters() {
 	for _, securityFilter := range p.config.SecurityFilters {
-		if len(securityFilter.AllowedValues) == 0 {
-			continue
-		}
+		// A security filter that is present but has no allowed values means the
+		// principal may see nothing for this column, so we fail closed by
+		// injecting a constant-false predicate (returning zero rows) rather than
+		// skipping the filter, which would leak all rows the other filters allow.
+		// This must not be a `continue`: dropping the filter is fail-open.
 
 		// Walk the AST to inject security filter only on SELECT statements that directly access tables
 		clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
@@ -105,23 +123,31 @@ func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
 
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement
 func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, securityFilter SecurityFilter) {
-	// Build IN list: {column} IN ('val1', 'val2', ...)
-	items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
-	for i, value := range securityFilter.AllowedValues {
-		items[i] = &clickhouse.ColumnExpr{
-			Expr: &clickhouse.StringLiteral{
-				Literal: value,
+	var filter clickhouse.Expr
+	if len(securityFilter.AllowedValues) == 0 {
+		// Fail closed: no allowed values means no rows are visible. We cannot
+		// emit `{column} IN ()` since an empty IN list is a syntax error in
+		// ClickHouse, so we use a constant-false predicate instead.
+		filter = &clickhouse.NumberLiteral{Literal: "0"}
+	} else {
+		// Build IN list: {column} IN ('val1', 'val2', ...)
+		items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
+		for i, value := range securityFilter.AllowedValues {
+			items[i] = &clickhouse.ColumnExpr{
+				Expr: &clickhouse.StringLiteral{
+					Literal: value,
+				},
+			}
+		}
+
+		// Create filter using column name
+		filter = &clickhouse.BinaryOperation{
+			LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
+			Operation: "IN",
+			RightExpr: &clickhouse.ParamExprList{
+				Items: &clickhouse.ColumnExprList{Items: items},
 			},
 		}
-	}
-
-	// Create filter using column name
-	filter := &clickhouse.BinaryOperation{
-		LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
-		Operation: "IN",
-		RightExpr: &clickhouse.ParamExprList{
-			Items: &clickhouse.ColumnExprList{Items: items},
-		},
 	}
 
 	// Add to WHERE clause
@@ -131,7 +157,7 @@ func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, secu
 		stmt.Where.Expr = &clickhouse.BinaryOperation{
 			LeftExpr:  filter,
 			Operation: "AND",
-			RightExpr: stmt.Where.Expr,
+			RightExpr: parenthesize(stmt.Where.Expr),
 		}
 	}
 }

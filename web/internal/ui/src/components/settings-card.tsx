@@ -21,6 +21,8 @@ type SettingCardProps = {
   iconClassName?: string;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   chevronState?: ChevronState;
   truncateDescription?: boolean;
 };
@@ -30,7 +32,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
+      <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -49,10 +51,14 @@ function SettingCard({
   iconClassName,
   expandable,
   defaultExpanded = false,
+  expanded,
+  onExpandedChange,
   chevronState,
   truncateDescription = false,
 }: SettingCardProps) {
-  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = React.useState(defaultExpanded);
+  const isControlled = expanded !== undefined;
+  const isExpanded = isControlled ? expanded : internalExpanded;
   const contentRef = React.useRef<HTMLDivElement>(null);
   const innerRef = React.useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = React.useState(0);
@@ -87,14 +93,14 @@ function SettingCard({
       return "";
     }
     if (border === "top") {
-      return "rounded-t-[14px]";
+      return "rounded-t-lg";
     }
     if (border === "bottom") {
-      return !expandable || !isExpanded ? "rounded-b-[14px]" : "";
+      return !expandable || !isExpanded ? "rounded-b-lg" : "";
     }
     if (border === "both") {
-      const bottom = !expandable || !isExpanded ? "rounded-b-[14px]" : "";
-      return cn("rounded-t-[14px]", bottom);
+      const bottom = !expandable || !isExpanded ? "rounded-b-lg" : "";
+      return cn("rounded-t-lg", bottom);
     }
     return "";
   };
@@ -109,32 +115,34 @@ function SettingCard({
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
-      ? "rounded-b-[14px]"
+      ? "rounded-b-lg"
       : "";
 
   const handleToggle = () => {
     if (!isInteractive) {
       return;
     }
-    setIsExpanded((prev) => {
-      if (!prev) {
-        contentRef.current?.addEventListener(
-          "transitionend",
-          () => {
-            const inner = innerRef.current;
-            if (!inner) {
-              return;
-            }
-            const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
-            if (overflow > 0) {
-              findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
-            }
-          },
-          { once: true },
-        );
-      }
-      return !prev;
-    });
+    const willExpand = !isExpanded;
+    if (willExpand) {
+      contentRef.current?.addEventListener(
+        "transitionend",
+        () => {
+          const inner = innerRef.current;
+          if (!inner) {
+            return;
+          }
+          const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
+          if (overflow > 0) {
+            findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
+          }
+        },
+        { once: true },
+      );
+    }
+    if (!isControlled) {
+      setInternalExpanded(willExpand);
+    }
+    onExpandedChange?.(willExpand);
   };
 
   return (

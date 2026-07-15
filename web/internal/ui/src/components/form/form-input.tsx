@@ -31,7 +31,8 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ) => {
     const descriptionAsTooltip = descriptionPosition === "label";
     const inputVariant = error ? "error" : variant;
-    const inputId = id || React.useId();
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
     const descriptionId = `${inputId}-helper`;
     const errorId = `${inputId}-error`;
 

@@ -49,3 +49,10 @@ export {
 
 // Export trace sampling functionality
 export { createTracesSampler } from "./trace-sampler";
+
+// Export PII/URL scrubbing utilities
+export { scrubUrl, scrubEventPii } from "./pii-scrubber";
+
+// Export Replay privacy config and noise filters
+export { replayPrivacyOptions } from "./replay-privacy";
+export { IGNORE_ERRORS, DENY_URLS } from "./noise-filters";

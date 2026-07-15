@@ -78,7 +78,6 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
       validateEnvironmentIdInQuery(options?.where);
@@ -216,6 +215,12 @@ function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.create.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -239,6 +244,12 @@ function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.update.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -258,6 +269,12 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
     )
     .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.delete.mutate({
+        environmentId,
+        policyId: p.id,
+      }),
+    )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.delete.mutate({
         environmentId,
         policyId: p.id,
       }),

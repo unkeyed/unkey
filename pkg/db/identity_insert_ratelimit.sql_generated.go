@@ -42,8 +42,8 @@ type InsertIdentityRatelimitParams struct {
 	WorkspaceID string         `db:"workspace_id"`
 	IdentityID  sql.NullString `db:"identity_id"`
 	Name        string         `db:"name"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	CreatedAt   int64          `db:"created_at"`
 	AutoApply   bool           `db:"auto_apply"`
 }

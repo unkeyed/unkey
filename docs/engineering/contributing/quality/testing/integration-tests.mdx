@@ -7,12 +7,30 @@ description: "Testing components with real dependencies"
 
 Use integration tests to cover behavior across service boundaries, real databases, caches, and storage. These tests catch failures that mocks miss.
 
-## Container patterns
-
-Use `pkg/dockertest` for isolated, per-test containers. Use shared containers only when startup cost is prohibitive, and ensure data cleanup between tests.
+Integration tests must document the cross-boundary guarantee they protect. Make it clear which production contract would be broken if the test failed, such as transaction rollback, idempotency, permission propagation, cache invalidation, or persistence after restart.
 
 ```go
-redisURL := dockertest.Redis(t)
+// TestCreateKeyRollsBackAuditLogOnDatabaseFailure guarantees that key creation
+// and audit logging remain atomic. Operators must not see an audit log for a
+// key that was never committed.
+func TestCreateKeyRollsBackAuditLogOnDatabaseFailure(t *testing.T) {
+    // ...
+}
+```
+
+## Container patterns
+
+Use `pkg/testutil/containers` for shared test containers. Helpers lazily start
+containers through `pkg/testutil/docker-compose.test.yaml` and reuse one Docker
+Compose project per worktree, so tests only start the services they need.
+`mise run test` removes the shared containers for that worktree after the test
+suite exits.
+
+For full-suite runs, use `mise run test`. Direct `rask` does not run the
+cleanup trap from the mise task.
+
+```go
+redisURL := containers.Redis(t)
 ```
 
 ## Test harness
@@ -24,14 +42,18 @@ h := testutil.NewHarness(t)
 workspace := h.CreateWorkspace()
 ```
 
-## Bazel sizing
+Keep harness setup explicit when it affects the guarantee. Do not hide permissions, feature flags, tenants, or seeded records behind generic helpers unless the helper name or docstring explains the resulting system state.
 
-Integration tests that start containers must use `size = "large"`. Shared-container tests can use `size = "medium"`.
+## Suite cost
+
+Integration tests that start containers must use the shared container helpers.
+Keep expensive setup explicit so readers can see why the test belongs in the
+integration suite.
 
 ## Debugging failures
 
 Use verbose output for failing tests:
 
 ```bash
-bazel test //pkg/vault/integration:integration_test --test_output=all
+mise exec -- rask -v ./pkg/vault/integration
 ```

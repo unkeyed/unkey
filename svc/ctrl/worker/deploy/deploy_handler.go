@@ -13,12 +13,11 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -28,14 +27,6 @@ import (
 var errInvalidSecretsConfig = errors.New("invalid secrets config")
 
 const (
-	// sentinelNamespace isolates sentinel resources from tenant namespaces to
-	// simplify RBAC and keep routing infrastructure separate from workloads.
-	sentinelNamespace = "sentinel"
-
-	// sentinelPort is the port exposed by sentinel services for frontline traffic
-	// and must match the container port and service configuration.
-	sentinelPort = 8040
-
 	// regionReadyTimeout is how long to wait for all instances in a region to become
 	// ready before considering that region's deployment failed. This is a soft timeout:
 	// the workflow continues waiting for other regions and only fails if fewer than
@@ -69,14 +60,18 @@ const (
 // Deploy executes a full deployment workflow for a new application version.
 //
 // This is a Restate durable workflow, meaning it is idempotent and can safely
-// resume from any step after a crash. The workflow orchestrates five phases:
+// resume from any step after a crash. The workflow orchestrates four phases:
 //
 //  1. [Workflow.buildImage] — resolve or build the container image
 //  2. [Workflow.createTopologies] — provision deployment topologies across regions
-//  3. [Workflow.ensureSentinels] and [Workflow.ensureCiliumNetworkPolicy] — set up
-//     routing infrastructure and network policies
+//  3. [Workflow.waitForDeployments] — block until enough regions are healthy
 //  4. [Workflow.configureRouting] — assign domain routes to the deployment
 //  5. [Workflow.swapLiveDeployment] — promote to live (production only)
+//
+// Network policies are not provisioned by the control plane any more —
+// krane installs a per-deployment CiliumNetworkPolicy when it applies the
+// ReplicaSet, so frontline ingress is allowed without a separate workflow
+// step.
 //
 // Each phase is wrapped in deployment step tracking so the UI can show progress.
 // A compensation stack (executed in reverse on failure) cleans up partial state
@@ -111,15 +106,16 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// Use the conditional update so we don't overwrite a status that was
 		// set intentionally by the dedup path (superseded) or by a successful
 		// completion (ready). Only transitions from active statuses to failed.
-		return db.Query.UpdateDeploymentStatusIfActive(runCtx, w.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
-			ID:        req.GetDeploymentId(),
-			Status:    db.DeploymentsStatusFailed,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
+			ID:               req.GetDeploymentId(),
+			Status:           db.DeploymentsStatusFailed,
+			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			TerminalStatuses: db.TerminalDeploymentStatuses,
 		})
 	})
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
+		return w.db.FindDeploymentById(runCtx, req.GetDeploymentId())
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -146,7 +142,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// gate should be bypassed. The Starting step below re-fetches the environment so
 	// we don't need to plumb it through — this extra read is cheap compared to a build.
 	gateEnvironment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for concurrency gate"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
@@ -171,7 +167,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Dequeue ---
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{
+		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: req.GetDeploymentId(),
 			Step:         db.DeploymentStepsStepQueued,
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -191,10 +187,22 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
+		if err := assert.All(
+			assert.Greater(deployment.Port, int32(0), "Port must be greater than 0"),
+			assert.LessOrEqual(deployment.Port, int32(65535), "Port cannot exceed 65535"),
+			assert.Greater(deployment.CpuMillicores, int32(0), "CPU millicores must be greater than 0"),
+			assert.Greater(deployment.MemoryMib, int32(0), "MemoryMib must be greater than 0"),
+		); err != nil {
+			return fault.Wrap(
+				restate.TerminalError(err),
+				fault.Public(err.Error()),
+			)
+		}
+
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 			var ws db.Workspace
 			err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
+				found, err := db.NewQueries(tx).FindWorkspaceByID(txCtx, deployment.WorkspaceID)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.Wrap(
@@ -209,7 +217,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				if !found.K8sNamespace.Valid {
 					ws.K8sNamespace.Valid = true
 					ws.K8sNamespace.String = uid.DNS1035()
-					return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
+					return db.NewQueries(tx).SetWorkspaceK8sNamespace(txCtx, db.SetWorkspaceK8sNamespaceParams{
 						ID:           ws.ID,
 						K8sNamespace: ws.K8sNamespace,
 					})
@@ -225,21 +233,21 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 
 		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
+			return w.db.FindProjectById(runCtx, deployment.ProjectID)
 		}, restate.WithName("finding project"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		app, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-			return db.Query.FindAppById(runCtx, w.db.RW(), deployment.AppID)
+			return w.db.FindAppById(runCtx, deployment.AppID)
 		}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-			return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
+			return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 		}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -275,29 +283,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		// Create sentinel DB rows + outbox entries first — these are just
-		// inserts, they don't block.
-		newSentinelIDs, err := w.ensureSentinelRows(stepCtx, workspace, project, environment, topologies)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
-		}
-
-		if err := w.ensureCiliumNetworkPolicy(stepCtx, workspace, project, environment, topologies, deployment); err != nil {
-			return fault.Wrap(err, fault.Public("Applying network policies failed."))
-		}
-
-		// Fire off SentinelService.Deploy for each new sentinel WITHOUT
-		// waiting, then start the pod-readiness awakeable wait. Krane can
-		// work on both in parallel; we drain the sentinel futures after
-		// waitForDeployments returns so the two waits overlap.
-		sentinelFutures := w.fanOutSentinelDeploys(stepCtx, newSentinelIDs, sentinelReplicasForEnv(environment))
-
 		if err = w.waitForDeployments(stepCtx, compensation, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
-		}
-
-		if err := w.waitForSentinels(newSentinelIDs, sentinelFutures); err != nil {
-			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
 		}
 		return nil
 	})
@@ -329,7 +316,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// --- Finalize ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
 				Status:    db.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -339,8 +326,16 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
-			return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
+		switch environment.Slug {
+		case "production":
+			if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
+				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
+			}
+		case "preview":
+			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
+				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
+				logger.Error("unable to spin down previous preview deployments", "error", err)
+			}
 		}
 		return nil
 	})
@@ -357,7 +352,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		Description: "Deployment is live",
 	})
 
-	logger.Info("deployment workflow completed",
+	logger.Info(
+		"deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
 	)
@@ -398,102 +394,26 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
+		forkRepo := source.Git.GetForkRepository()
 
-		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
-		// a GitTarget that specifies only a branch)
-		if commitSHA == "" && source.Git.GetBranch() != "" {
-			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
-					return w.github.GetBranchHeadCommitPublic(
-						source.Git.GetRepository(),
-						source.Git.GetBranch(),
-					)
-				}
-				return w.github.GetBranchHeadCommit(
-					source.Git.GetInstallationId(),
-					source.Git.GetRepository(),
-					source.Git.GetBranch(),
-				)
-			}, restate.WithName("resolve branch head"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
-					fault.Public("The configured Git branch could not be resolved. Please check your branch settings."),
-				)
-			}
-			commitSHA = info.SHA
-
-			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
-					ID:                       deployment.ID,
-					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
-					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
-					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
-					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
-					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
-					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
-					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-			}, restate.WithName("update deployment git metadata"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
-					fault.Public("The commit was resolved but metadata could not be saved."),
-				)
-			}
-
-			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
-			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
-			deployment.GitCommitMessage = sql.NullString{String: info.Message, Valid: info.Message != ""}
-			deployment.GitCommitAuthorHandle = sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""}
-			deployment.GitCommitAuthorAvatarUrl = sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""}
-			deployment.GitCommitTimestamp = sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()}
+		if commitSHA == "" {
+			return fault.Wrap(
+				restate.TerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
+				fault.Public("Deployment has no resolved commit; cannot build."),
+			)
 		}
 
-		// When a SHA is known (either provided directly or just resolved from branch)
-		// but the deployment record is still missing git metadata, fetch it from GitHub.
-		hasGitHubAuth := !w.allowUnauthenticatedDeployments || source.Git.GetInstallationId() != noInstallationID
-		if commitSHA != "" && !deployment.GitCommitMessage.Valid && hasGitHubAuth {
-			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				return w.github.GetCommitBySHA(
-					source.Git.GetInstallationId(),
-					source.Git.GetRepository(),
-					commitSHA,
-				)
-			}, restate.WithName("resolve commit metadata by sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr),
-					fault.Public("Could not retrieve commit information from GitHub."),
-				)
-			}
-
-			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
-					ID:                       deployment.ID,
-					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
-					GitBranch:                deployment.GitBranch,
-					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
-					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
-					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
-					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
-					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-			}, restate.WithName("update deployment git metadata for sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
-					fault.Public("The commit was resolved but metadata could not be saved."),
-				)
-			}
-		}
-
-		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
-			InstallationID:                source.Git.GetInstallationId(),
-			Repository:                    source.Git.GetRepository(),
-			CommitSHA:                     commitSHA,
-			ContextPath:                   source.Git.GetContextPath(),
-			DockerfilePath:                source.Git.GetDockerfilePath(),
+		params := gitBuildParams{
+			InstallationID: source.Git.GetInstallationId(),
+			Repository:     source.Git.GetRepository(),
+			ForkRepository: forkRepo,
+			CommitSHA:      commitSHA,
+			ContextPath:    source.Git.GetContextPath(),
+			// Normalized here because the value routes the build method below:
+			// a whitespace-only setting must mean "no Dockerfile configured".
+			DockerfilePath: strings.TrimSpace(source.Git.GetDockerfilePath()),
+			// Trimmed so a whitespace-only setting means "let Railpack auto-detect".
+			BuildCommand:                  strings.TrimSpace(source.Git.GetBuildCommand()),
 			ProjectID:                     deployment.ProjectID,
 			AppID:                         deployment.AppID,
 			DeploymentID:                  deployment.ID,
@@ -501,7 +421,24 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			PrNumber:                      source.Git.GetPrNumber(),
 			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 			EnvironmentID:                 deployment.EnvironmentID,
-		})
+		}
+
+		// The configured Dockerfile path decides the build method: when the
+		// app's build settings name a Dockerfile it is used, otherwise the
+		// app is built with Railpack (no Dockerfile required).
+		var build *buildResult
+		var err error
+		if params.DockerfilePath == "" {
+			logger.Info(
+				"no dockerfile configured, building with railpack",
+				"deployment_id", deployment.ID,
+				"repository", params.Repository,
+				"commit_sha", params.CommitSHA,
+			)
+			build, err = w.buildRailpackImageFromGit(ctx, params)
+		} else {
+			build, err = w.buildDockerImageFromGit(ctx, params)
+		}
 		if err != nil {
 			// fault.Public set inside buildDockerImageFromGit is lost because
 			// restate.Run serialises terminal errors, stripping the fault wrapper.
@@ -518,7 +455,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		dockerImage = build.ImageName
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentBuildID(runCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
+			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
 				ID:        deployment.ID,
 				BuildID:   sql.NullString{Valid: true, String: build.DepotBuildID},
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -539,7 +476,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	}
 
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentImage(runCtx, w.db.RW(), db.UpdateDeploymentImageParams{
+		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
 			ID:        deployment.ID,
 			Image:     sql.NullString{Valid: true, String: dockerImage},
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -572,7 +509,7 @@ func (w *Workflow) createTopologies(
 	// Read regional settings to determine per-region replica counts.
 	// If no regional settings exist, fail with a terminal error.
 	regionalSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindAppRegionalSettingsByAppAndEnvRow, error) {
-		return db.Query.FindAppRegionalSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
+		return w.db.FindAppRegionalSettingsByAppAndEnv(runCtx, db.FindAppRegionalSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
@@ -588,7 +525,8 @@ func (w *Workflow) createTopologies(
 	schedulable := make([]db.FindAppRegionalSettingsByAppAndEnvRow, 0, len(regionalSettings))
 	for _, rs := range regionalSettings {
 		if !rs.RegionCanSchedule {
-			logger.Warn("skipping non-schedulable region",
+			logger.Warn(
+				"skipping non-schedulable region",
 				"region_id", rs.RegionID,
 				"region_name", rs.RegionName,
 				"app_id", deployment.AppID,
@@ -609,14 +547,14 @@ func (w *Workflow) createTopologies(
 
 	// --- Quota check ---
 	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-		return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
+		return w.db.FindQuotaByWorkspaceID(runCtx, deployment.WorkspaceID)
 	}, restate.WithName("find workspace quota"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
 	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
-		return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
+		return w.db.SumAllocatedResourcesByWorkspaceID(runCtx, workspace.ID)
 	}, restate.WithName("sum allocated resources by workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -674,6 +612,9 @@ func (w *Workflow) createTopologies(
 			autoscalingMax = autoscalingMin
 		}
 
+		// CreatedAt is filled in below inside the Run so the timestamp stays
+		// stable across Restate replays.
+		//nolint: exhaustruct
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:                workspace.ID,
 			DeploymentID:               deployment.ID,
@@ -683,19 +624,21 @@ func (w *Workflow) createTopologies(
 			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
 			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
 			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-			CreatedAt:                  time.Now().UnixMilli(),
 		})
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			err := db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
+			now := time.Now().UnixMilli()
+			for i := range topologies {
+				topologies[i].CreatedAt = now
+			}
+			err := db.NewBulkQueries(tx).InsertDeploymentTopologies(txCtx, topologies)
 			if err != nil {
 				return err
 			}
-			now := time.Now().UnixMilli()
 			for _, topo := range topologies {
-				err := db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+				err := db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
 					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 					ResourceID:   topo.DeploymentID,
 					RegionID:     topo.RegionID,
@@ -726,7 +669,7 @@ func (w *Workflow) createTopologies(
 			func(runCtx restate.RunContext) error {
 				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 					now := time.Now().UnixMilli()
-					err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
+					err := db.NewQueries(tx).UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
 						DeploymentID:  topo.DeploymentID,
 						RegionID:      topo.RegionID,
 						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
@@ -735,7 +678,7 @@ func (w *Workflow) createTopologies(
 					if err != nil {
 						return err
 					}
-					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+					return db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
 						ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 						ResourceID:   topo.DeploymentID,
 						RegionID:     topo.RegionID,
@@ -747,155 +690,6 @@ func (w *Workflow) createTopologies(
 	}
 
 	return topologies, nil
-}
-
-// sentinelReplicasForEnv returns the desired sentinel replica count based
-// on the environment slug. Production gets extra replicas for availability.
-func sentinelReplicasForEnv(environment db.Environment) int32 {
-	if environment.Slug == "production" {
-		return 3
-	}
-	return 1
-}
-
-// ensureSentinelRows inserts a sentinel DB row (and outbox entry) for every
-// region in topologies that doesn't already have one for this environment.
-// Returns the IDs of the newly inserted sentinels.
-//
-// The insert relies on a unique index on (environment_id, region) to be
-// idempotent — if a concurrent workflow already created the sentinel, the
-// duplicate key error is silently ignored. This is the DB-mutating half of
-// what used to be ensureSentinels; the waiting half is now
-// [Workflow.fanOutSentinelDeploys] + [Workflow.waitForSentinels] so
-// that the sentinel Deploys can be fired off in parallel with the pod
-// readiness wait.
-func (w *Workflow) ensureSentinelRows(
-	ctx restate.ObjectContext,
-	workspace db.Workspace,
-	project db.Project,
-	environment db.Environment,
-	topologies []db.InsertDeploymentTopologyParams,
-) ([]string, error) {
-	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
-		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-	}, restate.WithName("find existing sentinels"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fault.Wrap(
-			fmt.Errorf("failed to find existing sentinels: %w", err),
-			fault.Public("Failed to read from database. Please try again."),
-		)
-	}
-
-	existingSentinelsByRegion := make(map[string]db.Sentinel)
-	for _, row := range existingSentinels {
-		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
-	}
-
-	desiredReplicas := sentinelReplicasForEnv(environment)
-
-	// Insert a sentinel row (and outbox entry) for every region that doesn't
-	// already have one, so krane can pick them up.
-	var newSentinelIDs []string
-	for _, topology := range topologies {
-		_, ok := existingSentinelsByRegion[topology.RegionID]
-		if ok {
-			continue
-		}
-
-		sentinelID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			id := uid.New(uid.SentinelPrefix)
-			sentinelK8sName := uid.DNS1035()
-
-			err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
-					ID:              id,
-					WorkspaceID:     workspace.ID,
-					EnvironmentID:   environment.ID,
-					ProjectID:       project.ID,
-					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-					K8sName:         sentinelK8sName,
-					RegionID:        topology.RegionID,
-					Image:           w.sentinelImage,
-					DesiredReplicas: desiredReplicas,
-					CpuMillicores:   250,
-					MemoryMib:       256,
-					CreatedAt:       time.Now().UnixMilli(),
-				})
-				if err != nil {
-					if db.IsDuplicateKeyError(err) {
-						return nil
-					}
-					return err
-				}
-				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
-					ResourceType: db.DeploymentChangesResourceTypeSentinel,
-					ResourceID:   id,
-					RegionID:     topology.RegionID,
-					CreatedAt:    time.Now().UnixMilli(),
-				})
-			})
-			return id, err
-		}, restate.WithName("ensure sentinel exists in db"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
-		}
-
-		newSentinelIDs = append(newSentinelIDs, sentinelID)
-	}
-
-	return newSentinelIDs, nil
-}
-
-// fanOutSentinelDeploys kicks off non-blocking RequestFuture calls to
-// SentinelService.Deploy for each newly created sentinel. Returns the
-// futures so the caller can drain them concurrently with other waits
-// (e.g. [Workflow.waitForDeployments]).
-//
-// Each SentinelService.Deploy invocation is awakeable-based and blocks
-// inside the sentinel VO until krane reports the desired image as running
-// or until its own 10-minute deploy timeout fires.
-func (w *Workflow) fanOutSentinelDeploys(
-	ctx restate.ObjectContext,
-	newSentinelIDs []string,
-	desiredReplicas int32,
-) []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse] {
-	if len(newSentinelIDs) == 0 {
-		return nil
-	}
-	futures := make([]restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse], 0, len(newSentinelIDs))
-	for _, id := range newSentinelIDs {
-		fut := hydrav1.NewSentinelServiceClient(ctx, id).
-			Deploy().
-			RequestFuture(&hydrav1.SentinelServiceDeployRequest{
-				Image:           w.sentinelImage,
-				DesiredReplicas: desiredReplicas,
-				CpuMillicores:   250,
-				MemoryMib:       256,
-			})
-		futures = append(futures, fut)
-	}
-	return futures
-}
-
-// waitForSentinels blocks until every sentinel Deploy future resolves
-// or one of them fails. Called after the pod readiness wait so that both
-// sentinels and pods converge in parallel on krane's side; by the time we
-// drain, most futures should already have resolved.
-func (w *Workflow) waitForSentinels(
-	newSentinelIDs []string,
-	futures []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse],
-) error {
-	for i, fut := range futures {
-		resp, err := fut.Response()
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Traffic proxy failed to start."))
-		}
-		if resp.GetStatus() != hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_READY {
-			return fault.New(fmt.Sprintf("sentinel %s deploy status: %s", newSentinelIDs[i], resp.GetStatus()),
-				fault.Public("Traffic proxy failed to start."))
-		}
-	}
-	return nil
 }
 
 // configureRouting sets up domain-based routing for a deployment. It generates
@@ -923,6 +717,13 @@ func (w *Workflow) configureRouting(
 		}
 	}
 
+	// CLI deploys reuse the same git SHA across iterative `unkey deploy`
+	// runs, so the per-commit domain needs a random suffix to avoid
+	// successive deploys overwriting each other. Webhook/dashboard/api
+	// deploys always advance the SHA so they don't need it. The trigger
+	// column on the deployment row is the authoritative signal.
+	uniquifyCommitDomain := deployment.Trigger == db.DeploymentsTriggerCli
+
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -932,8 +733,7 @@ func (w *Workflow) configureRouting(
 		deployment.GitBranch.String,
 		forkOwner,
 		w.defaultDomain,
-		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
-		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		uniquifyCommitDomain,
 		deployment.ID,
 	)
 
@@ -942,10 +742,10 @@ func (w *Workflow) configureRouting(
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
+				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
+						err = db.NewQueries(tx).InsertFrontlineRoute(runCtx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
 							AppID:                    app.ID,
@@ -974,7 +774,7 @@ func (w *Workflow) configureRouting(
 
 	// refresh app, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return db.Query.FindAppById(runCtx, w.db.RO(), app.ID)
+		return w.db.FindAppById(runCtx, app.ID)
 	}, restate.WithName("refresh app before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -989,7 +789,7 @@ func (w *Workflow) configureRouting(
 			if !app.IsRolledBack {
 				stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 			}
-			app, err := db.Query.FindAppById(txCtx, tx, app.ID)
+			app, err := db.NewQueries(tx).FindAppById(txCtx, app.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -999,7 +799,7 @@ func (w *Workflow) configureRouting(
 				stickyTypes = []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 			}
 
-			routes, err := db.Query.FindFrontlineRouteForPromotion(txCtx, tx, db.FindFrontlineRouteForPromotionParams{
+			routes, err := db.NewQueries(tx).FindFrontlineRouteForPromotion(txCtx, db.FindFrontlineRouteForPromotionParams{
 				EnvironmentID: deployment.EnvironmentID,
 				Sticky:        stickyTypes,
 			})
@@ -1026,13 +826,48 @@ func (w *Workflow) configureRouting(
 	_, err = hydrav1.NewRoutingServiceClient(ctx, environment.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
-		FrontlineRouteIds: routeIDs,
+		FrontlineRouteIds: append(routeIDs, existingRouteIDs...),
 	})
 	if err != nil {
 		return fault.Wrap(
 			fmt.Errorf("failed to assign domains: %w", err),
 			fault.Public("Domain routing could not be updated."),
 		)
+	}
+
+	return nil
+}
+
+func (w *Workflow) spinDownPreviousDeployments(
+	ctx restate.ObjectContext,
+	deployment db.Deployment,
+) error {
+	previousDeploymentIDs, err := restate.Run(ctx, func(ctx restate.RunContext) ([]string, error) {
+		return w.db.ListRunningDeploymentsByBranch(ctx, db.ListRunningDeploymentsByBranchParams{
+			GitBranch:       deployment.GitBranch,
+			WorkspaceID:     deployment.WorkspaceID,
+			ProjectID:       deployment.ProjectID,
+			AppID:           deployment.AppID,
+			EnvironmentID:   deployment.EnvironmentID,
+			NotDeploymentID: deployment.ID,
+		})
+	})
+	if err != nil {
+		return err
+	}
+	for _, previousDeploymentID := range previousDeploymentIDs {
+		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
+			ScheduleDesiredStateChange().Request(
+			&hydrav1.ScheduleDesiredStateChangeRequest{
+				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
+				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:   false, // do not overwrite a previously scheduled transition
+			},
+			restate.WithIdempotencyKey(previousDeploymentID),
+		)
+		if err != nil {
+			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
+		}
 	}
 
 	return nil
@@ -1069,7 +904,8 @@ func (w *Workflow) swapLiveDeployment(
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: (30 * time.Minute).Milliseconds(),
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:   true,
 			},
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)
@@ -1079,137 +915,6 @@ func (w *Workflow) swapLiveDeployment(
 	}
 
 	return nil
-}
-
-// waitForDeployments blocks until enough regions are healthy, or
-// [regionReadyTimeout] elapses. A region is considered healthy when it has
-// at least autoscaling_replicas_min running instances. The check tolerates
-// one full regional outage: it requires (numRegions - 1) healthy regions,
-// minimum 1.
-//
-// The wait is push-based via a Restate awakeable. The handler:
-//  1. Stores {awakeable_id, deployment_id} in VO state under
-//     [instancesReadyAwakeableKey]
-//  2. Does an initial DB check in case instances are already healthy (e.g.
-//     a redeploy against already-running pods, or a report that landed
-//     between createTopologies and here) and self-resolves the awakeable
-//     if so
-//  3. Races the awakeable against a [regionReadyTimeout] timeout via
-//     [restate.WaitFirst]
-//
-// The awakeable is resolved by [Workflow.NotifyInstancesReady], which is
-// called from services/cluster's ReportDeploymentStatus RPC whenever krane
-// reports an instance status change that pushes the deployment past the
-// healthy-region threshold.
-//
-// State cleanup: the caller passes `compensation` so the state clear can
-// be registered as a durable compensation (survives Restate cancellation)
-// rather than relying on a Go defer.
-func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *compensation.Compensation, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
-	// Build per-region minimum replica requirements.
-	regionMinReplicas := make(map[string]uint32, len(topologies))
-	for _, topo := range topologies {
-		regionMinReplicas[topo.RegionID] = topo.AutoscalingReplicasMin
-	}
-	requiredRegions := max(len(regionMinReplicas)-1, 1)
-
-	logger.Info("waiting for deployments to be ready",
-		"deployment_id", deploymentID,
-		"total_regions", len(regionMinReplicas),
-		"required_regions", requiredRegions,
-	)
-
-	// Create awakeable and stash it in VO state BEFORE doing the initial
-	// health check. This prevents a race where an instance report lands
-	// between our check and the state write, causing NotifyInstancesReady
-	// to find no awakeable and return a no-op.
-	awk := restate.Awakeable[restate.Void](ctx)
-	restate.Set(ctx, instancesReadyAwakeableKey, awk.Id())
-
-	// Clear state on failure so the VO doesn't keep a stale awakeable_id
-	// around after the deployment terminates.
-	compensation.AddCtx(func(ctx restate.ObjectContext) error {
-		restate.Clear(ctx, instancesReadyAwakeableKey)
-		return nil
-	})
-
-	// Initial check: if instances are already healthy, resolve immediately.
-	// Best-effort: on retry exhaustion, log and continue so NotifyInstancesReady
-	// can still complete the wait via the awakeable.
-	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
-	}, restate.WithName("initial healthy-regions check"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		logger.Warn("initial healthy-regions check failed, proceeding to await NotifyInstancesReady",
-			"deployment_id", deploymentID,
-			"error", err,
-		)
-		alreadyHealthy = false
-	}
-	if alreadyHealthy {
-		restate.ResolveAwakeable[restate.Void](ctx, awk.Id(), restate.Void{})
-	}
-
-	// Race the awakeable against a timeout.
-	timeout := restate.After(ctx, regionReadyTimeout)
-	winner, err := restate.WaitFirst(ctx, awk, timeout)
-	if err != nil {
-		return fmt.Errorf("wait for healthy regions or timeout: %w", err)
-	}
-
-	if winner == awk {
-		// Drain the result to surface any rejection error.
-		if _, err := awk.Result(); err != nil {
-			return fmt.Errorf("awakeable result: %w", err)
-		}
-		// Clear eagerly on the happy path. The compensation registered
-		// above still runs on any later error in the Deploy workflow.
-		restate.Clear(ctx, instancesReadyAwakeableKey)
-		logger.Info("deployments ready", "deployment_id", deploymentID)
-		return nil
-	}
-
-	return fault.Wrap(
-		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
-		fault.Public("Not enough regions became healthy in time."),
-	)
-}
-
-// checkInstancesHealthy returns true if the current running-instance counts
-// satisfy the per-region minimum replica requirements for at least
-// requiredRegions. It is the same logic used by ReportDeploymentStatus in
-// services/cluster to decide whether to call NotifyInstancesReady.
-func (w *Workflow) checkInstancesHealthy(
-	ctx context.Context,
-	deploymentID string,
-	regionMinReplicas map[string]uint32,
-	requiredRegions int,
-) (bool, error) {
-	instances, err := db.Query.FindInstancesByDeploymentId(ctx, w.db.RO(), deploymentID)
-	if err != nil {
-		return false, err
-	}
-
-	runningPerRegion := make(map[string]uint32)
-	for _, instance := range instances {
-		if instance.Status == db.InstancesStatusRunning {
-			runningPerRegion[instance.RegionID]++
-		}
-	}
-
-	healthyRegions := 0
-	for regionID, minReplicas := range regionMinReplicas {
-		if runningPerRegion[regionID] >= minReplicas {
-			healthyRegions++
-		}
-	}
-
-	logger.Info("checked instances",
-		"deployment_id", deploymentID,
-		"healthy_regions", healthyRegions,
-		"required_regions", requiredRegions,
-	)
-	return healthyRegions >= requiredRegions, nil
 }
 
 // ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all
@@ -1245,7 +950,7 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
-		found, findErr := db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 		if findErr != nil {
 			if db.IsNotFound(findErr) {
 				// No connection — return zero value, not an error.
@@ -1257,7 +962,8 @@ func (w *Workflow) initGitHubStatus(
 		return found, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+		logger.Warn(
+			"failed to look up github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
 			"error", err,
 		)
@@ -1266,7 +972,8 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	if repoConn.InstallationID == 0 {
-		logger.Info("no github repo connection, skipping deployment status reporting",
+		logger.Info(
+			"no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
 		)
 

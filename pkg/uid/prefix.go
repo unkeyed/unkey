@@ -17,20 +17,29 @@ const (
 	IdentityPrefix            Prefix = "id"
 	RatelimitPrefix           Prefix = "rl"
 	AuditLogPrefix            Prefix = "log"
+	CorrelationPrefix         Prefix = "cor"
 	InstancePrefix            Prefix = "ins"
-	SentinelPrefix            Prefix = "s"
+	FrontlinePrefix           Prefix = "fl"
 	CiliumNetworkPolicyPrefix Prefix = "net"
 	ClusterPrefix             Prefix = "cls"
 	RegionPrefix              Prefix = "rgn"
 	OrgPrefix                 Prefix = "org"
 
+	// Portal prefixes
+	PortalSessionTokenPrefix Prefix = "pst"
+	PortalSessionPrefix      Prefix = "ps"
+	PortalConfigPrefix       Prefix = "pc"
+
 	// Control plane prefixes
-	OpenApiSpecPrefix    Prefix = "oas"
-	ProjectPrefix        Prefix = "proj"
-	EnvironmentPrefix    Prefix = "env"
-	AppPrefix            Prefix = "app"
-	DomainPrefix         Prefix = "dom"
-	DeploymentPrefix     Prefix = "d"
-	FrontlineRoutePrefix Prefix = "flr"
-	CertificatePrefix    Prefix = "cert"
+	OpenApiSpecPrefix         Prefix = "oas"
+	ProjectPrefix             Prefix = "proj"
+	EnvironmentPrefix         Prefix = "env"
+	EnvironmentVariablePrefix Prefix = "evr"
+	AppPrefix                 Prefix = "app"
+	DomainPrefix              Prefix = "dom"
+	DeploymentPrefix          Prefix = "d"
+	FrontlineRoutePrefix      Prefix = "flr"
+	CertificatePrefix         Prefix = "cert"
+
+	AutoscalingPolicyPrefix Prefix = "asp"
 )

@@ -25,19 +25,15 @@ export const EditExternalId = ({
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
-  const updateKeyOwner = useEditExternalId(() => {
+  const updateExternalId = useEditExternalId(() => {
     setOriginalIdentityId(selectedIdentityId);
     onClose();
   });
 
   const handleSubmit = () => {
-    updateKeyOwner.mutate({
+    updateExternalId.mutate({
       keyIds: keyDetails.id,
-      ownerType: "v2",
-      identity: {
-        id: selectedIdentityId,
-        externalId: selectedExternalId,
-      },
+      externalId: selectedExternalId,
     });
   };
 
@@ -58,12 +54,9 @@ export const EditExternalId = ({
 
   const clearSelection = async () => {
     setSelectedIdentityId(null);
-    await updateKeyOwner.mutateAsync({
+    await updateExternalId.mutateAsync({
       keyIds: keyDetails.id,
-      ownerType: "v2",
-      identity: {
-        id: null,
-      },
+      externalId: null,
     });
   };
 
@@ -83,7 +76,7 @@ export const EditExternalId = ({
                   variant="primary"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateExternalId.isLoading}
                   onClick={handleSubmit}
                 >
                   Update External ID
@@ -95,7 +88,7 @@ export const EditExternalId = ({
                   color="danger"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateExternalId.isLoading}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
                 >
@@ -131,11 +124,11 @@ export const EditExternalId = ({
             keyDetails.identity_id
               ? {
                   id: keyDetails.identity_id,
-                  externalId: keyDetails.owner_id || "",
+                  externalId: keyDetails.identity?.external_id || keyDetails.owner_id || "",
                 }
               : undefined
           }
-          disabled={updateKeyOwner.isLoading}
+          disabled={updateExternalId.isLoading}
         />
       </DialogContainer>
       <ConfirmPopover

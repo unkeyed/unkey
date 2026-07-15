@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -10,6 +11,43 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// errorLogAttrs builds the structured attributes attached to every 5xx log
+// from this middleware. The goal is to give an on-call engineer enough
+// context to find the failing request in ClickHouse / wide-event logs
+// without having to grep around: workspace and request id pin the row,
+// http.* describes what was called, error.* (added by the logger's fault
+// handler) describes what went wrong.
+//
+// We deliberately don't include the request body — it can contain secrets
+// and is already redacted-and-logged by the wide-event request logger.
+// Key id / identity id are not available here (they live on KeyVerifier,
+// not zen.Session), but the request id lets you pivot to the wide event
+// that does carry them.
+func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
+	workspaceID := ""
+	if principal, principalErr := s.GetPrincipal(); principalErr == nil {
+		workspaceID = principal.WorkspaceID
+	}
+
+	return []any{
+		"error", err,
+		"workspaceId", workspaceID,
+		"requestId", s.RequestID(),
+		"code", string(urn),
+		"publicMessage", fault.UserFacingMessage(err),
+		slog.Group("http",
+			slog.String("method", s.Request().Method),
+			slog.String("path", s.Request().URL.Path),
+			slog.String("query", s.Request().URL.RawQuery),
+			slog.String("host", s.Request().Host),
+			slog.String("user_agent", s.UserAgent()),
+			slog.String("ip", s.Location()),
+			slog.String("referer", s.Request().Referer()),
+			slog.Int("status", status),
+		),
+	}
+}
 
 // WithErrorHandling returns middleware that translates errors into appropriate
 // HTTP responses based on error URNs.
@@ -42,6 +80,9 @@ func WithErrorHandling() zen.Middleware {
 			case codes.UnkeyDataErrorsKeyNotFound,
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
+				codes.UnkeyDataErrorsAppNotFound,
+				codes.UnkeyDataErrorsEnvironmentNotFound,
+				codes.UnkeyDataErrorsDeploymentNotFound,
 				codes.UnkeyDataErrorsMigrationNotFound,
 				codes.UnkeyDataErrorsKeySpaceNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
@@ -51,7 +92,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
-				codes.UnkeyDataErrorsAuditLogNotFound:
+				codes.UnkeyDataErrorsAuditLogNotFound,
+				codes.UnkeyDataErrorsPortalConfigNotFound:
 				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -69,7 +111,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
-				codes.UserErrorsBadRequestRequestBodyUnreadable:
+				codes.UserErrorsBadRequestRequestBodyUnreadable,
+				codes.UnkeyPortalErrorsSessionTokenMissing:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -193,7 +236,8 @@ func WithErrorHandling() zen.Middleware {
 				})
 
 			// Unauthorized errors
-			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
+			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
+				codes.UnkeyPortalErrorsSessionSessionNotFound:
 				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -237,7 +281,9 @@ func WithErrorHandling() zen.Middleware {
 			// Duplicate errors
 			case codes.UnkeyDataErrorsIdentityDuplicate,
 				codes.UnkeyDataErrorsRoleDuplicate,
-				codes.UnkeyDataErrorsPermissionDuplicate:
+				codes.UnkeyDataErrorsPermissionDuplicate,
+				codes.UnkeyDataErrorsProjectDuplicate,
+				codes.UnkeyDataErrorsAppDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -311,9 +357,7 @@ func WithErrorHandling() zen.Middleware {
 			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
 				logger.Error(
 					"analytics connection error",
-					"error", err.Error(),
-					"requestId", s.RequestID(),
-					"publicMessage", fault.UserFacingMessage(err),
+					errorLogAttrs(s, err, http.StatusServiceUnavailable, urn)...,
 				)
 
 				return s.ProblemJSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
@@ -336,9 +380,7 @@ func WithErrorHandling() zen.Middleware {
 			}
 
 			logger.Error("api error",
-				"error", err.Error(),
-				"requestId", s.RequestID(),
-				"publicMessage", fault.UserFacingMessage(err),
+				errorLogAttrs(s, err, http.StatusInternalServerError, urn)...,
 			)
 
 			return s.ProblemJSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{

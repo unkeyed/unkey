@@ -38,7 +38,7 @@ func formatHeader(key, value string) string {
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer, info)},
 //	    route,
 //	)
 func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middleware {
@@ -69,8 +69,13 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middlewar
 					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
 				}
 
+				workspaceID := ""
+				if principal, err := s.GetPrincipal(); err == nil {
+					workspaceID = principal.WorkspaceID
+				}
+
 				apiRequestBuffer.Buffer(schema.ApiRequest{
-					WorkspaceID:     s.WorkspaceID,
+					WorkspaceID:     workspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
 					Host:            s.r.Host,

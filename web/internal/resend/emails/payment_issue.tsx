@@ -12,9 +12,11 @@ import { Signature } from "../src/components/signature";
 export type Props = {
   username: string;
   date: string;
+  workspaceSlug: string;
 };
 
-export function PaymentIssue({ username, date }: Props) {
+export function PaymentIssue({ username, date, workspaceSlug }: Props) {
+  const workspaceURL = `https://app.unkey.com/${workspaceSlug}/settings/billing`;
   return (
     <Layout>
       <Heading className="font-sans text-3xl text-semibold text-center">
@@ -27,10 +29,7 @@ export function PaymentIssue({ username, date }: Props) {
       </Text>
 
       <Section className="text-center py-3">
-        <Button
-          href="https://app.unkey.com/settings/billing/stripe"
-          className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
-        >
+        <Button href={workspaceURL} className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3">
           Update payment information
         </Button>
       </Section>
@@ -49,6 +48,7 @@ export function PaymentIssue({ username, date }: Props) {
 PaymentIssue.PreviewProps = {
   username: "Mr. Pilkington",
   date: "Tue Oct 01 2024", // Date().toDateString
+  workspaceSlug: "demo-workspace",
 } satisfies Props;
 
 // biome-ignore lint/style/noDefaultExport: Too scared to modify that one

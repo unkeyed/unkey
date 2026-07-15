@@ -12,9 +12,11 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -28,6 +30,7 @@ var localCmd = &cli.Command{
 		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
 		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("output", "Path to write generated environment variables", cli.Default("dev/.env.seed")),
+		cli.Bool("portal", "Also seed portal configuration and branding for this workspace"),
 	},
 	Action: seedLocal,
 }
@@ -36,20 +39,20 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		RateLimiter:      nil,
-		RBAC:             nil,
-		KeyVerifications: nil,
-		Region:           "local",
-		UsageLimiter:     nil,
-		KeyCache:         nil,
-		QuotaCache:       nil,
+		DB:           db.ToMySQL(database),
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Region:       "local",
+		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
+		KeyCache:     nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -92,6 +95,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
 	regionID := uid.New(uid.RegionPrefix)
+	portalConfigID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -128,7 +132,17 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create project: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create project: %w", err)
+			}
+			existing, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+				WorkspaceID: workspaceID,
+				Project:     projectSlug,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing project: %w", err)
+			}
+			projectID = existing.ID
 		}
 
 		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
@@ -145,7 +159,17 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create apps: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create apps: %w", err)
+			}
+			existing, err := db.Query.FindAppByProjectAndSlug(ctx, tx, db.FindAppByProjectAndSlugParams{
+				ProjectID: projectID,
+				Slug:      "default",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing app: %w", err)
+			}
+			appID = existing.App.ID
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -170,7 +194,25 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create environments: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create environments: %w", err)
+			}
+			previewEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "preview",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing preview environment: %w", err)
+			}
+			previewEnvID = previewEnv.Environment.ID
+			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "production",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing production environment: %w", err)
+			}
+			productionEnvID = productionEnv.Environment.ID
 		}
 
 		// Create default runtime settings for each environment
@@ -220,9 +262,11 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				WorkspaceID:   workspaceID,
 				AppID:         appID,
 				EnvironmentID: previewEnvID,
-				Dockerfile:    "Dockerfile",
+				Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
 				DockerContext: ".",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -230,9 +274,11 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				WorkspaceID:   workspaceID,
 				AppID:         appID,
 				EnvironmentID: productionEnvID,
-				Dockerfile:    "Dockerfile",
+				Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
 				DockerContext: ".",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -265,22 +311,24 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		// Create regional settings so deployments work without manually saving each environment
 		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
 			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: previewEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 previewEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: productionEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 productionEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 			},
 		})
 		if err != nil {
@@ -370,9 +418,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			Expires:            sql.NullTime{},
 			CreatedAtM:         now,
 			Enabled:            true,
-			RemainingRequests:  sql.NullInt32{},
+			RemainingRequests:  sql.NullInt64{},
 			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt32{},
+			RefillAmount:       sql.NullInt64{},
 			PendingMigrationID: sql.NullString{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {
@@ -410,6 +458,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"ratelimit.*.read_override",
 			"ratelimit.*.set_override",
 			"workspace.*.read_workspace",
+			"environment.*.create_deployment",
+			"environment.*.read_deployment",
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",
@@ -451,6 +501,37 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to insert key permissions: %w", err)
 		}
 
+		// Optionally seed portal configuration and branding.
+		if cmd.Bool("portal") {
+			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
+				ID:          portalConfigID,
+				WorkspaceID: workspaceID,
+				Slug:        "awesome",
+				AppID:       sql.NullString{Valid: true, String: appID},
+				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:     true,
+				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
+				CreatedAt:   now,
+				UpdatedAt:   sql.NullInt64{},
+			})
+			if err != nil && !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create portal config: %w", err)
+			}
+
+			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
+				PortalConfigID: portalConfigID,
+				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create portal branding: %w", err)
+			}
+
+			logger.Info("portal seeded", "portalConfigId", portalConfigID)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -477,6 +558,10 @@ UNKEY_ROOT_KEY=%s
 			userKeySpaceID,
 			keyResult.Key,
 		)
+
+		if cmd.Bool("portal") {
+			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+		}
 
 		// Ensure directory exists
 		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {

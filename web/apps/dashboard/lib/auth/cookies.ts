@@ -1,8 +1,12 @@
-"use server";
+// Server-only cookie helpers. This module is intentionally NOT a "use server"
+// module: that directive would expose every export below as a public POST
+// endpoint identified by an action ID, including the generic setCookie /
+// setCookies helpers that accept arbitrary name, value, and option fields.
+// Client components must go through the narrow wrappers in ./cookies-actions.
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
-import { getDefaultCookieOptions } from "./cookie-security";
+import { getAuthCookieOptions, getDefaultCookieOptions } from "./cookie-security";
 import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
@@ -106,11 +110,15 @@ export async function setSessionCookie(params: {
 }): Promise<void> {
   const { token, expiresAt } = params;
 
+  // The session cookie must always be SameSite=Lax, matching how sign-in
+  // issues it. Strict would not be sent on cross-site top-level navigations
+  // back into the app (OAuth callbacks, GitHub App install returns), which
+  // makes the user appear logged out on those requests.
   await setCookie({
     name: UNKEY_SESSION_COOKIE,
     value: token,
     options: {
-      ...getDefaultCookieOptions(),
+      ...getAuthCookieOptions(),
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },
   });

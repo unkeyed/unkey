@@ -1,10 +1,10 @@
 "use client";
-import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronExpandY, Gauge, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
@@ -20,7 +20,6 @@ const IdentifierDialog = dynamic(
 
 type NamespaceNavbarProps = {
   namespaceId: string;
-  includeOverrides?: boolean;
   activePage: {
     href: string;
     text: string;
@@ -37,7 +36,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" className="group" noop>
@@ -69,59 +68,18 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/${workspace.slug}/ratelimits/${namespaceId}`}
+            href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId })}
             className="group"
             noop
           >
-            <QuickNavPopover
-              items={data.map((ns) => ({
-                id: ns.id,
-                label: ns.name,
-                href: `/${workspace.slug}/ratelimits/${ns.id}`,
-              }))}
-              shortcutKey="N"
-            >
-              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {namespace?.name}
-                <ChevronExpandY className="size-4" />
-              </div>
-            </QuickNavPopover>
+            {namespace?.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
-            <QuickNavPopover
-              items={[
-                {
-                  id: "requests",
-                  label: "Requests",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}`,
-                },
-                {
-                  id: "logs",
-                  label: "Logs",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/logs`,
-                },
-                {
-                  id: "settings",
-                  label: "Settings",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/settings`,
-                },
-                {
-                  id: "overrides",
-                  label: "Overrides",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/overrides`,
-                },
-              ]}
-              shortcutKey="M"
-            >
-              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {activePage.text}
-                <ChevronExpandY className="size-4" />
-              </div>
-            </QuickNavPopover>
+            {activePage.text}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>

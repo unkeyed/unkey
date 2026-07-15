@@ -46,7 +46,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         variant={variant}
         title="Copy to clipboard"
         size="icon"
-        className={cn("focus:ring-0 focus:border-grayA-6 secret", className)}
+        className={cn("focus:ring-0 focus:border-grayA-6 secret p-0", className)}
         onClick={(e) => {
           if (!e.defaultPrevented) {
             e.stopPropagation(); // Prevent triggering parent button click
@@ -70,11 +70,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         aria-label="Copy to clipboard"
       >
         <span className="sr-only">Copy</span>
-        {copied ? (
-          <TaskChecked className="w-full h-full" />
-        ) : (
-          <TaskUnchecked className="w-full h-full" />
-        )}
+        {copied ? <TaskChecked /> : <TaskUnchecked />}
       </Button>
     );
   },

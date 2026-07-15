@@ -1,0 +1,58 @@
+---
+layout: ../../../layouts/layout.astro
+title: Skeleton — Unkey Design
+---
+import { Skeleton } from "@unkey/ui";
+import { Preview } from "../../../components/preview.tsx";
+import { SkeletonCard } from "./_card-skeleton.tsx";
+import { SkeletonList } from "./_list-skeleton.tsx";
+import cardSource from "./_card-skeleton.tsx?highlight";
+import listSource from "./_list-skeleton.tsx?highlight";
+
+# Skeleton
+
+Used to show a placeholder while content is loading.
+
+<Preview client:load>
+  <Skeleton className="h-4 w-32" />
+</Preview>
+
+## Usage
+
+```tsx
+import { Skeleton } from "@unkey/ui"
+
+<Skeleton className="h-4 w-32" />
+```
+
+## Examples
+
+### Card
+
+<Preview client:load code={cardSource}>
+  <SkeletonCard />
+</Preview>
+
+### List
+
+<Preview client:load code={listSource}>
+  <SkeletonList />
+</Preview>
+
+## Best practices
+
+Skeleton is one of three loading primitives in `@unkey/ui`. Use it when async data will fill a known layout, like a table or a card grid. Don't use Skeletons on permanent UI or empty states, it misleads users about what's coming.
+
+For a single action use `<Loading type="spinner" />`, and for an indeterminate wait use `<Loading type="dots" />`.
+
+### Sizing
+
+Size the skeleton to match the content it replaces. `Skeleton className="h-4 w-32"` for a 128px text bar prevents layout shift when the real text loads in.
+
+Use `rounded-full` for circular avatars. The default `rounded-sm` already matches text bars, buttons, and badges in the dashboard, so leave it alone for those.
+
+### Accessibility
+
+Set `aria-busy="true"` on loading regions, not skeletons. Announce completion with `aria-live="polite"` on the destination container. Don't put focusable controls inside a skeleton.
+
+Skeletons should respect `prefers-reduced-motion` via `motion-reduce:animate-none`.

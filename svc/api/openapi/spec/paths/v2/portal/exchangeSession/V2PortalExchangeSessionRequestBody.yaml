@@ -1,0 +1,12 @@
+type: object
+required:
+  - sessionId
+properties:
+  sessionId:
+    type: string
+    minLength: 1
+    description: |
+      The session token ID received from `portal.createSession`.
+      Must be valid, unexpired, and not previously exchanged.
+    example: pst_abc123def456
+additionalProperties: false

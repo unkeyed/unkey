@@ -28,29 +28,6 @@ SET deleted_at_m=UNIX_TIMESTAMP(deleted_at)*1000
 WHERE deleted_at is not null;
 
 
--- vercel_bindings
-
-UPDATE vercel_bindings
-SET created_at_m=UNIX_TIMESTAMP(created_at)*1000
-WHERE created_at is not null;
-
-UPDATE vercel_bindings
-SET updated_at_m=UNIX_TIMESTAMP(updated_at)*1000
-WHERE updated_at is not null;
-
-UPDATE vercel_bindings
-SET deleted_at_m=UNIX_TIMESTAMP(deleted_at)*1000
-WHERE deleted_at is not null;
-
--- vercel_integrations
-UPDATE vercel_integrations
-SET created_at_m=UNIX_TIMESTAMP(created_at)*1000
-WHERE created_at is not null;
-
-UPDATE vercel_integrations
-SET deleted_at_m=UNIX_TIMESTAMP(deleted_at)*1000
-WHERE deleted_at is not null;
-
 -- workspaces
 UPDATE workspaces
 SET created_at_m=UNIX_TIMESTAMP(created_at)*1000

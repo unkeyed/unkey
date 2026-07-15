@@ -1,0 +1,55 @@
+---
+title: "June 5, 2026"
+description: "APIs are now called Keyspaces, a redesigned ratelimit requests table, autoscaling min replicas in the dashboard, and regional failover for routing."
+noindex: true
+---
+
+## New features
+
+### APIs are now Keyspaces
+
+We renamed "APIs" to "Keyspaces" across the dashboard to better reflect what the resource actually is: a logical bucket of API keys. The sidebar entry now reads **Keyspaces (APIs)**, and resource copy in lists, search, settings, toasts, and onboarding has been updated. Keyspace IDs are unchanged and existing API IDs continue to work everywhere. See [APIs](/platform/apis/overview).
+
+### New navigation banner
+
+Workspaces opted into the new navigation beta now see a dismissible "Meet the new Unkey" banner on the projects page that links to the keyspaces rename and the rest of the redesign. Dismissal persists per device.
+
+### Ratelimit requests table
+
+The ratelimit namespace overview now uses a full data table for recent requests, with sortable columns, truncated identifiers with hover tooltips, and consistent pagination. See [Ratelimiting](/platform/ratelimiting/introduction).
+
+### Configure minimum replicas per region
+
+Autoscaling now exposes a **minimum instances** setting alongside the existing maximum. Set min and max to the same value to pin instance count and disable autoscaling, or set different values to let Unkey scale on CPU load. See [Autoscaling](/platform/apps/settings#autoscaling).
+
+### Identity settings on the logs page
+
+The identity logs page now has a Settings button to edit metadata and ratelimits inline, and deletes revalidate immediately so the UI stays in sync. See [Identities](/platform/identities/overview).
+
+### Project‑scoped permissions
+
+Root keys can now be granted permissions scoped to a specific project, so a key can be limited to acting on a single project's resources instead of the entire workspace. See [Root keys](/platform/root-keys/overview).
+
+## Updates
+
+### Regional failover for routing
+
+When the gateway can't reach a local instance, it now retries other candidates in the same region and falls back to a remote region before failing. Empty routing results now return a clear 503 instead of a silent empty response, so failures are visible.
+
+### Deployments and domains scoped by app
+
+Deployments and domains in the dashboard are now scoped under their app, so navigation, links, and breadcrumbs stay consistent when you have multiple apps in a project.
+
+### Usage banner in the sidebar
+
+The redesigned sidebar now shows current workspace usage so you can see where you stand against your plan without leaving the page you're on.
+
+## Bug fixes
+
+- The API overview chart no longer drifts between buckets and the time axis on long ranges.
+- The resource utilization chart now renders a clear error state instead of an empty chart when its data fails to load.
+- Role permissions are now correctly scoped to the workspace, preventing permissions from one workspace appearing on roles in another.
+- The ratelimit source label on metrics is now set correctly so dashboards group requests by the right source.
+- Sensitive values in logs and traces are now redacted more aggressively, including arbitrary nested fields.
+- GitHub secret scanning batches now continue processing after a single failure instead of aborting the run.
+- The "Learn more" link on the new‑navigation banner now points at the changelog.

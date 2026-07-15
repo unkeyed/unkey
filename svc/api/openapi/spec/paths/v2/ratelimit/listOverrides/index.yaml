@@ -13,7 +13,7 @@ post:
   operationId: ratelimit.listOverrides
   x-speakeasy-name-override: listOverrides
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -112,3 +112,11 @@ post:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
       description: Error
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

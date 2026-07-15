@@ -1,0 +1,18 @@
+type: object
+required:
+  - project
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  deleteById:
+    summary: Delete by project ID
+    description: Delete a project using its unique identifier
+    value:
+      project: proj_1234abcd
+  deleteBySlug:
+    summary: Delete by project slug
+    description: Delete a project using its slug
+    value:
+      project: payment-service

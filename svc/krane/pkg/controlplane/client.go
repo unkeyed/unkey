@@ -16,22 +16,15 @@ import (
 
 // ClientConfig holds the configuration for creating a control plane client.
 //
-// All fields are required for proper client operation. The client will automatically
-// add authentication and routing metadata to all requests through an interceptor.
+// All fields are required for proper client operation. The client automatically
+// attaches the bearer token to every request through an interceptor; region and
+// platform are carried on the request proto message itself.
 type ClientConfig struct {
 	// URL is the base URL of the control plane service.
 	URL string
 
 	// BearerToken is the authentication token used for all requests to the control plane.
 	BearerToken string
-
-	// Region identifies the geographical region of this client instance.
-	// This value is added as the X-Krane-Region header for proper request routing.
-	Region string
-
-	// Platform identifies the infrastructure provider (e.g. "aws", "local").
-	// This value is added as the X-Krane-Platform header.
-	Platform string
 }
 
 // NewClient creates a new control plane client with the specified configuration.
@@ -39,11 +32,8 @@ type ClientConfig struct {
 // The returned client is configured with:
 // - No timeout (infinite) for long-running operations
 // - HTTP/2 transport with keepalive pings to prevent ALB idle timeout disconnections
-// - Automatic authentication and metadata injection via interceptor
+// - Automatic Authorization header injection via interceptor
 // - h2c (HTTP/2 cleartext) support for non-TLS URLs (local development)
-//
-// All outgoing requests will automatically include the Authorization bearer token
-// and X-Krane-Region headers for proper routing and authentication.
 func NewClient(cfg ClientConfig) ctrl.ClusterServiceClient {
 	var transport http.RoundTripper
 
@@ -74,6 +64,6 @@ func NewClient(cfg ClientConfig) ctrl.ClusterServiceClient {
 			Transport: transport,
 		},
 		cfg.URL,
-		connect.WithInterceptors(connectInterceptor(cfg.Region, cfg.Platform, cfg.BearerToken)),
+		connect.WithInterceptors(connectInterceptor(cfg.BearerToken)),
 	))
 }

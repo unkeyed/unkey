@@ -36,6 +36,29 @@ type dataKeySpace struct {
 type dataProject struct {
 	// NotFound indicates the requested project was not found.
 	NotFound Code
+
+	// Duplicate indicates the requested project already exists.
+	Duplicate Code
+}
+
+// dataApp defines errors related to app operations.
+type dataApp struct {
+	// Duplicate indicates the requested app already exists.
+	Duplicate Code
+	// NotFound indicates the requested app does not exist.
+	NotFound Code
+}
+
+// dataEnvironment defines errors related to environment operations.
+type dataEnvironment struct {
+	// NotFound indicates the requested environment does not exist.
+	NotFound Code
+}
+
+// dataDeployment defines errors related to deployment operations.
+type dataDeployment struct {
+	// NotFound indicates the requested deployment does not exist.
+	NotFound Code
 }
 
 // dataPermission defines errors related to permission operations.
@@ -91,6 +114,12 @@ type dataAuditLog struct {
 	NotFound Code
 }
 
+// dataPortalConfig defines errors related to portal configuration operations.
+type dataPortalConfig struct {
+	// NotFound indicates the requested portal configuration was not found.
+	NotFound Code
+}
+
 // dataAnalytics defines errors related to analytics operations.
 type dataAnalytics struct {
 	// NotConfigured indicates analytics is not configured for the workspace.
@@ -108,6 +137,9 @@ type UnkeyDataErrors struct {
 	Workspace          dataWorkspace
 	Api                dataApi
 	Project            dataProject
+	App                dataApp
+	Environment        dataEnvironment
+	Deployment         dataDeployment
 	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
@@ -117,6 +149,7 @@ type UnkeyDataErrors struct {
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
 	AuditLog           dataAuditLog
+	PortalConfig       dataPortalConfig
 	Analytics          dataAnalytics
 }
 
@@ -145,7 +178,21 @@ var Data = UnkeyDataErrors{
 	},
 
 	Project: dataProject{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "project_already_exists"},
+	},
+
+	App: dataApp{
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "app_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "app_not_found"},
+	},
+
+	Environment: dataEnvironment{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
+	},
+
+	Deployment: dataDeployment{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "deployment_not_found"},
 	},
 
 	Permission: dataPermission{
@@ -178,6 +225,10 @@ var Data = UnkeyDataErrors{
 
 	AuditLog: dataAuditLog{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
+	},
+
+	PortalConfig: dataPortalConfig{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
 	},
 
 	Analytics: dataAnalytics{

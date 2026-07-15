@@ -19,6 +19,19 @@ type RegistryConfig struct {
 	Password string `toml:"password" config:"required"`
 }
 
+// K8sConfig tunes the client-go REST config used to talk to the cluster.
+//
+// Client-go defaults (QPS=5, Burst=10) trigger multi-second client-side
+// throttling on the pod watch hot path, so krane raises them. Exposed as
+// config so operators can adjust per environment without a rebuild.
+type K8sConfig struct {
+	// QPS is the steady-state request rate for the k8s client.
+	QPS int `toml:"qps" config:"default=100,min=1"`
+
+	// Burst is the maximum burst size for the k8s client.
+	Burst int `toml:"burst" config:"default=200,min=1"`
+}
+
 // Config holds the complete configuration for the krane agent. It is designed
 // to be loaded from a TOML file using [config.Load]:
 //
@@ -55,6 +68,9 @@ type Config struct {
 	// StorageClassName is the Kubernetes StorageClass used for ephemeral EBS volumes.
 	// Defaults to "ebs-csi-gp3" (prod). Set to "standard" for local Minikube development.
 	StorageClassName string `toml:"storage_class_name" config:"default=ebs-csi-gp3"`
+
+	// K8s tunes the client-go REST config. See [K8sConfig].
+	K8s K8sConfig `toml:"k8s"`
 
 	Observability config.Observability `toml:"observability"`
 

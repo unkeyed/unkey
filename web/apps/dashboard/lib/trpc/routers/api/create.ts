@@ -10,8 +10,8 @@ export const createApi = workspaceProcedure
     z.object({
       name: z
         .string()
-        .min(3, "API names must contain at least 3 characters")
-        .max(50, "API names must contain at most 50 characters"),
+        .min(3, "Keyspace names must contain at least 3 characters")
+        .max(50, "Keyspace names must contain at most 50 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -23,7 +23,8 @@ export const createApi = workspaceProcedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create the API. Please try again or contact support@unkey.com",
+        message:
+          "We are unable to create the keyspace. Please try again or contact support@unkey.com",
       });
     }
   });

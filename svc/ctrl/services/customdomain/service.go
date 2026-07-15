@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -12,12 +13,12 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the CustomDomainService ConnectRPC API. It coordinates
@@ -97,7 +98,7 @@ func (s *Service) AddCustomDomain(
 	verificationToken := uid.Secure(24)
 
 	// Check domain doesn't already exist in this workspace
-	existing, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+	existing, err := s.db.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
@@ -113,13 +114,18 @@ func (s *Service) AddCustomDomain(
 	if len(s.domainConnectPrivateKeyPEM) > 0 {
 		logger.Info("running domain connect discovery", "domain", domain)
 
-		// Build redirect URL back to project settings
+		// Build redirect URL back to app settings via the public Domain Connect
+		// callback. Going through a public path keeps the return navigation working
+		// even though the SameSite=Strict session cookie is dropped on the cross-site
+		// redirect from the DNS provider — the callback page does a same-site client
+		// redirect to the (authenticated) settings page, which carries the cookie.
 		var redirectURL string
-		ws, wsErr := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
+		ws, wsErr := s.db.FindWorkspaceByID(ctx, req.Msg.GetWorkspaceId())
 		if wsErr != nil {
 			logger.Warn("failed to fetch workspace for redirect URL", "error", wsErr)
 		} else {
-			redirectURL = fmt.Sprintf("https://app.unkey.com/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+			settingsPath := fmt.Sprintf("/%s/projects/%s/apps/%s/settings", ws.Slug, req.Msg.GetProjectId(), req.Msg.GetAppId())
+			redirectURL = fmt.Sprintf("https://app.unkey.com/integrations/domain-connect/callback?to=%s", url.QueryEscape(settingsPath))
 		}
 
 		result, dcErr := domainconnect.Discover(ctx, domain, s.domainConnectPrivateKeyPEM, map[string]string{
@@ -143,7 +149,7 @@ func (s *Service) AddCustomDomain(
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
-	err = db.Query.InsertCustomDomain(ctx, s.db.RW(), db.InsertCustomDomainParams{
+	err = s.db.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
 		ID:                    domainID,
 		WorkspaceID:           req.Msg.GetWorkspaceId(),
 		ProjectID:             req.Msg.GetProjectId(),
@@ -174,7 +180,7 @@ func (s *Service) AddCustomDomain(
 		)
 		// Don't fail the request - domain is created, verification can be retried
 	} else {
-		_ = db.Query.UpdateCustomDomainInvocationID(ctx, s.db.RW(), db.UpdateCustomDomainInvocationIDParams{
+		_ = s.db.UpdateCustomDomainInvocationID(ctx, db.UpdateCustomDomainInvocationIDParams{
 			ID:           domainID,
 			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
 			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
@@ -200,7 +206,7 @@ func (s *Service) DeleteCustomDomain(
 	}
 
 	// Find the domain scoped to workspace
-	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+	domain, err := s.db.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      req.Msg.GetDomain(),
 	})
@@ -230,18 +236,26 @@ func (s *Service) DeleteCustomDomain(
 
 	// Delete in transaction: frontline route, ACME challenge, custom domain
 	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		// Delete frontline route if exists
-		if deleteErr := db.Query.DeleteFrontlineRouteByFQDN(txCtx, tx, req.Msg.GetDomain()); deleteErr != nil && !db.IsNotFound(deleteErr) {
+		// Delete the frontline route only if it belongs to this caller's project.
+		// frontline_routes enforces UNIQUE(fully_qualified_domain_name), so exactly
+		// one route exists per FQDN, owned by whichever project verified it. Scoping
+		// the delete by project_id prevents deleting a route that another workspace
+		// legitimately owns when this workspace merely holds an unverified custom
+		// domain row for the same FQDN.
+		if deleteErr := db.NewQueries(tx).DeleteFrontlineRouteByFQDNAndProject(txCtx, db.DeleteFrontlineRouteByFQDNAndProjectParams{
+			Fqdn:      req.Msg.GetDomain(),
+			ProjectID: domain.ProjectID,
+		}); deleteErr != nil && !db.IsNotFound(deleteErr) {
 			return fmt.Errorf("failed to delete frontline route: %w", deleteErr)
 		}
 
 		// Delete ACME challenge if exists
-		if deleteErr := db.Query.DeleteAcmeChallengeByDomainID(txCtx, tx, domain.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
+		if deleteErr := db.NewQueries(tx).DeleteAcmeChallengeByDomainID(txCtx, domain.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
 			return fmt.Errorf("failed to delete ACME challenge: %w", deleteErr)
 		}
 
 		// Delete custom domain
-		if deleteErr := db.Query.DeleteCustomDomainByID(txCtx, tx, domain.ID); deleteErr != nil {
+		if deleteErr := db.NewQueries(tx).DeleteCustomDomainByID(txCtx, domain.ID); deleteErr != nil {
 			return fmt.Errorf("failed to delete custom domain: %w", deleteErr)
 		}
 
@@ -264,7 +278,7 @@ func (s *Service) RetryVerification(
 	}
 
 	// Find the domain scoped to workspace
-	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+	domain, err := s.db.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      req.Msg.GetDomain(),
 	})
@@ -300,7 +314,7 @@ func (s *Service) RetryVerification(
 	}
 
 	// Reset verification state with new invocation ID
-	err = db.Query.ResetCustomDomainVerification(ctx, s.db.RW(), db.ResetCustomDomainVerificationParams{
+	err = s.db.ResetCustomDomainVerification(ctx, db.ResetCustomDomainVerificationParams{
 		ID:                 domain.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		CheckAttempts:      0,

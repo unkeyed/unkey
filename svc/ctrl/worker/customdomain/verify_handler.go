@@ -10,11 +10,12 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // maxVerificationDuration limits how long we retry DNS verification before
@@ -31,7 +32,9 @@ var errNotVerified = errors.New("domain not verified yet")
 //     (e.g. <random>.unkey-dns.com). This works for subdomains. No TXT record needed.
 //   - TXT path: for apex domains using CNAME flattening, ALIAS/ANAME records, or
 //     Cloudflare proxy, the CNAME is not visible via DNS lookup. In this case, a TXT
-//     record at _unkey.<domain> proves ownership.
+//     record at _unkey.<domain> proves ownership, and the apex must additionally
+//     resolve to at least one A/AAAA address (sanity check that the alias record is
+//     actually configured — TXT alone proves ownership but not routing).
 //
 // TXT is also always required when another workspace already has the same domain
 // verified (contention), regardless of whether CNAME is visible.
@@ -55,8 +58,17 @@ func (s *Service) VerifyDomain(
 	domainID := restate.Key(ctx)
 
 	// Fetch domain - NOT journaled so we get fresh state on each retry
-	dom, err := db.Query.FindCustomDomainById(ctx, s.db.RO(), domainID)
+	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
+		if db.IsNotFound(err) {
+			// The domain row was deleted (DeleteCustomDomain, environment cascade,
+			// etc.) while verification was still running. Stop retrying instead of
+			// surfacing a retryable internal error for up to 24 hours.
+			logger.Info("domain record deleted, stopping verification workflow",
+				"domain_id", domainID,
+			)
+			return nil, restate.TerminalError(fmt.Errorf("domain record not found: %s", domainID), 404)
+		}
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 
@@ -67,7 +79,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	// Mark domain as actively being verified - NOT journaled
-	err = db.Query.UpdateCustomDomainVerificationStatus(ctx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
+	err = s.db.UpdateCustomDomainVerificationStatus(ctx, db.UpdateCustomDomainVerificationStatusParams{
 		ID:                 dom.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusVerifying,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -97,7 +109,7 @@ func (s *Service) VerifyDomain(
 	if !requiresTxt {
 		// Even if CNAME passed, check for contention — TXT is required to claim
 		// a domain from another workspace
-		_, contestErr := db.Query.FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx, s.db.RO(), db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
+		_, contestErr := s.db.FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx, db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
 			Domain:      dom.Domain,
 			WorkspaceID: dom.WorkspaceID,
 		})
@@ -123,8 +135,27 @@ func (s *Service) VerifyDomain(
 		}
 	}
 
+	// Apex domains can't expose a verifiable CNAME (ALIAS/ANAME, CNAME flattening,
+	// or CF proxy hide it from the resolver), so they fall through to the TXT path.
+	// TXT alone proves ownership but not that the user actually configured the
+	// alias record needed for routing — require the apex to resolve to at least
+	// one A/AAAA address as a sanity check.
+	isApex := domainconnect.IsApexDomain(dom.Domain)
+	apexHasRecords := true
+	if isApex {
+		var recordsErr error
+		apexHasRecords, recordsErr = s.hasAddressRecords(dom.Domain)
+		if recordsErr != nil {
+			logger.Warn("apex DNS lookup error",
+				"domain", dom.Domain,
+				"error", recordsErr,
+				"elapsed", elapsed,
+			)
+		}
+	}
+
 	// Update attempt count and verification flags - NOT journaled so we get fresh updates
-	err = db.Query.UpdateCustomDomainCheckAttempt(ctx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
+	err = s.db.UpdateCustomDomainCheckAttempt(ctx, db.UpdateCustomDomainCheckAttemptParams{
 		ID:            dom.ID,
 		CheckAttempts: dom.CheckAttempts + 1,
 		LastCheckedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -134,7 +165,7 @@ func (s *Service) VerifyDomain(
 		return nil, err
 	}
 
-	err = db.Query.UpdateCustomDomainOwnership(ctx, s.db.RW(), db.UpdateCustomDomainOwnershipParams{
+	err = s.db.UpdateCustomDomainOwnership(ctx, db.UpdateCustomDomainOwnershipParams{
 		OwnershipVerified: txtVerified,
 		CnameVerified:     cnameVerified,
 		UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -147,19 +178,25 @@ func (s *Service) VerifyDomain(
 	// Log current status
 	logger.Info("DNS verification check complete",
 		"domain", dom.Domain,
+		"is_apex", isApex,
 		"contested", contested,
 		"requires_txt", requiresTxt,
 		"txt_verified", txtVerified,
 		"cname_verified", cnameVerified,
+		"apex_has_records", apexHasRecords,
 		"attempts", dom.CheckAttempts+1,
 		"elapsed", elapsed,
 	)
 
 	// Verified when: CNAME matches OR TXT proves ownership (for apex/flattened/proxied)
 	// If contested, both CNAME (or TXT) AND TXT ownership must pass
+	// For apex: also require the apex to resolve to A/AAAA records
 	verified := cnameVerified || txtVerified
 	if contested {
 		verified = txtVerified // TXT is the gate for contention
+	}
+	if isApex {
+		verified = verified && apexHasRecords
 	}
 	if verified {
 		return s.onVerificationSuccess(ctx, dom)
@@ -179,7 +216,7 @@ func (s *Service) RetryVerification(
 	logger.Info("retrying domain verification", "domain_id", domainID)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.ResetCustomDomainVerification(stepCtx, s.db.RW(), db.ResetCustomDomainVerificationParams{
+		return restate.Void{}, s.db.ResetCustomDomainVerification(stepCtx, db.ResetCustomDomainVerificationParams{
 			ID:                 domainID,
 			VerificationStatus: db.CustomDomainsVerificationStatusPending,
 			CheckAttempts:      0,
@@ -228,7 +265,8 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 //
 // Note: This only works for subdomains with a real CNAME record. Apex domains using
 // CNAME flattening, ALIAS/ANAME records, or Cloudflare proxy will not have a visible
-// CNAME — those domains fall back to TXT-based ownership verification.
+// CNAME — those domains fall back to TXT-based ownership verification combined with
+// hasAddressRecords to prove DNS is configured.
 func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
@@ -253,6 +291,25 @@ func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
 	return cname == expectedCname, nil
 }
 
+// hasAddressRecords returns true if the domain resolves to at least one A or
+// AAAA address. Used as an apex-domain sanity check: TXT alone proves ownership
+// but not that the user configured the actual ALIAS/ANAME/A record needed for
+// routing. We don't compare addresses to a target — proxies (Cloudflare) and
+// shared CDN IPs make that unreliable — we only confirm DNS is set up.
+func (s *Service) hasAddressRecords(domain string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
+	defer cancel()
+
+	addrs, err := dns.LookupHost(ctx, domain)
+	if err != nil {
+		if dns.IsNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return len(addrs) > 0, nil
+}
+
 // onVerificationSuccess handles successful domain verification by updating status,
 // creating an ACME challenge for certificate issuance, and setting up traffic routing.
 func (s *Service) onVerificationSuccess(
@@ -262,7 +319,7 @@ func (s *Service) onVerificationSuccess(
 	now := time.Now().UnixMilli()
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainVerificationStatus(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationStatusParams{
+		return restate.Void{}, s.db.UpdateCustomDomainVerificationStatus(stepCtx, db.UpdateCustomDomainVerificationStatusParams{
 			ID:                 dom.ID,
 			VerificationStatus: db.CustomDomainsVerificationStatusVerified,
 			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
@@ -275,7 +332,7 @@ func (s *Service) onVerificationSuccess(
 	// Create a placeholder ACME challenge record. Token and Authorization are empty
 	// because they're provided by the ACME server during the challenge flow, not by us.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.InsertAcmeChallenge(stepCtx, s.db.RW(), db.InsertAcmeChallengeParams{
+		return restate.Void{}, s.db.InsertAcmeChallenge(stepCtx, db.InsertAcmeChallengeParams{
 			DomainID:      dom.ID,
 			WorkspaceID:   dom.WorkspaceID,
 			Token:         "",
@@ -302,7 +359,7 @@ func (s *Service) onVerificationSuccess(
 	// contention case where workspace B proves ownership and routing for a domain
 	// that workspace A previously verified.
 	err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-		oldDom, findErr := db.Query.FindVerifiedCustomDomainByDomainExcludingWorkspace(stepCtx, s.db.RO(), db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
+		oldDom, findErr := s.db.FindVerifiedCustomDomainByDomainExcludingWorkspace(stepCtx, db.FindVerifiedCustomDomainByDomainExcludingWorkspaceParams{
 			Domain:      dom.Domain,
 			WorkspaceID: dom.WorkspaceID,
 		})
@@ -320,7 +377,7 @@ func (s *Service) onVerificationSuccess(
 		)
 
 		// Mark old domain as failed
-		if updateErr := db.Query.UpdateCustomDomainFailed(stepCtx, s.db.RW(), db.UpdateCustomDomainFailedParams{
+		if updateErr := s.db.UpdateCustomDomainFailed(stepCtx, db.UpdateCustomDomainFailedParams{
 			ID:                 oldDom.ID,
 			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
 			VerificationError:  sql.NullString{Valid: true, String: "domain claimed by another workspace"},
@@ -330,12 +387,12 @@ func (s *Service) onVerificationSuccess(
 		}
 
 		// Delete old frontline route
-		if deleteErr := db.Query.DeleteFrontlineRouteByFQDN(stepCtx, s.db.RW(), dom.Domain); deleteErr != nil && !db.IsNotFound(deleteErr) {
+		if deleteErr := s.db.DeleteFrontlineRouteByFQDN(stepCtx, dom.Domain); deleteErr != nil && !db.IsNotFound(deleteErr) {
 			return deleteErr
 		}
 
 		// Delete old ACME challenge
-		if deleteErr := db.Query.DeleteAcmeChallengeByDomainID(stepCtx, s.db.RW(), oldDom.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
+		if deleteErr := s.db.DeleteAcmeChallengeByDomainID(stepCtx, oldDom.ID); deleteErr != nil && !db.IsNotFound(deleteErr) {
 			return deleteErr
 		}
 
@@ -348,7 +405,7 @@ func (s *Service) onVerificationSuccess(
 	// Create frontline route for traffic routing. If no deployment exists yet,
 	// the route will be assigned when the first deployment happens.
 	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		app, appErr := db.Query.FindAppById(stepCtx, s.db.RO(), dom.AppID)
+		app, appErr := s.db.FindAppById(stepCtx, dom.AppID)
 		if appErr != nil {
 			return restate.Void{}, fault.Wrap(appErr, fault.Internal("failed to find app for frontline route"))
 		}
@@ -358,7 +415,7 @@ func (s *Service) onVerificationSuccess(
 			deploymentID = app.CurrentDeploymentID.String
 		}
 
-		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{
+		return restate.Void{}, s.db.InsertFrontlineRoute(stepCtx, db.InsertFrontlineRouteParams{
 			ID:                       uid.New(uid.FrontlineRoutePrefix),
 			ProjectID:                dom.ProjectID,
 			AppID:                    dom.AppID,
@@ -389,7 +446,7 @@ func (s *Service) onVerificationFailed(
 	errorMsg string,
 ) (*hydrav1.VerifyDomainResponse, error) {
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, db.Query.UpdateCustomDomainFailed(stepCtx, s.db.RW(), db.UpdateCustomDomainFailedParams{
+		return restate.Void{}, s.db.UpdateCustomDomainFailed(stepCtx, db.UpdateCustomDomainFailedParams{
 			ID:                 dom.ID,
 			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
 			VerificationError:  sql.NullString{Valid: true, String: errorMsg},

@@ -11,10 +11,8 @@ import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
-import { sentinels } from "./sentinels";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
-import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
@@ -33,6 +31,36 @@ export const workspaces = mysqlTable("workspaces", {
   // stripe
   stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+
+  /**
+   * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by the
+   * customer.subscription.* webhook. NULL means no Deploy plan (cannot use
+   * Deploy). Lets the deploy gate and dashboard read entitlement without calling
+   * Stripe in the hot path. Stripe stays source of truth; this is a cache.
+   */
+  deployPlan: varchar("deploy_plan", { length: 64 }),
+
+  /**
+   * Manual Deploy entitlement override for internal / comped workspaces, owned
+   * by us and never touched by the Stripe webhook. NULL = no override. When set
+   * (to a plan value), the deploy gate treats the workspace as entitled even
+   * without a paid deploy_plan. Kept separate from deployPlan so that stays a
+   * pure Stripe mirror.
+   */
+  deployPlanOverride: varchar("deploy_plan_override", { length: 64 }),
+
+  /**
+   * Monthly Compute (Deploy) spend budget in USD cents, set by workspace
+   * admins in the dashboard. NULL = no budget. Email alerts fire at fixed
+   * percentages of the budget (50/75/100); deploySpendBudgetStop additionally
+   * stops workloads when month-to-date usage spend reaches it. v1 stores the
+   * preferences only: nothing alerts or stops yet.
+   */
+  deploySpendBudgetCents: bigint("deploy_spend_budget_cents", {
+    mode: "number",
+    unsigned: true,
+  }),
+  deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
 
   /**
    * feature flags
@@ -72,12 +100,6 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   keys: many(keys, {
     relationName: "workspace_key_relation",
   }),
-  vercelIntegrations: many(vercelIntegrations, {
-    relationName: "vercel_workspace_relation",
-  }),
-  vercelBindings: many(vercelBindings, {
-    relationName: "vercel_key_binding_relation",
-  }),
   roles: many(roles),
   permissions: many(permissions),
   ratelimitNamespaces: many(ratelimitNamespaces),
@@ -88,6 +110,5 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),
-  sentinels: many(sentinels),
   certificates: many(certificates),
 }));

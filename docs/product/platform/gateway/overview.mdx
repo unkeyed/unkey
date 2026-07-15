@@ -1,0 +1,43 @@
+---
+title: Gateway
+description: The gateway enforces policies on every request before it reaches your app, rejecting traffic that fails authentication, rate limits, or other checks.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The gateway enforces [policies](/platform/gateway/policies/overview) on every inbound request before it reaches your app. It runs as part of [Frontline](/networking/public-networking), Unkey's network layer. If you know API gateways, it fills the same role. It checks each request, applies policies like authentication and rate limiting, and forwards only traffic that passes every check.
+
+## Per-environment policies
+
+You configure policies separately for each environment in your project. Production and preview can enforce different rules, and a policy change in preview never affects production traffic. Unkey applies the right policies based on which deployment serves the request.
+
+## Policy enforcement
+
+When a request reaches your deployment's URL, the gateway evaluates every configured [policy](/platform/gateway/policies/overview) in order. If all policies pass, the gateway forwards the request to a healthy instance of your deployment in the same region. If any policy rejects the request, the gateway returns an error and your app never sees it.
+
+Within a region, the gateway distributes requests across your running instances at random. There is no session affinity.
+
+All of the gateway's request processing is built on [policies](/platform/gateway/policies/overview). The most common ones are:
+
+- [**Authentication**](/platform/gateway/authentication): Verifies API keys before your code runs, and forwards the authenticated identity to your app via a request header
+- [**Rate limiting**](/platform/gateway/policies/rate-limiting): Enforces rate limits on specific routes or subjects, rejecting excess traffic before it reaches your instances
+- [**Logging**](/platform/gateway/policies/logging): Records the full HTTP request and response, including headers and body, for debugging and observability
+
+Other policy types include the [Firewall](/platform/gateway/policies/firewall), [OpenAPI request validation](/platform/gateway/policies/openapi-validation), and more. See [Policies](/platform/gateway/policies/overview) for the full list.
+
+## Configuration
+
+<Note>
+  The dashboard supports API key authentication, rate limiting, firewall, and OpenAPI validation policies today. For other policy types, contact [support@unkey.com](mailto:support@unkey.com).
+</Note>
+
+To configure policies:
+
+1. Open your project's policy settings in the dashboard.
+2. Create a policy and select its type (API key authentication, rate limiting, firewall, or OpenAPI validation).
+3. Configure match conditions and policy-specific settings.
+4. Save your changes.
+
+See [Authentication](/platform/gateway/authentication) for details on the Principal header your app receives after successful API key verification, or [Rate limiting](/platform/gateway/policies/rate-limiting) for configuring request limits.

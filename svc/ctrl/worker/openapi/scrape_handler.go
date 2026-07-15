@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,11 +12,15 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+const maxOpenAPISpecBytes = 10 * 1024 * 1024
+
+var errOpenAPISpecTooLarge = errors.New("openapi spec exceeds maximum size")
 
 // ScrapeSpec fetches the OpenAPI spec from a running deployment and persists it
 // in the database. It uses the deployment's runtime settings to locate the spec
@@ -28,7 +33,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	deploymentID := req.GetDeploymentId()
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, s.db.RO(), deploymentID)
+		return s.db.FindDeploymentById(runCtx, deploymentID)
 	}, restate.WithName("find deployment"))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -41,7 +46,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	}
 
 	settings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
-		return db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, s.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+		return s.db.FindAppRuntimeSettingsByAppAndEnv(runCtx, db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
@@ -61,7 +66,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	specPath := settings.AppRuntimeSetting.OpenapiSpecPath.String
 
 	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
-		return db.Query.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, s.db.RO(), db.FindFrontlineRouteByDeploymentIDAndStickyParams{
+		return s.db.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, db.FindFrontlineRouteByDeploymentIDAndStickyParams{
 			DeploymentID: deploymentID,
 			Sticky:       db.FrontlineRoutesStickyDeployment,
 		})
@@ -87,7 +92,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	var baseURL *url.URL
 	if isLocal {
 		instances, instErr := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Instance, error) {
-			return db.Query.FindInstancesByDeploymentId(runCtx, s.db.RO(), deploymentID)
+			return s.db.FindInstancesByDeploymentId(runCtx, deploymentID)
 		}, restate.WithName("find instances"))
 		if instErr != nil {
 			return nil, fault.Wrap(instErr, fault.Public("Failed to find instances."))
@@ -128,20 +133,26 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 			return nil, fmt.Errorf("fetching openapi spec: %w", doErr)
 		}
 
-		body, readErr := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
+			}
+			return nil, nil
+		}
+		if resp.StatusCode != http.StatusOK {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
+			}
+			return nil, fmt.Errorf("unexpected status %d from %q endpoint", resp.StatusCode, specURL)
+		}
+
+		body, readErr := readOpenAPISpecBody(resp.Body)
 		closeErr := resp.Body.Close()
 		if readErr != nil {
 			return nil, fmt.Errorf("reading openapi response body: %w", readErr)
 		}
 		if closeErr != nil {
 			return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, nil
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unexpected status %d from %q endpoint", resp.StatusCode, specURL)
 		}
 
 		return body, nil
@@ -156,7 +167,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpsertOpenApiSpec(runCtx, s.db.RW(), db.UpsertOpenApiSpecParams{
+		return s.db.UpsertOpenApiSpec(runCtx, db.UpsertOpenApiSpecParams{
 			ID:             uid.New(uid.OpenApiSpecPrefix),
 			PortalConfigID: sql.NullString{Valid: false},
 			WorkspaceID:    deployment.WorkspaceID,
@@ -172,6 +183,21 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 
 	logger.Info("openapi spec scraped and persisted", "deployment_id", deploymentID)
 	return &hydrav1.ScrapeSpecResponse{}, nil
+}
+
+// readOpenAPISpecBody caps the response reader before buffering it. Reading one
+// byte past the limit lets us distinguish an exactly-max-sized spec from an
+// oversized one without loading the full tenant-controlled response.
+func readOpenAPISpecBody(body io.Reader) ([]byte, error) {
+	cappedBody := io.LimitReader(body, maxOpenAPISpecBytes+1)
+	spec, err := io.ReadAll(cappedBody)
+	if err != nil {
+		return nil, err
+	}
+	if len(spec) > maxOpenAPISpecBytes {
+		return nil, errOpenAPISpecTooLarge
+	}
+	return spec, nil
 }
 
 // validateSpecPath checks that path is a clean, absolute path suitable for resolving

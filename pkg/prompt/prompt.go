@@ -138,14 +138,101 @@ func (p *Prompt) Float(label string, defaultValue ...float64) (float64, error) {
 	return parseHumanFloat(s)
 }
 
+// SelectOption pairs an internal key, returned on selection, with the label
+// displayed in the menu. Used by SelectOrdered where menu order matters.
+type SelectOption struct {
+	Key   string
+	Label string
+}
+
+// minVisibleOptions is the smallest scroll window a paginated menu renders.
+// On absurdly small terminals the menu will push content into scrollback
+// rather than become unusable.
+const minVisibleOptions = 3
+
+// viewport is the scroll window for menus with more options than the
+// terminal can show at once. It slides a fixed-size window over the option
+// list so the cursor row is always rendered.
+type viewport struct {
+	total   int // number of options in the menu
+	visible int // option rows rendered at once
+	top     int // index of the first rendered option
+}
+
+// newViewport sizes a window for total options given rows usable terminal
+// lines. When everything fits, or rows is unknown (<= 0), the window spans
+// all options and the menu does not paginate.
+func newViewport(total, rows int) viewport {
+	v := viewport{total: total, visible: total, top: 0}
+	if rows > 0 && rows < total {
+		v.visible = max(rows, minVisibleOptions)
+	}
+	return v
+}
+
+func (v viewport) paginates() bool { return v.visible < v.total }
+
+// follow slides the window the minimal distance needed to keep cursor
+// visible.
+func (v *viewport) follow(cursor int) {
+	if cursor < v.top {
+		v.top = cursor
+	}
+	if cursor >= v.top+v.visible {
+		v.top = cursor - v.visible + 1
+	}
+}
+
+func (v viewport) hiddenAbove() int { return v.top }
+func (v viewport) hiddenBelow() int { return v.total - v.top - v.visible }
+
+// overflowIndicator renders the dim marker row of a paginated menu showing
+// how many options are scrolled past one end of the window, or an empty row
+// when the window touches that end. The row is always emitted so the menu
+// height stays constant across redraws.
+func overflowIndicator(arrow string, hidden int) string {
+	if hidden <= 0 {
+		return ""
+	}
+	return "  " + colorDim + arrow + " " + itoa(hidden) + " more" + colorReset
+}
+
+// optionRows returns how many option rows fit on the terminal, after
+// reserving headroom lines for the label and overflow indicators. Returns 0
+// when the terminal size is unknown so callers skip pagination.
+func (p *Prompt) optionRows(headroom int) int {
+	_, height, err := term.GetSize(p.fd)
+	if err != nil || height <= 0 {
+		return 0
+	}
+	return height - headroom
+}
+
 // Select displays a single-choice menu and returns the selected key.
 // The options map keys are internal codes returned on selection; values are display labels.
 // The user navigates with arrow keys and confirms with Enter.
 // If a default key is provided, that option is pre-selected.
 //
+// Menu order follows map iteration order and is therefore unspecified; use
+// SelectOrdered when the order matters.
+//
 // Returns an error if the terminal cannot be switched to raw mode (e.g., stdin
 // is not a TTY) or if the user interrupts with Ctrl+C.
 func (p *Prompt) Select(label string, options map[string]string, defaultKey ...string) (string, error) {
+	opts := make([]SelectOption, 0, len(options))
+	for k, v := range options {
+		opts = append(opts, SelectOption{Key: k, Label: v})
+	}
+	return p.SelectOrdered(label, opts, defaultKey...)
+}
+
+// SelectOrdered displays a single-choice menu in the given option order and
+// returns the selected key. The user navigates with arrow keys and confirms
+// with Enter. If a default key is provided, that option is pre-selected.
+//
+// Returns an error if the terminal cannot be switched to raw mode (e.g., stdin
+// is not a TTY) or if the user interrupts with Ctrl+C.
+func (p *Prompt) SelectOrdered(label string, options []SelectOption, defaultKey ...string) (string, error) {
 	// Switch terminal to raw mode to read individual keypresses without waiting for Enter.
 	// Raw mode disables line buffering and echo, giving us direct access to input.
 	// We must restore the original state when done, even on error.
@@ -155,40 +242,41 @@ func (p *Prompt) Select(label string, options map[string]string, defaultKey ...s
 	}
 	defer func() { _ = term.Restore(p.fd, oldState) }()
 
-	// Extract keys into a slice for consistent ordering during iteration.
-	keys := make([]string, 0, len(options))
-	for k := range options {
-		keys = append(keys, k)
-	}
+	selected := defaultIndex(options, defaultKey...)
 
-	// Find the index of the default key, if provided.
-	selected := 0
-	if len(defaultKey) > 0 {
-		for i, k := range keys {
-			if k == defaultKey[0] {
-				selected = i
-				break
-			}
-		}
+	// Window the menu when it is taller than the terminal: a label line, two
+	// indicator lines, and one spare line so confirming never scrolls the
+	// terminal mid-menu.
+	vp := newViewport(len(options), p.optionRows(4))
+	vp.follow(selected)
+	menuLines := 1 + vp.visible
+	if vp.paginates() {
+		menuLines += 2
 	}
 
 	// render draws the current menu state to the terminal.
-	// It first hides the cursor to prevent flickering, then draws all options,
-	// and finally moves the cursor back up to the start position for the next redraw.
+	// It first hides the cursor to prevent flickering, then draws the visible
+	// window of options, and finally moves the cursor back up to the start
+	// position for the next redraw.
 	render := func() {
 		_, _ = fmt.Fprint(p.out, hideCursor)
 		_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+label+newLine)
-		for i, key := range keys {
-			displayLabel := options[key]
+		if vp.paginates() {
+			_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+overflowIndicator("↑", vp.hiddenAbove())+newLine)
+		}
+		for i := vp.top; i < vp.top+vp.visible; i++ {
+			opt := options[i]
 			if i == selected {
-				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"  "+colorCyan+pointerSymbol+" "+displayLabel+colorReset+newLine)
+				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"  "+colorCyan+pointerSymbol+" "+opt.Label+colorReset+newLine)
 			} else {
-				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"    "+displayLabel+newLine)
+				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"    "+opt.Label+newLine)
 			}
 		}
+		if vp.paginates() {
+			_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+overflowIndicator("↓", vp.hiddenBelow())+newLine)
+		}
 		// Move cursor back up to the start of the menu for the next render cycle.
-		// We move up len(keys)+1 lines: one for each option plus the label line.
-		_, _ = fmt.Fprint(p.out, cursorUp(len(keys)+1))
+		_, _ = fmt.Fprint(p.out, cursorUp(menuLines))
 	}
 
 	render()
@@ -208,16 +296,17 @@ func (p *Prompt) Select(label string, options map[string]string, defaultKey ...s
 			switch buf[2] {
 			case keyUp:
 				// Wrap around: if at top, go to bottom.
-				selected = (selected - 1 + len(keys)) % len(keys)
+				selected = (selected - 1 + len(options)) % len(options)
 			case keyDown:
 				// Wrap around: if at bottom, go to top.
-				selected = (selected + 1) % len(keys)
+				selected = (selected + 1) % len(options)
 			}
+			vp.follow(selected)
 		} else if buf[0] == keyEnter || buf[0] == '\n' {
 			// User confirmed selection. Move cursor below the menu and restore visibility.
-			_, _ = fmt.Fprint(p.out, cursorDown(len(keys)+1))
+			_, _ = fmt.Fprint(p.out, cursorDown(menuLines))
 			_, _ = fmt.Fprint(p.out, showCursor)
-			return keys[selected], nil
+			return options[selected].Key, nil
 		} else if buf[0] == 3 {
 			// Ctrl+C sends byte 3 (ETX - End of Text). Treat as interrupt.
 			_, _ = fmt.Fprint(p.out, showCursor)
@@ -225,6 +314,20 @@ func (p *Prompt) Select(label string, options map[string]string, defaultKey ...s
 		}
 		render()
 	}
+}
+
+// defaultIndex returns the index of the option matching the first default key,
+// or 0 when no default is given or it does not match any option.
+func defaultIndex(options []SelectOption, defaultKey ...string) int {
+	if len(defaultKey) == 0 {
+		return 0
+	}
+	for i, opt := range options {
+		if opt.Key == defaultKey[0] {
+			return i
+		}
+	}
+	return 0
 }
 
 // MultiSelect displays a multi-choice menu and returns the selected keys.
@@ -266,19 +369,32 @@ func (p *Prompt) MultiSelect(label string, options map[string]string, defaultKey
 		}
 	}
 
+	// Window the menu when it is taller than the terminal: a label line, two
+	// indicator lines, and one spare line so confirming never scrolls the
+	// terminal mid-menu.
+	vp := newViewport(len(keys), p.optionRows(4))
+	menuLines := 1 + vp.visible
+	if vp.paginates() {
+		menuLines += 2
+	}
+
 	// render draws the current menu state to the terminal.
-	// It first hides the cursor to prevent flickering, then draws all options
-	// with their selection state, and finally moves the cursor back up for the next redraw.
+	// It first hides the cursor to prevent flickering, then draws the visible
+	// window of options with their selection state, and finally moves the
+	// cursor back up for the next redraw.
 	render := func() {
 		_, _ = fmt.Fprint(p.out, hideCursor)
 		_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+label+" (space to select, enter to confirm)"+newLine)
-		for i, key := range keys {
+		if vp.paginates() {
+			_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+overflowIndicator("↑", vp.hiddenAbove())+newLine)
+		}
+		for i := vp.top; i < vp.top+vp.visible; i++ {
 			// Show filled circle (●) for selected items, empty circle (○) for unselected.
 			check := unselectedSymbol
 			if selected[i] {
 				check = colorGreen + selectedSymbol + colorReset
 			}
-			displayLabel := options[key]
+			displayLabel := options[keys[i]]
 			// Show pointer (❯) next to the currently focused option.
 			if i == cursor {
 				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"  "+colorCyan+pointerSymbol+colorReset+" "+check+" "+displayLabel+newLine)
@@ -286,9 +402,11 @@ func (p *Prompt) MultiSelect(label string, options map[string]string, defaultKey
 				_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+"    "+check+" "+displayLabel+newLine)
 			}
 		}
+		if vp.paginates() {
+			_, _ = fmt.Fprint(p.out, carriageReturn+clearLine+overflowIndicator("↓", vp.hiddenBelow())+newLine)
+		}
 		// Move cursor back up to the start of the menu for the next render cycle.
-		// We move up len(keys)+1 lines: one for each option plus the label line.
-		_, _ = fmt.Fprint(p.out, cursorUp(len(keys)+1))
+		_, _ = fmt.Fprint(p.out, cursorUp(menuLines))
 	}
 
 	render()
@@ -313,12 +431,13 @@ func (p *Prompt) MultiSelect(label string, options map[string]string, defaultKey
 				// Wrap around: if at bottom, go to top.
 				cursor = (cursor + 1) % len(keys)
 			}
+			vp.follow(cursor)
 		} else if buf[0] == keySpace {
 			// Toggle selection state of the currently focused option.
 			selected[cursor] = !selected[cursor]
 		} else if buf[0] == keyEnter || buf[0] == '\n' {
 			// User confirmed selections. Move cursor below the menu and restore visibility.
-			_, _ = fmt.Fprint(p.out, cursorDown(len(keys)+1))
+			_, _ = fmt.Fprint(p.out, cursorDown(menuLines))
 			_, _ = fmt.Fprint(p.out, showCursor)
 			// Collect all selected keys in order.
 			var result []string

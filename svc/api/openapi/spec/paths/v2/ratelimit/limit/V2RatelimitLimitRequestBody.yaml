@@ -10,7 +10,6 @@ properties:
     type: integer
     format: int64
     minimum: 0
-    maximum: 1000 # Reasonable upper bound for operation costs
     default: 1
     description: |
       Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
@@ -44,7 +43,6 @@ properties:
     type: integer
     format: int64
     minimum: 1
-    maximum: 1000000 # Reasonable upper bound for rate limits
     description: |
       Sets the maximum operations allowed within the duration window before requests are rejected.
       When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.

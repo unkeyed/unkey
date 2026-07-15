@@ -1,26 +1,104 @@
+import crypto from "node:crypto";
 import { and, db, eq, schema } from "@/lib/db";
-import { githubAppEnv } from "@/lib/env";
+import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
   MAX_BRANCHES,
-  checkFileExists,
+  exchangeInstallationOAuthCode,
   getInstallationRepositories,
   getMostActiveBranches,
   getRepository,
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
+  searchBranchesByPrefix,
+  userCanAccessInstallation,
 } from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
 
-const state = z.object({
+const STATE_TTL_MS = 15 * 60 * 1000;
+
+// State payload signed and handed to GitHub's install URL. The signature
+// binds the state to a specific user + workspace + project so the callback
+// cannot be replayed across sessions or used by an attacker who phishes
+// a logged-in victim into hitting /integrations/github/callback?state=...
+const signedStatePayload = z.object({
   projectId: z.string().min(1),
+  appId: z.string().min(1),
   returnTo: z.enum(["settings"]).optional(),
+  workspaceId: z.string().min(1),
+  userId: z.string().min(1),
+  nonce: z.string().min(1),
+  exp: z.number().int().positive(),
 });
 
-const fetchGithubContext = async (workspaceId: string, projectId: string) => {
+const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
+
+type SignedStatePayload = z.infer<typeof signedStatePayload>;
+
+const stateSigningKey = (): Buffer | null => {
+  const env = githubAppEnv();
+  if (!env) {
+    return null;
+  }
+  // The GitHub App's RSA private key already exists as a long-lived server
+  // secret; derive a separate HMAC key from it so the signing key never
+  // leaves the server and rotates with the GitHub App credentials.
+  return crypto
+    .createHash("sha256")
+    .update(`unkey-github-install-state:${env.UNKEY_GITHUB_PRIVATE_KEY_PEM}`)
+    .digest();
+};
+
+const stableStringify = (payload: SignedStatePayload): string =>
+  JSON.stringify(payload, Object.keys(payload).sort());
+
+const signState = (payload: SignedStatePayload): string => {
+  const key = stateSigningKey();
+  if (!key) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "GitHub App not configured",
+    });
+  }
+  const sig = crypto.createHmac("sha256", key).update(stableStringify(payload)).digest("base64url");
+  return JSON.stringify({ ...payload, sig });
+};
+
+const verifyState = (raw: string): SignedStatePayload | null => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const result = signedState.safeParse(parsed);
+  if (!result.success) {
+    return null;
+  }
+  const { sig, ...payload } = result.data;
+  const key = stateSigningKey();
+  if (!key) {
+    return null;
+  }
+  const expected = crypto
+    .createHmac("sha256", key)
+    .update(stableStringify(payload))
+    .digest("base64url");
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return null;
+  }
+  if (payload.exp < Date.now()) {
+    return null;
+  }
+  return payload;
+};
+
+const fetchGithubContext = async (workspaceId: string, projectId: string, appId?: string) => {
   const project = await db.query.projects
     .findFirst({
       where: (table, { and, eq }) =>
@@ -68,9 +146,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     return null;
   }
 
-  // Prefer the first app that already has a github connection, otherwise pick any app
-  const connectedApp = project.apps.find((a) => a.githubRepoConnection != null);
-  const app = connectedApp ?? project.apps[0] ?? null;
+  // Scope to the requested app when given. Otherwise prefer the first app that
+  // already has a github connection, falling back to any app.
+  const app = appId
+    ? (project.apps.find((a) => a.id === appId) ?? null)
+    : (project.apps.find((a) => a.githubRepoConnection != null) ?? project.apps[0] ?? null);
 
   return {
     appId: app?.id ?? null,
@@ -141,11 +221,12 @@ export const githubRouter = t.router({
     return { hasInstallation: Boolean(installation) };
   }),
 
-  registerInstallation: workspaceProcedure
+  prepareInstallation: workspaceProcedure
     .input(
       z.object({
-        state: z.string(),
-        installationId: z.number().int(),
+        projectId: z.string().min(1),
+        appId: z.string().min(1),
+        returnTo: z.enum(["settings"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -155,14 +236,71 @@ export const githubRouter = t.router({
           message: "GitHub App not configured",
         });
       }
-      let parsedState: z.infer<typeof state> | null = null;
-      try {
-        const result = state.safeParse(JSON.parse(input.state));
-        parsedState = result.success ? result.data : null;
-      } catch {
-        parsedState = null;
+
+      // Verify the project belongs to the calling workspace before issuing a
+      // signed state. Without this, an attacker could mint a state for an
+      // arbitrary project id.
+      const project = await db.query.projects.findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: { id: true },
+      });
+      if (!project) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
-      if (!parsedState) {
+
+      return {
+        state: signState({
+          projectId: input.projectId,
+          appId: input.appId,
+          returnTo: input.returnTo,
+          workspaceId: ctx.workspace.id,
+          userId: ctx.user.id,
+          nonce: crypto.randomBytes(16).toString("base64url"),
+          exp: Date.now() + STATE_TTL_MS,
+        }),
+      };
+    }),
+
+  registerInstallation: workspaceProcedure
+    .input(
+      z.object({
+        state: z.string(),
+        installationId: z.number().int(),
+        // OAuth `code` returned alongside installation_id when the GitHub App
+        // requests user authorization during installation. Used to prove the
+        // caller can access the supplied installation before binding it for the
+        // first time. GitHub only issues it on the initial authorization, not
+        // when an already-authorized user returns from editing an existing
+        // installation, so it is optional and only required on first bind
+        // (see the mutation body).
+        code: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!githubAppEnv()) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GitHub App not configured",
+        });
+      }
+
+      // The state must be a server-signed token bound to the calling user
+      // and workspace. This prevents two attacks:
+      //  1) An attacker claiming a victim's installation id (sequential
+      //     integers visible in webhooks/URLs) by forging a JSON state.
+      //  2) Phishing a logged-in victim into POSTing this mutation under
+      //     the attacker's chosen state — the userId/workspaceId binding
+      //     in the signature would not match the victim's session.
+      const parsedState = verifyState(input.state);
+      if (
+        !parsedState ||
+        parsedState.workspaceId !== ctx.workspace.id ||
+        parsedState.userId !== ctx.user.id
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Invalid callback state",
@@ -170,6 +308,85 @@ export const githubRouter = t.router({
       }
 
       const projectId = parsedState.projectId;
+
+      // Look up any existing binding for this installation id up front; whether
+      // we must re-prove ownership depends on who (if anyone) already owns it.
+      const existing = await db.query.githubAppInstallations.findFirst({
+        where: (table, { eq }) => eq(table.installationId, input.installationId),
+        columns: { workspaceId: true },
+      });
+
+      // Refuse to bind the same installation id to multiple workspaces. An
+      // attacker who already owns a workspace could otherwise re-register a
+      // victim org's installation id under their workspace, and use the
+      // resulting Unkey-minted access token to read the victim's repos.
+      if (existing && existing.workspaceId !== ctx.workspace.id) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "GitHub installation is already bound to another workspace",
+        });
+      }
+
+      // Verify the caller actually owns/can access this installation on GitHub
+      // before binding it for the first time. installationId comes straight
+      // from the callback query string and is a small, enumerable, sequential
+      // integer exposed in webhooks/URLs; the signed state only proves who the
+      // caller is, not that they performed this installation. Without this a
+      // caller could bind a victim org's unregistered installation to their own
+      // workspace and read its private repos via the app-minted access token.
+      //
+      // We only require this proof when the installation is not already bound
+      // to the caller's workspace. GitHub issues a fresh OAuth `code` only on
+      // the initial authorization, not when an existing user returns from
+      // editing an already-authorized installation (adding or restricting
+      // repos). Re-demanding a code there would break every existing user and
+      // buys no security: the installation already belongs to this workspace,
+      // so there is nothing to hijack.
+      const alreadyOwnedByCaller = existing?.workspaceId === ctx.workspace.id;
+      if (!alreadyOwnedByCaller) {
+        if (!githubOAuthEnv()) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "GitHub App not configured",
+          });
+        }
+        if (!input.code) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Missing GitHub authorization",
+          });
+        }
+
+        let userToken: string;
+        try {
+          userToken = await exchangeInstallationOAuthCode(input.code);
+        } catch (err) {
+          console.error(err);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid GitHub authorization",
+          });
+        }
+
+        let canAccessInstallation: boolean;
+        try {
+          canAccessInstallation = await userCanAccessInstallation(userToken, input.installationId);
+        } catch (err) {
+          console.error(err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to verify GitHub installation ownership",
+          });
+        }
+
+        if (!canAccessInstallation) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this GitHub installation",
+          });
+        }
+      }
+
       const projectInstallation = await fetchProjectInstallation(
         ctx.workspace.id,
         projectId,
@@ -213,14 +430,19 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
+        appId: parsedState.appId,
         returnTo: parsedState.returnTo ?? null,
       };
     }),
 
   getRepoTree: workspaceProcedure
-    .input(z.object({ projectId: z.string() }))
+    .input(z.object({ projectId: z.string(), appId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      const githubContext = await fetchGithubContext(
+        ctx.workspace.id,
+        input.projectId,
+        input.appId,
+      );
       if (!githubContext?.repoConnection) {
         return { tree: null };
       }
@@ -253,10 +475,15 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string(),
+        appId: z.string().min(1),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      const githubContext = await fetchGithubContext(
+        ctx.workspace.id,
+        input.projectId,
+        input.appId,
+      );
       if (!githubContext) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -376,68 +603,73 @@ export const githubRouter = t.router({
         });
       }
 
-      // Fetch repo metadata first to get the actual GitHub default branch for tree lookups.
-      // input.defaultBranch is the user-configured production branch which may not exist yet.
-      const [repoData, activeBranches] = await Promise.all([
+      const [repoData, activeBranches, alphabeticalBranches] = await Promise.all([
         getRepository(input.installationId, input.owner, input.repo),
-        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
         getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
           (): BranchActivity[] => [],
         ),
+        getRepositoryBranches(input.installationId, input.owner, input.repo, MAX_BRANCHES),
       ]);
 
-      const treeBranch = repoData.default_branch || input.defaultBranch;
-      const treeResult = await getRepositoryTree(
-        input.installationId,
-        input.owner,
-        input.repo,
-        treeBranch,
-      );
+      const activityMap = new Map(activeBranches.map((b) => [b.name, b.lastPushDate]));
+      const seen = new Set<string>();
+      const branches: Array<{ name: string; lastPushDate: string | null }> = [];
 
-      let hasDockerfile: boolean;
-      if (treeResult.truncated) {
-        // Tree was truncated by GitHub — scanning the partial tree may miss files.
-        // Fall back to a targeted existence check for the root Dockerfile.
-        hasDockerfile = await checkFileExists(
-          input.installationId,
-          input.owner,
-          input.repo,
-          treeBranch,
-          "Dockerfile",
-        );
-      } else {
-        hasDockerfile = treeResult.tree.some(
-          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-        );
+      for (const b of activeBranches) {
+        if (!seen.has(b.name)) {
+          seen.add(b.name);
+          branches.push({ name: b.name, lastPushDate: b.lastPushDate });
+        }
       }
 
-      let branches: Array<{ name: string; lastPushDate: string | null }>;
-
-      if (activeBranches.length > 0) {
-        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
-        // Ensure the default branch is always included
-        if (!branches.some((b) => b.name === input.defaultBranch)) {
-          branches.unshift({
-            name: input.defaultBranch,
-            lastPushDate: null,
-          });
+      for (const b of alphabeticalBranches) {
+        if (!seen.has(b.name) && branches.length < MAX_BRANCHES) {
+          seen.add(b.name);
+          branches.push({ name: b.name, lastPushDate: activityMap.get(b.name) ?? null });
         }
-      } else {
-        // Fallback: no recent events, use alphabetical branches
-        const fallbackBranches = await getRepositoryBranches(
-          input.installationId,
-          input.owner,
-          input.repo,
-          MAX_BRANCHES,
-        );
-        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
+      }
+
+      if (!seen.has(input.defaultBranch)) {
+        branches.unshift({ name: input.defaultBranch, lastPushDate: null });
       }
 
       return {
-        hasDockerfile,
         branches,
         pushedAt: repoData.pushed_at,
       };
+    }),
+
+  searchBranches: workspaceProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        installationId: z.number().int(),
+        owner: z.string(),
+        repo: z.string(),
+        query: z.string().min(1).max(200),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+      const hasInstallation = githubContext.installations.some(
+        (i) => i.installationId === input.installationId,
+      );
+      if (!hasInstallation) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Installation not found for this workspace",
+        });
+      }
+      const branches = await searchBranchesByPrefix(
+        input.installationId,
+        input.owner,
+        input.repo,
+        input.query,
+      );
+      return { branches };
     }),
 
   selectRepository: workspaceProcedure
@@ -473,11 +705,33 @@ export const githubRouter = t.router({
       }
 
       // Resolve appId: use provided value or find the default app for the project
-      let appId = input.appId;
-      if (!appId) {
+      let appId: string;
+      if (input.appId) {
+        const requestedAppId = input.appId;
         const app = await db.query.apps.findFirst({
           where: (table, { eq, and }) =>
-            and(eq(table.projectId, input.projectId), eq(table.slug, "default")),
+            and(
+              eq(table.id, requestedAppId),
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, input.projectId),
+            ),
+          columns: { id: true },
+        });
+        if (!app) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "App not found for this project",
+          });
+        }
+        appId = app.id;
+      } else {
+        const app = await db.query.apps.findFirst({
+          where: (table, { eq, and }) =>
+            and(
+              eq(table.projectId, input.projectId),
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.slug, "default"),
+            ),
           columns: { id: true },
         });
         if (!app) {

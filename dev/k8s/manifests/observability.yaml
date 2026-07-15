@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
         - name: prometheus
-          image: prom/prometheus:v3.5.0
+          image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
           ports:
             - containerPort: 9090
           args:
@@ -90,7 +90,7 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: grafana/otel-lgtm:0.11.7
+          image: grafana/otel-lgtm:0.11.7@sha256:10c9cf2db84bfc63477c026718bae52800daf1c270fafe7687628d84b4c34fd4
           ports:
             - containerPort: 3000 # Grafana
             - containerPort: 4317 # OTLP gRPC

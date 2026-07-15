@@ -26,13 +26,7 @@ export const ProtectionSwitch = forwardRef<HTMLDivElement, FeatureCardProps>(
           </div>
           <div className="text-gray-9 text-xs">{description}</div>
         </div>
-        <Switch
-          className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:bg-gray-3 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3"
-          thumbClassName="data-[state=unchecked]:bg-grayA-9 data-[state=checked]:bg-white"
-          checked={checked}
-          onCheckedChange={onCheckedChange}
-          {...switchProps}
-        />
+        <Switch checked={checked} onCheckedChange={onCheckedChange} {...switchProps} />
       </div>
     );
   },

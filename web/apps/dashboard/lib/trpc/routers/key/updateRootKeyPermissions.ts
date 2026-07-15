@@ -167,6 +167,16 @@ export const updateRootKeyPermissions = workspaceProcedure
           );
         }
 
+        // Touch the root key itself so its `updatedAtM` reflects the
+        // permission change. The join table writes above don't update the
+        // `keys` row, so without this an edit wouldn't bump "last updated".
+        if (permissionsToRemove.length > 0 || permissionsToAdd.length > 0) {
+          await tx
+            .update(schema.keys)
+            .set({ updatedAtM: Date.now() })
+            .where(eq(schema.keys.id, input.keyId));
+        }
+
         await insertAuditLogs(tx, auditLogs);
       });
     } catch (_err) {

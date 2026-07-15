@@ -1,0 +1,8 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+description: Retrieve a single deployment, including its status and runtime configuration.

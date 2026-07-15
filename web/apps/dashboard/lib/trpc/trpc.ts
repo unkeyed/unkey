@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
 import { TRPCError, initTRPC } from "@trpc/server";
+import { runWithSqlCommentTags } from "@unkey/db";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
 import { z } from "zod";
@@ -25,6 +26,10 @@ const sentryMiddleware = t.middleware(
     attachRpcInput: true,
   }),
 );
+
+const sqlCommentMiddleware = t.middleware(({ next, path }) => {
+  return runWithSqlCommentTags({ route: path, source: "trpc" }, () => next());
+});
 
 /**
  * Enhanced error middleware with structured logging
@@ -304,6 +309,25 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
   }
 });
 
+/**
+ * Middleware: Requires the caller to be an admin of the workspace's tenant.
+ *
+ * Unlike `requireOrgAdmin`, this does not require the caller to pass an
+ * `orgId` field in the input — the workspaceProcedure has already verified
+ * the workspace belongs to `ctx.tenant`, so the role check on `ctx.tenant`
+ * is sufficient. Use this for billing and other workspace-scoped admin-only
+ * mutations where adding `orgId` to the input shape would be awkward.
+ */
+export const requireWorkspaceAdmin = t.middleware(({ next, ctx }) => {
+  if (ctx.tenant?.role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This action requires admin privileges.",
+    });
+  }
+  return next();
+});
+
 // =============================================================================
 // RATE LIMITING
 // =============================================================================
@@ -542,7 +566,10 @@ export const withLlmAccess = () =>
  * Base procedure with enhanced error middleware and Sentry tracking
  * All procedures should be built on top of this to ensure comprehensive logging and tracking
  */
-const baseProcedure = t.procedure.use(enhancedErrorMiddleware).use(sentryMiddleware);
+const baseProcedure = t.procedure
+  .use(sqlCommentMiddleware)
+  .use(enhancedErrorMiddleware)
+  .use(sentryMiddleware);
 
 /**
  * Public procedure - accessible without authentication

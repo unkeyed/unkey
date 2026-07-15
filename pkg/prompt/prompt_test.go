@@ -353,6 +353,108 @@ func TestSelectNonTTY(t *testing.T) {
 	})
 }
 
+func TestSelectOrderedNonTTY(t *testing.T) {
+	t.Run("returns error when stdin is not a TTY", func(t *testing.T) {
+		in := bytes.NewReader([]byte{})
+		out := &bytes.Buffer{}
+
+		p := New(WithReader(in), WithWriter(out))
+		_, err := p.SelectOrdered("Pick", []SelectOption{{Key: "a", Label: "Option A"}})
+
+		require.Error(t, err)
+	})
+}
+
+func TestDefaultIndex(t *testing.T) {
+	options := []SelectOption{
+		{Key: "newest", Label: "Newest"},
+		{Key: "middle", Label: "Middle"},
+		{Key: "oldest", Label: "Oldest"},
+	}
+
+	t.Run("no default selects first option", func(t *testing.T) {
+		require.Equal(t, 0, defaultIndex(options))
+	})
+
+	t.Run("matching default selects its index", func(t *testing.T) {
+		require.Equal(t, 1, defaultIndex(options, "middle"))
+		require.Equal(t, 2, defaultIndex(options, "oldest"))
+	})
+
+	t.Run("unknown default falls back to first option", func(t *testing.T) {
+		require.Equal(t, 0, defaultIndex(options, "missing"))
+	})
+}
+
+func TestViewport(t *testing.T) {
+	t.Run("fits without pagination", func(t *testing.T) {
+		v := newViewport(5, 20)
+
+		require.False(t, v.paginates())
+		require.Equal(t, 5, v.visible)
+	})
+
+	t.Run("unknown terminal size disables pagination", func(t *testing.T) {
+		v := newViewport(100, 0)
+
+		require.False(t, v.paginates())
+		require.Equal(t, 100, v.visible)
+	})
+
+	t.Run("windows to terminal size", func(t *testing.T) {
+		v := newViewport(100, 10)
+
+		require.True(t, v.paginates())
+		require.Equal(t, 10, v.visible)
+		require.Equal(t, 0, v.hiddenAbove())
+		require.Equal(t, 90, v.hiddenBelow())
+	})
+
+	t.Run("clamps to minimum window", func(t *testing.T) {
+		v := newViewport(100, 1)
+
+		require.Equal(t, minVisibleOptions, v.visible)
+	})
+
+	t.Run("follow slides window down then up", func(t *testing.T) {
+		v := newViewport(100, 10)
+
+		v.follow(15)
+		require.Equal(t, 6, v.top)
+		require.Equal(t, 6, v.hiddenAbove())
+		require.Equal(t, 84, v.hiddenBelow())
+
+		v.follow(3)
+		require.Equal(t, 3, v.top)
+	})
+
+	t.Run("follow handles wrap-around to last option", func(t *testing.T) {
+		v := newViewport(100, 10)
+
+		v.follow(99)
+		require.Equal(t, 90, v.top)
+		require.Equal(t, 0, v.hiddenBelow())
+	})
+
+	t.Run("follow keeps in-window cursor still", func(t *testing.T) {
+		v := newViewport(100, 10)
+		v.follow(15)
+
+		v.follow(10)
+		require.Equal(t, 6, v.top)
+	})
+}
+
+func TestOverflowIndicator(t *testing.T) {
+	t.Run("empty when nothing hidden", func(t *testing.T) {
+		require.Empty(t, overflowIndicator("↑", 0))
+	})
+
+	t.Run("shows hidden count", func(t *testing.T) {
+		require.Contains(t, overflowIndicator("↓", 42), "↓ 42 more")
+	})
+}
+
 func TestMultiSelectNonTTY(t *testing.T) {
 	t.Run("returns error when stdin is not a TTY", func(t *testing.T) {
 		in := bytes.NewReader([]byte{})

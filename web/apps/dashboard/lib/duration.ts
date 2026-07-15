@@ -4,6 +4,9 @@ const h = m * 60;
 const d = h * 24;
 
 const units: Record<string, number> = {
+  ms: 1,
+  millisecond: 1,
+  milliseconds: 1,
   s,
   sec: s,
   second: s,

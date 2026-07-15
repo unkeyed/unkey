@@ -17,7 +17,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
 )
 
-func TestCreateKeyForbidden(t *testing.T) {
+func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
@@ -86,7 +86,6 @@ func TestCreateKeyForbidden(t *testing.T) {
 	}
 
 	t.Run("no permissions", func(t *testing.T) {
-		// Create root key with no permissions
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 
 		headers := http.Header{
@@ -94,85 +93,44 @@ func TestCreateKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
+		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
-	t.Run("wrong permission - has read but not create", func(t *testing.T) {
-		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
+	t.Run("wrong action", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:keyspaces/%s#read_keyspace", h.Resources().UserWorkspace.ID, keySpaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
+		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
-	t.Run("permission for different API", func(t *testing.T) {
-		// Create root key with create permission for other API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherApiID))
+	t.Run("create permission for different keyspace", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+			createKeyPermission(h.Resources().UserWorkspace.ID, otherKeySpaceID),
+		)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-	})
-
-	t.Run("permission for specific API but requesting different API", func(t *testing.T) {
-		// Create root key with create permission for specific API
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.create_key", otherApiID))
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		// Try to create key for different API
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("unrelated permission", func(t *testing.T) {
-		// Create root key with completely unrelated permission
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "workspace.read")
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("partial permission match", func(t *testing.T) {
-		// Create root key with permission that partially matches but isn't sufficient
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.create")
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
+		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
 	t.Run("create recoverable key without perms", func(t *testing.T) {
-		// Create root key with permission that partially matches but isn't sufficient
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID))
 
 		req := handler.Request{
 			ApiId:       apiID,
@@ -184,8 +142,9 @@ func TestCreateKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
+		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 }

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,29 +17,38 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/caches"
+	cachesvc "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
+	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
+	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
-	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
@@ -51,6 +59,20 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.TLS.CertFile != "" {
+		tlsCfg, tlsErr := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		if tlsErr != nil {
+			return fmt.Errorf("unable to load TLS config: %w", tlsErr)
+		}
+		cfg.TLSConfig = tlsCfg
+	}
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
 	}
 
 	if cfg.Observability.Logging != nil {
@@ -73,12 +95,13 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.AddBaseAttrs(slog.Bool("tls_enabled", true))
 	}
 
-	clk := clock.New()
+	clk := cfg.Clock
 
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("api")
 
@@ -86,10 +109,13 @@ func Run(ctx context.Context, cfg Config) error {
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:        "api",
-			InstanceID:         cfg.InstanceID,
-			CloudRegion:        cfg.Region,
-			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			Application:     "api",
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			// The API runs against Grafana Cloud and cannot be scraped, so it
+			// pushes metrics over OTLP. All other services are pulled via
+			// /metrics and leave this nil.
 			PrometheusGatherer: reg,
 		})
 		if err != nil {
@@ -105,6 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Tags:        sqlcomment.ForService("api", cfg.Region),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -147,7 +174,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		ch = chClient
 
-		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, "default.api_requests_raw_v2", clickhouse.BufferConfig{
+		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, clickhouse.BufferConfig{
 			Name:          "api_requests",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -156,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -165,7 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -220,6 +247,8 @@ func Run(ctx context.Context, cfg Config) error {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      db.ToMySQL(database),
+		Region:  cfg.Region,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -229,19 +258,19 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter: ctr,
@@ -269,74 +298,98 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
 	}
 
-	// Initialize gossip-based cache invalidation
-	var broadcaster clustering.Broadcaster
-	if cfg.Gossip != nil {
-		logger.Info("Initializing gossip cluster for cache invalidation",
-			"region", cfg.Region,
-			"instanceID", cfg.InstanceID,
-		)
-
-		mux := cluster.NewMessageMux()
-
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
-
-		var secretKey []byte
-		if cfg.Gossip.SecretKey != "" {
-			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
-			if decodeErr != nil {
-				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
-			}
-		}
-
-		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:           cfg.Region,
-			NodeID:           cfg.InstanceID,
-			BindAddr:         cfg.Gossip.BindAddr,
-			BindPort:         cfg.Gossip.LANPort,
-			WANBindPort:      cfg.Gossip.WANPort,
-			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
-			LANSeeds:         lanSeeds,
-			WANSeeds:         wanSeeds,
-			SecretKey:        secretKey,
-			OnMessage:        mux.OnMessage,
-		})
-		if clusterErr != nil {
-			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
-				"error", clusterErr,
-			)
-		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
-			broadcaster = gossipBroadcaster
-			r.Defer(gossipCluster.Close)
-		}
-	}
-
-	caches, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+	caches, err := cachesvc.New(cachesvc.Config{
+		Clock:  clk,
+		NodeID: cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      rlSvc,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           cfg.Region,
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
+		Source:       schema.SourceAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+	portalSvc := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+		Clock:        cfg.Clock,
+	})
+
+	// JWT resolvers hit this lookup on every authenticated request, so the
+	// org-to-workspace mapping is served through the shared SWR cache like the
+	// other hot auth lookups. The SQL query filters soft-deleted workspaces;
+	// disabled workspaces are rejected here so their JWT principals lock out
+	// within the cache's fresh window.
+	workspaceByOrgID := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
+		workspace, hit, err := caches.WorkspaceByOrgID.SWR(ctx, orgID, func(ctx context.Context) (db.Workspace, error) {
+			return db.WithRetryContext(ctx, func() (db.Workspace, error) {
+				return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
+			})
+		}, cachesvc.DefaultFindFirstOp)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return "", authjwt.ErrWorkspaceNotFound
+			}
+			return "", err
+		}
+		if hit == cache.Null {
+			return "", authjwt.ErrWorkspaceNotFound
+		}
+		if !workspace.Enabled {
+			return "", authjwt.ErrWorkspaceDisabled
+		}
+		return workspace.ID, nil
+	})
+
+	// Portal sessions authenticate on a dedicated auth service used only by the
+	// portal routes, so protected routes never accept a portal-session cookie.
+	authResolvers := []auth.Resolver{}
+	portalResolvers := []auth.Resolver{}
+	for i, authConfig := range cfg.Auth {
+		switch authConfig := authConfig.(type) {
+		case JWTAuthConfig:
+			jwtSecrets := make([][]byte, 0, len(authConfig.Secrets))
+			for _, secret := range authConfig.Secrets {
+				jwtSecrets = append(jwtSecrets, []byte(secret))
+			}
+			var jwtResolver auth.Resolver
+			var jwtErr error
+			// Config.Validate guarantees exactly one of secrets or jwks_url.
+			if len(jwtSecrets) > 0 {
+				jwtResolver, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
+			} else {
+				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
+			}
+			if jwtErr != nil {
+				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
+			}
+			// A WorkOS entry carries provider permission slugs that must be
+			// translated into canonical Unkey permissions after verification.
+			// This is selected by the explicit provider field, not by the
+			// issuer, so custom auth domains translate the same way.
+			if authConfig.Provider == jwtProviderWorkOS {
+				jwtResolver = authworkos.NewPermissionTranslatingResolver(jwtResolver)
+			}
+			authResolvers = append(authResolvers, jwtResolver)
+		case PortalSessionAuthConfig:
+			portalResolvers = append(portalResolvers, portalsession.NewResolver(portalSvc))
+		case RootKeyAuthConfig:
+			authResolvers = append(authResolvers, rootkey.NewResolver(keySvc))
+		default:
+			return fmt.Errorf("unsupported auth config at auth[%d]", i)
+		}
+	}
+	authSvc := auth.New(authResolvers...)
+	portalAuthSvc := auth.New(portalResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -367,6 +420,26 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	ctrlProjectClient := ctrl.NewConnectProjectServiceClient(
+		ctrlv1connect.NewProjectServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
+	ctrlAppClient := ctrl.NewConnectAppServiceClient(
+		ctrlv1connect.NewAppServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
@@ -381,19 +454,25 @@ func Run(ctx context.Context, cfg Config) error {
 		ClickHouse:           ch,
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
+		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
+		Auth:                 authSvc,
+		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,
 		Caches:               caches,
 		Vault:                vaultClient,
 		CtrlDeploymentClient: ctrlDeploymentClient,
+		CtrlProjectClient:    ctrlProjectClient,
+		CtrlAppClient:        ctrlAppClient,
 		PprofEnabled:         pprofEnabled,
 		PprofUsername:        pprofUsername,
 		PprofPassword:        pprofPassword,
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		PortalBaseURL:              cfg.PortalBaseURL,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

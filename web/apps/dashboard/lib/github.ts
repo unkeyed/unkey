@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { githubAppEnv } from "@/lib/env";
+import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import { z } from "zod";
 
 const gitHubRepositorySchema = z.object({
@@ -40,6 +40,16 @@ const repositoryBranchesSchema = z.array(
   }),
 );
 
+export class GitHubApiError extends Error {
+  constructor(
+    public readonly status: number,
+    body: string,
+  ) {
+    super(`GitHub API error ${status}: ${body}`);
+    this.name = "GitHubApiError";
+  }
+}
+
 const GITHUB_API_HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -55,7 +65,7 @@ async function fetchGitHubApi(url: string, token: string): Promise<unknown> {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`GitHub API error ${response.status}: ${body}`);
+    throw new GitHubApiError(response.status, body);
   }
 
   return response.json();
@@ -88,6 +98,81 @@ function generateAppJWT(): string {
   const signature = sign.sign(env.UNKEY_GITHUB_PRIVATE_KEY_PEM, "base64url");
 
   return `${signatureInput}.${signature}`;
+}
+
+const oauthAccessTokenSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  scope: z.string().optional(),
+});
+
+const userInstallationsSchema = z.object({
+  total_count: z.number(),
+  installations: z.array(z.object({ id: z.number() })),
+});
+
+// Exchange the short-lived OAuth `code` from the install callback for a
+// user-to-server access token. GitHub returns HTTP 200 with an `error` field
+// (not a non-2xx status) when the code is invalid or expired, so we treat any
+// response that doesn't parse as an access token as a failure.
+export async function exchangeInstallationOAuthCode(code: string): Promise<string> {
+  const oauthEnv = githubOAuthEnv();
+  if (!oauthEnv) {
+    throw new Error("GitHub OAuth environment not configured");
+  }
+
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: oauthEnv.GITHUB_CLIENT_ID,
+      client_secret: oauthEnv.GITHUB_CLIENT_SECRET,
+      code,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new GitHubApiError(response.status, body);
+  }
+
+  const parsed = oauthAccessTokenSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new Error("Failed to exchange GitHub OAuth code");
+  }
+  return parsed.data.access_token;
+}
+
+// Confirm the authenticated GitHub user (via their user-to-server token) can
+// access the given installation. This is the ownership control that prevents a
+// caller from binding an arbitrary, enumerable installation_id to their
+// workspace.
+export async function userCanAccessInstallation(
+  userToken: string,
+  installationId: number,
+): Promise<boolean> {
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const data = userInstallationsSchema.parse(
+      await fetchGitHubApi(
+        `https://api.github.com/user/installations?per_page=${perPage}&page=${page}`,
+        userToken,
+      ),
+    );
+
+    if (data.installations.some((i) => i.id === installationId)) {
+      return true;
+    }
+    if (data.installations.length < perPage) {
+      return false;
+    }
+    page++;
+  }
 }
 
 export async function getInstallationAccessToken(
@@ -159,33 +244,6 @@ export async function getRepositoryTree(
   return { tree: data.tree, truncated: data.truncated ?? false };
 }
 
-/**
- * Check whether a specific file exists in a repository using the Contents API.
- * Returns true if the file exists, false otherwise.
- */
-export async function checkFileExists(
-  installationId: number,
-  owner: string,
-  repo: string,
-  branch: string,
-  path: string,
-): Promise<boolean> {
-  const { token } = await getInstallationAccessToken(installationId);
-
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
-    {
-      method: "HEAD",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...GITHUB_API_HEADERS,
-      },
-    },
-  );
-
-  return response.ok;
-}
-
 const repositoryEventSchema = z.object({
   type: z.string(),
   created_at: z.string(),
@@ -200,7 +258,7 @@ const repositoryEventSchema = z.object({
 
 const repositoryEventsSchema = z.array(repositoryEventSchema);
 
-export const MAX_BRANCHES = 10;
+export const MAX_BRANCHES = 20;
 
 export type BranchActivity = {
   name: string;
@@ -301,6 +359,29 @@ export async function getRepositoryBranches(
   );
 }
 
+const matchingRefsSchema = z.array(
+  z.object({
+    ref: z.string(),
+  }),
+);
+
+export async function searchBranchesByPrefix(
+  installationId: number,
+  owner: string,
+  repo: string,
+  prefix: string,
+  limit = 30,
+): Promise<Array<{ name: string }>> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = matchingRefsSchema.parse(
+    await fetchGitHubApi(
+      `https://api.github.com/repos/${owner}/${repo}/git/matching-refs/heads/${prefix.split("/").map(encodeURIComponent).join("/")}`,
+      token,
+    ),
+  );
+  return data.slice(0, limit).map((ref) => ({ name: ref.ref.replace("refs/heads/", "") }));
+}
+
 export async function getRepository(
   installationId: number,
   owner: string,
@@ -335,4 +416,51 @@ export async function getRepositoryById(
   }
 
   return gitHubRepositorySchema.parse(await response.json());
+}
+
+const pullRequestSchema = z.object({
+  head: z.object({
+    ref: z.string(),
+    sha: z.string(),
+    label: z.string(),
+    repo: z
+      .object({
+        full_name: z.string(),
+        fork: z.boolean(),
+      })
+      .nullable(),
+  }),
+  base: z.object({
+    repo: z.object({
+      full_name: z.string(),
+    }),
+  }),
+});
+
+export type GitHubPullRequest = z.infer<typeof pullRequestSchema>;
+
+export async function getPullRequest(
+  installationId: number,
+  repoFullName: string,
+  prNumber: number,
+): Promise<GitHubPullRequest> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = await fetchGitHubApi(
+    `https://api.github.com/repos/${repoFullName}/pulls/${prNumber}`,
+    token,
+  );
+  return pullRequestSchema.parse(data);
+}
+
+export async function listPullRequestsForCommit(
+  installationId: number,
+  repoFullName: string,
+  commitSha: string,
+): Promise<GitHubPullRequest[]> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = await fetchGitHubApi(
+    `https://api.github.com/repos/${repoFullName}/commits/${commitSha}/pulls`,
+    token,
+  );
+  return z.array(pullRequestSchema).parse(data);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Organization } from "@/lib/auth/types";
-import { AuthErrorCode } from "@/lib/auth/types";
+import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import {
   Button,
   DialogContainer,
@@ -14,6 +14,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
@@ -60,7 +61,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
     setIsOpen(false);
     // Clear pending auth state and redirect
     await clearPendingAuth();
-    router.push("/auth/sign-in");
+    router.push("/auth/sign-in" as Route);
   }, [router]);
 
   const submit = useCallback(
@@ -73,6 +74,20 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         setIsLoading(true);
         const result = await completeOrgSelection(orgId);
 
+        // The selected org requires MFA (or a Radar challenge) before it will
+        // issue a session. The challenge cookies were persisted server-side,
+        // so route to the matching challenge/enrollment UI. A user who isn't
+        // yet enrolled lands on the enrollment step and can set up MFA here —
+        // otherwise they could never sign in to that org. Keep the button in
+        // its loading state since we're navigating away.
+        if (!result.success && "challengeType" in result) {
+          const redirectSuffix = redirectParam
+            ? `&redirect=${encodeURIComponent(redirectParam)}`
+            : "";
+          window.location.href = `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
+          return true;
+        }
+
         if (!result.success) {
           setError(result.message);
           setIsLoading(false);
@@ -80,7 +95,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
           // If session expired, redirect to sign-in to clear stale state
           if (result.code === AuthErrorCode.PENDING_SESSION_EXPIRED) {
-            router.push("/auth/sign-in");
+            router.push("/auth/sign-in" as Route);
           }
 
           return false;
@@ -174,22 +189,28 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
               >
                 Workspace
               </label>
-              <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
+              <Select
+                items={sortedOrgs.map((org) => ({ value: org.id, label: org.name }))}
+                value={selectedOrgId}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    setSelectedOrgId(value);
+                  }
+                }}
+                disabled={isLoading}
+              >
                 <SelectTrigger
                   id="workspace-selector"
                   className="dark bg-black text-gray-400 border border-gray-500/30 focus:outline-none! focus:ring-0 focus:border-gray-400"
                 >
-                  <SelectValue
-                    placeholder="Select a workspace..."
-                    className="dark bg-black border border-gray-800 text-gray-400/30 focus:outline-none! focus:border-gray-500/30"
-                  />
+                  <SelectValue placeholder="Select a workspace..." className="text-gray-400" />
                 </SelectTrigger>
                 <SelectContent className="dark overflow-y-auto max-h-100 bg-gray-950 text-gray-400 focus:outline-none! border focus:border-gray-400 border-gray-500/30">
                   {sortedOrgs.map((org) => (
                     <SelectItem
                       key={org.id}
                       value={org.id}
-                      className="dark bg-gray-950 text-gray-400 hover:bg-gray-900 hover:text-white focus:bg-gray-800 focus:outline-none! focus:border-grayA-4"
+                      className="dark bg-gray-950 text-gray-400 data-highlighted:bg-gray-900 data-highlighted:text-white focus:outline-none!"
                     >
                       {org.name}
                     </SelectItem>

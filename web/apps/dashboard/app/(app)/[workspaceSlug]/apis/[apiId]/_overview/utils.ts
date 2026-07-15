@@ -1,9 +1,5 @@
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import {
-  type KeyVerificationOutcome,
-  OUTCOME_BACKGROUND_COLORS,
-  OUTCOME_BADGE_STYLES,
-} from "./constants";
+import { type KeyVerificationOutcome, OUTCOME_BACKGROUND_COLORS } from "./constants";
 
 /**
  * Format an outcome string for display
@@ -27,13 +23,6 @@ export function getOutcomeColor(outcome: string): string {
     OUTCOME_BACKGROUND_COLORS[outcome as KeyVerificationOutcome] ||
     OUTCOME_BACKGROUND_COLORS.UNKNOWN
   );
-}
-
-/**
- * Get the badge style class for an outcome
- */
-export function getOutcomeBadgeStyle(outcome: string): string {
-  return OUTCOME_BADGE_STYLES[outcome as KeyVerificationOutcome] || OUTCOME_BADGE_STYLES.UNKNOWN;
 }
 
 /**

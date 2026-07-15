@@ -91,6 +91,7 @@ package {{ .PackageName }}
 import (
 	"testing"
 
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	run "github.com/unkeyed/unkey/svc/api/integration/multi_node_ratelimiting"
 )
@@ -99,7 +100,8 @@ func {{ .TestName }}(t *testing.T) {
 
 
 	h := integration.New(t, integration.Config{
-		NumNodes: {{ .NodeCount }},
+		NumNodes:  {{ .NodeCount }},
+		TestClock: clock.NewTestClock(),
 	})
 
 	run.RunRateLimitTest(

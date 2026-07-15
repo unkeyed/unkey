@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -21,7 +22,8 @@ import (
 
 func TestKeyVerifications(t *testing.T) {
 	t.Parallel()
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	opts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)
@@ -99,7 +101,7 @@ func TestKeyVerifications(t *testing.T) {
 	for i := 0; i < len(verifications); i += batchSize {
 		t0 = time.Now()
 
-		batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
+		batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
 		require.NoError(t, err)
 
 		for _, row := range verifications[i:min(i+batchSize, len(verifications))] {

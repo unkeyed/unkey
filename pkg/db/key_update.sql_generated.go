@@ -60,9 +60,9 @@ type UpdateKeyParams struct {
 	ExpiresSpecified           int64          `db:"expires_specified"`
 	Expires                    sql.NullTime   `db:"expires"`
 	RemainingRequestsSpecified int64          `db:"remaining_requests_specified"`
-	RemainingRequests          sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests          sql.NullInt64  `db:"remaining_requests"`
 	RefillAmountSpecified      int64          `db:"refill_amount_specified"`
-	RefillAmount               sql.NullInt32  `db:"refill_amount"`
+	RefillAmount               sql.NullInt64  `db:"refill_amount"`
 	RefillDaySpecified         int64          `db:"refill_day_specified"`
 	RefillDay                  sql.NullInt16  `db:"refill_day"`
 	Now                        sql.NullInt64  `db:"now"`

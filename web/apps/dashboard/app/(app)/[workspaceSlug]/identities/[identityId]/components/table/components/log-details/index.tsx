@@ -6,7 +6,6 @@ import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
-const ANIMATION_DELAY = 350;
 type Props = {
   distanceToTop: number;
   selectedLog: IdentityLog | null;
@@ -60,7 +59,7 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
-      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Spacer />
       <LogDetails.Footer />
     </LogDetails>
   );

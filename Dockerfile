@@ -1,21 +1,18 @@
-FROM golang:1.25 AS builder
+# syntax=docker/dockerfile:1.7
 
-# Install Bazelisk (which will download the correct Bazel version)
-RUN go install github.com/bazelbuild/bazelisk@latest
+FROM golang:1.25@sha256:cd05a378aaf011e8056745363e5c40f4f2bef0fa4d9bf19b9c38316079c332ff AS builder
 
 WORKDIR /src
+ENV CGO_ENABLED=0
 
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 
-RUN bazelisk build //:unkey
+RUN go build -o /out/unkey .
 
-# Extract the binary path and copy it to a known location
-RUN cp $(bazelisk cquery //:unkey --output=files 2>/dev/null) /unkey
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:d29e660cc75a5b6b1334e03c5c81ccf9bc0884a002c6000dbf0fb96034814478
 
-FROM gcr.io/distroless/static-debian12
-COPY --from=builder /unkey /unkey
-
+COPY --from=builder /out/unkey /unkey
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
-LABEL org.opencontainers.image.description="Unkey API"
-
-ENTRYPOINT  ["/unkey"]
+ENTRYPOINT ["/unkey"]

@@ -7,7 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	pkgtls "github.com/unkeyed/unkey/pkg/tls"
-	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
+	"github.com/unkeyed/unkey/svc/frontline/internal/certmanager"
 )
 
 // buildTlsConfig creates a TLS configuration for the frontline server.

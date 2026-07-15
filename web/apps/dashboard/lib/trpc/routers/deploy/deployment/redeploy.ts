@@ -1,5 +1,5 @@
-import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
-import { insertAuditLogs } from "@/lib/audit";
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
+import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -45,16 +45,33 @@ export const redeploy = workspaceProcedure
         });
       }
 
+      // Source type is determined by whether the app has a GitHub repo
+      // connection, not by commit metadata on the deployment row — docker
+      // redeploys carry forward git metadata from the previous deployment
+      // and would otherwise be misclassified as git-sourced.
+      const repoConnection = await db.query.githubRepoConnections.findFirst({
+        where: (table, { eq }) => eq(table.appId, deployment.appId),
+        columns: { appId: true },
+      });
+      const isGitSourced = repoConnection != null;
+
       const result = await ctrl
         .createDeployment({
           projectId: deployment.project.id,
           appId: deployment.appId,
           environmentSlug: deployment.environment?.slug ?? "",
-          dockerImage: deployment.image ?? "",
-          ...(deployment.gitCommitSha
+          trigger: DeploymentTrigger.DASHBOARD,
+          triggeredBy: ctx.user.id,
+          actor: {
+            id: ctx.user.id,
+            type: ActorType.USER,
+            remoteIp: ctx.audit.location,
+            userAgent: ctx.audit.userAgent ?? "",
+          },
+          ...(isGitSourced
             ? {
                 gitCommit: {
-                  commitSha: deployment.gitCommitSha,
+                  commitSha: deployment.gitCommitSha ?? "",
                   branch: deployment.gitBranch ?? "",
                   commitMessage: deployment.gitCommitMessage ?? "",
                   authorHandle: deployment.gitCommitAuthorHandle ?? "",
@@ -62,7 +79,7 @@ export const redeploy = workspaceProcedure
                   timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
                 },
               }
-            : {}),
+            : { dockerImage: deployment.image ?? "" }),
         })
         .catch((err) => {
           console.error(err);
@@ -71,21 +88,6 @@ export const redeploy = workspaceProcedure
             message: err,
           });
         });
-
-      await insertAuditLogs(db, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "deployment.redeploy",
-        description: `Triggered redeploy for ${deployment.project.name} (deployment ${deployment.id})`,
-        resources: [
-          {
-            type: "deployment",
-            id: input.deploymentId,
-            name: deployment.project.name,
-          },
-        ],
-        context: ctx.audit,
-      });
 
       return { deploymentId: result.deploymentId };
     } catch (error) {

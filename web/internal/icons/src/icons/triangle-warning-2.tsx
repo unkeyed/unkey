@@ -19,25 +19,28 @@ export function TriangleWarning2({ iconSize = "xl-thin", ...props }: IconProps) 
     <svg
       height={pixelSize}
       width={pixelSize}
-      viewBox="1 0 18 18"
+      viewBox="0 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
       <g fill="currentColor">
         <path
-          d="m9,8c0-.552.447-1,1-1s1,.448,1,1v4.5c0,.552-.447,1-1,1s-1-.448-1-1v-4.5Z"
-          fill="currentColor"
-          strokeWidth={strokeWidth}
-        />
-        <path
-          d="m13.725,16h1.471c1.54,0,2.502-1.667,1.732-3l-5.196-9c-.77-1.333-2.694-1.333-3.464,0L3.072,13c-.77,1.333.192,3,1.732,3h1.471"
+          d="M7.63796 3.48996L2.21295 12.89C1.60795 13.9399 2.36395 15.25 3.57495 15.25H14.425C15.636 15.25 16.392 13.9399 15.787 12.89L10.362 3.48996C9.75696 2.44996 8.24296 2.44996 7.63796 3.48996Z"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={strokeWidth}
         />
-        <circle cx="10" cy="15.75" fill="currentColor" r="1.25" strokeWidth={strokeWidth} />
+        <path
+          d="M9 6.75V9.75"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+        />
+        <path d="M9 13.5C8.448 13.5 8 13.05 8 12.5C8 11.95 8.448 11.5 9 11.5C9.552 11.5 10 11.9501 10 12.5C10 13.0499 9.552 13.5 9 13.5Z" />
       </g>
     </svg>
   );

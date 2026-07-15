@@ -12,7 +12,7 @@ post:
   operationId: identities.listIdentities
   x-speakeasy-name-override: listIdentities
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -28,6 +28,11 @@ post:
             value:
               limit: 50
               cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
+          withSearch:
+            summary: Search by ID or external ID
+            value:
+              limit: 50
+              search: user_123
     required: true
   responses:
     "200":
@@ -112,4 +117,4 @@ post:
         in: requestBody
         type: cursor
     outputs:
-      nextCursor: "$.data.cursor"
+      nextCursor: "$.pagination.cursor"

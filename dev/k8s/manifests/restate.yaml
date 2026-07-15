@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: restate
-          image: docker.io/restatedev/restate:1.6.0
+          image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
           ports:
             - containerPort: 8080
               name: frontline

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,16 +18,20 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -38,8 +43,9 @@ import (
 )
 
 // Harness provides a complete integration test environment with real dependencies.
-// It manages Docker containers for MySQL, Redis, ClickHouse, and S3, seeds baseline
-// test data, and exposes all services needed to test API endpoints.
+// It manages a Docker container for MySQL, seeds baseline test data, and exposes
+// all services needed to test API endpoints. Redis and ClickHouse are opt-in via
+// [HarnessConfig].
 //
 // The exported fields provide direct access to services when tests need to verify
 // side effects or set up complex scenarios beyond what the helper methods offer.
@@ -53,13 +59,17 @@ type Harness struct {
 	srv       *zen.Server
 	validator *validation.Validator
 
-	middleware []zen.Middleware
+	middleware       []zen.Middleware
+	publicMiddleware []zen.Middleware
+	portalMiddleware []zen.Middleware
 
 	// DB provides direct database access for verifying side effects or setting up
 	// test data that the seeder methods don't cover.
 	DB                         db.Database
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
+	Auth                       auth.Authenticator
+	PortalAuth                 auth.Authenticator
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
@@ -71,31 +81,59 @@ type Harness struct {
 	seeder                     *seed.Seeder
 }
 
-// NewHarness creates a fully initialized test harness with all dependencies started.
-// Container startup is parallelized, and the database is seeded with baseline data
-// including a root workspace and key space. The harness is tied to the test lifecycle
-// and containers are cleaned up when the test completes.
-func NewHarness(t *testing.T) *Harness {
+// HarnessConfig controls which optional Docker-backed dependencies are started.
+// Zero value starts MySQL only, uses an in-memory counter, and no-op analytics
+// buffers.
+type HarnessConfig struct {
+	Redis      bool
+	ClickHouse bool
+}
+
+// NewHarness creates a fully initialized test harness wired against shared
+// Docker dependencies. Docker dependencies are started on demand by testutil.
+func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
+	cfg := HarnessConfig{
+		Redis:      false,
+		ClickHouse: false,
+	}
+	for _, c := range configs {
+		cfg.Redis = cfg.Redis || c.Redis
+		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
+	}
 
-	// Start all services in parallel first
-	containers.StartAllServices(t)
+	var wg sync.WaitGroup
+	var mysqlCfg containers.MySQLConfig
+	var redisUrl string
+	var chCfg containers.ClickHouseConfig
 
-	mysqlCfg := containers.MySQL(t)
-	mysqlDSN := mysqlCfg.FormatDSN()
+	wg.Go(func() {
+		mysqlCfg = containers.MySQL(t)
+	})
+	if cfg.Redis {
+		wg.Go(func() {
+			redisUrl = containers.Redis(t)
+		})
+	}
+	if cfg.ClickHouse {
+		wg.Go(func() {
+			chCfg = containers.ClickHouse(t)
+		})
+	}
+	wg.Wait()
 
-	redisUrl := dockertest.Redis(t)
+	mysqlDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Broadcaster: nil,
-		NodeID:      "",
-		Clock:       clk,
+		NodeID: "",
+		Clock:  clk,
 	})
 	require.NoError(t, err)
 
@@ -111,65 +149,81 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	// Get ClickHouse connection string
-	chDSN := containers.ClickHouse(t)
+	var ch clickhouse.ClickHouse
+	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
+	if cfg.ClickHouse {
+		var err error
+		chClient, err := clickhouse.New(clickhouse.Config{
+			URL: chCfg.DSN,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
+		ch = chClient
 
-	// Create real ClickHouse client
-	ch, err := clickhouse.New(clickhouse.Config{
-		URL: chDSN,
-	})
-	require.NoError(t, err)
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
+			Name:          "key_verifications",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(keyVerifications.Close)
 
-	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
-		Name:          "key_verifications",
-		BatchSize:     10,
-		BufferSize:    100,
-		FlushInterval: 100 * time.Millisecond,
-		Consumers:     2,
-		Drop:          true,
-		OnFlushError:  nil,
-	})
-	t.Cleanup(keyVerifications.Close)
-
-	ratelimitsfer := clickhouse.NewBuffer[schema.Ratelimit](ch, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
-		Name:          "ratelimits",
-		BatchSize:     10,
-		BufferSize:    100,
-		FlushInterval: 100 * time.Millisecond,
-		Consumers:     2,
-		Drop:          true,
-		OnFlushError:  nil,
-	})
-	t.Cleanup(ratelimitsfer.Close)
+		ratelimitsfer = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
+			Name:          "ratelimits",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(ratelimitsfer.Close)
+	} else {
+		keyVerifications = batch.NewNoop[schema.KeyVerification]()
+		t.Cleanup(keyVerifications.Close)
+		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
+		t.Cleanup(ratelimitsfer.Close)
+	}
 
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: redisUrl,
-	})
-	require.NoError(t, err)
+	ctr := counter.NewMemory()
+	if cfg.Redis {
+		var err error
+		ctr, err = counter.NewRedis(counter.RedisConfig{
+			RedisURL: redisUrl,
+		})
+		require.NoError(t, err)
+	}
+	t.Cleanup(func() { require.NoError(t, ctr.Close()) })
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      db.ToMySQL(database),
+		Region:  "test-region",
 	})
 	require.NoError(t, err)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter: ctr,
@@ -180,15 +234,18 @@ func NewHarness(t *testing.T) *Harness {
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	v := vault.NewConnectVaultServiceClient(testVault.Client)
 
-	// Create analytics connection manager
-	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
-		SettingsCache: caches.ClickhouseSetting,
-		Database:      database,
-		Clock:         clk,
-		BaseURL:       chDSN,
-		Vault:         v,
-	})
-	require.NoError(t, err)
+	analyticsConnManager := analytics.NewNoopConnectionManager()
+	if cfg.ClickHouse {
+		var err error
+		analyticsConnManager, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
+			SettingsCache: caches.ClickhouseSetting,
+			Database:      database,
+			Clock:         clk,
+			BaseURL:       chCfg.DSN,
+			Vault:         v,
+		})
+		require.NoError(t, err)
+	}
 
 	// Create seeder
 	seeder := seed.New(t, database, v)
@@ -201,22 +258,32 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      ratelimitService,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           "test",
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  ratelimitService,
+		RBAC:         rbac.New(),
+		Region:       "test",
+		UsageLimiter: ulSvc,
+		Source:       schema.SourceAPI,
 	})
 	require.NoError(t, err)
+	portalService := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+		Clock:        clk,
+	})
+	// Mirror production: portal sessions authenticate only on a dedicated portal
+	// auth service, so protected routes reject portal-session cookies.
+	authService := auth.New(rootkey.NewResolver(keyService))
+	portalAuthService := auth.New(portalsession.NewResolver(portalService))
 
 	h := Harness{
 		t:                          t,
 		srv:                        srv,
 		validator:                  validator,
 		Keys:                       keyService,
+		Auth:                       authService,
+		PortalAuth:                 portalAuthService,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
@@ -229,29 +296,107 @@ func NewHarness(t *testing.T) *Harness {
 		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs:                  audit,
 		Caches:                     caches,
-		middleware: []zen.Middleware{
+		middleware:                 nil,
+		portalMiddleware:           nil,
+		publicMiddleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(),
 			middleware.WithErrorHandling(),
 			zen.WithValidation(validator),
 		},
 	}
+	h.middleware = []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		zen.WithValidation(validator),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:       authService,
+			Database:   database,
+			QuotaCache: caches.WorkspaceQuota,
+			Ratelimit:  ratelimitService,
+		}),
+	}
+	h.portalMiddleware = []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		zen.WithValidation(validator),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:       portalAuthService,
+			Database:   database,
+			QuotaCache: caches.WorkspaceQuota,
+			Ratelimit:  ratelimitService,
+		}),
+	}
 
 	return &h
 }
 
-// Register adds a route to the test server with the standard middleware stack.
-// Pass custom middleware to override the defaults, which include observability,
-// logging, error handling, and validation. Passing no middleware uses the defaults.
-func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
-	if len(middleware) == 0 {
-		middleware = h.middleware
+// Register adds a route to the test server with the protected middleware stack.
+// Pass custom middleware to override the defaults. Passing no middleware uses
+// the same auth, workspace policy, error handling, and validation path as
+// protected production routes.
+func (h *Harness) Register(route zen.Route, middlewares ...zen.Middleware) {
+	if len(middlewares) == 0 {
+		middlewares = h.middleware
 	}
 
 	h.srv.RegisterRoute(
-		middleware,
+		middlewares,
 		route,
 	)
+}
+
+// PublicMiddleware returns the middleware stack for routes that authenticate
+// inside the handler or intentionally do not require an authenticated principal.
+func (h *Harness) PublicMiddleware() []zen.Middleware {
+	return h.publicMiddleware
+}
+
+// PortalMiddleware returns the middleware stack for portal routes. It matches
+// the protected stack but authenticates only portal-session cookies, mirroring
+// production's portalMiddlewares. Pass it to [Harness.Register] when registering
+// a portal route.
+func (h *Harness) PortalMiddleware() []zen.Middleware {
+	return h.portalMiddleware
+}
+
+// CreatePortalSession inserts a portal session row for the given workspace,
+// external identity, and permissions, and returns request headers (including the
+// portal_session cookie) suitable for [CallRoute]. Use it to exercise portal
+// routes as an authenticated end user.
+func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, permissions []string) http.Header {
+	h.t.Helper()
+
+	sessionID := uid.New(uid.PortalSessionPrefix)
+
+	permsJSON, err := json.Marshal(struct {
+		KeyspaceIDs []string `json:"keyspaceIds"`
+		Permissions []string `json:"permissions"`
+	}{
+		KeyspaceIDs: keyspaceIDs,
+		Permissions: permissions,
+	})
+	require.NoError(h.t, err)
+
+	now := h.Clock.Now()
+	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
+		ID:             sessionID,
+		WorkspaceID:    workspaceID,
+		PortalConfigID: uid.New(uid.PortalConfigPrefix),
+		ExternalID:     externalID,
+		Permissions:    permsJSON,
+		Preview:        false,
+		ExpiresAt:      now.Add(24 * time.Hour).UnixMilli(),
+		CreatedAt:      now.UnixMilli(),
+	})
+	require.NoError(h.t, err)
+
+	return http.Header{
+		"Content-Type": {"application/json"},
+		"Cookie":       {"portal_session=" + sessionID},
+	}
 }
 
 // CreateRootKey creates a root key that authorizes operations on the given workspace.
@@ -389,12 +534,13 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:               uid.New(uid.AppPrefix),
+		WorkspaceID:      workspace.ID,
+		ProjectID:        project.ID,
+		Name:             "Default",
+		Slug:             "default",
+		DefaultBranch:    "main",
+		DeleteProtection: false,
 	})
 
 	var environment db.Environment
@@ -478,6 +624,7 @@ func WithRetentionDays(days int32) SetupAnalyticsOption {
 // retention. Tests that query analytics data must call this before making requests.
 func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
 	ctx := context.Background()
+	require.NotNil(h.t, h.ClickHouse, "testutil.NewHarness must be called with testutil.HarnessConfig{ClickHouse: true} before SetupAnalytics")
 
 	// Defaults
 	config := setupAnalyticsConfig{

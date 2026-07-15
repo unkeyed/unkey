@@ -3,7 +3,7 @@ title: Usage Limits (Credits)
 description: "Set usage limits on API keys to cap the total number of requests. Unkey automatically enforces credit-based quotas and blocks excess usage."
 ---
 
-Usage limits let you set a maximum number of requests a key can make. After the limit is reached, the key becomes invalid until you add more credits or reset it. This is different from rate limiting, which controls _frequency_ — usage limits control _total volume_.
+Usage limits let you set a maximum number of requests a key can make. After the limit is reached, the key becomes invalid until you add more credits or reset it. This is different from rate limiting, which controls _frequency_, usage limits control _total volume_.
 
 ## When to use this
 
@@ -16,11 +16,11 @@ Usage limits let you set a maximum number of requests a key can make. After the 
     Give new users 100 free requests to try your API. They upgrade or stop.
   </Card>
   <Card title="Subscription quotas" icon="calendar">
-    "Pro plan includes 50,000 requests/month" — combine with
+    "Pro plan includes 50,000 requests/month", combine with
     [auto-refill](/platform/apis/features/refill) for recurring limits.
   </Card>
   <Card title="One-time tokens" icon="ticket">
-    Create a key that works exactly once — like a single-use download link.
+    Create a key that works exactly once, like a single-use download link.
   </Card>
 </CardGroup>
 
@@ -53,9 +53,11 @@ import { Unkey } from "@unkey/api";
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_...",
-    remaining: 1000,
+    credits: {
+      remaining: 1000,
+    },
   });
 
   console.log(data.keyId); // Give this key to your user
@@ -104,7 +106,7 @@ When credits are exhausted:
 
 ## Custom cost per request
 
-By default, each verification costs 1 credit. But some operations should cost more — maybe a complex query costs 10 credits while a simple lookup costs 1.
+By default, each verification costs 1 credit. But some operations should cost more, maybe a complex query costs 10 credits while a simple lookup costs 1.
 
 Specify the cost at verification time:
 
@@ -123,10 +125,9 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "sk_...",
-    apiId: "api_...",
-    cost: 10, // Deduct 10 credits for this request
+    credits: { cost: 10 }, // Deduct 10 credits for this request
   });
 
   if (!data.valid) {
@@ -190,9 +191,9 @@ try {
 
 Operations available:
 
-- `set` — Set credits to an exact value
-- `increment` — Add credits to current balance
-- `decrement` — Subtract credits from current balance
+- `set`, Set credits to an exact value
+- `increment`, Add credits to current balance
+- `decrement`, Subtract credits from current balance
 
 ## Remove usage limits
 

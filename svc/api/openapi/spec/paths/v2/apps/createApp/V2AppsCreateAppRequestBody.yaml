@@ -1,0 +1,34 @@
+type: object
+required:
+  - project
+  - name
+  - slug
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      Human-readable name for this app.
+      Use a descriptive name like 'Payments API' to identify its purpose.
+    example: Payments API
+  slug:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  byProjectSlug:
+    summary: Create within a project by slug
+    description: Create an app, locating the parent project by its slug
+    value:
+      project: payments
+      name: Payments API
+      slug: payments-api
+  byProjectId:
+    summary: Create within a project by ID
+    description: Create an app, locating the parent project by its ID
+    value:
+      project: proj_1234abcd
+      name: Payments API
+      slug: payments-api

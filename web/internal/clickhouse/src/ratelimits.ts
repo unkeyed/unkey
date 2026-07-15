@@ -36,6 +36,11 @@ export const ratelimitLogsTimeseriesDataPoint = z.object({
   y: z.object({
     passed: z.int().prefault(0),
     total: z.int().prefault(0),
+    // total_tokens = sum of tokens across all decisions in the bucket.
+    // passed_tokens = sum of tokens for decisions where passed=true.
+    // Blocked tokens are derived in the UI as total_tokens - passed_tokens.
+    passed_tokens: z.int().prefault(0),
+    total_tokens: z.int().prefault(0),
   }),
 });
 
@@ -142,7 +147,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3))) as x,
       map(
         'passed', sum(passed),
-        'total', sum(total)
+        'total', sum(total),
+        'passed_tokens', sum(passed_tokens),
+        'total_tokens', sum(total_tokens)
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -359,6 +366,16 @@ export function getRatelimitLastUsed(ch: Querier) {
   };
 }
 
+// Columns the logs list can be ordered by. These map to physical
+// `ratelimits_raw_v2` columns (see SORT_COLUMN_SQL), so the set is closed —
+// never derive an ORDER BY column from a raw client string.
+export const ratelimitLogsSort = z.object({
+  column: z.enum(["time", "identifier", "status"]),
+  direction: z.enum(["asc", "desc"]),
+});
+
+export type RatelimitLogsSort = z.infer<typeof ratelimitLogsSort>;
+
 export const ratelimitLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -382,7 +399,8 @@ export const ratelimitLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.int().nullable(),
+  sorts: z.array(ratelimitLogsSort).nullable(),
+  offset: z.int(),
 });
 
 export const ratelimitLogs = z.object({
@@ -460,6 +478,25 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
+    // ORDER BY is built from a closed column allowlist keyed by the validated
+    // `sorts` enum — column names and directions are never raw client strings,
+    // so this cannot be an injection vector. `time DESC` is always appended as
+    // the final tiebreaker so OFFSET pagination stays deterministic when
+    // sorting by a non-unique column (identifier/status).
+    const SORT_COLUMN_SQL: Record<RatelimitLogsSort["column"], string> = {
+      time: "time",
+      identifier: "identifier",
+      status: "passed",
+    };
+    const sorts = args.sorts ?? [];
+    const orderByParts = sorts.map(
+      (sort) => `${SORT_COLUMN_SQL[sort.column]} ${sort.direction === "asc" ? "ASC" : "DESC"}`,
+    );
+    if (!sorts.some((sort) => sort.column === "time")) {
+      orderByParts.push("time DESC");
+    }
+    const orderByClause = orderByParts.join(", ");
+
     const logsQuery = ch.query({
       query: `
 SELECT
@@ -474,11 +511,9 @@ WHERE workspace_id = {workspaceId: String}
     ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
     AND (${identifierConditions})
     AND (${statusCondition})
-    AND (
-        {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
-    )
-ORDER BY time DESC
-LIMIT {limit: Int}`,
+ORDER BY ${orderByClause}
+LIMIT {limit: Int}
+OFFSET {offset: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
@@ -567,12 +602,11 @@ export const ratelimitOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.int().nullable(),
-
+  page: z.int().min(1).optional(),
   sorts: z
     .array(
       z.object({
-        column: z.enum(["time", "avg_latency", "p99_latency", "blocked", "passed"]),
+        column: z.enum(["time", "blocked", "passed", "passed_tokens", "blocked_tokens"]),
         direction: z.enum(["asc", "desc"]),
       }),
     )
@@ -585,8 +619,12 @@ export const ratelimitOverviewLogs = z.object({
   request_id: z.string(),
   passed_count: z.int(),
   blocked_count: z.int(),
-  // avg_latency: z.number().int(),
-  // p99_latency: z.number().int(),
+  // total_tokens = sum of tokens across all decisions for the identifier in
+  // the window. passed_tokens = sum of tokens for decisions where passed=true.
+  // Blocked tokens are derived in the UI as total_tokens - passed_tokens so
+  // the table reconciles with the bar chart's blocked-tokens series.
+  passed_tokens: z.int().prefault(0),
+  total_tokens: z.int().prefault(0),
   override: z
     .object({
       limit: z.int(),
@@ -604,6 +642,13 @@ interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
   [key: string]: unknown;
 }
 
+// getRatelimitOverviewLogs returns per-identifier rate limit aggregates for a
+// namespace, paginated with LIMIT/OFFSET over the `page` argument. Because
+// OFFSET is only stable under a total ordering, the ORDER BY always ends with
+// `last_request_time` then `request_id` as tiebreakers so a row never appears
+// on two pages or gets skipped between them. The total row count rides along on
+// each page via `count() OVER ()`; only when a page lands past the end (no rows)
+// does it fall back to a dedicated count query so the caller can clamp the page.
 export function getRatelimitOverviewLogs(ch: Querier) {
   return async (args: RatelimitOverviewLogsParams) => {
     const paramSchemaExtension: Record<string, z.ZodType> = {};
@@ -649,77 +694,48 @@ export function getRatelimitOverviewLogs(ch: Querier) {
 
     const allowedColumns = new Map([
       ["time", "last_request_time"],
-      ["avg_latency", "avg_latency"],
-      ["p99_latency", "p99_latency"],
       ["passed", "passed_count"],
       ["blocked", "blocked_count"],
+      ["passed_tokens", "passed_tokens"],
+      ["blocked_tokens", "blocked_tokens"],
     ]);
+
+    const toSqlDirection = (direction: "asc" | "desc"): "ASC" | "DESC" =>
+      direction === "asc" ? "ASC" : "DESC";
 
     const orderBy =
       hasSortingRules && args.sorts
         ? args.sorts.reduce((acc: string[], sort) => {
             const column = allowedColumns.get(sort.column);
-            // Only add to ORDER BY if it's an allowed column to prevent injection
             if (column) {
-              const direction =
-                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
-                  ? sort.direction.toUpperCase()
-                  : "DESC";
-              acc.push(`${column} ${direction}`);
+              acc.push(`${column} ${toSqlDirection(sort.direction)}`);
             }
             return acc;
           }, [])
         : [];
 
-    // Check if we have custom sorts
-    const hasAvgLatencySort = args.sorts?.some((s) => s.column === "avg_latency");
-    const hasP99LatencySort = args.sorts?.some((s) => s.column === "p99_latency");
-    const hasPassedSort = args.sorts?.some((s) => s.column === "passed");
-    const hasBlockedSort = args.sorts?.some((s) => s.column === "blocked");
-    const hasCustomSort = hasAvgLatencySort || hasP99LatencySort || hasPassedSort || hasBlockedSort;
-
-    // Get explicit time sort if it exists
+    // When sorting by a non-time column, time falls through to a stable
+    // tiebreaker (ASC) so OFFSET pagination stays deterministic between pages.
+    const hasNonTimeSort = args.sorts?.some((s) => s.column !== "time") ?? false;
     const timeSort = args.sorts?.find((s) => s.column === "time");
-
-    // If we have custom sort (avg_latency, p99_latency, passed, blocked), always use ASC for better pagination
-    // Otherwise use explicit time direction or default to DESC
-    const timeDirection = hasCustomSort
+    const timeDirection: "ASC" | "DESC" = hasNonTimeSort
       ? "ASC"
-      : timeSort?.direction.toUpperCase() === "ASC"
-        ? "ASC"
+      : timeSort
+        ? toSqlDirection(timeSort.direction)
         : "DESC";
 
-    // Remove any existing time sort from the orderBy array
     const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("last_request_time"));
 
-    // Construct final ORDER BY clause with time and request_id always at the end
-    const orderByClause =
-      [
-        ...orderByWithoutTime,
-        `last_request_time ${timeDirection}`,
-        `request_id ${timeDirection}`,
-      ].join(", ") || "last_request_time DESC"; // Fallback if empty
+    const orderByClause = [
+      ...orderByWithoutTime,
+      `last_request_time ${timeDirection}`,
+      `request_id ${timeDirection}`,
+    ].join(", ");
 
-    // Create cursor condition based on time direction
-    let cursorCondition: string;
-
-    // For first page or no cursor provided
-    if (args.cursorTime) {
-      // For subsequent pages, use cursor based on time direction
-      if (timeDirection === "ASC") {
-        cursorCondition = `
-    AND (time > {cursorTime: Nullable(UInt64)})
-    `;
-      } else {
-        cursorCondition = `
-    AND (time < {cursorTime: Nullable(UInt64)})
-    `;
-      }
-    } else {
-      cursorCondition = `
-  AND ({cursorTime: Nullable(UInt64)} IS NULL)
-  `;
-    }
+    const page = args.page ?? 1;
+    const offset = (page - 1) * args.limit;
+    parameters.offset = offset;
+    paramSchemaExtension.offset = z.int();
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
@@ -728,14 +744,14 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         request_id,
         time,
         identifier,
-        toUInt8(passed) as status
+        toUInt8(passed) as status,
+        tokens
     FROM default.ratelimits_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (${identifierConditions})
         AND (${statusCondition})
-        ${cursorCondition}
 ),
 aggregated_data AS (
     SELECT
@@ -743,7 +759,10 @@ aggregated_data AS (
         max(time) as last_request_time,
         max(request_id) as last_request_id,
         countIf(status = 1) as passed_count,
-        countIf(status = 0) as blocked_count
+        countIf(status = 0) as blocked_count,
+        sumIf(tokens, status = 1) as passed_tokens,
+        sum(tokens) as total_tokens,
+        greatest(sum(tokens) - sumIf(tokens, status = 1), 0) as blocked_tokens
     FROM filtered_ratelimits
     GROUP BY identifier
 )
@@ -752,15 +771,21 @@ SELECT
     last_request_time as time,
     last_request_id as request_id,
     passed_count,
-    blocked_count
+    blocked_count,
+    passed_tokens,
+    total_tokens,
+    count() OVER () as total_count
 FROM aggregated_data
 ORDER BY ${orderByClause}
-LIMIT {limit: Int}`,
+LIMIT {limit: Int}
+OFFSET {offset: Int}`,
       params: extendedParamsSchema,
-      schema: ratelimitOverviewLogs,
+      schema: ratelimitOverviewLogs.extend({
+        total_count: z.int(),
+      }),
     });
 
-    const countQuery = ch.query({
+    const countOnlyQuery = ch.query({
       query: `
 SELECT
     count(DISTINCT identifier) as total_count
@@ -776,9 +801,45 @@ WHERE workspace_id = {workspaceId: String}
       }),
     });
 
+    const sharedResult = query(parameters);
+
+    const logsQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return result;
+      }
+      return {
+        err: result.err,
+        val: (result.val ?? []).map((row) => ({
+          time: row.time,
+          identifier: row.identifier,
+          request_id: row.request_id,
+          passed_count: row.passed_count,
+          blocked_count: row.blocked_count,
+          passed_tokens: row.passed_tokens,
+          total_tokens: row.total_tokens,
+        })),
+      };
+    })();
+
+    // Common case (paged result has rows): total ships per row via
+    // `count() OVER ()`. Edge case (page past end / no matches): the window
+    // function emits no rows, so fall through to a dedicated count query so
+    // the UI can clamp the page.
+    const countQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return { err: result.err, val: undefined };
+      }
+      if (result.val && result.val.length > 0) {
+        return { err: undefined, val: [{ total_count: result.val[0].total_count }] };
+      }
+      return countOnlyQuery(parameters);
+    })();
+
     return {
-      logsQuery: query(parameters),
-      countQuery: countQuery(parameters),
+      logsQuery,
+      countQuery,
     };
   };
 }

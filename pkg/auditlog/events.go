@@ -27,16 +27,6 @@ const (
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"
 	RatelimitNamespaceDeleteEvent AuditLogEvent = "ratelimitNamespace.delete"
 
-	// Vercel integration events
-	VercelIntegrationCreateEvent AuditLogEvent = "vercelIntegration.create"
-	VercelIntegrationUpdateEvent AuditLogEvent = "vercelIntegration.update"
-	VercelIntegrationDeleteEvent AuditLogEvent = "vercelIntegration.delete"
-
-	// Vercel binding events
-	VercelBindingCreateEvent AuditLogEvent = "vercelBinding.create"
-	VercelBindingUpdateEvent AuditLogEvent = "vercelBinding.update"
-	VercelBindingDeleteEvent AuditLogEvent = "vercelBinding.delete"
-
 	// Role events
 	RoleCreateEvent AuditLogEvent = "role.create"
 	RoleUpdateEvent AuditLogEvent = "role.update"
@@ -70,4 +60,26 @@ const (
 
 	// Audit log bucket events
 	AuditLogBucketCreateEvent AuditLogEvent = "auditLogBucket.create"
+
+	// Portal events
+	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
+	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
+
+	// Deployment events
+	DeploymentCreateEvent  AuditLogEvent = "deployment.create"
+	DeploymentRebuildEvent AuditLogEvent = "deployment.rebuild"
+
+	// Project events
+	ProjectCreateEvent AuditLogEvent = "project.create"
+	ProjectUpdateEvent AuditLogEvent = "project.update"
+	ProjectDeleteEvent AuditLogEvent = "project.delete"
+
+	// App events
+	AppCreateEvent AuditLogEvent = "app.create"
+	AppUpdateEvent AuditLogEvent = "app.update"
+	AppDeleteEvent AuditLogEvent = "app.delete"
+
+	// Environment events
+	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
+	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
 )

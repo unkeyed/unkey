@@ -41,8 +41,8 @@ type ListKeysForRefillRow struct {
 	Pk                uint64         `db:"pk"`
 	ID                string         `db:"id"`
 	WorkspaceID       string         `db:"workspace_id"`
-	RefillAmount      sql.NullInt32  `db:"refill_amount"`
-	RemainingRequests sql.NullInt32  `db:"remaining_requests"`
+	RefillAmount      sql.NullInt64  `db:"refill_amount"`
+	RemainingRequests sql.NullInt64  `db:"remaining_requests"`
 	Name              sql.NullString `db:"name"`
 }
 

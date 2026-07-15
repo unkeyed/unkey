@@ -31,6 +31,11 @@ type PermissionQuery struct {
 
 	// Children contains sub-queries for non-leaf nodes (OperatorAnd/OperatorOr)
 	Children []PermissionQuery `json:"children,omitempty"`
+
+	// When true, this leaf opts into Unkey resource permission matching. The
+	// marker is intentionally not serialized or set by ParseQuery because
+	// wildcard semantics must be chosen by typed call sites through U().
+	matchUnkeyPermission bool
 }
 
 // And creates a permission query that requires all child queries to be satisfied.
@@ -45,9 +50,10 @@ type PermissionQuery struct {
 //	)
 func And(queries ...PermissionQuery) PermissionQuery {
 	return PermissionQuery{
-		Operation: OperatorAnd,
-		Value:     "",
-		Children:  queries,
+		Operation:            OperatorAnd,
+		Value:                "",
+		Children:             queries,
+		matchUnkeyPermission: false,
 	}
 }
 
@@ -63,9 +69,10 @@ func And(queries ...PermissionQuery) PermissionQuery {
 //	)
 func Or(queries ...PermissionQuery) PermissionQuery {
 	return PermissionQuery{
-		Operation: OperatorOr,
-		Value:     "",
-		Children:  queries,
+		Operation:            OperatorOr,
+		Value:                "",
+		Children:             queries,
+		matchUnkeyPermission: false,
 	}
 }
 
@@ -83,9 +90,10 @@ func Or(queries ...PermissionQuery) PermissionQuery {
 //	})
 func T(tuple Tuple) PermissionQuery {
 	return PermissionQuery{
-		Operation: OperatorNil,
-		Value:     tuple.String(),
-		Children:  []PermissionQuery{},
+		Operation:            OperatorNil,
+		Value:                tuple.String(),
+		Children:             []PermissionQuery{},
+		matchUnkeyPermission: false,
 	}
 }
 
@@ -99,8 +107,9 @@ func T(tuple Tuple) PermissionQuery {
 //	query := rbac.S("resourceType.resourceID.action")
 func S(s string) PermissionQuery {
 	return PermissionQuery{
-		Operation: OperatorNil,
-		Value:     s,
-		Children:  []PermissionQuery{},
+		Operation:            OperatorNil,
+		Value:                s,
+		Children:             []PermissionQuery{},
+		matchUnkeyPermission: false,
 	}
 }

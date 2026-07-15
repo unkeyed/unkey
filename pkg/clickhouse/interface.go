@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
 type Querier interface {
@@ -24,12 +25,24 @@ type Querier interface {
 
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
+	// GetVerificationsByExternalID returns a zero-filled verification timeseries
+	// for a single end user (workspace_id + external_id), optionally narrowed to
+	// one key. Used by the portal getVerifications endpoint. Bucket granularity
+	// is chosen from the window size.
+	GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error)
+
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	// GetBillableUsageAboveThreshold returns total billable usage for workspaces that exceed a minimum threshold.
 	// This pre-filters in ClickHouse rather than returning all workspaces, making it efficient for quota checking.
 	// Returns a map from workspace ID to total usage count (only for workspaces >= minUsage).
 	GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error)
+
+	// GetInstanceMeterUsage computes billable deploy usage (CPU, memory, egress, disk)
+	// from Heimdall checkpoint data over a time window, one row per resource. An empty
+	// WorkspaceID aggregates across all workspaces. See instance_meter.go for the
+	// counter-delta vs time-integration rules and the sample-gap handling.
+	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
 
 	// GetDeploymentRequestCount returns the number of sentinel requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
@@ -40,6 +53,12 @@ type Querier interface {
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
+
+	// InsertAuditLogs synchronously writes a batch of audit log rows to
+	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns
+	// only after ClickHouse confirms the insert so the caller can safely
+	// mark the source MySQL rows as exported.
+	InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error
 }
 
 type ClickHouse interface {

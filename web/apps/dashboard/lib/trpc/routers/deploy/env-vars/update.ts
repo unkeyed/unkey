@@ -1,16 +1,13 @@
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { and, db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
-import { Vault } from "@/lib/vault";
+import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 export const updateEnvVar = workspaceProcedure
   .input(
@@ -20,7 +17,7 @@ export const updateEnvVar = workspaceProcedure
       key: envVarKeySchema.optional(),
       environmentId: z.string().trim().min(1, "Environment is required"),
       // Value is always re-encrypted
-      value: z.string().min(1),
+      value: envVarValueSchema,
       type: z.enum(["recoverable", "writeonly"]),
       description: z.string().nullable().optional(),
     }),
@@ -54,10 +51,10 @@ export const updateEnvVar = workspaceProcedure
         });
       }
 
-      if (input.type !== envVar.type) {
+      if (envVar.type === "writeonly" && input.type === "recoverable") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Cannot change environment variable type after creation",
+          message: "Cannot convert a sensitive variable back to recoverable",
         });
       }
 

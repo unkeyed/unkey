@@ -46,7 +46,10 @@ export const mapProduct = (p: Stripe.Product) => {
   };
 };
 
-export const handleStripeError = (error: Stripe.errors.StripeError) => {
+// stripe-node v22 exports error classes as values only; derive the type.
+type StripeError = InstanceType<typeof Stripe.errors.StripeError>;
+
+export const handleStripeError = (error: StripeError) => {
   const stripeError = error;
   let code: TRPCError["code"];
 

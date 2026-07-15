@@ -1,9 +1,9 @@
 ---
 title: Using Cursor with Unkey
-description: "Configure Cursor with Unkey documentation context to generate accurate API key management, rate limiting, and verification code in your projects."
+description: "Configure Cursor with Unkey documentation context to generate accurate key issuance, rate limiting, and verification code in your projects."
 ---
 
-Cursor is an AI-powered code editor that can help you build applications faster. When combined with Unkey's APIs, you can quickly generate secure, scalable applications with API key management and rate limiting.
+Cursor is an AI-powered code editor that can help you build applications faster. When combined with Unkey's APIs, you can quickly generate secure, scalable applications with API keys and rate limiting.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ Cursor is an AI-powered code editor that can help you build applications faster.
 First, create your Unkey workspace and get your API keys:
 
 <Steps>
-<Step title="Create an API" stepNumber={1}>
-Navigate to the [Unkey Dashboard](https://app.unkey.com/apis) and create a new API for your project.
+<Step title="Create a keyspace" stepNumber={1}>
+Navigate to the [Unkey Dashboard](https://app.unkey.com/apis) and create a new keyspace for your project.
 </Step>
 
 <Step title="Get Your Root Key" stepNumber={2}>
@@ -89,13 +89,13 @@ When working with Cursor, break down complex tasks into smaller, focused request
 
 **Good:**
 
-```
+```text
 Create a function to verify an API key with Unkey that returns a boolean
 ```
 
 **Better:**
 
-```
+```text
 Create a TypeScript function that:
 - Takes an API key string as input
 - Uses @unkey/api to verify the key

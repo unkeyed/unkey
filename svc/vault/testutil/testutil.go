@@ -5,14 +5,16 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
 	"github.com/unkeyed/unkey/svc/vault/keys"
@@ -36,12 +38,14 @@ func StartTestVault(t *testing.T) *TestVault {
 	t.Helper()
 
 	// Start S3 for vault storage
-	s3 := dockertest.S3(t)
+	s3 := containers.S3(t)
 
 	// Create S3 storage
+	// MinIO is shared across tests, while each test vault gets a fresh master key.
+	// Reusing a bucket can make a new vault read DEKs encrypted by an old key.
 	st, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
-		S3Bucket:          "vault-test",
+		S3Bucket:          fmt.Sprintf("vault-test-%d", time.Now().UnixNano()),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
 	})

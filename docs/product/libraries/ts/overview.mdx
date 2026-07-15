@@ -5,8 +5,8 @@ description: "Complete guide to Unkey's TypeScript and JavaScript SDKs including
 
 Unkey provides two TypeScript packages:
 
-- **@unkey/api** — Manage keys, APIs, and rate limits (server-side, requires root key)
-- **@unkey/ratelimit** — Standalone rate limiting (server-side, requires root key)
+- **@unkey/api**: Manage keys, APIs, and rate limits (server-side, requires root key)
+- **@unkey/ratelimit**: Standalone rate limiting (server-side, requires root key)
 
 For framework-specific wrappers, see [@unkey/nextjs](/libraries/ts/nextjs) and [@unkey/hono](/libraries/ts/hono).
 
@@ -59,7 +59,7 @@ const limiter = new Ratelimit({
 
 ## Verify an API Key
 
-The most common operation — check if a user's API key is valid:
+The most common operation, check if a user's API key is valid:
 
 ```typescript
 import { Unkey } from "@unkey/api";
@@ -83,7 +83,7 @@ async function handleRequest(request: Request) {
       return new Response(`Unauthorized: ${data.code}`, { status: 401 });
     }
 
-    // Key is valid — access granted
+    // Key is valid, access granted
     // data.identity?.externalId, data.meta, data.credits, etc. available
     return handleAuthenticatedRequest(request, data);
   } catch (err) {
@@ -136,7 +136,7 @@ Issue new keys for your users:
 
 ```typescript
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_...",
 
     // Optional but recommended
@@ -146,10 +146,12 @@ try {
 
     // Optional limits
     expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-    remaining: 1000, // Usage limit
-    refill: {
-      amount: 1000,
-      interval: "monthly", // Auto-refill
+    credits: {
+      remaining: 1000, // Usage limit
+      refill: {
+        amount: 1000,
+        interval: "monthly", // Auto-refill
+      },
     },
     ratelimits: [
       {
@@ -188,7 +190,7 @@ Modify an existing key's configuration:
 
 ```typescript
 try {
-  await unkey.keys.update({
+  await unkey.keys.updateKey({
     keyId: "key_...",
 
     // Any fields you want to change
@@ -218,7 +220,7 @@ Permanently revoke a key:
 
 ```typescript
 try {
-  await unkey.keys.delete({
+  await unkey.keys.deleteKey({
     keyId: "key_...",
   });
 } catch (err) {
@@ -231,7 +233,7 @@ Or disable temporarily (can re-enable later):
 
 ```typescript
 try {
-  await unkey.keys.update({
+  await unkey.keys.updateKey({
     keyId: "key_...",
     enabled: false,
   });
@@ -301,7 +303,7 @@ Use try/catch to handle errors:
 
 ```typescript
 try {
-  const { meta, data } = await unkey.keys.create({ ... });
+  const { meta, data } = await unkey.keys.createKey({ ... });
 
   console.log("Request ID:", meta.requestId);
   console.log("Key ID:", data.keyId);

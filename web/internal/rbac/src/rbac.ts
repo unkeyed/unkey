@@ -56,13 +56,30 @@ export class RBAC {
       }
       return Ok({
         valid: false,
-        message: `Missing one of these permissions: [${query.or
-          .filter(Boolean)
-          .map((p) => `'${JSON.stringify(p)}'`)
-          .join(", ")}], have: [${permissions.map((p) => `'${p}'`).join(", ")}]`,
+        message: `Missing one of these permissions: ${query.or.filter(isPermissionQuery).map(formatPermissionQuery).join(" or ")}`,
       });
     }
 
     return Err(new SchemaError({ message: "reached end of evaluate and no match" }));
   }
+}
+
+function formatPermissionQuery(query: PermissionQuery): string {
+  if (typeof query === "string") {
+    return query;
+  }
+
+  if (query.and) {
+    return query.and.filter(isPermissionQuery).map(formatPermissionQuery).join(" and ");
+  }
+
+  if (query.or) {
+    return query.or.filter(isPermissionQuery).map(formatPermissionQuery).join(" or ");
+  }
+
+  return "invalid permission query";
+}
+
+function isPermissionQuery(query: PermissionQuery | undefined): query is PermissionQuery {
+  return query !== undefined;
 }

@@ -10,7 +10,7 @@ import (
 )
 
 const findAppBuildSettingByAppEnv = `-- name: FindAppBuildSettingByAppEnv :one
-SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, created_at, updated_at
+SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
 FROM ` + "`" + `app_build_settings` + "`" + `
 WHERE app_id = ?
   AND environment_id = ?
@@ -23,7 +23,7 @@ type FindAppBuildSettingByAppEnvParams struct {
 
 // FindAppBuildSettingByAppEnv
 //
-//	SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, created_at, updated_at
+//	SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
 //	FROM `app_build_settings`
 //	WHERE app_id = ?
 //	  AND environment_id = ?
@@ -37,7 +37,9 @@ func (q *Queries) FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg 
 		&i.EnvironmentID,
 		&i.Dockerfile,
 		&i.DockerContext,
+		&i.BuildCommand,
 		&i.WatchPaths,
+		&i.AutoDeploy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

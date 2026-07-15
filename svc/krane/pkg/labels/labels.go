@@ -14,7 +14,6 @@ const (
 	LabelKeyEnvironmentID   = "unkey.com/environment.id"
 	LabelKeyDeploymentID    = "unkey.com/deployment.id"
 	LabelKeyBuildID         = "unkey.com/build.id"
-	LabelKeySentinelID      = "unkey.com/sentinel.id"
 	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
 	LabelKeyPlatform        = "unkey.com/platform"
 	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
@@ -98,16 +97,6 @@ func (l Labels) ManagedByKrane() Labels {
 	return l
 }
 
-// SentinelID adds sentinel ID label to the label set.
-//
-// This method sets the "unkey.com/sentinel.id" label for identifying
-// the specific sentinel that owns this resource. Returns the same
-// Labels instance for method chaining.
-func (l Labels) SentinelID(id string) Labels {
-	l[LabelKeySentinelID] = id
-	return l
-}
-
 // NetworkPolicyID adds network policy ID label to the label set.
 //
 // This method sets the "unkey.com/networkpolicy.id" label for identifying
@@ -118,16 +107,6 @@ func (l Labels) NetworkPolicyID(id string) Labels {
 	return l
 }
 
-// ComponentSentinel adds component label for sentinel resources.
-//
-// This method sets "app.kubernetes.io/component" label to "sentinel"
-// to identify resource as a sentinel component. Returns the same
-// Labels instance for method chaining.
-func (l Labels) ComponentSentinel() Labels {
-	l[LabelKeyComponent] = "sentinel"
-	return l
-}
-
 // ComponentDeployment adds component label for deployment resources.
 //
 // This method sets "app.kubernetes.io/component" label to "deployment"
@@ -135,14 +114,6 @@ func (l Labels) ComponentSentinel() Labels {
 // Labels instance for method chaining.
 func (l Labels) ComponentDeployment() Labels {
 	l[LabelKeyComponent] = "deployment"
-	return l
-}
-
-// ComponentGossipLAN adds component label for gossip LAN resources (headless services,
-// network policies). Distinct from ComponentSentinel so label selectors for sentinel
-// services don't accidentally pick up gossip infrastructure.
-func (l Labels) ComponentGossipLAN() Labels {
-	l[LabelKeyComponent] = "gossip-lan"
 	return l
 }
 
@@ -199,16 +170,6 @@ func (l Labels) ToString() string {
 		s += fmt.Sprintf("%s=%s,", k, v)
 	}
 	return strings.TrimSuffix(s, ",")
-}
-
-// GetSentinelID extracts sentinel ID from Kubernetes label map.
-//
-// This helper function retrieves the "unkey.com/sentinel.id" label from
-// a Kubernetes resource's labels. Returns the ID and a boolean indicating
-// whether the label was found.
-func GetSentinelID(l map[string]string) (string, bool) {
-	v, ok := l[LabelKeySentinelID]
-	return v, ok
 }
 
 // GetDeploymentID extracts deployment ID from Kubernetes label map.

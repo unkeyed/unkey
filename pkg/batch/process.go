@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/batch/metrics"
@@ -23,6 +24,11 @@ type BatchProcessor[T any] struct {
 	buffer *buffer.Buffer[T]
 	config Config[T]
 	flush  func(ctx context.Context, batch []T, trigger string)
+	// consumers waits for every consumer goroutine to drain its pending
+	// batch before Close() returns. Without this, callers that Close()
+	// the processor and then immediately tear down downstream dependencies
+	// (e.g. the ClickHouse connection) race the final flush and lose rows.
+	consumers sync.WaitGroup
 }
 
 // Config defines the behavior of a BatchProcessor.
@@ -85,7 +91,7 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 		config.Consumers = 1
 	}
 
-	bp := &BatchProcessor[T]{
+	bp := &BatchProcessor[T]{ //nolint:exhaustruct // consumers WaitGroup zero-value is the intended initial state
 		name: config.Name,
 		buffer: buffer.New[T](buffer.Config{
 			Name:     config.Name,
@@ -110,6 +116,7 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 		config: config,
 	}
 
+	bp.consumers.Add(bp.config.Consumers)
 	for range bp.config.Consumers {
 		go bp.process()
 	}
@@ -121,7 +128,9 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 // It reads items from the buffer channel and batches them until
 // either the batch is full or the flush interval elapses.
 func (bp *BatchProcessor[T]) process() {
-	// Start with zero capacity — the slice grows to actual usage on the first
+	defer bp.consumers.Done()
+
+	// Start with zero capacity, the slice grows to actual usage on the first
 	// flush cycle and is reused (batch[:0]) afterwards, so steady-state traffic
 	// never re-allocates. This avoids pre-allocating BatchSize*sizeof(T) for
 	// buffers that may see far fewer items per interval.
@@ -189,4 +198,11 @@ func (bp *BatchProcessor[T]) Buffer(t T) {
 //	processor.Close()
 func (bp *BatchProcessor[T]) Close() {
 	bp.buffer.Close()
+	// Block until every consumer goroutine has drained its pending batch.
+	// The buffer channel is now closed, so consumers observe !ok on their
+	// next receive, run one final flush ("close" trigger), and return.
+	// Without this Wait, Close() would return concurrently with the final
+	// flush and any downstream resource (ClickHouse connection, etc) the
+	// caller tears down after Close() could be gone before the flush lands.
+	bp.consumers.Wait()
 }

@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+	"net/url"
+
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -36,6 +39,25 @@ type GitHubConfig struct {
 	// PrivateKeyPEM is the GitHub App private key in PEM format.
 	// Required for deployment authorization (fetching branch HEAD).
 	PrivateKeyPEM string `toml:"private_key_pem"`
+
+	// AllowUnauthenticatedDeployments controls whether deployments can skip
+	// GitHub authentication. Set to true only for local development.
+	// Production should keep this false to require GitHub App authentication.
+	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
+}
+
+// StripeConfig holds the Stripe integration for the month-end Deploy billing
+// close: the invoice.created webhook claims renewal invoices of Deploy
+// workspaces (auto_advance off) and dispatches the closing flow to the
+// worker via Restate. Both fields empty disables the webhook entirely.
+type StripeConfig struct {
+	// WebhookSecret verifies Stripe webhook signatures. Empty disables the
+	// /webhooks/stripe route.
+	WebhookSecret string `toml:"webhook_secret"`
+
+	// SecretKey authenticates the auto_advance claim on draft invoices.
+	// Required when WebhookSecret is set.
+	SecretKey string `toml:"secret_key"`
 }
 
 // DomainConnectConfig holds Domain Connect protocol configuration for
@@ -44,6 +66,14 @@ type DomainConnectConfig struct {
 	// PrivateKeyPEM is the PEM-encoded RSA private key for signing
 	// Domain Connect redirect URLs. If empty, Domain Connect is disabled.
 	PrivateKeyPEM string `toml:"private_key_pem"`
+}
+
+// ClickHouseConfig holds ClickHouse connection configuration. The api
+// process writes container lifecycle events here when krane reports them
+// via ReportInstanceEvents. When URL is empty the writer falls back to a
+// noop and the dashboard's events panel will be empty.
+type ClickHouseConfig struct {
+	URL string `toml:"url"`
 }
 
 // Config holds the complete configuration for the control plane API server.
@@ -94,8 +124,8 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// Database is the MySQL DSN used for all control plane reads and writes.
+	Database string `toml:"database" config:"required,nonempty"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
@@ -106,15 +136,57 @@ type Config struct {
 	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
 	GitHub GitHubConfig `toml:"github"`
 
+	// Stripe configures the Stripe webhook for the month-end Deploy billing
+	// close. See [StripeConfig].
+	Stripe StripeConfig `toml:"stripe"`
+
 	// DomainConnect configures the Domain Connect protocol for one-click DNS setup.
 	// See [DomainConnectConfig].
 	DomainConnect DomainConnectConfig `toml:"domain_connect"`
+
+	// ClickHouse configures the analytics database connection used for
+	// container lifecycle event ingestion.
+	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// DeployGate configures the Unkey Deploy project-creation entitlement gate.
+	DeployGate DeployGateConfig `toml:"deploy_gate"`
+}
+
+// DeployGateConfig gates project creation on a Deploy entitlement: a synced
+// plan or a manual override.
+type DeployGateConfig struct {
+	// Enforce hard-blocks project creation for workspaces with no Deploy
+	// entitlement. Default false runs in observe mode: it logs what it would
+	// block but still allows creation, so the signal can be validated first.
+	Enforce bool `toml:"enforce"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
+	// ClickHouse.URL is optional (empty means "skip ingestion, use noop
+	// sink"), but a non-empty value must be a parseable URL with scheme
+	// and host. Letting a malformed value through here means the process
+	// boots, the noop sink swallows events for the lifetime of the
+	// process, and the failure is invisible until the dashboard is empty.
+	if c.ClickHouse.URL != "" {
+		u, err := url.Parse(c.ClickHouse.URL)
+		if err != nil {
+			return fmt.Errorf("invalid clickhouse.url: %w", err)
+		}
+		if u.Scheme == "" || u.Host == "" {
+			return fmt.Errorf("invalid clickhouse.url %q: scheme and host are required", c.ClickHouse.URL)
+		}
+	}
+
+	// The Stripe webhook needs both secrets: the webhook secret to verify
+	// signatures and the secret key to claim invoices (auto_advance off).
+	// Half-configured means the process boots but billing quietly does
+	// nothing, so reject it at load instead of at the first missed invoice.
+	if (c.Stripe.WebhookSecret == "") != (c.Stripe.SecretKey == "") {
+		return fmt.Errorf("stripe.webhook_secret and stripe.secret_key must be set together; only one is set")
+	}
 
 	return nil
 }

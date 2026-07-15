@@ -32,8 +32,7 @@ func TestGetDeploymentInsufficientPermissions(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 	}
 	h.Register(route)
 

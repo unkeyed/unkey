@@ -6,11 +6,13 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import * as React from "react";
+import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
+import { WORKSPACE_SCOPE } from "./permissions";
 import { RootKeySuccess } from "./root-key-success";
 
 const DynamicDialogContainer = dynamic(
@@ -46,17 +48,20 @@ export const RootKeyDialog = ({
   editMode = false,
   existingKey,
 }: RootKeyDialogProps) => {
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleOpenSheet = () => {
     setIsSheetOpen(true);
   };
 
   const handleDialogOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
+    // Suppress dialog close while the permission sheet is open — Esc/outside-close events
+    // can otherwise propagate to the (non-modal) outer dialog and close both at once.
+    if (!open && isSheetOpen) {
       setIsSheetOpen(false);
+      return;
     }
+    onOpenChange(open);
   };
 
   const {
@@ -65,6 +70,11 @@ export const RootKeyDialog = ({
     selectedPermissions,
     allApis,
     apisLoading,
+    allProjects,
+    projectsLoading,
+    allApps,
+    allEnvironments,
+    environmentsLoading,
     hasNextPage,
     isFetchingNextPage,
     key,
@@ -76,13 +86,51 @@ export const RootKeyDialog = ({
     handleClose,
     hasChanges,
   } = useRootKeyDialog({
+    isOpen,
     editMode,
     existingKey,
     onOpenChange,
   });
 
   const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
-  const isBusy = isMutating || apisLoading;
+  const isBusy = isMutating || apisLoading || projectsLoading || environmentsLoading;
+
+  const apiBadges = useMemo(
+    () =>
+      allApis.map((api) => ({
+        id: api.id,
+        name: api.name,
+        scope: { kind: "api" as const, id: api.id, name: api.name },
+      })),
+    [allApis],
+  );
+  const projectBadges = useMemo(
+    () =>
+      allProjects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        scope: { kind: "project" as const, id: project.id, name: project.name },
+      })),
+    [allProjects],
+  );
+  const appBadges = useMemo(
+    () =>
+      allApps.map((app) => ({
+        id: app.id,
+        name: app.name,
+        scope: { kind: "app" as const, id: app.id, name: app.name },
+      })),
+    [allApps],
+  );
+  const environmentBadges = useMemo(
+    () =>
+      allEnvironments.map((environment) => ({
+        id: environment.id,
+        name: environment.name,
+        scope: { kind: "environment" as const, id: environment.id, name: environment.name },
+      })),
+    [allEnvironments],
+  );
 
   const removePermission = (permission: UnkeyPermission) =>
     handlePermissionChange(selectedPermissions.filter((p) => p !== permission));
@@ -124,19 +172,52 @@ export const RootKeyDialog = ({
         <div className="flex flex-col px-6 py-0 gap-3">
           <PermissionBadgeList
             selectedPermissions={selectedPermissions}
-            apiId={ROOT_KEY_CONSTANTS.WORKSPACE}
+            scope={WORKSPACE_SCOPE}
             title="Selected from"
             name="Workspace"
             expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
             removePermission={removePermission}
           />
-          {allApis.map((api) => (
+          {apiBadges.map((api) => (
             <PermissionBadgeList
               key={api.id}
               selectedPermissions={selectedPermissions}
-              apiId={api.id}
+              scope={api.scope}
               title="from"
               name={api.name}
+              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+              removePermission={removePermission}
+            />
+          ))}
+          {projectBadges.map((project) => (
+            <PermissionBadgeList
+              key={project.id}
+              selectedPermissions={selectedPermissions}
+              scope={project.scope}
+              title="from project"
+              name={project.name}
+              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+              removePermission={removePermission}
+            />
+          ))}
+          {appBadges.map((app) => (
+            <PermissionBadgeList
+              key={app.id}
+              selectedPermissions={selectedPermissions}
+              scope={app.scope}
+              title="from app"
+              name={app.name}
+              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+              removePermission={removePermission}
+            />
+          ))}
+          {environmentBadges.map((environment) => (
+            <PermissionBadgeList
+              key={environment.id}
+              selectedPermissions={selectedPermissions}
+              scope={environment.scope}
+              title="from environment"
+              name={environment.name}
               expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
               removePermission={removePermission}
             />
@@ -168,7 +249,22 @@ export const RootKeyDialog = ({
 
   return (
     <>
-      {/* Only show creation dialog if no key has been created yet */}
+      {/* The outer dialog is non-modal so its react-remove-scroll doesn't block wheel events
+          inside the sheet (which is portaled outside the dialog's DOM subtree). We render our
+          own backdrop here to replace the modal overlay we lost. */}
+      {!key.data?.key &&
+        isOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          // @dh hacky fix, delete asap
+          // biome-ignore lint/a11y/useKeyWithClickEvents: decorative backdrop (aria-hidden); keyboard close is handled by Radix Esc handling on the dialog.
+          <div
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs"
+            aria-hidden="true"
+            onClick={() => handleDialogOpenChange(false)}
+          />,
+          document.body,
+        )}
       {!key.data?.key && (
         <DynamicDialogContainer
           isOpen={isOpen}
@@ -178,7 +274,7 @@ export const RootKeyDialog = ({
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
-          modal={true}
+          modal={false}
           preventOutsideClose={isSheetOpen}
         >
           {dialogContent}
@@ -187,6 +283,9 @@ export const RootKeyDialog = ({
       <PermissionSheet
         selectedPermissions={selectedPermissions}
         apis={allApis}
+        projects={allProjects}
+        apps={allApps}
+        environments={allEnvironments}
         onChange={handlePermissionChange}
         loadMore={fetchMoreApis}
         hasNextPage={hasNextPage}

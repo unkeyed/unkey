@@ -6,6 +6,8 @@ import {
   type InvitationListResponse,
   type Membership,
   type MembershipListResponse,
+  type MfaEnrollmentStart,
+  type MfaFactor,
   type NavigationResponse,
   type OAuthResult,
   type OrgInviteParams,
@@ -57,7 +59,7 @@ export abstract class BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
-    bypassRadar?: boolean;
+    signalsId?: string;
   }): Promise<EmailAuthResult>;
 
   /**
@@ -70,6 +72,10 @@ export abstract class BaseAuthProvider {
     email: string;
     code: string;
     invitationToken?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult>;
 
   /**
@@ -81,15 +87,23 @@ export abstract class BaseAuthProvider {
   abstract verifyEmail(params: {
     code: string;
     token: string;
+    ipAddress?: string;
+    userAgent?: string;
   }): Promise<VerificationResult>;
 
   /**
    * Resends an authentication code to the specified email address.
    *
-   * @param email - The email address to resend the auth code to
+   * @param params - Parameters containing the email and optional request metadata
    * @returns Result of the resend attempt
    */
-  abstract resendAuthCode(email: string): Promise<EmailAuthResult>;
+  abstract resendAuthCode(params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
+    signalsId?: string;
+  }): Promise<EmailAuthResult>;
 
   /**
    * Creates a new user account with the provided user data.
@@ -101,9 +115,105 @@ export abstract class BaseAuthProvider {
     params: UserData & {
       ipAddress?: string;
       userAgent?: string;
-      bypassRadar?: boolean;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult>;
+
+  /**
+   * Completes a pending MFA TOTP challenge during sign-in.
+   *
+   * @param params - The TOTP code, the challenge to verify against, and the pending auth token
+   * @returns Result of the verification process, including redirect information on success
+   */
+  abstract completeMfaChallenge(params: {
+    code: string;
+    challengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult>;
+
+  /**
+   * Creates a new TOTP factor for a user and returns the secrets needed to
+   * display a QR code. Used both for sign-in enrollment (when the provider
+   * requires MFA) and self-service enrollment from settings.
+   *
+   * @param params - The user to enroll and the email shown in authenticator apps
+   * @returns QR code, secret, and the challenge to verify enrollment with
+   */
+  abstract beginMfaEnrollment(params: {
+    userId: string;
+    email: string;
+  }): Promise<MfaEnrollmentStart>;
+
+  /**
+   * Verifies a TOTP code against an enrollment challenge outside of a sign-in
+   * flow (settings enrollment confirmation).
+   *
+   * @param params - The challenge ID and the user-entered code
+   * @returns Whether the code was valid
+   */
+  abstract verifyMfaEnrollment(params: {
+    challengeId: string;
+    code: string;
+  }): Promise<boolean>;
+
+  /**
+   * Lists the MFA factors enrolled for a user.
+   *
+   * @param userId - The user to list factors for
+   */
+  abstract listMfaFactors(userId: string): Promise<MfaFactor[]>;
+
+  /**
+   * Permanently removes an MFA factor.
+   *
+   * @param factorId - The factor to remove
+   */
+  abstract removeMfaFactor(factorId: string): Promise<void>;
+
+  /**
+   * Completes a pending Radar email challenge during sign-in.
+   *
+   * @param params - The emailed code, Radar challenge ID, and pending auth token
+   * @returns Result of the verification process, including redirect information on success
+   */
+  abstract completeRadarEmailChallenge(params: {
+    code: string;
+    radarChallengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult>;
+
+  /**
+   * Sends an SMS code for a pending Radar SMS challenge.
+   *
+   * @param params - The user, phone number, and pending auth token
+   * @returns The verification ID and normalized phone number to complete the challenge with
+   */
+  abstract sendRadarSmsCode(params: {
+    userId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<{ verificationId: string; phoneNumber: string }>;
+
+  /**
+   * Completes a pending Radar SMS challenge during sign-in.
+   *
+   * @param params - The SMS code, verification ID, phone number, and pending auth token
+   * @returns Result of the verification process, including redirect information on success
+   */
+  abstract completeRadarSmsChallenge(params: {
+    code: string;
+    verificationId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult>;
 
   /**
    * Gets the URL to redirect users to for signing out.
@@ -236,9 +346,21 @@ export abstract class BaseAuthProvider {
    * Removes a user's membership from an organization.
    *
    * @param membershipId - The ID of the membership to remove
+   * @param orgId - The caller's organization; the membership must belong to it
    * @returns A promise that resolves when the membership is removed
    */
-  abstract removeMembership(membershipId: string): Promise<void>;
+  abstract removeMembership(membershipId: string, orgId: string): Promise<void>;
+
+  /**
+   * Deactivates a user's membership in an organization without deleting it.
+   * Used when a workspace's subscription lapses and team access must be revoked
+   * for non-creator members. The membership can be reactivated later.
+   *
+   * @param membershipId - The ID of the membership to deactivate
+   * @param orgId - The caller's organization; the membership must belong to it
+   * @returns A promise that resolves when the membership is deactivated
+   */
+  abstract deactivateMembership(membershipId: string, orgId: string): Promise<void>;
 
   /**
    * Invites a new user to join an organization.
@@ -268,9 +390,10 @@ export abstract class BaseAuthProvider {
    * Revokes an existing invitation.
    *
    * @param invitationId - The ID of the invitation to revoke
+   * @param orgId - The caller's organization; the invitation must belong to it
    * @returns A promise that resolves when the invitation is revoked
    */
-  abstract revokeOrgInvitation(invitationId: string): Promise<void>;
+  abstract revokeOrgInvitation(invitationId: string, orgId: string): Promise<void>;
 
   /**
    * Accepts an invitation to join an organization.

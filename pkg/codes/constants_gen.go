@@ -99,6 +99,25 @@ const (
 
 	// NotFound indicates the requested project was not found.
 	UnkeyDataErrorsProjectNotFound URN = "err:unkey:data:project_not_found"
+	// Duplicate indicates the requested project already exists.
+	UnkeyDataErrorsProjectDuplicate URN = "err:unkey:data:project_already_exists"
+
+	// App
+
+	// Duplicate indicates the requested app already exists.
+	UnkeyDataErrorsAppDuplicate URN = "err:unkey:data:app_already_exists"
+	// NotFound indicates the requested app does not exist.
+	UnkeyDataErrorsAppNotFound URN = "err:unkey:data:app_not_found"
+
+	// Environment
+
+	// NotFound indicates the requested environment does not exist.
+	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
+
+	// Deployment
+
+	// NotFound indicates the requested deployment does not exist.
+	UnkeyDataErrorsDeploymentNotFound URN = "err:unkey:data:deployment_not_found"
 
 	// Migration
 
@@ -153,6 +172,11 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
+	// PortalConfig
+
+	// NotFound indicates the requested portal configuration was not found.
+	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.
@@ -195,31 +219,65 @@ const (
 	// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
-	UnkeyFrontlineErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	UnkeyFrontlineErrorsProxyBadGateway URN = "err:frontline:upstream:bad_gateway"
 	// ServiceUnavailable represents a 503 error - backend service is unavailable
-	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
+	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:frontline:upstream:service_unavailable"
 	// GatewayTimeout represents a 504 error - upstream server timeout
-	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
+	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:frontline:upstream:gateway_timeout"
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
-	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:frontline:upstream:proxy_forward_failed"
 
 	// Routing
 
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
-	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:frontline:routing:config_not_found"
+	// DeploymentNotFound represents a 404 error - the resolved deployment was not found or did not match the expected environment.
+	UnkeyFrontlineErrorsRoutingDeploymentNotFound URN = "err:frontline:routing:deployment_not_found"
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
-	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
-	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
-	UnkeyFrontlineErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
+	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:frontline:platform:deployment_selection_failed"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
-	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
+	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:frontline:capacity:no_running_instances"
 
 	// Internal
 
 	// InternalServerError represents a 500 error - internal server error
-	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
+	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:frontline:platform:internal_server_error"
 	// ConfigLoadFailed represents a 500 error - failed to load configuration
-	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
-	// InstanceLoadFailed represents a 500 error - failed to load instance information
-	UnkeyFrontlineErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
+	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:frontline:platform:config_load_failed"
+	// InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed.
+	// This is the config author's fault, not frontline's, hence the config domain rather than platform.
+	UnkeyFrontlineErrorsInternalInvalidConfiguration URN = "err:frontline:config:invalid_configuration"
+
+	// Auth
+
+	// MissingCredentials represents a 401 error - no credentials found in the request.
+	UnkeyFrontlineErrorsAuthMissingCredentials URN = "err:frontline:client:missing_credentials"
+	// InvalidKey represents a 401 error - key not found, disabled, or expired.
+	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:frontline:client:invalid_key"
+	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
+	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:frontline:client:insufficient_permissions"
+	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	UnkeyFrontlineErrorsAuthRateLimited URN = "err:frontline:client:rate_limited"
+
+	// Firewall
+
+	// Denied represents a 403 error - request rejected by a Firewall policy
+	// with action=DENY.
+	UnkeyFrontlineErrorsFirewallDenied URN = "err:frontline:client:firewall_denied"
+
+	// OpenApi
+
+	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
+	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:frontline:client:openapi_validation_failed"
+
+	// ----------------
+	// UnkeyPortalErrors
+	// ----------------
+
+	// Session
+
+	// TokenMissing indicates a portal session token was not provided.
+	UnkeyPortalErrorsSessionTokenMissing URN = "err:unkey:authentication:portal_token_missing"
+	// SessionNotFound indicates the portal session was not found or has expired.
+	UnkeyPortalErrorsSessionSessionNotFound URN = "err:unkey:authentication:portal_session_not_found"
 )

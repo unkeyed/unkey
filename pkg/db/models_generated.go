@@ -489,9 +489,8 @@ func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
 type DeploymentsDesiredState string
 
 const (
-	DeploymentsDesiredStateRunning  DeploymentsDesiredState = "running"
-	DeploymentsDesiredStateStandby  DeploymentsDesiredState = "standby"
-	DeploymentsDesiredStateArchived DeploymentsDesiredState = "archived"
+	DeploymentsDesiredStateRunning DeploymentsDesiredState = "running"
+	DeploymentsDesiredStateStopped DeploymentsDesiredState = "stopped"
 )
 
 func (e *DeploymentsDesiredState) Scan(src interface{}) error {
@@ -624,6 +623,52 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
+}
+
+type DeploymentsTrigger string
+
+const (
+	DeploymentsTriggerUnknown   DeploymentsTrigger = "unknown"
+	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
+	DeploymentsTriggerApi       DeploymentsTrigger = "api"
+	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
+	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"
+	DeploymentsTriggerUnkey     DeploymentsTrigger = "unkey"
+)
+
+func (e *DeploymentsTrigger) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsTrigger(s)
+	case string:
+		*e = DeploymentsTrigger(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsTrigger: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsTrigger struct {
+	DeploymentsTrigger DeploymentsTrigger
+	Valid              bool // Valid is true if DeploymentsTrigger is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsTrigger) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsTrigger, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsTrigger.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsTrigger) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsTrigger), nil
 }
 
 type DeploymentsUpstreamProtocol string
@@ -799,222 +844,6 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
-type SentinelsDeployStatus string
-
-const (
-	SentinelsDeployStatusIdle        SentinelsDeployStatus = "idle"
-	SentinelsDeployStatusProgressing SentinelsDeployStatus = "progressing"
-	SentinelsDeployStatusReady       SentinelsDeployStatus = "ready"
-	SentinelsDeployStatusFailed      SentinelsDeployStatus = "failed"
-)
-
-func (e *SentinelsDeployStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsDeployStatus(s)
-	case string:
-		*e = SentinelsDeployStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsDeployStatus: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsDeployStatus struct {
-	SentinelsDeployStatus SentinelsDeployStatus
-	Valid                 bool // Valid is true if SentinelsDeployStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsDeployStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsDeployStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsDeployStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsDeployStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsDeployStatus), nil
-}
-
-type SentinelsDesiredState string
-
-const (
-	SentinelsDesiredStateRunning  SentinelsDesiredState = "running"
-	SentinelsDesiredStateStandby  SentinelsDesiredState = "standby"
-	SentinelsDesiredStateArchived SentinelsDesiredState = "archived"
-)
-
-func (e *SentinelsDesiredState) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsDesiredState(s)
-	case string:
-		*e = SentinelsDesiredState(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsDesiredState: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsDesiredState struct {
-	SentinelsDesiredState SentinelsDesiredState
-	Valid                 bool // Valid is true if SentinelsDesiredState is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsDesiredState) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsDesiredState, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsDesiredState.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsDesiredState) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsDesiredState), nil
-}
-
-type SentinelsHealth string
-
-const (
-	SentinelsHealthUnknown   SentinelsHealth = "unknown"
-	SentinelsHealthPaused    SentinelsHealth = "paused"
-	SentinelsHealthHealthy   SentinelsHealth = "healthy"
-	SentinelsHealthUnhealthy SentinelsHealth = "unhealthy"
-)
-
-func (e *SentinelsHealth) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsHealth(s)
-	case string:
-		*e = SentinelsHealth(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsHealth: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsHealth struct {
-	SentinelsHealth SentinelsHealth
-	Valid           bool // Valid is true if SentinelsHealth is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsHealth) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsHealth, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsHealth.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsHealth) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsHealth), nil
-}
-
-type VercelBindingsEnvironment string
-
-const (
-	VercelBindingsEnvironmentDevelopment VercelBindingsEnvironment = "development"
-	VercelBindingsEnvironmentPreview     VercelBindingsEnvironment = "preview"
-	VercelBindingsEnvironmentProduction  VercelBindingsEnvironment = "production"
-)
-
-func (e *VercelBindingsEnvironment) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsEnvironment(s)
-	case string:
-		*e = VercelBindingsEnvironment(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsEnvironment: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsEnvironment struct {
-	VercelBindingsEnvironment VercelBindingsEnvironment
-	Valid                     bool // Valid is true if VercelBindingsEnvironment is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsEnvironment) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsEnvironment, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsEnvironment.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsEnvironment) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsEnvironment), nil
-}
-
-type VercelBindingsResourceType string
-
-const (
-	VercelBindingsResourceTypeRootKey VercelBindingsResourceType = "rootKey"
-	VercelBindingsResourceTypeApiId   VercelBindingsResourceType = "apiId"
-)
-
-func (e *VercelBindingsResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsResourceType(s)
-	case string:
-		*e = VercelBindingsResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsResourceType struct {
-	VercelBindingsResourceType VercelBindingsResourceType
-	Valid                      bool // Valid is true if VercelBindingsResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsResourceType), nil
-}
-
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1072,9 +901,11 @@ type AppBuildSetting struct {
 	WorkspaceID   string             `db:"workspace_id"`
 	AppID         string             `db:"app_id"`
 	EnvironmentID string             `db:"environment_id"`
-	Dockerfile    string             `db:"dockerfile"`
+	Dockerfile    sql.NullString     `db:"dockerfile"`
 	DockerContext string             `db:"docker_context"`
+	BuildCommand  sql.NullString     `db:"build_command"`
 	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
+	AutoDeploy    bool               `db:"auto_deploy"`
 	CreatedAt     int64              `db:"created_at"`
 	UpdatedAt     sql.NullInt64      `db:"updated_at"`
 }
@@ -1125,40 +956,6 @@ type AppRuntimeSetting struct {
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
-type AuditLog struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Bucket      string         `db:"bucket"`
-	BucketID    string         `db:"bucket_id"`
-	Event       string         `db:"event"`
-	Time        int64          `db:"time"`
-	Display     string         `db:"display"`
-	RemoteIp    sql.NullString `db:"remote_ip"`
-	UserAgent   sql.NullString `db:"user_agent"`
-	ActorType   string         `db:"actor_type"`
-	ActorID     string         `db:"actor_id"`
-	ActorName   sql.NullString `db:"actor_name"`
-	ActorMeta   []byte         `db:"actor_meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-}
-
-type AuditLogTarget struct {
-	Pk          uint64         `db:"pk"`
-	WorkspaceID string         `db:"workspace_id"`
-	BucketID    string         `db:"bucket_id"`
-	Bucket      string         `db:"bucket"`
-	AuditLogID  string         `db:"audit_log_id"`
-	DisplayName string         `db:"display_name"`
-	Type        string         `db:"type"`
-	ID          string         `db:"id"`
-	Name        sql.NullString `db:"name"`
-	Meta        []byte         `db:"meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-}
-
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
@@ -1184,6 +981,16 @@ type CiliumNetworkPolicy struct {
 	Policy        json.RawMessage `db:"policy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
 }
 
 type ClickhouseWorkspaceSetting struct {
@@ -1264,6 +1071,9 @@ type Deployment struct {
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
 	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
+	Trigger                       DeploymentsTrigger          `db:"trigger"`
+	TriggeredBy                   sql.NullString              `db:"triggered_by"`
+	TriggerReason                 sql.NullString              `db:"trigger_reason"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
@@ -1385,19 +1195,20 @@ type Identity struct {
 }
 
 type Instance struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	RegionID      string          `db:"region_id"`
-	K8sName       string          `db:"k8s_name"`
-	Address       string          `db:"address"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMib     int32           `db:"memory_mib"`
-	StorageMib    uint32          `db:"storage_mib"`
-	Status        InstancesStatus `db:"status"`
+	Pk              uint64                 `db:"pk"`
+	ID              string                 `db:"id"`
+	DeploymentID    string                 `db:"deployment_id"`
+	WorkspaceID     string                 `db:"workspace_id"`
+	ProjectID       string                 `db:"project_id"`
+	AppID           string                 `db:"app_id"`
+	RegionID        string                 `db:"region_id"`
+	K8sName         string                 `db:"k8s_name"`
+	Address         string                 `db:"address"`
+	CpuMillicores   int32                  `db:"cpu_millicores"`
+	MemoryMib       int32                  `db:"memory_mib"`
+	StorageMib      uint32                 `db:"storage_mib"`
+	Status          InstancesStatus        `db:"status"`
+	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
 }
 
 type Key struct {
@@ -1417,10 +1228,10 @@ type Key struct {
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -1487,6 +1298,53 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
 type Project struct {
 	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
@@ -1526,9 +1384,22 @@ type Ratelimit struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 	KeyID       sql.NullString `db:"key_id"`
 	IdentityID  sql.NullString `db:"identity_id"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
+}
+
+type RatelimitGlobalCounter struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Region      string `db:"region"`
+	Count       uint64 `db:"count"`
+	ExpiresAt   uint64 `db:"expires_at"`
+	UpdatedAt   uint64 `db:"updated_at"`
 }
 
 type RatelimitNamespace struct {
@@ -1547,8 +1418,8 @@ type RatelimitOverride struct {
 	WorkspaceID string        `db:"workspace_id"`
 	NamespaceID string        `db:"namespace_id"`
 	Identifier  string        `db:"identifier"`
-	Limit       int32         `db:"limit"`
-	Duration    int32         `db:"duration"`
+	Limit       uint64        `db:"limit"`
+	Duration    uint64        `db:"duration"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
@@ -1581,70 +1452,35 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
-type Sentinel struct {
-	Pk                uint64                `db:"pk"`
-	ID                string                `db:"id"`
-	WorkspaceID       string                `db:"workspace_id"`
-	ProjectID         string                `db:"project_id"`
-	EnvironmentID     string                `db:"environment_id"`
-	K8sName           string                `db:"k8s_name"`
-	K8sAddress        string                `db:"k8s_address"`
-	RegionID          string                `db:"region_id"`
-	Image             string                `db:"image"`
-	RunningImage      string                `db:"running_image"`
-	DesiredState      SentinelsDesiredState `db:"desired_state"`
-	Health            SentinelsHealth       `db:"health"`
-	DesiredReplicas   int32                 `db:"desired_replicas"`
-	AvailableReplicas int32                 `db:"available_replicas"`
-	DeployStatus      SentinelsDeployStatus `db:"deploy_status"`
-	CpuMillicores     int32                 `db:"cpu_millicores"`
-	MemoryMib         int32                 `db:"memory_mib"`
-	CreatedAt         int64                 `db:"created_at"`
-	UpdatedAt         sql.NullInt64         `db:"updated_at"`
-}
-
-type VercelBinding struct {
-	Pk            uint64                     `db:"pk"`
-	ID            string                     `db:"id"`
-	IntegrationID string                     `db:"integration_id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	ProjectID     string                     `db:"project_id"`
-	Environment   VercelBindingsEnvironment  `db:"environment"`
-	ResourceID    string                     `db:"resource_id"`
-	ResourceType  VercelBindingsResourceType `db:"resource_type"`
-	VercelEnvID   string                     `db:"vercel_env_id"`
-	LastEditedBy  string                     `db:"last_edited_by"`
-	CreatedAtM    int64                      `db:"created_at_m"`
-	UpdatedAtM    sql.NullInt64              `db:"updated_at_m"`
-	DeletedAtM    sql.NullInt64              `db:"deleted_at_m"`
-}
-
-type VercelIntegration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	TeamID      sql.NullString `db:"team_id"`
-	AccessToken string         `db:"access_token"`
-	CreatedAtM  int64          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
+type SharedSecret struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	WorkspaceID     string `db:"workspace_id"`
+	ExpiresAt       int64  `db:"expires_at"`
+	CreatedAt       int64  `db:"created_at"`
+	Encrypted       string `db:"encrypted"`
+	EncryptionKeyID string `db:"encryption_key_id"`
 }
 
 type Workspace struct {
-	Pk                   uint64          `db:"pk"`
-	ID                   string          `db:"id"`
-	OrgID                string          `db:"org_id"`
-	Name                 string          `db:"name"`
-	Slug                 string          `db:"slug"`
-	K8sNamespace         sql.NullString  `db:"k8s_namespace"`
-	Tier                 sql.NullString  `db:"tier"`
-	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
-	BetaFeatures         json.RawMessage `db:"beta_features"`
-	Subscriptions        []byte          `db:"subscriptions"`
-	Enabled              bool            `db:"enabled"`
-	DeleteProtection     sql.NullBool    `db:"delete_protection"`
-	CreatedAtM           int64           `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64   `db:"deleted_at_m"`
+	Pk                     uint64          `db:"pk"`
+	ID                     string          `db:"id"`
+	OrgID                  string          `db:"org_id"`
+	Name                   string          `db:"name"`
+	Slug                   string          `db:"slug"`
+	K8sNamespace           sql.NullString  `db:"k8s_namespace"`
+	Tier                   sql.NullString  `db:"tier"`
+	StripeCustomerID       sql.NullString  `db:"stripe_customer_id"`
+	StripeSubscriptionID   sql.NullString  `db:"stripe_subscription_id"`
+	DeployPlan             sql.NullString  `db:"deploy_plan"`
+	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
+	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
+	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
+	BetaFeatures           json.RawMessage `db:"beta_features"`
+	Subscriptions          []byte          `db:"subscriptions"`
+	Enabled                bool            `db:"enabled"`
+	DeleteProtection       sql.NullBool    `db:"delete_protection"`
+	CreatedAtM             int64           `db:"created_at_m"`
+	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
 }

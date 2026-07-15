@@ -24,7 +24,7 @@ bearer_token = "${UNKEY_VAULT_TOKEN}"
 [encryption]
 master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
 
-[s3]
+[storage.s3]
 url = "${UNKEY_S3_URL}"
 bucket = "${UNKEY_S3_BUCKET}"
 access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
@@ -73,21 +73,27 @@ master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
 previous_master_key = "${UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY}"
 ```
 
-## S3 storage
+## Storage
 
-<ResponseField name="s3" type="object" required>
+Vault persists encrypted DEKs through one storage backend. Configure exactly one of `[storage.s3]` or `[storage.disk]`. Setting both, or neither, fails validation at startup.
+
+### S3 storage
+
+S3-compatible object storage is the production backend.
+
+<ResponseField name="storage.s3" type="object">
   S3-compatible storage configuration.
   <Expandable title="Fields">
-    <ResponseField name="s3.url" type="string" required>
+    <ResponseField name="storage.s3.url" type="string" required>
       S3-compatible endpoint URL. Example: `"https://s3.us-east-1.amazonaws.com"`.
     </ResponseField>
-    <ResponseField name="s3.bucket" type="string" required>
+    <ResponseField name="storage.s3.bucket" type="string" required>
       Bucket name for encrypted objects. Example: `"unkey-vault"`.
     </ResponseField>
-    <ResponseField name="s3.access_key_id" type="string" required>
+    <ResponseField name="storage.s3.access_key_id" type="string" required>
       Access key ID for storage. Example: `"AKIA..."`.
     </ResponseField>
-    <ResponseField name="s3.access_key_secret" type="string" required>
+    <ResponseField name="storage.s3.access_key_secret" type="string" required>
       Access key secret for storage. Example: `"wJalrXUtnFEMI/K7MDENG/bPxRfiCY"`.
     </ResponseField>
   </Expandable>
@@ -96,7 +102,7 @@ previous_master_key = "${UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY}"
 Example:
 
 ```toml
-[s3]
+[storage.s3]
 url = "${UNKEY_S3_URL}"
 bucket = "${UNKEY_S3_BUCKET}"
 access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
@@ -104,6 +110,26 @@ access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
 ```
 
 Vault initializes the S3 client on startup and creates the bucket if it does not exist.
+
+### Disk storage
+
+A local filesystem backend exists for local development so you do not need to run a minio container. Object keys are written as forward-slash relative paths under `path`, mirroring the S3 layout. Do not use this backend in production: it does not replicate, it has no durability beyond the host filesystem, and multiple vault replicas pointed at the same path will race.
+
+<ResponseField name="storage.disk" type="object">
+  Local filesystem storage configuration.
+  <Expandable title="Fields">
+    <ResponseField name="storage.disk.path" type="string" required>
+      Directory where encrypted secrets are persisted. Created at startup if missing. Example: `"./vault-data"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+Example:
+
+```toml
+[storage.disk]
+path = "./vault-data"
+```
 
 ## Observability
 
@@ -259,7 +285,7 @@ bearer_token = "${UNKEY_VAULT_TOKEN}"
 master_key = "${UNKEY_ENCRYPTION_MASTER_KEY}"
 previous_master_key = "${UNKEY_ENCRYPTION_PREVIOUS_MASTER_KEY}"
 
-[s3]
+[storage.s3]
 url = "${UNKEY_S3_URL}"
 bucket = "${UNKEY_S3_BUCKET}"
 access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"

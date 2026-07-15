@@ -34,6 +34,7 @@ function arePermissionArraysEqual(
 }
 
 type UseRootKeyDialogProps = {
+  isOpen: boolean;
   editMode?: boolean;
   existingKey?: {
     id: string;
@@ -44,6 +45,7 @@ type UseRootKeyDialogProps = {
 };
 
 export function useRootKeyDialog({
+  isOpen,
   editMode = false,
   existingKey,
   onOpenChange,
@@ -96,6 +98,44 @@ export function useRootKeyDialog({
     });
   }, [apisData]);
 
+  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery(
+    undefined,
+    { enabled: isOpen },
+  );
+
+  const allProjects = useMemo(() => {
+    if (!projectsData) {
+      return [];
+    }
+    return projectsData.map((project) => ({
+      id: project.id,
+      name: project.name,
+    }));
+  }, [projectsData]);
+
+  const allApps = useMemo(() => {
+    if (!projectsData) {
+      return [];
+    }
+    return projectsData.flatMap((project) =>
+      project.apps.map((app) => ({ id: app.id, name: app.name })),
+    );
+  }, [projectsData]);
+
+  const { data: environmentsData, isLoading: environmentsLoading } =
+    trpc.deploy.environment.listAll.useQuery(undefined, { enabled: isOpen });
+
+  const allEnvironments = useMemo(() => {
+    if (!environmentsData) {
+      return [];
+    }
+    return environmentsData.map((environment) => ({
+      id: environment.id,
+      name: environment.name,
+      appId: environment.appId,
+    }));
+  }, [environmentsData]);
+
   // Mutations
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
@@ -140,13 +180,12 @@ export function useRootKeyDialog({
 
   const handlePermissionChange = useCallback(
     (permissions: UnkeyPermission[]) => {
-      // Prevent updates while APIs are loading in create mode
-      const canUpdate = !apisLoading || editMode;
+      const canUpdate = (!apisLoading && !projectsLoading && !environmentsLoading) || editMode;
       if (canUpdate) {
         setSelectedPermissions(permissions);
       }
     },
-    [apisLoading, editMode],
+    [apisLoading, projectsLoading, environmentsLoading, editMode],
   );
 
   const handleCreateKey = useCallback(async () => {
@@ -220,6 +259,11 @@ export function useRootKeyDialog({
     selectedPermissions,
     allApis,
     apisLoading,
+    allProjects,
+    projectsLoading,
+    allApps,
+    allEnvironments,
+    environmentsLoading,
     hasNextPage,
     isFetchingNextPage,
     key,

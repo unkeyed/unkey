@@ -22,7 +22,7 @@ integration/
 - [ ] Build a `TestClient` wrapper for making HTTP requests to test endpoints
 - [ ] Implement test suites using testify/suite for consistent setup/teardown
 - [ ] Add build tags to control when integration tests run (`//go:build integration`)
-- [ ] Create Makefile targets for running integration tests separately from unit tests
+- [ ] Create mise tasks for running integration tests separately from unit tests
 - [ ] Configure CI pipeline to run integration tests on main branch or when explicitly requested
 
 ## Design Principles

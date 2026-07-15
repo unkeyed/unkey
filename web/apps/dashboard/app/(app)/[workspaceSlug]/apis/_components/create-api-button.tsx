@@ -1,14 +1,13 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
-import { NavbarActionButton } from "@/components/navigation/action-button";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -30,11 +29,7 @@ type Props = {
   workspaceSlug: string;
 };
 
-export const CreateApiButton = ({
-  defaultOpen,
-  workspaceSlug,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
   const { api } = trpc.useUtils();
@@ -49,10 +44,10 @@ export const CreateApiButton = ({
 
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
-      toast.success("Your API has been created");
-      await revalidate(`/${workspaceSlug}/apis`);
+      toast.success("Your keyspace has been created");
+      await revalidate(routes.apis.list({ workspaceSlug }));
       api.overview.query.invalidate();
-      router.push(`/${workspaceSlug}/apis/${res.id}`);
+      router.push(routes.apis.detail({ workspaceSlug, apiId: res.id }));
       setIsOpen(false);
     },
     onError(err) {
@@ -67,20 +62,15 @@ export const CreateApiButton = ({
 
   return (
     <>
-      <NavbarActionButton
-        title="Create new API"
-        {...rest}
-        color="default"
-        onClick={() => setIsOpen(true)}
-      >
-        <Plus />
-        Create new API
-      </NavbarActionButton>
+      <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
+        <Plus iconSize="sm-regular" />
+        Create keyspace
+      </Button>
 
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="Create New API"
+        title="Create keyspace"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
@@ -92,10 +82,10 @@ export const CreateApiButton = ({
               loading={create.isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
-              Create API
+              Create Keyspace
             </Button>
             <div className="text-gray-9 text-xs">
-              You'll be redirected to your new API dashboard after creation
+              You'll be redirected to your new keyspace dashboard after creation
             </div>
           </div>
         }
@@ -106,10 +96,10 @@ export const CreateApiButton = ({
             description="This is just a human readable name for you and not visible to anyone else"
             error={errors.name?.message}
             {...register("name")}
-            placeholder="my-api"
+            placeholder="my-keyspace"
           />
         </form>
       </DynamicDialogContainer>
     </>
   );
-};
+}

@@ -1,14 +1,15 @@
 "use client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
   fullyQualifiedDomainName: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   deploymentId: z.string(),
   environmentId: z.string(),
   sticky: z.enum(["none", "branch", "environment", "live", "deployment"]),
@@ -17,6 +18,13 @@ const schema = z.object({
 });
 
 export type Domain = z.infer<typeof schema>;
+
+type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
+
+function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "string" ? value : undefined;
+}
 
 /**
  * Global domains collection.
@@ -29,21 +37,31 @@ export const domains = createCollection<Domain, string>(
     queryClient,
     syncMode: "on-demand",
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["domains", projectId] : ["domains"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const appId = extractStringFilter(filters, "appId", "eq");
+      if (!projectId) {
+        return ["domains"];
+      }
+      return appId ? ["domains", projectId, appId] : ["domains", projectId];
     },
     retry: 3,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
       validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(options);
+      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const appId = extractStringFilter(filters, "appId", "eq");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return trpcClient.deploy.domain.list.query({ projectId });
+      return trpcClient.deploy.domain.list.query({
+        projectId,
+        ...(appId !== undefined && { appId }),
+      });
     },
     getKey: (item) => item.id,
     id: "domains",

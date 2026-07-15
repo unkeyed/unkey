@@ -14,6 +14,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 )
 
+// TestGetOverrideSuccessfully guarantees the handler authorizes the concrete
+// override resource while still accepting a wildcarded principal permission.
 func TestGetOverrideSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -31,8 +33,8 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	// Create an override
 	identifier := "test_identifier"
-	limit := int32(10)
-	duration := int32(1000)
+	limit := uint64(10)
+	duration := uint64(1000)
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
@@ -48,13 +50,15 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

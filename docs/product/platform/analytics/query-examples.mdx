@@ -40,7 +40,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 ### Total verifications in the last 7 days
 
-Count total verifications across all APIs in the last 7 days.
+Count total verifications across all keyspaces in the last 7 days.
 
 <CodeGroup>
 ```sql SQL
@@ -326,15 +326,15 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## API Analytics
+## Keyspace Analytics
 
-**Use this for:** Comparing API performance, usage across different APIs, API-specific analysis.
+**Use this for:** Comparing keyspace performance, usage across different keyspaces, keyspace-specific analysis.
 
-**Key patterns:** API comparison, success rates, per-API breakdowns.
+**Key patterns:** Keyspace comparison, success rates, per-keyspace breakdowns.
 
-### Usage per API
+### Usage per keyspace
 
-Compare usage across all APIs to identify most active endpoints.
+Compare usage across all keyspaces to identify most active endpoints.
 
 <CodeGroup>
 ```sql SQL
@@ -359,9 +359,9 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-### Usage for a specific API
+### Usage for a specific keyspace
 
-Analyze detailed usage patterns for a specific API over 30 days.
+Analyze detailed usage patterns for a specific keyspace over 30 days.
 
 <CodeGroup>
 ```sql SQL
@@ -386,9 +386,9 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-### Compare multiple APIs
+### Compare multiple keyspaces
 
-Calculate success rates for multiple APIs to compare performance.
+Calculate success rates for multiple keyspaces to compare performance.
 
 <CodeGroup>
 ```sql SQL

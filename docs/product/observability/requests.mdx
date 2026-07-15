@@ -1,13 +1,13 @@
 ---
 title: Requests
-description: "Inspect every HTTP request passing through the Sentinel to your deployment. View headers, status codes, latency, and request body details."
+description: "Inspect every HTTP request passing through the gateway to your deployment. View headers, status codes, latency, and request body details."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The **Requests** tab in your project shows every HTTP request that [Sentinel](/platform/sentinel/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
+The **Requests** tab in your project shows every HTTP request that [the gateway](/platform/gateway/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
 
 ## Request fields
 
@@ -21,7 +21,7 @@ Combine filters to narrow results by status code, HTTP method, path, deployment,
 
 The status code filter lets you narrow requests by HTTP response status. You can filter by class or by a specific code.
 
-**Filter by class** — select one or more status code ranges to show all requests in that class:
+**Filter by class**, select one or more status code ranges to show all requests in that class:
 
 | Range | Label    |
 | ----- | -------- |
@@ -32,7 +32,7 @@ The status code filter lets you narrow requests by HTTP response status. You can
 
 Use the **Select All** checkbox to toggle every range at once.
 
-**Filter by specific code** — enter an exact status code (100–599) in the custom code input to isolate a single response type, for example `429` for rate-limited requests or `503` for service unavailable responses. When you type a custom code, range selections are cleared automatically.
+**Filter by specific code**, enter an exact status code (100-599) in the custom code input to isolate a single response type, for example `429` for rate-limited requests or `503` for service unavailable responses. When you type a custom code, range selections are cleared automatically.
 
 Click **Apply Filter** to update the results.
 
@@ -57,9 +57,9 @@ Click any row to open the detail panel on the right side. The panel shows:
 
 ## Latency breakdown
 
-The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Sentinel latency is the time Sentinel spent on routing, policy evaluation, and proxying.
+The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Gateway latency is the time the gateway spent on routing, policy evaluation, and proxying.
 
-If instance latency dominates, the bottleneck is in your application code. If Sentinel latency is high relative to total latency, the overhead is in the gateway layer. This distinction helps you focus debugging in the right place.
+If instance latency dominates, the bottleneck is in your application code. If gateway latency is high relative to total latency, the overhead is in the gateway layer. This distinction helps you focus debugging in the right place.
 
 ## Retention
 

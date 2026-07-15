@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Run the Go test suite"
+set -euo pipefail
+
+# Docker Compose project names are global on a developer machine, while tests may
+# run this task from different worktrees. The scope keeps reusable test containers
+# shared within one worktree without letting another checkout attach to them.
+export UNKEY_TEST_CONTAINER_SCOPE="${UNKEY_TEST_CONTAINER_SCOPE:-$PWD}"
+
+test_container_scope_hash="$(printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | shasum -a 256 | cut -c1-12)"
+export UNKEY_TEST_COMPOSE_PROJECT="unkey-test-${test_container_scope_hash}"
+
+cleanup_test_containers() {
+  local status=$?
+
+  # The test helpers intentionally reuse containers across Go test processes
+  # so integration tests do not pay Docker startup cost for every test target.
+  # The shared containers should live for the duration of this mise task only.
+  # Preserve the test runner's exit status and ignore Docker cleanup failures
+  # so a teardown problem does not hide the original test result.
+  docker compose -f "pkg/testutil/docker-compose.test.yaml" -p "${UNKEY_TEST_COMPOSE_PROJECT}" down --volumes >/dev/null 2>&1 || true
+  exit "${status}"
+}
+trap cleanup_test_containers EXIT
+
+rask "$@"

@@ -11,13 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	opts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)
@@ -101,13 +103,14 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			Limit:       limit,
 			Remaining:   remaining,
 			ResetAt:     reset.UnixMilli(),
+			Tokens:      1,
 		}
 	})
 	t.Logf("Generated %d ratelimits in %s", len(ratelimits), time.Since(t0))
 
 	t0 = time.Now()
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.ratelimits_raw_v2")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.Ratelimit]())
 	require.NoError(t, err)
 
 	for _, row := range ratelimits {

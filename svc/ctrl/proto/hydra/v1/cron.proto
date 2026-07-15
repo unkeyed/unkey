@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// CronService is the unified entry point for all scheduled (cron-triggered)
+// background tasks. Each task is one handler; k8s CronJobs invoke the
+// matching path. A single Restate service collapses what used to be one
+// proto + service + Go package per cron.
+//
+// VIRTUAL_OBJECT so handlers that need an idempotency window (e.g. a
+// billing period or date) can use the VO key, and concurrent triggers for
+// the same key serialize. Each handler uses its own per-task VO key
+// (period suffix, or a fixed slug like "audit-log-export") so independent
+// handlers don't share a serialization queue — a slow or paused
+// invocation on one key cannot block the next tick of another. The
+// k8s cron entries in dev/k8s/charts/restate-cronjobs/values.yaml encode
+// the contracted key for each handler.
+//
+// Per-handler tuning (retry policy, journal retention) is applied in code
+// via ConfigureHandler at Bind time — see worker/run.go.
+service CronService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunQuotaCheck queries workspace usage and notifies on newly exceeded
+  // quotas. Key = billing period "YYYY-MM"; state tracks notified
+  // workspaces per period.
+  rpc RunQuotaCheck(RunQuotaCheckRequest) returns (RunQuotaCheckResponse) {}
+
+  // RunKeyRefill processes keys whose usage limits should refill today.
+  // Key = "YYYY-MM-DD"; state tracks processed key IDs for resumability.
+  rpc RunKeyRefill(RunKeyRefillRequest) returns (RunKeyRefillResponse) {}
+
+  // RunKeyLastUsedSync orchestrates the per-partition key_last_used sync
+  // by fanning out to KeyLastUsedPartitionService. Key is the fixed slug
+  // "key-last-used-sync" so the orchestrator runs as a singleton without
+  // sharing a queue with other singleton-keyed handlers.
+  rpc RunKeyLastUsedSync(RunKeyLastUsedSyncRequest) returns (RunKeyLastUsedSyncResponse) {}
+
+  // RunAuditLogExport drains the MySQL clickhouse_outbox into ClickHouse.
+  // Key is the fixed slug "audit-log-export" so concurrent triggers queue
+  // on a dedicated key (no contention with other singleton handlers).
+  rpc RunAuditLogExport(RunAuditLogExportRequest) returns (RunAuditLogExportResponse) {}
+
+  // RunRatelimitGlobalCountersCleanup deletes expired rows from
+  // ratelimit_global_counters (cross-region propagation). Stateless;
+  // key is the fixed slug "ratelimit-global-counters-cleanup" so a
+  // paused/wedged invocation here cannot block the every-minute handlers.
+  // Hourly schedule.
+  rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
+
+  // RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
+  // rows (deleted_at stamped) older than the retention window so the outbox
+  // stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
+  // so a paused/wedged invocation cannot block other handlers. Daily schedule.
+  rpc RunAuditLogOutboxCleanup(RunAuditLogOutboxCleanupRequest) returns (RunAuditLogOutboxCleanupResponse) {}
+
+  // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
+  // egress, disk, active keys) from ClickHouse, fans out one
+  // DeployBillingPushService.PushWorkspaceUsage invocation per billable
+  // workspace, and awaits the outcomes, withholding the heartbeat when any
+  // child failed. The meters aggregate with formula "last", so
+  // each push sets (not increments) the period quantity and the latest hourly
+  // value supersedes the prior one. Key = billing period "YYYY-MM"; the pushed
+  // quantity is the absolute month-to-date total, so retries and overlapping
+  // ticks are harmless. Hourly schedule.
+  rpc RunDeployBillingPush(RunDeployBillingPushRequest) returns (RunDeployBillingPushResponse) {}
+
+  // RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
+  // idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
+  // scan is singleton-keyed without sharing a queue with other cron handlers.
+  rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
+
+  // RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+  // Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+  // push (full-period usage, timestamped just inside the closed period so the
+  // "last"-formula meters bill the final total) and awaits them, then
+  // finalizes every Deploy workspace's draft renewal invoice for that period.
+  // The 00:30 UTC backup cron invokes this; the invoice.created webhook fans
+  // out to CloseDeployBillingWorkspace per invoice instead. Idempotent: pushes
+  // converge by construction and an already-finalized invoice counts as done.
+  rpc RunDeployBillingClose(RunDeployBillingCloseRequest) returns (RunDeployBillingCloseResponse) {}
+
+  // CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+  // Key = workspace id. Dispatched by the invoice.created webhook after it
+  // claims the draft; pushes final usage for this workspace only and
+  // finalizes the invoice id from the request.
+  rpc CloseDeployBillingWorkspace(CloseDeployBillingWorkspaceRequest) returns (CloseDeployBillingWorkspaceResponse) {}
+}
+
+message RunQuotaCheckRequest {}
+message RunQuotaCheckResponse {
+  int32 workspaces_checked = 1;
+  int32 workspaces_exceeded = 2;
+  int32 notifications_sent = 3;
+}
+
+message RunKeyRefillRequest {}
+message RunKeyRefillResponse {
+  int32 keys_refilled = 1;
+}
+
+message RunKeyLastUsedSyncRequest {}
+message RunKeyLastUsedSyncResponse {
+  int32 keys_synced = 1;
+}
+
+message RunAuditLogExportRequest {}
+message RunAuditLogExportResponse {
+  int32 events_exported = 1;
+}
+
+message RunRatelimitGlobalCountersCleanupRequest {}
+message RunRatelimitGlobalCountersCleanupResponse {
+  // Number of rows deleted.
+  int64 rows_deleted = 1;
+}
+
+message RunAuditLogOutboxCleanupRequest {}
+message RunAuditLogOutboxCleanupResponse {
+  // Number of rows deleted.
+  int64 rows_deleted = 1;
+}
+
+message RunDeployBillingPushRequest {}
+
+// RunDeployBillingPushResponse is intentionally empty: the run's outcome
+// (workspaces and meters pushed) is logged by the handler, not consumed by a
+// caller.
+message RunDeployBillingPushResponse {}
+
+message RunScaleDownIdlePreviewDeploymentsRequest {}
+message RunScaleDownIdlePreviewDeploymentsResponse {}
+
+message RunDeployBillingCloseRequest {
+  // Renewal invoice period_end from invoice.created (unix seconds). Proves
+  // Stripe rolled the period so the close may run before wall clock catches up
+  // (test clocks). Omitted for the backup cron, which runs after midnight UTC.
+  int64 period_end = 1;
+}
+message RunDeployBillingCloseResponse {
+  // Number of workspaces whose final full-period usage was pushed.
+  int32 workspaces_pushed = 1;
+  // Number of draft invoices this run finalized.
+  int32 invoices_finalized = 2;
+  // Number of invoices that needed no action (already finalized or paid).
+  int32 invoices_skipped = 3;
+}
+
+message CloseDeployBillingWorkspaceRequest {
+  // Closed billing period "YYYY-MM", derived from the invoice's period_start.
+  string period = 1;
+  // Renewal invoice period_end (unix seconds). Proves Stripe rolled the
+  // period so the close may run before wall clock catches up (test clocks).
+  int64 period_end = 2;
+  // Draft invoice to finalize after the final usage push.
+  string invoice_id = 3;
+}
+
+// CloseDeployBillingWorkspaceResponse is intentionally empty: the outcome is
+// logged by the handler, not consumed by a caller.
+message CloseDeployBillingWorkspaceResponse {}

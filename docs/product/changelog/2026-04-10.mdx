@@ -10,7 +10,7 @@ noindex: true
 
 Instances can now use dedicated ephemeral disk volumes for temporary file storage. Configure a volume size (up to 10 GiB) in your app's runtime settings, and Unkey mounts a writable disk at `/data` on each instance. Your app can read the mount path from the `UNKEY_EPHEMERAL_DISK_PATH` environment variable.
 
-Use this for workloads that need temporary disk access — media processing, file format conversion, or caching data before uploading to external storage. The volume is created when the instance starts and destroyed when it stops, so treat it as scratch space only. See the [app settings documentation](/platform/apps/settings#storage) for configuration options.
+Use this for workloads that need temporary disk access, media processing, file format conversion, or caching data before uploading to external storage. The volume is created when the instance starts and destroyed when it stops, so treat it as scratch space only. See the [app settings documentation](/platform/apps/settings#storage) for configuration options.
 
 ### Automatic DNS setup for custom domains
 

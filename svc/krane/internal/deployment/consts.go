@@ -15,9 +15,13 @@ const (
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"
 
+	// nodeClassLabelKey selects and tolerates the infra node class assigned by
+	// the Karpenter NodePool.
+	nodeClassLabelKey = "node-class"
+
 	// resourceRequestFraction is the fraction of limits used for resource requests.
 	// Requests determine scheduling; limits cap actual usage.
-	resourceRequestFraction = 4 // requests = limits / 4
+	resourceRequestFraction = 2 // requests = limits / N
 
 	// defaultContainerEphemeralStorageMib caps writes to a container's rootfs
 	// (overlayfs writable layer, container logs, unmounted emptyDirs). Without
@@ -35,13 +39,21 @@ const (
 	// scaleDownStabilizationSeconds is how long the HPA waits after load drops
 	// before removing pods. Prevents flapping when traffic is spiky.
 	scaleDownStabilizationSeconds int32 = 60
+
+	// frontlineNamespace is the Kubernetes namespace where frontline pods
+	// run. The per-deployment CiliumNetworkPolicy uses this in fromEndpoints
+	// so only pods inside the frontline namespace can reach the customer
+	// pods. We trust the namespace boundary instead of additionally
+	// matching an "app" label because the prod helm chart and the dev
+	// manifest disagree on label conventions.
+	frontlineNamespace = "frontline"
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted
 // for untrusted workloads. Without this toleration, pods would be rejected by
 // the Karpenter-managed nodepool's NoSchedule taint.
 var untrustedToleration = corev1.Toleration{
-	Key:      "karpenter.sh/nodepool",
+	Key:      nodeClassLabelKey,
 	Operator: corev1.TolerationOpEqual,
 	Value:    CustomerNodeClass,
 	Effect:   corev1.TaintEffectNoSchedule,

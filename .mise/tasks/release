@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Tag and push service releases (e.g. mise run release -- --version v1.2.3 api vault)"
+set -euo pipefail
+
+go run ./tools/release "$@"

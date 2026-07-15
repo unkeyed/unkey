@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -25,7 +26,6 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -44,7 +44,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	})
 
 	keyName := "test-key"
-	initialCredits := int32(rand.IntN(50))
+	initialCredits := int64(rand.IntN(50))
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -101,7 +101,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, setTo)
+		require.EqualValues(t, key.RemainingRequests.Int64, setTo)
 	})
 
 	increaseBy := int64(rand.IntN(50) + 1)
@@ -110,7 +110,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(currentKey.RemainingRequests.Int64)
 
 		req := handler.Request{
 			KeyId:     keyID,
@@ -130,7 +130,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits+increaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int64, currentCredits+increaseBy)
 	})
 
 	decreaseBy := int64(rand.IntN(50) + 1)
@@ -139,7 +139,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(currentKey.RemainingRequests.Int64)
 
 		// If we are decreasing credits into the negative, it will be automatically set to 0
 		shouldBeRemaining := int64(0)
@@ -165,12 +165,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, shouldBeRemaining)
+		require.EqualValues(t, key.RemainingRequests.Int64, shouldBeRemaining)
 	})
 
 	t.Run("counter cache invalidation after credit update", func(t *testing.T) {
 		// Create a new key with initial credits for this test
-		initialCredits := int32(100)
+		initialCredits := int64(100)
 		cacheTestKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
@@ -178,14 +178,14 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 			Remaining:   &initialCredits,
 		})
 
-		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
+		authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authBefore.Verify(ctx, keys.WithCredits(1))
 		require.NoError(t, err)
 
 		require.True(t, authBefore.Key.RemainingRequests.Valid)
-		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
 
 		// Update the key's credits
 		newCredits := int64(50)
@@ -205,14 +205,58 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, newCredits, updatedRemaining)
 
 		// Verify the key again to check if cache was properly invalidated
-		authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
+		authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authAfter.Verify(ctx, keys.WithCredits(1))
 		require.NoError(t, err)
 
 		require.True(t, authAfter.Key.RemainingRequests.Valid)
-		require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+		require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 
 	})
+}
+
+func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Remaining:   ptr.P(int64(5)),
+	})
+
+	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:     key.KeyID,
+		Operation: openapi.Set,
+		Value:     nullable.NewNullableWithValue(int64(12)),
+	})
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.True(t, updatedKey.RemainingRequests.Valid)
+	require.EqualValues(t, 12, updatedKey.RemainingRequests.Int64)
 }

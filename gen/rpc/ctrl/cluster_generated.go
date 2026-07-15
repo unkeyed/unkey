@@ -16,11 +16,9 @@ import (
 type ClusterServiceClient interface {
 	WatchDeploymentChanges(ctx context.Context, req *v1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
-	GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error)
-	ReportSentinelStatus(ctx context.Context, req *v1.ReportSentinelStatusRequest) (*v1.ReportSentinelStatusResponse, error)
 	GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error)
 	ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error)
-	GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error)
+	ReportInstanceEvents(ctx context.Context, req *v1.ReportInstanceEventsRequest) (*v1.ReportInstanceEventsResponse, error)
 	Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
 }
 
@@ -42,32 +40,6 @@ func (c *ConnectClusterServiceClient) WatchDeploymentChanges(ctx context.Context
 
 func (c *ConnectClusterServiceClient) SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error) {
 	return c.inner.SyncDesiredState(ctx, connect.NewRequest(req))
-}
-
-func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error) {
-	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredSentinelState")
-	defer span.End()
-	resp, err := c.inner.GetDesiredSentinelState(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (c *ConnectClusterServiceClient) ReportSentinelStatus(ctx context.Context, req *v1.ReportSentinelStatusRequest) (*v1.ReportSentinelStatusResponse, error) {
-	ctx, span := tracing.Start(ctx, "ClusterService.ReportSentinelStatus")
-	defer span.End()
-	resp, err := c.inner.ReportSentinelStatus(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error) {
@@ -96,10 +68,10 @@ func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context
 	return resp.Msg, nil
 }
 
-func (c *ConnectClusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *v1.GetDesiredCiliumNetworkPolicyStateRequest) (*v1.CiliumNetworkPolicyState, error) {
-	ctx, span := tracing.Start(ctx, "ClusterService.GetDesiredCiliumNetworkPolicyState")
+func (c *ConnectClusterServiceClient) ReportInstanceEvents(ctx context.Context, req *v1.ReportInstanceEventsRequest) (*v1.ReportInstanceEventsResponse, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.ReportInstanceEvents")
 	defer span.End()
-	resp, err := c.inner.GetDesiredCiliumNetworkPolicyState(ctx, connect.NewRequest(req))
+	resp, err := c.inner.ReportInstanceEvents(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

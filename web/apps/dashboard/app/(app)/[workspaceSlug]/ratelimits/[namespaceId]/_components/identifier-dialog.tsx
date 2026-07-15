@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
@@ -23,7 +24,7 @@ const overrideValidationSchema = z.object({
     .number()
     .int()
     .min(1_000, "Duration must be at least 1 second (1000ms)")
-    .max(24 * 60 * 60 * 1000, "Duration cannot exceed 24 hours"),
+    .max(30 * 24 * 60 * 60 * 1000, "Duration cannot exceed 30 days"),
 });
 
 type FormValues = z.infer<typeof overrideValidationSchema>;
@@ -66,6 +67,12 @@ export const IdentifierDialog = ({
   const onSubmitForm = async (values: FormValues) => {
     try {
       if (overrideDetails?.overrideId) {
+        // The overview/logs table sources overrideDetails from ClickHouse data,
+        // not this collection, so the collection may never have been loaded in
+        // that context, leaving update() unable to find the key. preload()
+        // populates it from override.list (no-op once loaded, e.g. on the
+        // overrides page where a live query already drives it).
+        await collection.ratelimitOverrides.preload();
         collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
           draft.limit = values.limit;
           draft.duration = values.duration;
@@ -86,7 +93,7 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(`/${workspace.slug}/ratelimits/${namespaceId}/overrides`);
+        router.push(routes.ratelimits.overrides({ workspaceSlug: workspace.slug, namespaceId }));
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

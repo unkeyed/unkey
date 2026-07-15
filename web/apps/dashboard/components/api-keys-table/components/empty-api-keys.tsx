@@ -12,15 +12,19 @@ export const EmptyApiKeys = () => {
           started.
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
-          <Button asChild size="md">
-            <a
-              href="https://www.unkey.com/docs/introduction"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <BookBookmark />
-              Learn about Keys
-            </a>
+          <Button
+            size="md"
+            render={
+              // biome-ignore lint/a11y/useAnchorContent: link content is supplied by the Button's children via Base UI's render prop
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            <BookBookmark />
+            Learn about Keys
           </Button>
         </Empty.Actions>
       </Empty>

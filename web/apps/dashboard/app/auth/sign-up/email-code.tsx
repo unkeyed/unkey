@@ -6,6 +6,7 @@ import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
+import { applyVerificationResult } from "../challenge/handle-result";
 import { useSignUp } from "../hooks/useSignUp";
 
 export function EmailCode({ invitationToken }: { invitationToken?: string }) {
@@ -57,11 +58,18 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       return null;
     }
     setIsLoading(true);
-    await handleCodeVerification(otp, invitationToken).catch((err) => {
+    try {
+      const result = await handleCodeVerification(otp, invitationToken);
+      const message = applyVerificationResult(result);
+      if (message) {
+        setIsLoading(false);
+        toast.error(message);
+      }
+    } catch (err) {
       setIsLoading(false);
-      const errorCode = err.message as AuthErrorCode;
+      const errorCode = (err as Error).message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-    });
+    }
   };
 
   const resendCode = async () => {
@@ -111,6 +119,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       >
         <OTPInput
           data-1p-ignore
+          autoFocus
           value={otp}
           onChange={setOtp}
           onComplete={(value) => {
@@ -134,7 +143,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         <button
           type="submit"
           className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-          disabled={isLoading}
+          disabled={isLoading || otp.length !== 6}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue

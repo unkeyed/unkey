@@ -13,7 +13,8 @@
 //
 // The main entry point is [Prompt], created with [New]. It provides methods for
 // different input types: [Prompt.String], [Prompt.Int], [Prompt.Float] for text and
-// numeric input, [Prompt.Select] and [Prompt.MultiSelect] for selection menus, and
+// numeric input, [Prompt.Select], [Prompt.SelectOrdered], and [Prompt.MultiSelect]
+// for selection menus, and
 // [Prompt.Date], [Prompt.Time], [Prompt.DateTime] for date/time pickers.
 //
 // For multi-step workflows, [Wizard] wraps a [Prompt] and adds progress tracking
@@ -45,6 +46,18 @@
 //	    "stg":  "Staging",
 //	    "prod": "Production",
 //	}, "dev")  // "dev" is pre-selected
+//
+// Map-based menus render in unspecified order. When the order matters, use
+// [Prompt.SelectOrdered] with a slice of [SelectOption]:
+//
+//	key, err := p.SelectOrdered("Pick environment", []prompt.SelectOption{
+//	    {Key: "prod", Label: "Production"},
+//	    {Key: "stg", Label: "Staging"},
+//	    {Key: "dev", Label: "Development"},
+//	}, "prod")  // "prod" is pre-selected
+//
+// Menus taller than the terminal scroll: a fixed window follows the cursor
+// and dim markers show how many options are hidden above and below.
 //
 // Multiple selection with space to toggle returns all selected keys:
 //

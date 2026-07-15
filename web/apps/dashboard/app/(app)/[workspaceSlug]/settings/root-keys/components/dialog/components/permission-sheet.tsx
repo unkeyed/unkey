@@ -11,14 +11,18 @@ import {
 } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
+import { WORKSPACE_SCOPE } from "../permissions";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
+  apps: { id: string; name: string }[];
+  environments: { id: string; name: string; appId: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -31,6 +35,9 @@ type PermissionSheetProps = {
 
 export const PermissionSheet = ({
   apis,
+  projects,
+  apps,
+  environments,
   selectedPermissions,
   onChange,
   loadMore,
@@ -48,13 +55,72 @@ export const PermissionSheet = ({
     hasNoResults,
     handleSearchChange,
     handleApiPermissionChange,
+    handleProjectPermissionChange,
+    handleAppPermissionChange,
+    handleEnvironmentPermissionChange,
     handleWorkspacePermissionChange,
   } = usePermissionSheet({
     apis,
+    projects,
+    apps,
+    environments,
     selectedPermissions,
     onChange,
     editMode,
   });
+
+  const apiScopes = useMemo(
+    () =>
+      apis.map((api) => ({
+        id: api.id,
+        scope: { kind: "api" as const, id: api.id, name: api.name },
+      })),
+    [apis],
+  );
+  const projectScopes = useMemo(
+    () =>
+      projects.map((project) => ({
+        id: project.id,
+        scope: { kind: "project" as const, id: project.id, name: project.name },
+      })),
+    [projects],
+  );
+  const environmentsByApp = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }[]>();
+    for (const environment of environments) {
+      const existing = map.get(environment.appId);
+      if (existing) {
+        existing.push({ id: environment.id, name: environment.name });
+      } else {
+        map.set(environment.appId, [{ id: environment.id, name: environment.name }]);
+      }
+    }
+    return map;
+  }, [environments]);
+
+  const appScopes = useMemo(
+    () =>
+      apps.map((app) => ({
+        id: app.id,
+        environments: environmentsByApp.get(app.id) ?? [],
+        scope: {
+          kind: "app" as const,
+          id: app.id,
+          name: app.name,
+        },
+      })),
+    [apps, environmentsByApp],
+  );
+
+  const orphanEnvironmentScopes = useMemo(() => {
+    const appIds = new Set(apps.map((app) => app.id));
+    return environments
+      .filter((environment) => !appIds.has(environment.appId))
+      .map((environment) => ({
+        id: environment.id,
+        scope: { kind: "environment" as const, id: environment.id, name: environment.name },
+      }));
+  }, [environments, apps]);
 
   return (
     <Sheet modal={true} open={open} onOpenChange={onOpenChange}>
@@ -62,11 +128,11 @@ export const PermissionSheet = ({
         <SheetOverlay className="bg-black/30 backdrop-blur-xs" />
         <SheetContent
           disableClose={false}
-          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black"
+          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black overflow-hidden"
           side="right"
           overlay="transparent"
         >
-          <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 ">
+          <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 shrink-0">
             <SheetTitle className="sr-only">Select Permissions</SheetTitle>
             <SearchPermissions
               isProcessing={isProcessing}
@@ -75,71 +141,125 @@ export const PermissionSheet = ({
               onChange={handleSearchChange}
             />
           </SheetHeader>
-          <div className="w-full h-full">
-            <div className="flex flex-col h-full">
-              <div
-                className={`flex flex-col ${
-                  hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
-                }`}
-              >
-                <ScrollArea className="flex flex-col h-full pt-2">
-                  <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
-                    {hasNoResults ? (
-                      <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
-                        {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
-                      </p>
-                    ) : (
-                      <>
-                        {/* Workspace Permissions */}
-                        <PermissionContentList
-                          selected={selectedPermissions}
-                          searchValue={searchValue}
-                          key="workspace"
-                          type="workspace"
-                          onPermissionChange={handleWorkspacePermissionChange}
-                        />
-                        {/* From APIs */}
-                        {apis.length > 0 && (
-                          <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
-                            {ROOT_KEY_MESSAGES.UI.FROM_APIS}
-                          </p>
-                        )}
-                        {apis.map((api) => (
-                          <PermissionContentList
-                            selected={selectedPermissions}
-                            searchValue={searchValue}
-                            key={api.id}
-                            type="api"
-                            api={api}
-                            onPermissionChange={(permissions) =>
-                              handleApiPermissionChange(api.id, permissions)
-                            }
-                          />
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-              <div className="sticky bottom-0 bg-background border-t border-gray-4 mt-auto">
-                {hasNextPage ? (
-                  <div className="w-full py-4">
-                    <div className="flex flex-row justify-center items-center">
-                      <Button
-                        className="mx-auto rounded-lg"
-                        size="sm"
-                        onClick={() => loadMore?.()}
-                        disabled={!hasNextPage || !loadMore}
-                        loading={isFetchingNextPage}
-                      >
-                        {ROOT_KEY_MESSAGES.UI.LOAD_MORE}
-                      </Button>
-                    </div>
-                  </div>
-                ) : undefined}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col gap-1 pt-2 pb-6">
+              {hasNoResults ? (
+                <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
+                  {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
+                </p>
+              ) : (
+                <>
+                  <PermissionContentList
+                    selected={selectedPermissions}
+                    searchValue={searchValue}
+                    key="workspace"
+                    scope={WORKSPACE_SCOPE}
+                    onPermissionChange={handleWorkspacePermissionChange}
+                  />
+                  {apiScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_APIS}
+                    </p>
+                  )}
+                  {apiScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleApiPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {projectScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
+                    </p>
+                  )}
+                  {projectScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleProjectPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {appScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_APPS}
+                    </p>
+                  )}
+                  {appScopes.map(({ id, environments, scope }) => (
+                    <PermissionContentList
+                      key={id}
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleAppPermissionChange(id, permissions)
+                      }
+                    >
+                      {environments.length > 0 && (
+                        <div className="flex flex-col">
+                          <p className="text-sm text-gray-10 py-1.5">Environments</p>
+                          {environments.map((environment) => (
+                            <PermissionContentList
+                              selected={selectedPermissions}
+                              searchValue={searchValue}
+                              key={environment.id}
+                              scope={{
+                                kind: "environment" as const,
+                                id: environment.id,
+                                name: environment.name,
+                              }}
+                              onPermissionChange={(permissions) =>
+                                handleEnvironmentPermissionChange(environment.id, permissions)
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </PermissionContentList>
+                  ))}
+                  {orphanEnvironmentScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_ENVIRONMENTS}
+                    </p>
+                  )}
+                  {orphanEnvironmentScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleEnvironmentPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+          {hasNextPage && (
+            <div className="shrink-0 bg-gray-1 dark:bg-black border-t border-gray-4 w-full py-4">
+              <div className="flex flex-row justify-center items-center">
+                <Button
+                  className="mx-auto rounded-lg"
+                  size="sm"
+                  onClick={() => loadMore?.()}
+                  disabled={!loadMore}
+                  loading={isFetchingNextPage}
+                >
+                  {ROOT_KEY_MESSAGES.UI.LOAD_MORE}
+                </Button>
               </div>
             </div>
-          </div>
+          )}
         </SheetContent>
       </SheetPortal>
     </Sheet>

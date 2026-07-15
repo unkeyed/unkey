@@ -31,6 +31,11 @@ const (
 	// SystemUnkey indicates errors originating from Unkey's internal systems.
 	SystemUnkey System = "unkey"
 
+	// SystemFrontline indicates errors originating from the frontline service.
+	// Frontline URNs follow err:frontline:<domain>:<specific>, where <domain>
+	// is one of the attribution categories below.
+	SystemFrontline System = "frontline"
+
 	// SystemGitHub indicates errors related to GitHub integration.
 	SystemGitHub System = "github"
 
@@ -77,6 +82,39 @@ const (
 
 	// CategoryInternalServerError represents internal server errors.
 	CategoryInternalServerError Category = "internal_server_error"
+
+	// Attribution domains
+	//
+	// These categories encode *who owns a failure*, carried as the category
+	// segment of an err:<service>:<domain>:<specific> URN. They are a shared,
+	// cross-service vocabulary: any service (frontline, ctrl, ...) can use them
+	// so the same metric label and alerting machinery applies everywhere. The
+	// specific segment names which dependency failed (e.g. github, depot_dev).
+
+	// CategoryPlatform represents the service's own code or config bug.
+	CategoryPlatform Category = "platform"
+
+	// CategoryRouting represents a failure to resolve a destination (config /
+	// control-plane state).
+	CategoryRouting Category = "routing"
+
+	// CategoryConfig represents a resolved destination whose own configuration
+	// is invalid (e.g. the deployment's policy config will not parse). Owned by
+	// the config author and the control-plane validation that should have
+	// rejected it, not the service runtime.
+	CategoryConfig Category = "config"
+
+	// CategoryCapacity represents a resolved destination that has no usable
+	// instances (e.g. all customer pods are down).
+	CategoryCapacity Category = "capacity"
+
+	// CategoryUpstream represents a failure reaching a dependency (customer pod,
+	// github, depot.dev, database, ...).
+	CategoryUpstream Category = "upstream"
+
+	// CategoryClient represents a failure caused by the caller (auth, rate
+	// limit, malformed request).
+	CategoryClient Category = "client"
 
 	// Unkey categories
 

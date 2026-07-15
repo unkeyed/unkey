@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
@@ -50,12 +51,20 @@ export const deleteApi = workspaceProcedure
           "This API is missing required authentication configuration and cannot be deleted. Please contact support@unkey.com",
       });
     }
+    // Mint a shared correlation so the api.delete event and the N
+    // key.delete cascade events all link to one user action.
+    const correlationId = newId("correlation");
     try {
       await db.transaction(async (tx) => {
+        const now = Date.now();
         await tx
           .update(schema.apis)
-          .set({ deletedAtM: Date.now() })
+          .set({ deletedAtM: now })
           .where(eq(schema.apis.id, input.apiId));
+        await tx
+          .update(schema.keyAuth)
+          .set({ deletedAtM: now })
+          .where(eq(schema.keyAuth.id, keyAuthId));
         await insertAuditLogs(tx, {
           workspaceId: api.workspaceId,
           actor: {
@@ -75,6 +84,7 @@ export const deleteApi = workspaceProcedure
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
+          correlationId,
         });
 
         const keyIds = await tx.query.keys.findMany({
@@ -112,6 +122,7 @@ export const deleteApi = workspaceProcedure
                 location: ctx.audit.location,
                 userAgent: ctx.audit.userAgent,
               },
+              correlationId,
             })),
           );
         }

@@ -1,0 +1,95 @@
+---
+title: "Builds"
+description: "How Unkey builds service images with Docker"
+---
+
+Service images are built with Docker. For how a built image then ships to
+production, see [Releases](./releases).
+
+## Why Docker produces the images
+
+Unkey uses Docker for image production for three reasons:
+
+1. **Plain Dockerfiles.** Local dev, image loading, and releases use Docker
+   files.
+2. **Multi-arch releases.** The release workflow uses Docker Buildx to publish
+   `linux/amd64` and `linux/arm64` variants.
+3. **Simple local builds.** Docker Compose builds service images on demand
+   from the dev Dockerfile. Tilt compiles binaries on the host for fast
+   incremental rebuilds and only uses Docker to package them.
+
+## What ships in an image
+
+Every service image is the same shape:
+
+- **A single static Go binary** at `/unkey`. No libc, no shared libraries, no
+  init scripts. The image entrypoint is the binary path directly, not a shell
+  invocation.
+- **Distroless base.** No shell, no busybox, no package manager. Attack
+  surface is minimal and the image contains exactly what the service needs to
+  run. This is also why container probes have to be HTTP-based; there is no
+  `sh` to exec.
+- **Multi-arch manifest.** Each release publishes an OCI index referencing
+  amd64 and arm64 variants built in parallel from the same Go source.
+  `docker pull` resolves to the right architecture automatically, so
+  deployments don't care whether the cluster is x86 or Graviton.
+
+These choices are tightly coupled. Static binaries are required because the
+distroless base has no dynamic loader. The distroless base is what lets us
+use a direct binary entrypoint. The multi-arch index lets the same tag work
+across our cluster types.
+
+## Where things live
+
+Build configuration is split by concern:
+
+- `build/<service>/main.go` is the entrypoint. It wires a TOML config
+  command via `build/util` and calls into the service's `Run` function.
+  Runtime behavior (instance IDs, clocks, TLS loading, normalization) stays
+  in `svc/.../run.go`. The entrypoint is intentionally thin so it does not
+  become a second service runtime.
+- `dev/Dockerfile` owns local source builds. It accepts
+  `PACKAGE=./build/<service>`, compiles that package, and copies the binary
+  into a distroless runtime image.
+- `Dockerfile.release` owns release image packaging. It copies the prebuilt
+  binary that GoReleaser produces for each platform. The image carries only the
+  repository source label.
+- `.goreleaser.service.yaml` builds release binaries and publishes multi-arch
+  images with `Dockerfile.release`.
+- `dev/Tiltfile` compiles each service on the host with the local Go build
+  cache, then packages the binary with `dev/Dockerfile.binary`. The image is
+  built once per service; after that, Tilt's `live_update` syncs the rebuilt
+  binary into the running container and restarts the process in place, so a
+  code change never rebuilds an image or rolls a pod.
+- `web/apps/dashboard/dev/docker-compose.yaml` builds dashboard-local service
+  images with `dev/Dockerfile`.
+
+## Local images
+
+Tilt and the dashboard `docker-compose` setup both produce local
+`unkey/<service>:dev` tags:
+
+| Local environment | Image source |
+| --- | --- |
+| `dev/k8s` (Tilt) | host `go build` + `dev/Dockerfile.binary` + `live_update` in `dev/Tiltfile` |
+| Dashboard compose | `build` entries in `web/apps/dashboard/dev/docker-compose.yaml` using `dev/Dockerfile` |
+
+The compose images match production exactly (static binary, distroless
+base), so production-image issues reproduce there without a separate
+codepath. The Tilt images trade that fidelity for speed: they use a busybox
+base because `live_update` needs `sh`, `date`, and `tar` inside the
+container. To debug something that depends on the distroless base itself,
+use the compose setup or build `dev/Dockerfile` directly.
+
+## Adding a new service image
+
+1. Add `build/<service>/main.go` with a call to `util.RunServiceCommand`.
+2. Add the service's tag pattern to `.depot/workflows/service-release.yaml`
+   so the release workflow picks up `<service>/vx.y.z` pushes.
+3. Add the service to `.goreleaser.service.yaml`.
+4. Wire it into local dev: a `go_service_image` call in `dev/Tiltfile`, and
+   any compose file that needs it.
+
+Keep new entrypoints thin. Anything that looks like service behavior, such
+as defaults, injected clocks, or generated instance IDs, belongs in the
+service package, not in `build/<service>/main.go`.

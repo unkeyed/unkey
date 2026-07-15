@@ -5,6 +5,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // NotifyInstancesReady resolves the awakeable stored by [Workflow.waitForDeployments]
@@ -26,9 +27,15 @@ func (w *Workflow) NotifyInstancesReady(
 	}
 	if awakeableID == "" {
 		// No Deploy handler is currently waiting on this VO.
+		logger.Info("notify instances ready handler: no awakeable stored",
+			"deployment_id", req.GetDeploymentId(),
+		)
 		return &hydrav1.NotifyInstancesReadyResponse{}, nil
 	}
 
 	restate.ResolveAwakeable[restate.Void](ctx, awakeableID, restate.Void{})
+	logger.Info("notify instances ready handler: awakeable resolved",
+		"deployment_id", req.GetDeploymentId(),
+	)
 	return &hydrav1.NotifyInstancesReadyResponse{}, nil
 }

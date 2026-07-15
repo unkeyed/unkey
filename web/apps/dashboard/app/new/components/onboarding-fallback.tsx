@@ -1,67 +1,40 @@
 "use client";
-import { StackPerspective2 } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
-import { OnboardingWizard } from "./onboarding-wizard";
+import { FullScreenContent, FullScreenLayout, Logo, Skeleton } from "@unkey/ui";
+import {
+  OnboardingCard,
+  OnboardingCardContent,
+  OnboardingCardFooter,
+  OnboardingCardHeader,
+} from "./onboarding-card";
 
 export function OnboardingFallback() {
   return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden">
-      {/* Unkey Logo */}
-      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
-      {/* Spacer */}
-      <div className="mt-[72px]" />
-      {/* Static content while loading */}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl flex-1 min-h-0">
-        <div className="flex flex-col items-center h-[140px] justify-start">
-          <div className="bg-grayA-3 rounded-full w-fit">
-            <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
-              Step 1 of 3
-            </span>
-          </div>
-          <div className="mt-5" />
-          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
-            Create workspace
-          </div>
-          <div className="mt-2" />
-          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
-            Set up your workspace to get started with Unkey
-          </div>
-        </div>
-        <div className="mt-10" />
-        <div className="flex-1 min-h-0 flex flex-col pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          <OnboardingWizard
-            steps={[
-              {
-                name: "Workspace",
-                icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
-                body: (
-                  <form>
-                    <div className="flex flex-col">
-                      <div className="flex flex-col gap-4 p-1">
-                        <FormInput
-                          value="Acme Corp"
-                          placeholder="Enter workspace name"
-                          label="Workspace name"
-                          requirement="required"
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  </form>
-                ),
-                kind: "required" as const,
-                validFieldCount: 0,
-                requiredFieldCount: 1,
-                buttonText: "Continue",
-                description: "Set up your workspace to get started",
-                onStepBack: () => {},
-              },
-            ]}
-            currentStepIndex={0}
-            setCurrentStepIndex={() => {}}
-          />
-        </div>
-      </div>
-    </div>
+    <FullScreenLayout className="px-4 pt-6">
+      <Logo />
+
+      <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
+        <OnboardingCard aria-busy="true">
+          <OnboardingCardHeader>
+            <Skeleton className="h-7 w-1/2" />
+            <Skeleton className="h-5 w-3/4 mt-2" />
+          </OnboardingCardHeader>
+          <OnboardingCardContent>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-9 w-full rounded-lg" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-9 w-full rounded-lg" />
+              </div>
+            </div>
+          </OnboardingCardContent>
+          <OnboardingCardFooter>
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </OnboardingCardFooter>
+        </OnboardingCard>
+      </FullScreenContent>
+    </FullScreenLayout>
   );
 }

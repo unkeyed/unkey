@@ -23,8 +23,7 @@ import (
 func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 	}
 
 	h.Register(route)
@@ -296,8 +295,8 @@ func TestSuccess(t *testing.T) {
 		// Create 10 rate limits for the identity
 		rateLimits := []struct {
 			name     string
-			limit    int32
-			duration int64
+			limit    uint64
+			duration uint64
 		}{
 			{"api_calls_per_second", 10, 1000},
 			{"api_calls_per_minute", 100, 60 * 1000},
@@ -349,7 +348,7 @@ func TestSuccess(t *testing.T) {
 			actual, exists := returnedRateLimits[expected.name]
 			require.True(t, exists, "Rate limit %s not found in response", expected.name)
 			require.Equal(t, int64(expected.limit), actual.Limit)
-			require.Equal(t, expected.duration, actual.Duration)
+			require.Equal(t, int64(expected.duration), actual.Duration)
 		}
 	})
 

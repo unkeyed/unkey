@@ -70,13 +70,14 @@ func (r *RBAC) EvaluatePermissions(query PermissionQuery, permissions []string) 
 	return r.evaluateQueryV1(query, permissions)
 }
 
+// evaluateQueryV1 recursively evaluates a permission query tree against the
+// granted permission strings, combining child results per the node operator.
 func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (EvaluationResult, error) {
 	// Handle simple permission check
 	if query.Value != "" {
-		if slices.Contains(permissions, query.Value) {
+		if evaluateLeafPermission(query, permissions) {
 			return EvaluationResult{Valid: true, Message: ""}, nil
 		}
-
 		return EvaluationResult{
 			Valid:   false,
 			Message: fmt.Sprintf("Missing permission: '%s'", query.Value),
@@ -108,14 +109,12 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 			if result.Valid {
 				return result, nil
 			}
-			missingPerms = append(missingPerms, fmt.Sprintf("'%v'", child))
+			missingPerms = append(missingPerms, FormatPermissionQuery(child))
 		}
 
 		return EvaluationResult{
-			Valid: false,
-			Message: fmt.Sprintf("Missing one of these permissions: [%s], have: [%s]",
-				strings.Join(missingPerms, ", "),
-				strings.Join(formatPermissions(permissions), ", ")),
+			Valid:   false,
+			Message: fmt.Sprintf("Missing one of these permissions: %s", strings.Join(missingPerms, " or ")),
 		}, nil
 	}
 
@@ -126,14 +125,48 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 	)
 }
 
-func formatPermissions(permissions []string) []string {
-	formatted := make([]string, len(permissions))
-
-	for i, p := range permissions {
-		formatted[i] = fmt.Sprintf("'%s'", p)
+// FormatPermissionQuery returns the human-readable permission expression used
+// in authorization errors and diagnostics.
+func FormatPermissionQuery(query PermissionQuery) string {
+	if query.Value != "" {
+		return query.Value
 	}
 
-	return formatted
+	parts := make([]string, 0, len(query.Children))
+	for _, child := range query.Children {
+		parts = append(parts, FormatPermissionQuery(child))
+	}
+
+	switch query.Operation {
+	case OperatorNil:
+		return "invalid permission query"
+	case OperatorAnd:
+		return strings.Join(parts, " and ")
+	case OperatorOr:
+		return strings.Join(parts, " or ")
+	default:
+		return "invalid permission query"
+	}
+}
+
+// evaluateLeafPermission is the shared leaf evaluator for the boolean query
+// tree. Exact string matching is always available. Unkey wildcard matching is
+// an explicit opt-in carried by U(), not a behavior inferred from string shape.
+func evaluateLeafPermission(query PermissionQuery, permissions []string) bool {
+	if slices.Contains(permissions, query.Value) {
+		return true
+	}
+
+	if !query.matchUnkeyPermission {
+		return false
+	}
+
+	requiredPermission, err := parseUrnPermission(query.Value)
+	if err != nil {
+		return false
+	}
+
+	return evaluateUnkeyPermission(requiredPermission, permissions)
 }
 
 // ParseQuery parses a SQL-like permission query string and returns a PermissionQuery.

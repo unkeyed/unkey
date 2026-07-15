@@ -12,13 +12,18 @@ import { PERMISSION_COLUMN_IDS } from "../../columns/create-permissions-columns"
 
 type RenderPermissionsSkeletonRowProps = {
   columns: DataTableColumnDef<Permission>[];
+  rowHeight: number;
 };
 
-export const renderPermissionsSkeletonRow = ({ columns }: RenderPermissionsSkeletonRowProps) =>
+export const renderPermissionsSkeletonRow = ({
+  columns,
+  rowHeight,
+}: RenderPermissionsSkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}
       className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+      style={{ height: `${rowHeight}px` }}
     >
       {column.id === PERMISSION_COLUMN_IDS.PERMISSION.id && (
         <NameColumnSkeleton

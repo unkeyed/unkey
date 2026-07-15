@@ -1,0 +1,54 @@
+type: object
+required:
+  - slug
+  - externalId
+  - permissions
+properties:
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    description: |
+      The human-readable slug of the portal configuration to create the session against.
+      Identifies which app's portal the end user will access.
+      Must be 3-64 characters, lowercase alphanumeric and hyphens only,
+      must not start or end with a hyphen, and must not contain consecutive hyphens.
+    example: my-portal
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      The end user's identifier in the customer's system.
+      Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
+    example: user_123
+  permissions:
+    type: array
+    items:
+      type: string
+      enum:
+        - "keys:read"
+        - "keys:create"
+        - "keys:reroll"
+        - "analytics:read"
+    minItems: 1
+    description: |
+      The capabilities granted to the end user in the Portal, from a fixed
+      vocabulary. All capabilities are scoped to this end user: key capabilities
+      (`keys:*`) apply only to keys the end user owns within the keyspace
+      configured on the portal configuration, and `analytics:read` returns only
+      the end user's own verification events. An end user can never see another
+      identity's keys or analytics.
+
+      Tab visibility is derived from the capabilities:
+      - Keys tab: any `keys:*` capability
+      - Analytics tab: `analytics:read`
+      - Docs tab: visible when any capability is present
+    example: ["keys:read", "keys:reroll", "analytics:read"]
+  preview:
+    type: boolean
+    default: false
+    description: |
+      When true, creates a preview session for testing the portal experience.
+additionalProperties: false

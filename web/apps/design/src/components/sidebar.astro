@@ -1,0 +1,39 @@
+---
+import { nav } from "../data/nav.ts";
+
+const currentPath = Astro.url.pathname.replace(/\/$/, "");
+const isHomeActive = currentPath === "";
+---
+
+<nav aria-label="Primary" class="flex flex-col gap-3 py-6 pr-4">
+  <a
+    href="/"
+    data-active={isHomeActive}
+    class="flex h-7 items-center rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-colors"
+  >
+    Home
+  </a>
+  {
+    nav.map((section) => (
+      <div class="flex flex-col gap-2">
+        <h2 class="px-2 text-xs font-medium text-foreground">{section.title}</h2>
+        <ul class="flex flex-col gap-0.5">
+          {section.items.map((item) => {
+            const active = currentPath === item.href.replace(/\/$/, "");
+            return (
+              <li>
+                <a
+                  href={item.href}
+                  data-active={active}
+                  class="flex h-7 items-center rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground data-[active=true]:border-border data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-colors"
+                >
+                  {item.name}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))
+  }
+</nav>

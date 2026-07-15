@@ -1,28 +1,67 @@
 "use client";
 
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { match } from "@unkey/match";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
+import type { PermissionScope, UnkeyPermissions } from "../permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { HighlightedText } from "./highlighted-text";
 import { PermissionToggle } from "./permission-toggle";
 
 type PermissionContentListProps = {
-  type: "workspace" | "api";
-  api?: { id: string; name: string };
+  scope: PermissionScope;
   onPermissionChange: (permissions: UnkeyPermission[]) => void;
   selected: UnkeyPermission[];
   searchValue?: string;
+  // Nested scopes rendered inside this scope's collapsible body, so they fold
+  // with their parent (e.g. environments under an app).
+  children?: ReactNode;
 };
 
+type ScopeHeader = {
+  name: string;
+  description: string;
+  key: string;
+};
+
+const getScopeHeader = (scope: PermissionScope): ScopeHeader =>
+  match(scope)
+    .with({ kind: "workspace" }, () => ({
+      name: "Workspace",
+      description: ROOT_KEY_MESSAGES.DESCRIPTIONS.WORKSPACE,
+      key: "workspace",
+    }))
+    .with({ kind: "api" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.API} ${name}`,
+      key: id,
+    }))
+    .with({ kind: "project" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.PROJECT} ${name}`,
+      key: id,
+    }))
+    .with({ kind: "app" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.APP} ${name}`,
+      key: id,
+    }))
+    .with({ kind: "environment" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.ENVIRONMENT} ${name}`,
+      key: id,
+    }))
+    .exhaustive();
+
 export const PermissionContentList = ({
-  type,
-  api,
+  scope,
   onPermissionChange,
   selected,
   searchValue,
+  children,
 }: PermissionContentListProps) => {
   const {
     state,
@@ -31,18 +70,15 @@ export const PermissionContentList = ({
     handleCategoryToggle,
     handlePermissionToggle,
   } = usePermissions({
-    type,
-    api,
+    scope,
     selected,
     searchValue,
     onPermissionChange,
   });
 
-  // State to track expanded categories and root
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isRootExpanded, setIsRootExpanded] = useState(false);
 
-  // Auto-expand when search is active
   useEffect(() => {
     if (searchValue && searchValue.trim() !== "") {
       setIsRootExpanded(true);
@@ -58,10 +94,6 @@ export const PermissionContentList = ({
     0,
   );
 
-  if (totalPermissions === 0) {
-    return null;
-  }
-
   const handleCategoryToggleExpanded = useCallback((category: string, open: boolean) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
@@ -73,6 +105,28 @@ export const PermissionContentList = ({
       return newSet;
     });
   }, []);
+
+  if (totalPermissions === 0 && !children) {
+    return null;
+  }
+
+  const header = getScopeHeader(scope);
+  const categories = Object.entries(filteredPermissionList);
+  const isSingleCategory = categories.length === 1;
+
+  const renderPermissionToggles = (category: string, allPermissions: UnkeyPermissions) =>
+    Object.entries(allPermissions).map(([action, { description, permission }]) => (
+      <PermissionToggle
+        key={action}
+        category={<HighlightedText text={category} searchValue={searchValue} />}
+        className="pr-2"
+        label={<HighlightedText text={action} searchValue={searchValue} />}
+        description={description}
+        checked={state.selectedPermissions.includes(permission)}
+        setChecked={() => handlePermissionToggle(permission)}
+      />
+    ));
+
   return (
     <div className="flex flex-col w-full grow-0 max-w-[380px] px-2">
       <Collapsible
@@ -81,12 +135,8 @@ export const PermissionContentList = ({
         className="hover:bg-grayA-3 rounded-lg mb-2"
       >
         <ExpandableCategory
-          category={type === "workspace" ? "Workspace" : (api?.name ?? "API")}
-          description={
-            type === "workspace"
-              ? ROOT_KEY_MESSAGES.DESCRIPTIONS.WORKSPACE
-              : `${ROOT_KEY_MESSAGES.DESCRIPTIONS.API} ${api?.name ?? "API"}`
-          }
+          category={header.name}
+          description={header.description}
           checked={state.rootChecked}
           setChecked={handleRootToggle}
           count={totalPermissions}
@@ -96,45 +146,38 @@ export const PermissionContentList = ({
           <div className="flex">
             <div className="flex flex-col min-h-full border-r border-grayA-5 mb-2 ml-5" />
             <div className="flex flex-col h-full ml-2 w-full min-w-0">
-              {Object.entries(filteredPermissionList).map(([category, allPermissions]) => (
-                <Collapsible
-                  key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
-                  className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
-                  open={expandedCategories.has(category)}
-                  onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
-                >
-                  <div className="flex-1 justify-start items-start w-full min-w-0">
-                    <ExpandableCategory
-                      category={category}
-                      checked={state.categoryChecked[category]}
-                      setChecked={() => handleCategoryToggle(category)}
-                      count={Object.keys(allPermissions).length}
-                    />
-                    <CollapsibleContent>
-                      <div className="flex w-full">
-                        <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
-                        <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
-                          {Object.entries(allPermissions).map(
-                            ([action, { description, permission }]) => (
-                              <PermissionToggle
-                                key={action}
-                                category={
-                                  <HighlightedText text={category} searchValue={searchValue} />
-                                }
-                                className="pr-2"
-                                label={<HighlightedText text={action} searchValue={searchValue} />}
-                                description={description}
-                                checked={state.selectedPermissions.includes(permission)}
-                                setChecked={() => handlePermissionToggle(permission)}
-                              />
-                            ),
-                          )}
+              {isSingleCategory ? (
+                <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start">
+                  {renderPermissionToggles(categories[0][0], categories[0][1])}
+                </div>
+              ) : (
+                categories.map(([category, allPermissions]) => (
+                  <Collapsible
+                    key={`${header.key}-${category}`}
+                    className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
+                    open={expandedCategories.has(category)}
+                    onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
+                  >
+                    <div className="flex-1 justify-start items-start w-full min-w-0">
+                      <ExpandableCategory
+                        category={category}
+                        checked={state.categoryChecked[category]}
+                        setChecked={() => handleCategoryToggle(category)}
+                        count={Object.keys(allPermissions).length}
+                      />
+                      <CollapsibleContent>
+                        <div className="flex w-full">
+                          <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
+                          <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
+                            {renderPermissionToggles(category, allPermissions)}
+                          </div>
                         </div>
-                      </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              ))}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))
+              )}
+              {children}
             </div>
           </div>
         </CollapsibleContent>

@@ -7,12 +7,13 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -25,7 +26,6 @@ type (
 // Handler implements zen.Route interface for the v2 identities delete identity endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -41,8 +41,12 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	// Mint a correlation ID so the identity.delete audit event plus any
+	// cascade events (per-ratelimit cleanup, per-key disconnects) share
+	// one ID for dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -53,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+	err = principal.Authorize(
 		rbac.Or(
 			rbac.T(
 				rbac.Tuple{
@@ -62,14 +66,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.DeleteIdentity,
 				},
 			),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+				permissions.DeleteIdentity{},
+			),
 		),
-	))
+	)
 	if err != nil {
 		return err
 	}
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -95,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			IdentityID:  identity.ID,
 		})
 
@@ -104,7 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if db.IsDuplicateKeyError(err) {
 			// Check if this identity is already soft-deleted (could happen with concurrent requests)
 			alreadyDeleted, checkErr := db.Query.FindIdentityByID(ctx, tx, db.FindIdentityByIDParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				IdentityID:  identity.ID,
 				Deleted:     true,
 			})
@@ -116,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Delete the old soft-deleted identity with the same external_id, excluding the current one
 			err = db.Query.DeleteOldIdentityByExternalID(ctx, tx, db.DeleteOldIdentityByExternalIDParams{
-				WorkspaceID:       auth.AuthorizedWorkspaceID,
+				WorkspaceID:       principal.WorkspaceID,
 				ExternalID:        identity.ExternalID,
 				CurrentIdentityID: identity.ID,
 			})
@@ -130,7 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			// Re-apply the soft delete operation
 			err = db.Query.SoftDeleteIdentity(ctx, tx, db.SoftDeleteIdentityParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				IdentityID:  identity.ID,
 			})
 			if err != nil {
@@ -153,15 +161,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.IdentityDeleteEvent,
-				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.IdentityDeleteEvent,
+				Display:       fmt.Sprintf("Deleted identity %s.", identity.ID),
+				ActorID:       principal.Subject.ID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identity.ID,
@@ -176,15 +185,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, rl := range ratelimits {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitDeleteEvent,
-				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.RatelimitDeleteEvent,
+				Display:       fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
+				ActorID:       principal.Subject.ID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.IdentityResourceType,

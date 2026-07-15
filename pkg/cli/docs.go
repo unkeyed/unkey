@@ -346,6 +346,8 @@ func (c *Command) getTypeString(flag Flag) string {
 		return "float"
 	case *StringSliceFlag:
 		return "string[]"
+	case *EnumFlag:
+		return "enum"
 	default:
 		return "unknown"
 	}

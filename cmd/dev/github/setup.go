@@ -10,7 +10,7 @@ package github
 //  4. After the user confirms, GitHub redirects to localhost:9999/callback with a
 //     one-time `code`.
 //  5. Exchanges the code at POST /app-manifests/{code}/conversions to get the app's
-//     ID, PEM private key, and webhook secret.
+//     ID, PEM private key, webhook secret, and OAuth client id/secret.
 //  6. Writes credentials to dev/.env.github, dev/.github-private-key.pem, and
 //     web/apps/dashboard/.env / .github-private-key.pem.
 
@@ -31,15 +31,17 @@ import (
 )
 
 type githubAppManifest struct {
-	Name               string                 `json:"name"`
-	URL                string                 `json:"url"`
-	Public             bool                   `json:"public"`
-	HookAttributes     manifestHookAttributes `json:"hook_attributes"`
-	SetupURL           string                 `json:"setup_url"`
-	SetupOnUpdate      bool                   `json:"setup_on_update"`
-	RedirectURL        string                 `json:"redirect_url"`
-	DefaultPermissions map[string]string      `json:"default_permissions"`
-	DefaultEvents      []string               `json:"default_events"`
+	Name                  string                 `json:"name"`
+	URL                   string                 `json:"url"`
+	Public                bool                   `json:"public"`
+	HookAttributes        manifestHookAttributes `json:"hook_attributes"`
+	SetupURL              string                 `json:"setup_url"`
+	SetupOnUpdate         bool                   `json:"setup_on_update"`
+	RedirectURL           string                 `json:"redirect_url"`
+	CallbackURLs          []string               `json:"callback_urls"`
+	RequestOAuthOnInstall bool                   `json:"request_oauth_on_install"`
+	DefaultPermissions    map[string]string      `json:"default_permissions"`
+	DefaultEvents         []string               `json:"default_events"`
 }
 
 type manifestHookAttributes struct {
@@ -52,7 +54,7 @@ var setupCmd = &cli.Command{
 	Usage: "Create a GitHub App via manifest flow and write local dev credentials",
 	Flags: []cli.Flag{
 		cli.String("app-name", "GitHub App name (must be globally unique)", cli.Default("unkey-dev")),
-		cli.String("webhook-url", "Webhook URL (update later in GitHub App settings once you have a tunnel URL)", cli.Default("https://example.com/webhooks/github")),
+		cli.String("webhook-url", "Initial webhook URL; Tilt's github-tunnel resource overwrites this on boot", cli.Default("https://example.com/webhooks/github")),
 		cli.String("port", "Local callback server port", cli.Default("9999")),
 		cli.String("out-dir", "Directory to write .env.github and .github-private-key.pem", cli.Default("dev")),
 	},
@@ -67,6 +69,8 @@ type manifestResponse struct {
 	Name          string `json:"name"`
 	PEM           string `json:"pem"`
 	WebhookSecret string `json:"webhook_secret"`
+	ClientID      string `json:"client_id"`
+	ClientSecret  string `json:"client_secret"`
 }
 
 // htmlPage is the page served at GET / that auto-submits the manifest form to GitHub.
@@ -102,6 +106,13 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 		SetupURL:      "http://localhost:3000/integrations/github/callback",
 		SetupOnUpdate: true,
 		RedirectURL:   callbackURL,
+		// Request user authorization (OAuth) during installation so the install
+		// callback receives a `code` alongside installation_id. registerInstallation
+		// exchanges that code for a user token to verify the caller can actually
+		// access the installation before binding it. callback_urls is where GitHub
+		// sends the user after they authorize during install.
+		CallbackURLs:          []string{"http://localhost:3000/integrations/github/callback"},
+		RequestOAuthOnInstall: true,
 		DefaultPermissions: map[string]string{
 			"deployments":   "write",
 			"statuses":      "write",
@@ -187,7 +198,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	fmt.Println("✔ Written: web/apps/dashboard/.env")
 	fmt.Println()
 	fmt.Println("Next steps:")
-	fmt.Println("  1. make dev")
+	fmt.Println("  1. mise run dev")
 	fmt.Println("  2. go run . dev seed local")
 	fmt.Println("  3. go run . dev github tunnel   # each session — starts ngrok and patches the webhook URL")
 	fmt.Println()
@@ -235,7 +246,8 @@ func exchangeManifestCode(code string) (*manifestResponse, error) {
 // writeCredentials writes app credentials to:
 //   - {outDir}/.env.github          (ctrl-api / ctrl-worker / Tiltfile)
 //   - {outDir}/.github-private-key.pem
-//   - web/apps/dashboard/.env       (dashboard needs GITHUB_APP_ID)
+//   - web/apps/dashboard/.env       (GITHUB_APP_ID, NEXT_PUBLIC_GITHUB_APP_NAME,
+//     GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)
 //   - web/apps/dashboard/.github-private-key.pem
 func writeCredentials(outDir string, app *manifestResponse) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
@@ -266,9 +278,11 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 	}
 
 	dashboardVars := fmt.Sprintf(
-		"\n# GitHub App (written by `go run . dev github setup`)\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\n",
+		"\n# GitHub App (written by `go run . dev github setup`)\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\nGITHUB_CLIENT_ID=%q\nGITHUB_CLIENT_SECRET=%q\n",
 		app.ID,
 		app.Slug,
+		app.ClientID,
+		app.ClientSecret,
 	)
 	f, err := os.OpenFile(filepath.Join(dashboardDir, ".env"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {

@@ -14,12 +14,103 @@ import {
   logOperation,
   logTRPCError,
 } from "../logging/structured-logger";
+import type { Router } from "../trpc/routers";
 import { classifyError } from "../utils/error-classification";
+import { isSensitiveKey, redactTokenLike, scrubEventPii } from "./pii-scrubber";
 
 /**
  * Type definitions for Sentry event processing
  */
 export type BeforeSendHook = Parameters<typeof Sentry.init>[0]["beforeSend"];
+
+/**
+ * Input field names that may carry plaintext secrets and must never be sent to
+ * Sentry, beyond the shared `isSensitiveKey` list in pii-scrubber.ts (which
+ * already covers `secret`, `code`, `token`, `password`, etc.). The tRPC Sentry
+ * middleware attaches the raw procedure input to `event.contexts.trpc.input`
+ * (via `attachRpcInput: true`), which would otherwise exfiltrate env-var secret
+ * values (`value`, `variables[].value`, `items[].value`) when an unexpected
+ * error is forwarded. `sendDefaultPii: false` does not scrub custom contexts,
+ * so we redact these explicitly. Matched case-insensitively.
+ */
+const SENSITIVE_INPUT_KEYS = new Set(["value"]);
+
+/**
+ * Whether a tRPC input field name must be redacted: the shared sensitive-name
+ * list plus input-specific names.
+ */
+function isSensitiveInputKey(key: string): boolean {
+  return SENSITIVE_INPUT_KEYS.has(key.toLowerCase()) || isSensitiveKey(key);
+}
+
+/**
+ * Dotted paths of the `share` router's procedures, derived from the app router
+ * type (type-only import, erased at runtime). Typing the set below against
+ * this union makes a procedure rename a compile error instead of a silently
+ * disabled redaction.
+ */
+type ShareProcedurePath = `share.${Extract<keyof Router["share"]["_def"]["record"], string>}`;
+
+/**
+ * Procedures whose input is itself a bearer credential, so key-based scrubbing
+ * is not enough and the entire input must be redacted. `share.reveal` takes
+ * `{ id }` where the id is the one-time share credential: an unexpected error
+ * (e.g. a vault outage, which rolls back the transaction and leaves the row
+ * un-consumed) would otherwise store a still-valid credential in Sentry.
+ */
+const CREDENTIAL_INPUT_PROCEDURES: ReadonlySet<string> = new Set<ShareProcedurePath>([
+  "share.reveal",
+]);
+
+const REDACTED = "[REDACTED]";
+
+/**
+ * Recursively replaces the values of sensitive keys with a redaction marker.
+ * Walks nested objects and arrays so secrets nested under `variables`/`items`
+ * are also scrubbed, and redacts token-like substrings from the remaining
+ * string values as a fail-closed fallback for secrets under field names the
+ * key list doesn't anticipate. Returns a new structure and never mutates the
+ * input.
+ */
+function redactSensitiveValues(value: unknown): unknown {
+  if (typeof value === "string") {
+    return redactTokenLike(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(redactSensitiveValues);
+  }
+
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = isSensitiveInputKey(key) ? REDACTED : redactSensitiveValues(nested);
+    }
+    return result;
+  }
+
+  return value;
+}
+
+/**
+ * Scrubs plaintext secrets from the tRPC input attached by the Sentry tRPC
+ * middleware before an event is forwarded to Sentry. Mutates the event in place
+ * because Sentry consumes the same object returned from `beforeSend`.
+ */
+function scrubTrpcInput(event: Sentry.ErrorEvent): void {
+  const trpcContext = event.contexts?.trpc;
+  if (!trpcContext || !("input" in trpcContext)) {
+    return;
+  }
+
+  const procedurePath = trpcContext.procedure_path;
+  if (typeof procedurePath === "string" && CREDENTIAL_INPUT_PROCEDURES.has(procedurePath)) {
+    trpcContext.input = REDACTED;
+    return;
+  }
+
+  trpcContext.input = redactSensitiveValues(trpcContext.input);
+}
 
 /**
  * Configuration options for error filtering
@@ -58,6 +149,17 @@ export function createErrorFilter(options: ErrorFilterOptions = {}): BeforeSendH
   const { logFilteredErrors = true, additionalFilters = [], contextProvider } = options;
 
   return (event, hint) => {
+    // Always redact plaintext secrets from the attached tRPC input before any
+    // forwarding path returns the event. This must run regardless of error
+    // classification so that INTERNAL_SERVER_ERROR and uncaught errors do not
+    // leak secret values through `contexts.trpc.input`.
+    scrubTrpcInput(event);
+
+    // Scrub secrets/PII that leak through URLs in the request and breadcrumbs
+    // (e.g. root keys or OAuth codes in query strings). `sendDefaultPii: false`
+    // does not cover URLs we generate ourselves, so this runs on every event.
+    scrubEventPii(event, hint);
+
     const error = hint.originalException;
 
     // Handle missing exception

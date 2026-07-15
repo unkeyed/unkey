@@ -31,7 +31,6 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		Auditlogs:      h.Auditlogs,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
@@ -67,8 +66,8 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, namespaceID, override.NamespaceID)
 		require.Equal(t, "user_123", override.Identifier)
-		require.Equal(t, int32(10), override.Limit)
-		require.Equal(t, int32(1000), override.Duration)
+		require.Equal(t, uint64(10), override.Limit)
+		require.Equal(t, uint64(1000), override.Duration)
 	})
 
 	// Create a new override by namespace ID
@@ -93,8 +92,8 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, namespaceID, override.NamespaceID)
 		require.Equal(t, "user_456", override.Identifier)
-		require.Equal(t, int32(20), override.Limit)
-		require.Equal(t, int32(2000), override.Duration)
+		require.Equal(t, uint64(20), override.Limit)
+		require.Equal(t, uint64(2000), override.Duration)
 	})
 
 	// Create an override with a wildcard identifier

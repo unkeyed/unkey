@@ -11,7 +11,7 @@ Unkey's error system uses a structured approach to organize and identify errors 
 
 All Unkey error codes follow a consistent URN-like format:
 
-```
+```text
 err:system:category:specific
 ```
 
@@ -55,7 +55,7 @@ When an error occurs, the API returns a consistent JSON response format:
     "detail": "Authentication credentials were not provided",
     "status": 401,
     "title": "Unauthorized",
-    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/authentication/missing"
+    "type": "https://unkey.com/docs/errors/unkey/authentication/missing"
   }
 }
 ```

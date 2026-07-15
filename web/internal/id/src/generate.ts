@@ -9,7 +9,6 @@ const prefixes = {
   request: "req",
   workspace: "ws",
   keyAuth: "ks", // keyspace
-  vercelBinding: "vb",
   role: "role",
   test: "test", // for tests only
   ratelimitNamespace: "rlns",
@@ -26,6 +25,10 @@ const prefixes = {
   identity: "id",
   ratelimit: "rl",
   auditLog: "log",
+  // correlation groups audit events emitted by one logical user action
+  // so the dashboard can drill from any one event to the rest. Mirrors
+  // pkg/uid.CorrelationPrefix in the Go side.
+  correlation: "cor",
   fake: "fake",
   app: "app",
   environment: "env",

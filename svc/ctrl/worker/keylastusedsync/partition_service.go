@@ -10,9 +10,9 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/retry"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // batchSize is the number of keys to fetch from ClickHouse per batch.
@@ -112,13 +112,12 @@ func (s *PartitionService) SyncPartition(
 	}
 	restate.Set(ctx, "total_partitions", totalPartitions)
 
-	logger.Info("partition sync starting",
+	logger.Debug("partition sync starting",
 		"partition", partition,
 		"cursor_time", cursor.Time,
 	)
 
 	var totalSynced int32
-	start := time.Now()
 
 	for batchNum := 0; ; batchNum++ {
 		currentCursor := cursor
@@ -170,12 +169,6 @@ func (s *PartitionService) SyncPartition(
 		}
 	}
 
-	logger.Info("partition sync complete",
-		"partition", partition,
-		"keys_synced", totalSynced,
-		"elapsed", time.Since(start),
-	)
-
 	return &hydrav1.SyncPartitionResponse{
 		KeysSynced: totalSynced,
 	}, nil
@@ -206,7 +199,7 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 			end := min(start+maxKeysPerUpdate, len(keyIDs))
 			chunk := keyIDs[start:end]
 			if err := retrier.DoContext(ctx, func() error {
-				return db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
+				return db.NewQueries(rw).UpdateKeysLastUsed(ctx, db.UpdateKeysLastUsedParams{
 					LastUsedAt: uint64(ts), //nolint:gosec
 					KeyIds:     chunk,
 				})

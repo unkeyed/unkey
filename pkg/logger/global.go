@@ -2,21 +2,82 @@ package logger
 
 import (
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
+
+	"golang.org/x/term"
 )
 
 // Package-level state for the global logger, sampler, and base attributes.
 // Protected by mu for concurrent access during configuration.
+//
+// innerHandler holds the actual sink composition (text handler, plus any
+// handlers added via [AddHandler], plus any base attrs). The exported
+// `logger` is always `innerHandler` wrapped in [faultHandler] so error
+// enrichment runs once at the top of the stack and the enriched record
+// fans out to every sink.
 var (
-	logger  *slog.Logger
-	sampler Sampler
-	mu      sync.Mutex
+	logger       *slog.Logger
+	innerHandler slog.Handler
+	sampler      Sampler
+	mu           sync.Mutex
 )
 
 func init() {
 	mu = sync.Mutex{}
-	logger = slog.Default()
+	innerHandler = newDefaultHandler(os.Stderr)
+	rebuild()
 	sampler = AlwaysSample{}
+}
+
+// newDefaultHandler picks the process's log format: a colored, human-oriented
+// handler when out is an interactive terminal (local development), and the
+// stdlib logfmt TextHandler otherwise (production, CI, redirected output).
+// Setting NO_COLOR (https://no-color.org) forces logfmt even on a TTY.
+//
+// Minimum level comes from UNKEY_LOG_LEVEL (debug | info | warn | error),
+// defaulting to info. slog.Default()'s handler silently ignores Debug
+// regardless of env, so we configure the level on our handler and route
+// slog.Default() through it too; that way plain `slog.Debug(...)` calls
+// anywhere in the codebase honor the same level as `logger.Debug(...)`.
+func newDefaultHandler(out *os.File) slog.Handler {
+	level := levelFromEnv()
+	if term.IsTerminal(int(out.Fd())) && os.Getenv("NO_COLOR") == "" {
+		return newPrettyHandler(out, level)
+	}
+	return slog.NewTextHandler(out, &slog.HandlerOptions{ //nolint:exhaustruct // ReplaceAttr default
+		Level:     level,
+		AddSource: true,
+	})
+}
+
+// rebuild reinstalls the global logger and slog.Default() from the current
+// innerHandler. Must be called with mu held.
+func rebuild() {
+	logger = slog.New(&faultHandler{inner: innerHandler})
+	// slog.SetDefault captures the *Logger instance, not the package-level
+	// variable. Re-apply so plain `slog.Info(...)` callers anywhere in the
+	// codebase pick up handler/attr changes too.
+	slog.SetDefault(logger)
+}
+
+// levelFromEnv parses UNKEY_LOG_LEVEL (case-insensitive: debug | info |
+// warn | error). Anything unrecognized falls back to info, matching
+// slog's stdlib default. Having this as an env var means flipping Debug
+// on in prod is a DaemonSet patch, not a rebuild.
+func levelFromEnv() slog.Level {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv("UNKEY_LOG_LEVEL")))
+	switch raw {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // GetHandler returns the current [slog.Handler] used by the global logger.
@@ -39,7 +100,8 @@ func GetHandler() slog.Handler {
 func AddHandler(newHandler slog.Handler) {
 	mu.Lock()
 	defer mu.Unlock()
-	logger = slog.New(&MultiHandler{[]slog.Handler{logger.Handler(), newHandler}})
+	innerHandler = &MultiHandler{[]slog.Handler{innerHandler, newHandler}}
+	rebuild()
 }
 
 // AddBaseAttrs appends attributes that will be included in every log entry.
@@ -50,7 +112,8 @@ func AddHandler(newHandler slog.Handler) {
 func AddBaseAttrs(attrs ...slog.Attr) {
 	mu.Lock()
 	defer mu.Unlock()
-	logger = slog.New(logger.Handler().WithAttrs(attrs))
+	innerHandler = innerHandler.WithAttrs(attrs)
+	rebuild()
 }
 
 // SetSampler configures the sampling strategy for wide events. The sampler

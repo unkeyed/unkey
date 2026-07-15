@@ -2,16 +2,15 @@ package handler
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"net/http"
 )
 
 type (
@@ -21,8 +20,7 @@ type (
 
 // Handler implements zen.Route interface for the v2 ratelimit list overrides endpoint
 type Handler struct {
-	DB   db.Database
-	Keys keys.KeyService
+	DB db.Database
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,8 +35,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -50,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Use the namespace field directly - it can be either name or ID
 	namespace, err := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Namespace:   req.Namespace,
 	})
 	if err != nil {
@@ -66,14 +63,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if namespace.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if namespace.WorkspaceID != principal.WorkspaceID {
 		return fault.New("namespace not found",
 			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 			fault.Internal("namespace was deleted"), fault.Public("This namespace does not exist."),
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   namespace.ID,
@@ -84,49 +81,38 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.ReadOverride,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 50)
+	p := pagination.Parse(req.Limit, req.Cursor, 50)
 
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		NamespaceID: namespace.ID,
-		//nolint:gosec
-		Limit:    int32(limit) + 1,
-		CursorID: ptr.SafeDeref(req.Cursor, ""),
+		Limit:       p.FetchLimit(),
+		CursorID:    p.Cursor,
 	})
 	if err != nil {
 		return err
 	}
 
-	hasMore := len(overrides) > limit
-	var cursor *string
-	if hasMore {
-		cursor = ptr.P(overrides[limit].ID)
-		overrides = overrides[:limit]
-	}
+	overrides, pg := pagination.Paginate(overrides, p, func(r db.RatelimitOverride) string { return r.ID })
 
 	responseBody := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: make([]openapi.RatelimitOverride, len(overrides)),
-		Pagination: &openapi.Pagination{
-			Cursor:  cursor,
-			HasMore: hasMore,
-		},
-	}
-
-	for i, override := range overrides {
-		responseBody.Data[i] = openapi.RatelimitOverride{
-			OverrideId: override.ID,
-			Duration:   int64(override.Duration),
-			Identifier: override.Identifier,
-			Limit:      int64(override.Limit),
-		}
+		Data: array.Map(overrides, func(override db.RatelimitOverride) openapi.RatelimitOverride {
+			return openapi.RatelimitOverride{
+				OverrideId: override.ID,
+				Duration:   int64(override.Duration),
+				Identifier: override.Identifier,
+				Limit:      int64(override.Limit),
+			}
+		}),
+		Pagination: pg,
 	}
 
 	return s.JSON(http.StatusOK, responseBody)

@@ -112,7 +112,7 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	}
 
 	// Print header
-	fmt.Printf("Unkey Deploy Progress\n")
+	fmt.Printf("Deployment Progress\n")
 	fmt.Printf("──────────────────────────────────────────────────\n")
 	printSourceInfo(opts, gitInfo)
 

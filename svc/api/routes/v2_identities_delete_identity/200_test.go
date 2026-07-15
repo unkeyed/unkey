@@ -23,7 +23,6 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 	}
 
@@ -89,7 +88,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        fmt.Sprintf("ratelimit_%s", uid.New("test", 3)),
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       100,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 				}
 			},
 		)
@@ -168,13 +167,13 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "ratelimit_1",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       100,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 				},
 				{
 					Name:        "ratelimit_2",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       200,
-					Duration:    time.Hour.Milliseconds(),
+					Duration:    uint64(time.Hour.Milliseconds()),
 				},
 			},
 		})
@@ -185,17 +184,14 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 
-		// Verify audit logs were created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), identity.ID)
-		require.NoError(t, err)
+		// Verify audit logs were queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, identity.ID)
 		require.GreaterOrEqual(t, len(auditLogs), 1, "should have audit logs for identity deletion")
-
-		// Look for identity deletion event
 		var foundDeleteEvent bool
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "identity.delete" {
+		for _, ev := range auditLogs {
+			if ev.Event == "identity.delete" {
 				foundDeleteEvent = true
-				require.Equal(t, h.Resources().UserWorkspace.ID, log.AuditLog.WorkspaceID)
+				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
 				break
 			}
 		}
@@ -263,7 +259,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "per_month",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       300000, // 300k requests
-					Duration:    (time.Hour * 24 * 30).Milliseconds(),
+					Duration:    uint64((time.Hour * 24 * 30).Milliseconds()),
 				},
 			},
 		})
@@ -283,7 +279,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "per_month",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       20000, // 20k requests
-					Duration:    (time.Hour * 24 * 30).Milliseconds(),
+					Duration:    uint64((time.Hour * 24 * 30).Milliseconds()),
 				},
 			},
 		})

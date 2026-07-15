@@ -1,91 +1,43 @@
-// Package containers provides testing utilities for integration tests with docker-compose services.
+// Package containers provides Docker Compose-backed containers for integration tests.
 //
-// This package simplifies integration testing by providing pre-configured connections
-// to services managed by docker-compose. Instead of dynamically discovering service
-// ports (which is slow), it uses hardcoded port mappings that match the docker-compose
-// configuration for consistent and fast test execution.
+// This package manages shared Docker services for integration tests.
+// Containers are reused through one Docker Compose project per worktree, so
+// separate Go test processes share backing services without colliding with
+// other worktrees.
 //
-// The package was designed for scenarios where tests need to connect to real external
-// services like MySQL, Redis, ClickHouse, S3/MinIO, and OTEL collectors. It provides
-// both host configurations (for test runners connecting from outside containers) and
-// docker configurations (for services running inside the docker-compose network).
+// # Requirements
 //
-// # Key Design Decisions
+// Tests using this package can be run through Rask:
 //
-// We chose hardcoded ports over dynamic discovery because dynamic port discovery
-// using docker-compose commands added significant overhead to test execution
-// (hundreds of milliseconds per service). Since our docker-compose configuration
-// uses fixed port mappings, hardcoding them provides the same functionality with
-// zero runtime overhead.
+//	mise exec -- rask ./pkg/testutil/containers
 //
-// # Key Types
-//
-// The main entry points are the service configuration functions: [MySQL], [Redis],
-// [ClickHouse], [S3], and [OTEL]. Each returns appropriate configuration objects
-// or clients for connecting to the respective services.
-//
-// Configuration objects include [S3Config] for S3/MinIO settings and [OTELConfig]
-// for OpenTelemetry endpoint configuration.
+// Prefer `mise run test` for full-suite runs. It sets the worktree scope that
+// lets Go test processes share containers and removes the scoped Compose project
+// when the suite exits.
 //
 // # Usage
 //
-// Basic setup in integration tests:
+// Each service function starts a Compose container and returns connection information:
 //
-//	func TestDatabaseOperations(t *testing.T) {
-//		containers.StartAllServices(t) // No-op, services managed externally
-//
-//		hostCfg, dockerCfg := dockertest.MySQL(t)
-//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
-//		require.NoError(t, err)
-//		defer db.Close()
-//
-//		// Run your database tests...
+//	func TestRedisIntegration(t *testing.T) {
+//	    redisURL := containers.Redis(t)
+//	    // redisURL is "redis://localhost:{randomPort}"
+//	    // Later tests attach to the same Redis container.
 //	}
 //
-// Multiple services example:
+// # Design
 //
-//	func TestFullIntegration(t *testing.T) {
-//		// Get MySQL connection
-//		hostCfg, _ := dockertest.MySQL(t)
-//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
-//		require.NoError(t, err)
-//		defer db.Close()
+// Containers are created on demand by pkg/testutil/docker-compose.test.yaml and
+// reused by later test requests in the same worktree. Compose assigns random
+// host ports to avoid conflicts and waits for container healthchecks before the
+// helpers return connection information.
 //
-//		// Get Redis client
-//		redisClient, hostAddr, _ := containers.Redis(t)
-//		defer redisClient.Close()
+// # Available Services
 //
-//		// Get S3 configuration
-//		s3Config := containers.S3(t)
-//
-//		// Run integration tests with all services...
-//	}
-//
-// # Service Port Configuration
-//
-// The package uses these hardcoded port mappings that must match your docker-compose.yaml:
-//
-//   - MySQL: 3306
-//   - Redis: 6379
-//   - ClickHouse: 9000
-//   - S3/MinIO: 3902
-//   - OTEL HTTP: 4318
-//   - OTEL gRPC: 4317
-//   - Grafana: 3000
-//
-// # Prerequisites
-//
-// Tests using this package require:
-//   - docker-compose services running before test execution
-//   - Port mappings in docker-compose.yaml matching the hardcoded constants
-//   - Network connectivity from test runner to localhost on the specified ports
-//
-// # Host vs Docker Configurations
-//
-// Most service functions return two configurations:
-//   - Host configuration: For connecting from the test runner (uses localhost:port)
-//   - Docker configuration: For services running inside docker-compose network (uses service:port)
-//
-// Use host configuration in your tests, and docker configuration when configuring
-// services that run inside the docker-compose network and need to connect to each other.
+// Currently supported:
+//   - [MySQL]: MySQL with dev schema preloaded
+//   - [Redis]: Redis 8.0
+//   - [S3]: MinIO S3-compatible object storage
+//   - [Restate]: Restate server (ingress + admin)
+//   - [ClickHouse]: ClickHouse with dev schema preloaded
 package containers

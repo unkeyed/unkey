@@ -1,0 +1,127 @@
+import { formatNumber } from "@/lib/fmt";
+import { formatMs } from "@/lib/ms";
+import { cn } from "@/lib/utils";
+import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
+import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
+import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
+import { getStatusStyle } from "../utils/get-row-class";
+
+type IdentifierColumnProps = {
+  log: RatelimitOverviewLog;
+};
+
+export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
+  const style = getStatusStyle(log);
+  const hasMoreBlocked = isMostlyBlocked(log);
+  const blockedPercent = getBlockedPercentage(log);
+  const isFullyBlocked = blockedPercent === 100;
+
+  return (
+    <div className="flex gap-6 items-center pl-2 min-w-0">
+      <InfoTooltip
+        variant="inverted"
+        content={
+          <div className="text-xs">
+            {isFullyBlocked ? (
+              "All requests have been blocked in this timeframe"
+            ) : (
+              <>
+                More than {Math.round(blockedPercent)}% of requests have been
+                <br />
+                blocked in this timeframe
+              </>
+            )}
+          </div>
+        }
+      >
+        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible shrink-0")}>
+          <TriangleWarning2 iconSize="md-medium" />
+        </div>
+      </InfoTooltip>
+      <div className="flex gap-3 items-center min-w-0">
+        <div
+          className={cn(
+            style.badge.default,
+            "rounded-sm p-1 shrink-0",
+            hasMoreBlocked ? "" : "group-hover:bg-accent-6",
+          )}
+        >
+          {log.override ? (
+            <ArrowDotAntiClockwise iconSize="md-medium" />
+          ) : (
+            <Focus
+              iconSize="md-medium"
+              className={cn(hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+            />
+          )}
+        </div>
+        <InfoTooltip
+          asChild
+          variant="inverted"
+          content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
+        >
+          <div
+            className={cn(
+              "font-mono font-medium truncate min-w-0",
+              hasMoreBlocked ? style.base : "text-accent-12",
+            )}
+          >
+            {log.identifier}
+          </div>
+        </InfoTooltip>
+        {log.override && (
+          <OverrideIndicator log={log} style={style} hasMoreBlocked={hasMoreBlocked} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+type OverrideIndicatorProps = {
+  log: RatelimitOverviewLog;
+  style: ReturnType<typeof getStatusStyle>;
+  hasMoreBlocked: boolean;
+};
+
+const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
+  <InfoTooltip
+    variant="muted"
+    content={
+      <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
+        <div
+          className={cn(
+            style.badge.default,
+            "rounded-sm p-1",
+            "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
+          )}
+        >
+          <ArrowDotAntiClockwise iconSize="md-medium" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="text-sm flex gap-[10px] items-center">
+            <span className="font-medium text-sm">Custom override in effect</span>
+            <div className="size-[6px] rounded-full bg-warning-10" />
+          </div>
+          {log.override && (
+            <div className="text-accent-9 text-xs">
+              Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
+              requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    }
+    asChild
+  >
+    <div className="group relative p-3 cursor-pointer -ml-[5px]">
+      <div className="absolute inset-0" />
+      <div
+        className={cn(
+          "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+          hasMoreBlocked ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
+        )}
+      />
+    </div>
+  </InfoTooltip>
+);

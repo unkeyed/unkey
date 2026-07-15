@@ -1,0 +1,42 @@
+type: object
+required:
+  - project
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  slug:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New human-readable name for the project.
+      Omit this field to leave the current name unchanged.
+    example: Payments Service
+  deleteProtection:
+    type: boolean
+    description: |
+      Enable or disable delete protection for the project.
+      Omit this field to leave the current setting unchanged.
+    example: true
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename a project by ID
+    description: Update only the display name, locating the project by its ID
+    value:
+      project: proj_1234abcd
+      name: Payments API
+  changeSlug:
+    summary: Change a project slug by slug
+    description: Locate the project by its current slug and assign a new one
+    value:
+      project: payments-service
+      slug: payments-api
+  protect:
+    summary: Toggle delete protection
+    description: Enable delete protection without changing the name
+    value:
+      project: proj_1234abcd
+      deleteProtection: true

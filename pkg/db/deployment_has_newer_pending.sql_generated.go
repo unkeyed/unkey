@@ -15,7 +15,7 @@ SELECT EXISTS (
     SELECT 1 FROM deployments
     WHERE app_id = ?
       AND environment_id = ?
-      AND git_branch = ?
+      AND git_branch <=> ?
       AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
       AND created_at > ?
       AND id != ?
@@ -35,11 +35,16 @@ type HasNewerActiveDeploymentParams struct {
 // 'ready' — if a newer commit is already deployed there is no reason to build
 // an older one.
 //
+// Uses MySQL's NULL-safe equal (<=>) on git_branch so docker-image-only
+// deployments (where git_branch IS NULL on both rows) still detect each other
+// as siblings. Standard `=` returns UNKNOWN for NULL=NULL, which would silently
+// bypass the guardrail for non-git apps.
+//
 //	SELECT EXISTS (
 //	    SELECT 1 FROM deployments
 //	    WHERE app_id = ?
 //	      AND environment_id = ?
-//	      AND git_branch = ?
+//	      AND git_branch <=> ?
 //	      AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
 //	      AND created_at > ?
 //	      AND id != ?

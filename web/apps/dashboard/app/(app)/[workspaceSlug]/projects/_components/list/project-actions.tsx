@@ -1,11 +1,11 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { useWorkspace } from "@/providers/workspace-provider";
-import { Clone, Cloud, Gear, Heart, Layers3 } from "@unkey/icons";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
+import { ArrowOppositeDirectionY, Clone, Gear, Layers3 } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
@@ -15,31 +15,12 @@ type ProjectActionsProps = {
 
 export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
-  const { workspace } = useWorkspace();
-  // biome-ignore lint/style/noNonNullAssertion: This cannot be null
-  const menuItems = getProjectActionItems(projectId, workspace?.slug!, router);
+  const workspace = useWorkspaceNavigation();
 
-  return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
-};
-
-const getProjectActionItems = (
-  projectId: string,
-  workspaceSlug: string,
-  router: AppRouterInstance,
-): MenuItem[] => {
-  return [
-    {
-      id: "favorite-project",
-      label: "Add favorite",
-      icon: <Heart iconSize="md-medium" />,
-      onClick: () => {},
-      divider: true,
-      disabled: true,
-    },
+  const menuItems: MenuItem[] = [
     {
       id: "copy-project-id",
       label: "Copy project ID",
-      className: "mt-1",
       icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
@@ -55,19 +36,19 @@ const getProjectActionItems = (
       divider: true,
     },
     {
-      id: "view-log",
+      id: "view-requests",
       label: "View requests",
-      icon: <Layers3 iconSize="md-regular" />,
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/requests`);
+        router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
       },
     },
     {
-      id: "view-deployment",
-      label: "View deployments",
-      icon: <Cloud iconSize="md-regular" />,
+      id: "view-logs",
+      label: "View logs",
+      icon: <Layers3 iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/deployments`);
+        router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
       },
     },
     {
@@ -75,8 +56,10 @@ const getProjectActionItems = (
       label: "Project settings",
       icon: <Gear iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/settings`);
+        router.push(routes.projects.settings({ workspaceSlug: workspace.slug, projectId }));
       },
     },
   ];
+
+  return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };

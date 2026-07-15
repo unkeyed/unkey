@@ -52,7 +52,7 @@ func TestRerollKeySuccess(t *testing.T) {
 				Name:        "default-enterprise",
 				WorkspaceID: workspace.ID,
 				AutoApply:   true,
-				Duration:    time.Minute.Milliseconds(),
+				Duration:    uint64(time.Minute.Milliseconds()),
 				Limit:       1500,
 				IdentityID:  nil,
 				KeyID:       nil, // will be set by the seeder
@@ -71,14 +71,14 @@ func TestRerollKeySuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Disabled:     false,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int32(16)),
+			Remaining:    ptr.P(int64(16)),
 			IdentityID:   ptr.P(identity.ID),
 			Meta:         nil,
 			Expires:      nil,
 			Name:         ptr.P("Test-Key"),
 			Deleted:      false,
 			Recoverable:  true,
-			RefillAmount: ptr.P(int32(100)),
+			RefillAmount: ptr.P(int64(100)),
 			RefillDay:    ptr.P(int16(1)),
 			Permissions: []seed.CreatePermissionRequest{
 				{
@@ -108,7 +108,7 @@ func TestRerollKeySuccess(t *testing.T) {
 					Name:        "default",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       15,
 					IdentityID:  nil,
 					KeyID:       nil, // will be set by the seeder
@@ -142,8 +142,8 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.Equal(t, createdKeyRow.IdentityID.String, rolledKeyRow.IdentityID.String)
 		require.Equal(t, createdKeyRow.Meta, rolledKeyRow.Meta)
 		require.Equal(t, createdKeyRow.RefillDay.Int16, rolledKeyRow.RefillDay.Int16)
-		require.Equal(t, createdKeyRow.RefillAmount.Int32, rolledKeyRow.RefillAmount.Int32)
-		require.Equal(t, createdKeyRow.RemainingRequests.Int32, rolledKeyRow.RemainingRequests.Int32)
+		require.Equal(t, createdKeyRow.RefillAmount.Int64, rolledKeyRow.RefillAmount.Int64)
+		require.Equal(t, createdKeyRow.RemainingRequests.Int64, rolledKeyRow.RemainingRequests.Int64)
 
 		// The first key should expire
 		require.True(t, createdKeyRow.Expires.Valid)
@@ -191,8 +191,8 @@ func TestRerollKeySuccess(t *testing.T) {
 
 		// Compare ratelimits by name and verify values match
 		type ratelimitData struct {
-			Limit    int32
-			Duration int64
+			Limit    uint64
+			Duration uint64
 		}
 
 		createdRatelimitMap := make(map[string]ratelimitData)
@@ -253,4 +253,44 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, rolledKeyRow.Expires.Valid, "rolled key should not have expiration set but its set to %s %t", rolledKeyRow.Expires.Time.String(), rolledKeyRow.Expires.Valid)
 	})
+}
+
+func TestRerollKeyWithURNPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+
+	createKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspace.ID, api.KeyAuthID.String)
+	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:      key.KeyID,
+		Expiration: 0,
+	})
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body)
+	require.NotEmpty(t, res.Body.Data.KeyId)
+	require.NotEmpty(t, res.Body.Data.Key)
 }

@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
@@ -57,7 +58,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
           <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
             <Suspense fallback={<Loading type="spinner" />}>
-              <Link href={`/${workspace.slug}/settings/billing`}>
+              <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
                 <Button>Upgrade</Button>
               </Link>
             </Suspense>
@@ -80,14 +81,14 @@ export function TeamPageClient({ team }: { team: boolean }) {
         <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b border-border w-full">
           <TabsTrigger
             value="members"
-            className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
+            className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-content data-active:shadow-none"
           >
             Team Members
           </TabsTrigger>
           {isAdmin ? (
             <TabsTrigger
               value="invitations"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-content data-active:shadow-none"
             >
               Pending Invitations
             </TabsTrigger>

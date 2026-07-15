@@ -4,13 +4,15 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ActorInfo } from "./actor_pb";
+import { file_ctrl_v1_actor } from "./actor_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi6AEKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSGAoQZW52aXJvbm1lbnRfc2x1ZxgCIAEoCRIUCgxkb2NrZXJfaW1hZ2UYAyABKAkSLwoKZ2l0X2NvbW1pdBgEIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gAiAEBEhgKC2tleXNwYWNlX2lkGAUgASgJSAGIAQESDwoHY29tbWFuZBgGIAMoCRIOCgZhcHBfaWQYByABKAlCDQoLX2dpdF9jb21taXRCDgoMX2tleXNwYWNlX2lkIpABCg1HaXRDb21taXRJbmZvEhIKCmNvbW1pdF9zaGEYASABKAkSFgoOY29tbWl0X21lc3NhZ2UYAiABKAkSFQoNYXV0aG9yX2hhbmRsZRgDIAEoCRIZChFhdXRob3JfYXZhdGFyX3VybBgEIAEoCRIRCgl0aW1lc3RhbXAYBSABKAMSDgoGYnJhbmNoGAYgASgJIlwKGENyZWF0ZURlcGxveW1lbnRSZXNwb25zZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEikKBnN0YXR1cxgCIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cyItChRHZXREZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIkAKFUdldERlcGxveW1lbnRSZXNwb25zZRInCgpkZXBsb3ltZW50GAEgASgLMhMuY3RybC52MS5EZXBsb3ltZW50IpgFCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEg4KBmFwcF9pZBgVIAEoCRIWCg5naXRfY29tbWl0X3NoYRgFIAEoCRISCgpnaXRfYnJhbmNoGAYgASgJEikKBnN0YXR1cxgHIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cxIVCg1lcnJvcl9tZXNzYWdlGAggASgJEkwKFWVudmlyb25tZW50X3ZhcmlhYmxlcxgJIAMoCzItLmN0cmwudjEuRGVwbG95bWVudC5FbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EiMKCHRvcG9sb2d5GAogASgLMhEuY3RybC52MS5Ub3BvbG9neRISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSEQoJaG9zdG5hbWVzGA0gAygJEhcKD3Jvb3Rmc19pbWFnZV9pZBgOIAEoCRIQCghidWlsZF9pZBgPIAEoCRImCgVzdGVwcxgQIAMoCzIXLmN0cmwudjEuRGVwbG95bWVudFN0ZXASGgoSZ2l0X2NvbW1pdF9tZXNzYWdlGBEgASgJEiAKGGdpdF9jb21taXRfYXV0aG9yX2hhbmRsZRgSIAEoCRIkChxnaXRfY29tbWl0X2F1dGhvcl9hdmF0YXJfdXJsGBMgASgJEhwKFGdpdF9jb21taXRfdGltZXN0YW1wGBQgASgDGjsKGUVudmlyb25tZW50VmFyaWFibGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJcCg5EZXBsb3ltZW50U3RlcBIOCgZzdGF0dXMYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIVCg1lcnJvcl9tZXNzYWdlGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAMi+AEKCFRvcG9sb2d5EhYKDmNwdV9taWxsaWNvcmVzGAEgASgFEhIKCm1lbW9yeV9taWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBRI5ChFlcGhlbWVyYWxfc3RvcmFnZRgHIAEoCzIZLmN0cmwudjEuRXBoZW1lcmFsU3RvcmFnZUgAiAEBQhQKEl9lcGhlbWVyYWxfc3RvcmFnZSIkChBFcGhlbWVyYWxTdG9yYWdlEhAKCHNpemVfbWliGAEgASgDIk4KDlJlZ2lvbmFsQ29uZmlnEg4KBnJlZ2lvbhgBIAEoCRIVCg1taW5faW5zdGFuY2VzGAIgASgFEhUKDW1heF9pbnN0YW5jZXMYAyABKAUiTQoPUm9sbGJhY2tSZXF1ZXN0EhwKFHNvdXJjZV9kZXBsb3ltZW50X2lkGAEgASgJEhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAIgASgJIhIKEFJvbGxiYWNrUmVzcG9uc2UiLgoOUHJvbW90ZVJlcXVlc3QSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYASABKAkiEQoPUHJvbW90ZVJlc3BvbnNlIjMKGkF1dGhvcml6ZURlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiHQobQXV0aG9yaXplRGVwbG95bWVudFJlc3BvbnNlIjAKF0NhbmNlbERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiGgoYQ2FuY2VsRGVwbG95bWVudFJlc3BvbnNlKtsDChBEZXBsb3ltZW50U3RhdHVzEiEKHURFUExPWU1FTlRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHQoZREVQTE9ZTUVOVF9TVEFUVVNfUEVORElORxABEh4KGkRFUExPWU1FTlRfU1RBVFVTX1NUQVJUSU5HEAcSHgoaREVQTE9ZTUVOVF9TVEFUVVNfQlVJTERJTkcQAhIfChtERVBMT1lNRU5UX1NUQVRVU19ERVBMT1lJTkcQAxIdChlERVBMT1lNRU5UX1NUQVRVU19ORVRXT1JLEAQSIAocREVQTE9ZTUVOVF9TVEFUVVNfRklOQUxJWklORxAIEhsKF0RFUExPWU1FTlRfU1RBVFVTX1JFQURZEAUSHAoYREVQTE9ZTUVOVF9TVEFUVVNfRkFJTEVEEAYSHQoZREVQTE9ZTUVOVF9TVEFUVVNfU0tJUFBFRBAJEicKI0RFUExPWU1FTlRfU1RBVFVTX0FXQUlUSU5HX0FQUFJPVkFMEAoSHQoZREVQTE9ZTUVOVF9TVEFUVVNfU1RPUFBFRBALEiAKHERFUExPWU1FTlRfU1RBVFVTX1NVUEVSU0VERUQQDBIfChtERVBMT1lNRU5UX1NUQVRVU19DQU5DRUxMRUQQDSpaCgpTb3VyY2VUeXBlEhsKF1NPVVJDRV9UWVBFX1VOU1BFQ0lGSUVEEAASEwoPU09VUkNFX1RZUEVfR0lUEAESGgoWU09VUkNFX1RZUEVfQ0xJX1VQTE9BRBACMv4DCg1EZXBsb3lTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiABJiChNBdXRob3JpemVEZXBsb3ltZW50EiMuY3RybC52MS5BdXRob3JpemVEZXBsb3ltZW50UmVxdWVzdBokLmN0cmwudjEuQXV0aG9yaXplRGVwbG95bWVudFJlc3BvbnNlIgASWQoQQ2FuY2VsRGVwbG95bWVudBIgLmN0cmwudjEuQ2FuY2VsRGVwbG95bWVudFJlcXVlc3QaIS5jdHJsLnYxLkNhbmNlbERlcGxveW1lbnRSZXNwb25zZSIAQo4BCgtjb20uY3RybC52MUIPRGVwbG95bWVudFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi5gIKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSGAoQZW52aXJvbm1lbnRfc2x1ZxgCIAEoCRIUCgxkb2NrZXJfaW1hZ2UYAyABKAkSLwoKZ2l0X2NvbW1pdBgEIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gAiAEBEhgKC2tleXNwYWNlX2lkGAUgASgJSAGIAQESDwoHY29tbWFuZBgGIAMoCRIOCgZhcHBfaWQYByABKAkSKwoHdHJpZ2dlchgIIAEoDjIaLmN0cmwudjEuRGVwbG95bWVudFRyaWdnZXISFAoMdHJpZ2dlcmVkX2J5GAogASgJEhYKDnRyaWdnZXJfcmVhc29uGAkgASgJEiEKBWFjdG9yGAsgASgLMhIuY3RybC52MS5BY3RvckluZm9CDQoLX2dpdF9jb21taXRCDgoMX2tleXNwYWNlX2lkIqkBCg1HaXRDb21taXRJbmZvEhIKCmNvbW1pdF9zaGEYASABKAkSFgoOY29tbWl0X21lc3NhZ2UYAiABKAkSFQoNYXV0aG9yX2hhbmRsZRgDIAEoCRIZChFhdXRob3JfYXZhdGFyX3VybBgEIAEoCRIRCgl0aW1lc3RhbXAYBSABKAMSDgoGYnJhbmNoGAYgASgJEhcKD2ZvcmtfcmVwb3NpdG9yeRgHIAEoCSJcChhDcmVhdGVEZXBsb3ltZW50UmVzcG9uc2USFQoNZGVwbG95bWVudF9pZBgBIAEoCRIpCgZzdGF0dXMYAiABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMiLQoUR2V0RGVwbG95bWVudFJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCSJAChVHZXREZXBsb3ltZW50UmVzcG9uc2USJwoKZGVwbG95bWVudBgBIAEoCzITLmN0cmwudjEuRGVwbG95bWVudCKYBQoKRGVwbG95bWVudBIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSEgoKcHJvamVjdF9pZBgDIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgEIAEoCRIOCgZhcHBfaWQYFSABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIvgBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRISCgptZW1vcnlfbWliGAIgASgFEigKB3JlZ2lvbnMYAyADKAsyFy5jdHJsLnYxLlJlZ2lvbmFsQ29uZmlnEhwKFGlkbGVfdGltZW91dF9zZWNvbmRzGAQgASgFEhkKEWhlYWx0aF9jaGVja19wYXRoGAUgASgJEgwKBHBvcnQYBiABKAUSOQoRZXBoZW1lcmFsX3N0b3JhZ2UYByABKAsyGS5jdHJsLnYxLkVwaGVtZXJhbFN0b3JhZ2VIAIgBAUIUChJfZXBoZW1lcmFsX3N0b3JhZ2UiJAoQRXBoZW1lcmFsU3RvcmFnZRIQCghzaXplX21pYhgBIAEoAyJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSIzChpBdXRob3JpemVEZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIh0KG0F1dGhvcml6ZURlcGxveW1lbnRSZXNwb25zZSIwChdDYW5jZWxEZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhoKGENhbmNlbERlcGxveW1lbnRSZXNwb25zZSIuChVTdG9wRGVwbG95bWVudFJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCSIYChZTdG9wRGVwbG95bWVudFJlc3BvbnNlIi4KFVdha2VEZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIhgKFldha2VEZXBsb3ltZW50UmVzcG9uc2Uq2wMKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfU1RBUlRJTkcQBxIeChpERVBMT1lNRU5UX1NUQVRVU19CVUlMRElORxACEh8KG0RFUExPWU1FTlRfU1RBVFVTX0RFUExPWUlORxADEh0KGURFUExPWU1FTlRfU1RBVFVTX05FVFdPUksQBBIgChxERVBMT1lNRU5UX1NUQVRVU19GSU5BTElaSU5HEAgSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBhIdChlERVBMT1lNRU5UX1NUQVRVU19TS0lQUEVEEAkSJwojREVQTE9ZTUVOVF9TVEFUVVNfQVdBSVRJTkdfQVBQUk9WQUwQChIdChlERVBMT1lNRU5UX1NUQVRVU19TVE9QUEVEEAsSIAocREVQTE9ZTUVOVF9TVEFUVVNfU1VQRVJTRURFRBAMEh8KG0RFUExPWU1FTlRfU1RBVFVTX0NBTkNFTExFRBANKs4BChFEZXBsb3ltZW50VHJpZ2dlchIiCh5ERVBMT1lNRU5UX1RSSUdHRVJfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1RSSUdHRVJfR0lUSFVCEAESGgoWREVQTE9ZTUVOVF9UUklHR0VSX0FQSRACEhoKFkRFUExPWU1FTlRfVFJJR0dFUl9DTEkQAxIgChxERVBMT1lNRU5UX1RSSUdHRVJfREFTSEJPQVJEEAQSHAoYREVQTE9ZTUVOVF9UUklHR0VSX1VOS0VZEAUyqAUKDURlcGxveVNlcnZpY2USWQoQQ3JlYXRlRGVwbG95bWVudBIgLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlcXVlc3QaIS5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZSIAElAKDUdldERlcGxveW1lbnQSHS5jdHJsLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0Gh4uY3RybC52MS5HZXREZXBsb3ltZW50UmVzcG9uc2UiABJBCghSb2xsYmFjaxIYLmN0cmwudjEuUm9sbGJhY2tSZXF1ZXN0GhkuY3RybC52MS5Sb2xsYmFja1Jlc3BvbnNlIgASPgoHUHJvbW90ZRIXLmN0cmwudjEuUHJvbW90ZVJlcXVlc3QaGC5jdHJsLnYxLlByb21vdGVSZXNwb25zZSIAEmIKE0F1dGhvcml6ZURlcGxveW1lbnQSIy5jdHJsLnYxLkF1dGhvcml6ZURlcGxveW1lbnRSZXF1ZXN0GiQuY3RybC52MS5BdXRob3JpemVEZXBsb3ltZW50UmVzcG9uc2UiABJZChBDYW5jZWxEZXBsb3ltZW50EiAuY3RybC52MS5DYW5jZWxEZXBsb3ltZW50UmVxdWVzdBohLmN0cmwudjEuQ2FuY2VsRGVwbG95bWVudFJlc3BvbnNlIgASUwoOU3RvcERlcGxveW1lbnQSHi5jdHJsLnYxLlN0b3BEZXBsb3ltZW50UmVxdWVzdBofLmN0cmwudjEuU3RvcERlcGxveW1lbnRSZXNwb25zZSIAElMKDldha2VEZXBsb3ltZW50Eh4uY3RybC52MS5XYWtlRGVwbG95bWVudFJlcXVlc3QaHy5jdHJsLnYxLldha2VEZXBsb3ltZW50UmVzcG9uc2UiAEKOAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentRequest
@@ -62,6 +64,45 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
    * @generated from field: string app_id = 7;
    */
   appId: string;
+
+  /**
+   * Which surface triggered this deployment.
+   *
+   * @generated from field: ctrl.v1.DeploymentTrigger trigger = 8;
+   */
+  trigger: DeploymentTrigger;
+
+  /**
+   * Polymorphic actor id, interpretation depends on `trigger`:
+   *   dashboard -> user_id
+   *   api / cli -> root_key_id
+   *   github    -> github sender_login (the user who pushed; not necessarily
+   *                the commit author — for that, see git_commit_author_handle
+   *                on the deployment row)
+   *   unkey     -> internal user_id
+   * Trusted by ctrl because the bearer token is the auth boundary — only
+   * trusted backends can reach this RPC.
+   *
+   * @generated from field: string triggered_by = 10;
+   */
+  triggeredBy: string;
+
+  /**
+   * Free-form reason. Stored alongside the deployment for audit purposes.
+   * Populated mostly by internal tooling (e.g. "rebuild after image loss").
+   *
+   * @generated from field: string trigger_reason = 9;
+   */
+  triggerReason: string;
+
+  /**
+   * Caller identity for the audit log ctrl writes. Carries actor type, name,
+   * and request origin. When unset, the deployment is attributed to the system
+   * actor. Preferred over triggered_by for attribution.
+   *
+   * @generated from field: ctrl.v1.ActorInfo actor = 11;
+   */
+  actor?: ActorInfo;
 };
 
 /**
@@ -108,6 +149,13 @@ export type GitCommitInfo = Message<"ctrl.v1.GitCommitInfo"> & {
    * @generated from field: string branch = 6;
    */
   branch: string;
+
+  /**
+   * Full fork repository identifier (e.g., "contributor/repo").
+   *
+   * @generated from field: string fork_repository = 7;
+   */
+  forkRepository: string;
 };
 
 /**
@@ -577,6 +625,66 @@ export const CancelDeploymentResponseSchema: GenMessage<CancelDeploymentResponse
   messageDesc(file_ctrl_v1_deployment, 17);
 
 /**
+ * @generated from message ctrl.v1.StopDeploymentRequest
+ */
+export type StopDeploymentRequest = Message<"ctrl.v1.StopDeploymentRequest"> & {
+  /**
+   * @generated from field: string deployment_id = 1;
+   */
+  deploymentId: string;
+};
+
+/**
+ * Describes the message ctrl.v1.StopDeploymentRequest.
+ * Use `create(StopDeploymentRequestSchema)` to create a new message.
+ */
+export const StopDeploymentRequestSchema: GenMessage<StopDeploymentRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 18);
+
+/**
+ * @generated from message ctrl.v1.StopDeploymentResponse
+ */
+export type StopDeploymentResponse = Message<"ctrl.v1.StopDeploymentResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.StopDeploymentResponse.
+ * Use `create(StopDeploymentResponseSchema)` to create a new message.
+ */
+export const StopDeploymentResponseSchema: GenMessage<StopDeploymentResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 19);
+
+/**
+ * @generated from message ctrl.v1.WakeDeploymentRequest
+ */
+export type WakeDeploymentRequest = Message<"ctrl.v1.WakeDeploymentRequest"> & {
+  /**
+   * @generated from field: string deployment_id = 1;
+   */
+  deploymentId: string;
+};
+
+/**
+ * Describes the message ctrl.v1.WakeDeploymentRequest.
+ * Use `create(WakeDeploymentRequestSchema)` to create a new message.
+ */
+export const WakeDeploymentRequestSchema: GenMessage<WakeDeploymentRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 20);
+
+/**
+ * @generated from message ctrl.v1.WakeDeploymentResponse
+ */
+export type WakeDeploymentResponse = Message<"ctrl.v1.WakeDeploymentResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.WakeDeploymentResponse.
+ * Use `create(WakeDeploymentResponseSchema)` to create a new message.
+ */
+export const WakeDeploymentResponseSchema: GenMessage<WakeDeploymentResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 21);
+
+/**
  * Deployment status enum
  *
  * @generated from enum ctrl.v1.DeploymentStatus
@@ -660,31 +768,47 @@ export const DeploymentStatusSchema: GenEnum<DeploymentStatus> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_deployment, 0);
 
 /**
- * Source type for deployment creation
+ * DeploymentTrigger identifies which surface initiated a deployment.
+ * Persisted on the deployment row for UI display and filtering.
  *
- * @generated from enum ctrl.v1.SourceType
+ * @generated from enum ctrl.v1.DeploymentTrigger
  */
-export enum SourceType {
+export enum DeploymentTrigger {
   /**
-   * @generated from enum value: SOURCE_TYPE_UNSPECIFIED = 0;
+   * @generated from enum value: DEPLOYMENT_TRIGGER_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: SOURCE_TYPE_GIT = 1;
+   * @generated from enum value: DEPLOYMENT_TRIGGER_GITHUB = 1;
    */
-  GIT = 1,
+  GITHUB = 1,
 
   /**
-   * @generated from enum value: SOURCE_TYPE_CLI_UPLOAD = 2;
+   * @generated from enum value: DEPLOYMENT_TRIGGER_API = 2;
    */
-  CLI_UPLOAD = 2,
+  API = 2,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_TRIGGER_CLI = 3;
+   */
+  CLI = 3,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_TRIGGER_DASHBOARD = 4;
+   */
+  DASHBOARD = 4,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_TRIGGER_UNKEY = 5;
+   */
+  UNKEY = 5,
 }
 
 /**
- * Describes the enum ctrl.v1.SourceType.
+ * Describes the enum ctrl.v1.DeploymentTrigger.
  */
-export const SourceTypeSchema: GenEnum<SourceType> = /*@__PURE__*/
+export const DeploymentTriggerSchema: GenEnum<DeploymentTrigger> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_deployment, 1);
 
 /**
@@ -754,6 +878,26 @@ export const DeployService: GenService<{
     methodKind: "unary";
     input: typeof CancelDeploymentRequestSchema;
     output: typeof CancelDeploymentResponseSchema;
+  },
+  /**
+   * Stop a ready non-production deployment by scaling it down.
+   *
+   * @generated from rpc ctrl.v1.DeployService.StopDeployment
+   */
+  stopDeployment: {
+    methodKind: "unary";
+    input: typeof StopDeploymentRequestSchema;
+    output: typeof StopDeploymentResponseSchema;
+  },
+  /**
+   * Wake a stopped deployment by scaling it back up.
+   *
+   * @generated from rpc ctrl.v1.DeployService.WakeDeployment
+   */
+  wakeDeployment: {
+    methodKind: "unary";
+    input: typeof WakeDeploymentRequestSchema;
+    output: typeof WakeDeploymentResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_deployment, 0);

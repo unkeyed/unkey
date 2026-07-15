@@ -75,9 +75,10 @@ func (x *AssignFrontlineRoutesRequest) GetFrontlineRouteIds() []string {
 }
 
 type AssignFrontlineRoutesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState      `protogen:"open.v1"`
+	ReassignedRoutes []*ReassignedFrontlineRoute `protobuf:"bytes,1,rep,name=reassigned_routes,json=reassignedRoutes,proto3" json:"reassigned_routes,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AssignFrontlineRoutesResponse) Reset() {
@@ -110,6 +111,65 @@ func (*AssignFrontlineRoutesResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *AssignFrontlineRoutesResponse) GetReassignedRoutes() []*ReassignedFrontlineRoute {
+	if x != nil {
+		return x.ReassignedRoutes
+	}
+	return nil
+}
+
+type ReassignedFrontlineRoute struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	FrontlineRouteId     string                 `protobuf:"bytes,1,opt,name=frontline_route_id,json=frontlineRouteId,proto3" json:"frontline_route_id,omitempty"`
+	PreviousDeploymentId string                 `protobuf:"bytes,2,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ReassignedFrontlineRoute) Reset() {
+	*x = ReassignedFrontlineRoute{}
+	mi := &file_hydra_v1_routing_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReassignedFrontlineRoute) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReassignedFrontlineRoute) ProtoMessage() {}
+
+func (x *ReassignedFrontlineRoute) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_routing_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReassignedFrontlineRoute.ProtoReflect.Descriptor instead.
+func (*ReassignedFrontlineRoute) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ReassignedFrontlineRoute) GetFrontlineRouteId() string {
+	if x != nil {
+		return x.FrontlineRouteId
+	}
+	return ""
+}
+
+func (x *ReassignedFrontlineRoute) GetPreviousDeploymentId() string {
+	if x != nil {
+		return x.PreviousDeploymentId
+	}
+	return ""
+}
+
 type SwapLiveDeploymentRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId      string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
@@ -123,7 +183,7 @@ type SwapLiveDeploymentRequest struct {
 
 func (x *SwapLiveDeploymentRequest) Reset() {
 	*x = SwapLiveDeploymentRequest{}
-	mi := &file_hydra_v1_routing_proto_msgTypes[2]
+	mi := &file_hydra_v1_routing_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -135,7 +195,7 @@ func (x *SwapLiveDeploymentRequest) String() string {
 func (*SwapLiveDeploymentRequest) ProtoMessage() {}
 
 func (x *SwapLiveDeploymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_routing_proto_msgTypes[2]
+	mi := &file_hydra_v1_routing_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -148,7 +208,7 @@ func (x *SwapLiveDeploymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwapLiveDeploymentRequest.ProtoReflect.Descriptor instead.
 func (*SwapLiveDeploymentRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{2}
+	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SwapLiveDeploymentRequest) GetDeploymentId() string {
@@ -176,7 +236,7 @@ type SwapLiveDeploymentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The deployment_id that was previously live for this app, or empty if
 	// there was no previous live deployment. Useful for the caller to schedule
-	// the previous deployment for standby.
+	// the previous deployment to stop.
 	PreviousDeploymentId string `protobuf:"bytes,1,opt,name=previous_deployment_id,json=previousDeploymentId,proto3" json:"previous_deployment_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
@@ -184,7 +244,7 @@ type SwapLiveDeploymentResponse struct {
 
 func (x *SwapLiveDeploymentResponse) Reset() {
 	*x = SwapLiveDeploymentResponse{}
-	mi := &file_hydra_v1_routing_proto_msgTypes[3]
+	mi := &file_hydra_v1_routing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -196,7 +256,7 @@ func (x *SwapLiveDeploymentResponse) String() string {
 func (*SwapLiveDeploymentResponse) ProtoMessage() {}
 
 func (x *SwapLiveDeploymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_routing_proto_msgTypes[3]
+	mi := &file_hydra_v1_routing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -209,7 +269,7 @@ func (x *SwapLiveDeploymentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwapLiveDeploymentResponse.ProtoReflect.Descriptor instead.
 func (*SwapLiveDeploymentResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{3}
+	return file_hydra_v1_routing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SwapLiveDeploymentResponse) GetPreviousDeploymentId() string {
@@ -226,8 +286,12 @@ const file_hydra_v1_routing_proto_rawDesc = "" +
 	"\x16hydra/v1/routing.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"s\n" +
 	"\x1cAssignFrontlineRoutesRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12.\n" +
-	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\"\x1f\n" +
-	"\x1dAssignFrontlineRoutesResponse\"\x9c\x01\n" +
+	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\"p\n" +
+	"\x1dAssignFrontlineRoutesResponse\x12O\n" +
+	"\x11reassigned_routes\x18\x01 \x03(\v2\".hydra.v1.ReassignedFrontlineRouteR\x10reassignedRoutes\"~\n" +
+	"\x18ReassignedFrontlineRoute\x12,\n" +
+	"\x12frontline_route_id\x18\x01 \x01(\tR\x10frontlineRouteId\x124\n" +
+	"\x16previous_deployment_id\x18\x02 \x01(\tR\x14previousDeploymentId\"\x9c\x01\n" +
 	"\x19SwapLiveDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12.\n" +
 	"\x13frontline_route_ids\x18\x02 \x03(\tR\x11frontlineRouteIds\x12*\n" +
@@ -251,23 +315,25 @@ func file_hydra_v1_routing_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_routing_proto_rawDescData
 }
 
-var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_hydra_v1_routing_proto_goTypes = []any{
 	(*AssignFrontlineRoutesRequest)(nil),  // 0: hydra.v1.AssignFrontlineRoutesRequest
 	(*AssignFrontlineRoutesResponse)(nil), // 1: hydra.v1.AssignFrontlineRoutesResponse
-	(*SwapLiveDeploymentRequest)(nil),     // 2: hydra.v1.SwapLiveDeploymentRequest
-	(*SwapLiveDeploymentResponse)(nil),    // 3: hydra.v1.SwapLiveDeploymentResponse
+	(*ReassignedFrontlineRoute)(nil),      // 2: hydra.v1.ReassignedFrontlineRoute
+	(*SwapLiveDeploymentRequest)(nil),     // 3: hydra.v1.SwapLiveDeploymentRequest
+	(*SwapLiveDeploymentResponse)(nil),    // 4: hydra.v1.SwapLiveDeploymentResponse
 }
 var file_hydra_v1_routing_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.RoutingService.AssignFrontlineRoutes:input_type -> hydra.v1.AssignFrontlineRoutesRequest
-	2, // 1: hydra.v1.RoutingService.SwapLiveDeployment:input_type -> hydra.v1.SwapLiveDeploymentRequest
-	1, // 2: hydra.v1.RoutingService.AssignFrontlineRoutes:output_type -> hydra.v1.AssignFrontlineRoutesResponse
-	3, // 3: hydra.v1.RoutingService.SwapLiveDeployment:output_type -> hydra.v1.SwapLiveDeploymentResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: hydra.v1.AssignFrontlineRoutesResponse.reassigned_routes:type_name -> hydra.v1.ReassignedFrontlineRoute
+	0, // 1: hydra.v1.RoutingService.AssignFrontlineRoutes:input_type -> hydra.v1.AssignFrontlineRoutesRequest
+	3, // 2: hydra.v1.RoutingService.SwapLiveDeployment:input_type -> hydra.v1.SwapLiveDeploymentRequest
+	1, // 3: hydra.v1.RoutingService.AssignFrontlineRoutes:output_type -> hydra.v1.AssignFrontlineRoutesResponse
+	4, // 4: hydra.v1.RoutingService.SwapLiveDeployment:output_type -> hydra.v1.SwapLiveDeploymentResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_routing_proto_init() }
@@ -281,7 +347,7 @@ func file_hydra_v1_routing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_routing_proto_rawDesc), len(file_hydra_v1_routing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

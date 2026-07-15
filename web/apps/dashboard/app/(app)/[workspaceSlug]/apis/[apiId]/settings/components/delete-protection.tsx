@@ -13,7 +13,6 @@ import { StatusBadge } from "./status-badge";
 type Props = {
   api: {
     id: string;
-    workspaceId: string;
     name: string;
     deleteProtection: boolean | null;
   };
@@ -24,7 +23,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
+    name: z.string().refine((v) => v === api.name, "Please confirm the keyspace name"),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -77,8 +76,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
         }
         description={
           api.deleteProtection
-            ? "Disabling this allows the API, along with all keys and data, to be deleted."
-            : "Enabling this prevents the API from being deleted."
+            ? "Disabling this allows the keyspace, along with all keys and data, to be deleted."
+            : "Enabling this prevents the keyspace from being deleted."
         }
         action={{
           label: api.deleteProtection ? "Disable" : "Enable",
@@ -88,7 +87,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
       <DialogContainer
         isOpen={open}
         onOpenChange={setOpen}
-        title={`${api.deleteProtection ? "Disable" : "Enable"} API Delete Protection`}
+        title={`${api.deleteProtection ? "Disable" : "Enable"} Keyspace Delete Protection`}
         footer={
           <div className="flex flex-col gap-2 items-center justify-center w-full">
             <Button
@@ -102,8 +101,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               className="w-full"
             >
               {api.deleteProtection
-                ? "Disable API Delete Protection"
-                : "Enable API Delete Protection"}
+                ? "Disable Keyspace Delete Protection"
+                : "Enable Keyspace Delete Protection"}
             </Button>
             <div className="font-normal text-[12px] text-gray-9 text-center">
               This setting can be {api.deleteProtection ? "disabled" : "enabled"} at any time
@@ -115,8 +114,8 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           <p className="text-gray-11 text-[13px]">
             <span className="font-medium">Important: </span>
             {api.deleteProtection
-              ? "Disabling this allows API deletion. This setting can be re-enabled at any time. "
-              : "Enabling this prevents the API from being deleted. This setting can be disabled at any time. "}
+              ? "Disabling this allows keyspace deletion. This setting can be re-enabled at any time. "
+              : "Enabling this prevents the keyspace from being deleted. This setting can be disabled at any time. "}
             <InlineLink
               label="Learn more"
               target="_blank"

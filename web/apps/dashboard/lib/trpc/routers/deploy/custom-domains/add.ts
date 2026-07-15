@@ -1,6 +1,7 @@
 import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
+import { routes } from "@/lib/navigation/routes";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { TRPCError } from "@trpc/server";
@@ -73,9 +74,21 @@ export const addCustomDomain = workspaceProcedure
       console.error("Add custom domain failed:", error);
 
       if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
+        const existing = await db.query.customDomains.findFirst({
+          where: (table, { eq, and }) =>
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.domain, input.domain)),
+          columns: { projectId: true, appId: true },
+        });
+
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Domain already registered",
+          message: existing
+            ? routes.projects.apps.settings({
+                workspaceSlug: ctx.workspace.slug,
+                projectId: existing.projectId,
+                appId: existing.appId,
+              })
+            : "Domain already registered",
         });
       }
 

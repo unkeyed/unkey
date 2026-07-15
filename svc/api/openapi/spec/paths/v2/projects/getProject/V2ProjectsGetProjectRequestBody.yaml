@@ -1,0 +1,18 @@
+type: object
+required:
+  - project
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  getById:
+    summary: Retrieve by project ID
+    description: Fetch a project using its unique identifier
+    value:
+      project: proj_1234abcd
+  getBySlug:
+    summary: Retrieve by project slug
+    description: Fetch a project using its slug
+    value:
+      project: payment-service

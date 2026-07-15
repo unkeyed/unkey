@@ -5,18 +5,27 @@ import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
+const REPLICAS_MAX_BETA = 4;
+
 export const updateInstances = workspaceProcedure
   .input(
-    z.object({
-      environmentId: z.string(),
-      replicasPerRegion: z
-        .number()
-        .min(1)
-        .max(
-          4,
-          "Instances are limited to 4 per region during beta. Please contact support@unkey.com if you need more.",
-        ),
-    }),
+    z
+      .object({
+        environmentId: z.string(),
+        replicasMin: z.number().int().min(1).max(REPLICAS_MAX_BETA),
+        replicasMax: z
+          .number()
+          .int()
+          .min(1)
+          .max(
+            REPLICAS_MAX_BETA,
+            "Instances are limited to 4 per region during beta. Please contact support@unkey.com if you need more.",
+          ),
+      })
+      .refine((d) => d.replicasMin <= d.replicasMax, {
+        message: "replicasMin must be ≤ replicasMax",
+        path: ["replicasMin"],
+      }),
   )
   .mutation(async ({ ctx, input }) => {
     await db.transaction(async (tx) => {
@@ -41,8 +50,8 @@ export const updateInstances = workspaceProcedure
         await tx
           .update(horizontalAutoscalingPolicies)
           .set({
-            replicasMin: 1,
-            replicasMax: input.replicasPerRegion,
+            replicasMin: input.replicasMin,
+            replicasMax: input.replicasMax,
             cpuThreshold: 80,
           })
           .where(eq(horizontalAutoscalingPolicies.id, existingPolicyId));
@@ -50,8 +59,8 @@ export const updateInstances = workspaceProcedure
         await tx.insert(horizontalAutoscalingPolicies).values({
           id: policyId,
           workspaceId: ctx.workspace.id,
-          replicasMin: 1,
-          replicasMax: input.replicasPerRegion,
+          replicasMin: input.replicasMin,
+          replicasMax: input.replicasMax,
           cpuThreshold: 80,
           createdAt: Date.now(),
         });
@@ -60,7 +69,7 @@ export const updateInstances = workspaceProcedure
       await tx
         .update(appRegionalSettings)
         .set({
-          replicas: input.replicasPerRegion,
+          replicas: input.replicasMax,
           horizontalAutoscalingPolicyId: policyId,
         })
         .where(

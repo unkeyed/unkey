@@ -38,7 +38,8 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
     const descriptionAsTooltip = descriptionPosition === "label";
     const checkboxVariant = error ? "primary" : variant;
     const checkboxColor = error ? "danger" : color;
-    const checkboxId = id || React.useId();
+    const generatedId = React.useId();
+    const checkboxId = id || generatedId;
     const descriptionId = `${checkboxId}-helper`;
     const errorId = `${checkboxId}-error`;
 

@@ -1,0 +1,122 @@
+import type { LastExit } from "@/lib/types/deploy";
+
+type HealthStatus = "normal" | "unhealthy" | "health_syncing" | "unknown" | "disabled";
+
+type BaseNode = {
+  id: string;
+  label: string;
+  direction?: "horizontal" | "vertical";
+};
+
+type BaseMetrics = {
+  rps?: number;
+  cpu?: number;
+  memory?: number;
+  storage?: number;
+  latency: string;
+  health: HealthStatus;
+};
+
+type OriginNode = BaseNode & {
+  metadata: {
+    type: "origin";
+  };
+  children?: DeploymentNode[];
+};
+
+type RegionNode = BaseNode & {
+  metadata: {
+    type: "region";
+    flagCode: "us" | "de" | "au" | "jp" | "in" | "br" | "local";
+    instances: number;
+    health: HealthStatus;
+  };
+  children?: InstanceNode[];
+};
+
+type InstanceNode = BaseNode & {
+  metadata: {
+    type: "instance";
+    description: string;
+    k8sName?: string;
+    // Most recent exit info denormalized from the instances row in
+    // PlanetScale. Null when the pod has never reported a termination
+    // (healthy first-life pods). The details panel renders this so the
+    // user sees "OOMKilled · exit=137" instead of a generic spinner.
+    lastExit: LastExit | null;
+  } & BaseMetrics;
+};
+
+type SkeletonNode = BaseNode & {
+  metadata: {
+    type: "skeleton";
+  };
+  children?: SkeletonNode[];
+};
+
+type DeploymentNode = OriginNode | RegionNode | InstanceNode | SkeletonNode;
+
+function isOriginNode(node: DeploymentNode): node is OriginNode {
+  return node.metadata.type === "origin";
+}
+
+function isRegionNode(node: DeploymentNode): node is RegionNode {
+  return node.metadata.type === "region";
+}
+
+function isInstanceNode(node: DeploymentNode): node is InstanceNode {
+  return node.metadata.type === "instance";
+}
+
+function isSkeletonNode(node: DeploymentNode): node is SkeletonNode {
+  return node.metadata.type === "skeleton";
+}
+
+type RegionInfo = {
+  name: string;
+  location: string;
+};
+
+const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
+  us: { name: "US East", location: "N. Virginia" },
+  de: { name: "EU Central", location: "Frankfurt" },
+  au: { name: "AP Southeast", location: "Sydney" },
+  jp: { name: "AP Northeast", location: "Tokyo" },
+  in: { name: "AP South", location: "Mumbai" },
+  br: { name: "SA East", location: "São Paulo" },
+  local: { name: "Local", location: "Local" },
+} as const;
+
+const DEFAULT_NODE_WIDTH = 230;
+type NodeSize = { width: number; height: number };
+/**
+ * Since our nodes are custom-made, we can optimize layout through static heights and widths.
+ * If things change over time, we can either update this list or create a ResizeObserver to track changes dynamically.
+ */
+const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
+  origin: { width: 70, height: 20 },
+  region: { width: 282, height: 100 },
+  instance: { width: 282, height: 100 },
+  skeleton: { width: 282, height: 100 },
+} as const;
+
+export type {
+  DeploymentNode,
+  OriginNode,
+  RegionNode,
+  InstanceNode,
+  SkeletonNode,
+  HealthStatus,
+  RegionInfo,
+  BaseMetrics,
+};
+
+export {
+  isOriginNode,
+  isRegionNode,
+  isInstanceNode,
+  isSkeletonNode,
+  DEFAULT_NODE_WIDTH,
+  REGION_INFO,
+  NODE_SIZES,
+};

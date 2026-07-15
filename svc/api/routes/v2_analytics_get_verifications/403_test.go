@@ -11,7 +11,7 @@ import (
 )
 
 func Test403_NoAnalyticsPermission(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	_ = h.CreateApi(seed.CreateApiRequest{
@@ -24,7 +24,6 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -44,7 +43,7 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 }
 
 func Test403_WrongApiPermission(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api1 := h.CreateApi(seed.CreateApiRequest{
@@ -60,7 +59,6 @@ func Test403_WrongApiPermission(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

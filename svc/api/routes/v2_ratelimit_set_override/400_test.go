@@ -18,7 +18,6 @@ func TestBadRequests(t *testing.T) {
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "ratelimit.*.set_override")
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 

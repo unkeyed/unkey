@@ -1,13 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
-import { clearWorkspaceCache } from "./getCurrent";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const changeWorkspaceName = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       name: z
@@ -61,10 +60,6 @@ export const changeWorkspaceName = workspaceProcedure
           id: ctx.tenant.id,
           name: input.name,
         });
-
-        // Clear both server-side and workspace caches after successful update
-        clearWorkspaceCache(ctx.tenant.id);
-        await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((_err) => {
         throw new TRPCError({

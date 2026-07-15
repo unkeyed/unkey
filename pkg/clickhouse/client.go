@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ type Config struct {
 //	if err != nil {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
-//	buf := clickhouse.NewBuffer[schema.ApiRequest](client, "default.api_requests_raw_v2", clickhouse.BufferConfig{...})
+//	buf := clickhouse.NewBuffer[schema.ApiRequest](client, clickhouse.BufferConfig{...})
 func New(config Config) (*Client, error) {
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
@@ -56,9 +57,18 @@ func New(config Config) (*Client, error) {
 	}
 
 	logger.Info("initializing clickhouse client")
-	opts.Debug = true
-	opts.Debugf = func(format string, v ...any) {
-		logger.Debug(fmt.Sprintf(format, v...))
+	// The clickhouse-go driver emits a handful of messages per query at
+	// Debug: send data, table columns, profile events, released, etc. Routing
+	// those through our normal logger.Debug drowns out every other debug line
+	// when UNKEY_LOG_LEVEL=debug is flipped on to investigate something else
+	// (heimdall attach, collector tick, etc.). Gate the driver's debug spam
+	// behind a dedicated env var so it stays opt-in for the rare case where
+	// you are actually debugging the driver itself.
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("UNKEY_CLICKHOUSE_DRIVER_DEBUG")), "true") {
+		opts.Debug = true
+		opts.Debugf = func(format string, v ...any) {
+			logger.Debug(fmt.Sprintf(format, v...))
+		}
 	}
 	opts.MaxOpenConns = 50
 	opts.ConnMaxLifetime = time.Hour

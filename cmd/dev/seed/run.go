@@ -1,6 +1,7 @@
 package seed
 
 import (
+	"github.com/unkeyed/unkey/cmd/dev/seed/checkpoints"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -12,6 +13,7 @@ var Cmd = &cli.Command{
 	Commands: []*cli.Command{
 		localCmd,
 		verificationsCmd,
-		sentinelCmd,
+		frontlineCmd,
+		checkpoints.Cmd,
 	},
 }

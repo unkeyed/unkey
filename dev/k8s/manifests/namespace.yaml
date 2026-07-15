@@ -5,3 +5,15 @@ metadata:
   labels:
     app.kubernetes.io/name: unkey
     app.kubernetes.io/instance: dev
+---
+# Frontline runs in its own namespace so the per-deployment
+# CiliumNetworkPolicy that krane installs (allowing ingress from
+# io.kubernetes.pod.namespace=frontline) can pinpoint frontline pods
+# without permitting every workload in the unkey namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontline
+  labels:
+    app.kubernetes.io/name: frontline
+    app.kubernetes.io/instance: dev

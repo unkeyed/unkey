@@ -6,6 +6,7 @@ import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
+import { applyVerificationResult } from "../challenge/handle-result";
 import { useSignUp } from "../hooks/useSignUp";
 
 export const EmailVerify: React.FC = () => {
@@ -21,15 +22,22 @@ export const EmailVerify: React.FC = () => {
   }, []);
 
   const verifyEmail = async (otp: string) => {
-    if (typeof otp !== "string") {
+    if (typeof otp !== "string" || isLoading) {
       return null;
     }
     setIsLoading(true);
-    await handleEmailVerification(otp).catch((err) => {
+    try {
+      const result = await handleEmailVerification(otp);
+      const message = applyVerificationResult(result);
+      if (message) {
+        setIsLoading(false);
+        toast.error(message);
+      }
+    } catch (err) {
       setIsLoading(false);
-      const errorCode = err.message as AuthErrorCode;
+      const errorCode = (err as Error).message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-    });
+    }
   };
 
   return (
@@ -44,9 +52,11 @@ export const EmailVerify: React.FC = () => {
       <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyEmail(otp)}>
         <OTPInput
           data-1p-ignore
+          autoFocus
           value={otp}
           onChange={setOtp}
-          onComplete={() => verifyEmail(otp)}
+          onComplete={(value) => verifyEmail(value)}
+          disabled={isLoading}
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
@@ -61,7 +71,7 @@ export const EmailVerify: React.FC = () => {
         <button
           type="submit"
           className="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-          disabled={isLoading}
+          disabled={isLoading || otp.length !== 6}
           onClick={() => verifyEmail(otp)}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}

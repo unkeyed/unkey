@@ -35,9 +35,13 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 		))
 	}
 
-	// Parse OpenAPI specs
+	// Parse OpenAPI specs.
+	// Keep IsExternalRefsAllowed at its default (false). The spec bytes
+	// come from tenant-controlled deployments via ScrapeSpec, so allowing
+	// external $ref resolution would let a tenant point a $ref at IMDS,
+	// internal services (Restate admin, ClickHouse, K8s API), or file://
+	// URLs and have ctrl issue the request under its identity.
 	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
 
 	s1, err := loader.LoadFromData(oldSpec)
 	if err != nil {

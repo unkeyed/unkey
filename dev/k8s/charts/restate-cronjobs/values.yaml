@@ -1,17 +1,66 @@
 restateIngressUrl: "http://restate.unkey.svc.cluster.local:8080"
 
+# All cron tasks invoke a single Restate service (hydra.v1.CronService).
+# Each task gets its own VO key so independent handlers don't share a
+# serialization queue — a slow or paused invocation of one cannot block
+# the next tick of another. Tasks that need a window (billing period,
+# date) encode it in the key; the rest use a fixed per-task slug.
 jobs:
   key-last-used-sync:
     schedule: "* * * * *"
-    urlPath: "hydra.v1.KeyLastUsedSyncService/RunSync/send"
+    urlPath: "hydra.v1.CronService/key-last-used-sync/RunKeyLastUsedSync/send"
     idempotencyKey: "key-last-used-sync-$(date -u +%Y-%m-%dT%H:%M)"
 
   key-refill:
     schedule: "0 0 * * *"
-    urlPath: "hydra.v1.KeyRefillService/$(date -u +%Y-%m-%d)/RunRefill/send"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m-%d)/RunKeyRefill/send"
     idempotencyKey: "key-refill-$(date -u +%Y-%m-%d)"
 
   quota-check:
     schedule: "0 15 * * *"
-    urlPath: "hydra.v1.QuotaCheckService/$(date -u +%Y-%m)/RunCheck/send"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunQuotaCheck/send"
     idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"
+
+  audit-log-export:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.CronService/audit-log-export/RunAuditLogExport/send"
+    idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
+
+  ratelimit-global-counters-cleanup:
+    schedule: "0 * * * *"
+    urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
+    idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"
+
+  # Daily sweep of already-exported audit log outbox rows past the 30-day
+  # retention window. Stateless, cutoff-bounded DELETE; the fixed slug key
+  # keeps a paused/wedged run from blocking the every-minute handlers.
+  audit-log-outbox-cleanup:
+    schedule: "0 2 * * *"
+    urlPath: "hydra.v1.CronService/audit-log-outbox-cleanup/RunAuditLogOutboxCleanup/send"
+    idempotencyKey: "audit-log-outbox-cleanup-$(date -u +%Y-%m-%d)"
+
+  # Hourly month-to-date Deploy usage push to Stripe. Keyed by billing period
+  # (YYYY-MM) so ticks for the same month serialize; the pushed quantity is the
+  # absolute month-to-date total (Stripe meters aggregate with formula "last"),
+  # so retries and overlapping ticks are harmless.
+  deploy-billing-push:
+    schedule: "0 * * * *"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
+    idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
+
+  idle-preview-deployments:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.CronService/idle-preview-deployments/RunScaleDownIdlePreviewDeployments/send"
+    idempotencyKey: "idle-preview-deployments-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Month-end Deploy billing close, backup for the invoice.created webhook that
+  # normally runs it at the period roll. Keyed by the CLOSED period (yesterday's
+  # month, hence the epoch math). The idempotency key carries the run timestamp
+  # so this is a fresh retry, not a replay of the webhook's invocation. Runs at
+  # 00:30 UTC to beat Stripe's ~1h draft auto-finalize.
+  #
+  # NOTE: local/test schedule; the production cron lives in the infra repo too.
+  deploy-billing-close:
+    schedule: "30 0 1 * *"
+    urlPath: "hydra.v1.CronService/$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)/RunDeployBillingClose/send"
+    idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)-backup-$(date -u +%Y-%m-%dT%H%M)"

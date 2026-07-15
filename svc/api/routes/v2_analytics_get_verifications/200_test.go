@@ -14,7 +14,7 @@ import (
 )
 
 func Test200_Success(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -42,7 +42,6 @@ func Test200_Success(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -69,7 +68,7 @@ func Test200_Success(t *testing.T) {
 }
 
 func Test200_PermissionFiltersByApiId(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api1 := h.CreateApi(seed.CreateApiRequest{
@@ -117,7 +116,6 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -148,7 +146,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 }
 
 func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api1 := h.CreateApi(seed.CreateApiRequest{
@@ -196,7 +194,6 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -234,7 +231,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 func Test200_QueryWithin30DaysRetention(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -260,7 +257,6 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -284,7 +280,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 }
 
 func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -292,7 +288,6 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -314,7 +309,7 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 }
 
 func Test200_QueryWithCustomRetention90Days(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90)) // 90-day retention
@@ -322,7 +317,6 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -344,7 +338,7 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 }
 
 func Test200_RLSWorkspaceIsolation(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	// Create two separate workspaces
 	workspace1 := h.CreateWorkspace()
@@ -398,7 +392,6 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -428,7 +421,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 }
 
 func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -436,7 +429,6 @@ func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

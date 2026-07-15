@@ -1,0 +1,18 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/EmptyResponse.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Rollback accepted
+    description: The rollback was successfully accepted
+    value:
+      meta:
+        requestId: req_1234abcd
+      data: {}

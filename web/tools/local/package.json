@@ -5,18 +5,22 @@
   "main": "index.js",
   "scripts": {
     "local": "tsx ./src/main.ts",
-    "seed": "tsx ./src/seed.ts"
+    "seed": "tsx ./src/seed.ts",
+    "audit-log-benchmark": "tsx ./src/audit-log-benchmark.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
     "@clack/prompts": "0.7.0",
-    "@unkey/db": "workspace:^",
+    "@clickhouse/client": "1.18.5",
+    "@clickhouse/client-web": "catalog:",
     "@unkey/clickhouse": "workspace:^",
+    "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
-    "mysql2": "3.10.3",
+    "mitata": "1.0.34",
+    "mysql2": "catalog:",
     "tsx": "4.19.1"
   },
   "dependencies": {

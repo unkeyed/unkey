@@ -21,6 +21,8 @@ type SlidePanelRootProps = {
   topOffset?: number;
   widthClassName?: string;
   className?: string;
+  backdrop?: boolean | "blur" | "dim";
+  fitContent?: boolean;
 };
 
 const SlidePanelRoot = ({
@@ -31,6 +33,8 @@ const SlidePanelRoot = ({
   topOffset = 0,
   widthClassName = "w-175",
   className,
+  backdrop = "blur",
+  fitContent = false,
 }: SlidePanelRootProps) => {
   React.useEffect(
     function closeOnEscape() {
@@ -73,19 +77,23 @@ const SlidePanelRoot = ({
 
   const panel = (
     <SlidePanelProvider isOpen={isOpen} onClose={onClose}>
-      {/* Backdrop 
-         biome-ignore lint/a11y/useKeyWithClickEvents: Safe to leave
-        */}
-      <div
-        className={cn(
-          "fixed inset-0 z-50 bg-background/5 transition-opacity duration-300",
-          isOpen
-            ? "opacity-100 backdrop-blur-[2px]"
-            : "opacity-0 pointer-events-none backdrop-blur-none",
-        )}
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      {/* Backdrop */}
+      {backdrop !== false && (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss doesn't need keyboard equivalent
+        <div
+          className={cn(
+            "fixed inset-0 z-50 transition-opacity duration-300",
+            backdrop === "blur" && "bg-background/5",
+            backdrop === "dim" && "bg-background/20",
+            backdrop === true && "bg-background/5",
+            isOpen
+              ? cn("opacity-100", backdrop === "blur" && "backdrop-blur-[2px]")
+              : "opacity-0 pointer-events-none",
+          )}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
       {/* Panel */}
       <div
         aria-hidden={!isOpen}
@@ -94,6 +102,7 @@ const SlidePanelRoot = ({
           "fixed dark:bg-black bg-white border border-gray-4 rounded-xl overflow-hidden z-51",
           "transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]",
           "shadow-md",
+          "flex flex-col",
           side === "right" ? "right-3" : "left-3",
           isOpen
             ? "translate-x-0"
@@ -105,11 +114,13 @@ const SlidePanelRoot = ({
         )}
         style={{
           top: `${topOffset + 12}px`,
-          height: `calc(100vh - ${topOffset + 24}px)`,
+          ...(fitContent
+            ? { maxHeight: `calc(100vh - ${topOffset + 24}px)` }
+            : { height: `calc(100vh - ${topOffset + 24}px)` }),
           willChange: isOpen ? "transform, opacity" : "auto",
         }}
       >
-        <div className="h-full flex flex-col">{children}</div>
+        {children}
       </div>
     </SlidePanelProvider>
   );

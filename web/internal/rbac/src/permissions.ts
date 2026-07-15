@@ -14,9 +14,7 @@ export function buildIdSchema(prefix: string) {
     if (s === "*") {
       return true;
     }
-    const regex = new RegExp(
-      `^${prefix}_[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{8,32}$`,
-    );
+    const regex = new RegExp(`^${prefix}_[0-9A-Za-z]{8,32}$`);
     return regex.test(s);
   });
 }
@@ -25,6 +23,8 @@ const ratelimitNamespaceId = buildIdSchema("rl");
 const rbacId = buildIdSchema("rbac");
 const identityEnvId = z.string();
 const projectId = buildIdSchema("proj");
+const appId = buildIdSchema("app");
+const environmentId = buildIdSchema("env");
 export const apiActions = z.enum([
   "read_api",
   "create_api",
@@ -72,9 +72,28 @@ export const identityActions = z.enum([
   "delete_identity",
 ]);
 export const projectActions = z.enum([
+  "create_project",
+  "read_project",
+  "update_project",
+  "delete_project",
+  "create_app",
   "create_deployment",
   "read_deployment",
   "generate_upload_url",
+]);
+export const appActions = z.enum(["read_app", "update_app", "delete_app"]);
+export const environmentActions = z.enum([
+  "read_environment",
+  "update_environment",
+  "set_environment_variables",
+  "remove_environment_variables",
+  "read_environment_variables",
+  "create_deployment",
+  "read_deployment",
+  "stop_deployment",
+  "start_deployment",
+  "promote_deployment",
+  "rollback_deployment",
 ]);
 
 // Resources that require an ID (resource.id.action format)
@@ -84,6 +103,8 @@ const scopedResources = {
   rbac: { idSchema: rbacId, actionsSchema: rbacActions },
   identity: { idSchema: identityEnvId, actionsSchema: identityActions },
   project: { idSchema: projectId, actionsSchema: projectActions },
+  app: { idSchema: appId, actionsSchema: appActions },
+  environment: { idSchema: environmentId, actionsSchema: environmentActions },
 } as const;
 
 export type Resources = {
@@ -98,6 +119,12 @@ export type Resources = {
   [resourceId in `identity.${z.infer<typeof identityEnvId>}`]: z.infer<typeof identityActions>;
 } & {
   [resourceId in `project.${z.infer<typeof projectId>}`]: z.infer<typeof projectActions>;
+} & {
+  [resourceId in `app.${z.infer<typeof appId>}`]: z.infer<typeof appActions>;
+} & {
+  [resourceId in `environment.${z.infer<typeof environmentId>}`]: z.infer<
+    typeof environmentActions
+  >;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

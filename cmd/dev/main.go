@@ -3,6 +3,7 @@ package dev
 import (
 	"github.com/unkeyed/unkey/cmd/dev/github"
 	"github.com/unkeyed/unkey/cmd/dev/seed"
+	devstripe "github.com/unkeyed/unkey/cmd/dev/stripe"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -15,5 +16,6 @@ var Cmd = &cli.Command{
 		seed.Cmd,
 		generateMasterKeyCmd,
 		github.Cmd,
+		devstripe.Cmd,
 	},
 }

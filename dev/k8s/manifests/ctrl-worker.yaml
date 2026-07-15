@@ -14,10 +14,7 @@ data:
     dashboard_url = "http://localhost:3000"
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
-    sentinel_image = "unkey/sentinel:latest"
-
-    [database]
-    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [vault]
     url = "http://vault:8060"
@@ -46,6 +43,12 @@ data:
     [clickhouse]
     url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
     admin_url = "clickhouse://unkey_user_admin:C57RqT5EPZBqCJkMxN9mEZZEzMPcw9yBlwhIizk99t7kx6uLi9rYmtWObsXzdl@clickhouse:9000?secure=false&skip_verify=true"
+
+    # Stripe key for the hourly Deploy billing push. Resolved at runtime via
+    # os.ExpandEnv from the optional stripe-credentials secret (dev/.env.stripe).
+    # Empty (no .env.stripe) leaves the push as a no-op that only logs numbers.
+    [billing]
+    stripe_secret_key = "${STRIPE_SECRET_KEY}"
 
     # GitHub App credentials for authenticating with the GitHub API.
     # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
@@ -87,8 +90,8 @@ spec:
             name: ctrl-worker-config
       containers:
         - name: ctrl-worker
-          image: unkey/go:latest
-          args: ["run", "ctrl", "worker", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/control-worker:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 9080
@@ -131,8 +134,14 @@ spec:
                   name: github-credentials
                   key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-credentials
+                  key: STRIPE_SECRET_KEY
+                  optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
-              value: "true"
+              value: "false"
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock
@@ -141,7 +150,7 @@ spec:
               readOnly: true
       initContainers:
         - name: wait-for-dependencies
-          image: busybox:1.36
+          image: busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
           command:
             [
               "sh",

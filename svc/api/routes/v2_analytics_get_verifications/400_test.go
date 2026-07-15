@@ -10,7 +10,7 @@ import (
 )
 
 func Test400_EmptyQuery(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -18,7 +18,6 @@ func Test400_EmptyQuery(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -41,7 +40,7 @@ func Test400_EmptyQuery(t *testing.T) {
 }
 
 func Test400_InvalidSQLSyntax(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -49,7 +48,6 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -74,7 +72,7 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 }
 
 func Test400_UnknownColumn(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -82,7 +80,6 @@ func Test400_UnknownColumn(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -105,7 +102,7 @@ func Test400_UnknownColumn(t *testing.T) {
 }
 
 func Test400_InvalidTable(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -113,7 +110,6 @@ func Test400_InvalidTable(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -136,7 +132,7 @@ func Test400_InvalidTable(t *testing.T) {
 }
 
 func Test400_NonSelectQuery(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -144,7 +140,6 @@ func Test400_NonSelectQuery(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -167,7 +162,7 @@ func Test400_NonSelectQuery(t *testing.T) {
 }
 
 func Test400_QueryBeyond30Days(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)
@@ -175,7 +170,6 @@ func Test400_QueryBeyond30Days(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -199,7 +193,7 @@ func Test400_QueryBeyond30Days(t *testing.T) {
 }
 
 func Test400_QueryBeyondCustomRetention90Days(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90)) // 90-day retention
@@ -207,7 +201,6 @@ func Test400_QueryBeyondCustomRetention90Days(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

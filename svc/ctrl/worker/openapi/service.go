@@ -5,7 +5,7 @@ import (
 	"time"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the OpenapiService. It scrapes OpenAPI specs from running
@@ -29,6 +29,11 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedOpenapiServiceServer: hydrav1.UnimplementedOpenapiServiceServer{},
 		db:                                cfg.DB,
-		httpClient:                        &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
 	}
 }

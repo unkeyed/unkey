@@ -150,6 +150,33 @@ func TestWithTimeout(t *testing.T) {
 		require.Equal(t, codes.User.BadRequest.RequestTimeout.URN(), urn)
 	})
 
+	t.Run("protocol upgrade bypasses timeout", func(t *testing.T) {
+		// WebSocket (and any Connection: Upgrade) hijacks the conn for a
+		// long-lived bidirectional tunnel. Cancelling its context tears the
+		// tunnel down mid-session, so WithTimeout must let upgrades pass
+		// through untouched.
+		middleware := WithTimeout(20 * time.Millisecond)
+
+		req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+		req.Header.Set("Connection", "Upgrade")
+		req.Header.Set("Upgrade", "websocket")
+
+		handlerCtx := make(chan context.Context, 1)
+		handler := middleware(func(ctx context.Context, s *Session) error {
+			handlerCtx <- ctx
+			// Sleep well past the configured timeout to prove no deadline fired.
+			time.Sleep(80 * time.Millisecond)
+			return nil
+		})
+
+		err := handler(context.Background(), &Session{r: req})
+		require.NoError(t, err)
+
+		ctx := <-handlerCtx
+		_, hasDeadline := ctx.Deadline()
+		require.False(t, hasDeadline, "upgrade requests must run with the parent context, no deadline attached")
+	})
+
 	t.Run("wrapped context error with existing code is reclassified as client closed", func(t *testing.T) {
 		// Same as above but for client cancellation scenario
 		middleware := WithTimeout(200 * time.Millisecond)

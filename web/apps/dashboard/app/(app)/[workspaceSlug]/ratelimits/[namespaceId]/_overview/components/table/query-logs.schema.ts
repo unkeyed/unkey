@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { ratelimitOverviewFilterOperatorEnum } from "../../filters.schema";
 
-export const sortFields = z.enum(["time", "avg_latency", "p99_latency", "blocked", "passed"]);
+export const sortFields = z.enum(["time", "blocked", "passed", "passed_tokens", "blocked_tokens"]);
 export type SortFields = z.infer<typeof sortFields>;
 
 export const ratelimitQueryOverviewLogsPayload = z.object({
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   namespaceId: z.string(),
@@ -30,7 +30,7 @@ export const ratelimitQueryOverviewLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().nullable().optional().nullable(),
+  page: z.int().min(1).optional().default(1),
   sorts: z
     .array(
       z.object({

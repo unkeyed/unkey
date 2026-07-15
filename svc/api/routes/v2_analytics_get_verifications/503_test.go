@@ -13,7 +13,7 @@ import (
 )
 
 func Test503_ClickHouseConnectionFailure(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	_ = h.CreateApi(seed.CreateApiRequest{
@@ -52,7 +52,6 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

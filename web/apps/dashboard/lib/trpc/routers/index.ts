@@ -8,9 +8,7 @@ import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
-import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
-import { getKeyCount } from "./api/overview/query-key-count";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { queryApiKeyDetails } from "./api/query-api-key-details";
@@ -35,7 +33,12 @@ import { queryRolesPermissions } from "./authorization/roles/permissions/query-p
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
+import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
+import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryUsage } from "./billing/query-usage";
+import { createApp } from "./deploy/app/create";
+import { deleteApp } from "./deploy/app/delete";
+import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
@@ -47,18 +50,26 @@ import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
+import { stopDeployment } from "./deploy/deployment/stop";
+import { wakeDeployment } from "./deploy/deployment/wake";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
+import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
+import { makeSensitive } from "./deploy/env-vars/make-sensitive";
+import { renameEnvVars } from "./deploy/env-vars/rename";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
+import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -83,22 +94,34 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
-import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
-import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
-import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
-import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
+import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
+import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
+import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
+import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
+import { getDeploymentLatencyMetrics } from "./deploy/metrics/get-deployment-latency-metrics";
+import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
+import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
+import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
+import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
+import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
+import { getRegionRps } from "./deploy/network/get-region-rps";
 import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
+import { updateProject } from "./deploy/project/update";
+import { createSharedSecret } from "./share/create";
+import { revealSharedSecret } from "./share/reveal";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -106,11 +129,11 @@ import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
+import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
-import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
@@ -118,9 +141,7 @@ import { searchIdentities } from "./identity/search";
 import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
 import { updateIdentityMetadata } from "./identity/updateMetadata";
 import { updateIdentityRatelimit } from "./identity/updateRatelimit";
-import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
-import { deleteKeys } from "./key/delete";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
@@ -129,14 +150,7 @@ import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
 import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
-import { updateKeyRbac } from "./key/rbac/update-rbac";
-import { updateKeysEnabled } from "./key/updateEnabled";
-import { updateKeyExpiration } from "./key/updateExpiration";
-import { updateKeyMetadata } from "./key/updateMetadata";
-import { updateKeyName } from "./key/updateName";
-import { updateKeyOwner } from "./key/updateOwnerId";
-import { updateKeyRatelimit } from "./key/updateRatelimit";
-import { updateKeyRemaining } from "./key/updateRemaining";
+import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
@@ -181,19 +195,33 @@ import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
+import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
+import { changeDeployPlan } from "./stripe/changeDeployPlan";
 import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { getCheckoutSession } from "./stripe/getCheckoutSession";
 import { getCustomer } from "./stripe/getCustomer";
+import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
+import { getDeployPlans } from "./stripe/getDeployPlans";
+import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
+import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
+import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import { getCurrentUser, listMemberships, switchOrg } from "./user";
-import { vercelRouter } from "./vercel";
+import {
+  getCurrentUser,
+  listMemberships,
+  listMfaFactors,
+  removeMfaFactor,
+  startMfaEnrollment,
+  switchOrg,
+  verifyMfaEnrollment,
+} from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -202,24 +230,18 @@ import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
+  share: t.router({
+    create: createSharedSecret,
+    reveal: revealSharedSecret,
+  }),
   key: t.router({
-    create: createKey,
-    delete: deleteKeys,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     update: t.router({
-      enabled: updateKeysEnabled,
-      expiration: updateKeyExpiration,
-      metadata: updateKeyMetadata,
-      name: updateKeyName,
-      ownerId: updateKeyOwner,
-      ratelimit: updateKeyRatelimit,
-      remaining: updateKeyRemaining,
       rbac: t.router({
-        update: updateKeyRbac,
         roles: t.router({
           search: searchKeysRoles,
           query: queryKeysRoles,
@@ -235,6 +257,7 @@ export const router = t.router({
   }),
   rootKey: t.router({
     create: createRootKey,
+    reroll: rerollRootKey,
     update: t.router({
       name: updateRootKeyName,
       // NOTE: permissions replaces the full permission set for a root key.
@@ -264,11 +287,9 @@ export const router = t.router({
       llmSearch: keysLlmSearch,
       list: queryKeysList,
       listLlmSearch: apiKeysLlmSearch,
-      enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
     }),
     overview: t.router({
-      keyCount: getKeyCount,
       timeseries: queryVerificationTimeseries,
       query: queryApisOverview,
       search: overviewApiSearch,
@@ -294,8 +315,14 @@ export const router = t.router({
     getProducts,
     getSetupIntent,
     updateWorkspaceStripeCustomer,
+    subscribeDeploy,
+    changeDeployPlan,
+    cancelDeploy,
+    getDeploySubscription,
+    getDeployPlans,
+    getDeployEntitlement,
+    getUpcomingInvoice,
   }),
-  vercel: vercelRouter,
   github: githubRouter,
   plain: t.router({
     createIssue: createPlainIssue,
@@ -374,6 +401,9 @@ export const router = t.router({
   }),
   billing: t.router({
     queryUsage,
+    queryDeployUsage,
+    getDeployBudget,
+    setDeployBudget,
   }),
   audit: t.router({
     logs: fetchAuditLog,
@@ -383,6 +413,12 @@ export const router = t.router({
     getCurrentUser,
     listMemberships,
     switchOrg,
+    mfa: t.router({
+      listFactors: listMfaFactors,
+      startEnrollment: startMfaEnrollment,
+      verifyEnrollment: verifyMfaEnrollment,
+      removeFactor: removeMfaFactor,
+    }),
   }),
   org: t.router({
     getOrg,
@@ -404,7 +440,6 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
-    latestVerification: identityLastVerificationTime,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
@@ -418,14 +453,20 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getSentinelRps,
       getInstanceRps,
+      getRegionRps,
     }),
     project: t.router({
       list: listProjects,
       create: createProject,
+      update: updateProject,
       delete: deleteProject,
       creationContext,
+    }),
+    app: t.router({
+      list: listApps,
+      create: createApp,
+      delete: deleteApp,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
@@ -449,6 +490,11 @@ export const router = t.router({
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,
         }),
+        openapi: t.router({
+          create: createOpenapiPolicy,
+          update: updateOpenapiPolicy,
+          delete: deleteOpenapiPolicy,
+        }),
         generateRegex,
       }),
       runtime: t.router({
@@ -464,20 +510,26 @@ export const router = t.router({
         updateUpstreamProtocol,
       }),
       build: t.router({
+        updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
+        updateBuildCommand,
         updateWatchPaths,
       }),
     }),
     environment: t.router({
       list: listEnvironments,
+      listAll: listAllEnvironments,
     }),
     envVar: t.router({
       list: listEnvVars,
       create: createEnvVars,
+      createBulk: createBulkEnvVars,
       update: updateEnvVar,
+      rename: renameEnvVars,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
+      makeSensitive,
     }),
     domain: t.router({
       list: listDomains,
@@ -493,6 +545,7 @@ export const router = t.router({
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
+      instanceEvents: getDeploymentInstanceEvents,
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
@@ -502,6 +555,8 @@ export const router = t.router({
       create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
+      stop: stopDeployment,
+      wake: wakeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
@@ -513,10 +568,16 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
-      getDeploymentRps,
-      getDeploymentRpsTimeseries,
-      getDeploymentLatency,
-      getDeploymentLatencyTimeseries,
+      getAppRpsMetrics,
+      getDeploymentRpsMetrics,
+      getDeploymentLatencyMetrics,
+      getDeploymentCpuTimeseries,
+      getDeploymentMemoryTimeseries,
+      getDeploymentDiskTimeseries,
+      getDeploymentNetworkEgressTimeseries,
+      getDeploymentNetworkIngressTimeseries,
+      getDeploymentInstanceCountTimeseries,
+      getDeploymentResourceSummary,
     }),
   }),
 });

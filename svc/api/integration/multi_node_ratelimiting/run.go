@@ -86,11 +86,19 @@ func RunRateLimitTest(
 	// Maximum theoretical allowed requests across all windows
 	maxAllowed := math.Min(numWindows*float64(limit), float64(totalRequests))
 
-	// Set acceptance thresholds at 100% + 10% per node for distributed over-admission.
-	// In a multi-node setup, each node makes local-first decisions before async replay to Redis completes,
-	// which can cause temporary over-admission proportional to the number of nodes.
+	// Upper bound at 100% + 10% per node accounts for distributed
+	// over-admission: each node makes local-first decisions before
+	// async replay to Redis completes, which can cause temporary
+	// over-admission proportional to the number of nodes.
 	nodeOverAdmissionFactor := 0.10 * float64(nodeCount)
 	upperLimit := int(maxAllowed * (1 + nodeOverAdmissionFactor))
+
+	// Lower bound at 95% catches under-admission regressions while allowing
+	// small variance from async Redis replay and request scheduling. The old
+	// blocklist propagation path needed a wider budget because denial rows
+	// saturated remote counters and carried inflated values into the next
+	// sliding window. Global counters share observed counts instead, so they
+	// should not shave whole-window capacity under sustained load.
 	lowerLimit := int(maxAllowed * 0.95)
 
 	// Special case: When request rate is below the limit,
@@ -112,8 +120,14 @@ func RunRateLimitTest(
 
 	realStart := time.Now()
 
-	// Use simulated clock to speed up the test
-	clk := clock.NewTestClock()
+	// Use the harness clock when present so API nodes and their background
+	// services observe the same simulated time as the requests.
+	clk := h.Clock
+	if clk == nil {
+		clk = clock.NewTestClock()
+	}
+	windowStart := (clk.Now().UnixMilli() / duration) * duration
+	clk.Set(time.UnixMilli(windowStart))
 	simulatedStart := clk.Now()
 
 	// Track successful requests
@@ -222,7 +236,7 @@ func RunRateLimitTest(
 
 // calculateRPS determines the requests per second based on the rate limit parameters
 func calculateRPS(limit int64, duration int64, loadFactor float64) int {
-	rps := int(math.Ceil(float64(limit) * loadFactor * (1000.0 / float64(duration))))
+	rps := int(float64(limit) * loadFactor * (1000.0 / float64(duration)))
 
 	// Must have at least 1 RPS
 	if rps < 1 {

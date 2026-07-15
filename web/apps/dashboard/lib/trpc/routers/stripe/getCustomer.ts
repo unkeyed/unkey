@@ -20,15 +20,49 @@ export const getCustomer = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
-      customerId: z.string(),
+      // Either an already-bound workspace customer id, or a checkout session
+      // id whose `client_reference_id` matches this workspace. Customer ids
+      // are not secret, so we never trust a raw input — we always verify the
+      // customer is one this workspace is allowed to read.
+      customerId: z.string().optional(),
+      sessionId: z.string().optional(),
     }),
   )
   .output(customerSchema)
-  .query(async ({ input }) => {
+  .query(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
+    let resolvedCustomerId: string | null = null;
+
+    if (input.sessionId) {
+      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+      if (!session || session.client_reference_id !== ctx.workspace.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Customer not found",
+        });
+      }
+      resolvedCustomerId =
+        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+    } else if (input.customerId && ctx.workspace.stripeCustomerId) {
+      if (input.customerId !== ctx.workspace.stripeCustomerId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Customer not found",
+        });
+      }
+      resolvedCustomerId = input.customerId;
+    }
+
+    if (!resolvedCustomerId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Customer not found",
+      });
+    }
+
     try {
-      const customer = await stripe.customers.retrieve(input.customerId);
+      const customer = await stripe.customers.retrieve(resolvedCustomerId);
 
       if (customer.deleted) {
         throw new TRPCError({

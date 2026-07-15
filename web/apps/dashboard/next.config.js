@@ -8,6 +8,7 @@ const securityHeaders = [
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  typedRoutes: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true,
   // we're open-source anyways
@@ -19,7 +20,7 @@ const nextConfig = {
     });
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/vercel", "@unkey/error", "@unkey/id"],
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
   async headers() {
     return [
       {
@@ -72,3 +73,6 @@ module.exports = withSentryConfig(module.exports, {
     },
   },
 });
+
+const withVercelToolbar = require("@vercel/toolbar/plugins/next")();
+module.exports = withVercelToolbar(module.exports);

@@ -1,0 +1,68 @@
+---
+title: "May 1, 2026"
+description: "Unkey changelog for May 1, 2026: deploy from the CLI, fork PR previews, plain-HTTP to HTTPS redirects, faster runtime logs, and dashboard fixes."
+noindex: true
+---
+
+## New features
+
+### Deploy from your terminal with the Unkey CLI
+
+You can now ship containerized apps to Deploy directly from your machine without wiring up a GitHub repo. The new [CLI deploy guide](/build-and-deploy/cli) walks through `unkey deploy`, and the [CLI vs. GitHub comparison](/build-and-deploy/cli-vs-github) helps you pick the right flow for each project.
+
+### Preview deployments for fork pull requests
+
+Pull requests opened from forked repositories now produce preview deployments, with a redesigned approval screen for maintainers. You can review the source repo and branch at a glance before approving the rollout.
+
+### Plain-HTTP requests now redirect to HTTPS
+
+Frontline now serves a 308 redirect from `http://` to `https://` for every request that isn't an ACME challenge. Previously these requests returned 404. No action needed — your existing domains automatically pick up the new behavior.
+
+### Skip GitHub during onboarding
+
+You can now skip the GitHub repository step during onboarding and connect a repo later. See [the project setup docs](/platform/projects/overview) for details.
+
+## Updates
+
+### Standalone ratelimit charts
+
+The standalone ratelimits page now includes charts so you can track usage and tokens consumed over time, with the same filters available on the rest of the analytics views.
+
+### Faster runtime logs
+
+Runtime log views in the dashboard are noticeably faster. The deployment-card sidebar also gained a **Live/Paused** toggle so you can opt in to live tailing instead of polling on every page open.
+
+### Cleaner Key Created dialog
+
+The success dialog after creating a key now shows only the secret and the warning to copy it — the extra "Key Details" card and "Create another key" button are gone. This prevents users from copying the key ID by mistake when they meant to copy the secret.
+
+### Repository account name shown in pickers
+
+When you have repositories from multiple GitHub accounts connected, the account name is now shown next to each repo in selection menus so you can disambiguate forks and personal vs. org repos.
+
+### Healthcheck default tightened to 30s
+
+The default healthcheck interval for new deployments is now 30 seconds (previously 15s). Existing deployments are unchanged.
+
+### Ratelimit `limit` and `cost` no longer have a hard maximum
+
+The CLI and dashboard no longer enforce upper bounds on ratelimit `limit` and `cost` values, so you can configure higher-throughput rules without hitting an artificial cap.
+
+### 30-day override durations on ratelimits
+
+Ratelimit overrides now accept durations up to 30 days, matching what the API already allowed.
+
+## Bug fixes
+
+- Bulk environment variable creation in the dashboard now succeeds when adding multiple variables at once.
+- Deleting an API now properly soft-deletes its keyspaces, so stale keyspaces no longer linger in listings.
+- Identity update actions in the dashboard now save correctly.
+- Runtime logs respect the selected environment when switching between them.
+- Filters now apply to charts on the overview pages (previously they only filtered the table below).
+- The redeploy flow no longer copies a stale image; GitHub fetches happen up front instead of inside the worker, fixing intermittent redeploy failures.
+- New keys now use the keyspace's configured prefix and byte length defaults instead of falling back to global defaults.
+- Domain reconnect flows now redirect correctly and keep you signed in.
+- Searches with special characters (such as `_` or `%`) in log filters no longer error out.
+- Empty-state cards on the overview show a skeleton while loading instead of flashing "no data".
+- Pasting environment variable files containing newlines no longer produces malformed entries; the editor strips and warns on whitespace in input fields.
+- Various overflow and scroll-bounce issues across dashboard tables are fixed, and the GitHub branch picker handles search input more reliably.

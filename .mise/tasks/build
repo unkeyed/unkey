@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Build Go packages and ./bin/unkey"
+#MISE depends=["lint"]
+#MISE outputs=["./bin/unkey"]
+set -euo pipefail
+
+go build ./...
+mkdir -p bin
+go build -o bin/unkey .

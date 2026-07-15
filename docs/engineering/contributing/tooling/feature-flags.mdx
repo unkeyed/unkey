@@ -1,0 +1,78 @@
+---
+title: "Feature flags"
+description: "How feature flags work in the dashboard"
+---
+
+Flags are declared in `web/apps/dashboard/lib/flags/index.ts`. The `identify` helper reads the current session and passes stable `user.id` and `org.id` entities to each flag, so targeting by user or org doesn't need extra wiring per flag.
+
+The flag registry uses a local adapter wrapper instead of calling `vercelAdapter()` directly. When the Vercel `FLAGS` setup is present, the wrapper returns the Vercel adapter. When `FLAGS` is absent, it returns a noop adapter that resolves each flag to its declared `defaultValue`.
+
+## Adding a flag
+
+From `web/apps/dashboard`:
+
+```bash
+vercel flags create my-flag --kind boolean --description "What it gates"
+```
+
+Declare it alongside the existing ones:
+
+```ts
+export const myFlag = flag<boolean, Entities>({
+  key: "my-flag",
+  description: "Gates the new dashboard workflow",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+```
+
+Every flag must declare a `defaultValue`. The noop adapter uses that value in local development and self-hosted environments that don't configure Vercel Flags.
+
+Add the flag to `web/apps/dashboard/lib/flags/resolve.ts` so the `FlagsProvider` in the root layout exposes it to client components:
+
+```ts
+export async function resolveAll() {
+  const [helloWorld, myFlag] = await Promise.all([flags.helloWorld(), flags.myFlag()]);
+  return { helloWorld, myFlag };
+}
+```
+
+The `Flags` type is derived from `resolveAll`'s return shape, so any flag missing from this list will fail to type-check at every `useFlag(key)` call site.
+
+Use it from a client component:
+
+```tsx
+import { useFlag } from "@/lib/flags/provider";
+
+const enabled = useFlag("myFlag");
+```
+
+Or from server code by awaiting the flag directly:
+
+```ts
+import { myFlag } from "@/lib/flags";
+
+const enabled = await myFlag();
+```
+
+## Toggling
+
+From the Vercel dashboard, or from the CLI:
+
+```bash
+vercel flags enable my-flag development
+vercel flags disable my-flag development
+```
+
+In dev, the Vercel Toolbar appears in the bottom-right. You can override a flag locally there, but flipping the switch alone does nothing. You have to click **Apply** for the override to write its cookie and reload the page.
+
+## Self-hosted dashboards
+
+Self-hosted dashboards can import `@/lib/flags` without configuring Vercel Flags. If `FLAGS` is missing, the adapter wrapper logs a warning and evaluates flags through the noop adapter.
+
+The noop adapter doesn't contact Vercel, doesn't report flag values, and doesn't load remote targeting rules. It returns each flag's `defaultValue`, so choose safe defaults before using a flag in a self-hosted path.

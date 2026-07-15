@@ -1,49 +1,74 @@
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { deepMerge } from "@/lib/utils";
+import type { V2KeysCreateKeyRequestBody } from "@unkey/api/models/components";
 import {
-  type CreateKeyInput,
   type FormValues,
   creditsSchema,
   expirationSchema,
   generalSchema,
   ratelimitSchema,
+  rbacSchema,
 } from "./create-key.schema";
 import type { SectionName } from "./types";
 
-/**
- * Processes form data to create the final API payload
- */
-export const formValuesToApiInput = (formValues: FormValues, keyAuthId: string): CreateKeyInput => {
-  return {
-    keyAuthId,
-    prefix: formValues.prefix === "" ? undefined : formValues.prefix,
-    bytes: formValues.bytes,
-    externalId: formValues.externalId || null,
-    identityId: formValues.identityId || null,
-    name: formValues.name === "" ? undefined : formValues.name,
+export const formValuesToCreateKeyRequest = (
+  formValues: FormValues,
+  apiId: string,
+  options: { recoverable?: boolean } = {},
+): V2KeysCreateKeyRequestBody => {
+  const request: V2KeysCreateKeyRequestBody = {
+    apiId,
+    byteLength: formValues.bytes,
     enabled: true,
-    environment: formValues.environment === "" ? undefined : formValues.environment,
-    meta:
-      formValues.metadata?.enabled && formValues.metadata.data
-        ? JSON.parse(formValues.metadata.data)
-        : undefined,
-    remaining: formValues.limit?.enabled ? formValues.limit.data?.remaining : undefined,
-    refill:
-      formValues.limit?.enabled && formValues.limit.data?.refill?.interval !== "none"
-        ? {
-            amount: formValues.limit.data?.refill?.amount as number,
-            refillDay:
-              formValues.limit.data?.refill?.interval === "monthly"
-                ? formValues.limit.data?.refill?.refillDay || null
-                : null,
-          }
-        : undefined,
-    expires:
-      formValues.expiration?.enabled && formValues.expiration.data
-        ? formValues.expiration.data.getTime()
-        : undefined,
-    ratelimit: formValues.ratelimit?.enabled ? formValues.ratelimit.data : undefined,
+    recoverable: options.recoverable ?? false,
   };
+
+  if (formValues.prefix) {
+    request.prefix = formValues.prefix;
+  }
+  if (formValues.name) {
+    request.name = formValues.name;
+  }
+  if (formValues.externalId) {
+    request.externalId = formValues.externalId;
+  }
+  if (formValues.metadata?.enabled && formValues.metadata.data) {
+    request.meta = JSON.parse(formValues.metadata.data);
+  }
+  if (formValues.expiration?.enabled && formValues.expiration.data) {
+    request.expires = formValues.expiration.data.getTime();
+  }
+  if (formValues.limit?.enabled) {
+    request.credits = {
+      remaining: formValues.limit.data?.remaining ?? null,
+    };
+    const refill = formValues.limit.data?.refill;
+    if (refill && refill.interval !== "none" && refill.amount) {
+      request.credits.refill = {
+        interval: refill.interval,
+        amount: refill.amount,
+        ...(refill.interval === "monthly" && refill.refillDay
+          ? { refillDay: refill.refillDay }
+          : {}),
+      };
+    }
+  }
+  if (formValues.ratelimit?.enabled) {
+    request.ratelimits = formValues.ratelimit.data.map((ratelimit) => ({
+      name: ratelimit.name,
+      limit: ratelimit.limit,
+      duration: ratelimit.refillInterval,
+      autoApply: ratelimit.autoApply,
+    }));
+  }
+  if (formValues.roleNames.length > 0) {
+    request.roles = formValues.roleNames;
+  }
+  if (formValues.directPermissionSlugs.length > 0) {
+    request.permissions = formValues.directPermissionSlugs;
+  }
+
+  return request;
 };
 
 export const isFeatureEnabled = (sectionId: SectionName, values: FormValues): boolean => {
@@ -56,6 +81,8 @@ export const isFeatureEnabled = (sectionId: SectionName, values: FormValues): bo
       return values.limit?.enabled || false;
     case "expiration":
       return values.expiration?.enabled || false;
+    case "rbac":
+      return values.roleNames.length > 0 || values.directPermissionSlugs.length > 0;
     case "general":
       return true;
     default:
@@ -68,8 +95,9 @@ export const sectionSchemaMap = {
   ratelimit: ratelimitSchema,
   credits: creditsSchema,
   expiration: expirationSchema,
+  rbac: rbacSchema,
   metadata: metadataSchema,
-};
+} satisfies Record<SectionName, unknown>;
 
 export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
   if (!schema || typeof schema !== "object" || !("shape" in schema)) {
@@ -132,6 +160,8 @@ export const getDefaultValues = (overrides?: Partial<FormValues> | null): Partia
     expiration: {
       enabled: false,
     },
+    roleNames: [],
+    directPermissionSlugs: [],
   };
 
   if (!overrides) {

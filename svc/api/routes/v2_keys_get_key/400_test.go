@@ -17,7 +17,6 @@ func TestGetKeyBadRequest(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
 	}

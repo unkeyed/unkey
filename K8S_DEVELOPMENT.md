@@ -7,43 +7,42 @@ Run Unkey services locally using Kubernetes instead of Docker Compose.
 - Docker Desktop with Kubernetes enabled OR OrbStack with Kubernetes enabled
 - kubectl
 
-Check requirements:
+Install pinned project tooling and dependencies:
 ```bash
-make k8s-check
+./dev/install-mise
+mise install --yes --locked
+mise run install
+```
+
+If GitHub rate-limits attestation checks, retry with `GITHUB_TOKEN` set:
+
+```bash
+GITHUB_TOKEN=... mise install --yes --locked
 ```
 
 ## Quick Start
 
-Start everything:
+Start with hot reloading:
 ```bash
-make k8s-up
-```
-
-Start with hot reloading (requires Tilt):
-```bash
-make dev
+mise run dev
 ```
 
 ## Individual Services
 
 ```bash
-make start-mysql
-make start-clickhouse
-make start-redis
-make start-s3
-make start-api
-make start-gw
-make start-ctrl
+tilt up -f ./dev/Tiltfile -- --services=mysql --services=clickhouse
+tilt up -f ./dev/Tiltfile -- --services=api --services=gw --services=ctrl
+tilt up -f ./dev/Tiltfile -- --services=all
 ```
 
 ## Management
 
 ```bash
 # Stop everything
-make k8s-down
+mise run down
 
 # Reset environment
-make k8s-reset
+mise run down
 
 # View services
 kubectl get pods -n unkey
@@ -61,5 +60,5 @@ tilt up -- --services=all
 
 Stop Tilt:
 ```bash
-tilt down
+mise run down
 ```

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -76,7 +77,7 @@ export function PostAuthInvitationHandler({
           ? `${window.location.pathname}?${newSearchParams.toString()}`
           : window.location.pathname;
 
-        router.replace(newUrl);
+        router.replace(newUrl as Route);
 
         // Force a page reload to ensure the new organization context is loaded
         setTimeout(() => {

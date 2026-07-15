@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
@@ -20,7 +19,7 @@ import (
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
 // It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
-func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
+func (k *KeyVerifier) withCredits(ctx context.Context, cost int64) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
 
@@ -42,12 +41,12 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	}
 
 	// Always update remaining requests with the accurate count from the usageLimiter
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	k.Key.RemainingRequests = sql.NullInt64{Int64: usage.Remaining, Valid: true}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	} else {
 		// Only track spent credits if they were actually spent (usage was valid)
-		k.spentCredits = int64(cost)
+		k.spentCredits = cost
 	}
 
 	return nil
@@ -76,22 +75,6 @@ func (k *KeyVerifier) withIPWhitelist() error {
 	}
 
 	return nil
-}
-
-// HasAnyPermission checks if the key has any permission matching the given action.
-// It returns true if the key has at least one permission that ends with the specified action
-// for the given resource type (e.g., checking for any "api.*.verify_key" or "api.{apiId}.verify_key").
-func (k *KeyVerifier) HasAnyPermission(resourceType rbac.ResourceType, action rbac.ActionType) bool {
-	prefix := string(resourceType) + "."
-	suffix := "." + string(action)
-
-	for _, perm := range k.Permissions {
-		if strings.HasPrefix(perm, prefix) && strings.HasSuffix(perm, suffix) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // withPermissions validates that the key has the required RBAC permissions.
@@ -209,12 +192,13 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	for name, config := range ratelimitsToCheck {
 		names = append(names, name)
 		ratelimitRequests = append(ratelimitRequests, ratelimit.RatelimitRequest{
-			Name:       config.Name,
-			Identifier: config.Identifier, // Use the pre-determined identifier
-			Limit:      config.Limit,
-			Duration:   config.Duration,
-			Cost:       config.Cost,
-			Time:       time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
+			WorkspaceID: k.Key.WorkspaceID,
+			Namespace:   config.Name,
+			Identifier:  config.Identifier, // Use the pre-determined identifier
+			Limit:       config.Limit,
+			Duration:    config.Duration,
+			Cost:        config.Cost,
+			Time:        time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
 		})
 	}
 

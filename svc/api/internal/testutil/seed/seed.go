@@ -186,12 +186,13 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 
 // CreateAppRequest configures the app to create.
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID               string
+	WorkspaceID      string
+	ProjectID        string
+	Name             string
+	Slug             string
+	DefaultBranch    string
+	DeleteProtection bool
 }
 
 // CreateApp creates an app within a project.
@@ -205,7 +206,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		DefaultBranch:    req.DefaultBranch,
-		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
+		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
@@ -251,9 +252,11 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		WorkspaceID:   req.WorkspaceID,
 		AppID:         req.AppID,
 		EnvironmentID: req.ID,
-		Dockerfile:    "Dockerfile",
+		Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
 		DockerContext: ".",
+		BuildCommand:  sql.NullString{Valid: false, String: ""},
 		WatchPaths:    nil,
+		AutoDeploy:    true,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
@@ -265,7 +268,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		EnvironmentID:    req.ID,
 		Port:             8080,
-		CpuMillicores:    100,
+		CpuMillicores:    250,
 		MemoryMib:        128,
 		StorageMib:       0,
 		Command:          nil,
@@ -316,9 +319,9 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		IdentityID:         sql.NullString{String: "", Valid: false},
 		Meta:               sql.NullString{String: "", Valid: false},
 		Expires:            sql.NullTime{Time: time.Time{}, Valid: false},
-		RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+		RemainingRequests:  sql.NullInt64{Int64: 0, Valid: false},
 		RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
-		RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+		RefillAmount:       sql.NullInt64{Int64: 0, Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	}
 
@@ -371,7 +374,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
-	Remaining      *int32
+	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
 	Expires        *time.Time
@@ -381,7 +384,7 @@ type CreateKeyRequest struct {
 
 	Recoverable bool
 
-	RefillAmount *int32
+	RefillAmount *int64
 	RefillDay    *int16
 
 	Permissions []CreatePermissionRequest
@@ -421,8 +424,8 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:         sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:            sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
-		RemainingRequests:  sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
-		RefillAmount:       sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
+		RemainingRequests:  sql.NullInt64{Int64: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
+		RefillAmount:       sql.NullInt64{Int64: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
 		RefillDay:          sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	})
@@ -501,8 +504,8 @@ type CreateRatelimitRequest struct {
 	Name        string
 	WorkspaceID string
 	AutoApply   bool
-	Duration    int64
-	Limit       int32
+	Duration    uint64
+	Limit       uint64
 	IdentityID  *string
 	KeyID       *string
 }
@@ -669,12 +672,19 @@ type CreatePermissionRequest struct {
 
 // CreateDeploymentRequest configures the deployment to create.
 type CreateDeploymentRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	AppID         string
-	EnvironmentID string
-	GitBranch     string
+	ID                     string
+	WorkspaceID            string
+	ProjectID              string
+	AppID                  string
+	EnvironmentID          string
+	Status                 db.DeploymentsStatus
+	GitBranch              string
+	GitCommitSha           string
+	GitCommitMessage       string
+	GitCommitAuthorHandle  string
+	GitCommitAuthorAvatar  string
+	GitCommitTimestamp     int64
+	ForkRepositoryFullName string
 }
 
 // CreateDeployment creates a deployment within a project and environment.
@@ -684,6 +694,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	require.NoError(s.t, assert.NotEmpty(req.ProjectID, "Deployment ProjectID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "Deployment EnvironmentID must be set"))
 
+	status := req.Status
+	if status == "" {
+		status = db.DeploymentsStatusPending
+	}
+
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
 		ID:                            req.ID,
@@ -692,17 +707,17 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		GitCommitSha:                  sql.NullString{Valid: false},
+		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{Valid: false},
-		GitCommitAuthorHandle:         sql.NullString{Valid: false},
-		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
-		GitCommitTimestamp:            sql.NullInt64{Valid: false},
+		GitCommitMessage:              sql.NullString{String: req.GitCommitMessage, Valid: req.GitCommitMessage != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: req.GitCommitAuthorHandle, Valid: req.GitCommitAuthorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: req.GitCommitAuthorAvatar, Valid: req.GitCommitAuthorAvatar != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: req.GitCommitTimestamp, Valid: req.GitCommitTimestamp != 0},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
-		Status:                        db.DeploymentsStatusPending,
-		CpuMillicores:                 100,
+		Status:                        status,
+		CpuMillicores:                 250,
 		MemoryMib:                     128,
 		StorageMib:                    0,
 		Port:                          8080,
@@ -710,7 +725,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
+		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
+		TriggeredBy:                   sql.NullString{Valid: false},
+		TriggerReason:                 sql.NullString{Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})

@@ -25,7 +25,7 @@ type RoutingServiceClient interface {
 	// updates apps.current_deployment_id to point at the target deployment,
 	// returning the previously-live deployment ID. Setting set_rollback_flag
 	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
-	// work like scheduling the previous deployment for standby.
+	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
 
@@ -69,7 +69,7 @@ type RoutingServiceIngressClient interface {
 	// updates apps.current_deployment_id to point at the target deployment,
 	// returning the previously-live deployment ID. Setting set_rollback_flag
 	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
-	// work like scheduling the previous deployment for standby.
+	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment() ingress.Requester[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
 
@@ -111,7 +111,7 @@ type RoutingServiceServer interface {
 	// updates apps.current_deployment_id to point at the target deployment,
 	// returning the previously-live deployment ID. Setting set_rollback_flag
 	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
-	// work like scheduling the previous deployment for standby.
+	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment(ctx sdk_go.ObjectContext, req *SwapLiveDeploymentRequest) (*SwapLiveDeploymentResponse, error)
 }
 

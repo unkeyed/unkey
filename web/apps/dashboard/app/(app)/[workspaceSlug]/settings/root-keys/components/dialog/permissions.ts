@@ -7,6 +7,35 @@ export type UnkeyPermissions = {
   };
 };
 
+export type PermissionScope =
+  | { kind: "workspace" }
+  | { kind: "api"; id: string; name: string }
+  | { kind: "project"; id: string; name: string }
+  | { kind: "app"; id: string; name: string; environments?: { id: string; name: string }[] }
+  | { kind: "environment"; id: string; name: string };
+
+export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
+
+export function getScopedPermissions(scope: PermissionScope): {
+  [category: string]: UnkeyPermissions;
+} {
+  switch (scope.kind) {
+    case "workspace":
+      return workspacePermissions;
+    case "api":
+      return apiPermissions(scope.id);
+    case "project":
+      return projectPermissions(scope.id);
+    case "app":
+      // App scope shows only app-level permissions. Each environment renders as
+      // its own nested scope under the app (see PermissionSheet), so deployment
+      // and settings permissions are scoped per environment.
+      return appPermissions(scope.id);
+    case "environment":
+      return environmentPermissions(scope.id);
+  }
+}
+
 export const workspacePermissions = {
   API: {
     create_api: {
@@ -155,17 +184,87 @@ export const workspacePermissions = {
     },
   },
   Projects: {
+    create_project: {
+      description: "Create new projects in this workspace",
+      permission: "project.*.create_project",
+    },
+    read_project: {
+      description: "Read and list projects in this workspace",
+      permission: "project.*.read_project",
+    },
+    update_project: {
+      description: "Update projects in this workspace",
+      permission: "project.*.update_project",
+    },
+    delete_project: {
+      description: "Delete projects in this workspace",
+      permission: "project.*.delete_project",
+    },
+  },
+  Apps: {
+    create_app: {
+      description: "Create new apps in any project in this workspace",
+      permission: "project.*.create_app",
+    },
+    read_app: {
+      description: "Read and list any app in this workspace",
+      permission: "app.*.read_app",
+    },
+    update_app: {
+      description: "Update apps in any project in this workspace",
+      permission: "app.*.update_app",
+    },
+    delete_app: {
+      description: "Delete apps in any project in this workspace",
+      permission: "app.*.delete_app",
+    },
+  },
+  Environments: {
+    read_environment: {
+      description: "Read any environment in this workspace",
+      permission: "environment.*.read_environment",
+    },
+    update_environment: {
+      description: "Update any environment's settings in this workspace",
+      permission: "environment.*.update_environment",
+    },
+    set_environment_variables: {
+      description: "Set environment variables for any environment in this workspace",
+      permission: "environment.*.set_environment_variables",
+    },
+    remove_environment_variables: {
+      description: "Remove environment variables from any environment in this workspace",
+      permission: "environment.*.remove_environment_variables",
+    },
+    read_environment_variables: {
+      description: "Read environment variables for any environment in this workspace",
+      permission: "environment.*.read_environment_variables",
+    },
+  },
+  Deployments: {
     create_deployment: {
-      description: "Create new deployments in this workspace",
-      permission: "project.*.create_deployment",
+      description: "Create new deployments for any environment in this workspace",
+      permission: "environment.*.create_deployment",
     },
     read_deployment: {
-      description: "Read deployment details and status in this workspace",
-      permission: "project.*.read_deployment",
+      description: "Read deployment details and status for any environment in this workspace",
+      permission: "environment.*.read_deployment",
     },
-    generate_upload_url: {
-      description: "Generate S3 upload URLs for build contexts",
-      permission: "project.*.generate_upload_url",
+    stop_deployment: {
+      description: "Stop running preview deployments for any environment in this workspace",
+      permission: "environment.*.stop_deployment",
+    },
+    start_deployment: {
+      description: "Start stopped preview deployments for any environment in this workspace",
+      permission: "environment.*.start_deployment",
+    },
+    promote_deployment: {
+      description: "Promote deployments to live for any environment in this workspace",
+      permission: "environment.*.promote_deployment",
+    },
+    rollback_deployment: {
+      description: "Roll back to previous deployments for any environment in this workspace",
+      permission: "environment.*.rollback_deployment",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
@@ -222,6 +321,95 @@ export function apiPermissions(apiId: string): {
       decrypt_key: {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
+      },
+    },
+  };
+}
+
+export function projectPermissions(projectId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Apps: {
+      create_app: {
+        description: "Create new apps in this project.",
+        permission: `project.${projectId}.create_app`,
+      },
+    },
+  };
+}
+
+export function appPermissions(appId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Apps: {
+      read_app: {
+        description: "Read this app.",
+        permission: `app.${appId}.read_app`,
+      },
+      update_app: {
+        description: "Update apps in this project.",
+        permission: `app.${appId}.update_app`,
+      },
+      delete_app: {
+        description: "Delete apps in this project.",
+        permission: `app.${appId}.delete_app`,
+      },
+    },
+  };
+}
+
+export function environmentPermissions(environmentId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Environments: {
+      read_environment: {
+        description: "Read this environment.",
+        permission: `environment.${environmentId}.read_environment`,
+      },
+      update_environment: {
+        description: "Update this environment's settings.",
+        permission: `environment.${environmentId}.update_environment`,
+      },
+      set_environment_variables: {
+        description: "Set environment variables for this environment.",
+        permission: `environment.${environmentId}.set_environment_variables`,
+      },
+      remove_environment_variables: {
+        description: "Remove environment variables from this environment.",
+        permission: `environment.${environmentId}.remove_environment_variables`,
+      },
+      read_environment_variables: {
+        description: "Read environment variables for this environment.",
+        permission: `environment.${environmentId}.read_environment_variables`,
+      },
+    },
+    Deployments: {
+      create_deployment: {
+        description: "Create new deployments for this environment.",
+        permission: `environment.${environmentId}.create_deployment`,
+      },
+      read_deployment: {
+        description: "Read deployment details and status for this environment.",
+        permission: `environment.${environmentId}.read_deployment`,
+      },
+      stop_deployment: {
+        description: "Stop running preview deployments for this environment.",
+        permission: `environment.${environmentId}.stop_deployment`,
+      },
+      start_deployment: {
+        description: "Start stopped preview deployments for this environment.",
+        permission: `environment.${environmentId}.start_deployment`,
+      },
+      promote_deployment: {
+        description: "Promote deployments to live for this environment.",
+        permission: `environment.${environmentId}.promote_deployment`,
+      },
+      rollback_deployment: {
+        description: "Roll back to previous deployments for this environment.",
+        permission: `environment.${environmentId}.rollback_deployment`,
       },
     },
   };

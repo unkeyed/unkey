@@ -1,30 +1,24 @@
 package logger
 
-// Debug logs a message at debug level, bypassing the wide event system.
-// Use for detailed diagnostic information during development. Arguments
-// are key-value pairs in the same format as [slog.Logger.Debug].
-func Debug(msg string, args ...any) {
-	logger.Debug(msg, args...)
-}
+import "log/slog"
 
-// Info logs a message at info level, bypassing the wide event system.
-// Use for notable events during normal operation. Arguments are key-value
-// pairs in the same format as [slog.Logger.Info].
-func Info(msg string, args ...any) {
-	logger.Info(msg, args...)
-}
-
-// Warn logs a message at warn level, bypassing the wide event system.
-// Use for unexpected situations that aren't errors but may indicate problems.
-// Arguments are key-value pairs in the same format as [slog.Logger.Warn].
-func Warn(msg string, args ...any) {
-	logger.Warn(msg, args...)
-}
-
-// Error logs a message at error level, bypassing the wide event system.
-// Use for failures that need attention. For request-scoped errors, prefer
+// Debug, Info, Warn, and Error are direct aliases for the stdlib slog
+// package-level functions. They bypass the wide event system and log
+// immediately via [slog.Default], which is kept in sync with the global
+// logger configured by [AddHandler] / [AddBaseAttrs].
+//
+// Aliasing (rather than wrapping in our own functions) is deliberate: it
+// preserves the caller's program counter so [slog.HandlerOptions.AddSource]
+// reports the real call site. A hand-written wrapper would add a frame and
+// the source attribute would always point back at this file.
+//
+// Fault-wrapped errors passed in args are automatically expanded into an
+// error.steps / error.location attribute pair by [faultHandler]; callers
+// don't need to think about it. For request-scoped errors, prefer
 // [SetError] to attach the error to the current wide event instead.
-// Arguments are key-value pairs in the same format as [slog.Logger.Error].
-func Error(msg string, args ...any) {
-	logger.Error(msg, args...)
-}
+var (
+	Debug = slog.Debug
+	Info  = slog.Info
+	Warn  = slog.Warn
+	Error = slog.Error
+)

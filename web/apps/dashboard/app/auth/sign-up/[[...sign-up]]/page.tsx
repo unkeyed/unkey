@@ -1,6 +1,7 @@
 "use client";
 import { FadeIn } from "@/components/landing/fade-in";
 import { Loading } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -64,7 +65,7 @@ export default function AuthenticationPage() {
               <h1 className="text-4xl text-white">Create new account</h1>
               <p className="mt-4 text-sm text-md text-white/50">
                 Sign up to Unkey or?
-                <Link href="/auth/sign-in" className="ml-2 text-white hover:underline">
+                <Link href={"/auth/sign-in" as Route} className="ml-2 text-white hover:underline">
                   Sign in
                 </Link>
               </p>

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package frontline.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1";
+
+// Firewall applies an action to any request that matches the policy's
+// [MatchExpr] list. The action enum exists today only to carry ACTION_DENY,
+// but it gives the wire format a place to grow into more outcomes (allow,
+// log, challenge) without restructuring the message.
+message Firewall {
+  // The action to apply when this policy's match expressions all succeed.
+  Action action = 1;
+}
+
+// Action is the outcome a Firewall policy applies to a matched request.
+enum Action {
+  ACTION_UNSPECIFIED = 0;
+
+  // Reject the request with HTTP 403 and a fixed "Forbidden" body. Short-
+  // circuits all further policy evaluation — no downstream policies run and
+  // the upstream service is never invoked.
+  ACTION_DENY = 1;
+}

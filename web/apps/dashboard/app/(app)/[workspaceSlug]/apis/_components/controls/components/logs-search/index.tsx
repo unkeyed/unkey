@@ -44,6 +44,8 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
 
   return (
     <LLMSearch
+      fullWidth
+      className="border border-solid border-gray-4"
       exampleQueries={[
         "Show rate limited requests today",
         "Show requests that were not rate limited today",
@@ -51,9 +53,9 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
       ]}
       hideExplainer
       onClear={handleClear}
-      placeholder="Search API using name or ID"
+      placeholder="Search keyspaces using name or ID"
       isLoading={searchApiOverview.isLoading}
-      loadingText="Searching APIs..."
+      loadingText="Searching keyspaces..."
       searchMode="allowTypeDuringSearch"
       onSearch={(query) =>
         searchApiOverview.mutateAsync({

@@ -8,13 +8,18 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func (s *Service) VerifyCertificate(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.VerifyCertificateRequest],
 ) (*connect.Response[ctrlv1.VerifyCertificateResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	res := connect.NewResponse(&ctrlv1.VerifyCertificateResponse{Authorization: ""})
 
 	domainName := req.Msg.GetDomain()
@@ -23,7 +28,7 @@ func (s *Service) VerifyCertificate(
 	// Look up domain with cache
 	domain, hit, err := s.domainCache.SWR(ctx, domainName,
 		func(ctx context.Context) (db.CustomDomain, error) {
-			return db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domainName)
+			return s.db.FindCustomDomainByDomain(ctx, domainName)
 		},
 		caches.DefaultFindFirstOp,
 	)
@@ -39,7 +44,7 @@ func (s *Service) VerifyCertificate(
 	challengeKey := domain.ID + "|" + token
 	challenge, hit, err := s.challengeCache.SWR(ctx, challengeKey,
 		func(ctx context.Context) (db.AcmeChallenge, error) {
-			return db.Query.FindAcmeChallengeByToken(ctx, s.db.RO(), db.FindAcmeChallengeByTokenParams{
+			return s.db.FindAcmeChallengeByToken(ctx, db.FindAcmeChallengeByTokenParams{
 				WorkspaceID: domain.WorkspaceID,
 				DomainID:    domain.ID,
 				Token:       token,

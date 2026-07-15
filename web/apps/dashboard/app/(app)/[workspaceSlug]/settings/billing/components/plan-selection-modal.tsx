@@ -1,6 +1,7 @@
 "use client";
 
 import { formatNumber } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -67,7 +68,7 @@ export const PlanSelectionModal = ({
       setIsLoading(false);
       toast.success("Plan activated successfully!");
       await revalidateData();
-      router.push(`/${workspaceSlug}/settings/billing`);
+      router.push(routes.settings.billing({ workspaceSlug }));
     },
     onError: (err) => {
       setIsLoading(false);
@@ -95,9 +96,10 @@ export const PlanSelectionModal = ({
 
     setIsLoading(true);
     if (isChangingPlan && currentProductId) {
-      // Update existing subscription
+      // Update existing subscription. The current product is derived from
+      // the existing subscription server-side, so we no longer need to send
+      // `oldProductId` from the client.
       await updateSubscription.mutateAsync({
-        oldProductId: currentProductId,
         newProductId: selectedProductId,
       });
     } else {
@@ -113,7 +115,7 @@ export const PlanSelectionModal = ({
       await revalidateData();
       // Wait for workspace data to be refetched before navigation
       toast.info("Payment method added - you can upgrade anytime from billing settings!");
-      router.push(`/${workspaceSlug}/settings/billing`);
+      router.push(routes.settings.billing({ workspaceSlug }));
     }
     handleOpenChange(false);
   };

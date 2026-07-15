@@ -24,6 +24,11 @@ type ProcessedData = {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id") ?? null;
+  // Set by the two-product billing page's checkout links. Its presence means
+  // the user came from a specific flow (subscribe to Compute, upgrade API, or
+  // just add a card), so we hand them back to the billing page with that
+  // intent instead of forcing the legacy API plan modal below.
+  const intent = searchParams?.get("intent") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -99,18 +104,24 @@ function SuccessContent() {
           return;
         }
 
-        // Get customer details
+        // Get customer details. We pass sessionId so the server can verify
+        // that the session (and therefore the customer) belongs to this
+        // workspace via session.client_reference_id, rather than trusting a
+        // client-supplied customer id.
         const customer = await trpcUtils.stripe.getCustomer.fetch({
-          customerId: sessionResponse.customer,
+          sessionId,
         });
 
         if (!isMounted) {
           return;
         }
 
-        // Get setup intent details
+        // Get setup intent details. Pass sessionId so the server can verify
+        // the setup intent belongs to a session bound to this workspace,
+        // before the workspace has a stripeCustomerId of its own.
         const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
           setupIntentId: sessionResponse.setup_intent,
+          sessionId,
         });
 
         if (!isMounted) {
@@ -152,10 +163,13 @@ function SuccessContent() {
           return;
         }
 
-        // Update workspace with stripe customer ID
+        // Update workspace with stripe customer ID. The mutation resolves the
+        // customer id from the checkout session server-side and verifies the
+        // session belongs to this workspace, so we pass sessionId instead of
+        // a client-supplied stripeCustomerId.
         try {
           await updateWorkspaceFn({
-            stripeCustomerId: customer.id,
+            sessionId,
           });
 
           if (!isMounted) {
@@ -188,7 +202,7 @@ function SuccessContent() {
 
           const isFirstTimeUser = !billingInfo.hasPreviousSubscriptions;
 
-          if (isFirstTimeUser) {
+          if (isFirstTimeUser && !intent) {
             // Use products from billingInfo instead of making a redundant fetch
             if (billingInfo.products && billingInfo.products.length > 0) {
               setProcessedData({
@@ -237,6 +251,7 @@ function SuccessContent() {
     };
   }, [
     sessionId,
+    intent,
     trpcUtils,
     updateCustomerMutation.mutateAsync,
     updateWorkspaceStripeCustomerMutation.mutateAsync,
@@ -262,6 +277,7 @@ function SuccessContent() {
       workSpaceSlug={processedData.workspaceSlug}
       showPlanSelection={processedData.showPlanSelection}
       products={processedData.products}
+      intent={intent ?? undefined}
     />
   );
 }

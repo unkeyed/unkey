@@ -1,11 +1,5 @@
-import {
-  ControlsContainer,
-  ControlsLeft,
-  ControlsRight,
-} from "@/components/logs/controls-container";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { LogsDateTime } from "./components/logs-datetime";
-import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 type Props = {
@@ -16,14 +10,11 @@ type Props = {
 
 export function ApiListControls(props: Props) {
   return (
-    <ControlsContainer>
-      <ControlsLeft>
+    <div className="flex min-h-10 w-full items-center gap-2">
+      <div className="w-full md:w-[calc((100%-1.25rem)/2)] xl:w-[calc((100%-2.5rem)/3)]">
         <LogsSearch {...props} />
-        <LogsDateTime />
-      </ControlsLeft>
-      <ControlsRight>
-        <LogsRefresh />
-      </ControlsRight>
-    </ControlsContainer>
+      </div>
+      <LogsDateTime />
+    </div>
   );
 }

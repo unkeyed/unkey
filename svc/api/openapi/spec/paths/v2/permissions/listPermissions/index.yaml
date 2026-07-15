@@ -13,7 +13,7 @@ post:
   operationId: permissions.listPermissions
   x-speakeasy-name-override: ListPermissions
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -57,3 +57,11 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

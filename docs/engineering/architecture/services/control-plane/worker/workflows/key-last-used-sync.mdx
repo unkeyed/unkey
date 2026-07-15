@@ -5,7 +5,7 @@ description: How lastUsedAt timestamps flow from ClickHouse to MySQL.
 
 ## Why this exists
 
-When a key is verified, Sentinel and the API service write the verification event to ClickHouse.
+When a key is verified, Frontline and the API service write the verification event to ClickHouse.
 That gives us the source of truth for when a key was last used, but the API and dashboard read key metadata from MySQL, so rather than querying ClickHouse for this after we read from the db, we periodically sync the latest `lastUsedAt` timestamp back into MySQL.
 
 We don't update `lastUsedAt` during verification because at our volume, multiple services would be writing to the same key rows concurrently, leading to lock contention and deadlocks in MySQL. Even moving the write off the hot path asynchronously doesn't help — the fundamental problem is concurrent writes to the same rows. Batching the sync into a single writer that runs every minute avoids this entirely, and minute-level accuracy is more than enough for this field.

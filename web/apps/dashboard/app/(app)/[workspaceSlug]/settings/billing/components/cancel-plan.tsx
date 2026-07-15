@@ -5,7 +5,12 @@ import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export const CancelPlan: React.FC = () => {
+type CancelPlanProps = {
+  disabled?: boolean;
+  disabledReason?: string;
+};
+
+export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabledReason }) => {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,10 +39,15 @@ export const CancelPlan: React.FC = () => {
     <>
       <SettingsZoneRow
         title="Cancel subscription"
-        description="Cancelling your subscription will downgrade your workspace to the free tier."
+        description={
+          disabled && disabledReason
+            ? disabledReason
+            : "Cancelling your subscription will downgrade your workspace to the free tier."
+        }
         action={{
           label: "Cancel Plan",
           onClick: () => setIsDialogOpen(true),
+          disabled,
         }}
       />
 
@@ -72,7 +82,8 @@ export const CancelPlan: React.FC = () => {
           <div className="text-error-12 text-[13px] leading-6">
             <span className="font-medium">Warning:</span> cancelling your subscription will
             downgrade your workspace to the free tier at the end of the current billing period. You
-            will lose access to paid features and usage limits will be reduced.
+            will lose access to paid features, usage limits will be reduced, and all team members
+            other than you will be deactivated.
           </div>
         </div>
       </DialogContainer>

@@ -14,7 +14,7 @@ Use this for rate limiting beyond API keys - limit users by ID, IPs by address, 
 - `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
 
 <Note>
-See the [API reference](/api-reference/v2/ratelimit/apply-rate-limiting) for the full HTTP endpoint documentation.
+See the [API reference](/api-reference/ratelimit/apply-rate-limiting) for the full HTTP endpoint documentation.
 </Note>
 
 ## Usage
@@ -52,7 +52,7 @@ How much of the rate limit quota this request consumes, enabling weighted rate l
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -75,7 +75,7 @@ unkey api ratelimit limit --namespace=api.requests --identifier=user_abc123 --li
 
 Default output shows the request ID with latency, followed by the rate limit result:
 
-```
+```text
 req_01H9TQPP77V5E48E9SH0BG0ZQX (took 32ms)
 
 {

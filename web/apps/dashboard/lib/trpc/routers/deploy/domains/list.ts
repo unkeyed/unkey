@@ -6,7 +6,7 @@ import { z } from "zod";
 
 export const listDomains = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(z.object({ projectId: z.string() }))
+  .input(z.object({ projectId: z.string(), appId: z.string().optional() }))
   .query(async ({ ctx, input }) => {
     // Query frontline_routes directly instead of using a relational query
     // through projects. The old approach used `findFirst` with
@@ -17,6 +17,7 @@ export const listDomains = workspaceProcedure
       .select({
         id: frontlineRoutes.id,
         projectId: frontlineRoutes.projectId,
+        appId: frontlineRoutes.appId,
         deploymentId: frontlineRoutes.deploymentId,
         environmentId: frontlineRoutes.environmentId,
         fullyQualifiedDomainName: frontlineRoutes.fullyQualifiedDomainName,
@@ -32,6 +33,7 @@ export const listDomains = workspaceProcedure
       .where(
         and(
           eq(frontlineRoutes.projectId, input.projectId),
+          input.appId ? eq(frontlineRoutes.appId, input.appId) : undefined,
           eq(projects.workspaceId, ctx.workspace.id),
         ),
       )

@@ -8,11 +8,11 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // deploymentActiveStatuses are the non-terminal statuses where a Deploy
@@ -42,29 +42,30 @@ var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
 //
 // Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
 // transaction are returned as-is (not wrapped in Connect error codes).
-func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (*connect.Response[ctrlv1.ReportDeploymentStatusResponse], error) {
-	logger.Info("reporting deployment status", "req", req.Msg)
-
+func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (response *connect.Response[ctrlv1.ReportDeploymentStatusResponse], retErr error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
 
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		result := "success"
+		if retErr != nil {
+			result = "error"
+		}
+		metrics.ReportDeploymentStatusDurationSeconds.WithLabelValues(result).Observe(elapsed.Seconds())
+		logger.Info("report deployment status: handled",
+			"duration_ms", elapsed.Milliseconds(),
+			"result", result,
+		)
+	}()
 
-	// TODO: cache this lookup to avoid hitting the database on every status report
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-		Platform: platform,
-		Name:     regionName,
-	})
+	logger.Info("reporting deployment status", "req", req.Msg)
+
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, err
 	}
 
 	// Captured from the Update transaction so we can call NotifyInstancesReady
@@ -76,13 +77,13 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.ReportDeploymentStatusRequest_Update_:
 			{
-				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Update.GetK8SName())
+				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(ctx, msg.Update.GetK8SName())
 				if err != nil {
 					return err
 				}
 				updatedDeployment = &deployment
 
-				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, tx, db.FindInstancesByDeploymentIdAndRegionIDParams{
+				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
 					RegionID:     region.ID,
 				})
@@ -97,7 +98,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
-						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
+						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
 							RegionID: region.ID,
 						})
@@ -108,7 +109,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				for _, instance := range msg.Update.GetInstances() {
-					err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
+					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
 						ID:            uid.New(uid.InstancePrefix),
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
@@ -129,20 +130,20 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 		case *ctrlv1.ReportDeploymentStatusRequest_Delete_:
 			{
-				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Delete.GetK8SName())
+				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(ctx, msg.Delete.GetK8SName())
 				if err != nil {
 					return err
 				}
 
-				if err := db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
+				if err := db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
 					RegionID:     region.ID,
 				}); err != nil {
 					return err
 				}
 
-				if deployment.DesiredState == db.DeploymentsDesiredStateStandby || deployment.DesiredState == db.DeploymentsDesiredStateArchived {
-					if err := db.Query.StopDeploymentIfNoInstances(ctx, tx, db.StopDeploymentIfNoInstancesParams{
+				if deployment.DesiredState == db.DeploymentsDesiredStateStopped {
+					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(ctx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 					}); err != nil {
@@ -174,15 +175,22 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 // maybeNotifyInstancesReady checks whether enough regions are healthy for
 // the given deployment and, if so, calls DeployService.NotifyInstancesReady
 // to unblock the suspended Deploy workflow. Best-effort: errors are logged
-// but not returned, mirroring ReportSentinelStatus's thundering-herd gate.
+// but not returned, gating the thundering herd from concurrent retries.
 func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
 	if !deploymentActiveStatuses[deployment.Status] {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("inactive_status").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "inactive_status",
+			"status", deployment.Status,
+		)
 		return
 	}
 
 	// Per-region minimum replica requirements.
-	minReplicaRows, err := db.Query.FindDeploymentTopologyMinReplicas(ctx, s.db.RO(), deployment.ID)
+	minReplicaRows, err := s.findTopologyMinReplicas(ctx, deployment.ID)
 	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("topology_error").Inc()
 		logger.Error("failed to load deployment topology min replicas",
 			"deployment_id", deployment.ID,
 			"error", err,
@@ -191,6 +199,11 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 	}
 	if len(minReplicaRows) == 0 {
 		// No topology rows yet — nothing to check.
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("topology_missing").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "topology_missing",
+		)
 		return
 	}
 
@@ -202,8 +215,9 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 	// minimum 1. Tolerates one full regional outage.
 	requiredRegions := max(len(regionMinReplicas)-1, 1)
 
-	instances, err := db.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), deployment.ID)
+	instances, err := s.db.FindInstancesByDeploymentId(ctx, deployment.ID)
 	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("instances_error").Inc()
 		logger.Error("failed to load deployment instances for readiness check",
 			"deployment_id", deployment.ID,
 			"error", err,
@@ -226,10 +240,24 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 	}
 
 	if healthyRegions < requiredRegions {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("threshold_not_met").Inc()
+		logger.Info("notify instances ready: threshold not met",
+			"deployment_id", deployment.ID,
+			"outcome", "threshold_not_met",
+			"healthy_regions", healthyRegions,
+			"required_regions", requiredRegions,
+			"region_min_replicas", regionMinReplicas,
+			"running_per_region", runningPerRegion,
+		)
 		return
 	}
 
 	if !s.notifiedReady.AddIfAbsent("deployment:" + deployment.ID) {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("already_notified").Inc()
+		logger.Info("notify instances ready: already notified",
+			"deployment_id", deployment.ID,
+			"outcome", "already_notified",
+		)
 		return
 	}
 
@@ -239,11 +267,20 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 			DeploymentId: deployment.ID,
 		})
 	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,
 			"error", err,
 		)
+		return
 	}
+	metrics.NotifyInstancesReadyTotal.WithLabelValues("notified").Inc()
+	logger.Info("notify instances ready: sent",
+		"deployment_id", deployment.ID,
+		"outcome", "notified",
+		"healthy_regions", healthyRegions,
+		"required_regions", requiredRegions,
+	)
 }
 
 // ctrlDeploymentStatusToDbStatus maps proto instance status values to database enum values.

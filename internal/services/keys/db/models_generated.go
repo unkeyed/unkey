@@ -138,10 +138,10 @@ type Key struct {
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -224,8 +224,8 @@ type Ratelimit struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 	KeyID       sql.NullString `db:"key_id"`
 	IdentityID  sql.NullString `db:"identity_id"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
 }
 
@@ -249,20 +249,24 @@ type RolesPermission struct {
 }
 
 type Workspace struct {
-	Pk                   uint64          `db:"pk"`
-	ID                   string          `db:"id"`
-	OrgID                string          `db:"org_id"`
-	Name                 string          `db:"name"`
-	Slug                 string          `db:"slug"`
-	K8sNamespace         sql.NullString  `db:"k8s_namespace"`
-	Tier                 sql.NullString  `db:"tier"`
-	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
-	BetaFeatures         json.RawMessage `db:"beta_features"`
-	Subscriptions        []byte          `db:"subscriptions"`
-	Enabled              bool            `db:"enabled"`
-	DeleteProtection     sql.NullBool    `db:"delete_protection"`
-	CreatedAtM           int64           `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64   `db:"deleted_at_m"`
+	Pk                     uint64          `db:"pk"`
+	ID                     string          `db:"id"`
+	OrgID                  string          `db:"org_id"`
+	Name                   string          `db:"name"`
+	Slug                   string          `db:"slug"`
+	K8sNamespace           sql.NullString  `db:"k8s_namespace"`
+	Tier                   sql.NullString  `db:"tier"`
+	StripeCustomerID       sql.NullString  `db:"stripe_customer_id"`
+	StripeSubscriptionID   sql.NullString  `db:"stripe_subscription_id"`
+	DeployPlan             sql.NullString  `db:"deploy_plan"`
+	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
+	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
+	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
+	BetaFeatures           json.RawMessage `db:"beta_features"`
+	Subscriptions          []byte          `db:"subscriptions"`
+	Enabled                bool            `db:"enabled"`
+	DeleteProtection       sql.NullBool    `db:"delete_protection"`
+	CreatedAtM             int64           `db:"created_at_m"`
+	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
 }

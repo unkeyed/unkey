@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -24,6 +25,10 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	// Tags are appended to every SQL statement as SQLCommenter metadata for
+	// PlanetScale Query Insights. Leave Service empty to disable annotation.
+	Tags sqlcomment.Static
 }
 
 // database implements the Database interface, providing access to database replicas
@@ -81,8 +86,8 @@ func open(dsn string) (db *sql.DB, err error) {
 // and metrics. This is a temporary bridge used by pkg/db.ToMySQL while callers
 // migrate from pkg/db to pkg/mysql. Remove alongside [NewFromReplicas] and
 // pkg/db.ToMySQL once all callers use [New] directly.
-func NewReplicaFromDB(db *sql.DB, mode string) *Replica {
-	return &Replica{db: db, mode: mode, debugLogs: false}
+func NewReplicaFromDB(db *sql.DB, mode string, tags sqlcomment.Static) *Replica {
+	return &Replica{db: db, mode: mode, debugLogs: false, tags: tags}
 }
 
 // NewFromReplicas creates a [MySQL] from pre-existing replicas without opening
@@ -93,7 +98,7 @@ func NewFromReplicas(ro, rw *Replica) *database {
 	return &database{readReplica: ro, writeReplica: rw}
 }
 
-func NewReplica(url string, mode string) (*Replica, error) {
+func NewReplica(url string, mode string, tags sqlcomment.Static) (*Replica, error) {
 	db, err := open(url)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open replica"))
@@ -103,6 +108,7 @@ func NewReplica(url string, mode string) (*Replica, error) {
 		db:        db,
 		mode:      mode,
 		debugLogs: false,
+		tags:      tags,
 	}, nil
 }
 
@@ -118,7 +124,7 @@ func New(config Config) (*database, error) {
 	}
 
 	// Initialize primary replica
-	writeReplica, err := NewReplica(config.PrimaryDSN, "rw")
+	writeReplica, err := NewReplica(config.PrimaryDSN, "rw", config.Tags)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot initialize primary replica"))
 	}
@@ -128,11 +134,12 @@ func New(config Config) (*database, error) {
 		db:        writeReplica.db,
 		mode:      "rw",
 		debugLogs: false,
+		tags:      config.Tags,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		readReplica, err = NewReplica(config.ReadOnlyDSN, "ro")
+		readReplica, err = NewReplica(config.ReadOnlyDSN, "ro", config.Tags)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("cannot initialize read replica"))
 		}

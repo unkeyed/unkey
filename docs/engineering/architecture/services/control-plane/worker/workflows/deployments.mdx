@@ -51,14 +51,10 @@ sequenceDiagram
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
   BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
-  Worker->>DB: Insert topologies + sentinel rows (outbox entries)
-  par sentinel convergence
-    Worker->>Worker: SentinelService.Deploy futures (fan out)
-  and pod readiness
-    Worker->>Worker: waitForDeployments creates awakeable
-    Note over Worker: suspended on awakeable
-    DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable
-  end
+  Worker->>DB: Insert topologies (outbox entries)
+  Worker->>Worker: waitForDeployments creates awakeable
+  Note over Worker: suspended on awakeable
+  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable
   Worker->>DB: Mark deployment ready
   Worker->>BuildSlot: Release(deployment_id)
 ```
@@ -100,7 +96,7 @@ sequenceDiagram
   Restate->>Worker: Execute promote workflow
   Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
-  Worker->>Worker: Schedule previous for standby
+  Worker->>Worker: Schedule previous to stop
 ```
 
 ## Flow: rollback
@@ -163,15 +159,14 @@ Only git-sourced deployments with a branch are deduplicated; Docker-image redepl
 
 ## Instance readiness (awakeable-based)
 
-After `createTopologies`, `ensureSentinelRows`, and `ensureCiliumNetworkPolicy`, the Deploy handler fires off `SentinelService.Deploy` RPCs as `RequestFuture`s (non-blocking) and then enters `waitForDeployments` which parks on a Restate awakeable. Both waits — sentinel convergence and pod readiness — happen in parallel on krane's side.
+After `createTopologies`, the Deploy handler enters `waitForDeployments`, which parks on a Restate awakeable until krane reports pod readiness. Krane installs the per-deployment Cilium network policy itself when it applies each deployment, so the handler does not create one.
 
 `waitForDeployments` flow:
 
-1. Create `restate.Awakeable[restate.Void]`.
-2. Store the `awakeable_id` in VO state under `"instances_ready_awakeable"`. (Since `DeployService` is keyed by `deployment_id`, each VO instance owns the awakeable for exactly one deployment — no cross-deployment guard needed.)
-3. Do an initial DB check — if instances are already healthy (e.g. a redeploy against already-running pods), resolve the awakeable immediately.
-4. `WaitFirst(awakeable, After(regionReadyTimeout))` — races ready-notification vs 15-minute timeout.
-5. On any failure path the compensation stack clears the state key.
+1. Load per-region min replicas via `FindDeploymentTopologyMinReplicas`.
+2. Count running instances per region.
+3. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
+4. Repeat the DB check until the threshold is met or `regionReadyTimeout` elapses.
 
 The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
 
@@ -182,8 +177,6 @@ Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report 
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
 5. If threshold met (and not yet notified), send `DeployService.NotifyInstancesReady(deployment_id)` via the ingress client, keyed by `deployment_id`.
-
-This mirrors the sentinel pattern (`ReportSentinelStatus` → `SentinelService.NotifyReady`).
 
 ## Self-skip (belt-and-suspenders dedup)
 

@@ -1,0 +1,68 @@
+---
+title: "portal_session_not_found"
+description: "The provided portal session was not found, has expired, or has already been exchanged. Create a new session from your backend and redirect the user again."
+---
+
+<Danger>`err:unkey:authentication:portal_session_not_found`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Session is invalid, expired, or has already been used.",
+    "status": 401,
+    "title": "Unauthorized",
+    "type": "https://unkey.com/docs/errors/unkey/authentication/portal_session_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error is returned by `POST /v2/portal.exchangeSession` and any portal-authenticated endpoint when the supplied session identifier cannot be resolved. There are three common reasons:
+
+- **Expired session ID** — The short-lived session ID returned by `portal.createSession` is valid for **15 minutes**. After that it can no longer be exchanged.
+- **Already-used session ID** — Session IDs are **single-use**. Once a browser exchanges it, the same ID cannot be exchanged again.
+- **Expired browser session** — After exchange, the browser session is valid for **24 hours**. Once it expires, requests using that token return this error.
+
+## How To Fix
+
+Create a fresh session from your backend and redirect the user again:
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "externalId": "user_123",
+    "permissions": ["api.*.read_key", "api.*.read_analytics"]
+  }'
+```
+
+Then redirect the user to the returned `url`. The portal will exchange the new session ID for a 24-hour browser cookie.
+
+If you have configured a `return_url` on your portal, expired browser sessions will automatically redirect there with `?reason=session_expired`. Use that hook to re-mint a session and bounce the user back into the portal seamlessly.
+
+```typescript
+// In your backend route handler
+if (request.url.searchParams.get("reason") === "session_expired") {
+  const { data } = await createPortalSession(currentUser);
+  return Response.redirect(data.url, 302);
+}
+```
+
+## Common Mistakes
+
+- **Reusing a session ID**: Session IDs are single-use. Generate a new one for every redirect.
+- **Storing session IDs**: Don't persist session IDs — they are short-lived and meant to be consumed immediately.
+- **Skipping the exchange**: The portal frontend must call `portal.exchangeSession` to convert the session ID into a browser session.
+- **Long-running tabs**: Users who keep the portal open beyond 24 hours need a fresh session.
+
+## Related Errors
+
+- [err:unkey:authentication:portal_token_missing](./portal_token_missing) - When no portal session token is supplied at all
+- [err:unkey:data:portal_config_not_found](../data/portal_config_not_found) - When the portal configuration referenced by `slug` does not exist
+- [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided to a non-portal endpoint

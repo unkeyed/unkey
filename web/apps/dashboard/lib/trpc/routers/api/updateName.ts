@@ -11,8 +11,8 @@ export const updateApiName = workspaceProcedure
     z.object({
       name: z
         .string()
-        .min(3, "API names must contain at least 3 characters")
-        .max(256, "API names cannot exceed 256 characters"),
+        .min(3, "Keyspace names must contain at least 3 characters")
+        .max(256, "Keyspace names cannot exceed 256 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),
@@ -31,14 +31,14 @@ export const updateApiName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API name. Please try again or contact support@unkey.com.",
+            "We were unable to update the keyspace name. Please try again or contact support@unkey.com.",
         });
       });
     if (!api) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please try again or contact support@unkey.com.",
+          "We are unable to find the correct keyspace. Please try again or contact support@unkey.com.",
       });
     }
     await db
@@ -53,7 +53,7 @@ export const updateApiName = workspaceProcedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update the API name. Please try again or contact support@unkey.com.",
+                "We were unable to update the keyspace name. Please try again or contact support@unkey.com.",
             });
           });
         await insertAuditLogs(tx, {
@@ -81,7 +81,7 @@ export const updateApiName = workspaceProcedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API name. Please try again or contact support@unkey.com.",
+            "We were unable to update the keyspace name. Please try again or contact support@unkey.com.",
         });
       });
   });

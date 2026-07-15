@@ -22,8 +22,6 @@ post:
     - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: apis.listKeys
   x-speakeasy-name-override: listKeys
-  security:
-    - rootKey: []
   requestBody:
     content:
       application/json:
@@ -74,3 +72,11 @@ post:
         application/json:
           schema:
             $ref: "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

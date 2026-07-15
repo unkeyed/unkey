@@ -1,0 +1,27 @@
+type: object
+required:
+  - startTime
+  - endTime
+properties:
+  startTime:
+    type: integer
+    format: int64
+    description: |
+      Start of the query window as a unix timestamp in milliseconds (inclusive).
+    example: 1704067200000
+  endTime:
+    type: integer
+    format: int64
+    description: |
+      End of the query window as a unix timestamp in milliseconds (exclusive).
+      Bucket granularity (minute, hour, or day) is chosen automatically from the
+      window size.
+    example: 1704672000000
+  keyId:
+    type: string
+    description: |
+      Optional. Restrict results to a single key. The key must belong to the
+      authenticated end user; results are always scoped to the session identity
+      regardless of this value.
+    example: key_1234abcd
+additionalProperties: false

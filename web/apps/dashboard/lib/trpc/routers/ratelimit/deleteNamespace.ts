@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
@@ -36,6 +37,11 @@ export const deleteNamespace = workspaceProcedure
       });
     }
 
+    // Mint a shared correlation so the namespace.delete event and the N
+    // ratelimit.delete_override cascade events all link to one user
+    // action.
+    const correlationId = newId("correlation");
+
     await db.transaction(async (tx) => {
       await tx
         .update(schema.ratelimitNamespaces)
@@ -61,6 +67,7 @@ export const deleteNamespace = workspaceProcedure
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+        correlationId,
       });
 
       const overrides = await tx.query.ratelimitOverrides.findMany({
@@ -106,6 +113,7 @@ export const deleteNamespace = workspaceProcedure
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           })),
         ).catch((_err) => {
           throw new TRPCError({

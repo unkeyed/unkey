@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Complete guide to using the Unkey Go SDK for API key management, verification, and rate limiting in your Go applications and services."
+description: "Complete guide to using the Unkey Go SDK for issuing keys, verifying requests, and rate limiting in your Go applications and services."
 ---
 
 The `unkey-go` SDK provides full access to Unkey's API for managing keys, verifying requests, and rate limiting.
@@ -340,7 +340,7 @@ if err != nil {
 Use the rate limit API directly:
 
 ```go
-res, err := client.Ratelimits.Limit(ctx, components.V2RatelimitsLimitRequestBody{
+res, err := client.Ratelimit.Limit(ctx, components.V2RatelimitsLimitRequestBody{
     Namespace:  "my-app",
     Identifier: "user_123",
     Limit:      100,

@@ -20,7 +20,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: caller
-              image: curlimages/curl:8.5.0
+              image: curlimages/curl:8.5.0@sha256:08e466006f0860e54fc299378de998935333e0e130a15f6f98482e9f8dab3058
               resources:
                 requests:
                   cpu: 10m

@@ -2,7 +2,6 @@ package auditlogs
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -21,29 +20,21 @@ const (
 	DefaultBucket = "unkey_mutations"
 )
 
-// Insert implements AuditLogService.Insert, persisting audit logs and their
-// associated resource targets to the database within a transactional context.
-// Insert handles batch processing of multiple audit logs, automatically managing
-// transaction lifecycle, ID generation, and metadata serialization.
+// Insert implements AuditLogService.Insert, persisting audit logs to the
+// `clickhouse_outbox` MySQL table within a transactional context. The
+// AuditLogExportService worker drains the outbox and ships each row to
+// ClickHouse `audit_logs_raw_v1`.
 //
-// The method creates two types of database records for each audit log:
-//   - Primary audit log records containing event details and actor information
-//   - Resource target records linking the audit event to affected resources
+// When tx is nil, Insert opens its own transaction so the outbox INSERT
+// commits atomically with whatever the caller is doing. Caller-provided
+// tx is reused so the outbox row commits with the underlying mutation
+// (the outbox pattern's whole point — durability of the mutation equals
+// durability of the audit row).
 //
-// When tx is nil, Insert creates its own transaction to ensure all logs are
-// committed atomically. This prevents partial audit log insertion that could
-// result in compliance gaps or inconsistent audit trails.
-//
-// The method handles several important edge cases:
-//   - Empty log slices return immediately without database interaction
-//   - Missing bucket names are automatically set to DefaultBucket
-//   - JSON serialization failures for metadata cause immediate error return
-//   - Transaction rollback is handled gracefully with error logging
-//   - Context cancellation triggers automatic cleanup
-//
-// All audit logs receive unique identifiers and consistent timestamps to
-// maintain proper audit trail ordering and prevent ID conflicts in
-// high-concurrency scenarios.
+// Edge cases:
+//   - Empty log slices return immediately without touching the database.
+//   - JSON serialization failures for the envelope (actor / targets /
+//     meta) cause immediate error return.
 func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
 	if len(logs) == 0 {
 		return nil
@@ -59,69 +50,77 @@ func (s *service) Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditL
 }
 
 func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error {
-	auditLogs := make([]db.InsertAuditLogParams, 0)
-	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
+	outboxRows := make([]db.InsertClickhouseOutboxParams, 0, len(logs))
+
+	// Resolve a shared correlation ID for the batch. Precedence:
+	//   1. ctx-scoped value via auditlog.WithCorrelation (multi-Insert flows)
+	//   2. Auto-mint when len(logs) > 1 (batched single-Insert flows)
+	//   3. Empty (single-event flows that don't need grouping)
+	//
+	// Per-event CorrelationID set on the struct still wins over this; the
+	// shared default only fills in when the caller didn't set one.
+	sharedCorrelationID := auditlog.CorrelationFrom(ctx)
+	if sharedCorrelationID == "" && len(logs) > 1 {
+		sharedCorrelationID = auditlog.NewCorrelationID()
+	}
 
 	for _, l := range logs {
 		auditLogID := uid.New(uid.AuditLogPrefix)
-
 		now := time.Now().UnixMilli()
-		actorMeta, err := json.Marshal(l.ActorMeta)
+
+		targets := make([]auditlog.EventTarget, 0, len(l.Resources))
+		for _, resource := range l.Resources {
+			targets = append(targets, auditlog.EventTarget{
+				Type: string(resource.Type),
+				ID:   resource.ID,
+				Name: resource.DisplayName,
+				Meta: resource.Meta,
+			})
+		}
+
+		correlationID := l.CorrelationID
+		if correlationID == "" {
+			correlationID = sharedCorrelationID
+		}
+
+		envelope := auditlog.Event{
+			EventID:     auditLogID,
+			Time:        now,
+			WorkspaceID: l.WorkspaceID,
+			Bucket:      DefaultBucket,
+			Source:      auditlog.EventSourcePlatform,
+			Event:       string(l.Event),
+			Description: l.Display,
+			Actor: auditlog.EventActor{
+				Type: string(l.ActorType),
+				ID:   l.ActorID,
+				Name: l.ActorName,
+				Meta: l.ActorMeta,
+			},
+			RemoteIP:      l.RemoteIP,
+			UserAgent:     l.UserAgent,
+			Meta:          nil,
+			Targets:       targets,
+			CorrelationID: correlationID,
+		}
+		payload, err := json.Marshal(envelope)
 		if err != nil {
 			return err
 		}
 
-		auditLogs = append(auditLogs, db.InsertAuditLogParams{
-			ID:          auditLogID,
+		outboxRows = append(outboxRows, db.InsertClickhouseOutboxParams{
+			Version:     auditlog.OutboxVersionV1,
 			WorkspaceID: l.WorkspaceID,
-			BucketID:    "dummy",
-			Bucket:      DefaultBucket,
-			Event:       string(l.Event),
-			Display:     l.Display,
-			ActorMeta:   actorMeta,
-			ActorType:   string(l.ActorType),
-			ActorID:     l.ActorID,
-			ActorName:   sql.NullString{String: l.ActorName, Valid: l.ActorName != ""},
-			RemoteIp:    sql.NullString{String: l.RemoteIP, Valid: l.RemoteIP != ""},
-			UserAgent:   sql.NullString{String: l.UserAgent, Valid: l.UserAgent != ""},
-			Time:        now,
+			EventID:     auditLogID,
+			Payload:     payload,
 			CreatedAt:   now,
 		})
-
-		for _, resource := range l.Resources {
-			meta, err := json.Marshal(resource.Meta)
-			if err != nil {
-				return err
-			}
-
-			auditLogTargets = append(auditLogTargets, db.InsertAuditLogTargetParams{
-				ID:          resource.ID,
-				AuditLogID:  auditLogID,
-				WorkspaceID: l.WorkspaceID,
-				BucketID:    "dummy",
-				Bucket:      DefaultBucket,
-				Type:        string(resource.Type),
-				DisplayName: resource.DisplayName,
-				Name:        sql.NullString{String: resource.DisplayName, Valid: resource.DisplayName != ""},
-				Meta:        meta,
-				CreatedAt:   now,
-			})
-		}
 	}
 
-	err := db.BulkQuery.InsertAuditLogs(ctx, tx, auditLogs)
-	if err != nil {
+	if err := db.BulkQuery.InsertClickhouseOutboxes(ctx, tx, outboxRows); err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit logs"), fault.Public("Failed to insert audit logs"),
-		)
-	}
-
-	err = db.BulkQuery.InsertAuditLogTargets(ctx, tx, auditLogTargets)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database failed to insert audit log targets"), fault.Public("Failed to insert audit log targets"),
+			fault.Internal("database failed to insert clickhouse outbox rows"), fault.Public("Failed to insert audit logs"),
 		)
 	}
 

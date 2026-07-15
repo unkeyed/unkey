@@ -14,7 +14,7 @@ Use this to inspect override configurations, audit rate limiting policies, or de
 - `ratelimit.<namespace_id>.read_override` (to read overrides in a specific namespace)
 
 <Note>
-See the [API reference](/api-reference/v2/ratelimit/get-ratelimit-override) for the full HTTP endpoint documentation.
+See the [API reference](/api-reference/ratelimit/get-ratelimit-override) for the full HTTP endpoint documentation.
 </Note>
 
 ## Usage
@@ -40,7 +40,7 @@ The exact identifier pattern of the override to retrieve. This must match exactl
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -64,7 +64,7 @@ echo "Current limit: $LIMIT"
 
 Default output shows the request ID with latency, followed by the override configuration:
 
-```
+```text
 req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
 
 {

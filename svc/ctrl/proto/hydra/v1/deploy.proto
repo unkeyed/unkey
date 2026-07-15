@@ -17,16 +17,10 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
-// sentinel key since it does not relate to any single environment.
-//
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
-//
-// ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
@@ -48,39 +42,40 @@ service DeployService {
   // Target must be in ready status and not already the live deployment.
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 
-  // ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
-  // deployment to standby that has received zero requests in the last 6 hours.
-  // Intended to be called by a cron job.
-  rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
+  // StopDeployment schedules desired_state=stopped for a running deployment.
+  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
 
-  // NotifyInstancesReady is called by the control plane (from
-  // ReportDeploymentStatus) when enough instances have become healthy across
-  // the required regions. It resolves the awakeable stored by a suspended
-  // Deploy workflow, unblocking it so the deployment can proceed to the
-  // network/finalize phases.
-  //
-  // SHARED so it can run concurrently with a suspended Deploy on the same VO
-  // key. The DeployService VO is keyed by {app_id}:{environment_id} which is
-  // shared across every deployment in that environment — the handler
-  // verifies the request's deployment_id matches the one currently awaiting,
-  // so a late status report from a previous deployment never resolves the
-  // awakeable of a newer one.
+  // WakeDeployment schedules desired_state=running for a stopped deployment
+  // and waits until enough instances are running again.
+  rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
+
+  // NotifyInstancesReady is called by the control plane when enough instances
+  // have become healthy across the required regions. It resolves the awakeable
+  // stored by a suspended deploy or wake workflow so it can continue.
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
 }
 
-message NotifyInstancesReadyRequest {
-  // The deployment that has reached the healthy-region threshold. The
-  // handler only resolves the awakeable if this matches the deployment that
-  // is currently waiting on it.
+message StopDeploymentRequest {
   string deployment_id = 1;
 }
 
-message NotifyInstancesReadyResponse {}
+message StopDeploymentResponse {}
 
-message ScaleDownIdlePreviewDeploymentsRequest {}
-message ScaleDownIdlePreviewDeploymentsResponse {}
+message WakeDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message WakeDeploymentResponse {}
+
+message NotifyInstancesReadyRequest {
+  string deployment_id = 1;
+}
+
+message NotifyInstancesReadyResponse {
+  bool resolved = 1;
+}
 
 // DockerImage references a pre-built container image to deploy directly,
 // skipping the build step.
@@ -102,7 +97,8 @@ message GitSource {
   // Subdirectory within the repository to use as the Docker build context.
   string context_path = 4;
 
-  // Path to the Dockerfile, relative to context_path.
+  // Path to the Dockerfile, relative to context_path. Empty means no
+  // Dockerfile is configured and the image is built with Railpack instead.
   string dockerfile_path = 5;
 
   // Branch name used to resolve commit_sha when it is empty. The deploy worker
@@ -112,6 +108,15 @@ message GitSource {
   // PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head
   // from the base repo instead of using commit_sha directly.
   int64 pr_number = 7;
+
+  // Full fork repository identifier (e.g., "contributor/repo"). When set, the
+  // deploy worker uses the public GitHub API and clones from the fork repo.
+  string fork_repository = 8;
+
+  // Custom build command for Railpack builds (RAILPACK_BUILD_CMD). Empty means
+  // Railpack auto-detects the command. Lets monorepos scope the build to a
+  // single app. Ignored when dockerfile_path is set.
+  string build_command = 9;
 }
 
 message DeployRequest {

@@ -1,6 +1,8 @@
 syntax = "proto3";
 package ctrl.v1;
 
+import "ctrl/v1/actor.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 service AppService {
@@ -16,6 +18,7 @@ message CreateAppRequest {
   string project_id = 2;
   string name = 3;
   string slug = 4;
+  ActorInfo actor = 5;
 }
 
 message CreateAppResponse {
@@ -24,6 +27,7 @@ message CreateAppResponse {
 
 message DeleteAppRequest {
   string app_id = 1;
+  ActorInfo actor = 2;
 }
 
 message DeleteAppResponse {}

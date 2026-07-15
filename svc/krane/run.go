@@ -25,9 +25,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
-	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"k8s.io/client-go/dynamic"
@@ -38,13 +37,20 @@ import (
 // Run starts the krane agent server with the provided configuration.
 //
 // It initializes Kubernetes clients, vault for secrets decryption, controller
-// loops (cilium, deployment, sentinel), an HTTP health endpoint, and optional
+// loops (cilium and deployment), an HTTP health endpoint, and optional
 // Prometheus metrics. It blocks until the context is cancelled or a fatal error
 // occurs.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
 	}
 
 	if cfg.Observability.Logging != nil {
@@ -84,20 +90,35 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
-		Region:      cfg.Region,
-		Platform:    cfg.Platform,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
+	// Raise the client-side rate limits above client-go's defaults
+	// (QPS=5, Burst=10). Krane is a controller: on every pod watch
+	// event it does a ReplicaSet GET plus a pods LIST, and on reconnect
+	// or resync it bursts many LISTs at once. The defaults trigger
+	// multi-second "client-side throttling" waits on the critical path
+	// between ContainersReady and the status report.
+	//
+	// Nil out RateLimiter explicitly: if anything earlier in the call
+	// chain set one, QPS/Burst would be silently ignored.
+	inClusterConfig.RateLimiter = nil
+	inClusterConfig.QPS = float32(cfg.K8s.QPS)
+	inClusterConfig.Burst = cfg.K8s.Burst
+	logger.Info("k8s client rate limits",
+		"qps", inClusterConfig.QPS,
+		"burst", inClusterConfig.Burst,
+	)
 
 	clientset, err := kubernetes.NewForConfig(inClusterConfig)
 	if err != nil {
@@ -122,18 +143,6 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
-	// Start the cilium controller (independent control loop)
-	ciliumCtrl := cilium.New(cilium.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-	})
-	if err := ciliumCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start cilium controller: %w", err)
-	}
-	r.Defer(ciliumCtrl.Stop)
-
 	// Build registry config for pull secret creation
 	var registryCfg *deployment.RegistryConfig
 	if cfg.Registry != nil {
@@ -153,43 +162,59 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
 
+	// Cache for deduplicating per-container lifecycle events keyed by
+	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// is visible on every pod-watch tick until kubelet GCs the pod, so
+	// dedup must outlive the eviction grace period to be useful.
+	instanceEventDedupCache, err := cache.New(cache.Config[string, struct{}]{
+		Fresh:    1 * time.Hour,
+		Stale:    2 * time.Hour,
+		MaxSize:  100_000,
+		Resource: "instance_event_dedup",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
+	}
+
+	// Cache for deduplicating pod watch lag samples per (pod UID,
+	// transition time). Entries auto-expire so deleted pods don't
+	// leak memory.
+	deploymentTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
+		Fresh:    5 * time.Minute,
+		Stale:    15 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_pod_transitions",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:        clientset,
-		DynamicClient:    dynamicClient,
-		Cluster:          cluster,
-		Region:           cfg.Region,
-		Platform:         cfg.Platform,
-		Vault:            vaultClient,
-		Registry:         registryCfg,
-		Fingerprints:     fingerprintCache,
-		StorageClassName: cfg.StorageClassName,
+		ClientSet:           clientset,
+		DynamicClient:       dynamicClient,
+		Cluster:             cluster,
+		Region:              cfg.Region,
+		Platform:            cfg.Platform,
+		Vault:               vaultClient,
+		Registry:            registryCfg,
+		Fingerprints:        fingerprintCache,
+		EventDedup:          instanceEventDedupCache,
+		ObservedTransitions: deploymentTransitionsCache,
+		StorageClassName:    cfg.StorageClassName,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
 	}
 	r.Defer(deploymentCtrl.Stop)
 
-	// Start the sentinel controller (independent control loop)
-	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
-	})
-	if err := sentinelCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start sentinel controller: %w", err)
-	}
-	r.Defer(sentinelCtrl.Stop)
-
 	// Start the unified syncer that consumes WatchDeploymentChanges and
-	// dispatches events to the deployment, sentinel, and cilium controllers.
+	// dispatches events to the deployment and cilium controllers.
 	w := watcher.New(watcher.Config{
 		Cluster:     cluster,
 		Deployments: deploymentCtrl,
-		Sentinels:   sentinelCtrl,
-		Cilium:      ciliumCtrl,
 		Region:      cfg.Region,
 		Platform:    cfg.Platform,
 	})
@@ -198,8 +223,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start heartbeat loop to register this cluster with the control plane
 	stopHeartbeat := repeat.Every(30*time.Second, func() {
 		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
-			Region:   cfg.Region,
-			Platform: cfg.Platform,
+			Region: &ctrlv1.RegionKey{
+				Platform: cfg.Platform,
+				Name:     cfg.Region,
+			},
 		}); err != nil {
 			logger.Warn("heartbeat failed", "error", err)
 		}

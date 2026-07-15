@@ -6,6 +6,12 @@ test("create v1 key", () => {
   expect(key.toString()).toMatch(/^[a-zA-Z0-9]+$/);
 });
 
+test("rejects keys shorter than 16 bytes", () => {
+  expect(() => new KeyV1({ byteLength: 15 })).toThrow(
+    "v1 keys must be between 16 and 255 bytes long",
+  );
+});
+
 test("unmarshal", () => {
   const key = new KeyV1({ prefix: "prfx", byteLength: 16 });
   const key2 = KeyV1.fromString(key.toString());

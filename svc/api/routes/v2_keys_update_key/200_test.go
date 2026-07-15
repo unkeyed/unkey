@@ -30,7 +30,6 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -125,6 +124,94 @@ func TestUpdateKeySuccess(t *testing.T) {
 	})
 }
 
+func TestUpdateKeyWithURNPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("before"),
+	})
+
+	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: key.KeyID,
+		Name:  nullable.NewNullableWithValue("after"),
+	})
+	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.Equal(t, "after", updatedKey.Name.String)
+}
+
+func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("before"),
+	})
+
+	adminPermission := fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, adminPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: key.KeyID,
+		Name:  nullable.NewNullableWithValue("after"),
+	})
+	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.Equal(t, "after", updatedKey.Name.String)
+}
+
 func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	t.Parallel()
 
@@ -133,7 +220,6 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -191,8 +277,8 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "newName", key.Name.String)
 	require.True(t, key.IdentityID.Valid, "Should have identity ID set")
-	require.Equal(t, int32(100), key.RemainingRequests.Int32)
-	require.Equal(t, int32(50), key.RefillAmount.Int32)
+	require.Equal(t, int64(100), key.RemainingRequests.Int64)
+	require.Equal(t, int64(50), key.RefillAmount.Int64)
 
 	// Verify identity was created with correct external ID
 	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
@@ -209,7 +295,6 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -228,7 +313,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	})
 
 	keyName := "test-key"
-	initialCredits := int32(100)
+	initialCredits := int64(100)
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -243,14 +328,14 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
+	authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
 
 	err = authBefore.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
 	require.True(t, authBefore.Key.RemainingRequests.Valid)
-	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
 
 	// Update the key's credits
 	newCredits := int64(50)
@@ -267,14 +352,14 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 
 	// Verify the key again to check if cache was properly invalidated
-	authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
+	authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
 
 	err = authAfter.Verify(ctx, keys.WithCredits(1))
 	require.NoError(t, err)
 
 	require.True(t, authAfter.Key.RemainingRequests.Valid)
-	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+	require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 }
 
 // TestUpdateKeyConcurrentWithSameExternalId tests that concurrent updates
@@ -289,7 +374,6 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -321,6 +405,15 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	}
 
 	externalID := "shared_identity_deadlock_test"
+
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst exercises the deadlock regression rather than the
+	// validator's first-time schema rendering path.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:      keyIDs[0],
+		ExternalId: nullable.NewNullableWithValue(externalID),
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
 
 	g := errgroup.Group{}
 	for _, keyID := range keyIDs {
@@ -375,7 +468,6 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,

@@ -31,8 +31,9 @@
 //
 // # Container Dependencies
 //
-// The harness starts MySQL, Redis, ClickHouse, and MinIO (S3-compatible) containers.
-// These are shared across tests within a package for speed, but each test gets fresh
-// database state through the seeder. Container startup is parallelized to minimize
-// test latency.
+// The harness starts only MySQL by default. Redis and ClickHouse are opt-in via
+// [HarnessConfig]. The default counter is in-memory, and default analytics
+// buffers are no-ops for insertion-only route tests. Each harness owns its
+// containers through t.Cleanup, so tests do not require pre-running Docker
+// Compose services or package-level TestMain pools.
 package testutil

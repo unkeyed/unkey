@@ -3,7 +3,7 @@ package acme
 import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 type Service struct {
@@ -11,12 +11,14 @@ type Service struct {
 	db             db.Database
 	domainCache    cache.Cache[string, db.CustomDomain]
 	challengeCache cache.Cache[string, db.AcmeChallenge]
+	bearer         string
 }
 
 type Config struct {
 	DB             db.Database
 	DomainCache    cache.Cache[string, db.CustomDomain]
 	ChallengeCache cache.Cache[string, db.AcmeChallenge]
+	Bearer         string
 }
 
 func New(cfg Config) *Service {
@@ -25,5 +27,6 @@ func New(cfg Config) *Service {
 		db:                              cfg.DB,
 		domainCache:                     cfg.DomainCache,
 		challengeCache:                  cfg.ChallengeCache,
+		bearer:                          cfg.Bearer,
 	}
 }

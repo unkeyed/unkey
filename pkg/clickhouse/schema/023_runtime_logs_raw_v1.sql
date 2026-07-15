@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)),
 
     -- Log content
-    `severity` LowCardinality(String),
+    `severity` LowCardinality(String) CODEC(ZSTD(1)),
     `message` String CODEC(ZSTD(1)),
 
     -- Customer identifiers (from pod labels)
@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     `k8s_pod_name` String CODEC(ZSTD(1)),
 
     -- Region
-    `region` LowCardinality(String),
+    `region` LowCardinality(String) CODEC(ZSTD(1)),
 
     -- Platform (e.g. aws, gcp, local)
-    `platform` LowCardinality(String),
+    `platform` LowCardinality(String) CODEC(ZSTD(1)),
 
     -- Structured log attributes (parsed from JSON or key=value logs)
     -- Using JSON type for nested attribute support
@@ -42,8 +42,10 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Indexes for fast filtering (0.001 = low false positive rate)
     INDEX idx_workspace_id workspace_id TYPE bloom_filter(0.001) GRANULARITY 1,
     INDEX idx_deployment_id deployment_id TYPE bloom_filter(0.001) GRANULARITY 1,
-    INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1,
-    INDEX idx_attributes_text attributes_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1
+    -- ngram bloom filters on lower(...) so positionCaseInsensitive(lower(col), ...) can use them.
+    -- tokenbf_v1 only matches whole tokens, so it never helped substring search.
+    INDEX idx_message_text_search lower(message) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
+    INDEX idx_attributes_text_search lower(attributes_text) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1
 )
 ENGINE = MergeTree()
 PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))

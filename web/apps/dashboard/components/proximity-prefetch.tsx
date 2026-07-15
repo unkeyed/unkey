@@ -1,4 +1,5 @@
 "use client";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -81,7 +82,7 @@ export function ProximityPrefetch({
       hasTriggered.current = true;
 
       if (route) {
-        router.prefetch(route);
+        router.prefetch(route as Route);
       }
 
       if (onEnterProximity) {

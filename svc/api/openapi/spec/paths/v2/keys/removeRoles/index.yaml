@@ -20,8 +20,6 @@ post:
     Invalidates the key cache for immediate effect, and makes role changes available for verification within 30 seconds across all regions.
   operationId: keys.removeRoles
   x-speakeasy-name-override: removeRoles
-  security:
-    - rootKey: []
   requestBody:
     required: true
     content:

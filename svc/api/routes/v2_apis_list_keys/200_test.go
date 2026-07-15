@@ -24,7 +24,6 @@ func TestSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:       h.DB,
-		Keys:     h.Keys,
 		Vault:    h.Vault,
 		ApiCache: h.Caches.LiveApiByID,
 	}
@@ -451,7 +450,7 @@ func TestSuccess(t *testing.T) {
 			ForWorkspaceID:    sql.NullString{Valid: false},
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			RemainingRequests: sql.NullInt64{Valid: false},
 
 			IdentityID: sql.NullString{Valid: false},
 		})
@@ -471,7 +470,7 @@ func TestSuccess(t *testing.T) {
 			ForWorkspaceID:    sql.NullString{Valid: false},
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			RemainingRequests: sql.NullInt64{Valid: false},
 
 			IdentityID: sql.NullString{Valid: false},
 		})

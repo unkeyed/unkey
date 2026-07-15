@@ -1,0 +1,33 @@
+type: object
+required:
+  - meta
+  - data
+  - pagination
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    items:
+      "$ref": "../../../../common/EnvironmentVariable.yaml"
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"
+additionalProperties: false
+examples:
+  mixed:
+    summary: Recoverable and writeonly variables
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        - key: LOG_LEVEL
+          kind: recoverable
+          value: debug
+          description: Application log verbosity
+          createdAt: 1704067200000
+        - key: DATABASE_URL
+          kind: writeonly
+          description: Primary database connection string
+          createdAt: 1704067200000
+      pagination:
+        hasMore: false

@@ -9,7 +9,33 @@ Do not use `time.Sleep` to wait for async work. Use `require.Eventually` or a te
 
 ## Testing implementation details
 
-Verify public behavior, not internal fields. Refactors should not break tests when behavior is unchanged.
+Verify public behavior, not internal fields. Refactors must not break tests when behavior is unchanged.
+
+## Treating tests as throwaway code
+
+Tests are production code. Do not accept unclear names, hidden setup, flaky timing, duplicated fixtures, unsafe casts, ignored errors, or comments that would be rejected in application code.
+
+## Hiding the guarantee
+
+Do not make readers infer the guarantee from setup and assertions alone. Use a precise test name, table case name, and docstring when the protected behavior is not obvious.
+
+```go
+// Bad: the guarantee is hidden.
+func TestAuth(t *testing.T) {
+    // ...
+}
+
+// Good: the guarantee is explicit.
+// TestAuthRejectsRevokedRootKeys guarantees that revoked credentials cannot be
+// used after revocation has been persisted.
+func TestAuthRejectsRevokedRootKeys(t *testing.T) {
+    // ...
+}
+```
+
+## Bypassing `pkg/fuzz`
+
+Fuzz tests must use `pkg/fuzz`. Do not fuzz typed parameters directly, use ad hoc byte slicing, or introduce separate randomness with `math/rand`. Use `fuzz.Seed(f)`, `fuzz.New(t, data)`, and the consumer helpers so every generated value remains controlled by the fuzzer.
 
 ## Shared mutable state
 

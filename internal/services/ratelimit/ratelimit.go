@@ -12,43 +12,69 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// checkState holds the precomputed state needed for a sliding window check.
+// checkState holds the precomputed state needed for a sliding window
+// check. One instance is built per request by prepareCheck and consumed
+// by the CAS loop in Ratelimit (or the per-entry pass in RatelimitMany).
 type checkState struct {
-	cur           *counterEntry
-	prev          *counterEntry
-	strictKey     strictKey
+	cur       *counterEntry
+	prev      *counterEntry
+	strictKey strictKey
+
+	// curGlobal and prevGlobal are snapshots of
+	// counterEntry.globalCount taken at prepareCheck time so the
+	// CAS retry loop in Ratelimit does not re-load them on every retry.
+	// Cross-region counts only mutate from the cross-region pull
+	// goroutine on a 5s cadence, so they are effectively constant for
+	// the lifetime of any single request; snapshotting matches that
+	// lifetime and saves two atomic loads per CAS attempt.
+	curGlobal  int64
+	prevGlobal int64
+
+	curSequence   int64
 	windowElapsed float64
 	reset         time.Time
 	source        string
 }
 
-// prepareCheck loads both window counters for a request, fetching from Redis
-// if either window is cold or if strict-enforcement mode is active for this
-// identifier after a recent denial.
+// prepareCheck loads both counters for a request and fetches from
+// Redis when strict mode is active for this identifier after a recent
+// denial.
 func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkState {
 	durationMs := req.Duration.Milliseconds()
 	curSeq := calculateSequence(req.Time, req.Duration)
 
-	curKey := counterKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq}
-	prevKey := counterKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq - 1}
-	sk := strictKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs}
+	curKey := counterKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq}
+	prevKey := counterKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq - 1}
+	sk := strictKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs}
 
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
 
-	// First caller per entry runs fetchFromOrigin; concurrent callers block
-	// inside Do until it returns, then take the fast path (single atomic
-	// load of hydrated) forever. This prevents late arrivals on a cold key
-	// from reading a zero counter while the owner is still fetching.
-	cur.Hydrate(ctx)
-	prev.Hydrate(ctx)
+	// A cold (unhydrated) entry forces this caller to pay the synchronous
+	// fetch_cold or block inside Do until the first caller's fetch returns —
+	// either way the decision is informed by origin state, not local.
+	source := "local"
+	if !cur.hydrated.Load() || !prev.hydrated.Load() {
+		source = "origin"
+	}
 
-	// Strict mode: a recent denial forces an additional synchronous origin
-	// fetch until the deadline passes, catching up local state to the global
-	// count regardless of whether the entry was already hydrated.
+	// First caller per entry runs fetchFromOrigin; concurrent callers block
+	// inside Do until it returns. Warm entries refresh from origin when their
+	// last origin fetch is stale, preventing idle replicas from serving an old
+	// local view for the rest of a long window.
+	cur.EnsureFreshFromOrigin(ctx, req.Time)
+	prev.EnsureFreshFromOrigin(ctx, req.Time)
+
+	// Strict mode always refreshes the current window before deciding. The
+	// previous window cannot receive new local decisions anymore, so its normal
+	// cold/stale refresh is enough.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
-		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
+		countOriginCurrent, ok := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+		if ok {
+			atomicMax(&cur.val, countOriginCurrent)
+			atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+		}
+		source = "origin"
 	}
 
 	windowStartMs := curSeq * durationMs
@@ -60,16 +86,29 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 		cur:           cur,
 		prev:          prev,
 		strictKey:     sk,
+		curGlobal:     cur.globalCount.Load(),
+		prevGlobal:    prev.globalCount.Load(),
+		curSequence:   curSeq,
 		windowElapsed: windowElapsed,
 		reset:         reset,
-		source:        "local",
+		source:        source,
 	}
 }
 
-// slidingWindowCount computes the effective request count for the sliding window
-// given the current window's counter value. The previous window is loaded atomically.
+// slidingWindowCount computes the effective request count for the
+// sliding window given the current window's local counter value. Each
+// window's total count is its own region's val (passed in for cur,
+// atomically loaded for prev) plus the cross-region sum of other regions'
+// contributions from the most recent cross-region pull. The two
+// contributions are tracked separately to keep the cross-region merge
+// from feeding back into the next flush, but for the deny decision
+// they're equivalent: any source of count increases pressure on the
+// limit. Cross-region snapshots come from checkState so the CAS retry
+// loop doesn't re-pay the atomic load.
 func (cs *checkState) slidingWindowCount(curCount int64) int64 {
-	return curCount + int64(float64(cs.prev.val.Load())*(1.0-cs.windowElapsed))
+	cur := curCount + cs.curGlobal
+	prev := cs.prev.val.Load() + cs.prevGlobal
+	return cur + int64(float64(prev)*(1.0-cs.windowElapsed))
 }
 
 func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
@@ -81,8 +120,9 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	}
 
 	err := assert.All(
+		assert.NotEmpty(req.WorkspaceID, "ratelimit workspace id must not be empty"),
+		assert.NotEmpty(req.Namespace, "ratelimit namespace must not be empty"),
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
-		assert.NotEmpty(req.Name, "ratelimit name must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
 		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
 		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
@@ -109,7 +149,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			// Enter strict mode: force origin fetches for the rest of the
 			// rate-limit window so later requests converge on the true count.
 			s.setStrictUntil(cs.strictKey, req.Time.Add(req.Duration).UnixMilli())
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
 				Success:   false,
@@ -122,7 +162,8 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
+			cs.cur.observeGlobalPushLimit(req.Limit)
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
 			return RatelimitResponse{
 				Success:   true,
@@ -136,11 +177,12 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	// CAS retries exhausted — fail closed.
 	logger.Error("ratelimit CAS retries exhausted, denying request",
+		"workspace_id", req.WorkspaceID,
+		"namespace", req.Namespace,
 		"identifier", req.Identifier,
-		"name", req.Name,
 	)
 	metrics.RatelimitCASExhausted.Inc()
-	metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 	span.SetAttributes(attribute.Bool("passed", false))
 	return RatelimitResponse{
 		Success:   false,
@@ -155,6 +197,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	_, span := tracing.Start(ctx, "RatelimitMany")
 	defer span.End()
 
+	reqs = append([]RatelimitRequest(nil), reqs...)
 	now := s.clock.Now()
 	for i := range reqs {
 		if reqs[i].Time.IsZero() {
@@ -162,7 +205,8 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		err := assert.All(
-			assert.NotEmpty(reqs[i].Name, "ratelimit name must not be empty"),
+			assert.NotEmpty(reqs[i].WorkspaceID, "ratelimit workspace id must not be empty"),
+			assert.NotEmpty(reqs[i].Namespace, "ratelimit namespace must not be empty"),
 			assert.NotEmpty(reqs[i].Identifier, "ratelimit identifier must not be empty"),
 			assert.Greater(reqs[i].Limit, 0, "ratelimit limit must be greater than zero"),
 			assert.GreaterOrEqual(reqs[i].Cost, 0, "ratelimit cost must not be negative"),
@@ -184,6 +228,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// so each goroutine sees its own increment reflected.
 	newCounts := make([]int64, len(reqs))
 	for i, req := range reqs {
+		checks[i].cur.speculative.Add(req.Cost)
 		newCounts[i] = checks[i].cur.val.Add(req.Cost)
 	}
 
@@ -206,10 +251,20 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	if !allPassed {
 		for i, req := range reqs {
 			checks[i].cur.val.Add(-req.Cost)
-			// For each individual failure, set strict mode on its tuple.
+			checks[i].cur.speculative.Add(-req.Cost)
+			// For each individual failure, set strict mode on its tuple so
+			// later requests in this region force a Redis fetch and converge
+			// with other instances' views of the count.
 			if effectives[i] > req.Limit {
 				s.setStrictUntil(checks[i].strictKey, req.Time.Add(req.Duration).UnixMilli())
 			}
+		}
+	} else {
+		// Increments stuck. Record each entry's global-push threshold so
+		// the push goroutine can evaluate the live counter value later.
+		for i, req := range reqs {
+			checks[i].cur.observeGlobalPushLimit(req.Limit)
+			checks[i].cur.speculative.Add(-req.Cost)
 		}
 	}
 
@@ -246,9 +301,9 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		if individualPassed {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "passed").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "denied").Inc()
 		}
 	}
 

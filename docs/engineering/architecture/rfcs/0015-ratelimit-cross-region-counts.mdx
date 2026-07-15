@@ -1,0 +1,224 @@
+---
+title: 0015 Ratelimit Cross-Region Counts
+description: Replace the ratelimit_blocklist propagation table with a G-Counter style sharing of actual per-region counts, eliminating the over-block failure modes of the current scheme.
+date: 2026-05-01
+authors:
+  - Andreas Thomas
+---
+
+## Summary
+
+Replace the `ratelimit_blocklist`-driven propagation path with a new `ratelimit_window_counts` table that holds per-region observations of each active sliding-window counter. Regions periodically flush their own observed count, and periodically read the sum of other regions' counts to derive the cross-region effective count. The local denial decision becomes "would this request exceed the limit given my own count plus what other regions have reported," which is the question we actually wanted to answer all along.
+
+The blocklist table itself stays for now (rows drain naturally over their sequence-derived expiry); the in-memory machinery that wrote and read it is gone. The table and its sqlc queries are scheduled for deletion in a follow-up PR once we have confidence the new path is healthy in production.
+
+## Motivation
+
+The blocklist propagates denials by writing one row per (workspace, namespace, identifier, duration, sequence) at the moment a region first denies, and inflating the matching local counter to `limit` in every other region on the next sync. That model has two structural failure modes that no amount of filter heuristics can eliminate.
+
+The first is the cold oversized request. A user makes one request whose cost exceeds their entire limit, gets denied locally, and is now pinned at `limit` across every region for the remainder of the window even though they have consumed zero tokens. We currently filter this out by skipping propagation when `currentCount < req.Cost`, which works for the canonical case but leaves the broader pattern (a user denied while having consumed very little of their budget) on the wrong side of the rule.
+
+The second is the prev-window bleed-in denial. A user uses 8 of 10 tokens in window N, then makes a small request at the start of window N+1. The sliding-window math denies on the prev contribution, and propagating that denial pins them at `limit` in window N+1 globally even though they have used nothing in this window. The current code skips propagation when prev is the dominant contributor, but this just trades one heuristic for another.
+
+Both failures share the same root cause: the blocklist communicates a verdict ("blocked") rather than a quantity ("this region saw N requests"). Other regions can act on the verdict only by overriding their local count, which makes a punitive choice on incomplete information. Sharing actual counts removes the choice. The denial decision in each region uses the same sliding-window math it always has, just with a more accurate input.
+
+A secondary motivation is that observed multi-region overlap (~5% baseline, ~8% peak as of 2026-05-01) is small enough that the heuristic-driven blocklist works most of the time, but spikes into 25% denial bursts are exactly when the failure modes bite hardest, and exactly when over-blocking damages real users. Cleaner semantics during bursts is the user-facing payoff.
+
+## Detailed design
+
+### Data model
+
+A new table replaces the blocklist. Each row records one region's observed count for one sliding-window cell.
+
+```sql
+CREATE TABLE `ratelimit_window_counts` (
+    `pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+    `workspace_id` varchar(191) NOT NULL,
+    `namespace` varchar(255) NOT NULL,
+    `identifier` varchar(255) NOT NULL,
+    `duration_ms` bigint unsigned NOT NULL,
+    `sequence` bigint NOT NULL,
+    `region` varchar(48) NOT NULL,
+    `count` bigint unsigned NOT NULL,
+    `expires_at` bigint unsigned NOT NULL,
+    `updated_at` bigint unsigned NOT NULL,
+    CONSTRAINT `ratelimit_window_counts_pk` PRIMARY KEY (`pk`),
+    CONSTRAINT `unique_window_region` UNIQUE (
+        `workspace_id`, `namespace`, `identifier`, `duration_ms`, `sequence`, `region`
+    )
+);
+CREATE INDEX `expires_at_idx` ON `ratelimit_window_counts` (`expires_at`);
+CREATE INDEX `lookup_idx` ON `ratelimit_window_counts` (
+    `workspace_id`, `namespace`, `identifier`, `duration_ms`, `sequence`
+);
+```
+
+`region` is read from a new `Config.Region` field, populated from the `UNKEY_REGION` environment variable at boot. The column is `varchar(48)` rather than the more generous `varchar(64)` so the unique index (which spans the four key fields plus `sequence` and `region`) stays under MySQL's 3072-byte limit for utf8mb4. Real region tags fit comfortably.
+
+Two regions with the same identifier produce two rows; aggregation is `SUM(count)` across regions. Within a region, multiple instances may write the same row, which is fine because the upsert collapses them via `GREATEST`. `expires_at` is sequence-derived: `(sequence + 2) * duration_ms`. The row is meaningful through window N+1 (where it appears as prev) and useless after, regardless of wall-clock drift between regions.
+
+### Counter entry shape
+
+`counterEntry` gains three atomic fields:
+
+- `globalCount atomic.Int64` — sum of other regions' contributions for this cell, written by the sync goroutine, read by the request path.
+- `limit atomic.Int64` — the most recent per-request limit observed on this entry, written by `prepareCheck` on every request. The flush goroutine compares `val` against `limit * floor` to decide whether the entry is worth propagating.
+- `lastFlushed atomic.Int64` — the `val` written by the previous successful flush. The flush goroutine skips entries whose `val` has not grown beyond it, so quiet entries don't generate redundant MySQL writes.
+
+The `blocked atomic.Bool`, the `maybePropagateDenial` function, and its gating heuristics are removed. The existing `val` continues to hold this region's own observed count, populated by traffic and the existing replay-from-Redis path.
+
+The sliding-window check becomes:
+
+```go
+func (cs *checkState) slidingWindowCount(curCount int64) int64 {
+    cur := curCount + cs.curGlobal
+    prev := cs.prev.val.Load() + cs.prevGlobal
+    return cur + int64(float64(prev)*(1.0-cs.windowElapsed))
+}
+```
+
+`cs.curGlobal` and `cs.prevGlobal` are snapshots, taken by `prepareCheck` once at the start of each request. The CAS retry loop in `Ratelimit` then re-evaluates `slidingWindowCount` per attempt without re-paying the atomic load on `globalCount` — it only mutates from the sync goroutine on a 10s cadence, so it is effectively constant for the lifetime of any one request. `prev.val` is still loaded fresh because it can move during the CAS loop via concurrent passing requests on the prev counter.
+
+The CAS path keeps incrementing `cur.val` (own count) on each accepted request; nothing about Redis replay changes. `globalCount` is read-only from the request path's perspective.
+
+Naming convention: "global" throughout this package means "across all other regions," not "across all nodes." Nodes within a region already converge through Redis replay; global state excludes own-region rows on read. The deny path reads as `cur.val + cur.globalCount` — local plus global, with the boundary defined by what the sync query filters out (`region != self`).
+
+### Flush path
+
+A periodic goroutine ticks every 10 seconds with 20% jitter and walks the local `counters` sync.Map. Eligible entries are collected into one slice and written to MySQL in a single bulk upsert per tick:
+
+```sql
+INSERT INTO ratelimit_window_counts (...)
+VALUES (...)
+ON DUPLICATE KEY UPDATE
+    count      = GREATEST(count, VALUES(count)),
+    updated_at = VALUES(updated_at);
+```
+
+`GREATEST` makes the write idempotent and monotonic per region. Two instances within the same region writing concurrently always agree on the result, even under arbitrary interleaving. A row whose remote count happens to be ahead of ours stays ahead (which can happen briefly when our flush races a concurrent flush from another instance whose Redis-merged view is fresher).
+
+There is no intermediate buffer. Earlier drafts pushed each row through `pkg/batch` to coalesce writes, but the periodic walk already produces a complete batch in one pass — the buffer just added a 1-second of latency and silent-drop semantics on overflow that are inappropriate for a counter-sharing system. The bulk upsert is wrapped directly in `crossRegionCircuitBreaker` so a sick database fails fast rather than blocking the next tick.
+
+Two filters gate which entries actually flush:
+
+- **Utilization filter** (`val < limit * 0.5`) skips entries where this region has consumed less than half the limit. Such entries cannot meaningfully push another region over its threshold, so propagating their count is wasted MySQL load. This filter runs first because most active windows never cross the floor; checking it before the change filter avoids the second atomic load on the bulk of skipped entries.
+- **Change filter** (`val == lastFlushed`) skips entries whose `val` has not moved since the previous successful flush. Most active windows tick once per request and are idle between flushes; without this we'd re-write unchanged rows every cycle.
+
+`lastFlushed` only commits after the bulk upsert succeeds. A transient MySQL failure leaves the entries in a state that re-emits on the next tick. Without that ordering, a dropped batch would silently mark its rows as flushed and not retry until `val` changed again.
+
+The 20% jitter on the tick cadence prevents fleet-wide lockstep — without it, every region's flush goroutine would converge on the same wall-clock multiple of 10s and hammer MySQL in a convoy. Jitter applies fresh on every cycle, anchored to absolute target times so a slow flush does not drift the cadence.
+
+With these filters, the realistic write rate is dominated by the rate at which entries cross the 50% threshold, not by the active window count. Hot identifiers cross once and then write at the cadence of their growth (one or two writes per flush interval until the window rotates); cold identifiers never write at all.
+
+### Sync path
+
+Every 10 seconds (with 20% jitter), each region pulls the per-key sum of every other region's contribution:
+
+```sql
+SELECT
+    workspace_id, namespace, identifier, duration_ms, sequence,
+    CAST(SUM(count) AS SIGNED) AS imported
+FROM ratelimit_window_counts
+WHERE expires_at > ?
+  AND region != ?
+GROUP BY workspace_id, namespace, identifier, duration_ms, sequence;
+```
+
+Aggregation runs in MySQL because the application only ever uses the sum. Returning per-region rows just to collapse them in Go would waste bandwidth and memory; with `GROUP BY` the receiver gets one row per active window cell instead of one row per (region, cell) pair. `CAST(SUM(count) AS SIGNED)` so sqlc maps the aggregate column to `int64`, matching `atomic.Int64` on the receiver.
+
+No additional filter is needed on the read side because the write-side utilization filter already excludes low-count rows from the table. Every row that appears in the result is, by construction, from a region that has crossed 50% utilization on this entry, which is exactly the population worth syncing.
+
+The receiver writes each row's aggregate directly into the matching `counterEntry.globalCount` via `atomicMax`. Sums are monotonic per cell (each region's contribution only grows within a sequence), so atomicMax is sufficient and idempotent across overlapping ticks. When no local entry exists for a key seen in the result set, one is created on demand via `findOrCreateCounter`. These creations are attributed to `RatelimitGlobalEntriesCreated` rather than the traffic-driven `RatelimitWindowsCreated` so the cardinality signal stays clean.
+
+### What goes away
+
+The `blocked atomic.Bool` on `counterEntry`, the propagation gating heuristics in `maybePropagateDenial`, and `maybePropagateDenial` itself become unnecessary and are removed. Each addressed a symptom of the blocklist's verdict-shaped propagation:
+
+- `blocked` deduped propagation events. With G-Counter writes idempotent under `GREATEST`, no dedup is needed.
+- The `currentCount >= req.Cost` and `minPropagationDuration` filters guarded against punitive over-blocking. With actual counts shared, there is no punitive action to guard against.
+
+### What stays
+
+Strict mode (`strictUntils` map, `setStrictUntil`, `loadStrictUntil`, the forced origin fetch in `prepareCheck`) is kept. Strict mode is the in-region convergence mechanism: instances within a region share state through Redis, and the post-denial forced fetch drains any lag between an instance's local view and the region's Redis-backed truth. That role is independent of the cross-region path. The new `globalCount` field handles convergence across regions; strict mode handles convergence between instances of the same region. They coexist cleanly: `effectiveCount = cur.val + cur.globalCount + (prev.val + prev.globalCount) * (1 - elapsed)`, with strict-mode fetches updating `cur.val` and `prev.val` on the request path before the read.
+
+### Cleanup
+
+A `WindowCountsDeleteExpired` query (sqlc) deletes rows where `expires_at < cutoff`. It is intended to be driven by an external Restate cron, mirroring the existing `BlocklistDeleteExpired` arrangement; the ratelimit service itself does not run a cleanup goroutine.
+
+The existing `pkg/mysql/schema/ratelimit_blocklist.sql` and its sqlc queries (`BulkInsertBlocklist`, `BlocklistListActive`, `BlocklistDeleteExpired`) are intentionally untouched in this PR. The in-memory machinery that wrote and read them is gone, so the table is no longer being populated; existing rows drain naturally over their sequence-derived expiry. A follow-up PR removes the table and queries once the new path has been observed in production.
+
+### Configuration changes
+
+`Config` gains a single new field: `Region string` (required), sourced from `UNKEY_REGION` at process start. Used as the row-key partition for own writes and the filter for own-region reads. The constructor returns `ErrRegionRequired` when empty.
+
+Tuning parameters are package-level constants, not Config fields:
+
+- `globalFlushInterval = 10 * time.Second`
+- `globalSyncInterval = 10 * time.Second`
+- `globalUtilizationFloor = 0.5`
+- `globalSyncJitter = 0.2`
+- `globalFlushTimeout = 10 * time.Second`
+
+Trading propagation coverage against MySQL write rate is a global property of the system; exposing it as a per-instance knob would only create drift between regions running the same code.
+
+### Metrics
+
+The blocklist metrics (`unkey_ratelimit_blocklist_*`) are removed since the in-memory blocklist machinery is gone. New `unkey_ratelimit_global_*` metrics with the same shape replace them: `writes_total`, `write_errors_total`, `sync_rows_applied_total`, `sync_errors_total`, `entries_created_total`, `rows_last_poll`. The dashboard shape is preserved so the operator experience is continuous after a panel rename.
+
+`RatelimitStrictModeActivations` is kept since strict mode itself is kept.
+
+## Expected MySQL load
+
+The numbers below use observed production traffic as of 2026-05-01: 33 instances across 10 regions, ~24,000 active sliding-window entries fleet-wide at peak, ~5% multi-region overlap, and 2–4% baseline denial fraction (spiking to ~25% during bursts).
+
+**Hot-window cardinality.** Most active windows are quiet — a user makes a handful of cost-1 calls and never approaches the limit. The 50% utilization filter means only entries that consume half their budget are written to MySQL. Empirically (denial fraction + headroom for windows that approach but don't cross limit), the hot subset is on the order of 5–15% of active entries: ~1,500–4,000 windows fleet-wide that are eligible for cross-region flush at any moment.
+
+**Steady-state row count in `ratelimit_window_counts`.** Each hot window has at most one row per region that has crossed the floor on that window. With low overlap (~5%) most hot windows live in a single region, so the table holds ~1,500–4,500 active rows in steady state, plus expired rows pending cleanup. Bounded; comfortably small for MySQL.
+
+**Write rate.** Each instance flushes every 10 seconds. Per instance, the flush emits one bulk INSERT with ~50–200 rows (its share of hot windows that changed since the last flush). Across 33 instances:
+
+- **~3.3 INSERT statements/sec fleet-wide** (one per instance per 10s).
+- **~600–6,000 row-writes/sec fleet-wide**, dominated by the bulk size per statement.
+
+Concurrent writes from instances within the same region collapse via `ON DUPLICATE KEY UPDATE count = GREATEST(...)`, so MySQL never sees real contention on the unique key.
+
+**Read rate.** Each instance syncs every 10 seconds. The query has a `GROUP BY` so the result is one row per active hot window, not one per (region, window). Per instance, the result is ~1,500–4,500 rows. Across 33 instances:
+
+- **~3.3 SELECT statements/sec fleet-wide**.
+- **~5,000–15,000 row-reads/sec fleet-wide**, served from the `lookup_idx` covering index.
+
+**Comparison to the removed blocklist.** Today's (now-removed) blocklist generated ~150 row-reads/sec and well under 10 writes/sec. The new path is roughly:
+
+- Reads: 30–100× higher.
+- Writes: 100–600× higher (from a near-zero baseline).
+
+In absolute terms it is still light load — well below the throughput of a single MySQL primary — but it is a meaningful workload shift. Writes go from event-driven (rare, on denial) to periodic (every 10s, every region). Reads go from "the active blocklist" (~45 rows visible to each node) to "the active hot subset" (~1,500–4,500 rows visible to each node).
+
+**Scaling.** At 10× traffic — 240k active windows, ~15k–45k hot, similar overlap fraction — read load reaches ~50k–150k row-reads/sec fleet-wide and write load ~5k–60k row-writes/sec. Still well within a single MySQL primary's envelope but no longer trivial. The next bottleneck would be the periodic walk of `s.counters` in each instance, which is O(active_windows) per flush; at 240k entries the walk is ~milliseconds, fine.
+
+## Drawbacks
+
+The utilization filter creates a cross-region "free zone" below 50% per region. A user spreading traffic evenly across all 10 regions could in principle stay just under 50% in each, totaling just under 5× their advertised limit, without triggering any propagation. This requires the user to actively load-balance across regions, which most clients do not do. Real abuse concentrates in one region (the closest), which crosses the threshold and propagates. The 5× worst-case is a known limitation of any fan-out-style sharing scheme with a per-region threshold; tightening the threshold reduces the fan-out factor at the cost of more writes.
+
+The sync interval bounds cross-region propagation latency. A region that starts seeing a hot identifier takes up to one flush interval (10s) plus one sync interval (10s) before other regions know about it, plus jitter on each. This is broadly the same latency profile as the previous blocklist scheme; users do not see a regression. Tightening latency is independent of choosing between verdict-shaped and count-shaped propagation, and would be its own RFC.
+
+Workload shape on MySQL changes from event-driven to periodic. The previous blocklist wrote almost never and read a small set; the new path writes and reads on every cycle from every instance. Even though absolute load is still light (see "Expected MySQL load" above), the cardinality of active rows is a couple of orders of magnitude higher than the blocklist held, and operator alerting that watched "blocklist row count" needs to be re-tuned for the new baseline.
+
+
+## Alternatives
+
+Keeping the blocklist with the current heuristics is the do-nothing option. It works for the steady state and the failure modes are bounded by the filters we just landed. The cost of the redesign is real engineering work for a 5%-of-traffic improvement. Rejecting this RFC is a defensible choice if the team has higher priorities.
+
+A global Redis (one shared cluster across all regions, replacing per-region Redis) would let the existing replay path produce a globally consistent count without any new MySQL plumbing. The blocker is cross-region Redis latency: every local decision in a remote region pays a transcontinental round trip for INCR, which puts request p99 in the hundreds of milliseconds. The whole point of per-region Redis is to keep that off the hot path. A global Redis is the right answer if the latency budget ever shifts to allow it, but it is not on offer today.
+
+A pub/sub propagation channel (Redis pub/sub, NATS, Kafka) replacing the blocklist read/write cycle would tighten propagation latency from ~15s to sub-second. The cost is operating a new piece of infrastructure across all regions, with its own availability and authentication story, for a problem that MySQL solves adequately. We already operate cross-region MySQL. Adding a second cross-region system for the same workload is hard to justify until the latency win is needed by a user-visible feature.
+
+A CRDT library (e.g. an existing G-Counter or PN-Counter implementation as a service) would generalize the count-sharing pattern beyond ratelimits. This is interesting if other Unkey subsystems need similar semantics, but premature otherwise. The custom MySQL table is small, debuggable, and operationally identical to other Unkey tables. We can extract a shared abstraction later if a second use case appears.
+
+## Unresolved questions
+
+The 50% utilization threshold is a first guess. Lower (say 25%) shrinks the cross-region free zone but multiplies write rate; higher (say 75%) cuts writes further but lets larger fan-out attacks through. 50% balances the two: a user can use up to roughly 5x their limit by spreading evenly, which is large in absolute terms but requires active load-balancing across regions to achieve. Once production data is available, revisit the floor based on observed cross-region traffic shape.
+
+The flush and sync intervals (both 10s) are first guesses. A faster sync (5s instead of 10s) tightens propagation but doubles read load. If burst-heavy identifiers turn out to dominate the user-facing pain, faster sync may be worth it. Defer tuning until production data is available.
+
+The migration path: this PR removes the in-memory blocklist machinery and adds the window-counts path in one go. The blocklist table and its sqlc queries are intentionally left in place — existing rows drain naturally over their sequence-derived expiry, and a follow-up PR removes the table once we have confidence the new path is healthy. No data migration; the blocklist table will be empty by then.

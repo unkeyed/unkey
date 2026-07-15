@@ -27,16 +27,18 @@ type Props<T extends BaseFilter = BaseFilter> = {
 
 const MAX_QUERY_LENGTH = 120;
 const DEFAULT_PLACEHOLDER = "Search...";
+const DEFAULT_DEBOUNCE_MS = 300;
 
 export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
   useFiltersHook,
   placeholder = DEFAULT_PLACEHOLDER,
+  debounceTime = DEFAULT_DEBOUNCE_MS,
   className,
 }: Props<T>) => {
   const { filters, updateFilters } = useFiltersHook();
   const [searchText, setSearchText] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousFilterValueRef = useRef<string>("");
 
@@ -71,12 +73,15 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
     const filtersWithoutCurrent = filters.filter((f) => f.field !== "query");
 
     if (value.trim()) {
-      // Add new filter
+      // Reuse the existing query filter's id so repeated edits update one filter
+      // in place instead of minting a fresh identity (and churning downstream
+      // keys) on every change. Only generate an id when there is no query yet.
+      const queryId = filters.find((f) => f.field === "query")?.id ?? crypto.randomUUID();
       updateFilters([
         ...filtersWithoutCurrent,
         {
           field: "query",
-          id: crypto.randomUUID(),
+          id: queryId,
           operator: "contains",
           value: value.trim(),
         } as T,
@@ -91,12 +96,15 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
     const value = e.target.value;
     setSearchText(value);
 
-    // Clear existing debounce
+    // Debounce the filter update so we don't write URL state and refetch on
+    // every keystroke. Enter, Escape, and clear bypass this for an immediate
+    // update.
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-
-    updateQuery(value);
+    debounceRef.current = setTimeout(() => {
+      updateQuery(value);
+    }, debounceTime);
   };
 
   const handleClear = () => {

@@ -23,7 +23,6 @@ func TestGetApiNotFound(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:     h.DB,
-		Keys:   h.Keys,
 		Caches: h.Caches,
 	}
 

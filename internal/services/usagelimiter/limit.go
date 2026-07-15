@@ -4,12 +4,17 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
 func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, error) {
 	ctx, span := tracing.Start(ctx, "usagelimiter.Limit")
 	defer span.End()
+
+	if err := assert.GreaterOrEqual(req.Cost, 0, "usagelimiter cost must not be negative"); err != nil {
+		return UsageResponse{}, err
+	}
 
 	remaining, hasLimit, err := s.findKeyCredits(ctx, req.KeyID)
 	if err != nil {

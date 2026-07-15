@@ -24,7 +24,7 @@ const unkey = new Unkey({
   rootKey: process.env.UNKEY_ROOT_KEY!,
 });
 
-await unkey.ratelimits.setOverride({
+await unkey.ratelimit.setOverride({
   namespaceName: "email.send",
   // set the override for all users with this domain
   identifier: "*@calendso.com",

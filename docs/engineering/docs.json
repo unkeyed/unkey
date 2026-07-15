@@ -11,16 +11,22 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Contributing",
+        "tab": "Development",
         "groups": [
           {
-            "group": "Contributing",
+            "group": "Internal workflow",
             "pages": [
               "contributing/how-to-contribute",
               "contributing/local/development",
               {
                 "group": "Tooling",
-                "pages": ["contributing/tooling/bazel"]
+                "pages": [
+                  "contributing/tooling/mise",
+                  "contributing/tooling/builds",
+                  "contributing/tooling/releases",
+                  "contributing/tooling/feature-flags",
+                  "contributing/tooling/emails"
+                ]
               }
             ]
           },
@@ -50,7 +56,26 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["architecture/index"]
+            "pages": [
+              "architecture/index",
+              {
+                "group": "Resource model",
+                "pages": [
+                  "architecture/resources/unkey-resource-names",
+                  "architecture/authorization/resource-permissions",
+                  "architecture/authorization/workos-permissions"
+                ]
+              },
+              {
+                "group": "Rate limiting",
+                "pages": [
+                  "architecture/ratelimiting/overview",
+                  "architecture/ratelimiting/request-path",
+                  "architecture/ratelimiting/consistency-model",
+                  "architecture/ratelimiting/global-counters"
+                ]
+              }
+            ]
           },
           {
             "group": "Services",
@@ -96,7 +121,8 @@
                           "architecture/services/control-plane/worker/workflows/certificates",
                           "architecture/services/control-plane/worker/workflows/custom-domains",
                           "architecture/services/control-plane/worker/workflows/github-app",
-                          "architecture/services/control-plane/worker/workflows/key-last-used-sync"
+                          "architecture/services/control-plane/worker/workflows/key-last-used-sync",
+                          "architecture/services/control-plane/worker/workflows/deploy-billing"
                         ]
                       }
                     ]
@@ -108,41 +134,33 @@
                 "pages": [
                   "architecture/services/frontline/overview",
                   "architecture/services/frontline/ingress",
+                  "architecture/services/frontline/routing",
+                  "architecture/services/frontline/request-flow",
                   "architecture/services/frontline/configuration",
-                  "architecture/services/frontline/routing"
+                  "architecture/services/frontline/failure-modes",
+                  {
+                    "group": "Policies",
+                    "pages": [
+                      "architecture/services/frontline/policies/index",
+                      "architecture/services/frontline/policies/policy",
+                      "architecture/services/frontline/policies/match-expressions",
+                      "architecture/services/frontline/policies/principal",
+                      "architecture/services/frontline/policies/keyauth",
+                      "architecture/services/frontline/policies/jwtauth",
+                      "architecture/services/frontline/policies/ratelimit",
+                      "architecture/services/frontline/policies/firewall",
+                      "architecture/services/frontline/policies/openapi"
+                    ]
+                  }
                 ]
               },
               {
                 "group": "Krane",
                 "pages": [
                   "architecture/services/krane/overview",
+                  "architecture/services/krane/deployment",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
-                ]
-              },
-              {
-                "group": "Sentinel",
-                "pages": [
-                  "architecture/services/sentinel/overview",
-                  "architecture/services/sentinel/request-flow",
-                  "architecture/services/sentinel/configuration",
-                  "architecture/services/sentinel/deployment",
-                  "architecture/services/sentinel/failure-modes",
-
-                  {
-                    "group": "Policies",
-                    "pages": [
-                      "architecture/services/sentinel/policies/index",
-                      "architecture/services/sentinel/policies/policy",
-                      "architecture/services/sentinel/policies/match-expressions",
-                      "architecture/services/sentinel/policies/principal",
-                      "architecture/services/sentinel/policies/keyauth",
-                      "architecture/services/sentinel/policies/jwtauth",
-                      "architecture/services/sentinel/policies/ratelimit",
-                      "architecture/services/sentinel/policies/firewall",
-                      "architecture/services/sentinel/policies/openapi"
-                    ]
-                  }
                 ]
               },
               {
@@ -176,7 +194,9 @@
               "architecture/rfcs/0011-unkey-resource-names",
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
-              "architecture/rfcs/0014-sentinel-middleware"
+              "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0015-ratelimit-cross-region-counts",
+              "architecture/rfcs/0016-vault-s3-storage"
             ]
           }
         ]
@@ -190,49 +210,13 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index","infra/infra-work","infra/environments"]
+            "pages": ["infra/index", "infra/planetscale/query-insights-tags"]
           },
           {
-            "group": "Clusters",
-            "pages": [
-              "infra/clusters/kubeconfig",
-              "infra/clusters/create-region",
-              "infra/clusters/delete-cluster",
-              "infra/clusters/networks",
-              "infra/clusters/scheduling"
-            ]
+            "group": "Runbooks",
+            "pages": ["infra/runbooks/key-migration"]
           },
-          {
-            "group": "Observability",
-            "pages": [
-              "infra/observability/alerting",
-              "infra/observability/checkly",
-              "infra/observability/incident-io"
-            ]
-          },
-          {
-            "group": "Metering",
-            "pages": [
-              "infra/metering/gauge"
-            ]
-          },
-          {
-            "group": "Deployments",
-            "pages": [
-              "infra/deployments/argocd-debugging",
-              "infra/deployments/cronjobs",
-              "infra/deployments/sentinel-rollout"
-            ]
-          },
-          {
-            "group": "Custom Domains",
-            "pages": ["infra/domain-connect"]
-          },
-          {
-            "group": "Secrets",
-            "pages": ["infra/secrets/aws-secrets"]
-          },
-          {
+         {
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
@@ -248,24 +232,15 @@
                 "group": "Users",
                 "pages": [
                   "infra/clickhouse/users/apiv2",
+                  "infra/clickhouse/users/eve",
                   "infra/clickhouse/users/github",
                   "infra/clickhouse/users/grafana",
-                  "infra/clickhouse/users/sentinel",
+                  "infra/clickhouse/users/frontline",
                   "infra/clickhouse/users/unkey-admin",
                   "infra/clickhouse/users/vector",
                   "infra/clickhouse/users/vercel-dashboard"
                 ]
               }
-            ]
-          },
-          {
-            "group": "Legacy (2025)",
-            "pages": [
-              "infra/legacy-2025/github-oidc",
-              "infra/legacy-2025/github-actions-deploy-role-setup",
-              "infra/legacy-2025/pulumi-iac-esc",
-              "infra/legacy-2025/pulumi-infrastructure-architecture",
-              "infra/legacy-2025/pulumi-workflow"
             ]
           }
         ]

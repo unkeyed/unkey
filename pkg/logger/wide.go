@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -21,6 +22,14 @@ import (
 //	defer event.End()
 func StartWideEvent(ctx context.Context, message string, attrs ...slog.Attr) (context.Context, *Event) {
 	now := time.Now()
+
+	// Capture the caller's PC up front. End() emits the log later — usually
+	// from a deferred call far away — so taking the PC here makes the
+	// "source" attribute point at the handler/middleware that opened the
+	// event, instead of pkg/logger/event.go which is useless for debugging.
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:])
+
 	event := &Event{
 		mu:       sync.Mutex{},
 		start:    now,
@@ -29,6 +38,7 @@ func StartWideEvent(ctx context.Context, message string, attrs ...slog.Attr) (co
 		message:  message,
 		written:  false,
 		attrs:    attrs,
+		pc:       pcs[0],
 	}
 	return context.WithValue(ctx, eventKey{}, event), event
 }

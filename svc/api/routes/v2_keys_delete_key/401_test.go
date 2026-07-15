@@ -21,7 +21,6 @@ func TestKeyDeleteUnauthorized(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -72,7 +71,7 @@ func TestKeyDeleteUnauthorized(t *testing.T) {
 		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
 		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 100, Valid: true},
+		RemainingRequests: sql.NullInt64{Int64: 100, Valid: true},
 	}
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)

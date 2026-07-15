@@ -130,6 +130,8 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
   return throttled;
 }
 
+export const DEFAULT_LOGS_SINCE = "6h";
+
 export const getTimestampFromRelative = (relativeTime: string): number => {
   if (!relativeTime.match(/^(\d+[whdm])+$/)) {
     throw new Error(
@@ -175,17 +177,24 @@ export function getBaseUrl() {
     return "";
   }
 
-  // Production: VERCEL_ENV=production, VERCEL_URL=app.unkey.com (custom domain)
-  // Preview: VERCEL_ENV=preview, VERCEL_BRANCH_URL=stable branch URL, VERCEL_URL=SHA-specific URL
-  // Development: VERCEL_ENV=development (local)
+  // Vercel never exposes a custom domain assigned to a preview branch through
+  // env vars, so deployments like the canary (app.unkey-canary.com on the
+  // `canary` branch) need an explicit, branch-scoped override. Without it,
+  // auth and billing redirects fall through to VERCEL_BRANCH_URL and strand
+  // users on the *.vercel.app host.
+  if (process.env.DASHBOARD_BASE_URL) {
+    return process.env.DASHBOARD_BASE_URL;
+  }
 
-  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_URL) {
-    // In production, VERCEL_URL is your custom domain (app.unkey.com)
-    return `https://${process.env.VERCEL_URL}`;
+  // VERCEL_URL is always the auto-generated *.vercel.app deployment URL —
+  // never the custom domain, even in production. The production custom
+  // domain lives in VERCEL_PROJECT_PRODUCTION_URL.
+  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
 
   if (process.env.VERCEL_BRANCH_URL) {
-    // Use stable branch URL for preview deployments (e.g., your-app-git-branch-team.vercel.app)
+    // Stable branch URL for previews (e.g., your-app-git-branch-team.vercel.app)
     return `https://${process.env.VERCEL_BRANCH_URL}`;
   }
 

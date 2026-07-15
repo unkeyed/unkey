@@ -9,10 +9,12 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // envSpec defines the slug and human-readable description for a default environment.
@@ -41,6 +43,7 @@ func (s *Service) CreateApp(
 		assert.NotEmpty(req.Msg.GetProjectId(), "project_id is required"),
 		assert.NotEmpty(req.Msg.GetName(), "name is required"),
 		assert.NotEmpty(req.Msg.GetSlug(), "slug is required"),
+		assert.NotNil(req.Msg.GetActor(), "actor is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -50,8 +53,8 @@ func (s *Service) CreateApp(
 	appID := uid.New(uid.AppPrefix)
 	now := time.Now().UnixMilli()
 
-	err := db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.Query.InsertApp(txCtx, tx, db.InsertAppParams{
+	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
 			ProjectID:        projectID,
@@ -68,7 +71,7 @@ func (s *Service) CreateApp(
 		for _, env := range defaultEnvironments {
 			envID := uid.New(uid.EnvironmentPrefix)
 
-			if txErr := db.Query.InsertEnvironment(txCtx, tx, db.InsertEnvironmentParams{
+			if txErr := db.NewQueries(tx).InsertEnvironment(txCtx, db.InsertEnvironmentParams{
 				ID:          envID,
 				WorkspaceID: workspaceID,
 				ProjectID:   projectID,
@@ -81,20 +84,22 @@ func (s *Service) CreateApp(
 				return fmt.Errorf("insert %s environment: %w", env.slug, txErr)
 			}
 
-			if txErr := db.Query.UpsertAppBuildSettings(txCtx, tx, db.UpsertAppBuildSettingsParams{
+			if txErr := db.NewQueries(tx).UpsertAppBuildSettings(txCtx, db.UpsertAppBuildSettingsParams{
 				WorkspaceID:   workspaceID,
 				AppID:         appID,
 				EnvironmentID: envID,
-				Dockerfile:    "",
+				Dockerfile:    sql.NullString{Valid: false, String: ""},
 				DockerContext: "",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
 				return fmt.Errorf("upsert %s build settings: %w", env.slug, txErr)
 			}
 
-			if txErr := db.Query.UpsertAppRuntimeSettings(txCtx, tx, db.UpsertAppRuntimeSettingsParams{
+			if txErr := db.NewQueries(tx).UpsertAppRuntimeSettings(txCtx, db.UpsertAppRuntimeSettingsParams{
 				WorkspaceID:      workspaceID,
 				AppID:            appID,
 				EnvironmentID:    envID,
@@ -115,9 +120,39 @@ func (s *Service) CreateApp(
 			}
 		}
 
+		a := req.Msg.GetActor()
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   workspaceID,
+				Event:         auditlog.AppCreateEvent,
+				Display:       fmt.Sprintf("Created app %s", appID),
+				ActorID:       a.GetId(),
+				ActorName:     a.GetName(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          appID,
+						Type:        auditlog.AppResourceType,
+						Meta:        map[string]any{"name": req.Msg.GetName(), "slug": req.Msg.GetSlug(), "projectId": projectID},
+						Name:        req.Msg.GetName(),
+						DisplayName: req.Msg.GetName(),
+					},
+				},
+			},
+		}); txErr != nil {
+			return fmt.Errorf("insert audit log: %w", txErr)
+		}
+
 		return nil
 	})
 	if err != nil {
+		if db.IsDuplicateKeyError(err) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("app with slug %q already exists in project", req.Msg.GetSlug()))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create app: %w", err))
 	}
 

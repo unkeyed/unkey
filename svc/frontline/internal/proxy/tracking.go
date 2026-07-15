@@ -1,0 +1,66 @@
+package proxy
+
+import (
+	"context"
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/zen"
+)
+
+// RequestTracking holds data collected during a local-instance request for
+// ClickHouse logging. The handler initializes the deployment-scoped fields
+// once; InstanceID and Address are (re)written for each instance attempted
+// in the retry loop, so on success they reflect the instance that served
+// the response. InstanceStart, InstanceEnd, and ResponseBody are set by
+// the proxy and describe only the final successful attempt. RequestBody
+// is captured by a TeeReader in the handler; on a retry it stays empty
+// for failed dial attempts (no bytes flow) and fills from the successful
+// attempt's drain.
+//
+// Cross-region requests do not populate tracking — the peer frontline writes
+// its own ClickHouse row.
+type RequestTracking struct {
+	// Set by the handler before proxying.
+	RequestID     string
+	StartTime     time.Time
+	DeploymentID  string
+	WorkspaceID   string
+	ProjectID     string
+	AppID         string
+	EnvironmentID string
+
+	// Credential locations derived from the route's KeyAuth policies, set by
+	// the handler. The ClickHouse logging middleware redacts the value of any
+	// request header named in RedactedHeaders (lowercased) and any query
+	// parameter named in RedactedQueryParams, so API keys delivered via custom
+	// header or query parameter are not persisted in cleartext.
+	RedactedHeaders     []string
+	RedactedQueryParams []string
+
+	// Reset by the handler before each ForwardToInstance attempt.
+	InstanceID string
+	Address    string
+
+	// Populated by a handler-side TeeReader as the upstream drains the body.
+	RequestBody []byte
+
+	// Set by proxy on dispatch through the Director callback.
+	InstanceStart time.Time
+
+	// Set by proxy once the upstream response stream completes.
+	InstanceEnd  time.Time
+	ResponseBody []byte
+}
+
+var requestTrackingKey = zen.NewContextKey[*RequestTracking]("frontline_request_tracking")
+
+// WithRequestTracking attaches a tracking record to the context.
+func WithRequestTracking(ctx context.Context, t *RequestTracking) context.Context {
+	return requestTrackingKey.WithValue(ctx, t)
+}
+
+// RequestTrackingFromContext returns the tracking record on the context, if
+// one was attached.
+func RequestTrackingFromContext(ctx context.Context) (*RequestTracking, bool) {
+	return requestTrackingKey.FromContext(ctx)
+}

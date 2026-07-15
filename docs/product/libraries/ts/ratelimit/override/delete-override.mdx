@@ -7,7 +7,7 @@ description: "Delete a rate limit override for a specific identifier using the @
 
 <ParamField body="identifier" type="string" required>
   Identifier of your user, this can be their userId, an email, an ip or anything
-  else. Wildcards ( * ) can be used to match multiple identifiers, More info can
+  else. Wildcards ( * ) can be used to match multiple identifiers. More info can
   be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
@@ -41,8 +41,8 @@ try {
   console.error(err);
   throw err;
 }
+```
 
-````
 ```ts
 try {
   const { meta, data } = await unkey.deleteOverride({
@@ -53,6 +53,6 @@ try {
   console.error(err);
   throw err;
 }
-````
+```
 
 </RequestExample>

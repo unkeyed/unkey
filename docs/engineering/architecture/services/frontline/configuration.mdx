@@ -14,14 +14,18 @@ The config schema maps to [`svc/frontline/config.go`](https://github.com/unkeyed
 Minimal config example:
 
 ```toml
-challenge_port = 7070
-http_port = 7443
+http_port = 7070
+https_port = 7443
+platform = "aws"
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
-ctrl_addr = "${UNKEY_CTRL_ADDR}"
 prometheus_port = 9090
+
+[control]
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
@@ -30,24 +34,22 @@ readonly_replica = "${UNKEY_DATABASE_REPLICA}"
 [vault]
 url = "${UNKEY_VAULT_URL}"
 token = "${UNKEY_VAULT_TOKEN}"
-
-[gossip]
-bind_addr = "0.0.0.0"
-lan_port = 7946
-wan_port = 7947
-secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
 ```
 
 <ResponseField name="instance_id" type="string">
   Instance identifier for logs and tracing.
 </ResponseField>
 
-<ResponseField name="challenge_port" type="int" default="7070">
-  Port for ACME HTTP-01 challenges.
+<ResponseField name="http_port" type="int" default="7070">
+  Plain-HTTP listener port. Serves ACME HTTP-01 challenges and 308-redirects everything else to https://.
 </ResponseField>
 
-<ResponseField name="http_port" type="int" default="7443">
-  HTTPS listener port.
+<ResponseField name="https_port" type="int" default="7443">
+  HTTPS listener port. Terminates TLS, runs the policy engine, and forwards customer traffic to a deployment instance (or to a peer frontline in another region).
+</ResponseField>
+
+<ResponseField name="platform" type="string" required>
+  Cloud provider identifier (for example, `aws`, `gcp`, or `local`).
 </ResponseField>
 
 <ResponseField name="region" type="string" required>
@@ -62,12 +64,24 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
   Maximum number of routing hops.
 </ResponseField>
 
-<ResponseField name="ctrl_addr" type="string" default="localhost:8080">
-  Control API address.
+<ResponseField name="control" type="object" required>
+  Control API connection settings.
+  <Expandable title="Fields">
+    <ResponseField name="control.url" type="string" required>
+      Control API address.
+    </ResponseField>
+    <ResponseField name="control.token" type="string" required>
+      Preshared bearer token for authenticated Control API requests.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="prometheus_port" type="int">
   Prometheus metrics port. Set to 0 to disable.
+</ResponseField>
+
+<ResponseField name="request_timeout" type="duration" default="15m">
+  Maximum duration for a proxied request before the context is cancelled and a `504` is returned.
 </ResponseField>
 
 <ResponseField name="tls" type="object">
@@ -97,6 +111,33 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
   </Expandable>
 </ResponseField>
 
+<ResponseField name="clickhouse" type="object">
+  ClickHouse analytics storage for request-level events. When the URL is empty, a no-op backend is used and no request telemetry is recorded.
+  <Expandable title="Fields">
+    <ResponseField name="clickhouse.url" type="string">
+      ClickHouse connection string.
+    </ResponseField>
+    <ResponseField name="clickhouse.batch_size" type="int" default="5000">
+      Maximum number of items to collect before flushing a buffer to ClickHouse. Applies to all event buffers (frontline requests, key verifications).
+    </ResponseField>
+    <ResponseField name="clickhouse.buffer_size" type="int" default="10000">
+      Capacity of the channel buffer holding incoming items. When full, new items are dropped.
+    </ResponseField>
+    <ResponseField name="clickhouse.consumers" type="int" default="1">
+      Number of goroutines that drain each buffer.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="redis" type="object">
+  Redis connection for distributed rate limiting and usage limiting in the policy engine. When the URL is empty, an in-memory counter is used as a fallback and rate limits are not shared across replicas.
+  <Expandable title="Fields">
+    <ResponseField name="redis.url" type="string">
+      Redis connection string.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 <ResponseField name="vault" type="object">
   Vault connection.
   <Expandable title="Fields">
@@ -105,30 +146,6 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
     </ResponseField>
     <ResponseField name="vault.token" type="string">
       Vault token.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="gossip" type="object">
-  Gossip-based cache invalidation.
-  <Expandable title="Fields">
-    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
-      Bind address.
-    </ResponseField>
-    <ResponseField name="gossip.lan_port" type="int" default="7946">
-      LAN port.
-    </ResponseField>
-    <ResponseField name="gossip.wan_port" type="int" default="7947">
-      WAN port.
-    </ResponseField>
-    <ResponseField name="gossip.lan_seeds" type="string[]">
-      LAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.wan_seeds" type="string[]">
-      WAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.secret_key" type="string" required>
-      Secret key for gossip encryption.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -148,6 +165,21 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
   </Expandable>
 </ResponseField>
 
+<ResponseField name="pprof" type="object">
+  Go pprof profiling endpoints on a loopback-only listener. Disabled when omitted or when credentials are empty.
+  <Expandable title="Fields">
+    <ResponseField name="pprof.username" type="string">
+      Basic Auth username for the pprof endpoints.
+    </ResponseField>
+    <ResponseField name="pprof.password" type="string">
+      Basic Auth password for the pprof endpoints.
+    </ResponseField>
+    <ResponseField name="pprof.port" type="int" default="6060">
+      TCP port for the loopback-only (127.0.0.1) pprof server.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 ## Environment variables
 
 The Helm chart provides these variables for the default config template:
@@ -160,8 +192,12 @@ The Helm chart provides these variables for the default config template:
   Apex domain for routing.
 </ResponseField>
 
-<ResponseField name="UNKEY_CTRL_ADDR" type="env">
+<ResponseField name="UNKEY_CONTROL_URL" type="env" required>
   Control API address.
+</ResponseField>
+
+<ResponseField name="UNKEY_CONTROL_TOKEN" type="env" required>
+  Preshared bearer token for authenticated Control API requests.
 </ResponseField>
 
 <ResponseField name="UNKEY_VAULT_URL" type="env">
@@ -180,35 +216,44 @@ The Helm chart provides these variables for the default config template:
   MySQL read replica DSN.
 </ResponseField>
 
-<ResponseField name="UNKEY_GOSSIP_SECRET_KEY" type="env" required>
-  Gossip secret key.
+<ResponseField name="UNKEY_CLICKHOUSE_URL" type="env">
+  ClickHouse connection string for request telemetry. Optional.
+</ResponseField>
+
+<ResponseField name="UNKEY_REDIS_URL" type="env">
+  Redis connection string for distributed rate limiting. Optional.
 </ResponseField>
 
 ## Example configuration
 
 ```toml
-challenge_port = 7070
-http_port = 7443
+http_port = 7070
+https_port = 7443
+platform = "aws"
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
-ctrl_addr = "${UNKEY_CTRL_ADDR}"
 prometheus_port = 9090
+request_timeout = "15m"
+
+[control]
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
 readonly_replica = "${UNKEY_DATABASE_REPLICA}"
 
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+
+[redis]
+url = "${UNKEY_REDIS_URL}"
+
 [vault]
 url = "${UNKEY_VAULT_URL}"
 token = "${UNKEY_VAULT_TOKEN}"
-
-[gossip]
-bind_addr = "0.0.0.0"
-lan_port = 7946
-wan_port = 7947
-secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
 
 [observability.tracing]
 sample_rate = 0.1

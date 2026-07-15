@@ -1,0 +1,54 @@
+# TopoLVM helm values for local dev (single-node minikube, no cert-manager).
+#
+# We disable everything that exists for multi-node prod — scheduler extender,
+# pod-mutating webhook (which only matters when topology-aware scheduling is on),
+# and cert-manager. That leaves the controller + node DaemonSet, which is all
+# we need to dynamically provision LVM volumes from the loopback-backed
+# `topolvm-vg` set up by setup-vg.sh.
+
+useLegacy: false
+
+# cert-manager is needed only for the mutating webhook below. With both off,
+# we drop a 3-pod dependency.
+cert-manager:
+  enabled: false
+
+# Multi-node scheduling extender. Single-node clusters always schedule on the
+# only node; the extender just adds latency.
+scheduler:
+  enabled: false
+
+webhook:
+  # Both webhooks disabled — they're a topology-aware scheduling /
+  # capacity-tracking optimization for multi-node clusters, and they
+  # require cert-manager (or an external cert) to issue the TLS bundle.
+  # On single-node minikube the scheduler always picks the only node.
+  podMutatingWebhook:
+    enabled: false
+  pvcMutatingWebhook:
+    enabled: false
+
+controller:
+  replicaCount: 1
+
+# Run lvmd as a sidecar in the topolvm-node DaemonSet rather than as a host
+# systemd unit. The minikube node container doesn't have systemd configured
+# for arbitrary unit installs, so the in-DaemonSet path is the only viable one.
+lvmd:
+  managed: true
+  socketName: /run/topolvm/lvmd.sock
+  deviceClasses:
+    - name: ssd
+      volume-group: topolvm-vg
+      default: true
+      # Keep 1 GiB head-room in the VG so the last allocation doesn't fail
+      # on partial-extent rounding.
+      spare-gb: 1
+
+# Single-node DaemonSet — one node pod is enough.
+node:
+  tolerations:
+    - operator: Exists
+
+storageClasses: []  # we ship our own (dev/k8s/topolvm/storageclass.yaml) so the
+                    # name and reclaim policy are explicit.

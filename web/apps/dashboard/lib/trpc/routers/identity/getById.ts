@@ -23,6 +23,7 @@ const RatelimitSchema = z.object({
   name: z.string(),
   limit: z.number(),
   duration: z.number(),
+  autoApply: z.boolean(),
 });
 
 const WorkspaceSchema = z.object({
@@ -105,6 +106,7 @@ export const getIdentityById = workspaceProcedure
           name: ratelimit.name,
           limit: ratelimit.limit,
           duration: ratelimit.duration,
+          autoApply: ratelimit.autoApply,
         })),
       };
     } catch (error) {

@@ -19,7 +19,6 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -42,7 +41,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(100)),
+		Remaining:   ptr.P(int64(100)),
 	})
 
 	req := handler.Request{

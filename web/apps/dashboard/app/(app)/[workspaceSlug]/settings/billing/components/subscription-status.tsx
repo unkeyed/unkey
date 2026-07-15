@@ -1,4 +1,5 @@
 "use client";
+import { routes } from "@/lib/navigation/routes";
 import { Button, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { Stripe } from "stripe";
@@ -23,7 +24,9 @@ export const SubscriptionStatus: React.FC<{
           <Button
             variant="primary"
             size="lg"
-            onClick={() => router.push(`/${props.workspaceSlug}/settings/billing/stripe/portal`)}
+            onClick={() =>
+              router.push(routes.settings.stripe.portal({ workspaceSlug: props.workspaceSlug }))
+            }
           >
             Open Portal
           </Button>

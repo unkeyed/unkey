@@ -21,8 +21,12 @@ const healthcheckSchema = z
 const schema = z.object({
   environmentId: z.string(),
   // Build settings
+  autoDeploy: z.boolean().default(true),
   dockerfile: z.string(),
   dockerContext: z.string(),
+  // Empty means "let Railpack auto-detect". Overrides Railpack's build command
+  // so monorepos can scope the build to a single app.
+  buildCommand: z.string().default(""),
   watchPaths: z.array(z.string()).default([]),
   // Runtime settings
   port: z.number().int(),
@@ -31,7 +35,14 @@ const schema = z.object({
   storageMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
-  regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
+  regions: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      replicasMin: z.number().int().min(1),
+      replicasMax: z.number().int().min(1),
+    }),
+  ),
   shutdownSignal: z.string(),
   upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   openapiSpecPath: z.string().nullable().default(null),
@@ -52,8 +63,6 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     },
     retry: 3,
     syncMode: "on-demand",
-    // Setting don't change that often and we already do revalidation on submit so no need to poll it short
-    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
@@ -93,8 +102,12 @@ export type EnvironmentSettings = z.infer<typeof schema>;
 
 /** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
 export const ENVIRONMENT_SETTINGS_DEFAULTS = {
-  dockerfile: "Dockerfile",
+  autoDeploy: true,
+  // Empty means "no Dockerfile configured" — the app is built with Railpack.
+  dockerfile: "",
   dockerContext: ".",
+  // Empty means "let Railpack auto-detect" the build command.
+  buildCommand: "",
   port: 8080,
   cpuMillicores: 250,
   memoryMib: 256,
@@ -118,8 +131,10 @@ function flattenSettingsResponse(
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   return {
     environmentId,
-    dockerfile: build?.dockerfile || d.dockerfile,
+    autoDeploy: build?.autoDeploy ?? d.autoDeploy,
+    dockerfile: build?.dockerfile ?? d.dockerfile,
     dockerContext: build?.dockerContext || d.dockerContext,
+    buildCommand: build?.buildCommand ?? d.buildCommand,
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? d.port,
     cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
@@ -132,7 +147,8 @@ function flattenSettingsResponse(
       .map((r) => ({
         id: r.region.id,
         name: r.region.name,
-        replicas: r.replicas,
+        replicasMin: r.horizontalAutoscalingPolicy?.replicasMin ?? 1,
+        replicasMax: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
     upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
@@ -153,6 +169,15 @@ export function buildSettingsMutations(
 ): Promise<unknown>[] {
   const mutations: Promise<unknown>[] = [];
 
+  if (modified.autoDeploy !== original.autoDeploy) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateAutoDeploy.mutate({
+        environmentId,
+        autoDeploy: modified.autoDeploy,
+      }),
+    );
+  }
+
   if (modified.dockerfile !== original.dockerfile) {
     mutations.push(
       trpcClient.deploy.environmentSettings.build.updateDockerfile.mutate({
@@ -167,6 +192,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.build.updateDockerContext.mutate({
         environmentId,
         dockerContext: modified.dockerContext,
+      }),
+    );
+  }
+
+  if (modified.buildCommand !== original.buildCommand) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateBuildCommand.mutate({
+        environmentId,
+        buildCommand: modified.buildCommand,
       }),
     );
   }
@@ -247,16 +281,21 @@ export function buildSettingsMutations(
     );
   }
 
-  const origReplicas = original.regions.at(0)?.replicas ?? 1;
-  const modReplicas = modified.regions.at(0)?.replicas ?? 1;
+  const origReplicasMin = original.regions.at(0)?.replicasMin ?? 1;
+  const modReplicasMin = modified.regions.at(0)?.replicasMin ?? 1;
+  const origReplicasMax = original.regions.at(0)?.replicasMax ?? 1;
+  const modReplicasMax = modified.regions.at(0)?.replicasMax ?? 1;
   const instancesChanged =
-    !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
+    !regionsChanged &&
+    modified.regions.length > 0 &&
+    (modReplicasMin !== origReplicasMin || modReplicasMax !== origReplicasMax);
 
   if (instancesChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
-        replicasPerRegion: modReplicas,
+        replicasMin: modReplicasMin,
+        replicasMax: modReplicasMax,
       }),
     );
   }

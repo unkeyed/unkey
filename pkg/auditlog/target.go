@@ -14,7 +14,10 @@ const (
 	RatelimitNamespaceResourceType AuditLogResourceType = "ratelimitNamespace"
 	RatelimitOverrideResourceType  AuditLogResourceType = "ratelimitOverride"
 	RoleResourceType               AuditLogResourceType = "role"
-	VercelBindingResourceType      AuditLogResourceType = "vercelBinding"
-	VercelIntegrationResourceType  AuditLogResourceType = "vercelIntegration"
 	WorkspaceResourceType          AuditLogResourceType = "workspace"
+	PortalSessionResourceType      AuditLogResourceType = "portalSession"
+	DeploymentResourceType         AuditLogResourceType = "deployment"
+	ProjectResourceType            AuditLogResourceType = "project"
+	AppResourceType                AuditLogResourceType = "app"
+	EnvironmentResourceType        AuditLogResourceType = "environment"
 )

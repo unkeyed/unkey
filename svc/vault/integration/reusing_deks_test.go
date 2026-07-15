@@ -10,7 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -25,7 +25,7 @@ import (
 // it is explicitly rotated.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
-	s3 := dockertest.S3(t)
+	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
@@ -73,7 +73,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // affect other keyrings.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	s3 := dockertest.S3(t)
+	s3 := containers.S3(t)
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
