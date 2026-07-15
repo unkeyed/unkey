@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#MISE description="Generate the dashboard API SDK from the local OpenAPI document"
+#MISE depends=["install-web"]
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+target="${root}/web/internal/api"
+stage="${target}/.speakeasy/staging/api-ts"
+gen_config_url="https://raw.githubusercontent.com/unkeyed/sdks/main/api/ts/gen.yaml"
+
+go generate ./svc/api/openapi
+
+rm -rf "${stage}"
+mkdir -p "${stage}"
+curl --fail --location --silent --show-error "${gen_config_url}" --output "${stage}/gen.yaml"
+node -e '
+  const fs = require("node:fs");
+  const path = process.argv[1];
+  const config = fs.readFileSync(path, "utf8");
+  const dual = "  moduleFormat: dual\n";
+  if (config.split(dual).length !== 2) {
+    throw new Error("Expected production gen.yaml to contain exactly one dual module format");
+  }
+  fs.writeFileSync(path, config.replace(dual, "  moduleFormat: esm\n"));
+' "${stage}/gen.yaml"
+
+(
+  cd "${target}"
+  speakeasy run \
+    --target api-ts \
+    --auto-yes \
+    --minimal \
+    --output console \
+    --skip-compile \
+    --skip-testing \
+    --skip-upload-spec \
+    --skip-versioning
+)
+
+test -d "${stage}/src"
+mkdir -p "${target}/src"
+rsync -a --delete --exclude hooks/registration.ts "${stage}/src/" "${target}/src/"
+rm -rf "${target}/esm"
+rm -rf "${stage}"
+pnpm --dir="${root}/web" --filter @unkey/api build

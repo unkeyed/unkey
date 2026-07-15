@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -46,6 +47,16 @@ func TestValidateSpecPath(t *testing.T) {
 			require.NotNil(t, parsed)
 		})
 	}
+}
+
+// TestReadOpenAPISpecBodyRejectsOversizedBody guarantees tenant-controlled specs
+// cannot force ctrl to buffer more than the configured OpenAPI spec limit.
+func TestReadOpenAPISpecBodyRejectsOversizedBody(t *testing.T) {
+	body := bytes.NewReader(bytes.Repeat([]byte("a"), maxOpenAPISpecBytes+1))
+
+	_, err := readOpenAPISpecBody(body)
+
+	require.ErrorIs(t, err, errOpenAPISpecTooLarge)
 }
 
 func TestHTTPClientRefusesRedirects(t *testing.T) {

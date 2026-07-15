@@ -26,9 +26,6 @@ post:
     **Note**: If your credential has no verify permissions at all, you will receive a `403 Forbidden` error. If your credential has verify permissions for a different API or keyspace than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
   operationId: keys.verifyKey
   x-speakeasy-name-override: verifyKey
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     required: true
     content:

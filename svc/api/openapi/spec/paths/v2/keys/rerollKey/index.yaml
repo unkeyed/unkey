@@ -39,9 +39,6 @@ post:
      - `unkey:v1:<workspace_id>:keyspaces/*/keys/*#encrypt_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#encrypt_key` (only when the original key is recoverable)
   operationId: keys.rerollKey
   x-speakeasy-name-override: rerollKey
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     required: true
     content:

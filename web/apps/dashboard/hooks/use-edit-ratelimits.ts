@@ -27,10 +27,7 @@ export function useEditKeyRatelimits(onSuccess?: () => void) {
           }))
         : [];
 
-      await getUnkeyClient().keys.updateKey({
-        keyId,
-        ratelimits,
-      });
+      await getUnkeyClient().keys.updateKey({ keyId, ratelimits });
     },
     onSuccess(_, variables) {
       let description = "";

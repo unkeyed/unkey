@@ -2,11 +2,13 @@ package billingmeter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	restate "github.com/restatedev/sdk-go"
 	stripe "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -110,11 +112,30 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 			},
 		})
 		if err != nil {
-			return pushed, fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+			return pushed, wrapMeterEventErr(err)
 		}
 		pushed++
 	}
 	return pushed, nil
+}
+
+// wrapMeterEventErr separates permanent Stripe rejections from transient
+// failures. Push runs inside PushWorkspaceUsage's restate.Run, whose retry
+// window (pushRetryDuration) would otherwise hammer an unfixable rejection —
+// a validation 4xx (unknown customer, malformed value, timestamp outside the
+// meter's ingestion window) fails identically on every attempt, and in the
+// month-end close every backup run would re-enter the same window. Marking it
+// terminal fails the push invocation immediately instead. Rate limits (429),
+// request timeouts (408), and 5xx/network errors stay retryable.
+func wrapMeterEventErr(err error) error {
+	wrapped := fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+	var sErr *stripe.Error
+	if errors.As(err, &sErr) &&
+		sErr.HTTPStatusCode >= 400 && sErr.HTTPStatusCode < 500 &&
+		sErr.HTTPStatusCode != 408 && sErr.HTTPStatusCode != 429 {
+		return restate.TerminalError(wrapped)
+	}
+	return wrapped
 }
 
 // Stripe enforces two separate limits on a meter event payload value, and a

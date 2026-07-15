@@ -25,6 +25,7 @@ import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { trackSave } from "@/lib/collections/deploy/environment-settings";
 
 type AddEnvVarExpandableProps = {
   appId: string;
@@ -202,7 +203,9 @@ export const AddEnvVarExpandable = ({
     );
 
     try {
-      await createBulk.mutateAsync({ variables });
+      // createBulk bypasses the collection, so wrap it in trackSave manually
+      // to surface the pending-redeploy banner like insert/update/delete do.
+      await trackSave(createBulk.mutateAsync({ variables }));
       await collection.envVars.utils.refetch();
       toast.success(`Added ${variables.length} variable(s)`);
     } catch (err) {

@@ -24,6 +24,26 @@ func sourceRepoRoot() string {
 	return wd
 }
 
+// dataPath locates a repository-relative data file, preferring the Bazel test
+// runfiles tree before falling back to the source tree. All test data files
+// (schemas, compose config) resolve through this single rule.
+func dataPath(rel ...string) string {
+	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
+		if workspace := os.Getenv("TEST_WORKSPACE"); workspace != "" {
+			candidate := filepath.Join(append([]string{runfiles, workspace}, rel...)...)
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+		}
+		candidate := filepath.Join(append([]string{runfiles, "_main"}, rel...)...)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	return filepath.Join(append([]string{sourceRepoRoot()}, rel...)...)
+}
+
 func findRepoRoot(start string) string {
 	dir := filepath.Clean(start)
 	for {
