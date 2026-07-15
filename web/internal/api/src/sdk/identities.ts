@@ -22,8 +22,10 @@ export class Identities extends ClientSDK {
    *
    * Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
    *
-   * **Important**
-   * Requires `identity.*.create_identity` permission
+   * **Required Permissions**
+   *
+   * Your credential needs one of:
+   * - `identity.*.create_identity`
    */
   async createIdentity(
     request: components.V2IdentitiesCreateIdentityRequestBody,

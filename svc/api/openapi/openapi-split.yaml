@@ -302,7 +302,7 @@ components:
         ```
         Authorization: Bearer unkey_123
         ```
-        Root keys have specific permissions attached to them, controlling what operations they can perform. Legacy permissions use tuple strings like `api.*.create_key`; resource permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:keyspaces/*#create_key`.
+        Root keys have specific permissions attached to them, controlling what operations they can perform. Permissions use tuple strings like `api.*.create_key`.
         Security best practices:
         - Keep root keys secure and never expose them in client-side code
         - Use different root keys for different environments

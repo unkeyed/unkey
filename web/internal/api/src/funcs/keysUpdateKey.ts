@@ -41,9 +41,6 @@ import { Result } from "../types/fp.js";
  * Your credential must have one of the following permissions:
  * - `api.*.update_key` (to update keys in any API)
  * - `api.<api_id>.update_key` (to update keys in a specific API)
- * - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#update_key` (to update keys in any keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#update_key` (to update keys in a specific keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#update_key` (to update a specific key)
  *
  * **Side Effects**
  *

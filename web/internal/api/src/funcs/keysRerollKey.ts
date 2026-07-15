@@ -59,11 +59,11 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- *  Your credential must have:
+ *  Your credential needs one create permission:
  *  - `api.*.create_key` or `api.<api_id>.create_key`
- *  - `unkey:v1:<workspace_id>:keyspaces/*#create_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key`
- *  - `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
- *  - `unkey:v1:<workspace_id>:keyspaces/* /keys/*#encrypt_key` or `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#encrypt_key` (only when the original key is recoverable)
+ *
+ *  Recoverable keys also need one encrypt permission:
+ *  - `api.*.encrypt_key` or `api.<api_id>.encrypt_key`
  */
 export function keysRerollKey(
   client: UnkeyCore,
