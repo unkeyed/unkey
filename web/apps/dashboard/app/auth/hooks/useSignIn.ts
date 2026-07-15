@@ -167,7 +167,7 @@ export function useSignIn() {
         // so route to the matching challenge UI.
         if (isPendingAuthChallenge(result)) {
           const redirectSuffix =
-            redirectParam && redirectParam !== "/apis"
+            redirectParam && redirectParam !== "/"
               ? `&redirect=${encodeURIComponent(redirectParam)}`
               : "";
           return `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
@@ -179,7 +179,7 @@ export function useSignIn() {
         if (!invitationToken && isPendingOrgSelection(result)) {
           const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
           const redirectSuffix =
-            redirectParam && redirectParam !== "/apis"
+            redirectParam && redirectParam !== "/"
               ? `&redirect=${encodeURIComponent(redirectParam)}`
               : "";
           return `/auth/continue?orgs=${orgsParam}${redirectSuffix}`;

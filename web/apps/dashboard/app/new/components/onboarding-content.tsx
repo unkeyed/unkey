@@ -3,6 +3,7 @@ import { HelpButton } from "@/components/navigation/top-nav/help-button";
 import { signOut } from "@/lib/auth/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
+import Link from "next/link";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
 import {
   OnboardingCard,
@@ -18,24 +19,25 @@ export function OnboardingContent() {
   const queryClient = useQueryClient();
 
   return (
-    <FullScreenLayout className="px-4 pt-6">
-      <div className="absolute top-4 right-4">
+    <FullScreenLayout className="overflow-x-hidden bg-gray-2 dark:bg-background">
+      <nav className="flex items-center justify-between h-16 w-full shrink-0 px-6">
+        <Link href="/">
+          <Logo />
+        </Link>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="outline"
+          size="md"
+          className="font-medium"
           onClick={async () => {
             queryClient.clear();
             await signOut();
           }}
-          className="text-gray-11"
         >
           Sign out
         </Button>
-      </div>
+      </nav>
 
-      <Logo />
-
-      <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
+      <FullScreenContent className="px-4 py-8">
         <OnboardingCard>
           <OnboardingCardHeader>
             <OnboardingCardTitle>Create Company Workspace</OnboardingCardTitle>

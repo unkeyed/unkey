@@ -131,8 +131,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
   return (
     <DialogContainer
-      className="dark border border-gray-700"
-      contentClassName="bg-gray-950 border border-none"
+      className="border border-gray-6"
+      contentClassName="bg-gray-1 border-none"
       isOpen={isOpen}
       onOpenChange={(open) => {
         if (!open && !isLoading) {
@@ -142,7 +142,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       preventOutsideClose={true}
       title="Select your workspace"
       footer={
-        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
+        <div className="flex items-center justify-center text-sm w-full text-gray-11">
           Select a workspace to sign in.
         </div>
       }
@@ -152,8 +152,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         {sortedOrgs.length === 0 ? (
           <Empty>
             <div className="flex flex-col items-center gap-4 text-center">
-              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
-              <p className="text-sm text-content-subtle max-w-md">
+              <h3 className="text-lg font-semibold tracking-tight text-gray-12">
+                No workspaces found
+              </h3>
+              <p className="text-sm text-gray-11 max-w-md">
                 You don&apos;t have access to any workspaces. Please contact your administrator or
                 create a new workspace.
               </p>
@@ -182,10 +184,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
           </Empty>
         ) : (
           <>
-            <div className="dark flex flex-col gap-4 focus:outline-none!">
+            <div className="flex flex-col gap-4 focus:outline-none!">
               <label
                 htmlFor="workspace-selector"
-                className="dark text-sm font-medium text-gray-300 focus:outline-none!"
+                className="text-sm font-medium text-gray-11 focus:outline-none!"
               >
                 Workspace
               </label>
@@ -201,16 +203,16 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
               >
                 <SelectTrigger
                   id="workspace-selector"
-                  className="dark bg-black text-gray-400 border border-gray-500/30 focus:outline-none! focus:ring-0 focus:border-gray-400"
+                  className="bg-gray-2 text-gray-12 border border-gray-6 focus:outline-none! focus:ring-0 focus:border-gray-8"
                 >
-                  <SelectValue placeholder="Select a workspace..." className="text-gray-400" />
+                  <SelectValue placeholder="Select a workspace..." className="text-gray-11" />
                 </SelectTrigger>
-                <SelectContent className="dark overflow-y-auto max-h-100 bg-gray-950 text-gray-400 focus:outline-none! border focus:border-gray-400 border-gray-500/30">
+                <SelectContent className="overflow-y-auto max-h-100 bg-gray-1 text-gray-12 focus:outline-none! border focus:border-gray-8 border-gray-6">
                   {sortedOrgs.map((org) => (
                     <SelectItem
                       key={org.id}
                       value={org.id}
-                      className="dark bg-gray-950 text-gray-400 data-highlighted:bg-gray-900 data-highlighted:text-white focus:outline-none!"
+                      className="text-gray-12 data-highlighted:bg-gray-3 data-highlighted:text-gray-12 focus:outline-none!"
                     >
                       {org.name}
                     </SelectItem>
@@ -223,7 +225,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
             <Button
               onClick={handleSubmit}
               disabled={isLoading || !selectedOrgId}
-              className="w-full bg-white hover:bg-gray-200 text-gray-900"
+              className="w-full"
               variant="primary"
               size="lg"
             >

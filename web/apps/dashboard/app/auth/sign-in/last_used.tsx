@@ -10,6 +10,12 @@ export function useLastUsed() {
   return useLocalStorage<LastUsedProvider | undefined>(LAST_USED_LOGIN_KEY, undefined);
 }
 
-export const LastUsed = () => {
-  return <span className="absolute right-4 text-xs text-content-subtle">Last used</span>;
-};
+export function LastUsed() {
+  // Sits inside the right edge of the (relative) button it renders in,
+  // vertically centered.
+  return (
+    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4 border-gray-6 bg-gray-3 text-gray-11">
+      Last used
+    </span>
+  );
+}

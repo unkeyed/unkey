@@ -42,6 +42,8 @@ type Props = {
    */
   plan?: string;
   from?: string;
+  /** Project the app-create gate fired from, echoed back to the projects landing. */
+  projectId?: string;
 };
 
 export function SuccessClient({
@@ -51,6 +53,7 @@ export function SuccessClient({
   intent,
   plan,
   from,
+  projectId,
 }: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(!!(showPlanSelection && products && workSpaceSlug));
@@ -71,6 +74,9 @@ export function SuccessClient({
         if (from) {
           params.set("from", from);
         }
+        if (projectId) {
+          params.set("projectId", projectId);
+        }
         const query = params.toString();
         router.push(
           `${routes.projects.list({ workspaceSlug: workSpaceSlug })}${query ? `?${query}` : ""}`,
@@ -86,7 +92,7 @@ export function SuccessClient({
     } else {
       router.push("/");
     }
-  }, [router, workSpaceSlug, showPlanSelection, products, intent, plan, from]);
+  }, [router, workSpaceSlug, showPlanSelection, products, intent, plan, from, projectId]);
 
   if (showPlanSelection && products && workSpaceSlug) {
     return (

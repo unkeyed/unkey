@@ -78,7 +78,16 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
       return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
     case "identity":
       return <IdentityCrumb identityId={descriptor.identityId} />;
+    case "label":
+      return (
+        <span className="flex min-w-0 items-center px-1 py-1 text-[13px] font-medium text-accent-12">
+          <span className="truncate max-w-[120px] md:max-w-[180px]">{descriptor.label}</span>
+        </span>
+      );
   }
+  // Exhaustiveness guard: a new descriptor type must add a case above, or it
+  // would silently render nothing (strict mode lacks noImplicitReturns).
+  return descriptor satisfies never;
 }
 
 function crumbKey(descriptor: BreadcrumbDescriptor): string {
@@ -95,5 +104,10 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return `namespace:${descriptor.namespaceId}`;
     case "identity":
       return `identity:${descriptor.identityId}`;
+    case "label":
+      return `label:${descriptor.label}`;
   }
+  // Exhaustiveness guard: a missing case would return undefined and break
+  // React's list keys in TopNav (strict mode lacks noImplicitReturns).
+  return descriptor satisfies never;
 }

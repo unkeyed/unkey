@@ -23,7 +23,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
   const items: CrumbPopoverItem[] = projects.map((p) => ({
     id: p.id,
     label: p.name,
-    href: routes.projects.detail({ workspaceSlug: workspace.slug, projectId: p.id }),
+    href: routes.projects.overview({ workspaceSlug: workspace.slug, projectId: p.id }),
   }));
 
   return (
@@ -31,7 +31,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       icon={<Cube className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? projectId}
       loading={loading}
-      href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}
+      href={routes.projects.overview({ workspaceSlug: workspace.slug, projectId })}
       items={items}
       currentId={projectId}
       searchPlaceholder="Find project..."
@@ -39,7 +39,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       footer={{
         icon: Plus,
         label: "New project",
-        href: routes.projects.list({ workspaceSlug: workspace.slug, new: true }),
+        href: routes.projects.new({ workspaceSlug: workspace.slug }),
       }}
     />
   );

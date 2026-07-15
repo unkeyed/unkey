@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
   { segment: "team", label: "Team", getHref: routes.settings.team },
-  { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;

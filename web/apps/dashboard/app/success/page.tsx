@@ -33,6 +33,7 @@ function SuccessContent() {
   // to the projects page, where the subscription is created.
   const plan = searchParams?.get("plan") ?? null;
   const from = searchParams?.get("from") ?? null;
+  const projectId = searchParams?.get("projectId") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -336,6 +337,7 @@ function SuccessContent() {
       intent={intent ?? undefined}
       plan={plan ?? undefined}
       from={from ?? undefined}
+      projectId={projectId ?? undefined}
     />
   );
 }

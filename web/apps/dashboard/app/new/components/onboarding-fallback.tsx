@@ -1,5 +1,6 @@
 "use client";
 import { FullScreenContent, FullScreenLayout, Logo, Skeleton } from "@unkey/ui";
+import Link from "next/link";
 import {
   OnboardingCard,
   OnboardingCardContent,
@@ -9,14 +10,20 @@ import {
 
 export function OnboardingFallback() {
   return (
-    <FullScreenLayout className="px-4 pt-6">
-      <Logo />
+    <FullScreenLayout className="overflow-x-hidden bg-gray-2 dark:bg-background">
+      <nav className="flex items-center justify-between h-16 w-full shrink-0 px-6">
+        <Link href="/">
+          <Logo />
+        </Link>
+        {/* Placeholder matching the outline "Sign out" button (size md = h-8). */}
+        <Skeleton className="h-8 w-20 rounded-md" />
+      </nav>
 
-      <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
+      <FullScreenContent className="px-4 py-8">
         <OnboardingCard aria-busy="true">
           <OnboardingCardHeader>
-            <Skeleton className="h-7 w-1/2" />
-            <Skeleton className="h-5 w-3/4 mt-2" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-5 w-3/4" />
           </OnboardingCardHeader>
           <OnboardingCardContent>
             <div className="flex flex-col gap-4">

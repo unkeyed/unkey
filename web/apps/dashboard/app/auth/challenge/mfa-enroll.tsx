@@ -1,6 +1,6 @@
 "use client";
 
-import { CopyButton, Loading } from "@unkey/ui";
+import { Button, CopyButton, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { beginAuthMfaEnrollment, completeAuthMfaChallenge } from "../actions";
@@ -71,20 +71,16 @@ export function MfaEnroll() {
   };
 
   return (
-    <div className="flex flex-col max-w-sm mx-auto text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-white to-white/30">
+    <div className="flex flex-col w-full text-left">
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-12">
         Set up two-factor authentication
       </h1>
-      <p className="mt-4 text-sm text-white/40">
+      <p className="mt-4 text-sm text-gray-11">
         Scan the QR code with your authenticator app, then enter the 6 digit code to finish signing
         in.
       </p>
 
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* The QR box keeps a fixed footprint whether or not the code has
           loaded, so the form below doesn't jump when the QR arrives. */}
@@ -96,19 +92,19 @@ export function MfaEnroll() {
             className="size-44 rounded-lg bg-white p-2"
           />
         ) : (
-          <div className="flex size-44 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+          <div className="flex size-44 items-center justify-center rounded-lg border border-gray-6 bg-gray-2">
             <Loading type="spinner" className="text-gray-6" />
           </div>
         )}
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        <p className="text-sm text-white/40">Can't scan it? Enter this code manually:</p>
+        <p className="text-sm text-gray-11">Can't scan it? Enter this code manually:</p>
         {/* The code sits on its own line so it never wraps mid-string, with
             one-click copy. Fixed single-line height keeps the form from
             shifting when the code resolves. */}
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-          <code className="font-mono text-sm text-white/80 whitespace-nowrap overflow-x-auto">
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-6 bg-gray-2 px-3 py-2">
+          <code className="font-mono text-sm text-gray-11 whitespace-nowrap overflow-x-auto">
             {enrollment?.secret ?? "Generating…"}
           </code>
           <CopyButton
@@ -116,7 +112,7 @@ export function MfaEnroll() {
             variant="ghost"
             disabled={!enrollment}
             toastMessage="Copied setup code"
-            className="shrink-0 text-white/60 hover:text-white"
+            className="shrink-0 text-gray-11 hover:text-gray-12"
           />
         </div>
       </div>
@@ -135,14 +131,16 @@ export function MfaEnroll() {
           disabled={isLoading || !enrollment}
         />
 
-        <button
+        <Button
           type="submit"
-          className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          variant="primary"
+          size="xlg"
+          className="w-full rounded-lg"
           disabled={isLoading || !enrollment || otp.length !== 6}
+          loading={isLoading}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
-        </button>
+        </Button>
       </form>
     </div>
   );

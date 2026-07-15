@@ -114,11 +114,11 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm text-white/40">Phone number</span>
+      <span className="text-sm text-gray-11">Phone number</span>
       <div
         className={cn(
-          "flex items-center h-10 rounded-lg border bg-black transition-colors",
-          showInvalid ? "border-[#FB1048]/50" : "border-white/20 focus-within:border-white/50",
+          "flex items-center h-10 rounded-lg border transition-colors bg-gray-2 dark:bg-black",
+          showInvalid ? "border-error-8" : "border-gray-6 focus-within:border-gray-8",
           disabled && "opacity-50",
         )}
       >
@@ -129,34 +129,30 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
                 type="button"
                 disabled={disabled}
                 aria-label="Select country calling code"
-                className="flex items-center gap-1 h-full pl-3 pr-2 text-sm text-white/80 rounded-l-lg hover:bg-white/5 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                className="flex items-center gap-1 h-full pl-3 pr-2 text-sm rounded-l-lg disabled:cursor-not-allowed cursor-pointer shrink-0 text-gray-12 hover:bg-gray-3"
               >
                 <span className="text-base leading-none">{flagEmoji(country)}</span>
                 <span className="tabular-nums">+{getCountryCallingCode(country)}</span>
-                <ChevronDown className="w-3 h-3 text-white/40" />
+                <ChevronDown className="w-3 h-3 text-gray-11" />
               </button>
             }
           />
-          {/* The popover renders in a portal, and the auth pages theme
-              themselves with explicit colors rather than a .dark class, so
-              the shared gray tokens don't resolve to dark values here. Style
-              the dropdown white-on-black explicitly to match the auth flow. */}
-          <PopoverContent className="p-0 w-72 bg-black border-white/10 text-white" align="start">
+          <PopoverContent className="p-0 w-72 bg-gray-1 border-gray-6 text-gray-12" align="start">
             <Command
               filter={(value, search) =>
                 value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
               }
-              className="bg-black text-white [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]_svg]:text-white/40"
+              className="bg-gray-1 text-gray-12 [&_[cmdk-input-wrapper]]:border-gray-6 [&_[cmdk-input-wrapper]_svg]:text-gray-11"
             >
               <CommandInput
                 placeholder="Search country..."
-                className="text-white placeholder:text-white/40"
+                className="text-gray-12 placeholder:text-gray-9"
               />
-              {/* Thin, dark, overlay-style scrollbar. Without this, desktop
-                  browsers (and macOS with "always show scrollbars") render a
-                  wide light classic scrollbar over the dark dropdown. */}
-              <CommandList className="[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
-                <CommandEmpty className="text-white/40">No country found.</CommandEmpty>
+              {/* Thin, overlay-style scrollbar. Without this, desktop browsers
+                  (and macOS with "always show scrollbars") render a wide
+                  classic scrollbar over the dropdown. */}
+              <CommandList className="[scrollbar-width:thin] [scrollbar-color:rgba(150,150,150,0.4)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-7 hover:[&::-webkit-scrollbar-thumb]:bg-gray-8">
+                <CommandEmpty className="text-gray-11">No country found.</CommandEmpty>
                 <CommandGroup>
                   {COUNTRIES.map((item) => (
                     <CommandItem
@@ -164,12 +160,12 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
                       // Searchable by name, ISO code, and dial code.
                       value={`${item.name} ${item.code} +${item.callingCode}`}
                       onSelect={() => handleSelectCountry(item.code)}
-                      className="flex items-center gap-2 cursor-pointer text-white aria-selected:bg-white/10 aria-selected:text-white"
+                      className="flex items-center gap-2 cursor-pointer text-gray-12 aria-selected:bg-gray-3 aria-selected:text-gray-12"
                     >
                       <span className="text-base leading-none">{flagEmoji(item.code)}</span>
                       <span className="flex-1 truncate">{item.name}</span>
-                      <span className="text-white/40 tabular-nums">+{item.callingCode}</span>
-                      {item.code === country && <Check className="w-4 h-4 text-white shrink-0" />}
+                      <span className="text-gray-11 tabular-nums">+{item.callingCode}</span>
+                      {item.code === country && <Check className="w-4 h-4 text-gray-12 shrink-0" />}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -178,7 +174,7 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
           </PopoverContent>
         </Popover>
 
-        <div className="w-px h-5 bg-white/10 shrink-0" />
+        <div className="w-px h-5 bg-gray-6 shrink-0" />
 
         <input
           ref={inputRef}
@@ -189,12 +185,12 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
           value={nationalValue}
           onChange={(e) => handleInput(e.target.value)}
           placeholder="(555) 000-0000"
-          className="flex-1 min-w-0 h-full bg-transparent px-3 text-sm text-white placeholder:text-white/30 outline-none disabled:cursor-not-allowed"
+          className="flex-1 min-w-0 h-full bg-transparent px-3 text-sm outline-none disabled:cursor-not-allowed text-gray-12 placeholder:text-gray-8"
         />
 
         {valid && <CircleCheck className="w-4 h-4 mr-3 text-success-9 shrink-0" />}
       </div>
-      {showInvalid && <span className="text-xs text-[#FB1048]">Enter a valid phone number</span>}
+      {showInvalid && <span className="text-xs text-error-11">Enter a valid phone number</span>}
     </div>
   );
 }

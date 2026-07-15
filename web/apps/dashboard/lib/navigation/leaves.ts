@@ -2,6 +2,7 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  ChartActivity2,
   Cube,
   Fingerprint,
   Gauge,
@@ -18,19 +19,8 @@ import {
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(
-  slug: string,
-  segments: string[],
-  portalManagementEnabled: boolean,
-): ResolvedNavLink[] {
+export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
   const top = segments[0];
-  const portalLink: ResolvedNavLink = {
-    key: "portal",
-    label: "Portal",
-    href: routes.portal.root({ workspaceSlug: slug }),
-    icon: User,
-    isActive: top === "portal",
-  };
   return [
     {
       key: "projects",
@@ -40,51 +30,22 @@ export function buildWorkspaceSections(
       isActive: top === "projects",
     },
     {
-      key: "apis",
-      label: "Keyspaces (APIs)",
-      href: routes.apis.list({ workspaceSlug: slug }),
-      icon: Nodes,
-      isActive: top === "apis",
-    },
-    {
-      key: "ratelimits",
-      label: "Ratelimit",
-      href: routes.ratelimits.list({ workspaceSlug: slug }),
-      icon: Gauge,
-      isActive: top === "ratelimits",
-    },
-    {
-      key: "authorization",
-      label: "Authorization",
-      href: `/${slug}/authorization/roles`,
-      icon: ShieldKey,
-      isActive: top === "authorization",
-    },
-    {
-      key: "logs",
-      label: "Logs",
-      href: `/${slug}/logs`,
-      icon: Layers3,
-      isActive: top === "logs",
-    },
-    {
-      key: "identities",
-      label: "Identities",
-      href: `/${slug}/identities`,
-      icon: Fingerprint,
-      isActive: top === "identities",
+      key: "root-keys",
+      label: "Root Keys",
+      href: routes.rootKeys.list({ workspaceSlug: slug }),
+      icon: Key,
+      isActive: top === "root-keys",
     },
     {
       key: "audit",
       label: "Audit Log",
-      href: `/${slug}/audit`,
+      href: routes.audit.list({ workspaceSlug: slug }),
       icon: InputSearch,
       isActive: top === "audit",
     },
-    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
-      label: "Settings",
+      label: "Workspace Settings",
       href: routes.settings.general({ workspaceSlug: slug }),
       icon: Gear,
       isActive: top === "settings",
@@ -96,16 +57,61 @@ export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
+  portalManagementEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
+  const portalLink: ResolvedNavLink = {
+    key: "portal",
+    label: "Portal",
+    href: routes.projects.portal(scope),
+    icon: User,
+    isActive: page === "portal",
+  };
   return [
+    {
+      key: "overview",
+      label: "Overview",
+      href: routes.projects.overview(scope),
+      icon: ChartActivity2,
+      // The bare project URL redirects to overview, so !page is transiently
+      // the overview too.
+      isActive: page === "overview" || !page,
+    },
     {
       key: "apps",
       label: "Apps",
-      href: routes.projects.detail(scope),
+      href: routes.projects.apps.list(scope),
       icon: Cube,
-      isActive: !page,
+      isActive: page === "apps",
+    },
+    {
+      key: "keyspaces",
+      label: "Keyspaces",
+      href: routes.projects.keyspaces(scope),
+      icon: Nodes,
+      isActive: page === "keyspaces",
+    },
+    {
+      key: "ratelimits",
+      label: "Ratelimits",
+      href: routes.projects.ratelimits(scope),
+      icon: Gauge,
+      isActive: page === "ratelimits",
+    },
+    {
+      key: "authorization",
+      label: "Authorization",
+      href: routes.projects.authorization(scope),
+      icon: ShieldKey,
+      isActive: page === "authorization",
+    },
+    {
+      key: "identities",
+      label: "Identities",
+      href: routes.projects.identities(scope),
+      icon: Fingerprint,
+      isActive: page === "identities",
     },
     {
       key: "logs",
@@ -121,6 +127,7 @@ export function buildProjectLinks(
       icon: ArrowOppositeDirectionY,
       isActive: page === "requests",
     },
+    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Project Settings",

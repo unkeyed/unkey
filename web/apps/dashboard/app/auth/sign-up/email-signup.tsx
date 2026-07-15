@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
-import { FormInput, Loading, toast } from "@unkey/ui";
+import { Button, FormInput, toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useSignUp } from "../hooks/useSignUp";
 
@@ -93,78 +93,69 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
   };
 
   return (
-    <form className="grid gap-16" onSubmit={signUpWithCode}>
-      <div className="grid gap-10">
-        {validationError && (
-          <div
-            className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg"
-            role="alert"
-            aria-live="polite"
-          >
-            {validationError}
-          </div>
-        )}
-        <div className="flex flex-row gap-3">
-          <div className="flex flex-col items-start w-1/2 gap-2">
-            <FormInput
-              label="First Name"
-              name="first"
-              placeholder="Bruce"
-              type="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="h-10 dark bg-black! [&_input]:text-white!"
-              onChange={(e) => {
-                setFirstName(e.target.value);
-                validationError && setValidationError("");
-              }}
-            />
-          </div>
-          <div className="flex flex-col items-start w-1/2 gap-2">
-            <FormInput
-              label="Last Name"
-              name="last"
-              placeholder="Banner"
-              type="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="h-10 dark bg-black! [&_input]:text-white!"
-              onChange={(e) => {
-                setLastName(e.target.value);
-                validationError && setValidationError("");
-              }}
-            />
-          </div>
+    <form className="flex flex-col gap-4" onSubmit={signUpWithCode}>
+      {validationError && (
+        <div
+          className="p-3 text-sm rounded-lg border text-error-11 bg-error-3 border-error-6"
+          role="alert"
+          aria-live="polite"
+        >
+          {validationError}
         </div>
-        <div className="flex flex-col items-start gap-2">
-          <FormInput
-            label="Email"
-            name="email"
-            defaultValue={emailFromParams}
-            placeholder="name@example.com"
-            type="email"
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect="off"
-            className="h-10 dark bg-black! w-full [&_input]:text-white!"
-            onChange={(e) => {
-              setEmail(e.target.value);
-              validationError && setValidationError("");
-            }}
-          />
-        </div>
+      )}
+      <div className="flex flex-row gap-3">
+        <FormInput
+          label="First Name"
+          name="first"
+          placeholder="Bruce"
+          type="text"
+          autoCapitalize="none"
+          autoCorrect="off"
+          className="w-1/2"
+          onChange={(e) => {
+            setFirstName(e.target.value);
+            validationError && setValidationError("");
+          }}
+        />
+        <FormInput
+          label="Last Name"
+          name="last"
+          placeholder="Banner"
+          type="text"
+          autoCapitalize="none"
+          autoCorrect="off"
+          className="w-1/2"
+          onChange={(e) => {
+            setLastName(e.target.value);
+            validationError && setValidationError("");
+          }}
+        />
       </div>
-      <button
+      <FormInput
+        label="Email"
+        name="email"
+        defaultValue={emailFromParams}
+        placeholder="name@example.com"
+        type="email"
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect="off"
+        className="w-full"
+        onChange={(e) => {
+          setEmail(e.target.value);
+          validationError && setValidationError("");
+        }}
+      />
+      <Button
         type="submit"
-        className="flex items-center cursor-pointer justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+        variant="primary"
+        size="xlg"
+        className="w-full rounded-lg"
         disabled={isLoading || !isFormValid}
+        loading={clientLoaded && isLoading}
       >
-        {clientLoaded && isLoading ? (
-          <Loading className="w-4 h-4 animate-spin" />
-        ) : (
-          "Sign Up with Email"
-        )}
-      </button>
+        Continue with Email
+      </Button>
     </form>
   );
 };

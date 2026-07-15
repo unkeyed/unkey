@@ -1,35 +1,13 @@
-"use client";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
-import { RootKeysListControlCloud } from "./components/control-cloud";
-import { RootKeysListControls } from "./components/controls";
-import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
-import { RootKeysList } from "./components/table/root-keys-list";
+import { routes } from "@/lib/navigation/routes";
+import { redirect } from "next/navigation";
 
-export default function RootKeysPage() {
-  return (
-    <PageContainer width="full">
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>Root Keys</PageHeaderTitle>
-        </PageHeaderContent>
-        <PageHeaderActions>
-          <CreateRootKeyButton />
-        </PageHeaderActions>
-      </PageHeader>
-      <PageBody>
-        <div className="flex flex-col">
-          <RootKeysListControls />
-          <RootKeysListControlCloud />
-          <RootKeysList />
-        </div>
-      </PageBody>
-    </PageContainer>
-  );
+// Root Keys moved to the top-level workspace sidebar; keep the old settings
+// URL alive by redirecting to the canonical /root-keys path.
+export default async function LegacyRootKeysPage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>;
+}) {
+  const { workspaceSlug } = await params;
+  redirect(routes.rootKeys.list({ workspaceSlug }));
 }

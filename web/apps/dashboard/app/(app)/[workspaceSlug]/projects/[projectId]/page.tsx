@@ -1,47 +1,14 @@
-"use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Plus } from "@unkey/icons";
-import {
-  Button,
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { AppsList } from "./_components/apps-list";
+import { redirect } from "next/navigation";
 
-export default function ProjectPage() {
-  const params = useParams();
-  const workspace = useWorkspaceNavigation();
-  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
-
-  return (
-    <PageContainer className="flex-1">
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>Apps</PageHeaderTitle>
-        </PageHeaderContent>
-        <PageHeaderActions>
-          <Button
-            size="md"
-            variant="primary"
-            render={
-              <Link href={routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId })} />
-            }
-          >
-            <Plus iconSize="sm-regular" />
-            Create app
-          </Button>
-        </PageHeaderActions>
-      </PageHeader>
-      <PageBody className="flex-1">
-        <AppsList />
-      </PageBody>
-    </PageContainer>
-  );
+// Overview is the project landing. Redirecting the bare project URL catches
+// every "land on the project" entry point (cards, crumbs, stale links) in one
+// place; the Apps list lives at its own /apps route.
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string; projectId: string }>;
+}) {
+  const { workspaceSlug, projectId } = await params;
+  redirect(routes.projects.overview({ workspaceSlug, projectId }));
 }

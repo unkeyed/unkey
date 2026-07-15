@@ -1,7 +1,7 @@
-import { Page2 } from "@unkey/icons";
-import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
+import { Card, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
+import { AuthSwitchButton } from "./auth-switch-button";
 import { RadarProvider } from "./radar/radar-signals";
 
 // NOTE: do not add a signed-in redirect here. Setting the session cookie in
@@ -15,30 +15,25 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <FullScreenLayout className="overflow-x-hidden bg-black">
-      <nav className="container flex items-center justify-between h-16 w-full shrink-0">
+    <FullScreenLayout className="overflow-x-hidden bg-gray-2 dark:bg-background">
+      <nav className="flex items-center justify-between h-16 w-full shrink-0 px-6">
         <Link href="/">
-          <Logo className="md:min-w-sm text-white" />
+          <Logo />
         </Link>
-        <Link
-          className="flex items-center h-8 gap-2 px-4 text-sm text-white duration-500 border rounded-lg bg-white/5 hover:bg-white hover:text-black border-white/10"
-          href="https://www.unkey.com/docs"
-          target="_blank"
-        >
-          <Page2 iconSize="md-thin" />
-          Documentation
-        </Link>
+        <AuthSwitchButton />
       </nav>
-      <FullScreenContent className="py-8">
-        <div className="container relative flex flex-col items-center justify-center gap-8 lg:w-2/5">
-          <div className="w-full max-w-sm">
+      <FullScreenContent className="px-4 py-8">
+        {/* WarnBanner/ErrorBanner (banners.tsx) portal in here to sit above
+            the card. Banners carry their own mb-4 so an empty slot adds no
+            height and the card stays centered. */}
+        <div id="auth-banner-slot" className="w-full max-w-[440px]" />
+        <Card className="w-full max-w-[440px] rounded-xl border-gray-5 bg-gray-1 px-6 py-10 sm:px-12 shadow-xs">
+          <div className="flex w-full flex-col gap-10">
             <RadarProvider>{children}</RadarProvider>
-          </div>
-          <div className="flex items-center justify-center ">
-            <p className="p-4 text-xs text-center text-white/50 text-balance">
+            <p className="text-xs text-center text-gray-9 text-balance">
               By continuing, you agree to Unkey's{" "}
               <Link
-                className="underline"
+                className="underline hover:text-gray-11"
                 href="https://www.unkey.com/policies/terms"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -47,7 +42,7 @@ export default function AuthenticatedLayout({
               </Link>{" "}
               and{" "}
               <Link
-                className="underline"
+                className="underline hover:text-gray-11"
                 href="https://www.unkey.com/policies/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -57,7 +52,7 @@ export default function AuthenticatedLayout({
               , and to receive periodic emails with updates.
             </p>
           </div>
-        </div>
+        </Card>
       </FullScreenContent>
     </FullScreenLayout>
   );

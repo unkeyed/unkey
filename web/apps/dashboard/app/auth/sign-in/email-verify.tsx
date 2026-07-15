@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
-import { Loading, toast } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
 import { applyVerificationResult } from "../challenge/handle-result";
 import { useSignUp } from "../hooks/useSignUp";
@@ -41,11 +41,9 @@ export const EmailVerify: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col max-w-sm mx-auto text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-white to-white/30">
-        Security code sent!
-      </h1>
-      <p className="mt-4 text-sm text-white/40">
+    <div className="flex flex-col w-full text-left">
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-12">Security code sent!</h1>
+      <p className="mt-4 text-sm text-gray-11">
         To continue, please enter the 6 digit verification code sent to the provided email.
       </p>
 
@@ -68,15 +66,17 @@ export const EmailVerify: React.FC = () => {
           )}
         />
 
-        <button
+        <Button
           type="submit"
-          className="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          variant="primary"
+          size="xlg"
+          className="w-full rounded-lg"
           disabled={isLoading || otp.length !== 6}
+          loading={clientReady && isLoading}
           onClick={() => verifyEmail(otp)}
         >
-          {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -85,11 +85,11 @@ export const EmailVerify: React.FC = () => {
 const Slot: React.FC<SlotProps> = (props) => (
   <div
     className={cn(
-      "relative w-10 h-12 text-[2rem] border border-white/20 rounded-lg text-white font-light text-base",
+      "relative w-10 h-12 border rounded-lg font-light text-base border-gray-6 text-gray-12",
       "flex items-center justify-center",
       "transition-all duration-300",
-      "group-hover:border-white/50 group-focus-within:border-white/50",
-      "outline-solid outline-0 outline-white",
+      "group-hover:border-gray-8 group-focus-within:border-gray-8",
+      "outline-solid outline-0 outline-gray-12",
       { "outline-1 ": props.isActive },
     )}
   >

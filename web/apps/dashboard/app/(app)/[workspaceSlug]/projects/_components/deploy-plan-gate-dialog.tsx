@@ -94,17 +94,23 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   /** Where the dialog was opened from, carried through the round-trip. */
   from: DeployCheckoutOrigin;
+  /**
+   * When the gate fires from an app-create flow, the project it belongs to.
+   * Carried through the round-trip so the post-subscribe landing can return
+   * the user to that project's app-create wizard.
+   */
+  projectId?: string;
 };
 
 /**
- * The Compute paywall on the projects page. Selecting a plan routes it to
+ * The Compute paywall for app creation. Selecting a plan routes it to
  * payment rather than subscribing inline: with a card on file it hands off to
- * the projects landing (?pendingPlan&from), where usePendingSubscribe runs
- * subscribeDeploy; without one it sends the user to Stripe checkout first,
+ * the projects landing (?pendingPlan&from&projectId), where usePendingSubscribe
+ * runs subscribeDeploy; without one it sends the user to Stripe checkout first,
  * and /success returns them to the same landing. ctrl-api remains the real
  * gate, so the non-admin lockout here is UX only.
  */
-export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
+export function DeployPlanGateDialog({ isOpen, onOpenChange, from, projectId }: Props) {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
 
@@ -122,7 +128,9 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
 
     if (hasPaymentMethod) {
       // Card on file: skip Stripe and subscribe on the projects landing.
-      router.push(routes.projects.pendingSubscribe({ workspaceSlug: workspace.slug, plan, from }));
+      router.push(
+        routes.projects.pendingSubscribe({ workspaceSlug: workspace.slug, plan, from, projectId }),
+      );
     } else {
       router.push(
         routes.settings.stripe.checkout({
@@ -130,6 +138,7 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
           intent: "deploy",
           plan,
           from,
+          projectId,
         }),
       );
     }

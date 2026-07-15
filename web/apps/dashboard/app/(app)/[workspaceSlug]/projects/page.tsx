@@ -17,54 +17,57 @@ import {
   toast,
 } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { CreateProjectButton } from "./_components/create-project-button";
-import { CreateProjectDialog } from "./_components/create-project-dialog";
 import { ProjectsList } from "./_components/list";
 import { EmptyProjects } from "./_components/list/empty-projects";
 
 export default function ProjectsPage() {
   const workspace = useWorkspaceNavigation();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isNewProject = searchParams.get("new") === "true";
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
-  const { createDialogOpen, setCreateDialogOpen } = usePendingSubscribe();
+  usePendingSubscribe();
+
+  // Legacy entry links (?new=true) used to open the create-project dialog
+  // here; the flow now lives on its own full-screen page.
+  useEffect(() => {
+    if (isNewProject) {
+      router.replace(routes.projects.new({ workspaceSlug: workspace.slug }));
+    }
+  }, [isNewProject, router, workspace.slug]);
 
   const isEmpty = !projects.isLoading && projects.data.length === 0;
 
+  if (isEmpty) {
+    return <EmptyProjects />;
+  }
+
   return (
-    <>
-      {isEmpty ? (
-        <EmptyProjects />
-      ) : (
-        <PageContainer>
-          <PageHeader>
-            <PageHeaderContent>
-              <PageHeaderTitle>Projects</PageHeaderTitle>
-            </PageHeaderContent>
-            <PageHeaderActions>
-              <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
-            </PageHeaderActions>
-          </PageHeader>
-          <PageBody>
-            <ProjectsList />
-            <NewNavigationBanner />
-          </PageBody>
-        </PageContainer>
-      )}
-      <CreateProjectDialog
-        isOpen={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        workspaceSlug={workspace.slug}
-      />
-    </>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Projects</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <CreateProjectButton workspaceSlug={workspace.slug} />
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
+        <ProjectsList />
+        <NewNavigationBanner />
+      </PageBody>
+    </PageContainer>
   );
 }
 
 /**
  * Handles the Compute-plan gate hand-off: reads ?pendingPlan&from from the URL
- * and toasts the result, opening the create-project dialog on `from=create`.
+ * and toasts the result, returning the user to where they came from on
+ * `from=create`: the project's Apps page when projectId is present, otherwise
+ * the full-page create-project flow.
  *
  * Two entry conditions land here, and the entitlement-first check absorbs both:
  * - Card on file (has-card path): the workspace is not yet subscribed, so
@@ -89,8 +92,6 @@ function usePendingSubscribe() {
   const searchParams = useSearchParams();
   const trpcUtils = trpc.useUtils();
 
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
   // The pendingPlan+from pair currently being subscribed, so re-renders (and
   // strict-mode double effects) don't re-fire it. Cleared when the params are
   // gone so a later hand-off (subscribe → cancel → subscribe again) runs fresh.
@@ -109,8 +110,11 @@ function usePendingSubscribe() {
     // it verbatim instead of rewriting e.g. "billing" to "banner".
     const rawFrom = searchParams.get("from");
     const from = DEPLOY_ORIGINS.find((known) => known === rawFrom) ?? "banner";
-    const pending = { plan, from };
-    const key = `${pending.plan}:${pending.from}`;
+    // Set when the gate fired from a project's app-create flow; on success the
+    // user is returned there instead of the create-project dialog.
+    const projectId = searchParams.get("projectId") ?? undefined;
+    const pending = { plan, from, projectId };
+    const key = `${pending.plan}:${pending.from}:${pending.projectId ?? ""}`;
     if (firedFor.current === key) {
       return;
     }
@@ -126,7 +130,19 @@ function usePendingSubscribe() {
         trpcUtils.workspace.getCurrent.invalidate(),
       ]);
       if (pending.from === "create") {
-        setCreateDialogOpen(true);
+        if (pending.projectId) {
+          // The gate fired from that project's app-create flow; land on the
+          // project's Apps list (where "Create app" lives) rather than
+          // dropping the user back into the wizard uninvited.
+          router.push(
+            routes.projects.apps.list({
+              workspaceSlug: workspace.slug,
+              projectId: pending.projectId,
+            }),
+          );
+        } else {
+          router.push(routes.projects.new({ workspaceSlug: workspace.slug }));
+        }
       }
     };
 
@@ -167,6 +183,7 @@ function usePendingSubscribe() {
                   intent: "deploy",
                   plan: pending.plan,
                   from: pending.from,
+                  projectId: pending.projectId,
                 }),
               );
               return;
@@ -192,8 +209,6 @@ function usePendingSubscribe() {
       attempt();
     })();
   }, [searchParams, router, workspace.slug, subscribe, trpcUtils]);
-
-  return { createDialogOpen, setCreateDialogOpen };
 }
 
 const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing"];

@@ -1,7 +1,7 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
@@ -10,7 +10,8 @@ export type BreadcrumbDescriptor =
   | { type: "app"; projectId: string; appId: string }
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string }
-  | { type: "identity"; identityId: string };
+  | { type: "identity"; identityId: string }
+  | { type: "label"; label: string };
 
 type RouteParams = {
   projectId?: string;
@@ -23,9 +24,18 @@ type RouteParams = {
 export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const workspace = useWorkspaceNavigation();
   const params = useParams<RouteParams>();
+  const pathname = usePathname();
 
-  const workspaceHref = resolveWorkspaceHref(workspace.slug, params);
+  // The create-project page has no entity params, so it gets a static crumb.
+  const isNewProject = pathname === routes.projects.new({ workspaceSlug: workspace.slug });
+
+  const workspaceHref = isNewProject
+    ? routes.projects.list({ workspaceSlug: workspace.slug })
+    : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
+  if (isNewProject) {
+    crumbs.push({ type: "label", label: "New project" });
+  }
   if (params.projectId) {
     crumbs.push({ type: "project", projectId: params.projectId });
   }

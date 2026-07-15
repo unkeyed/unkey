@@ -54,7 +54,7 @@ export function DeleteApp() {
   const onSubmit = (_values: FormValues) => {
     collection.apps.delete(appId);
     setIsDialogOpen(false);
-    router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+    router.push(routes.projects.apps.list({ workspaceSlug: workspace.slug, projectId }));
   };
 
   return (

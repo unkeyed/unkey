@@ -46,14 +46,21 @@ export const settingsRoutes = {
       intent,
       plan,
       from,
+      projectId,
     }: WorkspaceScope & {
       intent?: CheckoutIntent;
       plan?: DeployCheckoutPlan;
       from?: DeployCheckoutOrigin;
+      projectId?: string;
     }): Route {
       const query =
-        intent || plan || from
-          ? { ...(intent ? { intent } : {}), ...(plan ? { plan } : {}), ...(from ? { from } : {}) }
+        intent || plan || from || projectId
+          ? {
+              ...(intent ? { intent } : {}),
+              ...(plan ? { plan } : {}),
+              ...(from ? { from } : {}),
+              ...(projectId ? { projectId } : {}),
+            }
           : undefined;
       return buildRoute("/[workspaceSlug]/stripe/checkout", { workspaceSlug }, query);
     },

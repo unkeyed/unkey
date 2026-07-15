@@ -1,8 +1,5 @@
 "use client";
-import { FadeIn } from "@/components/landing/fade-in";
-import { Loading } from "@unkey/ui";
-import type { Route } from "next";
-import Link from "next/link";
+import { Button, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SignUpProvider } from "../../context/signup-context";
@@ -18,6 +15,7 @@ export default function AuthenticationPage() {
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
   const hasAttemptedSignUp = useRef(false);
 
   // Handle auto sign-up with invitation token and email
@@ -53,35 +51,40 @@ export default function AuthenticationPage() {
 
   return (
     <SignUpProvider>
-      <div className="flex flex-col justify-center gap-6">
+      <div className="flex flex-col justify-center gap-8">
         {isLoading && <Loading />}
         {verify ? (
-          <FadeIn>
-            <EmailCode invitationToken={invitationToken || undefined} />
-          </FadeIn>
+          <EmailCode invitationToken={invitationToken || undefined} />
         ) : (
           <>
-            <div className="flex flex-col">
-              <h1 className="text-4xl text-white">Create new account</h1>
-              <p className="mt-4 text-sm text-md text-white/50">
-                Sign up to Unkey or?
-                <Link href={"/auth/sign-in" as Route} className="ml-2 text-white hover:underline">
-                  Sign in
-                </Link>
-              </p>
-            </div>
-            <div className="grid gap-10 mt-4">
-              <OAuthSignUp />
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/20" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-black text-white/50">or continue using email</span>
-                </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-center leading-tight text-gray-12">
+              Go from from zero to deployed
+              in minutes.
+            </h1>
+            {showEmail ? (
+              <div className="flex flex-col gap-4">
+                <EmailSignUp setVerification={setVerify} />
+                <button
+                  type="button"
+                  onClick={() => setShowEmail(false)}
+                  className="text-sm text-center cursor-pointer text-gray-11 transition-colors hover:text-gray-12"
+                >
+                  &larr; Other options
+                </button>
               </div>
-              <EmailSignUp setVerification={setVerify} />
-            </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <OAuthSignUp />
+                <Button
+                  variant="ghost"
+                  size="xlg"
+                  className="w-full rounded-lg"
+                  onClick={() => setShowEmail(true)}
+                >
+                  Continue with Email &rarr;
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

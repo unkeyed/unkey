@@ -1,4 +1,4 @@
-import { FormInput, Loading } from "@unkey/ui";
+import { Button, FormInput } from "@unkey/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { useSignIn } from "../hooks";
 import { LastUsed, useLastUsed } from "./last_used";
@@ -41,35 +41,30 @@ export function EmailSignIn() {
   };
 
   return (
-    <form className="grid gap-16" onSubmit={handleSubmit}>
-      <div className="grid gap-6">
-        <div className="flex flex-col items-start gap-2">
-          <FormInput
-            label="Email"
-            name="email"
-            placeholder="name@example.com"
-            type="email"
-            defaultValue={email}
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect="off"
-            className="h-10 dark bg-black! w-full [&_input]:text-white!"
-            onChange={(e) => setCurrentEmail(e.target.value)}
-          />
-        </div>
-      </div>
-      <button
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <FormInput
+        label="Email"
+        name="email"
+        placeholder="name@example.com"
+        type="email"
+        defaultValue={email}
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect="off"
+        className="w-full"
+        onChange={(e) => setCurrentEmail(e.target.value)}
+      />
+      <Button
         type="submit"
-        className="relative flex items-center cursor-pointer justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+        variant="primary"
+        size="xlg"
+        className="relative w-full rounded-lg"
         disabled={isLoading || !isFormValid}
+        loading={clientReady && isLoading}
       >
-        {clientReady && isLoading ? (
-          <Loading className="w-4 h-4 animate-spin" />
-        ) : (
-          "Sign In with Email"
-        )}
+        Continue with Email
         {clientReady && lastUsed === "email" && <LastUsed />}
-      </button>
+      </Button>
     </form>
   );
 }

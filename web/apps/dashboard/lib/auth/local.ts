@@ -426,7 +426,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     // always successful
     return {
       success: true,
-      redirectTo: "/apis",
+      redirectTo: "/",
       cookies: [
         {
           name: UNKEY_SESSION_COOKIE,
@@ -450,7 +450,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     // always successful
     return {
       success: true,
-      redirectTo: "/apis",
+      redirectTo: "/",
       cookies: [
         {
           name: UNKEY_SESSION_COOKIE,
@@ -474,7 +474,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     // always successful
     return {
       success: true,
-      redirectTo: "/apis",
+      redirectTo: "/",
       cookies: [
         {
           name: UNKEY_SESSION_COOKIE,
@@ -572,7 +572,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     // No-op implementation - always successful
     return {
       success: true,
-      redirectTo: "/apis",
+      redirectTo: "/",
       cookies: [
         {
           name: UNKEY_SESSION_COOKIE,

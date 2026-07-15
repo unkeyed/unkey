@@ -453,13 +453,13 @@ describe("WorkOSAuthProvider", () => {
 
       provider.signInViaOAuth({
         provider: "github",
-        redirectUrlComplete: "/apis",
+        redirectUrlComplete: "/",
         signalsId: "signals_123",
       });
 
       const callArgs = workos.userManagement.getAuthorizationUrl.mock.calls[0][0];
       expect(JSON.parse(decodeURIComponent(callArgs.state))).toEqual({
-        redirectUrlComplete: "/apis",
+        redirectUrlComplete: "/",
         signalsId: "signals_123",
       });
     });
@@ -468,7 +468,7 @@ describe("WorkOSAuthProvider", () => {
       workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
 
       const state = encodeURIComponent(
-        JSON.stringify({ redirectUrlComplete: "/apis", signalsId: "signals_123" }),
+        JSON.stringify({ redirectUrlComplete: "/", signalsId: "signals_123" }),
       );
       const result = await provider.completeOAuthSignIn(
         new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
@@ -479,14 +479,14 @@ describe("WorkOSAuthProvider", () => {
       );
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.redirectTo).toBe("/apis");
+        expect(result.redirectTo).toBe("/");
       }
     });
 
     it("completes OAuth without a token when none was collected", async () => {
       workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
 
-      const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: "/apis" }));
+      const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: "/" }));
       await provider.completeOAuthSignIn(
         new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
       );

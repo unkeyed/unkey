@@ -28,12 +28,21 @@ const CHECKOUT_INTENTS = ["compute", "api", "payment", "deploy"] as const;
 const DEPLOY_ORIGINS = ["create", "banner", "billing"] as const;
 
 export default async function StripeRedirect(props: {
-  searchParams: Promise<{ intent?: string; plan?: string; from?: string }>;
+  searchParams: Promise<{ intent?: string; plan?: string; from?: string; projectId?: string }>;
 }) {
-  const { intent: rawIntent, plan: rawPlan, from: rawFrom } = await props.searchParams;
+  const {
+    intent: rawIntent,
+    plan: rawPlan,
+    from: rawFrom,
+    projectId: rawProjectId,
+  } = await props.searchParams;
   const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
   const plan = DEPLOY_PLANS.find((known) => known === rawPlan);
   const from = DEPLOY_ORIGINS.find((known) => known === rawFrom);
+  // Project the app-create gate fired from, echoed back through /success so
+  // the user returns to that project's app-create wizard. Shape-checked since
+  // it is client-supplied and goes into the success_url.
+  const projectId = rawProjectId && /^[\w-]+$/.test(rawProjectId) ? rawProjectId : undefined;
 
   const { orgId, role } = await getAuth();
 
@@ -84,7 +93,7 @@ export default async function StripeRedirect(props: {
     intent ? `&intent=${intent}` : ""
   }${intent === "deploy" && plan ? `&plan=${plan}` : ""}${
     intent === "deploy" && from ? `&from=${from}` : ""
-  }`;
+  }${intent === "deploy" && projectId ? `&projectId=${projectId}` : ""}`;
 
   // Dev/test only: Checkout cannot create customers under a Stripe test
   // clock, so when STRIPE_DEV_TEST_CLOCK is set we create a clocked customer
@@ -208,7 +217,8 @@ export default async function StripeRedirect(props: {
       //    deterministic key off the stale session id and mint a fresh session
       //    (a retry of THIS request replays the same fresh session rather than
       //    double-creating).
-      let idempotencyKey = `deploy-checkout:${ws.id}:${plan}:${from ?? ""}`;
+      // projectId is part of the key because success_url varies with it too.
+      let idempotencyKey = `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${projectId ?? ""}`;
       session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
       for (let attempt = 0; attempt < 3; attempt++) {
         const live = await stripe.checkout.sessions.retrieve(session.id);
