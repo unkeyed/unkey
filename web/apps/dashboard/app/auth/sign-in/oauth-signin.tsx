@@ -53,17 +53,17 @@ export const OAuthSignIn: React.FC = () => {
     <div className="flex flex-col gap-2">
       <OAuthButton onClick={() => oauthSignIn("github")}>
         {clientReady && isLoading === "github" ? (
-          <Loading className="w-6 h-6" />
+          <Loading className="w-5 h-5" />
         ) : (
-          <GitHub className="w-6 h-6" />
+          <GitHub className="w-5 h-5" />
         )}
         Continue with GitHub {clientReady && lastUsed === "github" ? <LastUsed /> : null}
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("google")}>
         {clientReady && isLoading === "google" ? (
-          <Loading className="w-6 h-6" />
+          <Loading className="w-5 h-5" />
         ) : (
-          <Google className="w-6 h-6" />
+          <Google className="w-5 h-5" />
         )}
         Continue with Google {clientReady && lastUsed === "google" ? <LastUsed /> : null}
       </OAuthButton>
