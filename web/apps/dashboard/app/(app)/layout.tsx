@@ -67,8 +67,9 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
-  // The app onboarding flow is a focused full-screen experience without the sidebar.
-  const isAppOnboarding = /\/projects\/[^/]+\/apps\/new$/.test(pathname);
+  // The project/app creation flows are focused full-screen experiences
+  // without the sidebar: /projects/new and /projects/[projectId]/apps/new.
+  const isAppOnboarding = /\/projects\/(new|[^/]+\/apps\/new)$/.test(pathname);
 
   useEffect(() => {
     // Don't navigate while loading

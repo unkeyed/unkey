@@ -19,7 +19,7 @@ export const OAuthSignIn: React.FC = () => {
   const searchParams = useSearchParams();
   const rawRedirect = searchParams?.get("redirect");
   const redirectUrlComplete =
-    rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/apis";
+    rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/";
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {

@@ -145,7 +145,7 @@ export async function verifyAuthCode(params: {
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
-              let redirectUrl = "/apis";
+              let redirectUrl = "/";
               try {
                 const org = await auth.getOrg(invitation.organizationId);
                 if (org?.name) {

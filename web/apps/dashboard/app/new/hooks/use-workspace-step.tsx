@@ -106,8 +106,8 @@ export const useWorkspaceStep = (): WorkspaceStep => {
         // Continue anyway - cookie is a UX enhancement, not critical
       }
 
-      // Navigate to the APIs page for the new workspace
-      router.push(routes.apis.list({ workspaceSlug: slug }));
+      // Land on the projects overview for the new workspace.
+      router.push(routes.projects.list({ workspaceSlug: slug }));
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {
@@ -123,7 +123,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
               <Button
                 onClick={() => {
                   toast.dismiss();
-                  router.push("/apis");
+                  router.push("/");
                 }}
               >
                 Return to APIs

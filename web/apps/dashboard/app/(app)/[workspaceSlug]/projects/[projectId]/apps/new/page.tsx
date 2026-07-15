@@ -1,4 +1,6 @@
 "use client";
+import { DeployPlanGateDialog } from "@/app/(app)/[workspaceSlug]/projects/_components/deploy-plan-gate-dialog";
+import { useDeployGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-gate";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
@@ -36,6 +38,14 @@ export default function AppSetupPage() {
   const [appId, setAppId] = useState<string | null>(initialAppId ?? null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
+  // Compute paywall, relocated from project creation: creating a project is
+  // free, creating an app is what needs a plan. This page is the single choke
+  // point for every app-create entry (buttons, post-create redirect, deep
+  // links). Dismissing keeps the wizard visible but the gate is UX only —
+  // ctrl-api enforces the real entitlement at deploy time.
+  const { gated } = useDeployGate();
+  const [planDismissed, setPlanDismissed] = useState(false);
+
   const { bypass } = usePreventLeave(!deploymentId);
 
   const handleSkipGithubSetup = () => {
@@ -44,75 +54,83 @@ export default function AppSetupPage() {
   };
 
   return (
-    <StepWizard.Root defaultStepId={initialStep}>
-      <StepWizard.Step id="create-app" label="Create app">
-        <OnboardingStepContainer>
-          {deployYourAppHeader}
-          <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
-        </OnboardingStepContainer>
-      </StepWizard.Step>
-      {!hasGithubInstallation && (
-        <StepWizard.Step id="connect-github" label="Connect GitHub">
+    <>
+      <DeployPlanGateDialog
+        isOpen={gated && !planDismissed}
+        onOpenChange={(open) => setPlanDismissed(!open)}
+        from="create"
+        projectId={projectId}
+      />
+      <StepWizard.Root defaultStepId={initialStep}>
+        <StepWizard.Step id="create-app" label="Create app">
+          <OnboardingStepContainer>
+            {deployYourAppHeader}
+            <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
+          </OnboardingStepContainer>
+        </StepWizard.Step>
+        {!hasGithubInstallation && (
+          <StepWizard.Step id="connect-github" label="Connect GitHub">
+            {appId ? (
+              <OnboardingStepContainer>
+                {deployYourAppHeader}
+                <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
+              </OnboardingStepContainer>
+            ) : null}
+          </StepWizard.Step>
+        )}
+        <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
           {appId ? (
             <OnboardingStepContainer>
-              {deployYourAppHeader}
-              <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
+              <OnboardingStepHeader
+                title="Select a repository"
+                subtitle={
+                  <>
+                    Choose a repository and a branch containing your app.
+                    <br />
+                    We'll detect how to build it automatically.
+                  </>
+                }
+              />
+              <SelectRepo
+                projectId={projectId}
+                appId={appId}
+                onBeforeNavigate={bypass}
+                hasGithubInstallation={context?.hasGithubInstallation ?? false}
+                onSkip={handleSkipGithubSetup}
+              />
             </OnboardingStepContainer>
           ) : null}
         </StepWizard.Step>
-      )}
-      <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
-        {appId ? (
-          <OnboardingStepContainer>
-            <OnboardingStepHeader
-              title="Select a repository"
-              subtitle={
-                <>
-                  Choose a repository and a branch containing your app.
-                  <br />
-                  We'll detect how to build it automatically.
-                </>
-              }
-            />
-            <SelectRepo
-              projectId={projectId}
-              appId={appId}
-              onBeforeNavigate={bypass}
-              hasGithubInstallation={context?.hasGithubInstallation ?? false}
-              onSkip={handleSkipGithubSetup}
-            />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="configure-deployment" label="Configure deployment">
-        {appId ? (
-          <OnboardingStepContainer>
-            <OnboardingStepHeader
-              title="Configure deployment"
-              subtitle="Review the defaults. Edit anything you'd like to adjust."
-              allowBack
-            />
-            <ConfigureDeploymentStep projectId={projectId} appId={appId} />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
-        {appId ? (
-          <OnboardingStepContainer>
-            <EnvVarsStep
-              projectId={projectId}
-              appId={appId}
-              onDeploymentCreated={setDeploymentId}
-            />
-          </OnboardingStepContainer>
-        ) : null}
-      </StepWizard.Step>
-      <StepWizard.Step id="deploying" label="Deploying" preventBack>
-        {appId && deploymentId ? (
-          <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
-        ) : null}
-      </StepWizard.Step>
-    </StepWizard.Root>
+        <StepWizard.Step id="configure-deployment" label="Configure deployment">
+          {appId ? (
+            <OnboardingStepContainer>
+              <OnboardingStepHeader
+                title="Configure deployment"
+                subtitle="Review the defaults. Edit anything you'd like to adjust."
+                allowBack
+              />
+              <ConfigureDeploymentStep projectId={projectId} appId={appId} />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
+          {appId ? (
+            <OnboardingStepContainer>
+              <EnvVarsStep
+                projectId={projectId}
+                appId={appId}
+                onDeploymentCreated={setDeploymentId}
+              />
+            </OnboardingStepContainer>
+          ) : null}
+        </StepWizard.Step>
+        <StepWizard.Step id="deploying" label="Deploying" preventBack>
+          {appId && deploymentId ? (
+            <DeploymentLiveStep projectId={projectId} appId={appId} deploymentId={deploymentId} />
+          ) : null}
+        </StepWizard.Step>
+      </StepWizard.Root>
+    </>
   );
 }
 

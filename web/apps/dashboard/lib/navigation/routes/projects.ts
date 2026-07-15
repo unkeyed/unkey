@@ -19,21 +19,59 @@ export const projectRoutes = {
 
   // Compute-plan gate hand-off: the projects landing reads these params,
   // subscribes the chosen plan (card already on file), and on `from=create`
-  // opens the create-project dialog.
+  // returns the user to the app-create flow (projectId set) or opens the
+  // create-project dialog (legacy links without one).
   pendingSubscribe({
     workspaceSlug,
     plan,
     from,
-  }: WorkspaceScope & { plan: DeployCheckoutPlan; from: DeployCheckoutOrigin }): Route {
-    return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { pendingPlan: plan, from });
+    projectId,
+  }: WorkspaceScope & {
+    plan: DeployCheckoutPlan;
+    from: DeployCheckoutOrigin;
+    projectId?: string;
+  }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/projects",
+      { workspaceSlug },
+      { pendingPlan: plan, from, projectId },
+    );
+  },
+
+  new({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/new", { workspaceSlug });
   },
 
   detail(scope: ProjectScope): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]", projectParams(scope));
   },
 
+  overview(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/overview", projectParams(scope));
+  },
+
   settings(scope: ProjectScope): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
+  },
+
+  keyspaces(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/keyspaces", projectParams(scope));
+  },
+
+  ratelimits(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/ratelimits", projectParams(scope));
+  },
+
+  authorization(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/authorization", projectParams(scope));
+  },
+
+  identities(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/identities", projectParams(scope));
+  },
+
+  portal(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/portal", projectParams(scope));
   },
 
   logs({

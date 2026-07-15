@@ -250,7 +250,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return {
         success: true,
-        redirectTo: "/apis",
+        redirectTo: "/",
         cookies: this.sessionCookies(sealedSession),
       };
     } catch (error: unknown) {
@@ -1392,7 +1392,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/apis";
+      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/";
 
       return {
         success: true,

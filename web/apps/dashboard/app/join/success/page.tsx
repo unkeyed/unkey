@@ -18,7 +18,7 @@ function JoinSuccessContent() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          router.push("/apis");
+          router.push("/");
           return 0;
         }
         return prev - 1;
@@ -51,7 +51,7 @@ function JoinSuccessContent() {
 
         <div className="text-sm text-gray-500 mb-4">Redirecting in {countdown} seconds</div>
 
-        <Button onClick={() => router.push("/apis")} variant="primary">
+        <Button onClick={() => router.push("/")} variant="primary">
           Continue manually
         </Button>
       </div>

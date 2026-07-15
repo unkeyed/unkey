@@ -7,7 +7,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
-  const DASHBOARD_URL = new URL("/apis", request.url);
+  const DASHBOARD_URL = new URL("/", request.url);
   const SIGN_IN_URL = new URL("/auth/sign-in", request.url);
   const SIGN_UP_URL = new URL("/auth/sign-up", request.url);
 

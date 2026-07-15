@@ -1,11 +1,8 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Dots, TriangleWarning2 } from "@unkey/icons";
+import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { useState } from "react";
-import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
-import { useDeployGate } from "../hooks/use-deploy-gate";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./project-card";
 import { ProjectCardSkeleton } from "./project-card-skeleton";
@@ -15,8 +12,6 @@ import { ProjectCardSkeleton } from "./project-card-skeleton";
 const MAX_SKELETON_COUNT = 3;
 
 export const ProjectsList = () => {
-  const { gated } = useDeployGate();
-  const [isPlanOpen, setIsPlanOpen] = useState(false);
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   if (projects.isLoading) {
@@ -46,26 +41,6 @@ export const ProjectsList = () => {
 
   return (
     <>
-      {gated ? (
-        <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <TriangleWarning2 iconSize="md-regular" className="shrink-0 text-warning-11" />
-            <p className="truncate text-[13px] text-gray-11">
-              No active Compute plan. Existing projects stay visible, but creating and deploying are
-              paused.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="md"
-            className="bg-background"
-            onClick={() => setIsPlanOpen(true)}
-          >
-            Choose a plan
-          </Button>
-        </div>
-      ) : null}
-      <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="banner" />
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>

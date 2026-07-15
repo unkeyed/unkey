@@ -1,37 +1,23 @@
 "use client";
 
+import { routes } from "@/lib/navigation/routes";
 import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useState } from "react";
-import { CreateProjectDialog } from "./create-project-dialog";
-import { DeployPlanGateDialog } from "./deploy-plan-gate-dialog";
-import { useDeployGate } from "./hooks/use-deploy-gate";
+import Link from "next/link";
 
 type Props = {
-  defaultOpen?: boolean;
   workspaceSlug: string;
 };
 
-export function CreateProjectButton({ defaultOpen, workspaceSlug }: Props) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const [isPlanOpen, setIsPlanOpen] = useState(false);
-
-  const { gated, isLoading } = useDeployGate();
-
+export function CreateProjectButton({ workspaceSlug }: Props) {
   return (
-    <>
-      <Button
-        size="md"
-        variant="primary"
-        loading={isLoading}
-        onClick={() => (gated ? setIsPlanOpen(true) : setIsOpen(true))}
-      >
-        <Plus iconSize="sm-regular" />
-        Create project
-      </Button>
-
-      <CreateProjectDialog isOpen={isOpen} onOpenChange={setIsOpen} workspaceSlug={workspaceSlug} />
-      <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="create" />
-    </>
+    <Button
+      size="md"
+      variant="primary"
+      render={<Link href={routes.projects.new({ workspaceSlug })} />}
+    >
+      <Plus iconSize="sm-regular" />
+      Create project
+    </Button>
   );
 }

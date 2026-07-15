@@ -1,4 +1,5 @@
 "use client";
+import { NoComputePlanBanner } from "@/app/(app)/[workspaceSlug]/projects/_components/no-compute-plan-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { Plus } from "@unkey/icons";
@@ -40,6 +41,7 @@ export default function ProjectPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody className="flex-1">
+        <NoComputePlanBanner />
         <AppsList />
       </PageBody>
     </PageContainer>

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
               : null;
           if (
             redirectUrlComplete &&
-            redirectUrlComplete !== "/apis" &&
+            redirectUrlComplete !== "/" &&
             isSafeRedirectPath(redirectUrlComplete)
           ) {
             url.searchParams.set("redirect", redirectUrlComplete);

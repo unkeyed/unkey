@@ -40,5 +40,5 @@ export default async function Page() {
     });
   }
 
-  return redirect("/apis?new=true");
+  return redirect("/?new=true");
 }
