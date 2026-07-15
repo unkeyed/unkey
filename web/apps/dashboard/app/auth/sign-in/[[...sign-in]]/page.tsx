@@ -1,6 +1,5 @@
 "use client";
 
-import { FadeIn } from "@/components/landing/fade-in";
 import { getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
@@ -58,6 +57,7 @@ function SignInContent() {
   const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   // Persist the redirect URL to sessionStorage so it survives the full auth
   // flow (OAuth redirects, org selection) even in browsers like Safari that
@@ -172,7 +172,7 @@ function SignInContent() {
     return (
       <Empty>
         <Loading type="spinner" className="text-gray-6" />
-        <p className="text-sm text-white/60 mt-4">
+        <p className="text-sm text-gray-11 mt-4">
           {invitationToken ? "Signing you in..." : "Loading..."}
         </p>
       </Empty>
@@ -189,7 +189,7 @@ function SignInContent() {
           <div className="flex items-center justify-between w-full gap-2">
             <p className="text-xs">Account not found, did you mean to sign up?</p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}` as Route}>
-              <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
+              <div className="border text-center text-xs border-transparent hover:border-warning-8 text-warning-11 duration-200 p-1 rounded-lg">
                 <ArrowRight iconSize="md-regular" />
               </div>
             </Link>
@@ -199,53 +199,46 @@ function SignInContent() {
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {challengeParam === "mfa" ? (
-        <FadeIn>
-          <MfaChallenge />
-        </FadeIn>
+        <MfaChallenge />
       ) : challengeParam === "mfa-enroll" ? (
-        <FadeIn>
-          <MfaEnroll />
-        </FadeIn>
+        <MfaEnroll />
       ) : challengeParam === "radar-email" ? (
-        <FadeIn>
-          <RadarEmailChallenge />
-        </FadeIn>
+        <RadarEmailChallenge />
       ) : challengeParam === "radar-sms" ? (
-        <FadeIn>
-          <RadarSmsChallenge />
-        </FadeIn>
+        <RadarSmsChallenge />
       ) : isVerifying ? (
-        <FadeIn>
-          <EmailCode invitationToken={invitationToken || undefined} />
-        </FadeIn>
+        <EmailCode invitationToken={invitationToken || undefined} />
       ) : verifyParam === "email" ? (
-        <FadeIn>
-          <EmailVerify />
-        </FadeIn>
+        <EmailVerify />
       ) : (
-        <>
-          <div className="flex flex-col">
-            <h1 className="text-4xl text-white">Sign In</h1>
-            <p className="mt-4 text-sm text-md text-white/50">
-              New to Unkey?{" "}
-              <Link href={"/auth/sign-up" as Route} className="ml-2 text-white hover:underline">
-                Create new account
-              </Link>
-            </p>
-          </div>
-          <div className="grid w-full gap-6">
-            <OAuthSignIn />
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/20" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-black text-white/40">or continue using email</span>
-              </div>
+        <div className="flex flex-col gap-8">
+          <h1 className="text-3xl font-semibold tracking-tight text-center text-gray-12">
+            Log in to Unkey
+          </h1>
+          {showEmail ? (
+            <div className="flex flex-col gap-4">
+              <EmailSignIn />
+              <button
+                type="button"
+                onClick={() => setShowEmail(false)}
+                className="text-sm text-center cursor-pointer text-gray-11 transition-colors hover:text-gray-12"
+              >
+                &larr; Other options
+              </button>
             </div>
-            <EmailSignIn />
-          </div>
-        </>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <OAuthSignIn />
+              <button
+                type="button"
+                onClick={() => setShowEmail(true)}
+                className="text-sm text-center cursor-pointer text-info-11 transition-colors hover:text-info-10"
+              >
+                Continue with Email &rarr;
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

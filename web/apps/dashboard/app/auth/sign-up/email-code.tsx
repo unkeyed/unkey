@@ -89,19 +89,19 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   };
 
   return (
-    <div className="flex flex-col max-w-sm mx-auto text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-white to-white/30">
+    <div className="flex flex-col w-full text-left">
+      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-gray-12 to-gray-12/40">
         Security code sent!
       </h1>
-      <p className="mt-4 text-sm text-white/40">
+      <p className="mt-4 text-sm text-gray-11">
         To continue, please enter the 6 digit verification code sent to the provided email.
       </p>
 
       {/* Only show resend option after countdown reaches zero */}
       {timeLeft === 0 && (
-        <p className="mt-2 text-sm text-white/40">
+        <p className="mt-2 text-sm text-gray-11">
           Didn't receive the code?{" "}
-          <button type="button" className="text-white" onClick={resendCode}>
+          <button type="button" className="text-gray-12" onClick={resendCode}>
             Resend
           </button>
         </p>
@@ -142,7 +142,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 
         <button
           type="submit"
-          className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="flex items-center cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 justify-center h-10 gap-2 px-4 mt-8 text-sm font-semibold rounded-lg border duration-200 text-gray-1 bg-gray-12 border-gray-12 hover:bg-gray-12/90"
           disabled={isLoading || otp.length !== 6}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -156,11 +156,11 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
 const Slot: React.FC<SlotProps> = (props) => (
   <div
     className={cn(
-      "relative w-10 h-12 text-[2rem] border border-white/20 rounded-lg text-white font-light text-base",
+      "relative w-10 h-12 text-[2rem] border rounded-lg font-light text-base border-gray-6 text-gray-12",
       "flex items-center justify-center",
       "transition-all duration-300",
-      "group-hover:border-white/50 group-focus-within:border-white/50",
-      "outline-solid outline-0 outline-white",
+      "group-hover:border-gray-8 group-focus-within:border-gray-8",
+      "outline-solid outline-0 outline-gray-12",
       { "outline-1": props.isActive },
     )}
   >

@@ -22,7 +22,7 @@ export function CodeInput({
     <OTPInput
       data-1p-ignore
       autoFocus={autoFocus}
-      className="[&_input]:text-white!"
+      className="[&_input]:text-gray-12!"
       value={value}
       onChange={onChange}
       onComplete={onComplete}
@@ -43,11 +43,11 @@ export function CodeInput({
 const Slot: React.FC<SlotProps> = (props) => (
   <div
     className={cn(
-      "relative w-10 h-12 text-[2rem] border border-white/20 rounded-lg text-white font-light text-base",
+      "relative w-10 h-12 text-[2rem] border rounded-lg font-light text-base border-gray-6 text-gray-12",
       "flex items-center justify-center",
       "transition-all duration-300",
-      "group-hover:border-white/50 group-focus-within:border-white/50",
-      "outline-solid outline-0 outline-white",
+      "group-hover:border-gray-8 group-focus-within:border-gray-8",
+      "outline-solid outline-0 outline-gray-12",
       { "outline-1": props.isActive },
     )}
   >
