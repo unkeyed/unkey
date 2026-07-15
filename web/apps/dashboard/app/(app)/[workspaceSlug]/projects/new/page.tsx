@@ -72,7 +72,7 @@ export default function NewProjectPage() {
       // creation were gated. Keep the submit button loading until the project
       // page has rendered.
       startNavigation(() => {
-        router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+        router.push(routes.projects.overview({ workspaceSlug: workspace.slug, projectId }));
       });
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
