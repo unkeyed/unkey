@@ -242,6 +242,14 @@ const (
 	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:frontline:platform:deployment_selection_failed"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
 	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:frontline:capacity:no_running_instances"
+	// DeploymentOffline represents a 503 error - the deployment was stopped or the
+	// project was cancelled, so it is intentionally offline. Distinct from the
+	// transient NoRunningInstances seen mid-deploy or mid-scale.
+	UnkeyFrontlineErrorsRoutingDeploymentOffline URN = "err:frontline:capacity:deployment_offline"
+	// SpendLimitReached represents a 402 error - the workspace reached its Compute
+	// spend limit and its deployments were paused. Resumes when the budget is
+	// raised or removed, so it is a billing gate rather than an outage.
+	UnkeyFrontlineErrorsRoutingSpendLimitReached URN = "err:frontline:capacity:spend_limit_reached"
 
 	// Internal
 
