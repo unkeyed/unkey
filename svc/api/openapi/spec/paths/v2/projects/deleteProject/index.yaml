@@ -17,7 +17,7 @@ post:
   operationId: projects.deleteProject
   x-speakeasy-name-override: deleteProject
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

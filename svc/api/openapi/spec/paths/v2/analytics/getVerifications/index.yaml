@@ -2,7 +2,7 @@ post:
   tags:
     - analytics
   security:
-    - rootKey: []
+    - bearer: []
   x-speakeasy-name-override: getVerifications
   operationId: analytics.getVerifications
   summary: Query key verification data

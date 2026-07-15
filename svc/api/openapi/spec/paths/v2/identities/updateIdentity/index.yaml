@@ -13,7 +13,7 @@ post:
   operationId: identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

@@ -20,9 +20,6 @@ post:
     Invalidates the key cache for immediate effect, and makes role assignments available for verification within 30 seconds across all regions.
   operationId: keys.addRoles
   x-speakeasy-name-override: addRoles
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     required: true
     content:

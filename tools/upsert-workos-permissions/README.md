@@ -17,7 +17,7 @@ you can review it manually.
 Preview the permissions without calling WorkOS:
 
 ```bash
-mise exec -- go run ./tools/upsert-workos-permissions -- -dry-run
+mise exec -- go run ./tools/upsert-workos-permissions -dry-run
 ```
 
 Sync permissions into WorkOS:
@@ -30,7 +30,7 @@ WORKOS_API_KEY=sk_... \
 You can also pass the key as a flag:
 
 ```bash
-mise exec -- go run ./tools/upsert-workos-permissions -- \
+mise exec -- go run ./tools/upsert-workos-permissions \
   -api-key sk_...
 ```
 

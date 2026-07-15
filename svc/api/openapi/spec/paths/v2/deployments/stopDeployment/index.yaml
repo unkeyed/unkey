@@ -22,7 +22,7 @@ post:
   operationId: deployments.stopDeployment
   x-speakeasy-name-override: stopDeployment
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

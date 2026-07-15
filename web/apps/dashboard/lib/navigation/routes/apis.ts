@@ -25,6 +25,10 @@ export const apiRoutes = {
     return buildRoute("/[workspaceSlug]/apis/[apiId]", apiParams(scope));
   },
 
+  portal(scope: ApiScope): Route {
+    return buildRoute("/[workspaceSlug]/apis/[apiId]/portal", apiParams(scope));
+  },
+
   settings(scope: ApiScope): Route {
     return buildRoute("/[workspaceSlug]/apis/[apiId]/settings", apiParams(scope));
   },

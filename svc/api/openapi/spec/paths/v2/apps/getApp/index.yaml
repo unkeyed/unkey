@@ -15,7 +15,7 @@ post:
   operationId: apps.getApp
   x-speakeasy-name-override: getApp
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
