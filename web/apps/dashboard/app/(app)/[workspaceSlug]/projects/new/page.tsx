@@ -129,9 +129,6 @@ export default function NewProjectPage() {
             >
               Create Project
             </Button>
-            <div className="text-gray-9 text-xs text-center">
-              You'll be redirected to your new project after creation
-            </div>
           </div>
         </Card>
       </form>
