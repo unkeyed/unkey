@@ -1,9 +1,21 @@
-// Package cron wires hydra.v1.CronService to per-task handlers in subpackages.
+// Package cron implements the unified Restate CronService.
 //
-// Each RunX delegates. New task: handler subpackage, field on Service, wire in New.
+// All scheduled background tasks are handlers on a single
+// hydra.v1.CronService virtual object. Each task lives in its own
+// subpackage (auditlogexport, keyrefill, quotacheck, ...) that defines
+// its own state keys, constants, and helpers. The Service struct in
+// this file is a thin shim that holds one Handler instance per task
+// and delegates each proto-generated RunX method to the corresponding
+// Handler's Handle method.
+//
+// Adding a new cron task is "make a subpackage with a Handle(ctx, req)
+// method, add a field on Service, wire it in New, add a one-line
+// delegating method" — the namespace stays clean as the set grows.
 package cron
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -26,23 +38,36 @@ import (
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
 
-// Service implements hydrav1.CronServiceServer.
+// Service implements [hydrav1.CronServiceServer]. It holds one Handler
+// instance per task; each RunX method is a thin delegate to the
+// corresponding Handler's Handle method.
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup  *auditlogcleanup.Handler
-	auditLogExport   *auditlogexport.Handler
-	deployBilling    *deploybilling.Handler
-	idlePreview      *idlepreview.Handler
-	keyLastUsedSync  *keylastusedsync.Handler
-	keyRefill        *keyrefill.Handler
-	quotaCheck       *quotacheck.Handler
-	ratelimitCleanup *ratelimitcleanup.Handler
+	auditLogCleanup   *auditlogcleanup.Handler
+	auditLogExport    *auditlogexport.Handler
+	deployBilling     *deploybilling.Handler
+	deployBillingPush *deploybilling.PushHandler
+	idlePreview       *idlepreview.Handler
+	keyLastUsedSync   *keylastusedsync.Handler
+	keyRefill         *keyrefill.Handler
+	quotaCheck        *quotacheck.Handler
+	ratelimitCleanup  *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
 
-// Heartbeats per task. Use healthcheck.NewNoop() when monitoring is off.
+// DeployBillingPushServer returns the DeployBillingPushService implementation,
+// fanned out to by the deploy billing orchestrator. Bound as its own restate
+// service alongside the CronService.
+func (s *Service) DeployBillingPushServer() hydrav1.DeployBillingPushServiceServer {
+	return s.deployBillingPush
+}
+
+// Heartbeats groups the per-task healthcheck pingers. Every field must
+// be non-nil — use healthcheck.NewNoop() for tasks where monitoring is
+// not configured. This keeps each handler's heartbeat call unconditional
+// (no nil checks scattered through the codebase).
 type Heartbeats struct {
 	QuotaCheck         healthcheck.Heartbeat
 	KeyRefill          healthcheck.Heartbeat
@@ -53,34 +78,47 @@ type Heartbeats struct {
 	DeployBillingClose healthcheck.Heartbeat
 }
 
-// Config wires Service dependencies. Only SlackQuotaCheckWebhookURL is optional.
+// Config holds Service dependencies. All fields except
+// SlackQuotaCheckWebhookURL are required.
 type Config struct {
 	// DB is the primary application database. Must not be nil.
 	DB db.Database
-	// Clickhouse analytics DB. Use clickhouse.NewNoop() if unavailable.
+	// Clickhouse is the analytics database. Must not be nil — pass
+	// clickhouse.NewNoop() if unavailable.
 	Clickhouse clickhouse.ClickHouse
-	// Clock for cutoffs. Defaults to real time.
+	// Clock provides timestamps for cutoffs. Optional; defaults to a real clock.
 	Clock clock.Clock
 	// RatelimitDB wraps the ratelimit database. Must not be nil.
 	RatelimitDB *rldb.Database
 
-	// SlackQuotaCheckWebhookURL for quota alerts. Empty disables Slack.
+	// SlackQuotaCheckWebhookURL is the Slack webhook for quota-exceeded
+	// notifications. Empty disables Slack notifications.
 	SlackQuotaCheckWebhookURL string
 
-	// Deploy usage from ClickHouse (*clickhouse.Client). Nil disables push.
+	// BillingUsageReader reads month-to-date Deploy usage for the billing
+	// push. Pass the concrete *clickhouse.Client (the meter query is not on
+	// the ClickHouse interface). Nil disables the push.
 	BillingUsageReader deploybilling.UsageReader
-	// Empty disables Deploy push and close.
+	// StripeSecretKey authenticates the Deploy billing push to Stripe. Empty
+	// disables the push.
 	StripeSecretKey string
 
-	// Test override for meter sink. Default from StripeSecretKey, else noop.
+	// BillingPusher overrides the Deploy billing meter sink. Optional: when nil
+	// it is derived from StripeSecretKey (Stripe when set, no-op otherwise).
+	// Integration tests inject a fake to assert what would be pushed without a
+	// real Stripe call.
 	BillingPusher billingmeter.Pusher
-	// Test override for invoice closer. Default from StripeSecretKey, else noop.
+	// BillingCloser overrides the Deploy invoice closer used by the month-end
+	// close. Optional: when nil it is derived from StripeSecretKey. Integration
+	// tests inject a fake to record finalize calls.
 	BillingCloser invoicecloser.Closer
 
+	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
 
-// New builds Service from cfg.
+// New constructs a Service. Returns an error if any required field is
+// missing.
 func New(cfg Config) (*Service, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),
@@ -145,29 +183,42 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
-	// No Stripe key: noop pusher and closer, same cron schedule either way.
+	// The push is enabled only when ClickHouse (usage source) and Stripe
+	// (sink) are both configured; otherwise it runs as a no-op so the cron
+	// binding and schedule stay uniform across environments.
 	var billingPusher billingmeter.Pusher = billingmeter.NewNoop()
 	var billingCloser invoicecloser.Closer = invoicecloser.NewNoop()
 	if cfg.StripeSecretKey != "" {
 		billingPusher = billingmeter.NewStripe(cfg.StripeSecretKey)
 		billingCloser = invoicecloser.NewStripe(cfg.StripeSecretKey)
 	} else {
-		// Prod with no key bills nobody. Error so alerting catches it.
+		// Deliberately loud: in an environment that is supposed to bill, a
+		// missing Stripe key means usage is silently never pushed and
+		// invoices never close. Error level so it pages via log alerting
+		// instead of hiding in Info noise.
 		logger.Error("deploy billing pusher and invoice closer are DISABLED: no stripe secret key configured")
 	}
+	// Explicit overrides win over the Stripe-key derivation, so integration
+	// tests can drive the push and close against fakes.
 	if cfg.BillingPusher != nil {
 		billingPusher = cfg.BillingPusher
 	}
 	if cfg.BillingCloser != nil {
 		billingCloser = cfg.BillingCloser
 	}
+	// The aggregation wait only applies when the close talks to real Stripe;
+	// fake closers in tests and the noop have nothing to wait for.
+	var billingFinalizeDelay time.Duration
+	if cfg.StripeSecretKey != "" {
+		billingFinalizeDelay = deploybilling.DefaultFinalizeDelay
+	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
 		UsageReader:    cfg.BillingUsageReader,
-		Pusher:         billingPusher,
 		DB:             cfg.DB,
 		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
 		Closer:         billingCloser,
 		CloseHeartbeat: cfg.Heartbeats.DeployBillingClose,
+		FinalizeDelay:  billingFinalizeDelay,
 	})
 	if err != nil {
 		return nil, err
@@ -180,11 +231,17 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	deployBillingPushH, err := deploybilling.NewPushHandler(billingPusher)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
+		deployBillingPush:              deployBillingPushH,
 		idlePreview:                    idlePreviewH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,

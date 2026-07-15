@@ -14,7 +14,7 @@ post:
   operationId: permissions.createRole
   x-speakeasy-name-override: CreateRole
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

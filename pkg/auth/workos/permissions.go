@@ -46,6 +46,34 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "**", action: "*"},
 		},
 	},
+	"identities:create": {
+		name:        "Create identities",
+		description: "Allows creating identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.CreateIdentity{})},
+		},
+	},
+	"identities:read": {
+		name:        "Read identities",
+		description: "Allows reading identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.ReadIdentity{})},
+		},
+	},
+	"identities:update": {
+		name:        "Update identities",
+		description: "Allows updating identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.UpdateIdentity{})},
+		},
+	},
+	"identities:delete": {
+		name:        "Delete identities",
+		description: "Allows deleting identities.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/identities/*", action: action(rbacpermissions.DeleteIdentity{})},
+		},
+	},
 	"keys:create": {
 		name:        "Create keys",
 		description: "Allows creating keys.",
@@ -131,6 +159,7 @@ func sortedPermissionSlugs() []string {
 //	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
 //	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
 //	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
+//	identities:read    => unkey:v1:ws_1:projects/*/identities/*#read_identity
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {

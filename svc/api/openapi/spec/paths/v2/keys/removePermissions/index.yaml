@@ -20,9 +20,6 @@ post:
     Invalidates the key cache for immediate effect, and makes permission changes available for verification within 30 seconds across all regions.
   operationId: keys.removePermissions
   x-speakeasy-name-override: removePermissions
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     required: true
     content:

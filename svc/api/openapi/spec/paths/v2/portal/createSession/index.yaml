@@ -15,7 +15,7 @@ post:
   operationId: portal.createSession
   x-speakeasy-name-override: createSession
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

@@ -250,6 +250,22 @@ export const workspacePermissions = {
       description: "Read deployment details and status for any environment in this workspace",
       permission: "environment.*.read_deployment",
     },
+    stop_deployment: {
+      description: "Stop running preview deployments for any environment in this workspace",
+      permission: "environment.*.stop_deployment",
+    },
+    start_deployment: {
+      description: "Start stopped preview deployments for any environment in this workspace",
+      permission: "environment.*.start_deployment",
+    },
+    promote_deployment: {
+      description: "Promote deployments to live for any environment in this workspace",
+      permission: "environment.*.promote_deployment",
+    },
+    rollback_deployment: {
+      description: "Roll back to previous deployments for any environment in this workspace",
+      permission: "environment.*.rollback_deployment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -378,6 +394,22 @@ export function environmentPermissions(environmentId: string): {
       read_deployment: {
         description: "Read deployment details and status for this environment.",
         permission: `environment.${environmentId}.read_deployment`,
+      },
+      stop_deployment: {
+        description: "Stop running preview deployments for this environment.",
+        permission: `environment.${environmentId}.stop_deployment`,
+      },
+      start_deployment: {
+        description: "Start stopped preview deployments for this environment.",
+        permission: `environment.${environmentId}.start_deployment`,
+      },
+      promote_deployment: {
+        description: "Promote deployments to live for this environment.",
+        permission: `environment.${environmentId}.promote_deployment`,
+      },
+      rollback_deployment: {
+        description: "Roll back to previous deployments for this environment.",
+        permission: `environment.${environmentId}.rollback_deployment`,
       },
     },
   };
