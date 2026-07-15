@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -58,16 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The workspace owner controls whether a portal session may read analytics by
-	// including a read_analytics grant in the session permissions. Identity scoping
-	// already restricts *what* is returned to the session's own events; this gates
-	// whether analytics is exposed to this end user at all. The query spans all of
-	// the identity's keys across every API, so require the wildcard grant.
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Api,
-		ResourceID:   "*",
-		Action:       rbac.ReadAnalytics,
-	}))
+	// Capability and identity scope are separate: this gates the action while the
+	// ClickHouse query below fixes the visible data to the session external ID.
+	err = principal.Authorize(rbac.S(portalrbac.CapAnalyticsRead))
 	if err != nil {
 		return err
 	}

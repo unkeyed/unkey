@@ -7,12 +7,11 @@ import (
 	"sort"
 
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rbac/permissions"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/internal/portalscope"
@@ -73,23 +72,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 
-	// A session with no keyspaces (e.g. analytics only) can never see any keys.
-	if len(keyspaceIDs) == 0 {
-		return h.emptyResponse(s)
+	if err := principal.Authorize(rbac.S(portalrbac.CapKeysRead)); err != nil {
+		return err
 	}
 
-	// The session may only list keys in keyspaces it was granted keys:read on.
-	// These are the same keyspaces the grant scoped, so this passes iff the
-	// session carries keys:read and fails closed for an analytics-only session.
-	keyReadChecks := make([]rbac.PermissionQuery, 0, len(keyspaceIDs))
-	for _, ks := range keyspaceIDs {
-		keyReadChecks = append(keyReadChecks, rbac.And(
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(ks).Key("*"), permissions.ReadKey{}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(ks), permissions.ReadKeyspace{}),
-		))
-	}
-	if err := principal.Authorize(rbac.And(keyReadChecks...)); err != nil {
-		return err
+	// A session with no keyspaces can never see any keys.
+	if len(keyspaceIDs) == 0 {
+		return h.emptyResponse(s)
 	}
 
 	// Scope to the end user's own keys. If the identity does not exist yet, the
