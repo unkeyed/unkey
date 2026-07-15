@@ -1,4 +1,6 @@
 node_modules
 dist
 .astro
+.blume
+.blume-verify
 .DS_Store

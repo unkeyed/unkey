@@ -1,13 +1,9 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"],
+  "include": [".blume/.astro/types.d.ts", ".blume/src/env.d.ts", "**/*"],
+  "exclude": ["dist", ".blume-verify"],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "jsxImportSource": "react"
   }
 }

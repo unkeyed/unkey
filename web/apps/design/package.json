@@ -4,25 +4,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview",
+    "check": "blume check"
   },
   "dependencies": {
-    "@astrojs/mdx": "5.0.3",
-    "@astrojs/react": "5.0.3",
-    "@fontsource-variable/geist": "5.2.9",
-    "@fontsource-variable/geist-mono": "5.2.8",
+    "@astrojs/mdx": "7.0.2",
+    "@astrojs/react": "6.0.1",
+    "@shikijs/twoslash": "4.3.1",
+    "@tailwindcss/typography": "0.5.20",
     "@tailwindcss/vite": "4.2.1",
     "@types/react": "19.2.4",
     "@types/react-dom": "19.2.3",
-    "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
-    "astro": "6.1.7",
+    "astro": "7.0.6",
+    "blume": "0.6.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "shiki": "4.1.0",
-    "tailwindcss": "4.2.1"
+    "tailwindcss": "catalog:"
   }
 }

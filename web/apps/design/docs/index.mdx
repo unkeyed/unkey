@@ -1,0 +1,41 @@
+---
+title: Unkey Design
+description: Design system guidance for building consistent Unkey interfaces.
+sidebar:
+  label: Home
+  order: 0
+---
+
+Use this site as the working reference for Unkey UI primitives, page patterns, and examples. Pages lean on Blume's docs components so the rendered example and highlighted source stay connected to the same file.
+
+<CardGroup cols={2}>
+  <Card title="Skeleton" href="/primitives/skeleton" icon="loader">
+    Use skeletons for known layouts while async data loads.
+  </Card>
+  <Card title="Layout" href="/patterns/layout" icon="panel-top">
+    Compose dashboard pages with shared page primitives.
+  </Card>
+</CardGroup>
+
+## How examples work
+
+Interactive examples live in `examples/` and render with Blume's `<Component />` component. The preview and code tab come from the same source file, which keeps examples harder to drift.
+
+<FileTree>
+
+- docs/
+  - primitives/
+    - skeleton.mdx
+  - patterns/
+    - layout.mdx
+- examples/
+  - skeleton/
+    - Basic.tsx
+    - Card.tsx
+    - List.tsx
+  - layout/
+    - Basic.tsx
+    - SecondaryNav.tsx
+    - FullWidth.tsx
+
+</FileTree>

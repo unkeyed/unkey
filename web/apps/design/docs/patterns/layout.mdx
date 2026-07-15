@@ -1,0 +1,26 @@
+---
+title: Layout
+description: Build effective dashboard pages with Unkey page primitives.
+sidebar:
+  order: 1
+---
+
+Dashboard pages should use the shared page primitives from `@unkey/ui` so headers, gutters, actions, and full-width surfaces behave consistently across the app.
+
+## Basic page
+
+A standard page has one `PageContainer`, one `PageHeader`, optional header actions, and one `PageBody`.
+
+<Component path="layout/Basic" />
+
+## Secondary navigation
+
+Use a secondary navigation when pages have sections nested one level deep within them. Add the rail in the section layout, then let each page render its own `PageBody`.
+
+<Component path="layout/SecondaryNav" />
+
+## Full-width pages
+
+For logs, requests, and other dense data views, set `width="full"` on `PageContainer` so the body can span the viewport while the header keeps its normal structure.
+
+<Component path="layout/FullWidth" />

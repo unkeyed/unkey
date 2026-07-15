@@ -10,7 +10,8 @@ import {
   SecondaryNavTitle,
 } from "@unkey/ui";
 
-export function SecondaryNavExample() {
+// biome-ignore lint/style/noDefaultExport: Blume's Component renderer imports examples by default export.
+export default function SecondaryNavLayoutExample() {
   return (
     <div className="flex w-full flex-1 flex-col md:flex-row">
       <SecondaryNav aria-label="Settings" className="md:w-56">

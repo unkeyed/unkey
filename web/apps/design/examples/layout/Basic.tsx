@@ -9,7 +9,8 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 
-export function BasicExample() {
+// biome-ignore lint/style/noDefaultExport: Blume's Component renderer imports examples by default export.
+export default function BasicLayoutExample() {
   return (
     <PageContainer>
       <PageHeader>

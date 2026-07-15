@@ -1,0 +1,44 @@
+---
+title: Skeleton
+description: Show a placeholder while known content is loading.
+sidebar:
+  order: 1
+---
+
+Use `Skeleton` when async data will fill a known layout, such as a table, form, or card grid. It reserves space for the final content so the page doesn't jump when data arrives.
+
+<Component path="skeleton/Basic" />
+
+## Usage
+
+```tsx
+import { Skeleton } from "@unkey/ui";
+
+<Skeleton className="h-4 w-32" />;
+```
+
+## Examples
+
+Use complete examples for common loading states. Blume renders each file as both the live preview and the source tab.
+
+<Component path="skeleton/Card" />
+
+<Component path="skeleton/List" />
+
+## Best practices
+
+Skeleton is one of three loading primitives in `@unkey/ui`. Use it when async data will fill a known layout. Don't use skeletons on permanent UI or empty states, because that suggests content is still coming.
+
+For a single action, use `<Loading type="spinner" />`. For an indeterminate wait, use `<Loading type="dots" />`.
+
+### Sizing
+
+Size the skeleton to match the content it replaces. `className="h-4 w-32"` creates a 128px text bar and prevents layout shift when the real text loads.
+
+Use `rounded-full` for circular avatars. The default `rounded-sm` already matches text bars, buttons, and badges in the dashboard.
+
+### Accessibility
+
+Set `aria-busy="true"` on loading regions, not skeletons. Announce completion with `aria-live="polite"` on the destination container. Don't put focusable controls inside a skeleton.
+
+Skeletons respect `prefers-reduced-motion` through `motion-reduce:animate-none`.

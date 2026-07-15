@@ -1,0 +1,140 @@
+@source "../../internal/ui/src/**/*.tsx";
+/* Blume copies this stylesheet into .blume/src/generated, so Tailwind also needs
+   the generated-app relative path to discover @unkey/ui classes for previews. */
+@source "../../../../../internal/ui/src/**/*.tsx";
+
+@theme inline {
+  --color-content: hsl(var(--gray-12));
+  --color-content-subtle: hsl(var(--gray-11));
+  --color-ring: hsl(var(--gray-5));
+
+  --color-gray-1: hsl(var(--gray-1));
+  --color-gray-2: hsl(var(--gray-2));
+  --color-gray-3: hsl(var(--gray-3));
+  --color-gray-4: hsl(var(--gray-4));
+  --color-gray-5: hsl(var(--gray-5));
+  --color-gray-6: hsl(var(--gray-6));
+  --color-gray-7: hsl(var(--gray-7));
+  --color-gray-8: hsl(var(--gray-8));
+  --color-gray-9: hsl(var(--gray-9));
+  --color-gray-10: hsl(var(--gray-10));
+  --color-gray-11: hsl(var(--gray-11));
+  --color-gray-12: hsl(var(--gray-12));
+
+  --color-grayA-1: hsla(var(--grayA-1));
+  --color-grayA-2: hsla(var(--grayA-2));
+  --color-grayA-3: hsla(var(--grayA-3));
+  --color-grayA-4: hsla(var(--grayA-4));
+  --color-grayA-5: hsla(var(--grayA-5));
+  --color-grayA-6: hsla(var(--grayA-6));
+  --color-grayA-7: hsla(var(--grayA-7));
+  --color-grayA-8: hsla(var(--grayA-8));
+  --color-grayA-9: hsla(var(--grayA-9));
+  --color-grayA-10: hsla(var(--grayA-10));
+  --color-grayA-11: hsla(var(--grayA-11));
+  --color-grayA-12: hsla(var(--grayA-12));
+
+  --color-accent-1: hsl(var(--accent-1));
+  --color-accent-2: hsl(var(--accent-2));
+  --color-accent-3: hsl(var(--accent-3));
+  --color-accent-4: hsl(var(--accent-4));
+  --color-accent-5: hsl(var(--accent-5));
+  --color-accent-6: hsl(var(--accent-6));
+  --color-accent-7: hsl(var(--accent-7));
+  --color-accent-8: hsl(var(--accent-8));
+  --color-accent-9: hsl(var(--accent-9));
+  --color-accent-10: hsl(var(--accent-10));
+  --color-accent-11: hsl(var(--accent-11));
+  --color-accent-12: hsl(var(--accent-12));
+
+  --drop-shadow-button: 0px 0px 0px 3px hsl(var(--grayA-6));
+}
+
+:root {
+  --blume-font-body:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --blume-font-display:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --blume-font-mono:
+    "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --gray-1: 0, 0%, 99%;
+  --gray-2: 0, 0%, 98%;
+  --gray-3: 0, 0%, 94%;
+  --gray-4: 0, 0%, 91%;
+  --gray-5: 0, 0%, 88%;
+  --gray-6: 0, 0%, 85%;
+  --gray-7: 0, 0%, 81%;
+  --gray-8: 0, 0%, 73%;
+  --gray-9: 0, 0%, 55%;
+  --gray-10: 0, 0%, 51%;
+  --gray-11: 0, 0%, 39%;
+  --gray-12: 0, 0%, 13%;
+
+  --grayA-1: 240, 100%, 17%, 0.01;
+  --grayA-2: 240, 100%, 17%, 0.02;
+  --grayA-3: 240, 100%, 10%, 0.06;
+  --grayA-4: 240, 100%, 9%, 0.09;
+  --grayA-5: 229, 100%, 10%, 0.12;
+  --grayA-6: 240, 100%, 9%, 0.15;
+  --grayA-7: 232, 100%, 9%, 0.2;
+  --grayA-8: 230, 100%, 9%, 0.27;
+  --grayA-9: 230, 100%, 6%, 0.45;
+  --grayA-10: 224, 100%, 5%, 0.5;
+  --grayA-11: 219, 100%, 4%, 0.62;
+  --grayA-12: 207, 100%, 2%, 0.89;
+
+  --accent-1: 240, 20%, 99%;
+  --accent-2: 240, 20%, 98%;
+  --accent-3: 240, 11%, 95%;
+  --accent-4: 240, 10%, 92%;
+  --accent-5: 230, 11%, 89%;
+  --accent-6: 240, 10%, 86%;
+  --accent-7: 233, 10%, 82%;
+  --accent-8: 231, 10%, 75%;
+  --accent-9: 231, 6%, 57%;
+  --accent-10: 226, 5%, 53%;
+  --accent-11: 220, 6%, 40%;
+  --accent-12: 210, 13%, 13%;
+}
+
+:root[data-theme="dark"] {
+  --gray-1: 0, 0%, 7%;
+  --gray-2: 0, 0%, 10%;
+  --gray-3: 0, 0%, 13%;
+  --gray-4: 0, 0%, 16%;
+  --gray-5: 0, 0%, 19%;
+  --gray-6: 0, 0%, 23%;
+  --gray-7: 0, 0%, 28%;
+  --gray-8: 0, 0%, 38%;
+  --gray-9: 0, 0%, 43%;
+  --gray-10: 0, 0%, 48%;
+  --gray-11: 0, 0%, 71%;
+  --gray-12: 0, 0%, 93%;
+
+  --grayA-1: 0, 0%, 0%, 1;
+  --grayA-2: 184, 62%, 91%, 0.04;
+  --grayA-3: 211, 66%, 92%, 0.08;
+  --grayA-4: 198, 73%, 90%, 0.11;
+  --grayA-5: 208, 95%, 92%, 0.15;
+  --grayA-6: 208, 91%, 92%, 0.19;
+  --grayA-7: 208, 100%, 93%, 0.27;
+  --grayA-8: 208, 100%, 93%, 0.36;
+  --grayA-9: 216, 88%, 93%, 0.43;
+  --grayA-10: 220, 86%, 95%, 0.48;
+  --grayA-11: 212, 87%, 97%, 0.71;
+  --grayA-12: 220, 100%, 99%, 0.95;
+
+  --accent-1: 240, 6%, 7%;
+  --accent-2: 220, 6%, 10%;
+  --accent-3: 225, 6%, 14%;
+  --accent-4: 210, 7%, 16%;
+  --accent-5: 214, 7%, 19%;
+  --accent-6: 213, 8%, 23%;
+  --accent-7: 213, 8%, 28%;
+  --accent-8: 212, 8%, 38%;
+  --accent-9: 219, 6%, 44%;
+  --accent-10: 222, 5%, 49%;
+  --accent-11: 216, 7%, 71%;
+  --accent-12: 220, 9%, 94%;
+}
