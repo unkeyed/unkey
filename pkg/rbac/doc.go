@@ -37,7 +37,7 @@
 //
 //	// Create a permission query using helper functions
 //	query := rbac.And(
-//	    rbac.U(urn.New().Workspace("ws_123").RatelimitNamespace("ns_123").Override("ov_123"), permissions.ReadOverride{}),
+//	    rbac.U(urn.New().Workspace("ws_123").Project("proj_123").RatelimitNamespace("ns_123").Override("ov_123"), permissions.ReadOverride{}),
 //	    rbac.T(rbac.Tuple{
 //	        ResourceType: rbac.Api,
 //	        ResourceID:   "api1",

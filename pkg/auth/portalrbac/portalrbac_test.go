@@ -21,13 +21,20 @@ const (
 // passing rbac.Check proves Expand's output actually satisfies them.
 func listKeysQuery(ks string) rbac.PermissionQuery {
 	return rbac.And(
-		rbac.U(urn.New().Workspace(ws).Keyspace(ks).Key("*"), permissions.ReadKey{}),
-		rbac.U(urn.New().Workspace(ws).Keyspace(ks), permissions.ReadKeyspace{}),
+		rbac.U(urn.New().Workspace(ws).Project("*").Keyspace(ks).Key("*"), permissions.ReadKey{}),
+		rbac.U(urn.New().Workspace(ws).Project("*").Keyspace(ks), permissions.ReadKeyspace{}),
 	)
 }
 
 func rerollQuery(ks string) rbac.PermissionQuery {
-	return rbac.U(urn.New().Workspace(ws).Keyspace(ks), permissions.CreateKey{})
+	return rbac.U(urn.New().Workspace(ws).Project("*").Keyspace(ks), permissions.CreateKey{})
+}
+
+func recoverableRerollQuery(ks string) rbac.PermissionQuery {
+	return rbac.And(
+		rerollQuery(ks),
+		rbac.U(urn.New().Workspace(ws).Project("*").Keyspace(ks).Key("*"), permissions.EncryptKey{}),
+	)
 }
 
 func analyticsQuery() rbac.PermissionQuery {
@@ -52,6 +59,7 @@ func TestExpandSatisfiesHandlerQueries(t *testing.T) {
 
 	require.NoError(t, rbac.Check(listKeysQuery(ks1), granted), "keys:read should satisfy listKeys")
 	require.NoError(t, rbac.Check(rerollQuery(ks1), granted), "keys:reroll should satisfy reroll")
+	require.NoError(t, rbac.Check(recoverableRerollQuery(ks1), granted), "keys:reroll should satisfy recoverable reroll")
 	require.NoError(t, rbac.Check(analyticsQuery(), granted), "analytics:read should satisfy getVerifications")
 }
 

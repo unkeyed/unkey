@@ -57,7 +57,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		fmt.Sprintf("unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
 	)
 
 	headers := http.Header{

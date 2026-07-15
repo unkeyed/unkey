@@ -240,7 +240,7 @@ func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
 		Remaining:   ptr.P(int64(5)),
 	})
 
-	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -28,7 +28,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "exact override permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/%s#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 				setup.overrideID,
@@ -37,7 +37,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "namespace override wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/*#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 			),
@@ -45,7 +45,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "namespace descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/**#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/%s/**#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 			),
@@ -53,14 +53,14 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "ratelimits descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/**#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/**#read_override",
 				setup.workspaceID,
 			),
 		},
 		{
 			name: "workos wildcard namespace permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/*/overrides/*#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/*/overrides/*#read_override",
 				setup.workspaceID,
 			),
 		},
@@ -104,14 +104,14 @@ func TestGetOverride_RejectsNonCoveringURNPermissions(t *testing.T) {
 		{
 			name: "sibling namespace wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/ns_other/overrides/*#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/ns_other/overrides/*#read_override",
 				setup.workspaceID,
 			),
 		},
 		{
 			name: "wrong action permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#delete_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/%s/overrides/%s#delete_override",
 				setup.workspaceID,
 				setup.namespaceID,
 				setup.overrideID,
@@ -120,7 +120,7 @@ func TestGetOverride_RejectsNonCoveringURNPermissions(t *testing.T) {
 		{
 			name: "wrong workspace permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:ws_other:ratelimits/namespaces/%s/overrides/%s#read_override",
+				"unkey:v1:ws_other:projects/*/ratelimits/namespaces/%s/overrides/%s#read_override",
 				setup.namespaceID,
 				setup.overrideID,
 			),

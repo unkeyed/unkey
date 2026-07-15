@@ -104,7 +104,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(req.KeyId),
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(key.KeyAuthID).Key(req.KeyId),
 			permissions.UpdateKey{},
 		),
 	))

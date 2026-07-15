@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateIdentity,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+			urn.New().Workspace(principal.WorkspaceID).Project("*"),
 			permissions.CreateIdentity{},
 		),
 	))

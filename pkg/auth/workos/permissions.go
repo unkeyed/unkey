@@ -50,7 +50,7 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Create identities",
 		description: "Allows creating identities.",
 		permissions: []permissionGrant{
-			{resource: "projects/*/identities/*", action: action(rbacpermissions.CreateIdentity{})},
+			{resource: "projects/*", action: action(rbacpermissions.CreateIdentity{})},
 		},
 	},
 	"identities:read": {
@@ -78,50 +78,50 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Create keys",
 		description: "Allows creating keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
+			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.CreateKey{})},
 		},
 	},
 	"keys:read": {
 		name:        "Read keys",
 		description: "Allows reading keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
-			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
+			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
 		},
 	},
 	"keys:update": {
 		name:        "Update keys",
 		description: "Allows updating keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
 		},
 	},
 	"keys:verify": {
 		name:        "Verify keys",
 		description: "Allows verifying keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
 		},
 	},
 	"keys:encrypt": {
 		name:        "Encrypt keys",
 		description: "Allows creating recoverable keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.EncryptKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.EncryptKey{})},
 		},
 	},
 	"keys:decrypt": {
 		name:        "Decrypt keys",
 		description: "Allows reading recoverable key material.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
 		},
 	},
 	"keys:delete": {
 		name:        "Delete keys",
 		description: "Allows deleting keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
+			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
 		},
 	},
 }
@@ -156,9 +156,9 @@ func sortedPermissionSlugs() []string {
 //
 // For workspaceID "ws_1":
 //
-//	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
-//	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
-//	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
+//	keys:create        => unkey:v1:ws_1:projects/*/keyspaces/*#create_key
+//	keys:read          => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key
+//	keys:update        => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#update_key
 //	identities:read    => unkey:v1:ws_1:projects/*/identities/*#read_identity
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
