@@ -24,10 +24,10 @@ the operation runs. For example, `create_key` applies to the keyspace, while
 key-resource patterns. This avoids inventing collection URNs only for create
 operations.
 
-Top-level resources are the exception. Their parent is the workspace itself,
-which isn't an expressible resource path in `v1`. For those actions, use the
-top-level collection wildcard as the closest expressible scope. For example,
-`create_keyspace` uses `keyspaces/*`, and `create_role` uses `rbac/roles/*`.
+Project-owned resources have an expressible project parent. Creating project
+children, including keyspaces, identities, roles, and permissions, authorizes
+the project that receives them. Creating a project is the exception because its
+workspace parent isn't an expressible resource path in `v1`.
 
 ## Format
 
@@ -40,9 +40,9 @@ unkey:v1:{workspace_id}:{resource_path}#{action}
 For example:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/ks_123#read_keyspace
-unkey:v1:ws_123:keyspaces/ks_123#create_key
-unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#delete_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#read_keyspace
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#create_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#delete_key
 unkey:v1:ws_123:projects/proj_123/apps/app_456#update_app
 ```
 
@@ -83,7 +83,7 @@ after the operation succeeds.
 For example, creating a key in a keyspace uses the keyspace resource:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/ks_123#create_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#create_key
 ```
 
 Creating nested deploy resources follows the same parent-resource rule:
@@ -97,15 +97,17 @@ unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789#create_varia
 ```
 
 The same parent can still hold non-create actions that target the parent itself,
-such as `read_keyspace` on `keyspaces/ks_123`. The action name determines which
-operation is authorized.
+such as `read_keyspace` on `projects/proj_123/keyspaces/ks_123`. The action name
+determines which operation is authorized.
 
-Top-level create actions target the collection wildcard because there is no
-workspace resource path to attach the action to:
+Creating project children authorizes the project. Creating a project targets
+the project collection wildcard because there is no workspace resource path:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/*#create_keyspace
-unkey:v1:ws_123:rbac/roles/*#create_role
+unkey:v1:ws_123:projects/proj_123#create_keyspace
+unkey:v1:ws_123:projects/proj_123#create_identity
+unkey:v1:ws_123:projects/proj_123#create_role
+unkey:v1:ws_123:projects/*#create_project
 ```
 
 Go handlers can pass typed URN builders directly to `rbac.U` when the builder
@@ -116,7 +118,7 @@ where action structs are split by resource type:
 import "github.com/unkeyed/unkey/pkg/rbac/permissions"
 
 rbac.U(
-	urn.New().Workspace(workspaceID).Keyspace(keyspaceID),
+	urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID),
 	permissions.CreateKey{},
 )
 
@@ -133,8 +135,12 @@ rbac.U(
 
 ## Patterns
 
-Stored permissions can contain resource patterns. Requested resources in audit
-logs and authorization checks must always use concrete URNs.
+Stored permissions can contain resource patterns. Audit logs must use concrete
+URNs. Authorization checks use concrete URNs when ownership is available.
+
+Handlers for records without stored project ownership use `projects/*` as an
+unknown-project placeholder. These requirements can only be satisfied by
+all-project or workspace-global grants.
 
 `v1` supports two resource-pattern operators.
 
@@ -183,21 +189,21 @@ implemented by `pkg/urn`; `pkg/rbac` parses the action suffix and adds rule 4.
 For example, this permission:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/*/keys/*#read_key
+unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read_key
 ```
 
 matches this request:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#read_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#read_key
 ```
 
 It does not match these requests:
 
 ```plaintext
-unkey:v1:ws_123:keyspaces/ks_123#read_key
-unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#delete_key
-unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#update_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#read_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#delete_key
+unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456#update_key
 ```
 
 ## Descendant grants
@@ -260,14 +266,14 @@ These examples show how broad and narrow permissions use the same grammar.
   <Accordion title="Read all keys in one keyspace">
 
     ```plaintext
-    unkey:v1:ws_123:keyspaces/ks_123/keys/*#read_key
+    unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/*#read_key
     ```
 
   </Accordion>
   <Accordion title="Manage one role">
 
     ```plaintext
-    unkey:v1:ws_123:rbac/roles/role_123#update_role
+    unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123#update_role
     ```
 
   </Accordion>
@@ -283,7 +289,7 @@ permission that authorized the action when authorization was evaluated.
   "actor": {
     "type": "key",
     "id": "key_root_123",
-    "urn": "unkey:v1:ws_123:keyspaces/ks_123/keys/key_root_123"
+    "urn": "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_root_123"
   },
   "resource": {
     "urn": "unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc",
@@ -304,12 +310,12 @@ target resource.
 ```json
 {
   "resource": {
-    "urn": "unkey:v1:ws_123:keyspaces/ks_123/keys/key_456",
+    "urn": "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_456",
     "type": "key"
   },
   "targets": [
     {
-      "urn": "unkey:v1:ws_123:rbac/roles/role_123",
+      "urn": "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123",
       "type": "role"
     }
   ],
@@ -323,16 +329,19 @@ Existing tuple permissions map to resource permissions by expanding the old
 resource type, resource ID, and action into a URN path. Legacy API permissions
 map through the keyspace that replaces the API.
 
+The table defines the target mapping. Each permission becomes usable when its
+handler adopts the corresponding typed URN authorization check.
+
 | Existing permission | Resource permission |
 | --- | --- |
-| `api.*.create_api` | `unkey:v1:{workspace_id}:keyspaces/*#create_keyspace` |
-| `api.{api_id}.read_api` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}#read_keyspace` |
-| `api.{api_id}.create_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}#create_key` |
-| `api.{api_id}.read_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#read_key` |
-| `api.{api_id}.verify_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#verify_key` |
-| `identity.*.read_identity` | `unkey:v1:{workspace_id}:identities/*#read_identity` |
-| `ratelimit.*.delete_override` | `unkey:v1:{workspace_id}:ratelimits/namespaces/*/overrides/*#delete_override` |
-| `rbac.*.create_role` | `unkey:v1:{workspace_id}:rbac/roles/*#create_role` |
+| `api.*.create_api` | `unkey:v1:{workspace_id}:projects/*#create_keyspace` |
+| `api.{api_id}.read_api` | `unkey:v1:{workspace_id}:projects/*/keyspaces/{keyspace_id}#read_keyspace` |
+| `api.{api_id}.create_key` | `unkey:v1:{workspace_id}:projects/*/keyspaces/{keyspace_id}#create_key` |
+| `api.{api_id}.read_key` | `unkey:v1:{workspace_id}:projects/*/keyspaces/{keyspace_id}/keys/*#read_key` |
+| `api.{api_id}.verify_key` | `unkey:v1:{workspace_id}:projects/*/keyspaces/{keyspace_id}/keys/*#verify_key` |
+| `identity.*.read_identity` | `unkey:v1:{workspace_id}:projects/*/identities/*#read_identity` |
+| `ratelimit.*.delete_override` | `unkey:v1:{workspace_id}:projects/*/ratelimits/namespaces/*/overrides/*#delete_override` |
+| `rbac.*.create_role` | `unkey:v1:{workspace_id}:projects/*#create_role` |
 
 Migration code must preserve the authorized workspace. The old permission string
 does not contain a workspace ID, so the workspace has to come from the owning
@@ -344,10 +353,10 @@ These permissions are invalid.
 
 | Value | Reason |
 | --- | --- |
-| `unkey:v1:ws_123:keyspaces/ks_123` | Missing the action suffix. |
-| `unkey:v1:ws_123:keyspaces/ks_123.read_keyspace` | Uses the old tuple separator. |
-| `unkey:v1:ws_123:keyspaces/ks_123#*` | Uses an action wildcard outside the global resource pattern. |
+| `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123` | Missing the action suffix. |
+| `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123.read_keyspace` | Uses the old tuple separator. |
+| `unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#*` | Uses an action wildcard outside the global resource pattern. |
 | `unkey:v1:ws_123:**/deployments/*#delete_deployment` | Uses recursive wildcard outside the trailing position. |
 | `unkey:v1:ws_123:projects/proj_123/**/deployments/*#delete_deployment` | Uses recursive wildcard in the middle of the path. |
 | `unkey:v1:ws_123:projects/*/apps/app_123#read_app` | Selects a specific child under a wildcard parent. |
-| `unkey:v1:ws_123:keyspaces/*/keys#read_key` | Does not match a catalog path shape. |
+| `unkey:v1:ws_123:projects/*/keyspaces/*/keys#read_key` | Does not match a catalog path shape. |
