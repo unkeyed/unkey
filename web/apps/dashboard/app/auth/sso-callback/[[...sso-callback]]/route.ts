@@ -1,5 +1,5 @@
-import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
@@ -29,18 +29,15 @@ export async function GET(request: NextRequest) {
       if (state) {
         try {
           const parsed: unknown = JSON.parse(decodeURIComponent(state));
-          const redirectUrlComplete =
-            typeof parsed === "object" &&
-            parsed !== null &&
-            "redirectUrlComplete" in parsed &&
-            typeof (parsed as { redirectUrlComplete: unknown }).redirectUrlComplete === "string"
-              ? (parsed as { redirectUrlComplete: string }).redirectUrlComplete
-              : null;
-          if (
-            redirectUrlComplete &&
-            redirectUrlComplete !== "/apis" &&
-            isSafeRedirectPath(redirectUrlComplete)
-          ) {
+          // An empty fallback means "no deep link": anything non-string or
+          // unsafe is dropped, and the default destination needs no param.
+          const redirectUrlComplete = sanitizeRedirectPath(
+            parsed !== null && typeof parsed === "object"
+              ? (parsed as Record<string, unknown>).redirectUrlComplete
+              : null,
+            "",
+          );
+          if (redirectUrlComplete && redirectUrlComplete !== "/apis") {
             url.searchParams.set("redirect", redirectUrlComplete);
           }
         } catch {
@@ -78,7 +75,14 @@ export async function GET(request: NextRequest) {
 
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
-  const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
+  // The auth provider is the authoritative sanitizer of redirectTo (it
+  // originates from the attacker-controllable OAuth `state` param); this
+  // re-check is defense in depth at the redirect sink, because
+  // `new URL("https://evil.com", baseUrl)` discards the base and would make
+  // any absolute value an open redirect.
+  const response = NextResponse.redirect(
+    new URL(sanitizeRedirectPath(authResult.redirectTo), baseUrl),
+  );
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }
