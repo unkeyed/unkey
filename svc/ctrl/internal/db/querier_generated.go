@@ -1870,20 +1870,28 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, arg UpsertAppRuntimeSettingsParams) error
-	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
+	// Upserts a cluster by region_id. Heartbeats refresh metadata and the timestamp but preserve scheduling state.
 	//
 	//  INSERT INTO clusters (
 	//  	id,
 	//  	region_id,
+	//  	platform,
+	//  	region,
+	//  	state,
 	//  	last_heartbeat_at
 	//  )
 	//  VALUES (
 	//  	?,
 	//  	?,
+	//  	?,
+	//  	?,
+	//  	?,
 	//  	?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//  	last_heartbeat_at = ?
+	//  	platform = VALUES(platform),
+	//  	region = VALUES(region),
+	//  	last_heartbeat_at = VALUES(last_heartbeat_at)
 	UpsertCluster(ctx context.Context, arg UpsertClusterParams) error
 	//UpsertCustomDomain
 	//

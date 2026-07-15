@@ -13,42 +13,63 @@ const upsertCluster = `-- name: UpsertCluster :exec
 INSERT INTO clusters (
 	id,
 	region_id,
+	platform,
+	region,
+	state,
 	last_heartbeat_at
 )
 VALUES (
 	?,
 	?,
+	?,
+	?,
+	?,
 	?
 )
 ON DUPLICATE KEY UPDATE
-	last_heartbeat_at = ?
+	platform = VALUES(platform),
+	region = VALUES(region),
+	last_heartbeat_at = VALUES(last_heartbeat_at)
 `
 
 type UpsertClusterParams struct {
-	ID              string `db:"id"`
-	RegionID        string `db:"region_id"`
-	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
+	ID              string        `db:"id"`
+	RegionID        string        `db:"region_id"`
+	Platform        string        `db:"platform"`
+	Region          string        `db:"region"`
+	State           ClustersState `db:"state"`
+	LastHeartbeatAt uint64        `db:"last_heartbeat_at"`
 }
 
-// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
+// Upserts a cluster by region_id. Heartbeats refresh metadata and the timestamp but preserve scheduling state.
 //
 //	INSERT INTO clusters (
 //		id,
 //		region_id,
+//		platform,
+//		region,
+//		state,
 //		last_heartbeat_at
 //	)
 //	VALUES (
 //		?,
 //		?,
+//		?,
+//		?,
+//		?,
 //		?
 //	)
 //	ON DUPLICATE KEY UPDATE
-//		last_heartbeat_at = ?
+//		platform = VALUES(platform),
+//		region = VALUES(region),
+//		last_heartbeat_at = VALUES(last_heartbeat_at)
 func (q *Queries) UpsertCluster(ctx context.Context, db DBTX, arg UpsertClusterParams) error {
 	_, err := db.ExecContext(ctx, upsertCluster,
 		arg.ID,
 		arg.RegionID,
-		arg.LastHeartbeatAt,
+		arg.Platform,
+		arg.Region,
+		arg.State,
 		arg.LastHeartbeatAt,
 	)
 	return err

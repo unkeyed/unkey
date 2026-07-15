@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { regions } from "./regions";
 
 // clusters tracks our kubernetes clusters
@@ -11,6 +11,11 @@ export const clusters = mysqlTable("clusters", {
 
   id: varchar("id", { length: 64 }).notNull().unique(),
   regionId: varchar("region_id", { length: 64 }).notNull().unique(),
+
+  // Defaults keep rolling deploys compatible. Heartbeats populate metadata; backfill initializes existing rows.
+  platform: varchar("platform", { length: 64 }).notNull().default(""),
+  regionName: varchar("region", { length: 64 }).notNull().default(""),
+  state: mysqlEnum("state", ["active", "disabled"]).notNull().default("disabled"),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",
