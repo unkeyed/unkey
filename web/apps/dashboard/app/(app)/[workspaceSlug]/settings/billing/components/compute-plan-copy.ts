@@ -41,7 +41,7 @@ export const FEATURES: ComputeFeature[] = [
   {
     Icon: ChartActivity,
     title: "Auto-scaling",
-    description: "Scales with traffic automatically, down to zero when idle.",
+    description: "Automatic scaling that follows demand.",
   },
 ];
 
