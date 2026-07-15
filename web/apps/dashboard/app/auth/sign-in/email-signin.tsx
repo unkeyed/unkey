@@ -51,7 +51,7 @@ export function EmailSignIn() {
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect="off"
-        className="w-full"
+        className="w-full [&_label]:text-sm [&_input]:text-sm"
         onChange={(e) => setCurrentEmail(e.target.value)}
       />
       <Button
