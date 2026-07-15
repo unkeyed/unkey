@@ -65,9 +65,9 @@ export default function ProjectsPage() {
 
 /**
  * Handles the Compute-plan gate hand-off: reads ?pendingPlan&from from the URL
- * and toasts the result, returning the user to the creation flow they came
- * from on `from=create` (the app-create wizard when projectId is present,
- * otherwise the full-page create-project flow).
+ * and toasts the result, returning the user to where they came from on
+ * `from=create`: the project's Apps page when projectId is present, otherwise
+ * the full-page create-project flow.
  *
  * Two entry conditions land here, and the entitlement-first check absorbs both:
  * - Card on file (has-card path): the workspace is not yet subscribed, so
@@ -131,9 +131,11 @@ function usePendingSubscribe() {
       ]);
       if (pending.from === "create") {
         if (pending.projectId) {
-          // The gate fired from an app-create flow; drop the user back into it.
+          // The gate fired from that project's app-create flow; land on the
+          // project's Apps page (where "Create app" lives) rather than
+          // dropping the user back into the wizard uninvited.
           router.push(
-            routes.projects.apps.new({
+            routes.projects.detail({
               workspaceSlug: workspace.slug,
               projectId: pending.projectId,
             }),

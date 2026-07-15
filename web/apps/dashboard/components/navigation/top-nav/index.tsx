@@ -78,6 +78,12 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
       return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
     case "identity":
       return <IdentityCrumb identityId={descriptor.identityId} />;
+    case "label":
+      return (
+        <span className="flex min-w-0 items-center px-1 py-1 text-[13px] font-medium text-accent-12">
+          <span className="truncate max-w-[120px] md:max-w-[180px]">{descriptor.label}</span>
+        </span>
+      );
   }
 }
 
@@ -95,5 +101,7 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return `namespace:${descriptor.namespaceId}`;
     case "identity":
       return `identity:${descriptor.identityId}`;
+    case "label":
+      return `label:${descriptor.label}`;
   }
 }

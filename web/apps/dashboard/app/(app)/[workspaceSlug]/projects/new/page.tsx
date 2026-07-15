@@ -66,11 +66,13 @@ export default function NewProjectPage() {
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };
-      // Keep the submit button in its loading state until the app-create flow
-      // has rendered; releasing it immediately leaves the user staring at a
-      // finished form.
+      // Land on the project's Apps page rather than auto-entering the
+      // app-create wizard: the compute-plan gate lives on the wizard, and
+      // popping it right after a (free) project create reads as if project
+      // creation were gated. Keep the submit button loading until the project
+      // page has rendered.
       startNavigation(() => {
-        router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
+        router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
       });
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
