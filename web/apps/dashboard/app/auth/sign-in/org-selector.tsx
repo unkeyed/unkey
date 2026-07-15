@@ -142,7 +142,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       preventOutsideClose={true}
       title="Select your workspace"
       footer={
-        <div className="flex items-center justify-center text-sm w-full text-content-subtle">
+        <div className="flex items-center justify-center text-sm w-full text-gray-11">
           Select a workspace to sign in.
         </div>
       }
@@ -152,8 +152,10 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         {sortedOrgs.length === 0 ? (
           <Empty>
             <div className="flex flex-col items-center gap-4 text-center">
-              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
-              <p className="text-sm text-content-subtle max-w-md">
+              <h3 className="text-lg font-semibold tracking-tight text-gray-12">
+                No workspaces found
+              </h3>
+              <p className="text-sm text-gray-11 max-w-md">
                 You don&apos;t have access to any workspaces. Please contact your administrator or
                 create a new workspace.
               </p>

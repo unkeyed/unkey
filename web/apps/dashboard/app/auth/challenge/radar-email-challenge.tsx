@@ -1,6 +1,6 @@
 "use client";
 
-import { Loading } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { completeAuthRadarEmailChallenge } from "../actions";
@@ -38,19 +38,13 @@ export function RadarEmailChallenge() {
 
   return (
     <div className="flex flex-col w-full text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-gray-12 to-gray-12/40">
-        Verify it's you
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-12">Verify it's you</h1>
       <p className="mt-4 text-sm text-gray-11">
         We noticed something unusual about this sign-in. Please enter the 6 digit verification code
         we sent to your email to continue.
       </p>
 
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <form
         className="flex flex-col gap-12 mt-10"
@@ -61,14 +55,16 @@ export function RadarEmailChallenge() {
       >
         <CodeInput value={otp} onChange={setOtp} onComplete={verifyCode} disabled={isLoading} />
 
-        <button
+        <Button
           type="submit"
-          className="flex items-center cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 justify-center h-10 gap-2 px-4 text-sm font-semibold rounded-lg border duration-200 text-gray-1 bg-gray-12 border-gray-12 hover:bg-gray-12/90"
+          variant="primary"
+          size="xlg"
+          className="w-full rounded-lg"
           disabled={isLoading || otp.length !== 6}
+          loading={isLoading}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
-        </button>
+        </Button>
       </form>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { CopyButton, Loading } from "@unkey/ui";
+import { Button, CopyButton, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { beginAuthMfaEnrollment, completeAuthMfaChallenge } from "../actions";
@@ -72,7 +72,7 @@ export function MfaEnroll() {
 
   return (
     <div className="flex flex-col w-full text-left">
-      <h1 className="text-4xl text-transparent bg-clip-text bg-linear-to-r from-gray-12 to-gray-12/40">
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-12">
         Set up two-factor authentication
       </h1>
       <p className="mt-4 text-sm text-gray-11">
@@ -80,11 +80,7 @@ export function MfaEnroll() {
         in.
       </p>
 
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* The QR box keeps a fixed footprint whether or not the code has
           loaded, so the form below doesn't jump when the QR arrives. */}
@@ -135,14 +131,16 @@ export function MfaEnroll() {
           disabled={isLoading || !enrollment}
         />
 
-        <button
+        <Button
           type="submit"
-          className="flex items-center cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 justify-center h-10 gap-2 px-4 text-sm font-semibold rounded-lg border duration-200 text-gray-1 bg-gray-12 border-gray-12 hover:bg-gray-12/90"
+          variant="primary"
+          size="xlg"
+          className="w-full rounded-lg"
           disabled={isLoading || !enrollment || otp.length !== 6}
+          loading={isLoading}
         >
-          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
           Continue
-        </button>
+        </Button>
       </form>
     </div>
   );
