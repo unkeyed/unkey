@@ -12,6 +12,7 @@ import { logRoutes } from "./logs";
 import { portalRoutes } from "./portal";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
+import { rootKeyRoutes } from "./root-keys";
 import { settingsRoutes } from "./settings";
 import { workspaceRoutes } from "./workspaces";
 
@@ -27,6 +28,7 @@ export const routes = {
   identities: identityRoutes,
   audit: auditRoutes,
   logs: logRoutes,
+  rootKeys: rootKeyRoutes,
   portal: portalRoutes,
   auth: authRoutes,
   workspaces: workspaceRoutes,

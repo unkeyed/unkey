@@ -30,6 +30,13 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       isActive: top === "projects",
     },
     {
+      key: "root-keys",
+      label: "Root Keys",
+      href: routes.rootKeys.list({ workspaceSlug: slug }),
+      icon: Key,
+      isActive: top === "root-keys",
+    },
+    {
       key: "audit",
       label: "Audit Log",
       href: routes.audit.list({ workspaceSlug: slug }),
