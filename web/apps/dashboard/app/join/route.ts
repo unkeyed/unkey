@@ -30,7 +30,13 @@ export async function GET(request: NextRequest) {
     const result = await processPostAuthInvitation(invitationToken, userId);
 
     if (!result.success) {
-      return NextResponse.redirect(DASHBOARD_URL);
+      // Forward the token to the dashboard so PostAuthInvitationHandler can
+      // retry and surface a message. Redirecting to a token-less /apis would
+      // silently drop the user with no workspace and no explanation, the exact
+      // ENG-3014 symptom this flow fixes on the client side.
+      const RETRY_URL = new URL("/apis", request.url);
+      RETRY_URL.searchParams.set("invitation_token", invitationToken);
+      return NextResponse.redirect(RETRY_URL);
     }
 
     const JOIN_SUCCESS_URL = new URL("/join/success", request.url);

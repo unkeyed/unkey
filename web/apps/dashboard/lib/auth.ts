@@ -172,6 +172,15 @@ export async function processPostAuthInvitation(
       return { success: false, error: INVITATION_UNUSABLE };
     }
 
+    if (state !== "pending") {
+      // Deliberately the same message as a missing or unknown token, and
+      // checked before the email comparison so a non-pending token never leaks
+      // an EMAIL_MISMATCH signal. The state comes from the provider and must
+      // not be echoed back, and telling a caller which arbitrary tokens are
+      // real would make this an oracle.
+      return { success: false, error: INVITATION_UNUSABLE };
+    }
+
     // Get the user to verify email matches
     const user = await auth.getUser(userId);
     if (!user) {
@@ -180,13 +189,6 @@ export async function processPostAuthInvitation(
 
     if (normalizeEmail(user.email) !== normalizeEmail(invitationEmail)) {
       return { success: false, error: EMAIL_MISMATCH };
-    }
-
-    if (state !== "pending") {
-      // Deliberately the same message as a missing or unknown token. The state
-      // comes from the provider and must not be echoed back, and telling a
-      // caller which arbitrary tokens are real would make this an oracle.
-      return { success: false, error: INVITATION_UNUSABLE };
     }
 
     // Membership exists from here on, even if the switch below fails.

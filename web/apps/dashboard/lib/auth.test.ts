@@ -142,6 +142,22 @@ describe("processPostAuthInvitation", () => {
   });
 
   /**
+   * The state check runs before the email comparison, so a non-pending token
+   * collapses into INVITATION_UNUSABLE regardless of who is asking. Returning
+   * EMAIL_MISMATCH here would let a caller distinguish a real invitation issued
+   * to someone else from an unknown token, reopening the oracle.
+   */
+  it("hides the email signal for a non-pending invitation", async () => {
+    givenInvitation({ state: "accepted", email: "invitee@example.com" });
+    givenUser("someone.else@example.com");
+
+    const result = await processPostAuthInvitation(TOKEN, USER_ID);
+
+    expect(result).toEqual({ success: false, error: INVITATION_UNUSABLE });
+    expect(mocks.acceptInvitation).not.toHaveBeenCalled();
+  });
+
+  /**
    * Guarantees ENG-3014 stays fixed: a provider failure must surface as a
    * fixed, user-safe literal, never as the provider's own error text.
    */
