@@ -1,11 +1,7 @@
 "use server";
 
-<<<<<<< MichaelUnkey/eng-3014-raw-internal-error-message-returned-to
 import { getCookie, setCookies, setLastUsedOrgCookie } from "@/lib/auth/cookies";
-=======
-import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
->>>>>>> main
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
