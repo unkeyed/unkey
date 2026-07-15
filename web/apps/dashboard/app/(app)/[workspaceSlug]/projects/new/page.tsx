@@ -102,8 +102,7 @@ export default function NewProjectPage() {
           <OnboardingCardHeader>
             <OnboardingCardTitle>Create a project</OnboardingCardTitle>
             <OnboardingCardDescription>
-              Projects group your apps and everything they need to run. You'll create your first app
-              right after.
+              Projects group your apps and everything they need to run.
             </OnboardingCardDescription>
           </OnboardingCardHeader>
           <OnboardingCardContent className="flex flex-col gap-4">
