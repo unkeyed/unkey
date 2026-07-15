@@ -1,6 +1,7 @@
 "use server";
 
 import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
@@ -338,7 +339,10 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo as Route);
+  // The auth provider is the authoritative sanitizer of redirectTo (it
+  // originates from the attacker-influenceable OAuth `state` param); this
+  // re-check is defense in depth at the redirect sink.
+  redirect(sanitizeRedirectPath(redirectTo) as Route);
 }
 
 // Organization Selection
