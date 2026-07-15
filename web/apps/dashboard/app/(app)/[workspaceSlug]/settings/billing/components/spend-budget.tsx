@@ -6,6 +6,12 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button, DialogContainer, FormInput, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
+import {
+  ComputePausedMeterCaption,
+  ComputePausedMeterPill,
+  ComputePausedNotice,
+  usePausedPreview,
+} from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
 /** Alert thresholds as fractions of the budget; fixed, like Vercel's. */
@@ -81,16 +87,30 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
 
   const currentBudget = budget?.budgetCents ?? null;
   const hasBudget = currentBudget !== null;
-  const suspended = budget?.suspended ?? false;
 
-  const fraction =
-    usageCents !== null && currentBudget
+  // The dev debug bar can force the paused state on and pick which avenue
+  // renders; outside development the provider isn't mounted, so preview is null
+  // and only the real suspended flag drives the UI.
+  const preview = usePausedPreview();
+  const suspended = (budget?.suspended ?? false) || (preview?.forceSuspended ?? false);
+  const variant = preview?.variant ?? "banner";
+  const budgetLabel = hasBudget ? formatDollars(currentBudget) : undefined;
+
+  // Paused means the spend cap was reached, so the meter reads as full-and-red
+  // even when a forced preview has usage sitting below the budget.
+  const fraction = suspended
+    ? 1
+    : usageCents !== null && currentBudget
       ? Math.min(1, Math.max(0, usageCents / currentBudget))
       : null;
   const usedFraction = usageCents !== null && currentBudget ? usageCents / currentBudget : 0;
   // Severity steps like Vercel's ring: neutral, amber from 75%, red at 100%.
   const fillClassName =
-    usedFraction >= 1 ? "bg-error-9" : usedFraction >= 0.75 ? "bg-warning-9" : "bg-gray-9";
+    suspended || usedFraction >= 1
+      ? "bg-error-9"
+      : usedFraction >= 0.75
+        ? "bg-warning-9"
+        : "bg-gray-9";
 
   const editButton = (
     <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
@@ -102,23 +122,35 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
     </InfoTooltip>
   );
 
+  // In the banner avenue the primary fix lives in the banner, so the caption
+  // row drops its Edit to avoid a second button to the same dialog.
+  const bannerAction = suspended && variant === "banner";
+  const primaryEditButton = (
+    <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+      <span>
+        <Button variant="primary" size="sm" disabled={!isAdmin || !budget} onClick={openDialog}>
+          Edit budget
+        </Button>
+      </span>
+    </InfoTooltip>
+  );
+
   return (
     <>
       {suspended ? (
-        <div className="rounded-lg border border-warning-6 bg-warningA-2 px-4 py-3">
-          <span className="text-[11px] text-warning-11 uppercase tracking-wide">
-            Compute paused
-          </span>
-          <p className="mt-1 text-[13px] text-gray-12">
-            Compute is paused: spend cap reached. Raise or remove your budget, or turn off
-            &quot;stop workloads&quot;, and Compute resumes automatically within about a minute.
-          </p>
-        </div>
+        <ComputePausedNotice
+          variant={variant}
+          budgetLabel={budgetLabel}
+          action={bannerAction ? primaryEditButton : undefined}
+        />
       ) : null}
       {hasBudget ? (
         <div className="flex w-full flex-col gap-2">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-[13px] text-gray-11">Spend budget</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-gray-11">Spend budget</span>
+              {suspended && variant === "meter" ? <ComputePausedMeterPill /> : null}
+            </div>
             <span className="font-medium text-[13px] text-gray-12 tabular-nums">
               {usageCents !== null ? formatDollars(usageCents) : "—"} of{" "}
               {formatDollars(currentBudget)}
@@ -145,12 +177,16 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
             ))}
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-[12px] text-gray-10">
-              {budget?.stopAtBudget
-                ? "Email alerts at 50%, 75% and 100% of your budget · workloads stop at the budget"
-                : "Email alerts at 50%, 75% and 100% of your budget · workloads keep running"}
-            </span>
-            <div className="shrink-0">{editButton}</div>
+            {suspended && variant === "meter" ? (
+              <ComputePausedMeterCaption budgetLabel={budgetLabel} />
+            ) : (
+              <span className="text-[12px] text-gray-10">
+                {budget?.stopAtBudget
+                  ? "Email alerts at 50%, 75% and 100% of your budget · workloads stop at the budget"
+                  : "Email alerts at 50%, 75% and 100% of your budget · workloads keep running"}
+              </span>
+            )}
+            {bannerAction ? null : <div className="shrink-0">{editButton}</div>}
           </div>
         </div>
       ) : (

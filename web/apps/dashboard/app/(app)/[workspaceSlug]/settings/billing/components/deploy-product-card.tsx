@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
+import { ComputePausedBadge, usePausedPreview } from "./compute-paused";
 import {
   AllPlansInclude,
   ComputePlanConfirmDialog,
@@ -48,6 +49,13 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   );
 
   const currentPlan = subscription?.plan ?? null;
+
+  // Same query SpendBudget uses (React Query dedupes it to one request); read
+  // here too so the paused state can show as a header badge. The dev debug bar
+  // can force it on for preview.
+  const preview = usePausedPreview();
+  const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
+  const suspended = (budget?.suspended ?? false) || (preview?.forceSuspended ?? false);
 
   // Usage is only worth fetching (and rendering) once there is a plan.
   const { data: usage } = trpc.billing.queryDeployUsage.useQuery(undefined, {
@@ -185,6 +193,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         iconClassName="bg-orangeA-3 text-orange-11"
         name="Compute"
         tag={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
+        badge={currentPlan && suspended ? <ComputePausedBadge /> : undefined}
         subtitle={
           currentPlan
             ? planFee !== null

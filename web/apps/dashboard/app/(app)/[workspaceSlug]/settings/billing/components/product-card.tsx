@@ -11,6 +11,8 @@ type ProductCardProps = {
   name: string;
   /** Small tag next to the name, e.g. the plan name or "Add-on". */
   tag?: string;
+  /** Status pill next to the tag, e.g. the paused badge; more prominent. */
+  badge?: ReactNode;
   /** One-line subtitle under the name: plan fee, included usage, etc. */
   subtitle: ReactNode;
   /** Primary action, top-right: change plan / upgrade / choose a plan. */
@@ -30,6 +32,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   iconClassName,
   name,
   tag,
+  badge,
   subtitle,
   action,
   children,
@@ -55,6 +58,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   {tag}
                 </span>
               ) : null}
+              {badge}
             </div>
             <div className="truncate text-[13px] text-gray-10">{subtitle}</div>
           </div>

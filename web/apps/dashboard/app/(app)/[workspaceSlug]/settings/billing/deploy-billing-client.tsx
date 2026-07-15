@@ -20,8 +20,11 @@ import type { ReactNode } from "react";
 import type Stripe from "stripe";
 import { ApiAddOnCard } from "./components/api-addon-card";
 import { BillingSummary } from "./components/billing-summary";
+import { ComputePausedDebugBar, PausedPreviewProvider } from "./components/compute-paused";
 import { DeployProductCard } from "./components/deploy-product-card";
 import { SubscriptionStatus } from "./components/subscription-status";
+
+const PAUSED_PREVIEW_ENABLED = process.env.NODE_ENV !== "production";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -133,38 +136,43 @@ export const DeployBillingClient: React.FC = () => {
   const subscription = billingInfo.subscription;
   const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
+  const body = (
+    <div className="flex w-full flex-col gap-4 pt-4 pb-16">
+      {PAUSED_PREVIEW_ENABLED ? <ComputePausedDebugBar /> : null}
+      {subscription ? (
+        <SubscriptionStatus
+          workspaceSlug={workspace.slug}
+          status={subscription.status as Stripe.Subscription.Status}
+        />
+      ) : null}
+
+      <BillingSummary
+        workspaceSlug={workspace.slug}
+        isAdmin={isAdmin}
+        hasPaymentMethod={hasPaymentMethod}
+      />
+
+      <DeployProductCard
+        isAdmin={isAdmin}
+        hasPaymentMethod={hasPaymentMethod}
+        autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
+      />
+
+      <ApiAddOnCard
+        isAdmin={isAdmin}
+        hasPaymentMethod={hasPaymentMethod}
+        workspaceSlug={workspace.slug}
+        products={billingInfo.products}
+        subscription={subscription}
+        currentProductId={billingInfo.currentProductId}
+        autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
+      />
+    </div>
+  );
+
   return (
     <Shell>
-      <div className="flex w-full flex-col gap-4 pt-4 pb-16">
-        {subscription ? (
-          <SubscriptionStatus
-            workspaceSlug={workspace.slug}
-            status={subscription.status as Stripe.Subscription.Status}
-          />
-        ) : null}
-
-        <BillingSummary
-          workspaceSlug={workspace.slug}
-          isAdmin={isAdmin}
-          hasPaymentMethod={hasPaymentMethod}
-        />
-
-        <DeployProductCard
-          isAdmin={isAdmin}
-          hasPaymentMethod={hasPaymentMethod}
-          autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
-        />
-
-        <ApiAddOnCard
-          isAdmin={isAdmin}
-          hasPaymentMethod={hasPaymentMethod}
-          workspaceSlug={workspace.slug}
-          products={billingInfo.products}
-          subscription={subscription}
-          currentProductId={billingInfo.currentProductId}
-          autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
-        />
-      </div>
+      {PAUSED_PREVIEW_ENABLED ? <PausedPreviewProvider>{body}</PausedPreviewProvider> : body}
     </Shell>
   );
 };
