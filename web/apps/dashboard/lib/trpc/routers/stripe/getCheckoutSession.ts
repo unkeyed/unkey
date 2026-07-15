@@ -9,6 +9,11 @@ const checkoutSessionSchema = z.object({
   customer: z.string().nullable(),
   client_reference_id: z.string().nullable(),
   setup_intent: z.string().nullable(),
+  // Populated for subscription-mode sessions (the Compute deploy path); null
+  // for setup-mode sessions. `/success` branches on `mode`/`subscription` to
+  // choose the link path vs. the legacy setup-intent path.
+  subscription: z.string().nullable(),
+  mode: z.string().nullable(),
   payment_status: z.string(),
   status: z.string(),
 });
@@ -52,6 +57,8 @@ export const getCheckoutSession = workspaceProcedure
         customer: session.customer ? session.customer.toString() : null,
         client_reference_id: session.client_reference_id,
         setup_intent: session.setup_intent ? session.setup_intent.toString() : null,
+        subscription: session.subscription ? session.subscription.toString() : null,
+        mode: session.mode ?? null,
         payment_status: session.payment_status,
         status: session.status || "",
       };

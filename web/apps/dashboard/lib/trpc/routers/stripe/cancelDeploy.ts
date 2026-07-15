@@ -2,6 +2,11 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findDeployItems } from "@/lib/stripe/deployBilling";
+import {
+  getApiCancelSchedule,
+  isDeadSubscription,
+  isPendingSchedule,
+} from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -45,32 +50,74 @@ export const cancelDeploy = workspaceProcedure
     const stripe = getStripeClient();
     const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
 
-    const deployItems = findDeployItems(config, sub.items.data);
-    if (deployItems.length === 0) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "Workspace has no Compute plan to cancel.",
-      });
-    }
+    // Set when the subscription itself is over (cancelled below, or already
+    // dead) so the column clears with the plan. Leaving a dead subscription id
+    // behind blocks every resubscribe path: they gate on "already has a
+    // subscription" and die against the corpse.
+    let subscriptionGone = false;
 
-    if (deployItems.length === sub.items.data.length) {
-      // Deploy-only subscription: can't delete the last item, so cancel the
-      // whole subscription now. prorate:false = no plan-fee refund; invoice_now
-      // bills metered usage up to now. Usage after this point is not billed,
-      // because compute is not torn down here (ENG-2922).
-      await stripe.subscriptions.cancel(sub.id, { prorate: false, invoice_now: true });
+    if (isDeadSubscription(sub)) {
+      // Already over on Stripe's side (a repeat cancel racing the deleted
+      // webhook, or a payment-failure auto-cancel). Nothing to mutate
+      // remotely; just clear the local columns.
+      subscriptionGone = true;
     } else {
-      // Mixed subscription: drop just the Deploy items now, keep the API items.
-      // One subscriptions.update marking each Deploy item deleted, so the
-      // removal is atomic: a per-item del loop that dies mid-way would leave
-      // orphaned metered items still billing while deploy_plan is never cleared.
-      // proration_behavior:none = no plan-fee refund. There is no invoice_now on
-      // this path, so metered usage since the last invoice on these meters is
-      // NOT billed; the teardown-then-bill flow in ENG-2922 is the real fix.
-      await stripe.subscriptions.update(sub.id, {
-        items: deployItems.map((item) => ({ id: item.id, deleted: true })),
-        proration_behavior: "none",
-      });
+      const deployItems = findDeployItems(config, sub.items.data);
+      if (deployItems.length === 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Workspace has no Compute plan to cancel.",
+        });
+      }
+
+      // A pending API-plan cancellation is a schedule whose next phase
+      // snapshots the current Compute items — left in place, it would re-add
+      // the items we're about to remove at the period boundary and resume
+      // billing them. Release it first; the API cancellation is re-applied as
+      // a plain cancel_at_period_end below, which is exactly what it means on
+      // the API-only subscription this cancel leaves behind.
+      const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
+      const pendingApiCancel = apiCancelSchedule !== null && isPendingSchedule(apiCancelSchedule);
+      if (pendingApiCancel && apiCancelSchedule) {
+        await stripe.subscriptionSchedules.release(apiCancelSchedule.id);
+      }
+
+      if (deployItems.length === sub.items.data.length) {
+        // Deploy-only subscription: can't delete the last item, so cancel the
+        // whole subscription now. prorate:false = no plan-fee refund; invoice_now
+        // bills metered usage up to now. Usage after this point is not billed,
+        // because compute is not torn down here (ENG-2922).
+        await stripe.subscriptions.cancel(sub.id, { prorate: false, invoice_now: true });
+        subscriptionGone = true;
+      } else {
+        // Mixed subscription: drop just the Deploy items now, keep the API items.
+        // One subscriptions.update marking each Deploy item deleted, so the
+        // removal is atomic: a per-item del loop that dies mid-way would leave
+        // orphaned metered items still billing while deploy_plan is never cleared.
+        // proration_behavior:none = no plan-fee refund. There is no invoice_now on
+        // this path, so metered usage since the last invoice on these meters is
+        // NOT billed; the teardown-then-bill flow in ENG-2922 is the real fix.
+        await stripe.subscriptions.update(sub.id, {
+          items: deployItems.map((item) => ({ id: item.id, deleted: true })),
+          proration_behavior: "none",
+        });
+
+        if (pendingApiCancel) {
+          // Preserve the API cancellation the released schedule was carrying.
+          // Best-effort: the Deploy items are already removed, so a throw here
+          // would skip clearing deploy_plan below; losing the flag means the
+          // API plan keeps billing until the user cancels again, not a wrong
+          // charge.
+          try {
+            await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
+          } catch (reapplyErr) {
+            console.error("Failed to reapply pending API cancellation after Compute cancel", {
+              subscriptionId: sub.id,
+              error: reapplyErr instanceof Error ? reapplyErr.message : reapplyErr,
+            });
+          }
+        }
+      }
     }
 
     // Immediate cutoff: clear the plan now so access stops right away. One
@@ -79,7 +126,7 @@ export const cancelDeploy = workspaceProcedure
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaces)
-        .set({ deployPlan: null })
+        .set({ deployPlan: null, ...(subscriptionGone ? { stripeSubscriptionId: null } : {}) })
         .where(eq(schema.workspaces.id, ctx.workspace.id));
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,

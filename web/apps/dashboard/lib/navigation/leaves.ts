@@ -13,6 +13,7 @@ import {
   ShieldKey,
   SquareBulletList,
   User,
+  WindowLayout,
 } from "@unkey/icons";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
@@ -210,8 +211,16 @@ export function buildApiLinks(
   apiId: string,
   keyAuthId: string | undefined,
   segments: string[],
+  portalManagementEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[2];
+  const portalLink: ResolvedNavLink = {
+    key: "portal",
+    label: "Customer portal",
+    href: routes.apis.portal({ workspaceSlug: slug, apiId }),
+    icon: WindowLayout,
+    isActive: page === "portal",
+  };
   return [
     {
       key: "requests",
@@ -230,6 +239,7 @@ export function buildApiLinks(
       isActive: page === "keys",
       disabled: !keyAuthId,
     },
+    ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Settings",

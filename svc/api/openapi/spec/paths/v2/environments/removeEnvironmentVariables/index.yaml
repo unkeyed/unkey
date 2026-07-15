@@ -22,7 +22,7 @@ post:
   operationId: environments.removeEnvironmentVariables
   x-speakeasy-name-override: removeEnvironmentVariables
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

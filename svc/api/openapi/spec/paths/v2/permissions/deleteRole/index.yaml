@@ -14,7 +14,7 @@ post:
   operationId: permissions.deleteRole
   x-speakeasy-name-override: DeleteRole
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

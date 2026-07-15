@@ -14,7 +14,7 @@ post:
   operationId: permissions.deletePermission
   x-speakeasy-name-override: DeletePermission
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

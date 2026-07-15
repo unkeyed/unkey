@@ -7,6 +7,7 @@ import {
   findDeployItems,
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -65,10 +66,24 @@ export const subscribeDeploy = workspaceProcedure
     // derives the same value from the subscription we just mutated).
     let workspaceUpdate: { deployPlan: string; stripeSubscriptionId?: string };
 
+    // The recorded subscription can be a corpse (cancelDeploy cancels a
+    // Compute-only subscription outright, and the deleted-webhook that clears
+    // the column may not have landed yet). A dead one still carries its old
+    // Compute items, so without this check a mid-month resubscribe dies on the
+    // "already has Compute items" guard below. Treat it as absent and create a
+    // fresh subscription instead.
+    let existingSub: Stripe.Subscription | null = null;
     if (ctx.workspace.stripeSubscriptionId) {
+      const recorded = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+      if (!isDeadSubscription(recorded)) {
+        existingSub = recorded;
+      }
+    }
+
+    if (existingSub) {
       // Existing subscription (e.g. a paid API plan): append the Deploy items.
       // Items not listed here are left untouched, so API items are preserved.
-      const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+      const sub = existingSub;
 
       if (findDeployItems(config, sub.items.data).length > 0) {
         throw new TRPCError({
@@ -96,21 +111,72 @@ export const subscribeDeploy = workspaceProcedure
     } else {
       // Free tier: create a subscription whose initial items are the Deploy set.
       // error_if_incomplete keeps us off a half-paid state if the card declines.
+      //
+      // subscriptions.create only consults the customer's DEFAULT payment
+      // method, and a card that arrived via subscription-mode Checkout is
+      // attached but recorded as the (now possibly cancelled) subscription's
+      // default, not the customer's — so a cancel-then-resubscribe would die
+      // with "no attached payment source". Resolve one explicitly: use the
+      // customer default when set, else the most recently attached method.
+      let defaultPaymentMethod: string | undefined;
+      const customer = await stripe.customers.retrieve(ctx.workspace.stripeCustomerId);
+      const hasCustomerDefault =
+        !customer.deleted &&
+        Boolean(customer.invoice_settings?.default_payment_method || customer.default_source);
+      if (!hasCustomerDefault) {
+        const attached = await stripe.customers.listPaymentMethods(ctx.workspace.stripeCustomerId, {
+          limit: 1,
+        });
+        defaultPaymentMethod = attached.data[0]?.id;
+        if (!defaultPaymentMethod) {
+          // BAD_REQUEST on purpose: the projects-landing subscriber treats it
+          // as "card problem" and routes the user to Stripe checkout to add one.
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No payment method on file. Add one to subscribe.",
+          });
+        }
+      }
+
+      const createParams: Stripe.SubscriptionCreateParams = {
+        customer: ctx.workspace.stripeCustomerId,
+        items,
+        ...(defaultPaymentMethod ? { default_payment_method: defaultPaymentMethod } : {}),
+        billing_cycle_anchor_config: { day_of_month: 1 },
+        // Pin classic billing mode (clover defaults new subscriptions to
+        // "flexible", which itemizes prorations differently); see the same
+        // pin in createSubscription.
+        billing_mode: { type: "classic" },
+        proration_behavior: "always_invoice",
+        payment_behavior: "error_if_incomplete",
+      };
+
       let sub: Stripe.Subscription;
       try {
-        sub = await stripe.subscriptions.create({
-          customer: ctx.workspace.stripeCustomerId,
-          items,
-          // Midnight-UTC anchor so billing periods are exact calendar months;
-          // see the matching comment in createSubscription.
-          billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
-          // Pin classic billing mode (Stripe API 2025-09-30 "clover" and later
-          // default new subscriptions to "flexible", which itemizes prorations
-          // differently); see the same pin in createSubscription.
-          billing_mode: { type: "classic" },
-          proration_behavior: "always_invoice",
-          payment_behavior: "error_if_incomplete",
-        });
+        // Deterministic idempotency key: if Stripe created (and charged) the
+        // subscription but the workspace write below failed, a retry replays
+        // the SAME subscription instead of charging a second one. Unlike the
+        // checkout-session path there is no webhook backstop for this create —
+        // customer.subscription.created resolves the workspace by
+        // stripeSubscriptionId, which was never written.
+        //
+        // Stripe's idempotency layer replays the CREATION-TIME response, so
+        // after a full subscribe→cancel cycle inside the key window a replay
+        // hands back the canceled subscription still claiming to be active.
+        // Re-retrieve the live status and, on a corpse, chain a fresh key off
+        // its id and mint a new subscription (a retry of THIS request replays
+        // that same fresh subscription) — mirroring stripe/checkout/page.tsx.
+        let idempotencyKey = `deploy-subscribe:${ctx.workspace.id}:${input.plan}`;
+        sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const live = await stripe.subscriptions.retrieve(sub.id);
+          if (!isDeadSubscription(live)) {
+            sub = live;
+            break;
+          }
+          idempotencyKey = `${idempotencyKey}:${live.id}`;
+          sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
+        }
       } catch (err) {
         throw toBillingError(err);
       }

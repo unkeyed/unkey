@@ -17,7 +17,7 @@ post:
   operationId: apps.updateApp
   x-speakeasy-name-override: updateApp
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
