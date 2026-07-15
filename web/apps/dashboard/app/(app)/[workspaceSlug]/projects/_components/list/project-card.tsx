@@ -57,7 +57,7 @@ function AppTooltipRow({ app }: { app: ProjectCardApp }) {
 
 export function ProjectCard({ name, projectId, appCount, apps, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
-  const projectPath = routes.projects.detail({
+  const projectPath = routes.projects.overview({
     workspaceSlug: workspace.slug,
     projectId,
   });
@@ -133,7 +133,7 @@ function AppIconStack({
             closeDelay={100}
             render={
               <Link
-                href={routes.projects.detail({
+                href={routes.projects.apps.list({
                   workspaceSlug: workspace.slug,
                   projectId,
                 })}

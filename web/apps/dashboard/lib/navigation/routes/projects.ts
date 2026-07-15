@@ -99,6 +99,10 @@ export const projectRoutes = {
   },
 
   apps: {
+    list(scope: ProjectScope): Route {
+      return buildRoute("/[workspaceSlug]/projects/[projectId]/apps", projectParams(scope));
+    },
+
     new({ step, appId, ...scope }: ProjectScope & { step?: string; appId?: string }): Route {
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/new", projectParams(scope), {
         step,

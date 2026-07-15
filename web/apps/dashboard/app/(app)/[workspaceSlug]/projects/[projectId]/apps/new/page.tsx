@@ -50,7 +50,7 @@ export default function AppSetupPage() {
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
+    router.replace(routes.projects.apps.list({ workspaceSlug: workspace.slug, projectId }));
   };
 
   return (

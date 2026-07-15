@@ -132,10 +132,10 @@ function usePendingSubscribe() {
       if (pending.from === "create") {
         if (pending.projectId) {
           // The gate fired from that project's app-create flow; land on the
-          // project's Apps page (where "Create app" lives) rather than
+          // project's Apps list (where "Create app" lives) rather than
           // dropping the user back into the wizard uninvited.
           router.push(
-            routes.projects.detail({
+            routes.projects.apps.list({
               workspaceSlug: workspace.slug,
               projectId: pending.projectId,
             }),

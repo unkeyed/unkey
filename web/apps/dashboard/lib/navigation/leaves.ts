@@ -67,14 +67,16 @@ export function buildProjectLinks(
       label: "Overview",
       href: routes.projects.overview(scope),
       icon: ChartActivity2,
-      isActive: page === "overview",
+      // The bare project URL redirects to overview, so !page is transiently
+      // the overview too.
+      isActive: page === "overview" || !page,
     },
     {
       key: "apps",
       label: "Apps",
-      href: routes.projects.detail(scope),
+      href: routes.projects.apps.list(scope),
       icon: Cube,
-      isActive: !page,
+      isActive: page === "apps",
     },
     {
       key: "keyspaces",

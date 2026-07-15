@@ -85,6 +85,9 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
         </span>
       );
   }
+  // Exhaustiveness guard: a new descriptor type must add a case above, or it
+  // would silently render nothing (strict mode lacks noImplicitReturns).
+  return descriptor satisfies never;
 }
 
 function crumbKey(descriptor: BreadcrumbDescriptor): string {
@@ -104,4 +107,7 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
     case "label":
       return `label:${descriptor.label}`;
   }
+  // Exhaustiveness guard: a missing case would return undefined and break
+  // React's list keys in TopNav (strict mode lacks noImplicitReturns).
+  return descriptor satisfies never;
 }

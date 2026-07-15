@@ -66,11 +66,11 @@ export default function NewProjectPage() {
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };
-      // Land on the project's Apps page rather than auto-entering the
-      // app-create wizard: the compute-plan gate lives on the wizard, and
-      // popping it right after a (free) project create reads as if project
-      // creation were gated. Keep the submit button loading until the project
-      // page has rendered.
+      // Land on the project's Overview (the project landing) rather than
+      // auto-entering the app-create wizard: the compute-plan gate lives on
+      // the wizard, and popping it right after a (free) project create reads
+      // as if project creation were gated. Keep the submit button loading
+      // until the page has rendered.
       startNavigation(() => {
         router.push(routes.projects.overview({ workspaceSlug: workspace.slug, projectId }));
       });
