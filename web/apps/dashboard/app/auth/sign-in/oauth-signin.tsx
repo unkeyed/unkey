@@ -57,7 +57,7 @@ export const OAuthSignIn: React.FC = () => {
         ) : (
           <GitHub className="w-6 h-6" />
         )}
-        GitHub {clientReady && lastUsed === "github" ? <LastUsed /> : null}
+        Continue with GitHub {clientReady && lastUsed === "github" ? <LastUsed /> : null}
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("google")}>
         {clientReady && isLoading === "google" ? (
@@ -65,7 +65,7 @@ export const OAuthSignIn: React.FC = () => {
         ) : (
           <Google className="w-6 h-6" />
         )}
-        Google {clientReady && lastUsed === "google" ? <LastUsed /> : null}
+        Continue with Google {clientReady && lastUsed === "google" ? <LastUsed /> : null}
       </OAuthButton>
     </div>
   );

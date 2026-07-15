@@ -49,7 +49,7 @@ export function OAuthSignUp() {
         ) : (
           <GitHub className="w-6 h-6" />
         )}
-        GitHub
+        Continue with GitHub
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("google")}>
         {clientReady && isLoading === "google" ? (
@@ -57,7 +57,7 @@ export function OAuthSignUp() {
         ) : (
           <Google className="w-6 h-6" />
         )}
-        Google
+        Continue with Google
       </OAuthButton>
     </div>
   );
