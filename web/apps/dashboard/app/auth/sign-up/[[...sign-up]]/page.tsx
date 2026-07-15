@@ -1,5 +1,5 @@
 "use client";
-import { Loading } from "@unkey/ui";
+import { Button, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SignUpProvider } from "../../context/signup-context";
@@ -74,15 +74,16 @@ export default function AuthenticationPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
                 <OAuthSignUp />
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xlg"
+                  className="w-full rounded-lg"
                   onClick={() => setShowEmail(true)}
-                  className="text-sm text-center cursor-pointer text-info-11 transition-colors hover:text-info-10"
                 >
                   Continue with Email &rarr;
-                </button>
+                </Button>
               </div>
             )}
           </>

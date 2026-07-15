@@ -8,7 +8,7 @@ import {
   errorMessages,
 } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
-import { Empty, Loading, toast } from "@unkey/ui";
+import { Button, Empty, Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,6 +23,7 @@ import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
 import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
+import { LastUsed, useLastUsed } from "../last_used";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
 import { saveRedirectUrl } from "../redirect-utils";
@@ -58,6 +59,7 @@ function SignInContent() {
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  const [lastUsed] = useLastUsed();
 
   // Persist the redirect URL to sessionStorage so it survives the full auth
   // flow (OAuth redirects, org selection) even in browsers like Safari that
@@ -227,15 +229,17 @@ function SignInContent() {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <OAuthSignIn />
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xlg"
+                className="w-full rounded-lg"
                 onClick={() => setShowEmail(true)}
-                className="text-sm text-center cursor-pointer text-info-11 transition-colors hover:text-info-10"
               >
                 Continue with Email &rarr;
-              </button>
+                {clientReady && lastUsed === "email" && <LastUsed />}
+              </Button>
             </div>
           )}
         </div>
