@@ -8,6 +8,7 @@ import { getStripeClient } from "@/lib/stripe";
 import {
   type DeployBillingConfig,
   deployBillingConfig,
+  deployCheckoutLineItems,
   deploySubscriptionItems,
   findDeployItems,
   findPlanFeeItem,
@@ -140,6 +141,30 @@ describe("deploySubscriptionItems", () => {
       { price: "price_disk" },
       { price: "price_active_keys" },
     ]);
+  });
+});
+
+describe("deployCheckoutLineItems", () => {
+  it("gives the plan-fee quantity 1 and omits quantity on metered items", () => {
+    const items = deployCheckoutLineItems(CONFIG, "pro");
+    expect(items[0]).toEqual({ price: "price_pro", quantity: 1 });
+    // Metered prices must not carry a quantity — Stripe Checkout rejects it.
+    for (const item of items.slice(1)) {
+      expect(item).not.toHaveProperty("quantity");
+    }
+  });
+
+  it("puts the plan-fee first, followed by exactly the metered prices", () => {
+    const items = deployCheckoutLineItems(CONFIG, "starter");
+    expect(items.map((i) => i.price)).toEqual(["price_starter", ...CONFIG.meteredPriceIds]);
+  });
+
+  it("changes only the plan-fee price id when the plan changes", () => {
+    const starter = deployCheckoutLineItems(CONFIG, "starter");
+    const business = deployCheckoutLineItems(CONFIG, "business");
+    expect(starter[0].price).toBe("price_starter");
+    expect(business[0].price).toBe("price_business");
+    expect(starter.slice(1)).toEqual(business.slice(1));
   });
 });
 
