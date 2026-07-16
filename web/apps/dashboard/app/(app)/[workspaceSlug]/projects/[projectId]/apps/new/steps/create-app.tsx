@@ -63,7 +63,6 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
       await tx.isPersisted.promise;
       const appId = (tx.metadata as { appId: string }).appId;
 
-
       try {
         const envs = await trpcClient.deploy.environment.list.query({ projectId });
         const appEnvs = envs.filter((e) => e.appId === appId);
