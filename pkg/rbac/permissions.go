@@ -181,6 +181,18 @@ const (
 	// ReadDeployment permits viewing deployment details
 	ReadDeployment ActionType = "read_deployment"
 
+	// StopDeployment permits stopping a running preview deployment
+	StopDeployment ActionType = "stop_deployment"
+
+	// StartDeployment permits starting a stopped preview deployment
+	StartDeployment ActionType = "start_deployment"
+
+	// PromoteDeployment permits promoting a deployment to live
+	PromoteDeployment ActionType = "promote_deployment"
+
+	// RollbackDeployment permits rolling back to a previous deployment
+	RollbackDeployment ActionType = "rollback_deployment"
+
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
 
@@ -226,6 +238,14 @@ const (
 	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
 	// ReadEnvironmentVariables permits reading a specific environment's variables
 	ReadEnvironmentVariables ActionType = "read_environment_variables"
+	// SetPolicies permits replacing a specific environment's entire gateway
+	// policy list in one call
+	SetPolicies ActionType = "set_policies"
+	// UpdatePolicy permits updating a single gateway policy in place within a
+	// specific environment
+	UpdatePolicy ActionType = "update_policy"
+	// ReadPolicies permits reading a specific environment's gateway policies
+	ReadPolicies ActionType = "read_policies"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

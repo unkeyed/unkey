@@ -29,7 +29,7 @@ post:
   operationId: environments.setEnvironmentVariables
   x-speakeasy-name-override: setEnvironmentVariables
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

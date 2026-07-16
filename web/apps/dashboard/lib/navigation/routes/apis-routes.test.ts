@@ -19,6 +19,10 @@ describe("api-scoped paths", () => {
   it("builds the settings path", () => {
     expect(routes.apis.settings({ workspaceSlug: ws, apiId })).toBe("/acme/apis/api_123/settings");
   });
+
+  it("builds the portal path", () => {
+    expect(routes.apis.portal({ workspaceSlug: ws, apiId })).toBe("/acme/apis/api_123/portal");
+  });
 });
 
 describe("key-scoped paths", () => {

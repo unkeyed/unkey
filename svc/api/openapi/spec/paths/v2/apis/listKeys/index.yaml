@@ -22,9 +22,6 @@ post:
     - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: apis.listKeys
   x-speakeasy-name-override: listKeys
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     content:
       application/json:

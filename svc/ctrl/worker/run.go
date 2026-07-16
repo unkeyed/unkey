@@ -476,8 +476,11 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
-		BillingPusher: nil,
-		BillingCloser: nil,
+		BillingPusher:  nil,
+		BillingCloser:  nil,
+		WorkOSAPIKey:   cfg.WorkOSAPIKey,
+		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
@@ -486,6 +489,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
+			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
 		},
 	})
 	if err != nil {
@@ -551,13 +555,43 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// DeployBillingPush is the hourly month-to-date push orchestrator, keyed by
+	// billing period (YYYY-MM) so every hourly tick shares one VO. Its own reads
+	// (list workspaces, the ClickHouse scan) can fail non-terminally, and without
+	// a cap that invocation retries forever on the period VO while later ticks
+	// queue behind it. The push is idempotent (absolute month-to-date total,
+	// Stripe aggregates with "last"), so kill on exhaustion and let the next tick
+	// retry from a clean slate.
+	cronDeployBillingPushRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// DeploySpendCheck is the spend-cap orchestrator, keyed by the current
+	// billing period (YYYY-MM) so every tick shares one VO. Its own reads (list
+	// budgeted workspaces, the ClickHouse scan, the heartbeat) can fail
+	// non-terminally, and without a cap that invocation retries forever on the
+	// period VO while later ticks queue behind it. Each tick re-prices from
+	// scratch and the per-workspace children own alert dedup, so kill on
+	// exhaustion and let the next tick retry from a clean slate.
+	cronDeploySpendCheckRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
-		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry))
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
+		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -571,6 +605,46 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
 	logger.Info("KeyLastUsedPartitionService enabled")
+
+	// DeployBillingPushService is the per-workspace push VO fanned out from the
+	// deploy billing orchestrator. Standalone, not cron-triggered.
+	//
+	// The handler bounds its provider push to a 2-minute retry window and returns
+	// a TerminalError on exhaustion, so today it always completes terminally and
+	// the awaiting orchestrator resolves. This explicit kill policy is the
+	// backstop. If a non-terminal failure ever reached the handler (a second Run
+	// step, a framework error), the SDK default of infinite retries would leave
+	// the child retrying forever while the orchestrator suspends on the period
+	// VO. That is the wedge this fan-out exists to prevent. Cap and kill so the
+	// child fails visibly and the next tick re-sends the absolute total. Mirrors
+	// KeyLastUsedPartitionService.
+	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
+	logger.Info("DeployBillingPushService enabled")
+
+	// CheckWorkspaceSpend is awaited by the spend-check orchestrator, so it
+	// must terminate: without a cap a check that cannot succeed (one
+	// workspace's alert email rejected, a wedged suspend) retries forever and
+	// parks the awaiting period VO, stalling every later tick fleet-wide.
+	// Alert dedup is owned by the period-scoped high-water mark and the email
+	// idempotency key, so kill on exhaustion and let the next tick retry from
+	// a clean slate.
+	deploySpendCheckWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+		ConfigureHandler("CheckWorkspaceSpend", deploySpendCheckWorkspaceRetry))
+	logger.Info("DeploySpendCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

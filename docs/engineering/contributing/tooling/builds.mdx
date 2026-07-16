@@ -14,12 +14,13 @@ Unkey uses Docker for image production for three reasons:
    files.
 2. **Multi-arch releases.** The release workflow uses Docker Buildx to publish
    `linux/amd64` and `linux/arm64` variants.
-3. **Simple local builds.** Tilt and Docker Compose build service images on
-   demand from the same dev Dockerfile.
+3. **Simple local builds.** Tilt compiles binaries on the host for fast
+   incremental rebuilds. Dashboard Compose compiles its services once in a
+   shared Docker build stage.
 
-## What ships in an image
+## What ships in a release image
 
-Every service image is the same shape:
+Every release service image is the same shape:
 
 - **A single static Go binary** at `/unkey`. No libc, no shared libraries, no
   init scripts. The image entrypoint is the binary path directly, not a shell
@@ -47,31 +48,34 @@ Build configuration is split by concern:
   Runtime behavior (instance IDs, clocks, TLS loading, normalization) stays
   in `svc/.../run.go`. The entrypoint is intentionally thin so it does not
   become a second service runtime.
-- `dev/Dockerfile` owns local source builds. It accepts
-  `PACKAGE=./build/<service>`, compiles that package, and copies the binary
-  into a distroless runtime image.
+- `dev/Dockerfile` compiles the services required by Dashboard Compose in one
+  shared stage, then packages each binary in a named busybox stage.
 - `Dockerfile.release` owns release image packaging. It copies the prebuilt
   binary that GoReleaser produces for each platform. The image carries only the
   repository source label.
 - `.goreleaser.service.yaml` builds release binaries and publishes multi-arch
   images with `Dockerfile.release`.
-- `dev/Tiltfile` uses Tilt's native `docker_build` for on-demand local images.
-- `web/apps/dashboard/dev/docker-compose.yaml` builds dashboard-local service
-  images with `dev/Dockerfile`.
+- `dev/Tiltfile` compiles each service on the host with the local Go build
+  cache, then packages the binary with `dev/Dockerfile.binary`. The image is
+  built once per service; after that, Tilt's `live_update` syncs the rebuilt
+  binary into the running container and restarts the process in place, so a
+  code change never rebuilds an image or rolls a pod.
+- `web/apps/dashboard/dev/docker-compose.yaml` selects the service stages from
+  `dev/Dockerfile`.
 
 ## Local images
 
-Tilt and the dashboard `docker-compose` setup use `dev/Dockerfile` under the
-local `unkey/<service>:dev` tag:
+Tilt and the dashboard `docker-compose` setup both produce local
+`unkey/<service>:dev` tags:
 
 | Local environment | Image source |
 | --- | --- |
-| `dev/k8s` (Tilt) | `docker_build` in `dev/Tiltfile` |
-| Dashboard compose | `build` entries in `web/apps/dashboard/dev/docker-compose.yaml` |
+| `dev/k8s` (Tilt) | host `go build` + `dev/Dockerfile.binary` + `live_update` in `dev/Tiltfile` |
+| Dashboard Compose | shared Docker builder + named busybox stages |
 
-Because the same image runs locally and in production, you can reproduce
-production-image issues in dev without a separate codepath. There is no
-"dev image" that diverges from the shipped one.
+Local development images use a busybox base. Tilt needs `sh`, `date`, and `tar`
+for `live_update`, while Dashboard Compose uses the same base for consistency.
+Release images use distroless.
 
 ## Adding a new service image
 
@@ -79,8 +83,8 @@ production-image issues in dev without a separate codepath. There is no
 2. Add the service's tag pattern to `.depot/workflows/service-release.yaml`
    so the release workflow picks up `<service>/vx.y.z` pushes.
 3. Add the service to `.goreleaser.service.yaml`.
-4. Wire it into local dev: a `docker_build` call in `dev/Tiltfile`, and any
-   compose file that needs it.
+4. Wire it into local dev: a `go_service_image` call in `dev/Tiltfile`, and
+   any compose file that needs it.
 
 Keep new entrypoints thin. Anything that looks like service behavior, such
 as defaults, injected clocks, or generated instance IDs, belongs in the

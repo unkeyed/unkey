@@ -15,7 +15,7 @@ post:
   operationId: apis.getApi
   x-speakeasy-name-override: getApi
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

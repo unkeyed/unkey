@@ -87,27 +87,19 @@ type Harness struct {
 type HarnessConfig struct {
 	Redis      bool
 	ClickHouse bool
-
-	// MySQLDiskStorage starts a disk-backed MySQL container instead of the
-	// shared tmpfs one, whose 256MB would overflow under large seeded
-	// datasets. Use for tests that seed millions of rows.
-	MySQLDiskStorage bool
 }
 
-// NewHarness creates a fully initialized test harness wired against fresh
-// test-owned containers. Docker dependencies are started on demand and removed
-// automatically by t.Cleanup.
+// NewHarness creates a fully initialized test harness wired against shared
+// Docker dependencies. Docker dependencies are started on demand by testutil.
 func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
 	cfg := HarnessConfig{
-		Redis:            false,
-		ClickHouse:       false,
-		MySQLDiskStorage: false,
+		Redis:      false,
+		ClickHouse: false,
 	}
 	for _, c := range configs {
 		cfg.Redis = cfg.Redis || c.Redis
 		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
-		cfg.MySQLDiskStorage = cfg.MySQLDiskStorage || c.MySQLDiskStorage
 	}
 
 	var wg sync.WaitGroup
@@ -116,11 +108,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	var chCfg containers.ClickHouseConfig
 
 	wg.Go(func() {
-		var mysqlOpts []containers.MySQLOpt
-		if cfg.MySQLDiskStorage {
-			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
-		}
-		mysqlCfg = containers.MySQL(t, mysqlOpts...)
+		mysqlCfg = containers.MySQL(t)
 	})
 	if cfg.Redis {
 		wg.Go(func() {

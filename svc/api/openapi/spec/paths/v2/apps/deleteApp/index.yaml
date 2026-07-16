@@ -17,7 +17,7 @@ post:
   operationId: apps.deleteApp
   x-speakeasy-name-override: deleteApp
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

@@ -1,0 +1,19 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+  present:
+    type: boolean
+    enum:
+      - true
+    description: Matches when the field is present, regardless of value.
+  value:
+    "$ref": "./StringMatch.yaml"
+additionalProperties: false
+description: |-
+  Matches a named request field (header or query parameter). Exactly one of
+  `present` or `value` must be set.

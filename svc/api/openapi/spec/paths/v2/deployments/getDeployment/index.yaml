@@ -16,7 +16,7 @@ post:
   operationId: deployments.getDeployment
   x-speakeasy-name-override: getDeployment
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

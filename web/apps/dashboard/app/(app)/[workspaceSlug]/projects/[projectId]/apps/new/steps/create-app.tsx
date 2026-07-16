@@ -1,11 +1,14 @@
 "use client";
 import { collection } from "@/lib/collections";
+import { trpcClient } from "@/lib/collections/client";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { buildDefaultSettingsMutations } from "@/lib/collections/deploy/environment-settings";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, FormInput, useStepWizard } from "@unkey/ui";
+import { Button, FormInput, toast, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
@@ -20,6 +23,8 @@ type CreateAppStepProps = {
 
 export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
+
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
   const {
     register,
@@ -56,7 +61,24 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
         domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
-      onAppCreated((tx.metadata as { appId: string }).appId);
+      const appId = (tx.metadata as { appId: string }).appId;
+
+      try {
+        const envs = await trpcClient.deploy.environment.list.query({ projectId });
+        const appEnvs = envs.filter((e) => e.appId === appId);
+        const mutations = appEnvs.flatMap((env) =>
+          buildDefaultSettingsMutations(env.id, availableRegions ?? []),
+        );
+        if (mutations.length > 0) {
+          await Promise.all(mutations);
+        }
+      } catch (err) {
+        toast.error("Failed to initialize settings", {
+          description: err instanceof Error ? err.message : "An unexpected error occurred",
+        });
+      }
+
+      onAppCreated(appId);
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

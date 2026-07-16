@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	DashboardScopes     = "dashboard.Scopes"
+	BearerScopes        = "bearer.Scopes"
 	PortalSessionScopes = "portalSession.Scopes"
-	RootKeyScopes       = "rootKey.Scopes"
 )
 
 // Defines values for DeploymentStatus.
@@ -36,8 +35,8 @@ const (
 
 // Defines values for EnvironmentHealthcheckMethod.
 const (
-	GET  EnvironmentHealthcheckMethod = "GET"
-	POST EnvironmentHealthcheckMethod = "POST"
+	EnvironmentHealthcheckMethodGET  EnvironmentHealthcheckMethod = "GET"
+	EnvironmentHealthcheckMethodPOST EnvironmentHealthcheckMethod = "POST"
 )
 
 // Defines values for EnvironmentShutdownSignal.
@@ -60,10 +59,31 @@ const (
 	Writeonly   EnvironmentVariableKind = "writeonly"
 )
 
+// Defines values for FieldMatchPresent.
+const (
+	True FieldMatchPresent = true
+)
+
+// Defines values for FirewallPolicyAction.
+const (
+	ACTIONDENY FirewallPolicyAction = "ACTION_DENY"
+)
+
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for MethodMatchMethods.
+const (
+	MethodMatchMethodsDELETE  MethodMatchMethods = "DELETE"
+	MethodMatchMethodsGET     MethodMatchMethods = "GET"
+	MethodMatchMethodsHEAD    MethodMatchMethods = "HEAD"
+	MethodMatchMethodsOPTIONS MethodMatchMethods = "OPTIONS"
+	MethodMatchMethodsPATCH   MethodMatchMethods = "PATCH"
+	MethodMatchMethodsPOST    MethodMatchMethods = "POST"
+	MethodMatchMethodsPUT     MethodMatchMethods = "PUT"
 )
 
 // Defines values for UpdateKeyCreditsRefillInterval.
@@ -151,6 +171,9 @@ type App struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
+// AuthenticatedSubjectKey Rate limit by the authenticated subject (e.g. the verified key).
+type AuthenticatedSubjectKey = map[string]interface{}
+
 // BadRequestErrorDetails defines model for BadRequestErrorDetails.
 type BadRequestErrorDetails struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem. This provides detailed information about what went wrong and potential remediation steps. The message is intended to be helpful for developers troubleshooting the issue.
@@ -192,6 +215,9 @@ type BaseError struct {
 	// Type A URI reference that identifies the problem type. This provides a stable identifier for the error that can be used for documentation lookups and programmatic error handling. When followed, this URI should provide human-readable documentation for the problem type.
 	Type string `json:"type"`
 }
+
+// BearerTokenLocation Extract the key from the `Authorization Bearer` header.
+type BearerTokenLocation = map[string]interface{}
 
 // ConflictErrorResponse Error response when the request conflicts with the current state of the resource. This occurs when:
 // - Attempting to create a resource that already exists
@@ -452,6 +478,30 @@ type EnvironmentVariableInput struct {
 // at rest either way.
 type EnvironmentVariableKind string
 
+// FieldMatch Matches a named request field (header or query parameter). Exactly one of
+// `present` or `value` must be set.
+type FieldMatch struct {
+	Name string `json:"name"`
+
+	// Present Matches when the field is present, regardless of value.
+	Present *FieldMatchPresent `json:"present,omitempty"`
+
+	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+	Value *StringMatch `json:"value,omitempty"`
+}
+
+// FieldMatchPresent Matches when the field is present, regardless of value.
+type FieldMatchPresent bool
+
+// FirewallPolicy Blocks matching requests.
+type FirewallPolicy struct {
+	// Action What to do with matching requests.
+	Action FirewallPolicyAction `json:"action"`
+}
+
+// FirewallPolicyAction What to do with matching requests.
+type FirewallPolicyAction string
+
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
 // - The operation requires elevated privileges that the current key lacks
@@ -478,6 +528,19 @@ type GoneErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// HeaderKey Rate limit by the value of a request header.
+type HeaderKey struct {
+	Name string `json:"name"`
+}
+
+// HeaderKeyLocation Extract the key from a custom header.
+type HeaderKeyLocation struct {
+	Name string `json:"name"`
+
+	// StripPrefix Optional prefix removed from the header value before verification.
+	StripPrefix *string `json:"stripPrefix,omitempty"`
 }
 
 // Identity defines model for Identity.
@@ -535,6 +598,38 @@ type KeyCreditsRefill struct {
 // KeyCreditsRefillInterval How often credits are automatically refilled.
 type KeyCreditsRefillInterval string
 
+// KeyLocation Where to look for the API key on incoming requests. Exactly one of
+// `bearer`, `header` or `queryParam` must be set.
+type KeyLocation struct {
+	// Bearer Extract the key from the `Authorization Bearer` header.
+	Bearer *BearerTokenLocation `json:"bearer,omitempty"`
+
+	// Header Extract the key from a custom header.
+	Header *HeaderKeyLocation `json:"header,omitempty"`
+
+	// QueryParam Extract the key from a query parameter.
+	QueryParam *QueryParamKeyLocation `json:"queryParam,omitempty"`
+}
+
+// KeyRatelimit A rate limit applied during key verification. `limit` and `duration`
+// must be set together or both omitted; a partial pair is rejected.
+type KeyRatelimit struct {
+	// Cost Cost charged against the limit per request. Defaults to 1.
+	Cost *int64 `json:"cost,omitempty"`
+
+	// Duration Inline override: window duration in milliseconds. Must be set together
+	// with `limit`.
+	Duration *int64 `json:"duration,omitempty"`
+
+	// Limit Inline override: maximum number of operations per window. Must be set
+	// together with `duration`.
+	Limit *int64 `json:"limit,omitempty"`
+
+	// Name Name of a rate limit configured on the key or its identity, or the name
+	// of the inline override defined by `limit` and `duration`.
+	Name string `json:"name"`
+}
+
 // KeyResponseData defines model for KeyResponseData.
 type KeyResponseData struct {
 	// CreatedAt Unix timestamp in milliseconds when key was created.
@@ -575,6 +670,24 @@ type KeyResponseData struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
+// KeyauthPolicy Verifies Unkey API keys on matching requests.
+type KeyauthPolicy struct {
+	// Keyspaces Keyspaces to verify keys against, referenced by id. All keyspaces must
+	// belong to your workspace.
+	Keyspaces []string `json:"keyspaces"`
+
+	// Locations Where to look for the key on incoming requests, tried in order. Defaults
+	// to the `Authorization Bearer` header when omitted.
+	Locations *[]KeyLocation `json:"locations,omitempty"`
+
+	// PermissionQuery Optional permission query the verified key must satisfy, e.g.
+	// `documents.read AND documents.write`.
+	PermissionQuery *string `json:"permissionQuery,omitempty"`
+
+	// Ratelimits Rate limits applied during key verification.
+	Ratelimits *[]KeyRatelimit `json:"ratelimits,omitempty"`
+}
+
 // KeysVerifyKeyCredits Controls credit consumption for usage-based billing and quota enforcement.
 // Omitting this field uses the default cost of 1 credit per verification.
 // Credits provide globally consistent usage tracking, essential for paid APIs with strict quotas.
@@ -601,11 +714,37 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// MatchExpr A single request match expression. Exactly one of `path`, `method`,
+// `header` or `queryParam` must be set.
+type MatchExpr struct {
+	// Header Matches a named request field (header or query parameter). Exactly one of
+	// `present` or `value` must be set.
+	Header *FieldMatch `json:"header,omitempty"`
+
+	// Method Matches when the request method is one of the listed methods.
+	Method *MethodMatch `json:"method,omitempty"`
+
+	// Path Matches on the request path.
+	Path *PathMatch `json:"path,omitempty"`
+
+	// QueryParam Matches a named request field (header or query parameter). Exactly one of
+	// `present` or `value` must be set.
+	QueryParam *FieldMatch `json:"queryParam,omitempty"`
+}
+
 // Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 type Meta struct {
 	// RequestId A unique id for this request. Always include this ID when contacting support about a specific API request. This identifier allows Unkey's support team to trace the exact request through logs and diagnostic systems to provide faster assistance.
 	RequestId string `json:"requestId"`
 }
+
+// MethodMatch Matches when the request method is one of the listed methods.
+type MethodMatch struct {
+	Methods []MethodMatchMethods `json:"methods"`
+}
+
+// MethodMatchMethods defines model for MethodMatch.Methods.
+type MethodMatchMethods string
 
 // NotFoundErrorResponse Error response when the requested resource cannot be found. This occurs when:
 // - The specified resource ID doesn't exist in your workspace
@@ -621,6 +760,11 @@ type NotFoundErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// OpenapiPolicy Validates matching requests against the app's uploaded OpenAPI spec. Has no
+// configuration of its own. If no spec has been uploaded for the deployment,
+// the policy is a no-op and requests pass through unvalidated.
+type OpenapiPolicy = map[string]interface{}
+
 // Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
 type Pagination struct {
 	// Cursor Opaque pagination token for retrieving the next page of results.
@@ -632,6 +776,15 @@ type Pagination struct {
 	// When true, use the cursor to fetch the next page.
 	// When false, you have reached the end of the result set.
 	HasMore bool `json:"hasMore"`
+}
+
+// PathKey Rate limit by the request path.
+type PathKey = map[string]interface{}
+
+// PathMatch Matches on the request path.
+type PathMatch struct {
+	// Path String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+	Path StringMatch `json:"path"`
 }
 
 // Permission defines model for Permission.
@@ -657,6 +810,66 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
+// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
+// `openapi` must be set. The server generates an id for every policy it
+// stores.
+type Policy struct {
+	// Enabled Disabled policies are stored but skipped during evaluation.
+	Enabled bool `json:"enabled"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Match Optional request matchers. The policy applies only to requests matching
+	// all expressions; omit to apply to every request.
+	Match *[]MatchExpr `json:"match,omitempty"`
+
+	// Name Human-readable name shown in the dashboard.
+	Name string `json:"name"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// Ratelimit Rate limits matching requests.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
+// PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
+// `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+type PolicyResponse struct {
+	// Enabled Disabled policies are stored but skipped during evaluation.
+	Enabled bool `json:"enabled"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Id Server-generated policy id. Regenerated on every `gateway.setPolicies` call, so treat it as stable only until the environment's policies are next replaced.
+	Id string `json:"id"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Match Optional request matchers. The policy applies only to requests matching
+	// all expressions; omitted when the policy applies to every request.
+	Match *[]MatchExpr `json:"match,omitempty"`
+
+	// Name Human-readable name shown in the dashboard.
+	Name string `json:"name"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// Ratelimit Rate limits matching requests.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
 // PreconditionFailedErrorResponse Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
 // - Using conditional requests with If-Match or If-None-Match headers
 // - The resource version doesn't match the expected value
@@ -669,6 +882,11 @@ type PreconditionFailedErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// PrincipalFieldKey Rate limit by a field extracted from the authenticated principal.
+type PrincipalFieldKey struct {
+	Path string `json:"path"`
 }
 
 // Project defines model for Project.
@@ -693,6 +911,30 @@ type Project struct {
 	// UpdatedAt Unix timestamp in milliseconds when the project was last updated.
 	// Omitted if the project has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// QueryParamKeyLocation Extract the key from a query parameter.
+type QueryParamKeyLocation struct {
+	Name string `json:"name"`
+}
+
+// RatelimitIdentifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+type RatelimitIdentifier struct {
+	// AuthenticatedSubject Rate limit by the authenticated subject (e.g. the verified key).
+	AuthenticatedSubject *AuthenticatedSubjectKey `json:"authenticatedSubject,omitempty"`
+
+	// Header Rate limit by the value of a request header.
+	Header *HeaderKey `json:"header,omitempty"`
+
+	// Path Rate limit by the request path.
+	Path *PathKey `json:"path,omitempty"`
+
+	// PrincipalField Rate limit by a field extracted from the authenticated principal.
+	PrincipalField *PrincipalFieldKey `json:"principalField,omitempty"`
+
+	// RemoteIp Rate limit by the client's IP address.
+	RemoteIp *RemoteIpKey `json:"remoteIp,omitempty"`
 }
 
 // RatelimitOverride defines model for RatelimitOverride.
@@ -725,6 +967,19 @@ type RatelimitOverride struct {
 
 	// OverrideId The unique identifier of this specific rate limit override. This ID is generated when the override is created and can be used for management operations like updating or deleting the override.
 	OverrideId string `json:"overrideId"`
+}
+
+// RatelimitPolicy Rate limits matching requests.
+type RatelimitPolicy struct {
+	// Identifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+	// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+	Identifier RatelimitIdentifier `json:"identifier"`
+
+	// Limit Maximum number of requests per window.
+	Limit int64 `json:"limit"`
+
+	// WindowMs Window duration in milliseconds.
+	WindowMs int64 `json:"windowMs"`
 }
 
 // RatelimitRequest defines model for RatelimitRequest.
@@ -784,6 +1039,9 @@ type RatelimitResponse struct {
 	Name string `json:"name"`
 }
 
+// RemoteIpKey Rate limit by the client's IP address.
+type RemoteIpKey = map[string]interface{}
+
 // Replicas Min and max replica bounds for autoscaling in a region.
 type Replicas struct {
 	// Max Maximum number of replicas.
@@ -837,6 +1095,22 @@ type ServiceUnavailableErrorResponse struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// StringMatch String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+type StringMatch struct {
+	// Exact Matches when the input equals this value.
+	Exact *string `json:"exact,omitempty"`
+
+	// IgnoreCase Compare case-insensitively. May accompany any match mode.
+	IgnoreCase *bool `json:"ignoreCase,omitempty"`
+
+	// Prefix Matches when the input starts with this value.
+	Prefix *string `json:"prefix,omitempty"`
+
+	// Regex Matches when the input satisfies this RE2 regular expression. Invalid
+	// patterns are rejected when the policy is created.
+	Regex *string `json:"regex,omitempty"`
 }
 
 // TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
@@ -1360,6 +1634,110 @@ type V2DeploymentsGetDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
+// set, every deployment in the workspace is returned, newest first.
+type V2DeploymentsListDeploymentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App *ResourceIdentifier `json:"app,omitempty"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment *ResourceIdentifier `json:"environment,omitempty"`
+
+	// Limit Maximum number of deployments to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project *ResourceIdentifier `json:"project,omitempty"`
+
+	// Status Restrict results to deployments in any of the given lifecycle statuses.
+	// Omit to return deployments in every status.
+	Status *[]DeploymentStatus `json:"status,omitempty"`
+}
+
+// V2DeploymentsListDeploymentsResponseBody defines model for V2DeploymentsListDeploymentsResponseBody.
+type V2DeploymentsListDeploymentsResponseBody struct {
+	// Data Array of deployments, ordered newest first.
+	Data []Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the live deployment for its environment.
+type V2DeploymentsPromoteDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsPromoteDeploymentResponseBody defines model for V2DeploymentsPromoteDeploymentResponseBody.
+type V2DeploymentsPromoteDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsRollbackDeploymentRequestBody Roll live traffic back to a previous deployment.
+type V2DeploymentsRollbackDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsRollbackDeploymentResponseBody defines model for V2DeploymentsRollbackDeploymentResponseBody.
+type V2DeploymentsRollbackDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
+type V2DeploymentsStartDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStartDeploymentResponseBody defines model for V2DeploymentsStartDeploymentResponseBody.
+type V2DeploymentsStartDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStopDeploymentRequestBody Stop a running preview deployment to free up resources.
+type V2DeploymentsStopDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStopDeploymentResponseBody defines model for V2DeploymentsStopDeploymentResponseBody.
+type V2DeploymentsStopDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -1596,6 +1974,121 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 
 // V2EnvironmentsUpdateSettingsResponseBody defines model for V2EnvironmentsUpdateSettingsResponseBody.
 type V2EnvironmentsUpdateSettingsResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayListPoliciesRequestBody defines model for V2GatewayListPoliciesRequestBody.
+type V2GatewayListPoliciesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2GatewayListPoliciesResponseBody defines model for V2GatewayListPoliciesResponseBody.
+type V2GatewayListPoliciesResponseBody struct {
+	// Data The environment's gateway policies in evaluation order.
+	Data V2GatewayListPoliciesResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayListPoliciesResponseData The environment's gateway policies in evaluation order.
+type V2GatewayListPoliciesResponseData = []PolicyResponse
+
+// V2GatewaySetPoliciesRequestBody defines model for V2GatewaySetPoliciesRequestBody.
+type V2GatewaySetPoliciesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Policies The environment's complete policy list, in evaluation order. Every call
+	// replaces all stored policies with exactly this list; an empty list
+	// removes every policy. The operation is atomic: if any policy is
+	// invalid, nothing is written. An environment can hold at most 50
+	// policies.
+	Policies []Policy `json:"policies"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2GatewaySetPoliciesResponseBody defines model for V2GatewaySetPoliciesResponseBody.
+type V2GatewaySetPoliciesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
+// values; at least one updatable field must be provided. Providing one of
+// `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
+// rule entirely, including switching its type; at most one may be set.
+type V2GatewayUpdatePolicyRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Enabled Enable or disable the policy. Disabled policies are stored but skipped
+	// during evaluation. Omit to keep the current setting.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Match Replaces all match expressions. Set null to remove them so the policy
+	// applies to every request. Omit to keep the current expressions.
+	Match nullable.Nullable[[]MatchExpr] `json:"match,omitempty"`
+
+	// Name New human-readable name. Omit to keep the current name.
+	Name *string `json:"name,omitempty"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// PolicyId Id of the policy to update, as returned by `gateway.listPolicies`.
+	// Ids are regenerated whenever `gateway.setPolicies` replaces the list,
+	// so list the policies first if you are unsure the id is current.
+	PolicyId string `json:"policyId"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Ratelimit Rate limits matching requests.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
+// V2GatewayUpdatePolicyResponseBody defines model for V2GatewayUpdatePolicyResponseBody.
+type V2GatewayUpdatePolicyResponseBody struct {
 	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
 	Data EmptyResponse `json:"data"`
 
@@ -3464,6 +3957,21 @@ type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentR
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
 
+// DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
+type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
+
+// DeploymentsPromoteDeploymentJSONRequestBody defines body for DeploymentsPromoteDeployment for application/json ContentType.
+type DeploymentsPromoteDeploymentJSONRequestBody = V2DeploymentsPromoteDeploymentRequestBody
+
+// DeploymentsRollbackDeploymentJSONRequestBody defines body for DeploymentsRollbackDeployment for application/json ContentType.
+type DeploymentsRollbackDeploymentJSONRequestBody = V2DeploymentsRollbackDeploymentRequestBody
+
+// DeploymentsStartDeploymentJSONRequestBody defines body for DeploymentsStartDeployment for application/json ContentType.
+type DeploymentsStartDeploymentJSONRequestBody = V2DeploymentsStartDeploymentRequestBody
+
+// DeploymentsStopDeploymentJSONRequestBody defines body for DeploymentsStopDeployment for application/json ContentType.
+type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentRequestBody
+
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
 
@@ -3481,6 +3989,15 @@ type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvir
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
+
+// GatewayListPoliciesJSONRequestBody defines body for GatewayListPolicies for application/json ContentType.
+type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
+
+// GatewaySetPoliciesJSONRequestBody defines body for GatewaySetPolicies for application/json ContentType.
+type GatewaySetPoliciesJSONRequestBody = V2GatewaySetPoliciesRequestBody
+
+// GatewayUpdatePolicyJSONRequestBody defines body for GatewayUpdatePolicy for application/json ContentType.
+type GatewayUpdatePolicyJSONRequestBody = V2GatewayUpdatePolicyRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

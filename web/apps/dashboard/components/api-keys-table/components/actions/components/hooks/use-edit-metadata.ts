@@ -15,10 +15,7 @@ export const useEditMetadata = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
   const mutation = useMutation<void, unknown, EditMetadataVariables>({
     mutationFn: async ({ keyId, meta }) => {
-      await getUnkeyClient().keys.updateKey({
-        keyId,
-        meta,
-      });
+      await getUnkeyClient().keys.updateKey({ keyId, meta });
     },
     onSuccess(_, variables) {
       let description = "";

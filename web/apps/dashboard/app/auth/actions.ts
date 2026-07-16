@@ -1,6 +1,7 @@
 "use server";
 
 import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
@@ -21,6 +22,7 @@ import {
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
+import { getClientIp } from "@/lib/client-ip";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
 import type { Route } from "next";
@@ -30,10 +32,7 @@ import { redirect } from "next/navigation";
 // Helper to extract request metadata for Radar
 async function getRequestMetadata() {
   const headersList = await headers();
-  const ipAddress =
-    headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
-    headersList.get("x-real-ip") ||
-    undefined;
+  const ipAddress = getClientIp(headersList);
   const userAgent = headersList.get("user-agent") || undefined;
 
   return { ipAddress, userAgent };
@@ -338,7 +337,10 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo as Route);
+  // The auth provider is the authoritative sanitizer of redirectTo (it
+  // originates from the attacker-influenceable OAuth `state` param); this
+  // re-check is defense in depth at the redirect sink.
+  redirect(sanitizeRedirectPath(redirectTo) as Route);
 }
 
 // Organization Selection

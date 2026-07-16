@@ -240,6 +240,18 @@ export const workspacePermissions = {
       description: "Read environment variables for any environment in this workspace",
       permission: "environment.*.read_environment_variables",
     },
+    set_policies: {
+      description: "Replace the entire gateway policy list for any environment in this workspace",
+      permission: "environment.*.set_policies",
+    },
+    update_policy: {
+      description: "Update a single gateway policy in place for any environment in this workspace",
+      permission: "environment.*.update_policy",
+    },
+    read_policies: {
+      description: "Read gateway policies for any environment in this workspace",
+      permission: "environment.*.read_policies",
+    },
   },
   Deployments: {
     create_deployment: {
@@ -249,6 +261,22 @@ export const workspacePermissions = {
     read_deployment: {
       description: "Read deployment details and status for any environment in this workspace",
       permission: "environment.*.read_deployment",
+    },
+    stop_deployment: {
+      description: "Stop running preview deployments for any environment in this workspace",
+      permission: "environment.*.stop_deployment",
+    },
+    start_deployment: {
+      description: "Start stopped preview deployments for any environment in this workspace",
+      permission: "environment.*.start_deployment",
+    },
+    promote_deployment: {
+      description: "Promote deployments to live for any environment in this workspace",
+      permission: "environment.*.promote_deployment",
+    },
+    rollback_deployment: {
+      description: "Roll back to previous deployments for any environment in this workspace",
+      permission: "environment.*.rollback_deployment",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
@@ -369,6 +397,18 @@ export function environmentPermissions(environmentId: string): {
         description: "Read environment variables for this environment.",
         permission: `environment.${environmentId}.read_environment_variables`,
       },
+      set_policies: {
+        description: "Replace the entire gateway policy list for this environment.",
+        permission: `environment.${environmentId}.set_policies`,
+      },
+      update_policy: {
+        description: "Update a single gateway policy in place for this environment.",
+        permission: `environment.${environmentId}.update_policy`,
+      },
+      read_policies: {
+        description: "Read gateway policies for this environment.",
+        permission: `environment.${environmentId}.read_policies`,
+      },
     },
     Deployments: {
       create_deployment: {
@@ -378,6 +418,22 @@ export function environmentPermissions(environmentId: string): {
       read_deployment: {
         description: "Read deployment details and status for this environment.",
         permission: `environment.${environmentId}.read_deployment`,
+      },
+      stop_deployment: {
+        description: "Stop running preview deployments for this environment.",
+        permission: `environment.${environmentId}.stop_deployment`,
+      },
+      start_deployment: {
+        description: "Start stopped preview deployments for this environment.",
+        permission: `environment.${environmentId}.start_deployment`,
+      },
+      promote_deployment: {
+        description: "Promote deployments to live for this environment.",
+        permission: `environment.${environmentId}.promote_deployment`,
+      },
+      rollback_deployment: {
+        description: "Roll back to previous deployments for this environment.",
+        permission: `environment.${environmentId}.rollback_deployment`,
       },
     },
   };

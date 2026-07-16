@@ -1,0 +1,18 @@
+type: object
+properties:
+  remoteIp:
+    "$ref": "./RemoteIpKey.yaml"
+  header:
+    "$ref": "./HeaderKey.yaml"
+  authenticatedSubject:
+    "$ref": "./AuthenticatedSubjectKey.yaml"
+  path:
+    "$ref": "./PathKey.yaml"
+  principalField:
+    "$ref": "./PrincipalFieldKey.yaml"
+additionalProperties: false
+description: |-
+  How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+  `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+example:
+  remoteIp: {}

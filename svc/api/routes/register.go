@@ -26,6 +26,11 @@ import (
 	v2DeployGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 	v2DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 	v2DeploymentsGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
+	v2DeploymentsListDeployments "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
+	v2DeploymentsPromoteDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_promote_deployment"
+	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
+	v2DeploymentsStartDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
+	v2DeploymentsStopDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_stop_deployment"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -77,6 +82,9 @@ import (
 	v2EnvironmentsRemoveEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_remove_environment_variables"
 	v2EnvironmentsSetEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
 	v2EnvironmentsUpdateSettings "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
+	v2GatewayListPolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
+	v2GatewaySetPolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
+	v2GatewayUpdatePolicy "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
@@ -351,6 +359,50 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2DeploymentsGetDeployment.Handler{
 			DB: svc.Database,
+		},
+	)
+
+	// v2/deployments.listDeployments
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsListDeployments.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/deployments.stopDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsStopDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v2/deployments.startDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsStartDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v2/deployments.promoteDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsPromoteDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v2/deployments.rollbackDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsRollbackDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
 		},
 	)
 
@@ -822,6 +874,32 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2EnvironmentsListEnvironmentVariables.Handler{
 			DB:    svc.Database,
 			Vault: svc.Vault,
+		},
+	)
+
+	// v2/gateway.setPolicies
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GatewaySetPolicies.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/gateway.listPolicies
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GatewayListPolicies.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/gateway.updatePolicy
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GatewayUpdatePolicy.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 

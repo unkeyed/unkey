@@ -17,7 +17,7 @@ post:
   operationId: ratelimit.multiLimit
   x-speakeasy-name-override: multiLimit
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

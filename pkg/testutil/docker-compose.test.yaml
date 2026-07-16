@@ -1,0 +1,122 @@
+services:
+  clickhouse:
+    image: bitnamilegacy/clickhouse:25.6.4
+    environment:
+      CLICKHOUSE_ADMIN_USER: default
+      CLICKHOUSE_ADMIN_PASSWORD: password
+    ports:
+      - "8123"
+      - "9000"
+    volumes:
+      - clickhouse:/bitnami/clickhouse
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--user=default",
+          "--password=password",
+          "--query=SELECT 1",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  mysql:
+    image: mysql:9.4.0
+    command:
+      - --max_connections=1000
+      - --skip-log-bin
+      - --disable-log-bin
+      - --innodb-doublewrite=0
+      - --innodb-flush-log-at-trx-commit=0
+      - --innodb-flush-method=nosync
+      - --innodb-buffer-pool-size=512M
+      - --innodb-log-buffer-size=1M
+      - --performance-schema=OFF
+      - --skip-name-resolve
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: unkey
+      MYSQL_USER: unkey
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306"
+    volumes:
+      - mysql:/var/lib/mysql
+    healthcheck:
+      test: [
+        "CMD",
+        "mysqladmin",
+        "ping",
+        "-h",
+        "localhost",
+        "-uunkey",
+        "-ppassword",
+      ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  redis:
+    image: redis:8.0@sha256:ae471bdc20de180beed36e347d170ec0bdf8faa327959ea1f24692f22b05b955
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxclients
+      - "10000"
+    ports:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  restate:
+    image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
+    environment:
+      # Provision a single partition. Restate routes keyed invocations to a
+      # partition by hashing the object key, and each partition processor takes
+      # leadership independently on cold start. The harness readiness gate probes
+      # one fixed key, so with the default 24 partitions it only proves that
+      # key's partition is live while a deploy Send keyed by a random
+      # deployment_id targets a different, possibly-cold partition and silently
+      # queues. One partition makes the readiness probe cover every keyed Send.
+      RESTATE_DEFAULT_NUM_PARTITIONS: "1"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "8080"
+      - "9070"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9070/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  s3:
+    image: quay.io/minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+volumes:
+  clickhouse:
+  mysql:
