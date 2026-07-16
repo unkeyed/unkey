@@ -21,6 +21,35 @@
  * `scrubTrpcInput`, and server db spans record interpolated SQL statements
  * under `db.query.text`, masked by `maskSqlLiterals`.
  *
+ * Secrets also reach Sentry through the payload's free-form surfaces, which
+ * `sendDefaultPii: false` likewise does not touch because we populate them
+ * ourselves:
+ *
+ *   - error messages → `event.exception.values[].value`, `event.message`,
+ *                      `event.logentry` — a thrown error that interpolates a
+ *                      root key, a URL or an env-var value into its message
+ *                      (CWE-209) would otherwise be forwarded verbatim
+ *   - attached data  → `event.extra`, `event.request.data`
+ *
+ * Messages get `scrubText` (URL scrubbing plus the digit-bearing token net);
+ * the structured surfaces get the same key-based redaction as tRPC input.
+ *
+ * Stack frames are deliberately left alone: Sentry matches source maps on
+ * `filename`/`abs_path`, and the JS SDK does not collect frame-local variables
+ * (the `localVariables` integration is not enabled in any of our configs).
+ *
+ * `contexts` is scrubbed by name rather than wholesale. `contexts.trpc` holds
+ * procedure input and is redacted; `contexts.trace` ids are token-like, so a
+ * blanket pass would sever trace linking. The rest is either the SDK's own
+ * (browser, os, device) or app-attached and known non-sensitive — today only
+ * `react.componentStack` from `error-boundary.tsx`, which is component names.
+ * A new `setContext` carrying user data needs its own case here.
+ *
+ * Note the SDK normalizes `extra`, `contexts` and `breadcrumbs.data` (cutting
+ * cycles, resolving exotic objects) *before* `beforeSend` runs, so those
+ * arrive here as plain JSON. `logentry` is not on that list — see
+ * `scrubMessage`.
+ *
  * This module redacts those values before the payload leaves the browser/server.
  * Error events run through `beforeSend`, transactions through
  * `beforeSendTransaction`, standalone spans through `beforeSendSpan`; the hooks
@@ -82,7 +111,7 @@ const URL_ONLY_SENSITIVE_PARAM_KEYS = new Set(["input"]);
 
 /**
  * Matches token-like runs: 20+ chars of base64url alphabet. `redactTokenLike`
- * redacts every match; `redactTokenLikeInPath` additionally requires a digit
+ * redacts every match; `redactDigitBearingTokens` additionally requires a digit
  * before redacting.
  */
 const TOKEN_LIKE = /[A-Za-z0-9_-]{20,}/g;
@@ -108,19 +137,21 @@ function redactTokenLike(value: string): string {
 }
 
 /**
- * Redacts token-like path segments only when the run contains a digit. Opaque
- * secrets (Unkey root keys, JWTs, session ids) mix digits into their alphabet;
- * the digit requirement spares long human-written route identifiers like tRPC
- * procedure names (`getDeploymentRuntimeLogs`), which would otherwise collapse
- * to [REDACTED] and merge distinct routes in Sentry Performance. Only URL
- * paths get this treatment — route grouping lives in paths — accepting a
- * known residual miss: a digit-free 20+ char secret embedded directly in a
- * path segment. The digit check runs per matched run rather than as a regex
- * lookahead; a lookahead re-scans from every position, turning long
- * digit-free paths into an ~O(n²) stall on the browser main thread.
+ * Redacts token-like runs only when the run contains a digit. Opaque secrets
+ * (Unkey root keys, JWTs, session ids) mix digits into their alphabet; the
+ * digit requirement spares long human-written identifiers like tRPC procedure
+ * names (`getDeploymentRuntimeLogs`), which would otherwise collapse to
+ * [REDACTED] and merge distinct routes/issues in Sentry. Used on the two
+ * surfaces where that grouping matters and text is human-authored — URL paths
+ * and free-form messages — accepting a known residual miss: a digit-free 20+
+ * char secret. Everywhere else `redactTokenLike` casts the broader net.
+ *
+ * The digit check runs per matched run rather than as a regex lookahead; a
+ * lookahead re-scans from every position, turning long digit-free input into
+ * an ~O(n²) stall on the browser main thread.
  */
-function redactTokenLikeInPath(path: string): string {
-  return path.replace(TOKEN_LIKE, (run) => (/\d/.test(run) ? REDACTED : run));
+function redactDigitBearingTokens(text: string): string {
+  return text.replace(TOKEN_LIKE, (run) => (/\d/.test(run) ? REDACTED : run));
 }
 
 /**
@@ -215,7 +246,7 @@ export function scrubUrl(url: string): string {
     // which would strip the scheme and skip path scrubbing entirely.
     const hadScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
     if (hadScheme && parsed.host === "" && !url.startsWith("//")) {
-      const scrubbedPath = redactTokenLikeInPath(parsed.pathname);
+      const scrubbedPath = redactDigitBearingTokens(parsed.pathname);
       return `${parsed.protocol}${scrubbedPath}${parsed.search}`;
     }
 
@@ -226,7 +257,7 @@ export function scrubUrl(url: string): string {
     // `/_next/static/` is exempt — `/_next/data/` payload URLs embed dynamic
     // route params, which can be token-like ids.
     if (!parsed.pathname.startsWith("/_next/static/")) {
-      parsed.pathname = redactTokenLikeInPath(parsed.pathname);
+      parsed.pathname = redactDigitBearingTokens(parsed.pathname);
     }
 
     // Drop the fragment entirely. It is never useful for debugging and can carry
@@ -294,14 +325,22 @@ function scrubQueryString(
 }
 
 /**
- * Scrubs URLs carried in breadcrumb data. Sentry's default fetch/xhr/navigation
- * breadcrumbs put URLs under `data.url`, `data.from`, and `data.to`.
+ * Scrubs the URLs and free-form text carried by breadcrumbs. Sentry's default
+ * fetch/xhr/navigation breadcrumbs put URLs under `data.url`, `data.from` and
+ * `data.to`, while the console integration puts the formatted console
+ * arguments in `breadcrumb.message` — so `console.error("...", rootKey)`
+ * (which `error-boundary.tsx` does with the caught error) would otherwise
+ * carry the secret verbatim into the next event, right past the scrubbing
+ * `exception.values[].value` gets.
  */
 function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent): void {
   if (!event.breadcrumbs) {
     return;
   }
   for (const breadcrumb of event.breadcrumbs) {
+    if (typeof breadcrumb.message === "string") {
+      breadcrumb.message = scrubText(breadcrumb.message);
+    }
     const data = breadcrumb.data;
     if (!data) {
       continue;
@@ -316,25 +355,65 @@ function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent): void {
 }
 
 /**
- * Scrubs PII/secrets from an error event in place: request URLs and headers,
- * breadcrumbs, and the attached tRPC input. Safe to call on every event
- * regardless of classification. Never throws.
+ * Scrubs PII/secrets from an error event in place: the attached tRPC input,
+ * `extra`, exception and log messages, request URLs/headers/body, and
+ * breadcrumbs. Safe to call on every event regardless of classification. Never
+ * throws.
  *
  * @param event - The Sentry error event to scrub. Mutated in place because
  *   Sentry consumes the same object returned from `beforeSend`.
  */
 export function scrubEventPii(event: ErrorEvent, _hint?: EventHint): void {
+  // Every pass is isolated: a throw in one must never skip the others. A
+  // single try/catch around the whole sequence would let a failure in an
+  // early pass silently forward the URLs a later pass exists to redact.
+  // Within a pass the trade-off differs — the surfaces holding plaintext
+  // secrets under our own control (tRPC input, `extra`) fail closed inside
+  // their own helpers and drop the payload, while the rest fail open, because
+  // losing the whole error report costs more than one unscrubbed field.
+  isolate(() => scrubTrpcInput(event));
+  isolate(() => scrubExtra(event));
+  isolate(() => scrubExceptions(event));
+  isolate(() => scrubMessage(event));
+  isolate(() => scrubRequest(event.request));
+  isolate(() => scrubBreadcrumbs(event));
+}
+
+/**
+ * Runs one scrubbing pass, swallowing any throw. Scrubbing must never prevent
+ * an error from being reported, and must never let one failing surface stop
+ * the remaining surfaces from being scrubbed.
+ */
+function isolate(pass: () => void): void {
   try {
-    // The credential-bearing tRPC input is scrubbed FIRST (and is internally
-    // fail-closed): if URL scrubbing below throws, the outer catch sends the
-    // event as-is, and by then the input must already be redacted.
-    scrubTrpcInput(event);
-    scrubRequest(event.request);
-    scrubBreadcrumbs(event);
+    pass();
   } catch {
-    // Scrubbing must never prevent an error from being reported. If anything
-    // unexpected happens, fall through and let Sentry send the event as-is.
+    // Deliberately empty: see `scrubEventPii`.
   }
+}
+
+/**
+ * Scrubs an `event.request.data` body. A body most often arrives as the raw
+ * JSON *string*, where key-based redaction would never fire — walking keys
+ * needs an object, and the token net alone cannot see that the `hunter2` in
+ * `{"password":"hunter2"}` is a password. So JSON strings are parsed, redacted
+ * by key, and re-serialized. Anything else (already-parsed objects,
+ * form-encoded or plain-text bodies) goes straight to `redactSensitiveValues`.
+ */
+function scrubRequestData(data: unknown): unknown {
+  if (typeof data !== "string") {
+    return redactSensitiveValues(data);
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(data);
+    if (parsed && typeof parsed === "object") {
+      return JSON.stringify(redactSensitiveValues(parsed));
+    }
+  } catch {
+    // Not JSON: fall through to the blind token net below.
+  }
+  return redactTokenLike(data);
 }
 
 /**
@@ -358,7 +437,7 @@ const SENSITIVE_HEADERS = new Set([
 ]);
 
 /**
- * Scrubs the URL, query string, and URL/credential-bearing headers of an
+ * Scrubs the URL, query string, body, and URL/credential-bearing headers of an
  * event's `request` payload in place.
  */
 function scrubRequest(request: ErrorEvent["request"] | TransactionEvent["request"]): void {
@@ -370,6 +449,17 @@ function scrubRequest(request: ErrorEvent["request"] | TransactionEvent["request
   }
   if (request.query_string != null) {
     request.query_string = scrubQueryString(request.query_string);
+  }
+  // `sendDefaultPii: false` keeps the SDK from attaching request bodies, but
+  // code can still set one explicitly, and it is the same shape of structured
+  // data as tRPC input — so it gets the same treatment, failing closed to a
+  // drop rather than forwarding a raw body.
+  if (request.data != null) {
+    try {
+      request.data = scrubRequestData(request.data);
+    } catch {
+      delete request.data;
+    }
   }
   if (request.headers) {
     for (const [name, value] of Object.entries(request.headers)) {
@@ -440,14 +530,23 @@ function redactSensitiveValues(value: unknown): unknown {
   }
 
   if (value && typeof value === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = isSensitiveInputKey(key) ? REDACTED : redactSensitiveValues(nested);
-    }
-    return result;
+    return redactSensitiveRecord(value as Record<string, unknown>);
   }
 
   return value;
+}
+
+/**
+ * The object case of `redactSensitiveValues`, split out so callers holding a
+ * known record (`event.extra`) get a record back and need no cast. Returns a
+ * new object and never mutates the input.
+ */
+function redactSensitiveRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(record)) {
+    result[key] = isSensitiveInputKey(key) ? REDACTED : redactSensitiveValues(nested);
+  }
+  return result;
 }
 
 /**
@@ -649,6 +748,18 @@ const EMBEDDED_URL = /^(.*?[=(])((?:https?:\/\/|\/(?!\*)).*?)(\)*)$/i;
  * prefix such as `url=` or `fetch(` is still found and scrubbed.
  */
 function scrubUrlsInText(text: string): string {
+  return mapTextTokens(text, (token) => token);
+}
+
+/**
+ * Splits free-form text on whitespace and routes each token to exactly one
+ * treatment: URL-shaped tokens to `scrubUrl`, everything else to
+ * `scrubNonUrlToken`. Applying only one pass per token is the point — layering
+ * a second blanket pass over the joined result would re-redact what `scrubUrl`
+ * deliberately preserved, e.g. the `/_next/static/` chunk hashes it exempts on
+ * purpose.
+ */
+function mapTextTokens(text: string, scrubNonUrlToken: (token: string) => string): string {
   return text
     .split(/(\s+)/)
     .map((token) => {
@@ -668,9 +779,150 @@ function scrubUrlsInText(text: string): string {
       if (embedded) {
         return embedded[1] + scrubUrl(embedded[2]) + embedded[3];
       }
-      return token;
+      return scrubNonUrlToken(token);
     })
     .join("");
+}
+
+/**
+ * Matches an email address. `TOKEN_LIKE` cannot catch these — its alphabet
+ * stops at `.` and `@`, so `john.doe@customer.com` has no run over 20 chars —
+ * yet `email` is in `SENSITIVE_NAME_KEYS`, i.e. we already classify addresses
+ * as PII wherever we can see the field name. In prose there is no field name,
+ * so match the shape instead. Deliberately not extended to phone numbers:
+ * digit runs are far too easy to confuse with versions, counts and ids.
+ */
+const EMAIL_LIKE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+
+/**
+ * Scrubs secrets from free-form prose: exception values and messages. Each
+ * whitespace token gets exactly one treatment — URL-shaped tokens are scrubbed
+ * structurally by `scrubUrl` (so a root key in a query string goes even though
+ * it is short), and every other token gets `redactDigitBearingTokens`, which
+ * nets opaque secrets interpolated as bare words (`Error: key unkey_3ZjK...`)
+ * without collapsing the human-written identifiers Sentry groups issues by.
+ * Emails are then matched by shape across the whole string, since they span
+ * characters the token alphabet excludes.
+ *
+ * The residual miss is a short secret under a name only the prose reveals
+ * (`password=hunter2`). Name-based redaction is deliberately not applied here:
+ * `code`, `state` and `auth` are in `SENSITIVE_NAME_KEYS` and appear
+ * constantly in benign message text (`code: NOT_FOUND`), so keying off them
+ * would shred messages and merge unrelated issues for a case the structured
+ * surfaces (`extra`, tRPC input) already cover.
+ */
+function scrubText(text: string): string {
+  return mapTextTokens(text, redactDigitBearingTokens).replace(EMAIL_LIKE, REDACTED);
+}
+
+/**
+ * Scrubs the exception messages of an error event in place. `values[].value`
+ * is the thrown error's message; `values[].type` is its constructor name (a
+ * code-level identifier, never data) and is left alone, as are stack frames —
+ * see the module header.
+ */
+function scrubExceptions(event: ErrorEvent): void {
+  for (const exception of event.exception?.values ?? []) {
+    if (typeof exception.value === "string") {
+      exception.value = scrubText(exception.value);
+    }
+  }
+}
+
+/**
+ * Scrubs an event's message surfaces in place: the top-level `message` set by
+ * `captureMessage`, plus the `logentry` form that `fmt` tagged templates
+ * produce (`message` holding a `%s` template, `params` the values Sentry
+ * interpolates into it server-side).
+ *
+ * `logentry` is the one surface the SDK's `normalizeEvent` skips, so unlike
+ * `extra` it arrives with live values — cycles uncut, exotic objects
+ * unresolved — which is why params go through `redactLogParam` rather than
+ * `redactSensitiveValues`.
+ */
+function scrubMessage(event: ErrorEvent): void {
+  if (typeof event.message === "string") {
+    event.message = scrubText(event.message);
+  }
+
+  const logentry = event.logentry;
+  if (!logentry) {
+    return;
+  }
+  // A template's literal text is developer-authored source, so it holds no
+  // runtime secret — every runtime value sits in `params`. Scrubbing it would
+  // only corrupt it: `scrubUrl` round-trips through `URLSearchParams`, which
+  // re-encodes a `%s` placeholder to `%25s` and breaks interpolation. Scrub
+  // the message only when it stands alone as prose.
+  const hasParams = Array.isArray(logentry.params) && logentry.params.length > 0;
+  if (typeof logentry.message === "string" && !hasParams) {
+    logentry.message = scrubText(logentry.message);
+  }
+  if (Array.isArray(logentry.params)) {
+    const seen = new WeakSet<object>();
+    logentry.params = logentry.params.map((param) => redactLogParam(param, seen));
+  }
+}
+
+/**
+ * Redacts one `logentry` param. Params reach `beforeSend` un-normalized (see
+ * `scrubMessage`), so this walks live values and differs from
+ * `redactSensitiveValues` in two ways that matter only here:
+ *
+ *   - `seen` breaks reference cycles. A parent-linked object (a React fiber, a
+ *     tRPC ctx) would otherwise recurse until the stack blows, and that throw
+ *     would cost the whole pass.
+ *   - only plain objects and arrays are rebuilt. Rebuilding a `Date`, `Error`
+ *     or class instance from `Object.entries` yields `{}` — their state is not
+ *     own-enumerable — destroying data the transport would otherwise have
+ *     serialized. Those are passed through untouched, which is also why a
+ *     secret held in a class instance's own fields is the residual miss here.
+ */
+function redactLogParam(value: unknown, seen: WeakSet<object>): unknown {
+  if (typeof value === "string") {
+    return scrubText(value);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  if (seen.has(value)) {
+    return REDACTED;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactLogParam(item, seen));
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    result[key] = isSensitiveInputKey(key) ? REDACTED : redactLogParam(nested, seen);
+  }
+  return result;
+}
+
+/**
+ * Scrubs `event.extra` — the developer-attached bag from `setExtra`/
+ * `captureException(e, { extra })` — in place, with the same key-based plus
+ * broad token-like redaction as tRPC input: it is structured data no grouping
+ * depends on, so it takes the wider net. Fails closed like the tRPC input
+ * (a throwing getter drops the bag) and, because it runs before the URL
+ * scrubbing that fails open, cannot be skipped by a later throw.
+ */
+function scrubExtra(event: ErrorEvent | TransactionEvent): void {
+  if (!event.extra) {
+    return;
+  }
+  try {
+    event.extra = redactSensitiveRecord(event.extra);
+  } catch {
+    delete event.extra;
+  }
 }
 
 /**
@@ -738,8 +990,10 @@ export function scrubTransactionPii(
 
     // The tRPC middleware attaches raw procedure input to `contexts.trpc`,
     // which merges into transaction events too — the same leak the error path
-    // closes via `createErrorFilter`.
+    // closes via `createErrorFilter`. Scope `extra` merges into transactions
+    // for the same reason.
     scrubTrpcInput(event);
+    scrubExtra(event);
 
     // The root span's attributes live on the trace context, not in `spans`.
     scrubSpanAttributes(event.contexts?.trace?.data);

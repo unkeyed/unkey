@@ -177,10 +177,9 @@ describe("scrubEventPii", () => {
     expect(() => scrubEventPii(event)).not.toThrow();
   });
 
-  it("scrubs tRPC input even when URL scrubbing throws afterwards", () => {
-    // The credential surface must be redacted BEFORE the fail-open URL
-    // scrubbing: a throw there sends the event as-is, so running the input
-    // scrub last would ship raw credentials exactly when scrubbing breaks.
+  it("scrubs tRPC input even when breadcrumb scrubbing throws", () => {
+    // Each pass is isolated, so a throw in one leaves the others' work intact
+    // — the credential surface stays redacted even when URL scrubbing breaks.
     const event: ErrorEvent = {
       type: undefined,
       breadcrumbs: [
@@ -200,9 +199,100 @@ describe("scrubEventPii", () => {
     expect(() => scrubEventPii(event)).not.toThrow();
     expect(event.contexts?.trpc?.input).toEqual({ secret: "[REDACTED]" });
     // The frozen breadcrumb really did make URL scrubbing throw (fail-open:
-    // the event ships as-is) — otherwise this test would not be exercising
-    // the ordering guarantee at all.
+    // that field ships as-is) — otherwise this test would not be exercising
+    // the isolation guarantee at all.
     expect(event.breadcrumbs?.[0]?.data?.from).toContain(ROOT_KEY);
+  });
+
+  it("keeps scrubbing later surfaces when an earlier pass throws", () => {
+    // Regression guard: the passes used to share one try/catch, so a throw in
+    // message scrubbing skipped `scrubRequest`/`scrubBreadcrumbs` entirely and
+    // shipped the raw URLs those passes exist to redact.
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: {
+        values: [Object.freeze({ type: "Error", value: `boom ${ROOT_KEY}` })],
+      },
+      request: { url: `/keys?key=${ROOT_KEY}` },
+      breadcrumbs: [{ category: "fetch", data: { url: `/v1/keys?token=${JWT}` } }],
+    };
+
+    scrubEventPii(event);
+
+    // The frozen exception makes `scrubExceptions` throw...
+    expect(event.exception?.values?.[0]?.value).toContain(ROOT_KEY);
+    // ...but the request and breadcrumb passes still ran.
+    expect(event.request?.url).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(event.breadcrumbs)).not.toContain(JWT);
+  });
+
+  it("scrubs console breadcrumb messages", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      breadcrumbs: [
+        { category: "console", message: `failed to verify key ${ROOT_KEY}` },
+        { category: "console", message: "no user found for john.doe@customer.com" },
+      ],
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event.breadcrumbs)).not.toContain(ROOT_KEY);
+    expect(event.breadcrumbs?.[1]?.message).toBe("no user found for [REDACTED]");
+  });
+
+  it("preserves _next/static chunk names in messages", () => {
+    // `scrubUrl` exempts hashed chunk names on purpose; a blanket token pass
+    // layered over its output used to undo that, collapsing every
+    // ChunkLoadError in Sentry onto one indistinguishable group.
+    const chunk = "https://app.unkey.com/_next/static/chunks/app/layout-8f1a2b3c4d5e6f7a.js";
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: { values: [{ type: "ChunkLoadError", value: `Loading chunk failed (${chunk})` }] },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.exception?.values?.[0]?.value).toBe(`Loading chunk failed (${chunk})`);
+  });
+
+  it("scrubs string logentry params without destroying non-string ones", () => {
+    // `logentry` is the one surface the SDK does not normalize, so params
+    // arrive live. Rebuilding them from `Object.entries` flattened a Date to
+    // `{}`; recursing into a cyclic param threw and skipped the URL passes.
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const date = new Date(0);
+    const event: ErrorEvent = {
+      type: undefined,
+      logentry: {
+        message: "request to /search?q=%s failed",
+        params: [`bare ${ROOT_KEY}`, date, cyclic],
+      },
+      request: { url: `/keys?key=${ROOT_KEY}` },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.logentry?.params?.[0]).toBe("bare [REDACTED]");
+    // The Date survives intact rather than being flattened to `{}`.
+    expect(event.logentry?.params?.[1]).toBe(date);
+    // A `%s` template is developer-authored source with no runtime secret;
+    // scrubbing it would re-encode the placeholder to `%25s`.
+    expect(event.logentry?.message).toBe("request to /search?q=%s failed");
+    // The cyclic param did not take down the later passes.
+    expect(event.request?.url).not.toContain(ROOT_KEY);
+  });
+
+  it("redacts by key inside a raw JSON string body", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      request: { data: '{"email":"a@b.com","password":"hunter2","keep":"ok"}' },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.request?.data).toBe('{"email":"[REDACTED]","password":"[REDACTED]","keep":"ok"}');
   });
 
   it("drops the whole tRPC input when scrubbing it throws", () => {
@@ -226,6 +316,94 @@ describe("scrubEventPii", () => {
     scrubEventPii(event);
 
     expect(event.contexts?.trpc?.input).toBe("[REDACTED]");
+  });
+
+  it("scrubs secrets from exception messages and log entries", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      message: `captureMessage with ${ROOT_KEY}`,
+      logentry: {
+        message: "template with %s and %s",
+        params: [{ token: ROOT_KEY }, `bare ${JWT}`],
+      },
+      exception: {
+        values: [
+          {
+            type: "TRPCError",
+            value: `Failed to verify key ${ROOT_KEY} against https://api.unkey.com/v1/keys?token=${JWT}`,
+          },
+        ],
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(event)).not.toContain(JWT);
+    // The exception type is a code-level identifier and stays intact, as does
+    // the human-readable prose around the secret — redacting a message down to
+    // nothing would merge unrelated issues in Sentry.
+    expect(event.exception?.values?.[0]?.type).toBe("TRPCError");
+    expect(event.exception?.values?.[0]?.value).toContain("Failed to verify key");
+  });
+
+  it("keeps identifiers in messages that carry no secret", () => {
+    // The digit-bearing requirement exists so long human-written identifiers
+    // survive; without it every message like this would collapse to
+    // [REDACTED] and distinct issues would group together.
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: {
+        values: [{ type: "Error", value: "getDeploymentRuntimeLogs is not a function" }],
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.exception?.values?.[0]?.value).toBe("getDeploymentRuntimeLogs is not a function");
+  });
+
+  it("scrubs extra and request data by key and token shape", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      extra: {
+        password: "hunter2",
+        nested: { rootKey: ROOT_KEY, note: `opaque ${JWT}` },
+        keep: "plain text",
+      },
+      request: {
+        data: { token: ROOT_KEY, body: `contains ${JWT}` },
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(event)).not.toContain(JWT);
+    // Short secrets survive the token heuristic, so `extra` leans on the key
+    // list — unlike messages, no grouping depends on these values.
+    expect(event.extra?.password).toBe("[REDACTED]");
+    expect(event.extra?.keep).toBe("plain text");
+  });
+
+  it("drops extra wholesale when scrubbing it throws", () => {
+    // Fail-closed: `extra` is developer-attached and may hold plaintext
+    // secrets, so a scrub failure must not forward it raw. It is also scrubbed
+    // before the fail-open URL pass, so a later throw cannot skip it.
+    const event: ErrorEvent = {
+      type: undefined,
+      extra: {
+        get boom(): string {
+          throw new Error("getter exploded");
+        },
+      },
+      request: { url: `/keys?key=${ROOT_KEY}` },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.extra).toBeUndefined();
+    expect(event.request?.url).not.toContain(ROOT_KEY);
   });
 });
 
