@@ -360,10 +360,10 @@ k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl
 # build cache (incremental, shared across all services). The image is only
 # built once; after that, live_update syncs the fresh binary straight into
 # the running container and the restart_process wrapper re-execs it — no
-# image build, no registry push, no pod rollout. Building inside Docker
-# (dev/Dockerfile) recompiles the whole module from scratch on every change,
-# seven times in parallel — that Dockerfile stays around for the dashboard
-# docker-compose setup, but Tilt deliberately avoids it.
+# image build, no registry push, no pod rollout. Building each service inside
+# Docker would recompile the module for every image, so Tilt deliberately
+# avoids it. Dashboard Compose compiles its required services together in one
+# shared Docker build stage.
 #
 # Each service watches only the repo-local packages it actually imports, so
 # editing one service's code re-fires just that compile, not all seven. Edits
