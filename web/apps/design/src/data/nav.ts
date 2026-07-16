@@ -11,10 +11,16 @@ export interface NavSection {
 export const nav: NavSection[] = [
   {
     title: "Primitives",
-    items: [{ name: "Skeleton", href: "/primitives/skeleton" }],
+    items: [
+      { name: "Resource list", href: "/primitives/resource-list" },
+      { name: "Skeleton", href: "/primitives/skeleton" },
+    ],
   },
   {
     title: "Patterns",
-    items: [{ name: "Layout", href: "/patterns/layout" }],
+    items: [
+      { name: "Layout", href: "/patterns/layout" },
+      { name: "Resource list page", href: "/patterns/resource-list-page" },
+    ],
   },
 ];
