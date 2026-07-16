@@ -10,6 +10,7 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
+  ResourceList,
 } from "@unkey/ui";
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
 import { DeploymentsListControls } from "./components/controls";
@@ -39,8 +40,10 @@ export default function Deployments() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <DeploymentsListControls />
-        <DeploymentsCardList />
+        <ResourceList>
+          <DeploymentsListControls />
+          <DeploymentsCardList />
+        </ResourceList>
       </PageBody>
     </PageContainer>
   );

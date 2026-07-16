@@ -21,11 +21,8 @@ import { assertSubscriptionAttachable } from "./subscriptionGuards";
  * tier with no subscription yet.
  *
  * Writes workspaces.deploy_plan optimistically so the UI reflects the new plan
- * immediately. Stripe stays source of truth: the resulting customer.subscription.*
- * webhook reconciles the column, and since it derives the same value from the
- * subscription we just mutated, that reconciliation is a no-op. The
- * no-subscription path also writes stripeSubscriptionId so the webhook can find
- * this workspace.
+ * immediately. Stripe stays source of truth: customer.subscription.* reconciles
+ * deploy_plan on webhook retry.
  */
 export const subscribeDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
