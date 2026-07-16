@@ -1,6 +1,6 @@
 "use server";
 
-import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { getCookie, setCookies, setLastUsedOrgCookie } from "@/lib/auth/cookies";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import {
@@ -406,68 +406,6 @@ export async function completeOrgSelection(
 
   // Don't clear pending session on error - let user try again or close modal
   return result;
-}
-
-// Server-accessible switch org function vs client-side trpc
-// Used in route handlers, like join
-export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { newToken, expiresAt } = await auth.switchOrg(orgId);
-    if (!newToken || !expiresAt) {
-      throw new Error("Invalid session data returned from auth provider");
-    }
-    await setSessionCookie({ token: newToken, expiresAt });
-
-    // Store the last used organization ID in a cookie for auto-selection on next login
-    try {
-      await setLastUsedOrgCookie({ orgId });
-    } catch (_error) {
-      // Ignore cookie setting errors
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to switch organization",
-    };
-  }
-}
-
-/**
- * Accept an invitation and switch to the organization in one secure server action
- * This replaces the inline HTML approach with proper server-side cookie handling
- */
-export async function acceptInvitationAndJoin(
-  invitationId: string,
-  organizationId: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Accept invitation first
-    await auth.acceptInvitation(invitationId);
-
-    // Switch organization and get the new session token
-    const { newToken, expiresAt } = await auth.switchOrg(organizationId);
-
-    if (!newToken || !expiresAt) {
-      throw new Error("Invalid session data returned from auth provider");
-    }
-
-    // Set the session cookie securely on the server side
-    await setSessionCookie({ token: newToken, expiresAt });
-    try {
-      await setLastUsedOrgCookie({ orgId: organizationId });
-    } catch (_error) {
-      // Ignore cookie setting errors
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to join organization",
-    };
-  }
 }
 
 /**
