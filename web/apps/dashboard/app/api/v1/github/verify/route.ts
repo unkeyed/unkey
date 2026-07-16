@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { alertLeakedKey } from "@/lib/utils/slackAlerts";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import { NextResponse } from "next/server";
@@ -108,13 +109,13 @@ export async function POST(request: Request) {
         url: item.url,
       });
     }
-    await alertSlack({
+    await alertLeakedKey({
       type: item.type,
       source: item.source,
       itemUrl: item.url,
       date,
       keyId: keyFound.id,
-      wsName: ws.name,
+      workspaceName: ws.name,
       orgId: ws.orgId,
       email: users[0].email,
     });
@@ -134,60 +135,6 @@ export async function POST(request: Request) {
     };
   });
   return NextResponse.json([...githubResponse], { status: 201 });
-}
-
-type SlackProps = {
-  type: string;
-  source: string;
-  itemUrl: string;
-  date: string;
-  keyId: string;
-  wsName: string;
-  orgId: string;
-  email: string;
-};
-
-async function alertSlack({
-  type,
-  source,
-  itemUrl,
-  date,
-  keyId,
-  wsName,
-  orgId,
-  email,
-}: SlackProps): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
-  if (!url) {
-    console.error("Missing required environment variables");
-    return;
-  }
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text: "Leaked Key Found",
-      blocks: [
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `Type: ${type} \n Source: ${source} \n Date: ${date} \n URL: ${itemUrl}`,
-            },
-            {
-              type: "mrkdwn",
-              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${orgId} \n User: ${email}`,
-            },
-          ],
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
 }
 
 async function getUsers(orgId: string): Promise<{ id: string; email: string; name: string }[]> {

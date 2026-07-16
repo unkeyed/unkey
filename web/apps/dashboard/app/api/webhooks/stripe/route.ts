@@ -557,9 +557,6 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
-        const currency = invoice.currency || "usd";
-
-        // Validate amount and currency
         if (amount < 0) {
           console.warn("Payment failed event with negative amount", {
             amount,
@@ -568,26 +565,15 @@ export const POST = async (req: Request): Promise<Response> => {
           });
         }
 
-        try {
-          // Send payment failure alert without triggering subscription updates
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (customerEmail) {
-            await alertPaymentFailed(
-              customerEmail,
-              (customer as Stripe.Customer).name || "Unknown",
-              amount,
-              currency,
-            );
-          }
-        } catch (alertError) {
-          console.error("Failed to send payment failure alert:", {
-            error: alertError,
-            customerEmail: (customer as Stripe.Customer).email,
-            invoiceId: invoice.id,
-            eventId: event.id,
-          });
-          // Don't fail the webhook if alert fails - return success to prevent retries
-          return new Response("Alert failed but event processed", { status: 200 });
+        // Send payment failure alert without triggering subscription updates. The alert is
+        // best-effort and reports its own delivery failures, so it cannot fail the webhook.
+        const customerEmail = (customer as Stripe.Customer).email;
+        if (customerEmail) {
+          await alertPaymentFailed(
+            customerEmail,
+            (customer as Stripe.Customer).name || "Unknown",
+            amount,
+          );
         }
 
         // Return success immediately to prevent fall-through to other webhook handlers
@@ -704,9 +690,6 @@ export const POST = async (req: Request): Promise<Response> => {
         // Send recovery alert only when appropriate (after previous failures)
         if (isRecovery) {
           const amount = invoice.amount_paid || 0;
-          const currency = invoice.currency || "usd";
-
-          // Validate amount and currency
           if (amount < 0) {
             console.warn("Payment success event with negative amount", {
               amount,
@@ -715,25 +698,15 @@ export const POST = async (req: Request): Promise<Response> => {
             });
           }
 
+          // The alert is best-effort and reports its own delivery failures, so it cannot fail
+          // the webhook.
           const customerEmail = (customer as Stripe.Customer).email;
           if (customerEmail) {
-            try {
-              await alertPaymentRecovered(
-                customerEmail,
-                (customer as Stripe.Customer).name || "Unknown",
-                amount,
-                currency,
-              );
-            } catch (alertError) {
-              console.error("Failed to send payment recovery alert:", {
-                error: alertError,
-                customerEmail,
-                invoiceId: invoice.id,
-                eventId: event.id,
-              });
-              // Don't fail the webhook if alert fails - return success to prevent retries
-              return new Response("Alert failed but event processed", { status: 200 });
-            }
+            await alertPaymentRecovered(
+              customerEmail,
+              (customer as Stripe.Customer).name || "Unknown",
+              amount,
+            );
           }
         }
 
