@@ -1,0 +1,5 @@
+type: array
+maxItems: 50
+description: The environment's gateway policies in evaluation order.
+items:
+  "$ref": "../../../../common/PolicyResponse.yaml"

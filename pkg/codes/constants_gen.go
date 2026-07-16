@@ -119,6 +119,11 @@ const (
 	// NotFound indicates the requested deployment does not exist.
 	UnkeyDataErrorsDeploymentNotFound URN = "err:unkey:data:deployment_not_found"
 
+	// Policy
+
+	// NotFound indicates the requested policy does not exist.
+	UnkeyDataErrorsPolicyNotFound URN = "err:unkey:data:policy_not_found"
+
 	// Migration
 
 	// NotFound indicates the requested migration was not found.

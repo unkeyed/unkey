@@ -4,7 +4,12 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { env } from "./lib/env";
-import { createServerErrorFilter, createTracesSampler } from "./lib/sentry";
+import {
+  createServerErrorFilter,
+  createTracesSampler,
+  scrubSpanPii,
+  scrubTransactionPii,
+} from "./lib/sentry";
 
 // Skip Sentry initialization in development or when explicitly disabled
 const envVars = env();
@@ -14,6 +19,14 @@ if (process.env.NODE_ENV !== "development" && !envVars.SENTRY_DISABLED) {
 
     // Filter expected tRPC errors from being reported as Sentry errors
     beforeSend: createServerErrorFilter(),
+
+    // Transactions bypass `beforeSend`, so scrub secrets/PII from the URLs
+    // they carry (request url, Referer header, span http.url/url.full) before
+    // sending.
+    beforeSendTransaction: scrubTransactionPii,
+
+    // Standalone spans bypass `beforeSendTransaction` too; scrub them here.
+    beforeSendSpan: scrubSpanPii,
 
     // Use dynamic sampling to reduce non-error traces while ensuring all errors are captured
     tracesSampler: createTracesSampler(),

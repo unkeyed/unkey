@@ -147,9 +147,10 @@ func resolvePeriod(_ context.Context, _ *stripesdk.Client, month string) (billin
 // them into meter units, exactly as the worker does before pushing.
 func clickhouseUsage(ctx context.Context, ch *clickhouse.Client, workspace string, startMillis, endMillis int64) (meterValues, error) {
 	usage, err := ch.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
-		WorkspaceID: workspace,
-		Start:       startMillis,
-		End:         endMillis,
+		WorkspaceID:  workspace,
+		WorkspaceIDs: nil,
+		Start:        startMillis,
+		End:          endMillis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("query instance usage: %w", err)
@@ -166,9 +167,10 @@ func clickhouseUsage(ctx context.Context, ch *clickhouse.Client, workspace strin
 
 	monthStart := time.UnixMilli(startMillis).UTC()
 	keys, err := ch.GetActiveKeysUsage(ctx, clickhouse.GetActiveKeysUsageRequest{
-		WorkspaceID: workspace,
-		Year:        monthStart.Year(),
-		Month:       monthStart.Month(),
+		WorkspaceID:  workspace,
+		WorkspaceIDs: nil,
+		Year:         monthStart.Year(),
+		Month:        monthStart.Month(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("query active keys: %w", err)

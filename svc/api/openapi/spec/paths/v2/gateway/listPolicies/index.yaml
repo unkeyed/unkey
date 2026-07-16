@@ -1,0 +1,76 @@
+post:
+  tags:
+    - gateway
+  summary: List policies
+  description: |
+    Retrieve an environment's gateway policies in evaluation order: the
+    gateway evaluates them top to bottom and the first rejection
+    short-circuits the request.
+
+    The full policy list is returned in a single response.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_policies` (for any environment)
+    - `environment.<environment_id>.read_policies` (for a specific environment)
+  operationId: gateway.listPolicies
+  x-speakeasy-name-override: listPolicies
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2GatewayListPoliciesRequestBody.yaml"
+        examples:
+          list:
+            summary: List the environment's policies
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+    required: true
+  responses:
+    "200":
+      description: Policies retrieved successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2GatewayListPoliciesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.read_policies`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

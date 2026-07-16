@@ -58,6 +58,18 @@ var ProgressingDeploymentStatuses = []DeploymentsStatus{
 	DeploymentsStatusAwaitingApproval,
 }
 
+// ActiveComputeDeploymentStatuses enumerates the statuses a running-intent
+// deployment holds while it has, or is on its way to having, live compute:
+// every in-flight status plus the ready steady state. Teardown selects exactly
+// these; the drain-terminal statuses (failed/stopped/cancelled/superseded/
+// skipped) have no compute to stop. Ready is terminal for the deploy workflow
+// but live here, so this is its own set derived from ProgressingDeploymentStatuses
+// rather than a reuse of the terminal slice.
+var ActiveComputeDeploymentStatuses = append(
+	append([]DeploymentsStatus{}, ProgressingDeploymentStatuses...),
+	DeploymentsStatusReady,
+)
+
 // AllDeploymentStatuses lists every value of the DeploymentsStatus enum.
 // Exists so deployment_status_test.go does not maintain a parallel copy:
 // adding a new status here forces classification in IsTerminal and

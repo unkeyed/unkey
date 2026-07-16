@@ -74,7 +74,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "7.55.0",
     "recharts": "3.7.0",
-    "stripe": "22.2.0",
+    "stripe": "22.3.0",
     "superjson": "2.2.1",
     "tailwind-merge": "2.5.4",
     "tailwindcss": "catalog:",
