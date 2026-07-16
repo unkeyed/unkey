@@ -57,7 +57,6 @@ func TestDeriveFailure(t *testing.T) {
 		f := deriveFailure(db.DeploymentsStatusFailed, nil)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentFailureCodeUnknown, f.Code)
-		require.False(t, f.Retryable)
 		require.NotEmpty(t, f.Message)
 	})
 
@@ -69,7 +68,6 @@ func TestDeriveFailure(t *testing.T) {
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentFailureCodeBuildFailed, f.Code)
 		require.Equal(t, "building", f.Step)
-		require.False(t, f.Retryable)
 	})
 
 	t.Run("failed deploying step is classified by message", func(t *testing.T) {

@@ -38,7 +38,7 @@ func availableActions(in Input) []openapi.DeploymentAction {
 		if ready && running && hasLiveDeployment {
 			// promote is illegal only when this is already the promoted-live
 			// deployment (current pointer and not in a rolled-back state).
-			if !(isCurrentPointer && !in.AppIsRolledBack) {
+			if !isCurrentPointer || in.AppIsRolledBack {
 				actions = append(actions, openapi.DeploymentActionPromote)
 			}
 			// rollback is illegal when this is the current pointer, regardless of

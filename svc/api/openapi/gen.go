@@ -284,8 +284,8 @@ type Deployment struct {
 	CreatedAt int64 `json:"createdAt"`
 
 	// DesiredState The intended state of the deployment, independent of its current lifecycle
-	// status. `running` means it should serve traffic; `stopped` means it has been
-	// intentionally taken down.
+	// status. `running` means it should serve traffic; `stopped` means it should not,
+	// whether taken down on request or by the platform.
 	DesiredState DeploymentDesiredState `json:"desiredState"`
 	Docker       *DeploymentDocker      `json:"docker,omitempty"`
 
@@ -325,8 +325,8 @@ type Deployment struct {
 type DeploymentAction string
 
 // DeploymentDesiredState The intended state of the deployment, independent of its current lifecycle
-// status. `running` means it should serve traffic; `stopped` means it has been
-// intentionally taken down.
+// status. `running` means it should serve traffic; `stopped` means it should not,
+// whether taken down on request or by the platform.
 type DeploymentDesiredState string
 
 // DeploymentDocker defines model for DeploymentDocker.
@@ -366,11 +366,6 @@ type DeploymentFailure struct {
 	// Message Human-readable description of why the deployment failed. For programmatic
 	// handling, use `code`.
 	Message string `json:"message"`
-
-	// Retryable Whether retrying the same deployment unchanged could succeed. Almost always
-	// false: a failed deployment usually needs a configuration or code fix, not a
-	// retry.
-	Retryable bool `json:"retryable"`
 
 	// Step The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
 	Step string `json:"step"`

@@ -137,7 +137,6 @@ func TestGetDeploymentFailure(t *testing.T) {
 		require.Equal(t, openapi.DeploymentFailureCodeNoSchedulableRegions, d.Failure.Code)
 		require.Equal(t, "deploying", d.Failure.Step)
 		require.Equal(t, deployfail.MsgNoSchedulableRegions, d.Failure.Message)
-		require.False(t, d.Failure.Retryable)
 		require.Empty(t, d.AvailableActions, "failed deployment has no legal actions")
 	})
 

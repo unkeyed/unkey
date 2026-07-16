@@ -26,18 +26,16 @@ func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *open
 
 	if failed == nil {
 		return &openapi.DeploymentFailure{
-			Code:      openapi.DeploymentFailureCodeUnknown,
-			Step:      "",
-			Message:   "The deployment failed for an unknown reason.",
-			Retryable: false,
+			Code:    openapi.DeploymentFailureCodeUnknown,
+			Step:    "",
+			Message: "The deployment failed for an unknown reason.",
 		}
 	}
 
 	return &openapi.DeploymentFailure{
-		Code:      classifyFailure(failed.Step, failed.Error.String),
-		Step:      string(failed.Step),
-		Message:   failed.Error.String,
-		Retryable: false,
+		Code:    classifyFailure(failed.Step, failed.Error.String),
+		Step:    string(failed.Step),
+		Message: failed.Error.String,
 	}
 }
 
