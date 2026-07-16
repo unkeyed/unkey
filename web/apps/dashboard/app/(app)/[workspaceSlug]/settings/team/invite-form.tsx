@@ -145,9 +145,9 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 justify-center">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-row gap-2 items-end">
+              <div key={field.id} className="flex flex-row gap-2 items-start">
                 <div className="flex-1 h-22">
                   <label
                     htmlFor={`invites.${index}.email`}
@@ -194,15 +194,22 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                   />
                 </div>
                 {fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(index)}
-                    aria-label={`Remove invite ${index + 1}`}
-                  >
-                    <XMark className="w-4 h-4" aria-hidden="true" />
-                  </Button>
+                  <div className="flex flex-col">
+                    <span className="text-sm mb-1.5 block invisible" aria-hidden="true">
+                      &nbsp;
+                    </span>
+                    <div className="flex h-9 items-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => remove(index)}
+                        aria-label={`Remove invite ${index + 1}`}
+                      >
+                        <XMark className="w-4 h-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
