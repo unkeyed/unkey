@@ -634,7 +634,10 @@ export const POST = async (req: Request): Promise<Response> => {
           customer.email,
           customer.name || "Unknown",
         );
-        break;
+        // Return rather than break so this case can never fall through into
+        // invoice.payment_failed below; every other terminus in this case
+        // returns too.
+        return new Response("OK");
       } catch (error) {
         console.error("Subscription creation webhook error:", {
           error:

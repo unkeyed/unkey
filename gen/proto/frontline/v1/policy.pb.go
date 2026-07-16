@@ -45,7 +45,11 @@ type Policy struct {
 	// This allows operators to toggle policies on and off without modifying
 	// or removing the underlying configuration, which is useful during
 	// incidents, gradual rollouts, and debugging.
-	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	//
+	// Explicit presence so writers that serialize configs with protojson emit
+	// `"enabled": false` instead of dropping the field; the dashboard's strict
+	// schema requires it to always be present.
+	Enabled *bool `protobuf:"varint,3,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	// Match conditions that determine which requests this policy applies to.
 	// All entries must match for the policy to run (implicit AND). An empty
 	// list matches all requests — this is the common case for global policies
@@ -113,8 +117,8 @@ func (x *Policy) GetName() string {
 }
 
 func (x *Policy) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
+	if x != nil && x.Enabled != nil {
+		return *x.Enabled
 	}
 	return false
 }
@@ -216,11 +220,11 @@ var File_frontline_policies_v1_policy_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\"frontline/policies/v1/policy.proto\x12\ffrontline.v1\x1a$frontline/policies/v1/firewall.proto\x1a#frontline/policies/v1/jwtauth.proto\x1a#frontline/policies/v1/keyauth.proto\x1a!frontline/policies/v1/match.proto\x1a#frontline/policies/v1/openapi.proto\x1a%frontline/policies/v1/ratelimit.proto\"\x98\x03\n" +
+	"\"frontline/policies/v1/policy.proto\x12\ffrontline.v1\x1a$frontline/policies/v1/firewall.proto\x1a#frontline/policies/v1/jwtauth.proto\x1a#frontline/policies/v1/keyauth.proto\x1a!frontline/policies/v1/match.proto\x1a#frontline/policies/v1/openapi.proto\x1a%frontline/policies/v1/ratelimit.proto\"\xa9\x03\n" +
 	"\x06Policy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabled\x12-\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\aenabled\x18\x03 \x01(\bH\x01R\aenabled\x88\x01\x01\x12-\n" +
 	"\x05match\x18\x04 \x03(\v2\x17.frontline.v1.MatchExprR\x05match\x121\n" +
 	"\akeyauth\x18\x05 \x01(\v2\x15.frontline.v1.KeyAuthH\x00R\akeyauth\x121\n" +
 	"\ajwtauth\x18\x06 \x01(\v2\x15.frontline.v1.JWTAuthH\x00R\ajwtauth\x127\n" +
@@ -228,7 +232,9 @@ const file_frontline_policies_v1_policy_proto_rawDesc = "" +
 	"\bfirewall\x18\t \x01(\v2\x16.frontline.v1.FirewallH\x00R\bfirewall\x12B\n" +
 	"\aopenapi\x18\n" +
 	" \x01(\v2&.frontline.v1.OpenApiRequestValidationH\x00R\aopenapiB\b\n" +
-	"\x06configB\xad\x01\n" +
+	"\x06configB\n" +
+	"\n" +
+	"\b_enabledB\xad\x01\n" +
 	"\x10com.frontline.v1B\vPolicyProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
 var (

@@ -240,6 +240,11 @@ export const workspacePermissions = {
       description: "Read environment variables for any environment in this workspace",
       permission: "environment.*.read_environment_variables",
     },
+    set_policies: {
+      description:
+        "Create, update, reorder, and remove gateway policies for any environment in this workspace",
+      permission: "environment.*.set_policies",
+    },
   },
   Deployments: {
     create_deployment: {
@@ -384,6 +389,10 @@ export function environmentPermissions(environmentId: string): {
       read_environment_variables: {
         description: "Read environment variables for this environment.",
         permission: `environment.${environmentId}.read_environment_variables`,
+      },
+      set_policies: {
+        description: "Create, update, reorder, and remove gateway policies for this environment.",
+        permission: `environment.${environmentId}.set_policies`,
       },
     },
     Deployments: {

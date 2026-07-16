@@ -16,7 +16,6 @@ import {
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ProductCard } from "./product-card";
 import { SpendBudget } from "./spend-budget";
-import { UsageMeter } from "./usage-meter";
 
 type DeployProductCardProps = {
   isAdmin: boolean;
@@ -26,10 +25,10 @@ type DeployProductCardProps = {
 };
 
 /**
- * The Deploy product card, the page's hero: current plan and fee, usage spend
- * against the included credits, and the per-meter month-to-date quantities the
- * spend is made of. Without a plan it's the subscribe entry point. Cancelling
- * is a quiet footer link with a confirmation dialog, not a danger zone.
+ * The Deploy product card, the page's hero: current plan and fee, the spend
+ * budget, and the per-meter month-to-date quantities the spend is made of.
+ * Without a plan it's the subscribe entry point. Cancelling is a quiet footer
+ * link with a confirmation dialog, not a danger zone.
  */
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
@@ -57,16 +56,13 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
-  const { data: invoice } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
-    enabled: Boolean(currentPlan),
-    staleTime: 30_000,
-  });
 
   const revalidate = async () => {
     await Promise.all([
       trpcUtils.stripe.getDeploySubscription.invalidate(),
       trpcUtils.stripe.getDeployEntitlement.invalidate(),
       trpcUtils.stripe.getUpcomingInvoice.invalidate(),
+      trpcUtils.billing.queryDeployUsage.invalidate(),
       trpcUtils.workspace.getCurrent.invalidate(),
       trpcUtils.stripe.getDeploySubscription.refetch(),
     ]);
@@ -111,9 +107,14 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const plans = plansData?.plans ?? [];
   const currentPlanOption = plans.find((p) => p.plan === currentPlan);
 
-  // Credits equal the plan fee; usage beyond them is billed on top.
-  const credits = currentPlanOption?.amount ?? null;
-  const usageAmount = invoice?.deployUsageAmount ?? null;
+  // Gross month-to-date usage in cents, priced the same way the spend-cap
+  // worker prices it, so the budget bar tracks what the cap enforces.
+  const usageAmount = usage?.grossCents ?? null;
+
+  // The plan's recurring fee and its equal monthly credits, from the plan
+  // catalog. The fee includes credits of the same amount, so the two are equal.
+  const planFee = currentPlanOption?.amount ?? null;
+  const credits = planFee;
 
   const meterStats = usage
     ? [
@@ -186,8 +187,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         tag={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
         subtitle={
           currentPlan
-            ? credits !== null
-              ? `${formatDollars(credits)}/${currentPlanOption?.interval ?? "month"}, includes ${formatDollars(credits)} of usage credits`
+            ? planFee !== null
+              ? `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, includes ${formatDollars(planFee)} of usage credits`
               : "The plan fee includes usage credits; usage beyond them is billed on top."
             : "Run and scale your projects. Every plan includes usage credits equal to its fee."
         }
@@ -243,18 +244,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       >
         {currentPlan ? (
           <div className="flex flex-col gap-4">
-            <UsageMeter
-              label="Usage this period"
-              value={
-                usageAmount !== null && credits !== null
-                  ? `${formatDollars(usageAmount)} of ${formatDollars(credits)} credits`
-                  : usageAmount !== null
-                    ? formatDollars(usageAmount)
-                    : "—"
-              }
-              fraction={usageAmount !== null && credits ? usageAmount / credits : null}
-              fillClassName="bg-orange-9"
-            />
             {meterStats ? (
               <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
