@@ -145,31 +145,22 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 justify-center">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex-1 text-[13px] text-gray-11">Email</span>
+              <span className="w-48 text-[13px] text-gray-11">Role</span>
+              {fields.length > 1 && <div className="size-9 shrink-0" aria-hidden="true" />}
+            </div>
             {fields.map((field, index) => (
-              <div key={field.id} className="flex flex-row gap-2 items-start">
-                <div className="flex-1 h-22">
-                  <label
-                    htmlFor={`invites.${index}.email`}
-                    className="text-sm text-content-subtle mb-1.5 block"
-                  >
-                    Email
-                  </label>
-                  <FormInput
-                    id={`invites.${index}.email`}
-                    placeholder="jane@example.com"
-                    className="email"
-                    error={errors.invites?.[index]?.email?.message}
-                    {...register(`invites.${index}.email`)}
-                  />
-                </div>
-                <div className="flex flex-col w-48 h-22">
-                  <label
-                    htmlFor={`invites.${index}.role`}
-                    className="text-sm text-content-subtle mb-1.5 block"
-                  >
-                    Role
-                  </label>
+              <div key={field.id} className="flex items-start gap-2">
+                <FormInput
+                  id={`invites.${index}.email`}
+                  placeholder="jane@example.com"
+                  className="flex-1"
+                  error={errors.invites?.[index]?.email?.message}
+                  {...register(`invites.${index}.email`)}
+                />
+                <div className="w-48">
                   <Controller
                     control={control}
                     name={`invites.${index}.role`}
@@ -194,22 +185,16 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                   />
                 </div>
                 {fields.length > 1 && (
-                  <div className="flex flex-col">
-                    <span className="text-sm mb-1.5 block invisible" aria-hidden="true">
-                      &nbsp;
-                    </span>
-                    <div className="flex h-9 items-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        aria-label={`Remove invite ${index + 1}`}
-                      >
-                        <XMark className="w-4 h-4" aria-hidden="true" />
-                      </Button>
-                    </div>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="size-9 px-0 justify-center shrink-0"
+                    onClick={() => remove(index)}
+                    aria-label={`Remove invite ${index + 1}`}
+                  >
+                    <XMark className="w-4 h-4" aria-hidden="true" />
+                  </Button>
                 )}
               </div>
             ))}
