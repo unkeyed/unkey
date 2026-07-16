@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -51,6 +52,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	principal, err := s.GetPrincipal()
+	if err != nil {
+		return err
+	}
+
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
@@ -58,6 +64,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	key, err := h.FindLiveKey(ctx, req.KeyId)
 	if err != nil {
+		return err
+	}
+
+	if key.WorkspaceID != principal.WorkspaceID {
+		return fault.New("key not found",
+			fault.Code(codes.Data.Key.NotFound.URN()),
+			fault.Internal("key belongs to different workspace"),
+			fault.Public("The specified key was not found."),
+		)
+	}
+	if err := principal.Authorize(rerollPermissionQuery(key)); err != nil {
 		return err
 	}
 
@@ -89,85 +106,27 @@ func (h *Handler) FindLiveKey(ctx context.Context, keyID string) (db.FindLiveKey
 	return key, nil
 }
 
-// RerollKey rerolls a pre-loaded key. The workspace-ownership check is enforced
-// here; any identity scoping is the caller's responsibility (the portal route
-// applies it before calling). This core is identity-agnostic.
-func (h *Handler) RerollKey(ctx context.Context, s *zen.Session, req Request, key db.FindLiveKeyByIDRow) error {
+// RerollKey mutates a pre-loaded key after the route handler has completed its
+// authorization and scope checks.
+func (h *Handler) RerollKey(
+	ctx context.Context,
+	s *zen.Session,
+	req Request,
+	key db.FindLiveKeyByIDRow,
+) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
-
-	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != principal.WorkspaceID {
-		return fault.New("key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Internal("key belongs to different workspace"),
-			fault.Public("The specified key was not found."),
-		)
-	}
-
-	// Portal-authenticated rerolls are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs; auditactor derives
-	// this from the principal, so this core stays identity-agnostic.
-	actor := auditactor.FromPrincipal(principal)
-
-	keyData := db.ToKeyData(key)
-
-	// Rerolling is authorized as a create_key operation because it mints a fresh
-	// key. Today this is fine for the portal too: portal sessions carry only the
-	// permissions the workspace owner enumerated at portal.createSession, and the
-	// only key-creating route we expose to them is reroll (there is no
-	// portal.createKey route). So an owner granting create_key for reroll cannot
-	// actually create arbitrary keys.
-	//
-	// TODO: when we add a portal.createKey route, that equivalence breaks — an
-	// owner will want to let a portal user reroll an existing key WITHOUT also
-	// letting them create new ones. At that point introduce a dedicated
-	// reroll_key action and authorize reroll against it instead of create_key.
-	checks := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID),
-			permissions.CreateKey{},
-		),
-	)
-
-	if keyData.EncryptionKeyID.Valid {
-		checks = rbac.And(
-			checks,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.U(
-					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
-					permissions.EncryptKey{},
-				),
-			),
-		)
-	}
-
-	err = principal.Authorize(checks)
-	if err != nil {
+	if err := assert.All(
+		assert.Equal(key.WorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.ID, req.KeyId, "preloaded reroll key must match request"),
+	); err != nil {
 		return err
 	}
+
+	actor := auditactor.FromPrincipal(principal)
+	keyData := db.ToKeyData(key)
 
 	length := 16
 	prefix := ""
@@ -435,4 +394,50 @@ func (h *Handler) RerollKey(ctx context.Context, s *zen.Session, req Request, ke
 			Key:   keyResult.Key,
 		},
 	})
+}
+
+// rerollPermissionQuery builds the generic API permission requirement. Portal
+// routes pass their product capability directly instead.
+func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
+	keyData := db.ToKeyData(key)
+	checks := rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   key.Api.ID,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+		rbac.U(
+			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
+			permissions.CreateKey{},
+		),
+	)
+
+	if keyData.EncryptionKeyID.Valid {
+		checks = rbac.And(
+			checks,
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   key.Api.ID,
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.EncryptKey,
+				}),
+				rbac.U(
+					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					permissions.EncryptKey{},
+				),
+			),
+		)
+	}
+
+	return checks
 }

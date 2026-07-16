@@ -16,6 +16,7 @@ import { getAuthCookieOptions } from "./cookie-security";
 import type { Cookie } from "./cookies";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
+import { sanitizeRedirectPath } from "./redirect-utils";
 import {
   AUTH_CHALLENGE_COOKIE,
   type AuthChallengeCookieData,
@@ -1346,7 +1347,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     // the OAuth provider. There is no client touchpoint on the callback, so it
     // rides through the OAuth `state` round-trip and is handed to
     // `authenticateWithCode` in completeOAuthSignIn to link the attempt to Radar.
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete, signalsId }));
+    // Only same-origin paths may enter `state`: an absolute or scheme-relative
+    // redirectUrlComplete would become an open redirect after the callback.
+    const state = encodeURIComponent(
+      JSON.stringify({ redirectUrlComplete: sanitizeRedirectPath(redirectUrlComplete), signalsId }),
+    );
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -1370,10 +1375,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       // `state` carries both the post-auth redirect target and the browser-signal
       // token collected before the OAuth redirect (see signInViaOAuth). It is an
       // attacker-influenceable callback query param, so parse it inside the try so
-      // a malformed value is routed through mapAuthError instead of throwing.
-      const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
-        ? JSON.parse(decodeURIComponent(state))
-        : {};
+      // a malformed value is routed through mapAuthError instead of throwing, and
+      // treat anything but an object (e.g. the JSON literal `null`) as absent
+      // rather than letting a property access throw.
+      const rawState: unknown = state ? JSON.parse(decodeURIComponent(state)) : {};
+      const parsedState: Record<string, unknown> =
+        rawState !== null && typeof rawState === "object"
+          ? (rawState as Record<string, unknown>)
+          : {};
+      const signalsId =
+        typeof parsedState.signalsId === "string" ? parsedState.signalsId : undefined;
 
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
@@ -1381,7 +1392,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         ipAddress:
           callbackRequest.headers.get("x-forwarded-for")?.split(",")[0].trim() || undefined,
         userAgent: callbackRequest.headers.get("user-agent") || undefined,
-        signalsId: parsedState.signalsId,
+        signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
@@ -1392,7 +1403,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/apis";
+      // `state` is attacker-controllable (anyone can build an authorization URL
+      // with our public client id), so the redirect target parsed from it must
+      // be re-validated here — an absolute or scheme-relative URL would make
+      // the callback an open redirect.
+      const redirectUrlComplete = sanitizeRedirectPath(parsedState.redirectUrlComplete);
 
       return {
         success: true,

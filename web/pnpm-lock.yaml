@@ -116,8 +116,8 @@ importers:
         specifier: 10.45.2
         version: 10.45.2
       '@unkey/api':
-        specifier: 2.3.4
-        version: 2.3.4
+        specifier: workspace:*
+        version: link:../../internal/api
       '@unkey/clickhouse':
         specifier: workspace:^
         version: link:../../internal/clickhouse
@@ -248,8 +248,8 @@ importers:
         specifier: 3.7.0
         version: 3.7.0(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react-is@18.3.1)(react@19.2.4)(redux@5.0.1)
       stripe:
-        specifier: 22.2.0
-        version: 22.2.0(@types/node@22.14.0)
+        specifier: 22.3.0
+        version: 22.3.0(@types/node@22.14.0)
       superjson:
         specifier: 2.2.1
         version: 2.2.1
@@ -435,6 +435,16 @@ importers:
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.14.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.19.1)(yaml@2.9.0)
+
+  internal/api:
+    dependencies:
+      zod:
+        specifier: 4.3.5
+        version: 4.3.5
+    devDependencies:
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   internal/billing:
     dependencies:
@@ -7512,8 +7522,8 @@ packages:
     resolution: {integrity: sha512-OPD7LqBmni6uDdqA05GGgMZyyRWxJOehONBNC9tYgY4Uh089EtXd6QLIgRGrqTDlQH3cA2BXo848nxwa/zsQzw==}
     engines: {node: '>=12.*'}
 
-  stripe@22.2.0:
-    resolution: {integrity: sha512-WFGpMOom9QZqso1kcnSwJsCdC1QHDlMoCOxBZRf3JraMzhkfw7dgSdD2a1CFZrqC+mzAfqeEtYILrZhWKIDruA==}
+  stripe@22.3.0:
+    resolution: {integrity: sha512-ypO6xjVrMWs9SmIMeHr8naCx3dAQ0clxMdUTxn7Ejd7hmY9meBGfE+N4pVHkf9sUNebAHp6uJo6mV3GxDIc2cA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -7843,6 +7853,11 @@ packages:
 
   typescript@5.7.3:
     resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -15238,7 +15253,7 @@ snapshots:
       '@types/node': 25.0.10
       qs: 6.15.2
 
-  stripe@22.2.0(@types/node@22.14.0):
+  stripe@22.3.0(@types/node@22.14.0):
     optionalDependencies:
       '@types/node': 22.14.0
 
@@ -15564,6 +15579,8 @@ snapshots:
   typescript@5.5.3: {}
 
   typescript@5.7.3: {}
+
+  typescript@5.8.3: {}
 
   typescript@5.9.3: {}
 

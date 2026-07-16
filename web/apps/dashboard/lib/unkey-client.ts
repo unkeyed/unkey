@@ -3,8 +3,8 @@
 import { Unkey } from "@unkey/api";
 import * as errors from "@unkey/api/models/errors";
 
-let client: Unkey | null = null;
 const fallbackErrorMessage = "An unexpected error occurred. Please try again later.";
+let client: Unkey | null = null;
 
 export function getUnkeyClient(): Unkey {
   if (client) {
@@ -12,8 +12,7 @@ export function getUnkeyClient(): Unkey {
   }
 
   client = new Unkey({
-    rootKey: "",
-    serverURL: new URL("/proxy", window.location.origin).toString(),
+    serverURL: new URL("/proxy/", window.location.origin).toString(),
   });
 
   return client;
