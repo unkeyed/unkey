@@ -23,6 +23,11 @@ type GetInstanceMeterUsageRequest struct {
 	// across every workspace (the reconciliation / shadow-mode path).
 	WorkspaceID string
 
+	// WorkspaceIDs restricts the query to the listed workspaces. Nil applies
+	// no list filter. The spend-cap check passes its budgeted set so a
+	// tight-cadence scan does not aggregate the whole fleet's month.
+	WorkspaceIDs []string
+
 	// Start is the inclusive lower bound of the billing window (unix millis).
 	Start int64
 	// End is the exclusive upper bound of the billing window (unix millis).
@@ -106,6 +111,7 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 		WHERE ts >= {start:Int64}
 		  AND ts < {end:Int64}
 		  AND ({workspace_id:String} = '' OR workspace_id = {workspace_id:String})
+		  AND (empty({workspace_ids:Array(String)}) OR workspace_id IN {workspace_ids:Array(String)})
 		WINDOW w AS (
 			PARTITION BY workspace_id, container_uid
 			ORDER BY ts, event_kind
@@ -118,10 +124,11 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 	`
 
 	usage, err := Select[InstanceMeterUsage](ctx, c.conn, query, map[string]string{
-		"start":        strconv.FormatInt(req.Start, 10),
-		"end":          strconv.FormatInt(req.End, 10),
-		"workspace_id": req.WorkspaceID,
-		"max_gap_ms":   strconv.FormatInt(maxSampleGap.Milliseconds(), 10),
+		"start":         strconv.FormatInt(req.Start, 10),
+		"end":           strconv.FormatInt(req.End, 10),
+		"workspace_id":  req.WorkspaceID,
+		"workspace_ids": stringArrayParam(req.WorkspaceIDs),
+		"max_gap_ms":    strconv.FormatInt(maxSampleGap.Milliseconds(), 10),
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query instance meter usage"))

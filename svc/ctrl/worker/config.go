@@ -196,6 +196,11 @@ type HeartbeatConfig struct {
 	// DeployBillingCloseURL is the Checkly heartbeat URL for the month-end
 	// Deploy billing close. Optional.
 	DeployBillingCloseURL string `toml:"deploy_billing_close_url"`
+
+	// DeploySpendCheckURL is the Checkly heartbeat URL for the Compute spend-cap
+	// check orchestrator. When set, a heartbeat is sent after a successful run.
+	// Optional - if empty, no heartbeat is sent.
+	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -216,6 +221,15 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+}
+
+// EmailConfig holds transactional email (Resend) configuration. Used by the
+// spend-cap check to send budget alerts. Disabled (logs instead of sending)
+// unless ResendAPIKey is set. Sender and subject come from the published
+// template, so there is no From to configure here.
+type EmailConfig struct {
+	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
+	ResendAPIKey string `toml:"resend_api_key"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -292,6 +306,14 @@ type Config struct {
 
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
+
+	// Email configures transactional email (Resend) for budget alerts.
+	Email EmailConfig `toml:"email"`
+
+	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
+	// emails (budget-alert recipients). Empty resolves no recipients, so the
+	// check logs crossings but sends no email.
+	WorkOSAPIKey string `toml:"workos_api_key"`
 
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.

@@ -1,0 +1,19 @@
+---
+layout: ../../../layouts/layout.astro
+title: Resource list page — Unkey Design
+---
+import { Preview } from "../../../components/preview.tsx";
+import { ResourceListPageExample } from "./_basic.tsx";
+import basicSource from "./_basic.tsx?highlight";
+
+# Resource list page
+
+Use this pattern when a centered dashboard page is primarily a searchable or filterable list.
+
+<Preview client:load bleed code={basicSource}>
+  <ResourceListPageExample client:load />
+</Preview>
+
+## Structure
+
+Put the resource name and primary creation action in `PageHeader`. Put search, filters, and sorting in `ResourceListHeader`. If more results are available, put a right-aligned Load more button in `ResourceListFooter`. Do not add a result count.
