@@ -110,6 +110,16 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           securityContext:
+            # The shared Dockerfile bases every service on distroless :nonroot
+            # (uid 65532). heimdall is the one service that can't run nonroot:
+            # it pins eBPF maps under /sys/fs/bpf/heimdall, and bpffs pin dirs
+            # are created 0700 root:root, so a nonroot heimdall gets EACCES
+            # creating/traversing them and crashloops on "mkdir
+            # /sys/fs/bpf/heimdall/v2: permission denied". Override to root
+            # here rather than in the Dockerfile so the other six services
+            # keep their nonroot base.
+            runAsUser: 0
+            runAsGroup: 0
             # The pod has elevated caps for eBPF; explicitly block runtime
             # privilege *escalation* beyond the declared set so a compromised
             # heimdall process can't obtain anything we didn't grant here.
