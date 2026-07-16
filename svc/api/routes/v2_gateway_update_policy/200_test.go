@@ -9,8 +9,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 	listpolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 )
 
 func TestUpdatePolicySuccessfully(t *testing.T) {

@@ -241,8 +241,7 @@ export const workspacePermissions = {
       permission: "environment.*.read_environment_variables",
     },
     set_policies: {
-      description:
-        "Replace the entire gateway policy list for any environment in this workspace",
+      description: "Replace the entire gateway policy list for any environment in this workspace",
       permission: "environment.*.set_policies",
     },
     update_policy: {
