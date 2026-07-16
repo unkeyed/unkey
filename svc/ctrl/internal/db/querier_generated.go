@@ -10,6 +10,18 @@ import (
 )
 
 type Querier interface {
+	// Clears apps.current_deployment_id when it still points at the given
+	// deployment. Teardown calls this before stopping an app's current deployment so
+	// the DeploymentService current-deployment guard permits the change; gating on
+	// the deployment id makes it a safe no-op if a concurrent deploy already
+	// re-pointed current_deployment_id at something else.
+	//
+	//  UPDATE apps
+	//  SET current_deployment_id = NULL,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND current_deployment_id = ?
+	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
 	//CompareAndSwapDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -17,6 +29,18 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND status = ?
 	CompareAndSwapDeploymentStatus(ctx context.Context, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
+	// Counts how many of the given deployments still have live compute to drain.
+	// Teardown polls this until it returns 0. A deployment is draining only while it
+	// has instance rows; krane deletes those rows when it tears the pods down (see
+	// DeleteDeploymentInstances), so their absence is the drain signal. A deployment
+	// that never had instances (pending/building/awaiting_approval, all born
+	// desired_state='running' and swept into the teardown set) counts zero here
+	// rather than waiting out the grace window for a krane Delete that never comes.
+	//
+	//  SELECT COUNT(DISTINCT i.deployment_id) AS count
+	//  FROM instances i
+	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
+	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -1433,6 +1457,32 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
+	// Running deployments for a workspace that still have (or will soon have) live
+	// compute: desired_state 'running' and either a status that carries compute or
+	// at least one live instance. The instance check makes this robust to a stale
+	// status: a deployment that a resume revived (an instance started, desired_state
+	// back to 'running') but whose status is still 'stopped' from an earlier drain
+	// would otherwise be skipped here, and the next teardown would no-op and leave
+	// its compute running. Joins apps so the caller knows, per deployment, whether
+	// it is its app's current deployment and therefore must have current_deployment_id
+	// cleared before its desired state can change. Callers pass
+	// db.ActiveComputeDeploymentStatuses so the status set has a single source of
+	// truth (deployment_status.go) instead of a SQL literal that can drift from the
+	// enum.
+	//
+	//  SELECT
+	//    d.id,
+	//    d.app_id,
+	//    a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.workspace_id = ?
+	//    AND d.desired_state = 'running'
+	//    AND (
+	//      d.status IN (/*SLICE:active_statuses*/?)
+	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
+	//    )
+	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -1463,6 +1513,24 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Lists every enabled workspace that has set a Deploy spend budget: the opt-in
+	// set the spend-cap check evaluates. The check prices each one's month-to-date
+	// Deploy usage and compares the gross total spend against the budget.
+	// org_id resolves the alert recipients (org admins via WorkOS); the stop flag
+	// decides whether 100% triggers teardown once enforcement (ENG-2923) lands.
+	//
+	//  SELECT
+	//     w.id,
+	//     w.name,
+	//     w.slug,
+	//     w.org_id,
+	//     w.deploy_spend_budget_cents,
+	//     w.deploy_spend_budget_stop
+	//  FROM `workspaces` w
+	//  WHERE w.deploy_spend_budget_cents IS NOT NULL
+	//    AND w.enabled = true
+	//    AND w.deleted_at_m IS NULL
+	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. Called inside the same transaction that selected
 	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as

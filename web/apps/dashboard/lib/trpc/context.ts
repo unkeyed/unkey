@@ -3,6 +3,7 @@ import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import type { NextRequest } from "next/server";
 
 import { getAuth } from "../auth/get-auth";
+import { getClientIp } from "../client-ip";
 import { db } from "../db";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
@@ -39,7 +40,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
     req,
     audit: {
       userAgent: req.headers.get("user-agent") ?? undefined,
-      location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+      // Recorded as `remote_ip` on every audit log, so it must be an address we trust rather than
+      // whatever the client put in a forwarding header.
+      location: getClientIp(req.headers) ?? "unknown",
     },
     user: authResult.userId
       ? {

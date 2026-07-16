@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -16,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // storedGrant is the JSON shape persisted in the portal session's permissions
@@ -110,15 +109,10 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 
 // keyspacesFromSentinelConfig parses a deployment's sentinel_config and returns
 // the deduplicated keyspaces declared across its keyauth policies. Empty or
-// legacy empty-object configs yield no keyspaces (mirrors the frontline
-// gateway's lenient parsing).
+// legacy empty-object configs yield no keyspaces.
 func keyspacesFromSentinelConfig(raw []byte) ([]string, error) {
-	if len(raw) == 0 || string(raw) == "{}" {
-		return nil, nil
-	}
-
-	cfg := &frontlinev1.Config{}
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(raw, cfg); err != nil {
+	cfg, err := policyconfig.Parse(raw)
+	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("failed to unmarshal app sentinel config"),

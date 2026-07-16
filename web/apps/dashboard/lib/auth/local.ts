@@ -1,6 +1,7 @@
 import { BaseAuthProvider } from "./base-provider";
 import { shouldUseSecureCookies } from "./cookie-security";
 import { getCookie } from "./cookies";
+import { sanitizeRedirectPath } from "./redirect-utils";
 import {
   type AuthenticatedUser,
   type EmailAuthResult,
@@ -565,7 +566,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
-    return options.redirectUrlComplete;
+    // The client navigates straight to the returned URL, so echoing the
+    // caller-supplied value verbatim would be an open redirect — mirror the
+    // WorkOS provider's sanitization.
+    return sanitizeRedirectPath(options.redirectUrlComplete);
   }
 
   async completeOAuthSignIn(_callbackRequest: Request): Promise<OAuthResult> {

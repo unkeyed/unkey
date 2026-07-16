@@ -1,0 +1,14 @@
+# Keep Tilt's file watcher off high-churn / huge directories.
+# Paths are relative to this file (dev/). The docker_build context is the repo
+# root ('..'), so without these Tilt would watch the whole monorepo, including
+# .jj which jujutsu rewrites constantly — that overflows the fsnotify queue.
+../.git
+../.jj
+../.turbo
+../.cache
+../bin
+../web/node_modules
+../**/node_modules
+../**/.next
+../**/.DS_Store
+../dev/data
