@@ -9018,7 +9018,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Update policy
             tags:
                 - gateway

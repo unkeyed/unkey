@@ -24,7 +24,7 @@ post:
   operationId: gateway.updatePolicy
   x-speakeasy-name-override: updatePolicy
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
