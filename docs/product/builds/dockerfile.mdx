@@ -63,12 +63,21 @@ NPM_TOKEN=npm_abc123
 FEATURE_FLAG=true
 ```
 
-The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step. The secret file is not persisted in the final image.
+Values that contain whitespace, quotes, `$`, `#`, or newlines are emitted quoted so they survive sourcing and dotenv parsing unchanged. Multi-line values such as PEM keys work as-is:
+
+```bash /run/secrets/.env
+DATABASE_URL='postgres://prod db.acme.com/api'
+TLS_KEY='-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ...
+-----END PRIVATE KEY-----'
+```
+
+The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step, including quoted and multi-line values. The secret file is not persisted in the final image.
 
 How you consume the file depends on your toolchain:
 
 - **Tools that expect environment variables** (npm, pip, go): use the `set -a` pattern above to load them into the shell.
-- **Frameworks that read `.env` files directly** (Node.js with dotenv, Ruby with dotenv): reference `/run/secrets/.env` in your build script instead of sourcing it.
+- **Frameworks that read `.env` files directly**: reference `/run/secrets/.env` in your build script instead of sourcing it. Dotenv parsers that support quoted multi-line values read the file unchanged. Use a current release: node dotenv 15 or newer, ruby dotenv 2.7 or newer, or python-dotenv. A value that combines a single quote with other shell metacharacters is written double-quoted, which a few dotenv parsers read differently than the shell does; single-quote it or split it if that matters.
 
 ### Why secret mounts instead of ARG or ENV?
 

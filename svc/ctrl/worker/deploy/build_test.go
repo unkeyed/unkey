@@ -209,15 +209,13 @@ func TestBuildGitSolverOptions_EnvSecretGating(t *testing.T) {
 	}
 
 	t.Run("nil env registers no env secret", func(t *testing.T) {
-		opts, err := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", nil)
-		require.NoError(t, err)
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", nil)
 		require.NotContains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.NotContains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})
 
 	t.Run("non-empty env registers env secret", func(t *testing.T) {
-		opts, err := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", map[string]string{"FOO": "bar"})
-		require.NoError(t, err)
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", map[string]string{"FOO": "bar"})
 		require.Contains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.Contains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})

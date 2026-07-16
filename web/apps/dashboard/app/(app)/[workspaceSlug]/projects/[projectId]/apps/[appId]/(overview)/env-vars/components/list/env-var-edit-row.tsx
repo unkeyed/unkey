@@ -6,9 +6,9 @@ import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, Plus } from "@unkey/icons";
-import { Button, FormInput, InfoTooltip, toast } from "@unkey/ui";
+import { Button, FormInput, FormTextarea, InfoTooltip, toast } from "@unkey/ui";
 import { type ClipboardEvent, useCallback, useEffect } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseEnvText } from "../../hooks/use-drop-zone";
 
@@ -50,9 +50,6 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
       sensitive: isWriteonly,
     },
   });
-
-  const watchedValue = useWatch({ control, name: "value" });
-  const hasSpaces = watchedValue?.trim().includes(" ");
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
   useEffect(
@@ -142,9 +139,10 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           {...register("key")}
           onPaste={handleKeyPaste}
         />
-        <FormInput
+        <FormTextarea
           label={isWriteonly ? "New Value" : "Value"}
-          className="[&_input]:font-mono"
+          rows={1}
+          className="[&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
           placeholder={
             isWriteonly
               ? "Enter new value to replace"
@@ -154,8 +152,6 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           }
           disabled={decryptMutation.isLoading}
           error={errors.value?.message}
-          variant={!errors.value && hasSpaces ? "warning" : undefined}
-          description={!errors.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register("value")}
         />
         <details className="group" open={Boolean(note)}>
