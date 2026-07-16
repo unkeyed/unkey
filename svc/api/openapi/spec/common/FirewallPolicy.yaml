@@ -1,0 +1,13 @@
+type: object
+required:
+  - action
+properties:
+  action:
+    type: string
+    enum:
+      - ACTION_DENY
+    description: What to do with matching requests.
+additionalProperties: false
+description: Blocks matching requests.
+example:
+  action: ACTION_DENY

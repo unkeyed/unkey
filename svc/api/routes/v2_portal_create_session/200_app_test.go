@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // TestCreateSessionAppMapped verifies that an app-mapped portal config resolves
@@ -77,7 +78,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 			{
 				Id:      "pol_keyauth",
 				Name:    "keyauth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{
 						KeySpaceIds: []string{keySpaceID},
