@@ -1,4 +1,4 @@
-package handler
+package policyconfig
 
 import (
 	"fmt"
@@ -14,25 +14,26 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// mapPoliciesToProto parses request policies into the protos frontline evaluates,
+// ToProto parses request policies into the protos frontline evaluates,
 // generating an id per policy. Conversion is also the validation pass: it
 // enforces the rules the OpenAPI schema cannot express (exactly-one variants,
 // valid regex and permission queries), and its errors are user-facing,
 // naming the offending field.
-func mapPoliciesToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
+func ToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
 	out := make([]*frontlinev1.Policy, 0, len(policies))
 	for i, p := range policies {
-		converted, err := mapPolicyToProto(fmt.Sprintf("policies[%d]", i), p)
+		converted, err := PolicyToProto(fmt.Sprintf("policies[%d]", i), p)
 		if err != nil {
 			return nil, err
 		}
+		converted.Id = uid.New(uid.PolicyPrefix)
 		out = append(out, converted)
 	}
 	return out, nil
 }
 
-// variantName names the set variant for audit metadata.
-func variantName(p *frontlinev1.Policy) string {
+// VariantName names the set variant for audit metadata.
+func VariantName(p *frontlinev1.Policy) string {
 	switch p.Config.(type) {
 	case *frontlinev1.Policy_Keyauth:
 		return "keyauth"
@@ -47,14 +48,16 @@ func variantName(p *frontlinev1.Policy) string {
 	}
 }
 
-func mapPolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
+// PolicyToProto converts and validates a single policy. It leaves Id unset;
+// callers own identity (ToProto generates fresh ids, updatePolicy keeps the
+// stored one).
+func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 	if err := exactlyOne(path, "keyauth, ratelimit, firewall or openapi",
 		p.Keyauth != nil, p.Ratelimit != nil, p.Firewall != nil, p.Openapi != nil); err != nil {
 		return nil, err
 	}
 
 	out := &frontlinev1.Policy{
-		Id:      uid.New(uid.PolicyPrefix),
 		Name:    p.Name,
 		Enabled: proto.Bool(p.Enabled),
 	}

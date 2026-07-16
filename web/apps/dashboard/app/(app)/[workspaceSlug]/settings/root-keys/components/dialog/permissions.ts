@@ -241,9 +241,12 @@ export const workspacePermissions = {
       permission: "environment.*.read_environment_variables",
     },
     set_policies: {
-      description:
-        "Create, update, reorder, and remove gateway policies for any environment in this workspace",
+      description: "Replace the entire gateway policy list for any environment in this workspace",
       permission: "environment.*.set_policies",
+    },
+    update_policy: {
+      description: "Update a single gateway policy in place for any environment in this workspace",
+      permission: "environment.*.update_policy",
     },
     read_policies: {
       description: "Read gateway policies for any environment in this workspace",
@@ -395,8 +398,12 @@ export function environmentPermissions(environmentId: string): {
         permission: `environment.${environmentId}.read_environment_variables`,
       },
       set_policies: {
-        description: "Create, update, reorder, and remove gateway policies for this environment.",
+        description: "Replace the entire gateway policy list for this environment.",
         permission: `environment.${environmentId}.set_policies`,
+      },
+      update_policy: {
+        description: "Update a single gateway policy in place for this environment.",
+        permission: `environment.${environmentId}.update_policy`,
       },
       read_policies: {
         description: "Read gateway policies for this environment.",

@@ -1,4 +1,4 @@
-package handler
+package policyconfig
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 func TestMapPolicyFromProtoVariants(t *testing.T) {
 	t.Run("keyauth with all fields", func(t *testing.T) {
-		got, err := mapPolicyFromProto(&frontlinev1.Policy{
+		got, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:      "pol_KEBAP1234",
 			Name:    "keyauth",
 			Enabled: proto.Bool(true),
@@ -53,7 +53,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("keyauth without optionals omits pointers", func(t *testing.T) {
-		got, err := mapPolicyFromProto(&frontlinev1.Policy{
+		got, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:      "pol_1",
 			Name:    "minimal",
 			Enabled: proto.Bool(true),
@@ -69,7 +69,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("unset enabled maps to false", func(t *testing.T) {
-		got, err := mapPolicyFromProto(&frontlinev1.Policy{
+		got, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:     "pol_1",
 			Name:   "legacy",
 			Config: &frontlinev1.Policy_Openapi{Openapi: &frontlinev1.OpenApiRequestValidation{}},
@@ -122,7 +122,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 
 		for _, tc := range sources {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := mapPolicyFromProto(&frontlinev1.Policy{
+				got, err := PolicyFromProto(&frontlinev1.Policy{
 					Id:      "pol_1",
 					Name:    "rl",
 					Enabled: proto.Bool(true),
@@ -142,7 +142,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("firewall action renders by enum name", func(t *testing.T) {
-		got, err := mapPolicyFromProto(&frontlinev1.Policy{
+		got, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:      "pol_1",
 			Name:    "deny",
 			Enabled: proto.Bool(false),
@@ -153,7 +153,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("jwtauth is unmappable", func(t *testing.T) {
-		_, err := mapPolicyFromProto(&frontlinev1.Policy{
+		_, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:     "pol_1",
 			Name:   "jwt",
 			Config: &frontlinev1.Policy_Jwtauth{Jwtauth: &frontlinev1.JWTAuth{}},
@@ -162,12 +162,12 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("missing config is unmappable", func(t *testing.T) {
-		_, err := mapPolicyFromProto(&frontlinev1.Policy{Id: "pol_1", Name: "empty"})
+		_, err := PolicyFromProto(&frontlinev1.Policy{Id: "pol_1", Name: "empty"})
 		require.Error(t, err)
 	})
 
 	t.Run("keyauth without keyspaces is unmappable", func(t *testing.T) {
-		_, err := mapPolicyFromProto(&frontlinev1.Policy{
+		_, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:      "pol_1",
 			Name:    "no-keyspaces",
 			Enabled: proto.Bool(true),
@@ -177,7 +177,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 	})
 
 	t.Run("key location without variant is unmappable", func(t *testing.T) {
-		_, err := mapPolicyFromProto(&frontlinev1.Policy{
+		_, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:      "pol_1",
 			Name:    "empty-location",
 			Enabled: proto.Bool(true),

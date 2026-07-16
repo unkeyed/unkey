@@ -111,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	all, err := mapPoliciesFromProto(cfg.GetPolicies())
+	all, err := policyconfig.FromProto(cfg.GetPolicies())
 	if err != nil {
 		return err
 	}

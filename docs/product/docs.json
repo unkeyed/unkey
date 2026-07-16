@@ -500,6 +500,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/policy_not_found",
                       "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_already_exists",
                       "errors/unkey/data/project_not_found",

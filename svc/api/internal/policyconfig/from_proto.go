@@ -1,4 +1,4 @@
-package handler
+package policyconfig
 
 import (
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -8,16 +8,16 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// mapPoliciesFromProto is the read-side inverse of setPolicies' mapping:
+// FromProto is the read-side inverse of setPolicies' mapping:
 // stored protos back into response types. Stored data already passed write
 // validation, so any unmappable shape (unknown oneof variant, empty oneof,
 // a value the response schema cannot express) is corrupt or out-of-band
 // state and surfaces as an internal error rather than being silently
 // dropped from a list that claims to be complete.
-func mapPoliciesFromProto(policies []*frontlinev1.Policy) ([]openapi.PolicyResponse, error) {
+func FromProto(policies []*frontlinev1.Policy) ([]openapi.PolicyResponse, error) {
 	out := make([]openapi.PolicyResponse, 0, len(policies))
 	for _, p := range policies {
-		converted, err := mapPolicyFromProto(p)
+		converted, err := PolicyFromProto(p)
 		if err != nil {
 			return nil, err
 		}
@@ -26,7 +26,7 @@ func mapPoliciesFromProto(policies []*frontlinev1.Policy) ([]openapi.PolicyRespo
 	return out, nil
 }
 
-func mapPolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
+func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 	out := openapi.PolicyResponse{
 		Id:        p.GetId(),
 		Name:      p.GetName(),
@@ -261,6 +261,6 @@ func unmappable(policyID, what string) error {
 		"unmappable stored policy",
 		fault.Code(codes.App.Internal.UnexpectedError.URN()),
 		fault.Internal(internal),
-		fault.Public("We're unable to list the policies."),
+		fault.Public("We're unable to read the stored policies."),
 	)
 }

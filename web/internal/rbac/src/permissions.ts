@@ -95,6 +95,7 @@ export const environmentActions = z.enum([
   "promote_deployment",
   "rollback_deployment",
   "set_policies",
+  "update_policy",
   "read_policies",
 ]);
 
