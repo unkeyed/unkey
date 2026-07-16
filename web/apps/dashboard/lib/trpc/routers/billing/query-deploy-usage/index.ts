@@ -1,3 +1,4 @@
+import { microCentsToCents, priceDeployUsageMicroCents } from "@/lib/billing/deployPricing";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -9,6 +10,8 @@ export const queryDeployUsageResponse = z.object({
   diskGiBHours: z.number(),
   egressGiB: z.number(),
   activeKeys: z.number(),
+  /** Month-to-date gross usage priced locally (cents), same math as the spend-cap worker. */
+  grossCents: z.number(),
 });
 
 export type DeployUsageResponse = z.infer<typeof queryDeployUsageResponse>;
@@ -39,7 +42,20 @@ export const queryDeployUsage = workspaceProcedure
           month: now.getUTCMonth() + 1,
         }),
       ]);
-      return { ...meters, activeKeys: keys.activeKeys };
+
+      const grossMicroCents = priceDeployUsageMicroCents({
+        cpuSeconds: meters.cpuSeconds,
+        memoryGiBHours: meters.memoryGiBHours,
+        diskGiBHours: meters.diskGiBHours,
+        egressGiB: meters.egressGiB,
+        activeKeys: keys.activeKeys,
+      });
+
+      return {
+        ...meters,
+        activeKeys: keys.activeKeys,
+        grossCents: microCentsToCents(grossMicroCents),
+      };
     } catch (err) {
       console.error("Failed to query deploy usage", err);
       throw new TRPCError({
