@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// row briefly outlives its parents. Degrade to empty state rather than
 		// 500 (matching listDeployments): the deployment is still returned, and the
 		// empty slug suppresses availableActions and isCurrent.
-		state = db.FindDeploymentEnvAndAppStateRow{}
+		state = db.FindDeploymentEnvAndAppStateRow{} //nolint:exhaustruct // deliberate zero value: empty slug suppresses actions/isCurrent
 	}
 
 	// Steps only carry the failure reason, so only load them for a failed

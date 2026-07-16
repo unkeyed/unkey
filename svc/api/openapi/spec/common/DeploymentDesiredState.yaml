@@ -7,6 +7,6 @@ x-enum-varnames:
   - DeploymentDesiredStateStopped
 description: |
   The intended state of the deployment, independent of its current lifecycle
-  status. `running` means it should serve traffic; `stopped` means it has been
-  intentionally taken down.
+  status. `running` means it should serve traffic; `stopped` means it should not,
+  whether taken down on request or by the platform.
 example: running

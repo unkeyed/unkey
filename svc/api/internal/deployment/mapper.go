@@ -74,6 +74,13 @@ func ToResponse(in Input) openapi.Deployment {
 		},
 		CreatedAt: d.CreatedAt,
 		UpdatedAt: d.UpdatedAt.Int64,
+
+		// Optional fields set below: git/docker from the source discriminator,
+		// failure/domains only when Detailed.
+		Git:     nil,
+		Docker:  nil,
+		Failure: nil,
+		Domains: nil,
 	}
 
 	// A deployment is sourced from either git or a prebuilt image. git_commit_sha
@@ -81,7 +88,7 @@ func ToResponse(in Input) openapi.Deployment {
 	// output), image deploys leave it null.
 	switch {
 	case d.GitCommitSha.Valid && d.GitCommitSha.String != "":
-		git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String}
+		git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String, Branch: nil}
 		if d.GitBranch.Valid && d.GitBranch.String != "" {
 			git.Branch = ptr.P(d.GitBranch.String)
 		}

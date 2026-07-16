@@ -183,6 +183,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				EnvironmentSlug:        r.EnvironmentSlug,
 				AppCurrentDeploymentID: r.AppCurrentDeploymentID.String,
 				AppIsRolledBack:        r.AppIsRolledBack,
+				// list is not detailed: failure and domains are getDeployment-only.
+				Detailed: false,
+				Steps:    nil,
+				Domains:  nil,
 			})
 		}
 	}

@@ -31,6 +31,8 @@ func customDomainStatus(s db.CustomDomainsVerificationStatus) openapi.Deployment
 		return openapi.DeploymentDomainStatusActive
 	case db.CustomDomainsVerificationStatusFailed:
 		return openapi.DeploymentDomainStatusFailed
+	case db.CustomDomainsVerificationStatusPending, db.CustomDomainsVerificationStatusVerifying:
+		return openapi.DeploymentDomainStatusPending
 	default:
 		return openapi.DeploymentDomainStatusPending
 	}
