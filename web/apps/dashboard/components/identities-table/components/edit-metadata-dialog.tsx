@@ -4,32 +4,33 @@ import { IdentityInfo } from "@/app/(app)/[workspaceSlug]/identities/_components
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
-import { type MetadataFormValues, metadataSchema } from "@/lib/schemas/metadata";
+import { useUpdateIdentityMutation } from "@/lib/identities-query";
+import { type MetadataFormValues, metadataSchema, parseMetadata } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer } from "@unkey/ui";
+import type { Identity } from "@unkey/api/models/components";
+import { Button, DialogContainer, toast } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
-import { useEditIdentityMetadata } from "../hooks/use-edit-identity-metadata";
-
-type Identity = IdentityForActions;
 
 type EditMetadataDialogProps = { identity: Identity } & ActionComponentProps;
 
 const EDIT_METADATA_FORM_STORAGE_KEY = "unkey_edit_identity_metadata_form_state";
 
 const getIdentityMetadataDefaults = (identity: Identity) => ({
-  metadata: identity.meta
-    ? ({
-        enabled: true as const,
-        data: JSON.stringify(identity.meta, null, 2),
-      } as const)
-    : ({ enabled: false as const } as const),
+  metadata:
+    identity.meta && Object.keys(identity.meta).length > 0
+      ? ({
+          enabled: true as const,
+          data: JSON.stringify(identity.meta, null, 2),
+        } as const)
+      : ({ enabled: false as const } as const),
 });
 
 export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOpen, onClose }) => {
   const formId = useId();
+  const updateIdentity = useUpdateIdentityMutation();
 
   const methods = usePersistedForm<MetadataFormValues>(
     `${EDIT_METADATA_FORM_STORAGE_KEY}_${identity.id}`,
@@ -58,20 +59,34 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
     }
   }, [isOpen, loadSavedValues]);
 
-  const updateMetadata = useEditIdentityMetadata(() => {
-    reset(getIdentityMetadataDefaults(identity));
-    clearPersistedData();
-    onClose();
-  });
-
   const onSubmit = async (data: MetadataFormValues) => {
     try {
-      await updateMetadata.mutateAsync({
-        identityId: identity.id,
-        metadata: data.metadata,
+      const value = data.metadata.enabled ? parseMetadata(data.metadata.data) : {};
+      const mutation = updateIdentity.mutateAsync({
+        identity: identity.id,
+        meta: value,
       });
+      toast.promise(mutation, {
+        loading: "Updating identity metadata...",
+        success: {
+          message: "Identity Metadata Updated",
+          description:
+            Object.keys(value).length === 0
+              ? `Metadata has been removed from identity ${identity.id}`
+              : `Metadata for identity ${identity.id} has been updated`,
+          duration: 5000,
+        },
+        error: (error) => ({
+          message: "Failed to Update Identity Metadata",
+          description: getErrorMessage(error),
+        }),
+      });
+      const updatedIdentity = await mutation;
+      reset(getIdentityMetadataDefaults(updatedIdentity));
+      clearPersistedData();
+      onClose();
     } catch {
-      // useEditIdentityMetadata already shows a toast.
+      // toast.promise reports the API error.
     }
   };
 
@@ -81,7 +96,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
         <DialogContainer
           isOpen={isOpen}
           onOpenChange={(o) => {
-            if (!o) {
+            if (!o && !isSubmitting) {
               saveCurrentValues();
               onClose();
             }
@@ -97,7 +112,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
                 size="xlg"
                 className="w-full rounded-lg"
                 disabled={!isValid || isSubmitting}
-                loading={updateMetadata.isLoading}
+                loading={isSubmitting}
               >
                 Update metadata
               </Button>

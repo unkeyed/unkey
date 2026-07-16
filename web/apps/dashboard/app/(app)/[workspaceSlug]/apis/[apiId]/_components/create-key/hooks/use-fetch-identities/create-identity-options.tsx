@@ -1,4 +1,4 @@
-import type { InsertIdentity } from "@/lib/db";
+import type { Identity } from "@unkey/api/models/components";
 import { User } from "@unkey/icons";
 import {
   Button,
@@ -10,7 +10,7 @@ import {
 } from "@unkey/ui";
 
 type IdentitySelectorProps = {
-  identities: Omit<InsertIdentity, "deleted">[];
+  identities: Identity[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   loadMore: () => void;
@@ -88,15 +88,10 @@ export function createIdentityOptions({
                       </div>
                       {/* Copy Button */}
                       <div className="p-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <CopyButton
+                          value={JSON.stringify(identity.meta, null, 4)}
                           className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-xs"
-                        >
-                          <div className="flex items-center justify-center">
-                            <CopyButton value={JSON.stringify(identity.meta, null, 4)} />
-                          </div>
-                        </Button>
+                        />
                       </div>
                     </div>
                   </div>

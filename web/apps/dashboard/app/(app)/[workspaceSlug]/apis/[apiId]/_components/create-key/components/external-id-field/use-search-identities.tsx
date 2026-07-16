@@ -1,34 +1,25 @@
-import { trpc } from "@/lib/trpc/client";
-import { useEffect, useMemo, useState } from "react";
+import { useIdentities } from "@/lib/identities-query";
+import { toast } from "@unkey/ui";
+import { useDeferredValue, useEffect } from "react";
 
-export const useSearchIdentities = (query: string, debounceMs = 300) => {
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+export const useSearchIdentities = (query: string) => {
+  const search = query.trim();
+  const deferredSearch = useDeferredValue(search);
+  const { identities, isLoading, isError } = useIdentities({
+    search: deferredSearch,
+    enabled: deferredSearch.length > 0,
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query.trim());
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [query, debounceMs]);
-
-  const { data, isLoading, error } = trpc.identity.search.useQuery(
-    { query: debouncedQuery },
-    {
-      enabled: debouncedQuery.length > 0,
-      staleTime: 30_000,
-    },
-  );
-
-  const searchResults = useMemo(() => {
-    return data?.identities || [];
-  }, [data?.identities]);
-
-  const isSearching = query.trim() !== debouncedQuery || (debouncedQuery.length > 0 && isLoading);
+    if (isError) {
+      toast.error("Failed to Search Identities", {
+        description: "We were unable to search identities. Please try again.",
+      });
+    }
+  }, [isError]);
 
   return {
-    searchResults,
-    isSearching,
-    searchError: error,
+    searchResults: identities,
+    isSearching: search !== deferredSearch || (deferredSearch.length > 0 && isLoading),
   };
 };

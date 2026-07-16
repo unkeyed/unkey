@@ -1,5 +1,25 @@
 import { z } from "zod";
 
+const METADATA_SIZE_BYTES_MAX = 1024 * 1024;
+
+const metadataValueSchema = z
+  .record(z.string(), z.unknown())
+  .refine((metadata) => Object.keys(metadata).length <= 100, {
+    error: "Metadata cannot contain more than 100 properties",
+  })
+  .refine(
+    (metadata) =>
+      new TextEncoder().encode(JSON.stringify(metadata)).length <= METADATA_SIZE_BYTES_MAX,
+    {
+      error: "Metadata cannot exceed 1 MiB",
+    },
+  );
+
+export function parseMetadata(value: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(value);
+  return metadataValueSchema.parse(parsed);
+}
+
 /**
  * Creates a conditional schema that validates fields only when enabled is true.
  * Uses Zod v4 discriminated unions for proper type inference with react-hook-form.
@@ -55,22 +75,22 @@ export const metadataValidationSchema = z.object({
     .min(2, {
       error: "Metadata must contain valid JSON",
     })
-    .max(65534, {
-      error: "Metadata cannot exceed 65535 characters (text field limit)",
-    })
-    .refine(
-      (s) => {
-        try {
-          JSON.parse(s);
-          return true;
-        } catch {
-          return false;
+    .superRefine((value, context) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        context.addIssue({ code: "custom", message: "Must be valid JSON" });
+        return;
+      }
+
+      const result = metadataValueSchema.safeParse(parsed);
+      if (!result.success) {
+        for (const issue of result.error.issues) {
+          context.addIssue({ code: "custom", message: issue.message });
         }
-      },
-      {
-        error: "Must be valid JSON",
-      },
-    ),
+      }
+    }),
 });
 
 export const metadataSchema = z.object({

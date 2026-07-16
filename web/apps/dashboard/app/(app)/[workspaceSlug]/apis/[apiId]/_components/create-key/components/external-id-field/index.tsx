@@ -2,7 +2,8 @@ import { useCreateIdentity } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_com
 import { useFetchIdentities } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
 import { createIdentityOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
-import type { Identity } from "@unkey/db";
+import { identityExternalIdSchema } from "@/lib/schemas/identity";
+import type { Identity } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -31,11 +32,16 @@ export const ExternalIdField = ({
   const [searchValue, setSearchValue] = useState("");
 
   const trimmedSearchValue = searchValue.trim();
+  const externalIdValidation = identityExternalIdSchema.safeParse(trimmedSearchValue);
+  const externalIdError = externalIdValidation.success
+    ? undefined
+    : externalIdValidation.error.issues.at(0)?.message;
 
   const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
   const { searchResults, isSearching } = useSearchIdentities(searchValue);
 
   const createIdentity = useCreateIdentity((data) => {
+    setSearchValue("");
     onChange(data.identityId, data.externalId);
   });
 
@@ -74,10 +80,6 @@ export const ExternalIdField = ({
         id: currentIdentity.id,
         externalId: currentIdentity.externalId,
         meta: currentIdentity.meta || {},
-        workspaceId: "",
-        environment: "",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
       },
       ...allIdentities,
     ];
@@ -91,10 +93,9 @@ export const ExternalIdField = ({
   }, [allIdentitiesWithCurrent, value]);
 
   const handleCreateIdentity = () => {
-    if (trimmedSearchValue) {
+    if (externalIdValidation.success) {
       createIdentity.mutate({
-        externalId: trimmedSearchValue,
-        meta: null,
+        externalId: externalIdValidation.data,
       });
     }
   };
@@ -116,7 +117,7 @@ export const ExternalIdField = ({
   });
 
   const createOption =
-    trimmedSearchValue && !exactMatch && hasPartialMatches && !isSearching
+    externalIdValidation.success && !exactMatch && hasPartialMatches && !isSearching
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">
@@ -156,11 +157,18 @@ export const ExternalIdField = ({
         setSearchValue(e.currentTarget.value);
       }}
       onSelect={(val) => {
+        if (val === "__load_more__") {
+          loadMore().catch((error: unknown) => {
+            console.error("Failed to load more identities", error);
+          });
+          return;
+        }
         if (val === "__create_new__") {
           handleCreateIdentity();
           return;
         }
         const identity = allIdentitiesWithCurrent.find((id) => id.id === val);
+        setSearchValue("");
         onChange(identity?.id || null, identity?.externalId || null);
       }}
       placeholder={
@@ -188,35 +196,46 @@ export const ExternalIdField = ({
                   <TriangleWarning2 iconSize="sm-regular" />
                 </div>
                 <div className="font-medium text-[13px] leading-7 text-gray-12">
-                  External ID not found
+                  {externalIdValidation.success ? "External ID not found" : "Invalid external ID"}
                 </div>
               </div>
             </div>
             <div className="w-full">
               <div className="h-px bg-grayA-3 w-full" />
             </div>
-            <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
-              You can create a new identity with this{" "}
-              <span className="font-medium">External ID</span> and connect it{" "}
-              <span className="font-medium">immediately</span>.
-            </div>
-            <div className="w-full px-4 pb-4">
-              <Button
-                type="button"
-                variant="primary"
-                size="xlg"
-                className={cn(
-                  "rounded-lg w-full",
-                  "transition-all duration-200 ease-in-out",
-                  "hover:scale-[1.02] active:scale-[0.98]",
-                )}
-                onClick={handleCreateIdentity}
-                loading={createIdentity.isLoading}
-                disabled={!trimmedSearchValue || createIdentity.isLoading || disabled}
+            {externalIdValidation.success ? (
+              <>
+                <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
+                  You can create a new identity with this{" "}
+                  <span className="font-medium">External ID</span> and connect it{" "}
+                  <span className="font-medium">immediately</span>.
+                </div>
+                <div className="w-full px-4 pb-4">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="xlg"
+                    className={cn(
+                      "rounded-lg w-full",
+                      "transition-all duration-200 ease-in-out",
+                      "hover:scale-[1.02] active:scale-[0.98]",
+                    )}
+                    onClick={handleCreateIdentity}
+                    loading={createIdentity.isLoading}
+                    disabled={createIdentity.isLoading || disabled}
+                  >
+                    Create
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div
+                role="alert"
+                className="px-4 w-full text-error-11 text-[13px] leading-6 my-4 text-left"
               >
-                Create
-              </Button>
-            </div>
+                {externalIdError}
+              </div>
+            )}
           </div>
         ) : isComboboxLoading ? (
           <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">

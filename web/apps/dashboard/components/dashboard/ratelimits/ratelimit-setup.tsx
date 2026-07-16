@@ -6,7 +6,7 @@ import type { RatelimitItem } from "@/lib/schemas/ratelimit";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 // The form's `ratelimit` field is a Zod discriminated union (enabled false/true),
@@ -35,6 +35,20 @@ function RefillIntervalField({
 }) {
   const [display, setDisplay] = useState(() => formatMs(value));
   const [parseError, setParseError] = useState<string>();
+  const localValue = useRef(value);
+
+  useEffect(() => {
+    if (value !== localValue.current) {
+      localValue.current = value;
+      setDisplay(formatMs(value));
+      setParseError(undefined);
+    }
+  }, [value]);
+
+  const updateValue = (nextValue: number) => {
+    localValue.current = nextValue;
+    onChange(nextValue);
+  };
 
   return (
     <FormInput
@@ -58,21 +72,21 @@ function RefillIntervalField({
         const trimmed = raw.trim();
         if (trimmed === "") {
           setParseError(undefined);
-          onChange(0);
+          updateValue(0);
           return;
         }
 
         const asNumber = Number(trimmed);
         if (Number.isFinite(asNumber) && asNumber > 0) {
           setParseError(undefined);
-          onChange(Math.floor(asNumber));
+          updateValue(Math.floor(asNumber));
           return;
         }
 
         const parsed = parseDuration(trimmed);
         if (parsed > 0) {
           setParseError(undefined);
-          onChange(parsed);
+          updateValue(parsed);
         } else {
           setParseError('Use a duration like "5s", "2m", "1h" or milliseconds');
         }
@@ -189,7 +203,7 @@ export const RatelimitSetup = ({
           variant="outline"
           onClick={handleAddRatelimit}
           type="button"
-          disabled={!ratelimitEnabled}
+          disabled={!ratelimitEnabled || fields.length >= 50}
         >
           Add additional ratelimit
         </Button>
@@ -221,6 +235,7 @@ export const RatelimitSetup = ({
                   className="bg-errorA-4 size-[34px] rounded-lg"
                   onClick={() => remove(index)}
                   type="button"
+                  aria-label={`Remove rate limit ${index + 1}`}
                 >
                   <Trash iconSize="sm-regular" className="text-error-11" />
                 </Button>
