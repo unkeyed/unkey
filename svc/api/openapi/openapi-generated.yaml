@@ -3957,6 +3957,12 @@ components:
             required:
                 - id
                 - status
+                - desiredState
+                - isCurrent
+                - environmentId
+                - appId
+                - projectId
+                - availableActions
                 - runtime
                 - createdAt
             properties:
@@ -3967,6 +3973,54 @@ components:
                     example: d_1234abcd
                 status:
                     "$ref": "#/components/schemas/DeploymentStatus"
+                desiredState:
+                    "$ref": "#/components/schemas/DeploymentDesiredState"
+                isCurrent:
+                    type: boolean
+                    description: |
+                        True when the deployment's app currently routes traffic to it. A deployment
+                        can be `ready` without being current, for example one that was superseded or
+                        not yet promoted.
+                    example: true
+                environmentId:
+                    type: string
+                    description: The environment this deployment belongs to.
+                    example: env_1234abcd
+                appId:
+                    type: string
+                    description: The app this deployment belongs to.
+                    example: app_1234abcd
+                projectId:
+                    type: string
+                    description: The project this deployment belongs to.
+                    example: proj_1234abcd
+                git:
+                    "$ref": "#/components/schemas/DeploymentGit"
+                    description: |
+                        Present for git-sourced deployments. Mutually exclusive with `docker`.
+                docker:
+                    "$ref": "#/components/schemas/DeploymentDocker"
+                    description: |
+                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                availableActions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentAction"
+                    description: |
+                        Lifecycle operations that are legal to call on this deployment right now.
+                        Empty when none apply (e.g. while building or in a terminal state).
+                    example: ["stop"]
+                failure:
+                    "$ref": "#/components/schemas/DeploymentFailure"
+                    description: |
+                        Why the deployment failed. Present only when `status` is `failed`, and only
+                        returned by getDeployment.
+                domains:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentDomain"
+                    description: |
+                        Hostnames this deployment is reachable at. Only returned by getDeployment.
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
                 createdAt:
@@ -4024,6 +4078,128 @@ components:
                 terminal state: ready (serving), failed, skipped, superseded, stopped,
                 or cancelled.
             example: ready
+        DeploymentDesiredState:
+            type: string
+            enum:
+                - running
+                - stopped
+            x-enum-varnames:
+                - DeploymentDesiredStateRunning
+                - DeploymentDesiredStateStopped
+            description: |
+                The intended state of the deployment, independent of its current lifecycle
+                status. `running` means it should serve traffic; `stopped` means it has been
+                intentionally taken down.
+            example: running
+        DeploymentGit:
+            type: object
+            required:
+                - commitSha
+            properties:
+                commitSha:
+                    type: string
+                    description: The git commit SHA this deployment was built from.
+                    example: 9f2c1a7d3b
+                branch:
+                    type: string
+                    description: The git branch this deployment was built from. Omitted when unknown.
+                    example: main
+            additionalProperties: false
+        DeploymentDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The Docker image this deployment runs.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
+        DeploymentAction:
+            type: string
+            enum:
+                - promote
+                - rollback
+                - stop
+                - start
+            x-enum-varnames:
+                - DeploymentActionPromote
+                - DeploymentActionRollback
+                - DeploymentActionStop
+                - DeploymentActionStart
+            description: |
+                A lifecycle operation that can be performed on the deployment in its current
+                state, given its status, desiredState, environment, and whether it is the
+                current deployment.
+            example: promote
+        DeploymentFailure:
+            type: object
+            required:
+                - code
+                - step
+                - message
+                - retryable
+            properties:
+                code:
+                    "$ref": "#/components/schemas/DeploymentFailureCode"
+                step:
+                    type: string
+                    description: |
+                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                    example: deploying
+                message:
+                    type: string
+                    description: |
+                        Human-readable description of why the deployment failed. For programmatic
+                        handling, use `code`.
+                    example: No schedulable regions configured for this environment.
+                retryable:
+                    type: boolean
+                    description: |
+                        Whether retrying the same deployment unchanged could succeed. Almost always
+                        false: a failed deployment usually needs a configuration or code fix, not a
+                        retry.
+                    example: false
+            additionalProperties: false
+        DeploymentDomain:
+            type: object
+            required:
+                - domain
+                - type
+                - status
+            properties:
+                domain:
+                    type: string
+                    description: |
+                        Fully qualified domain name this deployment is reachable at.
+                    example: kebap-app-preview.unkey.app
+                type:
+                    type: string
+                    enum:
+                        - system
+                        - custom
+                    x-enum-varnames:
+                        - DeploymentDomainTypeSystem
+                        - DeploymentDomainTypeCustom
+                    description: |
+                        `system` is an Unkey-managed hostname (always active). `custom` is a
+                        customer-owned domain whose `status` reflects verification.
+                    example: system
+                status:
+                    type: string
+                    enum:
+                        - active
+                        - pending
+                        - failed
+                    x-enum-varnames:
+                        - DeploymentDomainStatusActive
+                        - DeploymentDomainStatusPending
+                        - DeploymentDomainStatusFailed
+                    description: |
+                        `active` serves traffic. `pending` is a custom domain awaiting
+                        verification. `failed` is a custom domain whose verification failed.
+                    example: active
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -4072,6 +4248,28 @@ components:
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
             additionalProperties: false
+        DeploymentFailureCode:
+            type: string
+            enum:
+                - no_schedulable_regions
+                - invalid_runtime_settings
+                - cpu_quota_exceeded
+                - memory_quota_exceeded
+                - storage_quota_exceeded
+                - build_failed
+                - unknown
+            x-enum-varnames:
+                - DeploymentFailureCodeNoSchedulableRegions
+                - DeploymentFailureCodeInvalidRuntimeSettings
+                - DeploymentFailureCodeCpuQuotaExceeded
+                - DeploymentFailureCodeMemoryQuotaExceeded
+                - DeploymentFailureCodeStorageQuotaExceeded
+                - DeploymentFailureCodeBuildFailed
+                - DeploymentFailureCodeUnknown
+            description: |
+                The reason a deployment failed. `unknown` means Unkey could not classify the
+                failure; see `message` for details.
+            example: no_schedulable_regions
         EnvironmentShutdownSignal:
             type: string
             enum:

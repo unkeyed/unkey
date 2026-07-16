@@ -1,0 +1,28 @@
+type: object
+required:
+  - code
+  - step
+  - message
+  - retryable
+properties:
+  code:
+    "$ref": "./DeploymentFailureCode.yaml"
+  step:
+    type: string
+    description: |
+      The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+    example: deploying
+  message:
+    type: string
+    description: |
+      Human-readable description of why the deployment failed. For programmatic
+      handling, use `code`.
+    example: No schedulable regions configured for this environment.
+  retryable:
+    type: boolean
+    description: |
+      Whether retrying the same deployment unchanged could succeed. Almost always
+      false: a failed deployment usually needs a configuration or code fix, not a
+      retry.
+    example: false
+additionalProperties: false

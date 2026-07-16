@@ -33,6 +33,7 @@ func TestListWorkspaceWide(t *testing.T) {
 			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
 			GitBranch:     "main",
+			GitCommitSha:  "abc123",
 		})
 		want[dep.ID] = true
 	}
@@ -46,6 +47,19 @@ func TestListWorkspaceWide(t *testing.T) {
 	for _, d := range res.Body.Data {
 		require.True(t, want[d.Id], "unexpected deployment %s", d.Id)
 		require.Equal(t, openapi.DeploymentStatusPending, d.Status)
+
+		// Enriched fields present on list items (cheap, batched).
+		require.Equal(t, setup.Environment.ID, d.EnvironmentId)
+		require.Equal(t, setup.App.ID, d.AppId)
+		require.Equal(t, setup.Project.ID, d.ProjectId)
+		require.Equal(t, openapi.DeploymentDesiredStateRunning, d.DesiredState)
+		require.NotNil(t, d.AvailableActions)
+		require.NotNil(t, d.Git)
+		require.Equal(t, "abc123", d.Git.CommitSha)
+
+		// get-only fields must be omitted from list items.
+		require.Nil(t, d.Failure, "listDeployments must not include failure")
+		require.Nil(t, d.Domains, "listDeployments must not include domains")
 	}
 
 	// Internal fields must never appear in the response body.

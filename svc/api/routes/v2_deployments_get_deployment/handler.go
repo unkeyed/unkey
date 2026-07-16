@@ -83,10 +83,63 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	relations, err := db.Query.FindDeploymentRelations(ctx, h.DB.RO(), dep.ID)
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployment."),
+			)
+		}
+		// The join can miss during app/environment teardown, when the deployment
+		// row briefly outlives its parents. Degrade to empty relations rather than
+		// 500 (matching listDeployments): the deployment is still returned, and the
+		// empty slug suppresses availableActions and isCurrent.
+		relations = db.FindDeploymentRelationsRow{}
+	}
+
+	// Steps only carry the failure reason, so only load them for a failed
+	// deployment. Healthy reads stay at two queries.
+	var steps []db.DeploymentStep
+	if dep.Status == db.DeploymentsStatusFailed {
+		steps, err = db.Query.ListDeploymentSteps(ctx, h.DB.RO(), dep.ID)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployment."),
+			)
+		}
+	}
+
+	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
+		WorkspaceID:  dep.WorkspaceID,
+		DeploymentID: dep.ID,
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: deployment.ToResponse(dep),
+		Data: deployment.ToResponse(deployment.Input{
+			Deployment:             dep,
+			EnvironmentSlug:        relations.EnvironmentSlug,
+			AppCurrentDeploymentID: relations.AppCurrentDeploymentID.String,
+			AppIsRolledBack:        relations.AppIsRolledBack,
+			Detailed:               true,
+			Steps:                  steps,
+			Domains:                domains,
+		}),
 	})
 }

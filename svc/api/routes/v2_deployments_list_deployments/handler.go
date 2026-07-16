@@ -158,8 +158,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data := make([]openapi.Deployment, len(rows))
-	for i, row := range rows {
-		data[i] = deployment.ToResponse(row)
+	if len(rows) > 0 {
+		ids := make([]string, len(rows))
+		for i, row := range rows {
+			ids[i] = row.ID
+		}
+		relations, err := db.Query.ListDeploymentRelations(ctx, h.DB.RO(), ids)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployments."),
+			)
+		}
+		byID := make(map[string]db.ListDeploymentRelationsRow, len(relations))
+		for _, r := range relations {
+			byID[r.DeploymentID] = r
+		}
+		for i, row := range rows {
+			r := byID[row.ID]
+			data[i] = deployment.ToResponse(deployment.Input{
+				Deployment:             row,
+				EnvironmentSlug:        r.EnvironmentSlug,
+				AppCurrentDeploymentID: r.AppCurrentDeploymentID.String,
+				AppIsRolledBack:        r.AppIsRolledBack,
+			})
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{

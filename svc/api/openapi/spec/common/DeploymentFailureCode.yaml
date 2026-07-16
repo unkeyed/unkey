@@ -1,0 +1,21 @@
+type: string
+enum:
+  - no_schedulable_regions
+  - invalid_runtime_settings
+  - cpu_quota_exceeded
+  - memory_quota_exceeded
+  - storage_quota_exceeded
+  - build_failed
+  - unknown
+x-enum-varnames:
+  - DeploymentFailureCodeNoSchedulableRegions
+  - DeploymentFailureCodeInvalidRuntimeSettings
+  - DeploymentFailureCodeCpuQuotaExceeded
+  - DeploymentFailureCodeMemoryQuotaExceeded
+  - DeploymentFailureCodeStorageQuotaExceeded
+  - DeploymentFailureCodeBuildFailed
+  - DeploymentFailureCodeUnknown
+description: |
+  The reason a deployment failed. `unknown` means Unkey could not classify the
+  failure; see `message` for details.
+example: no_schedulable_regions

@@ -2,6 +2,12 @@ type: object
 required:
   - id
   - status
+  - desiredState
+  - isCurrent
+  - environmentId
+  - appId
+  - projectId
+  - availableActions
   - runtime
   - createdAt
 properties:
@@ -12,6 +18,54 @@ properties:
     example: d_1234abcd
   status:
     "$ref": "./DeploymentStatus.yaml"
+  desiredState:
+    "$ref": "./DeploymentDesiredState.yaml"
+  isCurrent:
+    type: boolean
+    description: |
+      True when the deployment's app currently routes traffic to it. A deployment
+      can be `ready` without being current, for example one that was superseded or
+      not yet promoted.
+    example: true
+  environmentId:
+    type: string
+    description: The environment this deployment belongs to.
+    example: env_1234abcd
+  appId:
+    type: string
+    description: The app this deployment belongs to.
+    example: app_1234abcd
+  projectId:
+    type: string
+    description: The project this deployment belongs to.
+    example: proj_1234abcd
+  git:
+    "$ref": "./DeploymentGit.yaml"
+    description: |
+      Present for git-sourced deployments. Mutually exclusive with `docker`.
+  docker:
+    "$ref": "./DeploymentDocker.yaml"
+    description: |
+      Present for image-sourced deployments. Mutually exclusive with `git`.
+  availableActions:
+    type: array
+    items:
+      "$ref": "./DeploymentAction.yaml"
+    description: |
+      Lifecycle operations that are legal to call on this deployment right now.
+      Empty when none apply (e.g. while building or in a terminal state).
+    example: ["stop"]
+  failure:
+    "$ref": "./DeploymentFailure.yaml"
+    description: |
+      Why the deployment failed. Present only when `status` is `failed`, and only
+      returned by getDeployment.
+  domains:
+    type: array
+    items:
+      "$ref": "./DeploymentDomain.yaml"
+    description: |
+      Hostnames this deployment is reachable at. Only returned by getDeployment.
   runtime:
     "$ref": "./DeploymentRuntime.yaml"
   createdAt:

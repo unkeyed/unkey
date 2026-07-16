@@ -548,6 +548,19 @@ type Querier interface {
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  WHERE dt.deployment_id = ?
 	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
+	// The environment slug and app live-pointer columns the read path needs for
+	// environmentSlug, isCurrent, and availableActions. Selects only these columns
+	// (not d.*) so the deployment itself stays a plain db.Deployment.
+	//
+	//  SELECT
+	//    e.slug AS environment_slug,
+	//    a.current_deployment_id AS app_current_deployment_id,
+	//    a.is_rolled_back AS app_is_rolled_back
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	FindDeploymentRelations(ctx context.Context, db DBTX, id string) (FindDeploymentRelationsRow, error)
 	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
@@ -2368,6 +2381,38 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
+	// Frontline routes are the hostnames a deployment serves. The left join to
+	// custom_domains classifies each as system (no match) or custom (match) and
+	// surfaces the custom domain's verification status.
+	//
+	//  SELECT
+	//    r.fully_qualified_domain_name AS domain,
+	//    cd.verification_status AS custom_verification_status
+	//  FROM frontline_routes r
+	//  LEFT JOIN custom_domains cd
+	//    ON cd.domain = r.fully_qualified_domain_name
+	//    AND cd.workspace_id = ?
+	//  WHERE r.deployment_id = ?
+	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]ListDeploymentDomainsRow, error)
+	// Batch form of FindDeploymentRelations: one query for a whole page of
+	// deployments, keyed by deployment id, so listDeployments avoids an N+1.
+	//
+	//  SELECT
+	//    d.id AS deployment_id,
+	//    e.slug AS environment_slug,
+	//    a.current_deployment_id AS app_current_deployment_id,
+	//    a.is_rolled_back AS app_is_rolled_back
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentRelations(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRelationsRow, error)
+	//ListDeploymentSteps
+	//
+	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
+	//  WHERE deployment_id = ?
+	//  ORDER BY started_at ASC
+	ListDeploymentSteps(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
