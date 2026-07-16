@@ -19,32 +19,26 @@ const productionSlug = "production"
 // need the app to already have a live deployment, but rollback rejects the
 // current pointer outright while promote still allows it when the app is in a
 // rolled-back state (promoting forward off a rollback).
-func availableActions(
-	status db.DeploymentsStatus,
-	desiredState db.DeploymentsDesiredState,
-	environmentSlug string,
-	deploymentID string,
-	appCurrentDeploymentID string,
-	appIsRolledBack bool,
-) []openapi.DeploymentAction {
+func availableActions(in Input) []openapi.DeploymentAction {
+	d := in.Deployment
 	actions := []openapi.DeploymentAction{}
 
 	// An empty slug means the environment could not be resolved; without it the
 	// production gate is unknowable, so offer nothing rather than guess.
-	if environmentSlug == "" {
+	if in.EnvironmentSlug == "" {
 		return actions
 	}
 
-	ready := status == db.DeploymentsStatusReady
-	running := desiredState == db.DeploymentsDesiredStateRunning
+	ready := d.Status == db.DeploymentsStatusReady
+	running := d.DesiredState == db.DeploymentsDesiredStateRunning
 
-	if environmentSlug == productionSlug {
-		hasLiveDeployment := appCurrentDeploymentID != ""
-		isCurrentPointer := appCurrentDeploymentID == deploymentID
+	if in.EnvironmentSlug == productionSlug {
+		hasLiveDeployment := in.AppCurrentDeploymentID != ""
+		isCurrentPointer := in.AppCurrentDeploymentID == d.ID
 		if ready && running && hasLiveDeployment {
 			// promote is illegal only when this is already the promoted-live
 			// deployment (current pointer and not in a rolled-back state).
-			if !(isCurrentPointer && !appIsRolledBack) {
+			if !(isCurrentPointer && !in.AppIsRolledBack) {
 				actions = append(actions, openapi.DeploymentActionPromote)
 			}
 			// rollback is illegal when this is the current pointer, regardless of
@@ -59,7 +53,7 @@ func availableActions(
 	if ready && running {
 		actions = append(actions, openapi.DeploymentActionStop)
 	}
-	if status == db.DeploymentsStatusStopped {
+	if d.Status == db.DeploymentsStatusStopped {
 		actions = append(actions, openapi.DeploymentActionStart)
 	}
 	return actions

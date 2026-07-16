@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	relations, err := db.Query.FindDeploymentRelations(ctx, h.DB.RO(), dep.ID)
+	state, err := db.Query.FindDeploymentEnvAndAppState(ctx, h.DB.RO(), dep.ID)
 	if err != nil {
 		if !db.IsNotFound(err) {
 			return fault.Wrap(
@@ -94,10 +94,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		// The join can miss during app/environment teardown, when the deployment
-		// row briefly outlives its parents. Degrade to empty relations rather than
+		// row briefly outlives its parents. Degrade to empty state rather than
 		// 500 (matching listDeployments): the deployment is still returned, and the
 		// empty slug suppresses availableActions and isCurrent.
-		relations = db.FindDeploymentRelationsRow{}
+		state = db.FindDeploymentEnvAndAppStateRow{}
 	}
 
 	// Steps only carry the failure reason, so only load them for a failed
@@ -134,9 +134,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: deployment.ToResponse(deployment.Input{
 			Deployment:             dep,
-			EnvironmentSlug:        relations.EnvironmentSlug,
-			AppCurrentDeploymentID: relations.AppCurrentDeploymentID.String,
-			AppIsRolledBack:        relations.AppIsRolledBack,
+			EnvironmentSlug:        state.EnvironmentSlug,
+			AppCurrentDeploymentID: state.AppCurrentDeploymentID.String,
+			AppIsRolledBack:        state.AppIsRolledBack,
 			Detailed:               true,
 			Steps:                  steps,
 			Domains:                domains,

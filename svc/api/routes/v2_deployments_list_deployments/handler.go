@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for i, row := range rows {
 			ids[i] = row.ID
 		}
-		relations, err := db.Query.ListDeploymentRelations(ctx, h.DB.RO(), ids)
+		state, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), ids)
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -172,8 +172,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Failed to retrieve deployments."),
 			)
 		}
-		byID := make(map[string]db.ListDeploymentRelationsRow, len(relations))
-		for _, r := range relations {
+		byID := make(map[string]db.ListDeploymentEnvAndAppStateRow, len(state))
+		for _, r := range state {
 			byID[r.DeploymentID] = r
 		}
 		for i, row := range rows {

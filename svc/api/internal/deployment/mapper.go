@@ -54,21 +54,14 @@ func ToResponse(in Input) openapi.Deployment {
 	isCurrent := in.AppCurrentDeploymentID != "" && in.AppCurrentDeploymentID == d.ID
 
 	dep := openapi.Deployment{
-		Id:            d.ID,
-		Status:        openapi.DeploymentStatus(d.Status),
-		DesiredState:  openapi.DeploymentDesiredState(d.DesiredState),
-		IsCurrent:     isCurrent,
-		EnvironmentId: d.EnvironmentID,
-		AppId:         d.AppID,
-		ProjectId:     d.ProjectID,
-		AvailableActions: availableActions(
-			d.Status,
-			d.DesiredState,
-			in.EnvironmentSlug,
-			d.ID,
-			in.AppCurrentDeploymentID,
-			in.AppIsRolledBack,
-		),
+		Id:               d.ID,
+		Status:           openapi.DeploymentStatus(d.Status),
+		DesiredState:     openapi.DeploymentDesiredState(d.DesiredState),
+		IsCurrent:        isCurrent,
+		EnvironmentId:    d.EnvironmentID,
+		AppId:            d.AppID,
+		ProjectId:        d.ProjectID,
+		AvailableActions: availableActions(in),
 		Runtime: openapi.DeploymentRuntime{
 			VCpus:            float64(d.CpuMillicores) / 1000,
 			MemoryMib:        int(d.MemoryMib),

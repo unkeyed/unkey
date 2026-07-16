@@ -540,17 +540,11 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
-	// Returns all regions where a deployment is configured.
-	// Used for fan-out: when a deployment changes, emit state_change to each region.
-	//
-	//  SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  WHERE dt.deployment_id = ?
-	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
-	// The environment slug and app live-pointer columns the read path needs for
-	// environmentSlug, isCurrent, and availableActions. Selects only these columns
-	// (not d.*) so the deployment itself stays a plain db.Deployment.
+	// Returns the parent environment's slug and the parent app's live-pointer
+	// columns (which deployment the app currently serves, and whether it was rolled
+	// back). The read path needs these to fill environmentSlug, isCurrent, and
+	// availableActions. Selects only these columns (not d.*) so the deployment
+	// itself stays a plain db.Deployment.
 	//
 	//  SELECT
 	//    e.slug AS environment_slug,
@@ -560,7 +554,15 @@ type Querier interface {
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id = ?
-	FindDeploymentRelations(ctx context.Context, db DBTX, id string) (FindDeploymentRelationsRow, error)
+	FindDeploymentEnvAndAppState(ctx context.Context, db DBTX, id string) (FindDeploymentEnvAndAppStateRow, error)
+	// Returns all regions where a deployment is configured.
+	// Used for fan-out: when a deployment changes, emit state_change to each region.
+	//
+	//  SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
+	//  FROM `deployment_topology` dt
+	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  WHERE dt.deployment_id = ?
+	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
 	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
@@ -2394,8 +2396,8 @@ type Querier interface {
 	//    AND cd.workspace_id = ?
 	//  WHERE r.deployment_id = ?
 	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]ListDeploymentDomainsRow, error)
-	// Batch form of FindDeploymentRelations: one query for a whole page of
-	// deployments, keyed by deployment id, so listDeployments avoids an N+1.
+	// Batch form keyed by deployment id: fetches the same env/app state for a whole
+	// page of deployments in one query, so listDeployments avoids an N+1.
 	//
 	//  SELECT
 	//    d.id AS deployment_id,
@@ -2406,7 +2408,7 @@ type Querier interface {
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
-	ListDeploymentRelations(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRelationsRow, error)
+	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentEnvAndAppStateRow, error)
 	//ListDeploymentSteps
 	//
 	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps

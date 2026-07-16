@@ -52,7 +52,12 @@ func TestAvailableActions(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := availableActions(tc.status, tc.desiredState, tc.envSlug, self, tc.current, tc.rolledBack)
+			got := availableActions(Input{
+				Deployment:             db.Deployment{ID: self, Status: tc.status, DesiredState: tc.desiredState},
+				EnvironmentSlug:        tc.envSlug,
+				AppCurrentDeploymentID: tc.current,
+				AppIsRolledBack:        tc.rolledBack,
+			})
 			require.Equal(t, tc.want, got)
 		})
 	}
