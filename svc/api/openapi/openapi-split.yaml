@@ -276,6 +276,8 @@ paths:
   # Gateway Endpoints
   /v2/gateway.setPolicies:
     $ref: "./spec/paths/v2/gateway/setPolicies/index.yaml"
+  /v2/gateway.listPolicies:
+    $ref: "./spec/paths/v2/gateway/listPolicies/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

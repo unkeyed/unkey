@@ -82,6 +82,7 @@ import (
 	v2EnvironmentsRemoveEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_remove_environment_variables"
 	v2EnvironmentsSetEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
 	v2EnvironmentsUpdateSettings "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
+	v2GatewayListPolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_list_policies"
 	v2GatewaySetPolicies "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
@@ -881,6 +882,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2GatewaySetPolicies.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/gateway.listPolicies
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GatewayListPolicies.Handler{
+			DB: svc.Database,
 		},
 	)
 

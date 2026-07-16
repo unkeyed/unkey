@@ -1156,6 +1156,31 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2GatewayListPoliciesRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2GatewayListPoliciesResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2GatewayListPoliciesResponseData"
+            additionalProperties: false
         V2GatewaySetPoliciesRequestBody:
             type: object
             required:
@@ -4314,12 +4339,23 @@ components:
                         Human-readable description of the variable.
                     example: Primary database connection string
             additionalProperties: false
-        Policy:
+        V2GatewayListPoliciesResponseData:
+            type: array
+            maxItems: 50
+            description: The environment's gateway policies in evaluation order.
+            items:
+                "$ref": "#/components/schemas/PolicyResponse"
+        PolicyResponse:
             type: object
             required:
+                - id
                 - name
                 - enabled
             properties:
+                id:
+                    type: string
+                    description: Server-generated policy id. Regenerated on every `gateway.setPolicies` call, so treat it as stable only until the environment's policies are next replaced.
+                    example: pol_2gJbXhAr4
                 name:
                     type: string
                     minLength: 1
@@ -4335,7 +4371,7 @@ components:
                         "$ref": "#/components/schemas/MatchExpr"
                     description: |-
                         Optional request matchers. The policy applies only to requests matching
-                        all expressions; omit to apply to every request.
+                        all expressions; omitted when the policy applies to every request.
                 keyauth:
                     "$ref": "#/components/schemas/KeyauthPolicy"
                 ratelimit:
@@ -4346,10 +4382,10 @@ components:
                     "$ref": "#/components/schemas/OpenapiPolicy"
             additionalProperties: false
             description: |-
-                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-                `openapi` must be set. The server generates an id for every policy it
-                stores.
+                A stored gateway policy as returned by list endpoints. Exactly one of
+                `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
             example:
+                id: pol_2gJbXhAr4
                 name: Block internal paths
                 enabled: true
                 match:
@@ -4680,6 +4716,50 @@ components:
                     maxLength: 512
             additionalProperties: false
             description: Rate limit by a field extracted from the authenticated principal.
+        Policy:
+            type: object
+            required:
+                - name
+                - enabled
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Human-readable name shown in the dashboard.
+                enabled:
+                    type: boolean
+                    description: Disabled policies are stored but skipped during evaluation.
+                match:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/MatchExpr"
+                    description: |-
+                        Optional request matchers. The policy applies only to requests matching
+                        all expressions; omit to apply to every request.
+                keyauth:
+                    "$ref": "#/components/schemas/KeyauthPolicy"
+                ratelimit:
+                    "$ref": "#/components/schemas/RatelimitPolicy"
+                firewall:
+                    "$ref": "#/components/schemas/FirewallPolicy"
+                openapi:
+                    "$ref": "#/components/schemas/OpenapiPolicy"
+            additionalProperties: false
+            description: |-
+                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
+                `openapi` must be set. The server generates an id for every policy it
+                stores.
+            example:
+                name: Block internal paths
+                enabled: true
+                match:
+                    - path:
+                        path:
+                            prefix: /internal/
+                firewall:
+                    action: ACTION_DENY
         RatelimitRequest:
             type: object
             required:
@@ -8561,6 +8641,83 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: updateSettings
+    /v2/gateway.listPolicies:
+        post:
+            description: |
+                Retrieve an environment's gateway policies in evaluation order: the
+                gateway evaluates them top to bottom and the first rejection
+                short-circuits the request.
+
+                The full policy list is returned in a single response.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_policies` (for any environment)
+                - `environment.<environment_id>.read_policies` (for a specific environment)
+            operationId: gateway.listPolicies
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            list:
+                                summary: List the environment's policies
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2GatewayListPoliciesRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2GatewayListPoliciesResponseBody'
+                    description: Policies retrieved successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_policies`)
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List policies
+            tags:
+                - gateway
+            x-speakeasy-name-override: listPolicies
     /v2/gateway.setPolicies:
         post:
             description: |

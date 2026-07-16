@@ -241,6 +241,8 @@ const (
 	// SetPolicies permits creating, updating, reordering, and removing a
 	// specific environment's gateway policies
 	SetPolicies ActionType = "set_policies"
+	// ReadPolicies permits reading a specific environment's gateway policies
+	ReadPolicies ActionType = "read_policies"
 )
 
 // Tuple represents a specific permission as a combination of resource type,
