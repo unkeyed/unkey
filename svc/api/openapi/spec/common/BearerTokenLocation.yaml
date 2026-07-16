@@ -1,0 +1,4 @@
+type: object
+properties: {}
+additionalProperties: false
+description: Extract the key from the `Authorization Bearer` header.

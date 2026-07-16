@@ -41,6 +41,16 @@ export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
   return `${prefixes[prefix]}_${nanoid(12)}` as const;
 }
 
+// Mirrors pkg/uid/new.go: 9 chars from the full alphanumeric alphabet. Use for
+// ids that must be indistinguishable from Go-generated ones, e.g.
+// policy ids, which both the dashboard and svc/api write into the same
+// sentinel_config blob.
+const goUid = customAlphabet("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+
+export function newUid<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {
+  return `${prefixes[prefix]}_${goUid(9)}` as const;
+}
+
 const dns1035Alpha = "abcdefghijklmnopqrstuvwxyz";
 
 const dns = customAlphabet(`${dns1035Alpha}0123456789`);

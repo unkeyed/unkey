@@ -1,0 +1,4 @@
+type: object
+properties: {}
+additionalProperties: false
+description: Rate limit by the authenticated subject (e.g. the verified key).
