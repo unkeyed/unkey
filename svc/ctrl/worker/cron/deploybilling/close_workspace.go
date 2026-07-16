@@ -119,16 +119,17 @@ func (h *Handler) pushSingleWorkspace(
 ) (workspacePushOutcome, error) {
 	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
 		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
-			WorkspaceID: workspaceID,
-			Start:       p.Start().UnixMilli(),
-			End:         endMillis,
+			WorkspaceID:  workspaceID,
+			WorkspaceIDs: nil,
+			Start:        p.Start().UnixMilli(),
+			End:          endMillis,
 		})
 	}, restate.WithName("get workspace period usage"))
 	if err != nil {
 		return workspacePushOutcome{}, fmt.Errorf("get workspace period usage: %w", err)
 	}
 
-	valuesByWorkspace := aggregateUsage(rows)
+	valuesByWorkspace := AggregateUsage(rows)
 	values, ok := valuesByWorkspace[workspaceID]
 	if !ok || !values.Positive() {
 		logger.Info("no deploy usage to push for workspace close",

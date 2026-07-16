@@ -1,0 +1,4 @@
+type: object
+properties: {}
+additionalProperties: false
+description: Rate limit by the client's IP address.

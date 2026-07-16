@@ -1156,6 +1156,137 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2GatewayListPoliciesRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2GatewayListPoliciesResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2GatewayListPoliciesResponseData"
+            additionalProperties: false
+        V2GatewaySetPoliciesRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+                - policies
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                policies:
+                    type: array
+                    maxItems: 50
+                    items:
+                        "$ref": "#/components/schemas/Policy"
+                    description: |-
+                        The environment's complete policy list, in evaluation order. Every call
+                        replaces all stored policies with exactly this list; an empty list
+                        removes every policy. The operation is atomic: if any policy is
+                        invalid, nothing is written. An environment can hold at most 50
+                        policies.
+            additionalProperties: false
+        V2GatewaySetPoliciesResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2GatewayUpdatePolicyRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+                - policyId
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                policyId:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: |-
+                        Id of the policy to update, as returned by `gateway.listPolicies`.
+                        Ids are regenerated whenever `gateway.setPolicies` replaces the list,
+                        so list the policies first if you are unsure the id is current.
+                    example: pol_9d2Fk1LmQ
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |-
+                        New human-readable name. Omit to keep the current name.
+                enabled:
+                    type: boolean
+                    description: |-
+                        Enable or disable the policy. Disabled policies are stored but skipped
+                        during evaluation. Omit to keep the current setting.
+                match:
+                    type:
+                        - array
+                        - "null"
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/MatchExpr"
+                    description: |-
+                        Replaces all match expressions. Set null to remove them so the policy
+                        applies to every request. Omit to keep the current expressions.
+                keyauth:
+                    "$ref": "#/components/schemas/KeyauthPolicy"
+                ratelimit:
+                    "$ref": "#/components/schemas/RatelimitPolicy"
+                firewall:
+                    "$ref": "#/components/schemas/FirewallPolicy"
+                openapi:
+                    "$ref": "#/components/schemas/OpenapiPolicy"
+            additionalProperties: false
+            description: |-
+                Partial update of a single policy. Omitted fields keep their stored
+                values; at least one updatable field must be provided. Providing one of
+                `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
+                rule entirely, including switching its type; at most one may be set.
+        V2GatewayUpdatePolicyResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -4277,6 +4408,427 @@ components:
                         Human-readable description of the variable.
                     example: Primary database connection string
             additionalProperties: false
+        V2GatewayListPoliciesResponseData:
+            type: array
+            maxItems: 50
+            description: The environment's gateway policies in evaluation order.
+            items:
+                "$ref": "#/components/schemas/PolicyResponse"
+        PolicyResponse:
+            type: object
+            required:
+                - id
+                - name
+                - enabled
+            properties:
+                id:
+                    type: string
+                    description: Server-generated policy id. Regenerated on every `gateway.setPolicies` call, so treat it as stable only until the environment's policies are next replaced.
+                    example: pol_2gJbXhAr4
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Human-readable name shown in the dashboard.
+                enabled:
+                    type: boolean
+                    description: Disabled policies are stored but skipped during evaluation.
+                match:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/MatchExpr"
+                    description: |-
+                        Optional request matchers. The policy applies only to requests matching
+                        all expressions; omitted when the policy applies to every request.
+                keyauth:
+                    "$ref": "#/components/schemas/KeyauthPolicy"
+                ratelimit:
+                    "$ref": "#/components/schemas/RatelimitPolicy"
+                firewall:
+                    "$ref": "#/components/schemas/FirewallPolicy"
+                openapi:
+                    "$ref": "#/components/schemas/OpenapiPolicy"
+            additionalProperties: false
+            description: |-
+                A stored gateway policy as returned by list endpoints. Exactly one of
+                `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+            example:
+                id: pol_2gJbXhAr4
+                name: Block internal paths
+                enabled: true
+                match:
+                    - path:
+                        path:
+                            prefix: /internal/
+                firewall:
+                    action: ACTION_DENY
+        MatchExpr:
+            type: object
+            properties:
+                path:
+                    "$ref": "#/components/schemas/PathMatch"
+                method:
+                    "$ref": "#/components/schemas/MethodMatch"
+                header:
+                    "$ref": "#/components/schemas/FieldMatch"
+                queryParam:
+                    "$ref": "#/components/schemas/FieldMatch"
+            additionalProperties: false
+            description: |-
+                A single request match expression. Exactly one of `path`, `method`,
+                `header` or `queryParam` must be set.
+            example:
+                path:
+                    path:
+                        prefix: /api/
+        KeyauthPolicy:
+            type: object
+            required:
+                - keyspaces
+            properties:
+                keyspaces:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                    description: |-
+                        Keyspaces to verify keys against, referenced by id. All keyspaces must
+                        belong to your workspace.
+                locations:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/KeyLocation"
+                    description: |-
+                        Where to look for the key on incoming requests, tried in order. Defaults
+                        to the `Authorization Bearer` header when omitted.
+                permissionQuery:
+                    type: string
+                    maxLength: 1000
+                    description: |-
+                        Optional permission query the verified key must satisfy, e.g.
+                        `documents.read AND documents.write`.
+                ratelimits:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/KeyRatelimit"
+                    description: Rate limits applied during key verification.
+            additionalProperties: false
+            description: Verifies Unkey API keys on matching requests.
+            example:
+                keyspaces:
+                    - ks_1234abcd
+        RatelimitPolicy:
+            type: object
+            required:
+                - limit
+                - windowMs
+                - identifier
+            properties:
+                limit:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: Maximum number of requests per window.
+                windowMs:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: Window duration in milliseconds.
+                identifier:
+                    "$ref": "#/components/schemas/RatelimitIdentifier"
+            additionalProperties: false
+            description: Rate limits matching requests.
+            example:
+                limit: 100
+                windowMs: 60000
+                identifier:
+                    remoteIp: {}
+        FirewallPolicy:
+            type: object
+            required:
+                - action
+            properties:
+                action:
+                    type: string
+                    enum:
+                        - ACTION_DENY
+                    description: What to do with matching requests.
+            additionalProperties: false
+            description: Blocks matching requests.
+            example:
+                action: ACTION_DENY
+        OpenapiPolicy:
+            type: object
+            additionalProperties: false
+            description: |-
+                Validates matching requests against the app's uploaded OpenAPI spec. Has no
+                configuration of its own. If no spec has been uploaded for the deployment,
+                the policy is a no-op and requests pass through unvalidated.
+            example: {}
+        PathMatch:
+            type: object
+            required:
+                - path
+            properties:
+                path:
+                    "$ref": "#/components/schemas/StringMatch"
+            additionalProperties: false
+            description: Matches on the request path.
+        MethodMatch:
+            type: object
+            required:
+                - methods
+            properties:
+                methods:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: string
+                        enum:
+                            - GET
+                            - POST
+                            - PUT
+                            - PATCH
+                            - DELETE
+                            - HEAD
+                            - OPTIONS
+            additionalProperties: false
+            description: Matches when the request method is one of the listed methods.
+        FieldMatch:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                present:
+                    type: boolean
+                    enum:
+                        - true
+                    description: Matches when the field is present, regardless of value.
+                value:
+                    "$ref": "#/components/schemas/StringMatch"
+            additionalProperties: false
+            description: |-
+                Matches a named request field (header or query parameter). Exactly one of
+                `present` or `value` must be set.
+        StringMatch:
+            type: object
+            properties:
+                exact:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: Matches when the input equals this value.
+                prefix:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: Matches when the input starts with this value.
+                regex:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |-
+                        Matches when the input satisfies this RE2 regular expression. Invalid
+                        patterns are rejected when the policy is created.
+                ignoreCase:
+                    type: boolean
+                    description: Compare case-insensitively. May accompany any match mode.
+            additionalProperties: false
+            description: |-
+                String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
+            example:
+                prefix: /api/
+                ignoreCase: true
+        KeyLocation:
+            type: object
+            properties:
+                bearer:
+                    "$ref": "#/components/schemas/BearerTokenLocation"
+                header:
+                    "$ref": "#/components/schemas/HeaderKeyLocation"
+                queryParam:
+                    "$ref": "#/components/schemas/QueryParamKeyLocation"
+            additionalProperties: false
+            description: |-
+                Where to look for the API key on incoming requests. Exactly one of
+                `bearer`, `header` or `queryParam` must be set.
+            example:
+                bearer: {}
+        KeyRatelimit:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |-
+                        Name of a rate limit configured on the key or its identity, or the name
+                        of the inline override defined by `limit` and `duration`.
+                limit:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: |-
+                        Inline override: maximum number of operations per window. Must be set
+                        together with `duration`.
+                duration:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: |-
+                        Inline override: window duration in milliseconds. Must be set together
+                        with `limit`.
+                cost:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                    description: Cost charged against the limit per request. Defaults to 1.
+            additionalProperties: false
+            description: |-
+                A rate limit applied during key verification. `limit` and `duration`
+                must be set together or both omitted; a partial pair is rejected.
+            example:
+                name: requests
+                limit: 100
+                duration: 60000
+        BearerTokenLocation:
+            type: object
+            additionalProperties: false
+            description: Extract the key from the `Authorization Bearer` header.
+        HeaderKeyLocation:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                stripPrefix:
+                    type: string
+                    maxLength: 256
+                    description: Optional prefix removed from the header value before verification.
+            additionalProperties: false
+            description: Extract the key from a custom header.
+        QueryParamKeyLocation:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+            additionalProperties: false
+            description: Extract the key from a query parameter.
+        RatelimitIdentifier:
+            type: object
+            properties:
+                remoteIp:
+                    "$ref": "#/components/schemas/RemoteIpKey"
+                header:
+                    "$ref": "#/components/schemas/HeaderKey"
+                authenticatedSubject:
+                    "$ref": "#/components/schemas/AuthenticatedSubjectKey"
+                path:
+                    "$ref": "#/components/schemas/PathKey"
+                principalField:
+                    "$ref": "#/components/schemas/PrincipalFieldKey"
+            additionalProperties: false
+            description: |-
+                How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+                `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+            example:
+                remoteIp: {}
+        RemoteIpKey:
+            type: object
+            additionalProperties: false
+            description: Rate limit by the client's IP address.
+        HeaderKey:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+            additionalProperties: false
+            description: Rate limit by the value of a request header.
+        AuthenticatedSubjectKey:
+            type: object
+            additionalProperties: false
+            description: Rate limit by the authenticated subject (e.g. the verified key).
+        PathKey:
+            type: object
+            additionalProperties: false
+            description: Rate limit by the request path.
+        PrincipalFieldKey:
+            type: object
+            required:
+                - path
+            properties:
+                path:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+            additionalProperties: false
+            description: Rate limit by a field extracted from the authenticated principal.
+        Policy:
+            type: object
+            required:
+                - name
+                - enabled
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Human-readable name shown in the dashboard.
+                enabled:
+                    type: boolean
+                    description: Disabled policies are stored but skipped during evaluation.
+                match:
+                    type: array
+                    maxItems: 10
+                    items:
+                        "$ref": "#/components/schemas/MatchExpr"
+                    description: |-
+                        Optional request matchers. The policy applies only to requests matching
+                        all expressions; omit to apply to every request.
+                keyauth:
+                    "$ref": "#/components/schemas/KeyauthPolicy"
+                ratelimit:
+                    "$ref": "#/components/schemas/RatelimitPolicy"
+                firewall:
+                    "$ref": "#/components/schemas/FirewallPolicy"
+                openapi:
+                    "$ref": "#/components/schemas/OpenapiPolicy"
+            additionalProperties: false
+            description: |-
+                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
+                `openapi` must be set. The server generates an id for every policy it
+                stores.
+            example:
+                name: Block internal paths
+                enabled: true
+                match:
+                    - path:
+                        path:
+                            prefix: /internal/
+                firewall:
+                    action: ACTION_DENY
         RatelimitRequest:
             type: object
             required:
@@ -8158,6 +8710,319 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: updateSettings
+    /v2/gateway.listPolicies:
+        post:
+            description: |
+                Retrieve an environment's gateway policies in evaluation order: the
+                gateway evaluates them top to bottom and the first rejection
+                short-circuits the request.
+
+                The full policy list is returned in a single response.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_policies` (for any environment)
+                - `environment.<environment_id>.read_policies` (for a specific environment)
+            operationId: gateway.listPolicies
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            list:
+                                summary: List the environment's policies
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2GatewayListPoliciesRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2GatewayListPoliciesResponseBody'
+                    description: Policies retrieved successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_policies`)
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List policies
+            tags:
+                - gateway
+            x-speakeasy-name-override: listPolicies
+    /v2/gateway.setPolicies:
+        post:
+            description: |
+                Replace an environment's gateway policies in a single atomic request.
+                Policies run at the edge before requests reach your app: verify API keys,
+                rate limit, block requests outright, or validate them against your
+                OpenAPI spec.
+
+                Policies are an ordered list: the gateway evaluates them top to bottom
+                and the first rejection short-circuits the request.
+
+                Each policy sets exactly one of `keyauth`, `ratelimit`, `firewall` or
+                `openapi`, plus optional `match` expressions restricting which requests
+                it applies to.
+
+                Every call is a full replace: the environment's policies become exactly
+                the request list in the given order, and the server generates a fresh id
+                for each one. An empty list removes all policies. The operation is
+                atomic: if any policy is invalid, nothing is written.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.set_policies` (for any environment)
+                - `environment.<environment_id>.set_policies` (for a specific environment)
+            operationId: gateway.setPolicies
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            matchers:
+                                summary: Block a path prefix with a firewall policy
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    policies:
+                                        - enabled: true
+                                          firewall:
+                                            action: ACTION_DENY
+                                          match:
+                                            - path:
+                                                path:
+                                                    prefix: /internal/
+                                          name: Block internal paths
+                                    project: payments
+                            reset:
+                                summary: Remove all policies
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    policies: []
+                                    project: payments
+                            set:
+                                summary: Replace the environment's policies
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    policies:
+                                        - enabled: true
+                                          keyauth:
+                                            keyspaces:
+                                                - ks_1234abcd
+                                          name: Require API key
+                                        - enabled: true
+                                          name: Global IP limit
+                                          ratelimit:
+                                            identifier:
+                                                remoteIp: {}
+                                            limit: 100
+                                            windowMs: 60000
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2GatewaySetPoliciesRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2GatewaySetPoliciesResponseBody'
+                    description: |
+                        Successfully set the policies.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The environment or a referenced keyspace does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Set policies
+            tags:
+                - gateway
+            x-speakeasy-name-override: setPolicies
+    /v2/gateway.updatePolicy:
+        post:
+            description: |
+                Update a single policy in place without resending the environment's full
+                policy list. The policy keeps its id and its position in the evaluation
+                order, and all other policies are untouched.
+
+                Omitted fields keep their stored values; at least one updatable field
+                must be provided. Setting `match` to null removes all match expressions
+                so the policy applies to every request. Providing one of `keyauth`,
+                `ratelimit`, `firewall` or `openapi` replaces the policy's rule
+                entirely, including switching its type; at most one may be set.
+
+                Policy ids are regenerated whenever `gateway.setPolicies` replaces the
+                list, so fetch current ids via `gateway.listPolicies` first.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.update_policy` (for any environment)
+                - `environment.<environment_id>.update_policy` (for a specific environment)
+            operationId: gateway.updatePolicy
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            clearMatch:
+                                summary: Remove all match expressions
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    match: null
+                                    policyId: pol_9d2Fk1LmQ
+                                    project: payments
+                            disable:
+                                summary: Disable a policy without touching its rule
+                                value:
+                                    app: payments-api
+                                    enabled: false
+                                    environment: production
+                                    policyId: pol_9d2Fk1LmQ
+                                    project: payments
+                            rename:
+                                summary: Rename a policy
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    name: Require API key (v2)
+                                    policyId: pol_9d2Fk1LmQ
+                                    project: payments
+                            switchRule:
+                                summary: Replace the policy's rule with a firewall deny
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    firewall:
+                                        action: ACTION_DENY
+                                    policyId: pol_9d2Fk1LmQ
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2GatewayUpdatePolicyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2GatewayUpdatePolicyResponseBody'
+                    description: |
+                        Successfully updated the policy.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_policy`)
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The environment, policy, or a referenced keyspace does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update policy
+            tags:
+                - gateway
+            x-speakeasy-name-override: updatePolicy
     /v2/identities.createIdentity:
         post:
             description: |
@@ -12169,6 +13034,8 @@ tags:
       name: liveness
     - description: Permission and role management operations
       name: permissions
+    - description: Gateway policy operations
+      name: gateway
     - description: Customer Portal session management
       name: portal
     - description: Rate limiting operations
