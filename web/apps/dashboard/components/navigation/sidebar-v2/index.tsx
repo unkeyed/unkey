@@ -29,8 +29,11 @@ export function SidebarV2(props: Props) {
       collapsible="icon"
       className={cn("[&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
       style={{
-        top: TOP_NAV_HEIGHT,
-        height: `calc(100svh - ${TOP_NAV_HEIGHT}px)`,
+        // --app-top-offset is TOP_NAV_HEIGHT plus the paused banner when it's
+        // showing; the layout publishes it so this viewport-fixed sidebar sits
+        // below both. Falls back to the nav height when the var isn't set.
+        top: `var(--app-top-offset, ${TOP_NAV_HEIGHT}px)`,
+        height: `calc(100svh - var(--app-top-offset, ${TOP_NAV_HEIGHT}px))`,
       }}
     >
       <SidebarContent>

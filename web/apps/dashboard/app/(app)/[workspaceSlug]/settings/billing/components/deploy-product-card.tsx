@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
-import { ComputePausedBadge, usePausedPreview } from "./compute-paused";
+import { ComputePausedBadge } from "./compute-paused";
 import {
   AllPlansInclude,
   ComputePlanConfirmDialog,
@@ -16,7 +16,7 @@ import {
 } from "./compute-plan-picker";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ProductCard } from "./product-card";
-import { SpendBudget } from "./spend-budget";
+import { SpendManagement } from "./spend-management";
 
 type DeployProductCardProps = {
   isAdmin: boolean;
@@ -39,6 +39,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [isCancelOpen, setCancelOpen] = useState(false);
+  const [isBudgetOpen, setBudgetOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
 
   const { data: subscription, isLoading: subscriptionLoading } =
@@ -50,12 +51,10 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
 
   const currentPlan = subscription?.plan ?? null;
 
-  // Same query SpendBudget uses (React Query dedupes it to one request); read
-  // here too so the paused state can show as a header badge. The dev debug bar
-  // can force it on for preview.
-  const preview = usePausedPreview();
+  // Same query SpendManagement uses (React Query dedupes it to one request);
+  // read here too so the paused state can show as a header badge.
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
-  const suspended = (budget?.suspended ?? false) || (preview?.forceSuspended ?? false);
+  const suspended = budget?.suspended ?? false;
 
   // Usage is only worth fetching (and rendering) once there is a plan.
   const { data: usage } = trpc.billing.queryDeployUsage.useQuery(undefined, {
@@ -191,6 +190,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       <ProductCard
         icon={<Cube iconSize="md-regular" />}
         iconClassName="bg-orangeA-3 text-orange-11"
+        flushBody
         name="Compute"
         tag={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
         badge={currentPlan && suspended ? <ComputePausedBadge /> : undefined}
@@ -256,7 +256,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             {meterStats ? (
               <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
-                  <div key={stat.label} className="bg-white px-3 py-2 dark:bg-black">
+                  <div key={stat.label} className="bg-white px-3 py-2 first:pl-0 dark:bg-black">
                     <InfoTooltip content={stat.hint} asChild>
                       <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}
@@ -269,7 +269,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
-            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
+            <SpendManagement
+              usageCents={usageAmount}
+              isAdmin={isAdmin}
+              open={isBudgetOpen}
+              onOpenChange={setBudgetOpen}
+            />
           </div>
         ) : null}
       </ProductCard>

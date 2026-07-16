@@ -20,11 +20,8 @@ import type { ReactNode } from "react";
 import type Stripe from "stripe";
 import { ApiAddOnCard } from "./components/api-addon-card";
 import { BillingSummary } from "./components/billing-summary";
-import { ComputePausedDebugBar, PausedPreviewProvider } from "./components/compute-paused";
 import { DeployProductCard } from "./components/deploy-product-card";
 import { SubscriptionStatus } from "./components/subscription-status";
-
-const PAUSED_PREVIEW_ENABLED = process.env.NODE_ENV !== "production";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -138,7 +135,6 @@ export const DeployBillingClient: React.FC = () => {
 
   const body = (
     <div className="flex w-full flex-col gap-4 pt-4 pb-16">
-      {PAUSED_PREVIEW_ENABLED ? <ComputePausedDebugBar /> : null}
       {subscription ? (
         <SubscriptionStatus
           workspaceSlug={workspace.slug}
@@ -170,9 +166,5 @@ export const DeployBillingClient: React.FC = () => {
     </div>
   );
 
-  return (
-    <Shell>
-      {PAUSED_PREVIEW_ENABLED ? <PausedPreviewProvider>{body}</PausedPreviewProvider> : body}
-    </Shell>
-  );
+  return <Shell>{body}</Shell>;
 };

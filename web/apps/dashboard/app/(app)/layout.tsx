@@ -1,8 +1,12 @@
 "use client";
 
+import {
+  ComputePausedBanner,
+  PAUSED_BANNER_HEIGHT,
+} from "@/components/navigation/compute-paused-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
-import { TopNav } from "@/components/navigation/top-nav";
+import { TOP_NAV_HEIGHT, TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Route } from "next";
 
@@ -107,11 +111,19 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
-  const isImpersonator = user?.impersonator;
+  // The fixed sidebar is anchored to the viewport, so when the paused banner is
+  // showing it must be pushed down by the banner height too. Publish the
+  // combined offset as --app-top-offset for the sidebar to read.
+  const suspended = workspace.deploySpendSuspended ?? false;
+  const topOffset = TOP_NAV_HEIGHT + (suspended ? PAUSED_BANNER_HEIGHT : 0);
 
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-      <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+      <div
+        className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12"
+        style={{ "--app-top-offset": `${topOffset}px` } as React.CSSProperties}
+      >
+        <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
         <div className="flex flex-1 overflow-hidden">
@@ -127,7 +139,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
             </div>
-            {isImpersonator ? <ImpersonationBanner /> : null}
+            {user?.impersonator ? <ImpersonationBanner /> : null}
           </div>
         </div>
       </div>
