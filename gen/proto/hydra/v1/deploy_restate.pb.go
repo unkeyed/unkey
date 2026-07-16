@@ -293,3 +293,117 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }
+
+// DeployTeardownServiceClient is the client API for hydra.v1.DeployTeardownService service.
+//
+// DeployTeardownService stops a workspace's running Deploy compute and waits
+// for it to drain, keyed by workspace id so teardowns serialize per workspace.
+type DeployTeardownServiceClient interface {
+	// Teardown stops every running deployment in the workspace and polls until
+	// they drain, forcing completion after a grace timeout so a stuck pod can't
+	// block the caller forever. Clears apps.current_deployment_id for any app
+	// whose current deployment it stops, so the DeploymentService guard permits
+	// the state change. Idempotent.
+	Teardown(opts ...sdk_go.ClientOption) sdk_go.Client[*TeardownRequest, *TeardownResponse]
+}
+
+type deployTeardownServiceClient struct {
+	ctx     sdk_go.Context
+	key     string
+	options []sdk_go.ClientOption
+}
+
+func NewDeployTeardownServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeployTeardownServiceClient {
+	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
+	return &deployTeardownServiceClient{
+		ctx,
+		key,
+		cOpts,
+	}
+}
+func (c *deployTeardownServiceClient) Teardown(opts ...sdk_go.ClientOption) sdk_go.Client[*TeardownRequest, *TeardownResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*TeardownRequest](sdk_go.Object[*TeardownResponse](c.ctx, "hydra.v1.DeployTeardownService", c.key, "Teardown", cOpts...))
+}
+
+// DeployTeardownServiceIngressClient is the ingress client API for hydra.v1.DeployTeardownService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type DeployTeardownServiceIngressClient interface {
+	// Teardown stops every running deployment in the workspace and polls until
+	// they drain, forcing completion after a grace timeout so a stuck pod can't
+	// block the caller forever. Clears apps.current_deployment_id for any app
+	// whose current deployment it stops, so the DeploymentService guard permits
+	// the state change. Idempotent.
+	Teardown() ingress.Requester[*TeardownRequest, *TeardownResponse]
+}
+
+type deployTeardownServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewDeployTeardownServiceIngressClient(client *ingress.Client, key string) DeployTeardownServiceIngressClient {
+	return &deployTeardownServiceIngressClient{
+		client,
+		"hydra.v1.DeployTeardownService",
+		key,
+	}
+}
+
+func (c *deployTeardownServiceIngressClient) Teardown() ingress.Requester[*TeardownRequest, *TeardownResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*TeardownRequest, *TeardownResponse](c.client, c.serviceName, "Teardown", &c.key, &codec)
+}
+
+// DeployTeardownServiceServer is the server API for hydra.v1.DeployTeardownService service.
+// All implementations should embed UnimplementedDeployTeardownServiceServer
+// for forward compatibility.
+//
+// DeployTeardownService stops a workspace's running Deploy compute and waits
+// for it to drain, keyed by workspace id so teardowns serialize per workspace.
+type DeployTeardownServiceServer interface {
+	// Teardown stops every running deployment in the workspace and polls until
+	// they drain, forcing completion after a grace timeout so a stuck pod can't
+	// block the caller forever. Clears apps.current_deployment_id for any app
+	// whose current deployment it stops, so the DeploymentService guard permits
+	// the state change. Idempotent.
+	Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error)
+}
+
+// UnimplementedDeployTeardownServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedDeployTeardownServiceServer struct{}
+
+func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+}
+func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
+
+// UnsafeDeployTeardownServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DeployTeardownServiceServer will
+// result in compilation errors.
+type UnsafeDeployTeardownServiceServer interface {
+	mustEmbedUnimplementedDeployTeardownServiceServer()
+}
+
+func NewDeployTeardownServiceServer(srv DeployTeardownServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
+	// If the following call panics, it indicates UnimplementedDeployTeardownServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
+	router := sdk_go.NewObject("hydra.v1.DeployTeardownService", sOpts...)
+	router = router.Handler("Teardown", sdk_go.NewObjectHandler(srv.Teardown))
+	return router
+}

@@ -1,0 +1,153 @@
+package deployteardown
+
+import (
+	"database/sql"
+	"fmt"
+	"time"
+
+	restate "github.com/restatedev/sdk-go"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+)
+
+const (
+	// defaultDrainPollInterval is how long Teardown sleeps between drain checks.
+	// krane drains a deployment in ~30s (SIGTERM grace), so a 10s cadence reports
+	// completion within a poll of the real drain without hammering the database.
+	defaultDrainPollInterval = 10 * time.Second
+
+	// defaultDrainGraceTimeout bounds the wait for compute to drain. Past it
+	// Teardown returns with drained=false and logs an alert rather than blocking
+	// forever on a stuck pod: billing must never hang on a drain that won't
+	// finish.
+	defaultDrainGraceTimeout = 5 * time.Minute
+)
+
+// Teardown stops every running deployment in the workspace and polls until they
+// drain. The workspace id is the virtual object key.
+//
+// For each deployment that is its app's current deployment it first clears
+// apps.current_deployment_id: the DeploymentService guard refuses to change the
+// current deployment, and a torn-down app genuinely has no current deployment,
+// so clearing it makes the guard's precondition honestly true instead of
+// punching a hole in it. Frontline routes off frontline_routes + desired_state
+// and ignores current_deployment_id, so clearing it does not disturb routing.
+//
+// The stop itself is fire-and-forget: ScheduleDesiredStateChange records the
+// transition on each deployment's own virtual object and self-sends the apply,
+// so a slow or stuck deployment cannot stall this handler. Drain is observed by
+// polling the database, not by awaiting the children.
+func (v *VirtualObject) Teardown(
+	ctx restate.ObjectContext,
+	_ *hydrav1.TeardownRequest,
+) (*hydrav1.TeardownResponse, error) {
+	workspaceID := restate.Key(ctx)
+
+	running, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListRunningDeploymentsByWorkspaceIdRow, error) {
+		return v.db.ListRunningDeploymentsByWorkspaceId(rc, db.ListRunningDeploymentsByWorkspaceIdParams{
+			WorkspaceID:    workspaceID,
+			ActiveStatuses: db.ActiveComputeDeploymentStatuses,
+		})
+	}, restate.WithName("list running deployments"))
+	if err != nil {
+		return nil, fmt.Errorf("list running deployments: %w", err)
+	}
+
+	if len(running) == 0 {
+		logger.Info("teardown: nothing running", "workspace_id", workspaceID)
+		return &hydrav1.TeardownResponse{DeploymentsStopped: 0, Drained: true}, nil
+	}
+
+	ids := make([]string, 0, len(running))
+	for _, d := range running {
+		ids = append(ids, d.ID)
+
+		// Clear current_deployment_id only for the app's current deployment;
+		// clearing it for a non-current one would wrongly drop a different live
+		// deployment's pointer.
+		if d.CurrentDeploymentID.Valid && d.CurrentDeploymentID.String == d.ID {
+			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+				return v.db.ClearAppCurrentDeployment(rc, db.ClearAppCurrentDeploymentParams{
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					AppID:        d.AppID,
+					DeploymentID: sql.NullString{Valid: true, String: d.ID},
+				})
+			}, restate.WithName("clear current deployment "+d.AppID)); err != nil {
+				return nil, fmt.Errorf("clear current deployment for app %s: %w", d.AppID, err)
+			}
+		}
+
+		// Send (not Request): the per-deployment object owns the state change,
+		// its retries, and the krane handoff. A replay does not re-dispatch.
+		//
+		// Overwrite: without it, ScheduleDesiredStateChange no-ops when the
+		// deployment already has a pending transition, and this Send never
+		// learns that. A deployment caught mid-transition would then survive
+		// the teardown entirely: still running, but with current_deployment_id
+		// already cleared above and, for cancel, no entitlement left. Teardown
+		// is authoritative, so it supersedes whatever was in flight.
+		hydrav1.NewDeploymentServiceClient(ctx, d.ID).
+			ScheduleDesiredStateChange().
+			Send(&hydrav1.ScheduleDesiredStateChangeRequest{
+				DelayMillis: 0,
+				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:   true,
+			})
+	}
+
+	logger.Info("teardown stopping deployments",
+		"workspace_id", workspaceID,
+		"deployments_stopped", len(ids),
+	)
+
+	// Poll the database until every stopped deployment drains, bounded by an
+	// absolute deadline. The whole poll runs inside a single restate.Run, so it
+	// adds one journal entry instead of one per tick (a per-tick Run+Sleep loop
+	// journals dozens of entries over the grace window). The deadline is derived
+	// from a journaled Now(), so a replay on another node measures against the
+	// same absolute cutoff rather than restarting the clock from zero.
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get current time: %w", err)
+	}
+	deadline := now.Add(v.drainGraceTimeout)
+
+	drained, err := restate.Run(ctx, func(rc restate.RunContext) (bool, error) {
+		for {
+			active, err := v.db.CountActiveDeploymentsByIds(rc, ids)
+			if err != nil {
+				return false, err
+			}
+			if active == 0 {
+				return true, nil
+			}
+			if !time.Now().Before(deadline) {
+				return false, nil
+			}
+			time.Sleep(v.drainPollInterval)
+		}
+	}, restate.WithName("await drain"))
+	if err != nil {
+		return nil, fmt.Errorf("await drain: %w", err)
+	}
+
+	if !drained {
+		// Force completion so billing is never blocked on a stuck pod. The
+		// compute is still draining; surface it for an operator rather than
+		// hanging the invocation.
+		logger.Error("teardown grace timeout: compute still draining",
+			"workspace_id", workspaceID,
+			"deployments_stopped", len(ids),
+			"grace_timeout", v.drainGraceTimeout.String(),
+		)
+		return &hydrav1.TeardownResponse{DeploymentsStopped: int32(len(ids)), Drained: false}, nil
+	}
+
+	logger.Info("teardown drained",
+		"workspace_id", workspaceID,
+		"deployments_stopped", len(ids),
+	)
+	return &hydrav1.TeardownResponse{DeploymentsStopped: int32(len(ids)), Drained: true}, nil
+}

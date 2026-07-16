@@ -156,9 +156,8 @@ const MicroCentsPerCent = 1_000_000
 // meter values, in integer micro-cents. The usage quantities are inherently
 // fractional (ClickHouse sums, unit conversions), so the dot product runs in
 // float64 and is rounded to the nearest micro-cent exactly once, here. This is
-// the gross usage the hourly push reports, priced with the catalog rates; the
-// spend-cap check subtracts the included credit from it to get the budgeted
-// overage.
+// the gross usage the hourly push reports, priced with the catalog rates, and
+// the same figure the spend-cap check compares against the budget.
 func PriceMicroCents(v billingmeter.MeterValues) int64 {
 	cents := v.CPUSeconds*centsPerCPUSecond +
 		v.MemoryGiBSeconds*centsPerMemoryGiBSecond +
