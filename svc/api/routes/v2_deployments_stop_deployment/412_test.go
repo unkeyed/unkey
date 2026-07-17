@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -157,4 +159,46 @@ func TestStopDeploymentCtrlPreconditionFailed(t *testing.T) {
 	// text must stay in the logs.
 	require.Contains(t, res.Body.Error.Detail, "The deployment could not be stopped.")
 	require.NotContains(t, res.RawBody, "deployment is not running")
+}
+
+// When ctrl rejects with a deploygate message (a race: a stop was already in
+// flight when the handler's own gate passed), the response carries the same
+// specific code and message the local gate would have produced.
+func TestStopDeploymentCtrlGateRejection(t *testing.T) {
+	h := testutil.NewHarness(t)
+	mock := &testutil.MockDeploymentClient{
+		StopDeploymentFunc: func(ctx context.Context, req *ctrlv1.StopDeploymentRequest) (*ctrlv1.StopDeploymentResponse, error) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.StopAlreadyStopping.Message()))
+		},
+	}
+	route := newRoute(h, mock)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.stop_deployment"},
+	})
+
+	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		AppID:       setup.App.ID,
+		Slug:        "preview",
+		Description: "preview environment",
+	})
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: preview.ID,
+		Status:        db.DeploymentsStatusReady,
+	})
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Len(t, mock.StopDeploymentCalls, 1)
+	require.Contains(t, res.Body.Error.Type, "deployment_already_stopping")
+	require.Equal(t, deploygate.StopAlreadyStopping.Message(), res.Body.Error.Detail)
 }

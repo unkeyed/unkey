@@ -116,18 +116,52 @@ func FindDeployment(ctx context.Context, database db.Database, workspaceID, depl
 }
 
 // MapCtrlError converts a ctrl connect error from a lifecycle RPC into an API
-// fault: precondition failures become a 412 with preconditionMsg, not-found
-// stays a 404, and everything else falls through to the generic ctrl mapping.
+// fault. Ctrl re-runs the same deploygate checks the handler already passed, so
+// a precondition message matching a known gate rejection (a race: the state
+// changed between the two checks) is mapped back to its reason and surfaces the
+// identical code and message the local gate would have produced. Unrecognized
+// precondition failures (e.g. a spend-cap suspension) become a generic 412 with
+// preconditionMsg, not-found stays a 404, and everything else falls through to
+// the generic ctrl mapping.
 func MapCtrlError(err error, action string, preconditionMsg string) error {
 	var connectErr *connect.Error
 	if errors.As(err, &connectErr) {
 		//nolint:exhaustive // all other Connect error codes fall through to the generic mapping
 		switch connectErr.Code() {
 		case connect.CodeFailedPrecondition:
+			msg := connectErr.Message()
+			for _, r := range []deploygate.PromotionReason{
+				deploygate.PromotionNotReady,
+				deploygate.PromotionDraining,
+				deploygate.PromotionNotProduction,
+				deploygate.PromotionNoCurrentDeployment,
+				deploygate.PromotionAlreadyCurrent,
+			} {
+				if msg == r.Message() {
+					return PromotionFault(r)
+				}
+			}
+			for _, r := range []deploygate.StopReason{
+				deploygate.StopNotRunning,
+				deploygate.StopAlreadyStopping,
+				deploygate.StopIsProduction,
+			} {
+				if msg == r.Message() {
+					return StopFault(r)
+				}
+			}
+			for _, r := range []deploygate.StartReason{
+				deploygate.StartNotStopped,
+				deploygate.StartIsProduction,
+			} {
+				if msg == r.Message() {
+					return StartFault(r)
+				}
+			}
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
+				fault.Internal("ctrl reported a precondition failure: "+msg),
 				fault.Public(preconditionMsg),
 			)
 		case connect.CodeNotFound:
