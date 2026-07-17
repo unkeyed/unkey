@@ -1,0 +1,80 @@
+---
+title: "July 17, 2026"
+description: "Deployment lifecycle API, gateway policy API, Compute plans and spend budget enforcement, region multi-select, and a batch of dashboard security fixes."
+noindex: true
+---
+
+## New features
+
+### Deployment lifecycle over the HTTP API
+
+The Unkey HTTP API now covers the full [deployment](/build-and-deploy/deployments) lifecycle. New endpoints let you fetch a single deployment, list deployments, stop, start, [promote](/build-and-deploy/deployments), and [roll back](/build-and-deploy/rollbacks) — so CI, scripts, and third-party tools can drive releases the same way the dashboard does.
+
+### Gateway policy API
+
+You can now manage [gateway policies](/platform/gateway/policies/overview) end to end over the API. New endpoints list, replace the full policy set, and update a single policy in place — the updated policy keeps its id and position in the evaluation order, and other policies are left alone. Supports patching key auth, rate limit, firewall, and OpenAPI validation rules.
+
+### Compute plans dialog
+
+A new **Compute plans** dialog in the dashboard makes it clear what each plan includes and lets you upgrade or switch plans in one flow instead of digging through billing settings.
+
+### Multi-region picker
+
+The region picker on projects and apps is now a multi-select combobox, so you can add or remove [regions](/build-and-deploy/regions) from a deployment in a single step.
+
+### Spend budget alerts and enforcement
+
+Compute [spend budgets](/platform/workspaces/overview) now actively monitor usage. When a workspace crosses 50%, 75%, or 100% of its monthly budget, alert emails go out to workspace admins; once you hit 100%, workloads can be stopped automatically if you have that option enabled. Each threshold fires once per billing cycle.
+
+### Live compute usage in billing
+
+The Compute billing card now shows month-to-date CPU, memory, disk, egress, and active-key usage read directly from analytics, so the dashboard number matches what will appear on your invoice — even mid-cycle.
+
+### Portal settings for keyspaces
+
+Keyspaces have a new **Customer portal** settings page where you configure how the [identity portal](/platform/identities/overview) is exposed to your end users.
+
+### Project-scoped identity permissions
+
+Root keys can now be scoped to identity actions on individual projects via URN, so a key issued for one project can only create, list, and manage identities inside that project.
+
+### Free-form search on roles and permissions
+
+The [roles](/platform/root-keys) and [permissions](/platform/root-keys) list endpoints accept a free-form `search` query that matches across name, slug, and description — no more paging through everything to find what you want.
+
+## Updates
+
+### Active keys are now billed under Compute
+
+Keys verified through the Compute gateway are now metered separately from API-product verifications and billed at $0.002 per unique active key per month. Only distinct keys that hit the gateway in a month count, regardless of outcome (rate-limited, disabled, and denied verifications still keep a key "active"). API-product key verifications are unaffected. See [Compute](/build-and-deploy/overview).
+
+### Redeploy banner when you add environment variables
+
+Adding a new [environment variable](/platform/variables/overview) now surfaces the redeploy banner on the app, so it's obvious the change won't take effect until the next deploy.
+
+### Hardened dashboard security headers
+
+The dashboard now sends `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`, and a locked-down `Permissions-Policy`. No user-visible change in normal use — the dashboard is just harder to attack.
+
+### Precise error codes from promote and rollback
+
+The [promote](/build-and-deploy/deployments) and [rollback](/build-and-deploy/rollbacks) API endpoints now return specific Connect error codes (`not_found`, `failed_precondition`, `invalid_argument`) instead of a generic error, so client code can distinguish "deployment doesn't exist" from "deployment isn't in a promotable state."
+
+### Cleaner invite form
+
+The team invite form in workspace settings has been realigned so long email addresses and role selectors line up correctly on all viewport sizes.
+
+## Bug fixes
+
+- Closed a PII leak in Sentry: dashboard performance transactions and web-vital spans are now scrubbed the same way error events are, so auth codes, root keys, and referer URLs no longer reach Sentry.
+- Fixed an open-redirect on the OAuth callback — the post-sign-in `redirectUrlComplete` is now validated against an allowlist instead of trusting the value from the OAuth state.
+- Invitation acceptance errors no longer leak raw provider messages to the browser; every failure now surfaces one of two vetted messages, and stale session tokens are refreshed before the workspace switch.
+- Client-supplied `X-Forwarded-For` headers are no longer written verbatim into audit log entries — invalid values are recorded as `unknown` and only the left-most valid IP in a chain is kept.
+- Sensitive environment variable values are no longer echoed back to the browser after being saved; the value returned from the server is stripped for secret variables.
+- ACME domain-verification callbacks are now authenticated, closing a path where a third party could trigger certificate checks against arbitrary hostnames.
+- The API [OpenAPI ingestion](/platform/gateway/policies/openapi-validation) endpoint now rejects specs above a fixed size cap instead of consuming unbounded memory.
+- List views with search, filter, and sort no longer race each other: the page number is clamped after stale data returns, so the URL and results stay consistent while you're typing.
+- Global rate-limit counter inserts no longer deadlock under sustained write pressure.
+- Portal sessions can no longer be used across workspaces; each session is now scoped to the exact capabilities its identity was granted.
+- Dashboard exception reports now include a shared bearer-token id when a reveal action fails, making customer reports easier to correlate.
+- Pretty log output no longer breaks a terminal's cursor when a log field contains control sequences.
