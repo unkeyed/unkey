@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
+import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BookBookmark, Fingerprint } from "@unkey/icons";
 import {
@@ -111,7 +112,7 @@ export function IdentitiesList() {
 
 function IdentityResults({ search }: { search: string }) {
   const workspace = useWorkspaceNavigation();
-  const [nextPageError, setNextPageError] = useState(false);
+  const [nextPageError, setNextPageError] = useState<unknown>();
   const {
     identities: identityRows,
     isLoading,
@@ -119,6 +120,7 @@ function IdentityResults({ search }: { search: string }) {
     hasNextPage,
     isFetchingNextPage,
     isError,
+    error,
     refetch,
   } = useIdentities({ search });
   const retry = () => {
@@ -129,9 +131,9 @@ function IdentityResults({ search }: { search: string }) {
   const loadMore = async () => {
     try {
       await fetchNextPage({ throwOnError: true });
-      setNextPageError(false);
-    } catch {
-      setNextPageError(true);
+      setNextPageError(undefined);
+    } catch (error) {
+      setNextPageError(error);
     }
   };
 
@@ -144,7 +146,7 @@ function IdentityResults({ search }: { search: string }) {
       <ResourceListContent>
         <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
           <span role="alert" className="text-gray-11 text-sm">
-            We couldn't load identities.
+            {getErrorMessage(error, "We couldn't load identities.")}
           </span>
           <Button variant="outline" onClick={retry}>
             Retry
@@ -207,7 +209,7 @@ function IdentityResults({ search }: { search: string }) {
         <ResourceListFooter>
           <div className="flex items-center gap-3">
             <span role="alert" className="text-error-11 text-sm">
-              We couldn't load more identities.
+              {getErrorMessage(nextPageError, "We couldn't load more identities.")}
             </span>
             <Button
               variant="outline"
@@ -223,7 +225,7 @@ function IdentityResults({ search }: { search: string }) {
         <ResourceListFooter>
           <div className="flex items-center gap-3">
             <span role="alert" className="text-error-11 text-sm">
-              We couldn't refresh identities.
+              {getErrorMessage(error, "We couldn't refresh identities.")}
             </span>
             <Button variant="outline" onClick={retry}>
               Retry
