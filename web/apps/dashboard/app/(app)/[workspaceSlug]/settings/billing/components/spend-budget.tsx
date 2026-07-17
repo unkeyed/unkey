@@ -82,7 +82,12 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
     onSuccess: async () => {
       onOpenChange(false);
       toast.success("Spend budget saved");
-      await trpcUtils.billing.getDeployBudget.invalidate();
+      // The workspace query carries deploySpendSuspended, which drives the
+      // app-wide paused banner; invalidate it so the banner tracks the change.
+      await Promise.all([
+        trpcUtils.billing.getDeployBudget.invalidate(),
+        trpcUtils.workspace.getCurrent.invalidate(),
+      ]);
     },
     onError: (err) => toast.error(err.message),
   });
