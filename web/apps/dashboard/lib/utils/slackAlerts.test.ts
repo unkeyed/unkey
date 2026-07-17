@@ -78,8 +78,8 @@ describe("escapeSlackText", () => {
 });
 
 /**
- * Guards ENG-3020 at the boundary: the mrkdwn tag is what makes escaping the default, so a
- * new alert cannot embed a customer value unescaped without explicitly marking it trusted.
+ * Guards ENG-3020 at the boundary: the mrkdwn tag escapes every interpolated value, so a new
+ * alert cannot embed a customer value unescaped just by writing a template literal.
  */
 describe("mrkdwn", () => {
   it("escapes interpolated values but not the literal copy we wrote", () => {
