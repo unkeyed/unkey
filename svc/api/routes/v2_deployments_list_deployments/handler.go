@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -42,8 +43,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
+	page := pagination.Parse(req.Limit, req.Cursor, 100)
 
 	err = principal.Authorize(rbac.T(rbac.Tuple{
 		ResourceType: rbac.Environment,
@@ -138,8 +138,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentID:   environmentID,
 		HasStatusFilter: len(statuses) > 0,
 		Statuses:        statuses,
-		CursorID:        cursor,
-		Limit:           int32(limit + 1), // nolint:gosec
+		CursorID:        page.Cursor,
+		Limit:           page.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -150,12 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	hasMore := len(rows) > limit
-	var nextCursor *string
-	if hasMore {
-		nextCursor = ptr.P(rows[limit-1].ID)
-		rows = rows[:limit]
-	}
+	rows, pg := pagination.Paginate(rows, page, func(r db.Deployment) string { return r.ID })
 
 	data := make([]openapi.Deployment, len(rows))
 	if len(rows) > 0 {
@@ -234,10 +229,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
+		Data:       data,
+		Pagination: pg,
 	})
 }

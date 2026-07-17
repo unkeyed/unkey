@@ -1758,7 +1758,7 @@ type V2DeploymentsListDeploymentsResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the live deployment for its environment.

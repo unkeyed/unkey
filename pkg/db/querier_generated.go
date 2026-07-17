@@ -2424,7 +2424,7 @@ type Querier interface {
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 	//    AND (
 	//      ? = ''
-	//      OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 	//    )
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?

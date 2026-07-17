@@ -9,7 +9,7 @@ WHERE d.workspace_id = sqlc.arg(workspace_id)
   AND (sqlc.arg(has_status_filter) = FALSE OR d.status IN (sqlc.slice('statuses')))
   AND (
     sqlc.arg(cursor_id) = ''
-    OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = sqlc.arg(cursor_id))
+    OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = sqlc.arg(cursor_id))
   )
 ORDER BY d.pk DESC
 LIMIT ?;
