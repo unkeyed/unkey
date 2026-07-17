@@ -540,11 +540,7 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
-	// Returns the parent project/app/environment slugs and the parent app's
-	// live-pointer columns (which deployment the app currently serves, and whether
-	// it was rolled back). The read path needs these to fill the response slugs,
-	// isCurrent, and availableActions. Selects only these columns (not d.*) so the
-	// deployment itself stays a plain db.Deployment.
+	//FindDeploymentEnvAndAppState
 	//
 	//  SELECT
 	//    p.slug AS project_slug,
@@ -2386,17 +2382,21 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
-	// Frontline routes are the hostnames a deployment serves. Only these are
-	// returned; the custom_domains classification is deliberately skipped so the
-	// read stays a single index range scan on frontline_routes.deployment_id.
+	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
 	//  WHERE r.deployment_id = ?
 	//  ORDER BY r.fully_qualified_domain_name
 	ListDeploymentDomains(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
-	// Batch form keyed by deployment id: fetches the same state for a whole page of
-	// deployments in one query, so listDeployments avoids an N+1.
+	//ListDeploymentDomainsByIds
+	//
+	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
+	//  FROM frontline_routes r
+	//  WHERE r.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
+	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentDomainsByIdsRow, error)
+	//ListDeploymentEnvAndAppState
 	//
 	//  SELECT
 	//    d.id AS deployment_id,
@@ -2411,9 +2411,7 @@ type Querier interface {
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentEnvAndAppStateRow, error)
-	// Region names a deployment is configured to run in. Reads the covering
-	// unique(deployment_id, region_id) key on deployment_topology, joined to
-	// regions for the human-readable name.
+	//ListDeploymentRegions
 	//
 	//  SELECT DISTINCT r.name AS region
 	//  FROM deployment_topology dt
@@ -2421,8 +2419,7 @@ type Querier interface {
 	//  WHERE dt.deployment_id = ?
 	//  ORDER BY r.name
 	ListDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
-	// Batch form keyed by deployment id: fetches configured region names for a
-	// whole page of deployments in one query, so listDeployments avoids an N+1.
+	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 	//  FROM deployment_topology dt
@@ -2430,12 +2427,6 @@ type Querier interface {
 	//  WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
 	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRegionsByIdsRow, error)
-	//ListDeploymentSteps
-	//
-	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
-	//  WHERE deployment_id = ?
-	//  ORDER BY started_at ASC
-	ListDeploymentSteps(ctx context.Context, db DBTX, deploymentID string) ([]DeploymentStep, error)
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
@@ -2529,6 +2520,13 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	//ListFailedDeploymentStepsByIds
+	//
+	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	//    AND error IS NOT NULL AND error != ''
+	//  ORDER BY deployment_id, started_at ASC
+	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]DeploymentStep, error)
 	//ListGithubRepoConnections
 	//
 	//  SELECT

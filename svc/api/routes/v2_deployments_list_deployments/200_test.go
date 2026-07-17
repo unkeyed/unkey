@@ -57,9 +57,11 @@ func TestListWorkspaceWide(t *testing.T) {
 		require.NotNil(t, d.Git)
 		require.Equal(t, "abc123", d.Git.CommitSha)
 
-		// get-only fields must be omitted from list items.
-		require.Nil(t, d.Error, "listDeployments must not include error")
-		require.Nil(t, d.Domains, "listDeployments must not include domains")
+		// error is only set for failed deployments; these are pending.
+		require.Nil(t, d.Error, "pending deployments have no error")
+		// domains are always present as a slice, empty when none are configured.
+		require.NotNil(t, d.Domains)
+		require.Empty(t, *d.Domains)
 	}
 
 	// Internal fields must never appear in the response body.

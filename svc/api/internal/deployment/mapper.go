@@ -13,12 +13,6 @@ import (
 // fields are columns the wire type needs but the deployments row does not hold;
 // both read handlers resolve them (per-deployment on get, batched on list) so
 // the mapper never queries.
-//
-// Detailed gates the two get-only fields (error, domains): getDeployment sets
-// it with Steps and Domains loaded; listDeployments leaves it false so those
-// fields are omitted. Without this flag a failed deployment in a list would
-// report a bogus `unknown` error just because its steps were never loaded.
-// Regions is not gated: both read paths populate it.
 type Input struct {
 	Deployment             db.Deployment
 	ProjectSlug            string
@@ -26,7 +20,6 @@ type Input struct {
 	EnvironmentSlug        string
 	AppCurrentDeploymentID string
 	AppIsRolledBack        bool
-	Detailed               bool
 	Steps                  []db.DeploymentStep
 	Regions                []string
 	Domains                []string
@@ -108,19 +101,15 @@ func ToResponse(in Input) openapi.Deployment {
 		dep.Docker = &openapi.DeploymentDocker{Image: d.Image.String}
 	}
 
-	// error and domains are get-only. Deriving them requires the per-deployment
-	// step and route queries that listDeployments skips, so gate on Detailed
-	// rather than on whether the slices happen to be nil.
-	if in.Detailed {
-		if failure := deriveError(d.Status, in.Steps); failure != nil {
-			dep.Error = failure
-		}
-		domains := in.Domains
-		if domains == nil {
-			domains = []string{}
-		}
-		dep.Domains = ptr.P(domains)
+	if failure := deriveError(d.Status, in.Steps); failure != nil {
+		dep.Error = failure
 	}
+
+	domains := in.Domains
+	if domains == nil {
+		domains = []string{}
+	}
+	dep.Domains = ptr.P(domains)
 
 	return dep
 }

@@ -33,11 +33,7 @@ type FindDeploymentEnvAndAppStateRow struct {
 	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
 }
 
-// Returns the parent project/app/environment slugs and the parent app's
-// live-pointer columns (which deployment the app currently serves, and whether
-// it was rolled back). The read path needs these to fill the response slugs,
-// isCurrent, and availableActions. Selects only these columns (not d.*) so the
-// deployment itself stays a plain db.Deployment.
+// FindDeploymentEnvAndAppState
 //
 //	SELECT
 //	  p.slug AS project_slug,
@@ -87,8 +83,7 @@ type ListDeploymentEnvAndAppStateRow struct {
 	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
 }
 
-// Batch form keyed by deployment id: fetches the same state for a whole page of
-// deployments in one query, so listDeployments avoids an N+1.
+// ListDeploymentEnvAndAppState
 //
 //	SELECT
 //	  d.id AS deployment_id,

@@ -10,10 +10,11 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// TestToResponseDetailedGating guards the list/get split: a failed deployment in
-// a list must not report a bogus `unknown` failure just because its steps were
-// never loaded.
-func TestToResponseDetailedGating(t *testing.T) {
+// TestToResponseError covers failure derivation and domains, which listDeployments
+// and getDeployment now populate identically: a failed deployment reports the
+// error classified from its failing steps, and domains always serialize as a
+// present slice.
+func TestToResponseError(t *testing.T) {
 	failedDep := db.Deployment{
 		ID:            "d_KEBAP",
 		Status:        db.DeploymentsStatusFailed,
@@ -23,23 +24,26 @@ func TestToResponseDetailedGating(t *testing.T) {
 		ProjectID:     "proj_1",
 	}
 
-	t.Run("list item omits error and domains", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: failedDep, Detailed: false})
-		require.Nil(t, got.Error)
-		require.Nil(t, got.Domains)
-	})
-
-	t.Run("detailed failed deployment includes error and empty domains", func(t *testing.T) {
+	t.Run("failed deployment reports classified error", func(t *testing.T) {
 		got := ToResponse(Input{
 			Deployment: failedDep,
-			Detailed:   true,
 			Steps: []db.DeploymentStep{
 				{Step: db.DeploymentStepsStepDeploying, Error: sql.NullString{Valid: true, String: deployfail.MsgNoSchedulableRegions}},
 			},
-			Domains: nil,
 		})
 		require.NotNil(t, got.Error)
 		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, got.Error.Code)
+	})
+
+	t.Run("non-failed deployment has no error", func(t *testing.T) {
+		readyDep := failedDep
+		readyDep.Status = db.DeploymentsStatusReady
+		got := ToResponse(Input{Deployment: readyDep})
+		require.Nil(t, got.Error)
+	})
+
+	t.Run("nil domains become an empty slice, not null", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: failedDep, Domains: nil})
 		require.NotNil(t, got.Domains)
 		require.Empty(t, *got.Domains)
 	})

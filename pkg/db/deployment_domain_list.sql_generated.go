@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const listDeploymentDomains = `-- name: ListDeploymentDomains :many
@@ -16,9 +17,7 @@ WHERE r.deployment_id = ?
 ORDER BY r.fully_qualified_domain_name
 `
 
-// Frontline routes are the hostnames a deployment serves. Only these are
-// returned; the custom_domains classification is deliberately skipped so the
-// read stays a single index range scan on frontline_routes.deployment_id.
+// ListDeploymentDomains
 //
 //	SELECT r.fully_qualified_domain_name AS domain
 //	FROM frontline_routes r
@@ -37,6 +36,57 @@ func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, deployment
 			return nil, err
 		}
 		items = append(items, domain)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDeploymentDomainsByIds = `-- name: ListDeploymentDomainsByIds :many
+SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
+FROM frontline_routes r
+WHERE r.deployment_id IN (/*SLICE:deployment_ids*/?)
+ORDER BY r.deployment_id, r.fully_qualified_domain_name
+`
+
+type ListDeploymentDomainsByIdsRow struct {
+	DeploymentID string `db:"deployment_id"`
+	Domain       string `db:"domain"`
+}
+
+// ListDeploymentDomainsByIds
+//
+//	SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
+//	FROM frontline_routes r
+//	WHERE r.deployment_id IN (/*SLICE:deployment_ids*/?)
+//	ORDER BY r.deployment_id, r.fully_qualified_domain_name
+func (q *Queries) ListDeploymentDomainsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentDomainsByIdsRow, error) {
+	query := listDeploymentDomainsByIds
+	var queryParams []interface{}
+	if len(deploymentIds) > 0 {
+		for _, v := range deploymentIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(deploymentIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", "NULL", 1)
+	}
+	rows, err := db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDeploymentDomainsByIdsRow
+	for rows.Next() {
+		var i ListDeploymentDomainsByIdsRow
+		if err := rows.Scan(&i.DeploymentID, &i.Domain); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

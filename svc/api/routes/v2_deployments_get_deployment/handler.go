@@ -100,11 +100,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		state = db.FindDeploymentEnvAndAppStateRow{} //nolint:exhaustruct // deliberate zero value: empty slug suppresses actions/isCurrent
 	}
 
-	// Steps only carry the failure reason, so only load them for a failed
-	// deployment. Healthy reads stay at two queries.
+	// Steps only carry the failure reason, so only load the failing ones and only
+	// for a failed deployment. Mirrors listDeployments; healthy reads stay at two
+	// queries.
 	var steps []db.DeploymentStep
 	if dep.Status == db.DeploymentsStatusFailed {
-		steps, err = db.Query.ListDeploymentSteps(ctx, h.DB.RO(), dep.ID)
+		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), []string{dep.ID})
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -146,7 +147,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			EnvironmentSlug:        state.EnvironmentSlug,
 			AppCurrentDeploymentID: state.AppCurrentDeploymentID.String,
 			AppIsRolledBack:        state.AppIsRolledBack,
-			Detailed:               true,
 			Steps:                  steps,
 			Regions:                regions,
 			Domains:                domains,

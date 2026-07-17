@@ -191,6 +191,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			regionsByID[rr.DeploymentID] = append(regionsByID[rr.DeploymentID], rr.Region)
 		}
 
+		stepRows, err := db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), ids)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployments."),
+			)
+		}
+		stepsByID := make(map[string][]db.DeploymentStep, len(rows))
+		for _, sr := range stepRows {
+			stepsByID[sr.DeploymentID] = append(stepsByID[sr.DeploymentID], sr)
+		}
+
+		domainRows, err := db.Query.ListDeploymentDomainsByIds(ctx, h.DB.RO(), ids)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployments."),
+			)
+		}
+		domainsByID := make(map[string][]string, len(rows))
+		for _, dr := range domainRows {
+			domainsByID[dr.DeploymentID] = append(domainsByID[dr.DeploymentID], dr.Domain)
+		}
+
 		for i, row := range rows {
 			r := byID[row.ID]
 			data[i] = deployment.ToResponse(deployment.Input{
@@ -201,10 +229,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				AppCurrentDeploymentID: r.AppCurrentDeploymentID.String,
 				AppIsRolledBack:        r.AppIsRolledBack,
 				Regions:                regionsByID[row.ID],
-				// list is not detailed: error and domains are getDeployment-only.
-				Detailed: false,
-				Steps:    nil,
-				Domains:  nil,
+				Steps:                  stepsByID[row.ID],
+				Domains:                domainsByID[row.ID],
 			})
 		}
 	}

@@ -265,8 +265,7 @@ type Deployment struct {
 	CreatedAt int64             `json:"createdAt"`
 	Docker    *DeploymentDocker `json:"docker,omitempty"`
 
-	// Domains Frontline hostnames this deployment is reachable at. Only returned by
-	// getDeployment.
+	// Domains Frontline hostnames this deployment is reachable at.
 	Domains *[]string `json:"domains,omitempty"`
 
 	// Environment Slug of the environment this deployment belongs to.

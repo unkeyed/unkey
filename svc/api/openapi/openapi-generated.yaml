@@ -4019,15 +4019,13 @@ components:
                 error:
                     "$ref": "#/components/schemas/DeploymentError"
                     description: |
-                        Why the deployment failed. Present only when `status` is `failed`, and only
-                        returned by getDeployment.
+                        Why the deployment failed. Present only when `status` is `failed`.
                 domains:
                     type: array
                     items:
                         type: string
                     description: |
-                        Frontline hostnames this deployment is reachable at. Only returned by
-                        getDeployment.
+                        Frontline hostnames this deployment is reachable at.
                     example: ["kebap-app.unkey.app"]
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
