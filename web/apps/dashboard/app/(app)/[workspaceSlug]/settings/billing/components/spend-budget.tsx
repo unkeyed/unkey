@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 /** Alert thresholds as fractions of the budget; fixed, like Vercel's. */
 export const ALERT_STEPS = [0.5, 0.75] as const;
@@ -71,16 +71,33 @@ type SpendBudgetDialogProps = {
  */
 export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps) {
   const trpcUtils = trpc.useUtils();
-  const [budgetInput, setBudgetInput] = useState("");
-  const [stopAtBudget, setStopAtBudget] = useState(false);
 
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, {
     staleTime: 30_000,
   });
 
+  const currentBudget = budget?.budgetCents ?? null;
+  const hasBudget = currentBudget !== null;
+
+  // The form derives its values from the saved budget and stores only the
+  // user's edits (null = untouched), so a background refetch can't wipe input
+  // mid-edit. Closing the dialog discards the drafts.
+  const [budgetDraft, setBudgetDraft] = useState<string | null>(null);
+  const [stopDraft, setStopDraft] = useState<boolean | null>(null);
+  const budgetInput = budgetDraft ?? (currentBudget != null ? String(currentBudget / 100) : "");
+  const stopAtBudget = stopDraft ?? budget?.stopAtBudget ?? false;
+
+  const setOpen = (value: boolean) => {
+    if (!value) {
+      setBudgetDraft(null);
+      setStopDraft(null);
+    }
+    onOpenChange(value);
+  };
+
   const save = trpc.billing.setDeployBudget.useMutation({
     onSuccess: async () => {
-      onOpenChange(false);
+      setOpen(false);
       toast.success("Spend budget saved");
       // The workspace query carries deploySpendSuspended, which drives the
       // app-wide paused banner; invalidate it so the banner tracks the change.
@@ -95,34 +112,25 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
   const budgetCents = parseDollars(budgetInput);
   const invalid = budgetCents === undefined || (stopAtBudget && budgetCents === null);
 
-  const currentBudget = budget?.budgetCents ?? null;
-  const hasBudget = currentBudget !== null;
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: seed the form only when the dialog opens, not when a background refetch lands mid-edit
-  useEffect(() => {
-    if (open) {
-      setBudgetInput(currentBudget != null ? String(currentBudget / 100) : "");
-      setStopAtBudget(budget?.stopAtBudget ?? false);
-    }
-  }, [open]);
-
   return (
     <DialogContainer
       isOpen={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       title="Compute spend budget"
       subTitle="Applies to usage spend per calendar month."
       footer={
         <div className="flex w-full items-center justify-between gap-4">
           {hasBudget ? (
-            <button
+            <Button
               type="button"
-              className="text-[13px] text-error-9 transition-colors hover:text-error-11"
+              variant="ghost"
+              color="danger"
+              size="md"
               disabled={save.isLoading}
               onClick={() => save.mutate({ budgetCents: null, stopAtBudget: false })}
             >
               Remove budget
-            </button>
+            </Button>
           ) : (
             <span />
           )}
@@ -155,11 +163,11 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
           value={budgetInput}
           onChange={(e) => {
             const next = e.currentTarget.value;
-            setBudgetInput(next);
+            setBudgetDraft(next);
             // Clearing the budget clears the stop too: a stop without a
             // budget has no trigger point.
             if (parseDollars(next) === null) {
-              setStopAtBudget(false);
+              setStopDraft(false);
             }
           }}
           error={
@@ -179,7 +187,7 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
           </div>
           <Switch
             checked={stopAtBudget}
-            onCheckedChange={setStopAtBudget}
+            onCheckedChange={setStopDraft}
             disabled={budgetCents === null || budgetCents === undefined}
           />
         </div>
