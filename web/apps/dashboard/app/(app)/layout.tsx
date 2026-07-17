@@ -114,8 +114,6 @@ export default function Layout({ children }: LayoutProps) {
         <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
-        {/* `relative` so the absolutely-positioned sidebar panel fills this row,
-            which already sits below the top nav and the paused banner. */}
         <div className="relative flex flex-1 overflow-hidden">
           {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally

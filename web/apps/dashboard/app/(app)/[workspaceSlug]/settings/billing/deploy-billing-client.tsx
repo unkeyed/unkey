@@ -133,38 +133,38 @@ export const DeployBillingClient: React.FC = () => {
   const subscription = billingInfo.subscription;
   const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
-  const body = (
-    <div className="flex w-full flex-col gap-4 pt-4 pb-16">
-      {subscription ? (
-        <SubscriptionStatus
+  return (
+    <Shell>
+      <div className="flex w-full flex-col gap-4 pt-4 pb-16">
+        {subscription ? (
+          <SubscriptionStatus
+            workspaceSlug={workspace.slug}
+            status={subscription.status as Stripe.Subscription.Status}
+          />
+        ) : null}
+
+        <BillingSummary
           workspaceSlug={workspace.slug}
-          status={subscription.status as Stripe.Subscription.Status}
+          isAdmin={isAdmin}
+          hasPaymentMethod={hasPaymentMethod}
         />
-      ) : null}
 
-      <BillingSummary
-        workspaceSlug={workspace.slug}
-        isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-      />
+        <DeployProductCard
+          isAdmin={isAdmin}
+          hasPaymentMethod={hasPaymentMethod}
+          autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
+        />
 
-      <DeployProductCard
-        isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-        autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
-      />
-
-      <ApiAddOnCard
-        isAdmin={isAdmin}
-        hasPaymentMethod={hasPaymentMethod}
-        workspaceSlug={workspace.slug}
-        products={billingInfo.products}
-        subscription={subscription}
-        currentProductId={billingInfo.currentProductId}
-        autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
-      />
-    </div>
+        <ApiAddOnCard
+          isAdmin={isAdmin}
+          hasPaymentMethod={hasPaymentMethod}
+          workspaceSlug={workspace.slug}
+          products={billingInfo.products}
+          subscription={subscription}
+          currentProductId={billingInfo.currentProductId}
+          autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
+        />
+      </div>
+    </Shell>
   );
-
-  return <Shell>{body}</Shell>;
 };

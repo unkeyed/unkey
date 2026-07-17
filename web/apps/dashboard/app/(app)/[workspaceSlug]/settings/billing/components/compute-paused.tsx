@@ -6,17 +6,11 @@ import Link from "next/link";
 export const PAUSED_DOCS_URL =
   "https://unkey.com/docs/platform/workspaces/compute-billing#while-compute-is-paused";
 
-/**
- * One concise sentence, budget interpolated when known. The "stop workloads"
- * mechanics and the full list of resume conditions live in docs (linked
- * alongside) rather than in the sentence.
- */
 export function pausedBody(budgetLabel?: string): string {
   const cap = budgetLabel ? `your ${budgetLabel} spend budget` : "your spend budget";
   return `Workloads stopped because you reached ${cap}. Raise or remove the budget to start them again.`;
 }
 
-/** Solid amber status pill for the card header, next to the plan tag. */
 export function ComputePausedBadge() {
   return (
     <span className="rounded-full bg-warning-9 px-2 py-0.5 font-medium text-[11px] text-black">
@@ -25,7 +19,6 @@ export function ComputePausedBadge() {
   );
 }
 
-/** "Learn more" docs link with the standard out-arrow. */
 export function PausedDocsLink() {
   return (
     <Link

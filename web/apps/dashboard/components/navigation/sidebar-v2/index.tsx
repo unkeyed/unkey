@@ -26,9 +26,8 @@ export function SidebarV2(props: Props) {
     <Sidebar
       {...props}
       collapsible="icon"
-      // `absolute` (not the default viewport-fixed) so the panel is positioned
-      // by the layout's `relative` content row, which already starts below the
-      // top nav and the paused banner — no offset math needed.
+      // absolute, not the default viewport-fixed: the layout's relative content
+      // row already starts below the top nav and the paused banner.
       className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
     >
       <SidebarContent>

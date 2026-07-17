@@ -39,7 +39,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [isBudgetOpen, setBudgetOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
 
   const { data: subscription, isLoading: subscriptionLoading } =
@@ -267,12 +266,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
-            <SpendManagement
-              usageCents={usageAmount}
-              isAdmin={isAdmin}
-              open={isBudgetOpen}
-              onOpenChange={setBudgetOpen}
-            />
+            <SpendManagement usageCents={usageAmount} isAdmin={isAdmin} />
           </div>
         ) : null}
       </ProductCard>

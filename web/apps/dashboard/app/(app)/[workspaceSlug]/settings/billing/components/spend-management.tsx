@@ -4,6 +4,7 @@ import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button, InfoTooltip } from "@unkey/ui";
+import { useState } from "react";
 import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ALERT_STEPS, SpendBudgetDialog, spendBar } from "./spend-budget";
@@ -12,19 +13,16 @@ type SpendManagementProps = {
   /** Month-to-date gross usage spend in cents, or null while loading. */
   usageCents: number | null;
   isAdmin: boolean;
-  /** Edit dialog open state, owned by the parent card so the header trigger
-   *  and this section's Configure button share one dialog. */
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 };
 
 /**
- * The Compute card's "Spend management" section: a titled header with a
- * Configure action and a summary of the monthly limit (amount, severity bar).
- * When paused, the summary carries the whole story: the Paused badge next to
- * the limit label, a full-and-red bar, and the paused copy underneath.
+ * The Compute card's "Spend management" section. When paused, the summary
+ * carries the whole story: the Paused badge next to the limit label, a
+ * full-and-red bar, and the paused copy underneath.
  */
-export function SpendManagement({ usageCents, isAdmin, open, onOpenChange }: SpendManagementProps) {
+export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
+  const [open, setOpen] = useState(false);
+
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, {
     staleTime: 30_000,
   });
@@ -42,7 +40,7 @@ export function SpendManagement({ usageCents, isAdmin, open, onOpenChange }: Spe
   const configure = (
     <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
       <span>
-        <Button variant="outline" size="md" disabled={!isAdmin} onClick={() => onOpenChange(true)}>
+        <Button variant="outline" size="md" disabled={!isAdmin} onClick={() => setOpen(true)}>
           {hasBudget ? "Configure" : "Add spend limit"}
         </Button>
       </span>
@@ -109,7 +107,7 @@ export function SpendManagement({ usageCents, isAdmin, open, onOpenChange }: Spe
         )}
       </div>
 
-      <SpendBudgetDialog open={open} onOpenChange={onOpenChange} />
+      <SpendBudgetDialog open={open} onOpenChange={setOpen} />
     </>
   );
 }
