@@ -51,8 +51,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
 
   const currentPlan = subscription?.plan ?? null;
 
-  // Same query SpendManagement uses (React Query dedupes it to one request);
-  // read here too so the paused state can show as a header badge.
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
   const suspended = budget?.suspended ?? false;
 
@@ -190,7 +188,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       <ProductCard
         icon={<Cube iconSize="md-regular" />}
         iconClassName="bg-orangeA-3 text-orange-11"
-        flushBody
+        className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
         name="Compute"
         tag={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
         badge={currentPlan && suspended ? <ComputePausedBadge /> : undefined}

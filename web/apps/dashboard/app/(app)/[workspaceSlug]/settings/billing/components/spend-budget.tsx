@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 /** Alert thresholds as fractions of the budget; fixed, like Vercel's. */
 export const ALERT_STEPS = [0.5, 0.75] as const;
@@ -34,10 +34,10 @@ function parseDollars(value: string): number | null | undefined {
 }
 
 /**
- * The spend bar's fill fraction and severity color, shared by both layouts so
- * they stay in sync. Paused means the spend cap was reached, so the meter reads
- * full-and-red even when a forced preview has usage sitting below the budget.
- * Severity steps like Vercel's ring: neutral, amber from 75%, red at 100%.
+ * The spend bar's fill fraction and severity color. Paused means the spend cap
+ * was reached, so the meter reads full-and-red even when a forced preview has
+ * usage sitting below the budget. Severity steps: neutral, amber from 75%, red
+ * at 100%.
  */
 export function spendBar(
   usageCents: number | null,
@@ -66,8 +66,8 @@ type SpendBudgetDialogProps = {
 
 /**
  * The budget edit dialog: a monthly budget amount plus a "stop workloads"
- * switch. Self-contained (its own copy of the budget query and form state) so
- * either layout can mount it; React Query dedupes the query to one request.
+ * switch. Self-contained (its own copy of the budget query and form state);
+ * React Query dedupes the query to one request.
  */
 export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps) {
   const trpcUtils = trpc.useUtils();
@@ -93,18 +93,13 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
   const currentBudget = budget?.budgetCents ?? null;
   const hasBudget = currentBudget !== null;
 
-  // Seed the form from the current budget once each time the dialog opens; the
-  // ref guard keeps a background refetch from wiping input mid-edit.
-  const seeded = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seed the form only when the dialog opens, not when a background refetch lands mid-edit
   useEffect(() => {
-    if (open && !seeded.current) {
-      seeded.current = true;
+    if (open) {
       setBudgetInput(currentBudget != null ? String(currentBudget / 100) : "");
       setStopAtBudget(budget?.stopAtBudget ?? false);
-    } else if (!open) {
-      seeded.current = false;
     }
-  }, [open, currentBudget, budget?.stopAtBudget]);
+  }, [open]);
 
   return (
     <DialogContainer

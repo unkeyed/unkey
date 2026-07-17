@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 type ProductCardProps = {
+  className?: string;
   /** Product icon, rendered inside the colored chip. */
   icon: ReactNode;
   /** Tailwind classes for the icon chip, e.g. "bg-orange-3 text-orange-11". */
@@ -18,9 +19,6 @@ type ProductCardProps = {
   /** Primary action, top-right: change plan / upgrade / choose a plan. */
   action?: ReactNode;
   children?: ReactNode;
-  /** Drop the divider between header and body and tighten the gap, so the body
-   *  hugs the header instead of reading as a separate zone. */
-  flushBody?: boolean;
   /** Quiet footer row, right-aligned: where the cancel link lives. */
   footer?: ReactNode;
 };
@@ -31,6 +29,7 @@ type ProductCardProps = {
  * decoration: flat card, one border, no zones.
  */
 export const ProductCard: React.FC<ProductCardProps> = ({
+  className,
   icon,
   iconClassName,
   name,
@@ -39,11 +38,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   subtitle,
   action,
   children,
-  flushBody = false,
   footer,
 }) => {
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black">
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -69,11 +72,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {children ? (
-        <div className={cn("px-5 pb-4", flushBody ? "pt-0" : "border-grayA-3 border-t pt-4")}>
-          {children}
-        </div>
-      ) : null}
+      {children ? <div className="border-grayA-3 border-t px-5 pt-4 pb-4">{children}</div> : null}
       {footer ? (
         <div className="flex justify-end border-t border-grayA-3 px-5 py-2.5">{footer}</div>
       ) : null}

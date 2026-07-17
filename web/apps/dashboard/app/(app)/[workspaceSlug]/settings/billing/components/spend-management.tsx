@@ -19,12 +19,10 @@ type SpendManagementProps = {
 };
 
 /**
- * Alternative spend layout, inspired by Vercel's Billing settings: a titled
- * "Spend management" section with a Configure action in the header and a
- * bordered summary of the limit (amount, severity bar). Reuses the shared
- * budget dialog and bar-severity logic from spend-budget.tsx. When paused, the
- * summary carries the whole story: the header Paused badge next to the limit
- * label, a full-and-red bar, and the paused copy underneath.
+ * The Compute card's "Spend management" section: a titled header with a
+ * Configure action and a summary of the monthly limit (amount, severity bar).
+ * When paused, the summary carries the whole story: the Paused badge next to
+ * the limit label, a full-and-red bar, and the paused copy underneath.
  */
 export function SpendManagement({ usageCents, isAdmin, open, onOpenChange }: SpendManagementProps) {
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, {

@@ -4,7 +4,6 @@ import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { TOP_NAV_HEIGHT } from "../top-nav";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 
@@ -27,14 +26,10 @@ export function SidebarV2(props: Props) {
     <Sidebar
       {...props}
       collapsible="icon"
-      className={cn("[&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
-      style={{
-        // --app-top-offset is TOP_NAV_HEIGHT plus the paused banner when it's
-        // showing; the layout publishes it so this viewport-fixed sidebar sits
-        // below both. Falls back to the nav height when the var isn't set.
-        top: `var(--app-top-offset, ${TOP_NAV_HEIGHT}px)`,
-        height: `calc(100svh - var(--app-top-offset, ${TOP_NAV_HEIGHT}px))`,
-      }}
+      // `absolute` (not the default viewport-fixed) so the panel is positioned
+      // by the layout's `relative` content row, which already starts below the
+      // top nav and the paused banner — no offset math needed.
+      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
     >
       <SidebarContent>
         <SidebarBody />

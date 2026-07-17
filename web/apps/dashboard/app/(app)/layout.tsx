@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  ComputePausedBanner,
-  PAUSED_BANNER_HEIGHT,
-} from "@/components/navigation/compute-paused-banner";
+import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
-import { TOP_NAV_HEIGHT, TopNav } from "@/components/navigation/top-nav";
+import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Route } from "next";
 
@@ -111,22 +108,15 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
-  // The fixed sidebar is anchored to the viewport, so when the paused banner is
-  // showing it must be pushed down by the banner height too. Publish the
-  // combined offset as --app-top-offset for the sidebar to read.
-  const suspended = workspace.deploySpendSuspended ?? false;
-  const topOffset = TOP_NAV_HEIGHT + (suspended ? PAUSED_BANNER_HEIGHT : 0);
-
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-      <div
-        className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12"
-        style={{ "--app-top-offset": `${topOffset}px` } as React.CSSProperties}
-      >
+      <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
         <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
-        <div className="flex flex-1 overflow-hidden">
+        {/* `relative` so the absolutely-positioned sidebar panel fills this row,
+            which already sits below the top nav and the paused banner. */}
+        <div className="relative flex flex-1 overflow-hidden">
           {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally
               when the scrollbar appears/disappears (e.g. a dialog locking scroll
