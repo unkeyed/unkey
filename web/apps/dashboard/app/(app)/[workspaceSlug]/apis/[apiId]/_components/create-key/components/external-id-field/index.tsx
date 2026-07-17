@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, toast } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
@@ -31,31 +31,36 @@ export const ExternalIdField = ({
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [selectedIdentity, setSelectedIdentity] = useState<Identity>();
+  const [nextPageError, setNextPageError] = useState<unknown>();
 
   const trimmedSearchValue = searchValue.trim();
   const externalIdValidation = identityExternalIdSchema.safeParse(trimmedSearchValue);
   const externalIdError = externalIdValidation.success
     ? undefined
     : externalIdValidation.error.issues.at(0)?.message;
-  const { identities, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, isLoading } =
-    useIdentities({
-      search: trimmedSearchValue || undefined,
-      onError: (error) => {
-        const isSearch = trimmedSearchValue.length > 0;
-        toast.error(isSearch ? "Failed to Search Identities" : "Failed to Load Identities", {
-          description: getErrorMessage(
-            error,
-            isSearch
-              ? "We were unable to search identities. Please try again."
-              : "We were unable to load identities. Please try again.",
-          ),
-        });
-      },
-    });
+  const {
+    identities,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isLoading,
+    isError: isIdentitiesError,
+    error: identitiesError,
+    refetch: refetchIdentities,
+  } = useIdentities({ search: trimmedSearchValue || undefined });
   const isSearching = trimmedSearchValue.length > 0 && isFetching;
-  const loadMore = () => {
-    fetchNextPage().catch((error: unknown) => {
-      console.error("Failed to load more identities", error);
+  const loadMore = async () => {
+    try {
+      await fetchNextPage({ throwOnError: true });
+      setNextPageError(undefined);
+    } catch (error) {
+      setNextPageError(error);
+    }
+  };
+  const retryIdentities = () => {
+    refetchIdentities().catch((error: unknown) => {
+      console.error("Failed to retry identities query", error);
     });
   };
 
@@ -96,40 +101,23 @@ export const ExternalIdField = ({
       return;
     }
 
-    const mutation = createIdentity.mutateAsync({ externalId: externalIdValidation.data });
-    toast.promise(mutation, {
-      loading: "Creating identity...",
-      success: (data) => ({
-        message: "Identity Created",
-        description: `Identity "${data.externalId}" has been created successfully`,
-        duration: 5000,
-      }),
-      error: (error) => {
-        if (error instanceof ConflictErrorResponse) {
-          return {
-            message: "Identity Already Exists",
-            description: "An identity with this external ID already exists in your workspace.",
-          };
-        }
-        if (error instanceof BadRequestErrorResponse) {
-          return {
-            message: "Invalid Input",
-            description: getErrorMessage(error, "Please check your input and try again."),
-          };
-        }
-        return { message: "Failed to Create Identity", description: getErrorMessage(error) };
-      },
-    });
-
     try {
-      const data = await mutation;
+      const data = await createIdentity.mutateAsync({ externalId: externalIdValidation.data });
       setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
       setSearchValue("");
       onChange(data.identityId, data.externalId);
     } catch {
-      // toast.promise reports the API error.
+      // The mutation error is rendered beneath the combobox.
     }
   };
+
+  const createIdentityError = createIdentity.isError
+    ? createIdentity.error instanceof ConflictErrorResponse
+      ? "An identity with this external ID already exists in your workspace."
+      : createIdentity.error instanceof BadRequestErrorResponse
+        ? getErrorMessage(createIdentity.error, "Check the external ID and try again.")
+        : `${getErrorMessage(createIdentity.error)} Try again.`
+    : undefined;
 
   const exactMatch = allIdentitiesWithCurrent.some(
     (id) => id.externalId.toLowerCase() === trimmedSearchValue.toLowerCase(),
@@ -139,12 +127,23 @@ export const ExternalIdField = ({
 
   // Don't show load more when actively searching
   const showLoadMore = !trimmedSearchValue && hasNextPage;
+  const optionQueryError = nextPageError
+    ? {
+        message: getErrorMessage(nextPageError, "We couldn't load more identities."),
+        retry: loadMore,
+      }
+    : isIdentitiesError && allIdentitiesWithCurrent.length > 0
+      ? {
+          message: getErrorMessage(identitiesError, "We couldn't refresh identities."),
+          retry: retryIdentities,
+        }
+      : undefined;
 
   const baseOptions = createIdentityOptions({
     identities: allIdentitiesWithCurrent,
     hasNextPage: showLoadMore,
     isFetchingNextPage,
-    loadMore,
+    queryError: optionQueryError?.message,
   });
 
   const createOption =
@@ -175,21 +174,41 @@ export const ExternalIdField = ({
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
   const isComboboxLoading = trimmedSearchValue ? isFetching : isLoading;
+  const initialQueryError = isIdentitiesError && allIdentitiesWithCurrent.length === 0;
 
   return (
     <FormCombobox
       requirement="optional"
       label="External ID"
-      description="ID of the user/workspace in your system for key attribution."
+      description={
+        <>
+          ID of the user/workspace in your system for key attribution.
+          {optionQueryError ? (
+            <span role="alert" className="sr-only">
+              {optionQueryError.message} Select the retry option to try again.
+            </span>
+          ) : null}
+        </>
+      }
       options={options}
       key={value}
       value={value || ""}
       onChange={(e) => {
+        if (!createIdentity.isLoading) {
+          createIdentity.reset();
+        }
+        setNextPageError(undefined);
         setSearchValue(e.currentTarget.value);
       }}
       onSelect={async (val) => {
         if (val === "__load_more__") {
-          loadMore();
+          if (!isFetchingNextPage) {
+            loadMore();
+          }
+          return;
+        }
+        if (val === "__retry_identities__") {
+          optionQueryError?.retry();
           return;
         }
         if (val === "__create_new__") {
@@ -197,6 +216,7 @@ export const ExternalIdField = ({
           return;
         }
         const identity = allIdentitiesWithCurrent.find((id) => id.id === val);
+        createIdentity.reset();
         setSelectedIdentity(identity);
         setSearchValue("");
         onChange(identity?.id || null, identity?.externalId || null);
@@ -206,7 +226,21 @@ export const ExternalIdField = ({
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
-        trimmedSearchValue && !exactMatch && !isComboboxLoading ? (
+        initialQueryError ? (
+          <div role="alert" className="flex flex-col gap-3 px-4 py-4 text-left">
+            <div className="text-error-11 text-[13px] leading-5">
+              {getErrorMessage(
+                identitiesError,
+                trimmedSearchValue
+                  ? "We couldn't search identities."
+                  : "We couldn't load identities.",
+              )}
+            </div>
+            <Button type="button" variant="outline" size="md" onClick={retryIdentities}>
+              Retry
+            </Button>
+          </div>
+        ) : trimmedSearchValue && !exactMatch && !isComboboxLoading ? (
           <div
             className={cn(
               "p-0 w-full transition-all duration-300 ease-in-out",
@@ -285,8 +319,8 @@ export const ExternalIdField = ({
         )
       }
       variant="default"
-      error={error}
-      disabled={disabled || isLoading}
+      error={createIdentityError ?? error}
+      disabled={disabled || isLoading || createIdentity.isLoading}
       loading={isComboboxLoading}
       title={
         isComboboxLoading

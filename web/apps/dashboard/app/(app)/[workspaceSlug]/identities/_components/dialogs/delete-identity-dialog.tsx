@@ -6,7 +6,15 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, ConfirmPopover, DialogContainer, FormCheckbox, toast } from "@unkey/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  ConfirmPopover,
+  DialogContainer,
+  FormCheckbox,
+} from "@unkey/ui";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -68,6 +76,7 @@ export const DeleteIdentityDialog = ({
         return;
       }
     } else if (!open) {
+      deleteIdentity.reset();
       onClose();
     }
   };
@@ -78,24 +87,11 @@ export const DeleteIdentityDialog = ({
 
   const performIdentityDeletion = handleSubmit(async () => {
     try {
-      const mutation = deleteIdentity.mutateAsync(identity.id);
-      toast.promise(mutation, {
-        loading: "Deleting identity...",
-        success: {
-          message: "Identity Deleted",
-          description:
-            "The identity has been permanently deleted and can no longer be used for verification.",
-        },
-        error: (error) => ({
-          message: "Failed to Delete Identity",
-          description: getErrorMessage(error),
-        }),
-      });
-      await mutation;
+      await deleteIdentity.mutateAsync(identity.id);
       onDeleted?.();
       onClose();
     } catch {
-      // toast.promise reports the API error.
+      // The mutation state keeps the error visible in the dialog.
     }
   });
 
@@ -131,6 +127,14 @@ export const DeleteIdentityDialog = ({
             }
           >
             <IdentityInfo identity={identity} />
+            {deleteIdentity.isError ? (
+              <Alert variant="alert" className="mt-4">
+                <AlertTitle>Couldn&apos;t Delete Identity</AlertTitle>
+                <AlertDescription>
+                  {getErrorMessage(deleteIdentity.error)} Try again.
+                </AlertDescription>
+              </Alert>
+            ) : null}
             <div className="py-1 my-2">
               <div className="h-px bg-grayA-3 w-full" />
             </div>

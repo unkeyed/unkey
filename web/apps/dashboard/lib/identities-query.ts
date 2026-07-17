@@ -29,10 +29,7 @@ export const identityQueryKeys = {
     [...identityQueryKeys.details(workspaceId), identityId] as const,
 };
 
-export function useIdentities({
-  search = "",
-  onError,
-}: { search?: string; onError?: (error: unknown) => void } = {}) {
+export function useIdentities({ search = "" }: { search?: string } = {}) {
   const workspace = useWorkspaceNavigation();
   const normalizedSearch = search.trim();
   const query = useInfiniteQuery({
@@ -60,7 +57,6 @@ export function useIdentities({
     },
     getNextPageParam: (lastPage) => lastPage.cursor,
     ...(normalizedSearch && { cacheTime: 0 }),
-    onError,
   });
 
   return {

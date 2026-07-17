@@ -10,7 +10,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
 import { IdentityInfo } from "./identity-info";
@@ -61,7 +61,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid },
+    formState: { isDirty, isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -76,7 +76,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
 
   const onSubmit = async (data: RatelimitFormValues) => {
     try {
-      const mutation = updateIdentity.mutateAsync({
+      const updatedIdentity = await updateIdentity.mutateAsync({
         identity: identity.id,
         ratelimits: data.ratelimit.enabled
           ? data.ratelimit.data.map((rule) => ({
@@ -87,26 +87,14 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
             }))
           : [],
       });
-      toast.promise(mutation, {
-        loading: "Updating rate limits...",
-        success: {
-          message: "Identity Ratelimits Updated",
-          description: `Rate limits for identity ${identity.id} have been updated`,
-          duration: 5000,
-        },
-        error: (error) => ({
-          message: "Failed to Update Identity Limits",
-          description: getErrorMessage(error),
-        }),
-      });
-      const updatedIdentity = await mutation;
       reset(getIdentityRatelimitsDefaults(updatedIdentity));
       clearPersistedData();
-      onClose();
     } catch {
-      // toast.promise reports the API error.
+      // The mutation state keeps the error visible in the dialog.
     }
   };
+
+  const showSuccess = updateIdentity.isSuccess && !isDirty;
 
   return (
     <FormProvider {...methods}>
@@ -115,7 +103,12 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
           isOpen={isOpen}
           onOpenChange={(o) => {
             if (!o && !isSubmitting) {
-              saveCurrentValues();
+              if (showSuccess) {
+                clearPersistedData();
+              } else {
+                saveCurrentValues();
+              }
+              updateIdentity.reset();
               onClose();
             }
           }}
@@ -124,14 +117,31 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
           className="flex flex-col"
           contentClassName="flex flex-col flex-1 min-h-0"
           footer={
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <div className="w-full flex flex-col gap-3 items-center justify-center">
+              {updateIdentity.isError ? (
+                <Alert variant="alert">
+                  <AlertTitle>Couldn&apos;t Update Rate Limits</AlertTitle>
+                  <AlertDescription>
+                    {getErrorMessage(updateIdentity.error)} Review your rate limits and try again.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {showSuccess ? (
+                <output
+                  aria-live="polite"
+                  className="w-full rounded-lg border border-success-7 bg-successA-2 p-4 text-success-11"
+                >
+                  <span className="block font-medium leading-none">Rate Limits Updated</span>
+                  <span className="mt-1 block text-sm">Your changes are now active.</span>
+                </output>
+              ) : null}
               <Button
                 type="submit"
                 form={formId}
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isValid || isSubmitting}
+                disabled={!isValid || isSubmitting || showSuccess}
                 loading={isSubmitting}
               >
                 Update ratelimit

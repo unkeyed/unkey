@@ -14,7 +14,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
 
@@ -52,7 +52,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid },
+    formState: { isDirty, isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -68,33 +68,18 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
   const onSubmit = async (data: MetadataFormValues) => {
     try {
       const value = data.metadata.enabled ? parseIdentityMetadata(data.metadata.data) : {};
-      const mutation = updateIdentity.mutateAsync({
+      const updatedIdentity = await updateIdentity.mutateAsync({
         identity: identity.id,
         meta: value,
       });
-      toast.promise(mutation, {
-        loading: "Updating identity metadata...",
-        success: {
-          message: "Identity Metadata Updated",
-          description:
-            Object.keys(value).length === 0
-              ? `Metadata has been removed from identity ${identity.id}`
-              : `Metadata for identity ${identity.id} has been updated`,
-          duration: 5000,
-        },
-        error: (error) => ({
-          message: "Failed to Update Identity Metadata",
-          description: getErrorMessage(error),
-        }),
-      });
-      const updatedIdentity = await mutation;
       reset(getIdentityMetadataDefaults(updatedIdentity));
       clearPersistedData();
-      onClose();
     } catch {
-      // toast.promise reports the API error.
+      // The mutation state keeps the error visible in the dialog.
     }
   };
+
+  const showSuccess = updateIdentity.isSuccess && !isDirty;
 
   return (
     <FormProvider {...methods}>
@@ -103,21 +88,43 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
           isOpen={isOpen}
           onOpenChange={(o) => {
             if (!o && !isSubmitting) {
-              saveCurrentValues();
+              if (showSuccess) {
+                clearPersistedData();
+              } else {
+                saveCurrentValues();
+              }
+              updateIdentity.reset();
               onClose();
             }
           }}
           title="Edit metadata"
           subTitle="Attach custom data to this identity"
           footer={
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <div className="w-full flex flex-col gap-3 items-center justify-center">
+              {updateIdentity.isError ? (
+                <Alert variant="alert">
+                  <AlertTitle>Couldn&apos;t Update Metadata</AlertTitle>
+                  <AlertDescription>
+                    {getErrorMessage(updateIdentity.error)} Review your metadata and try again.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {showSuccess ? (
+                <output
+                  aria-live="polite"
+                  className="w-full rounded-lg border border-success-7 bg-successA-2 p-4 text-success-11"
+                >
+                  <span className="block font-medium leading-none">Metadata Updated</span>
+                  <span className="mt-1 block text-sm">Your changes are now active.</span>
+                </output>
+              ) : null}
               <Button
                 type="submit"
                 form={formId}
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isValid || isSubmitting}
+                disabled={!isValid || isSubmitting || showSuccess}
                 loading={isSubmitting}
               >
                 Update metadata
