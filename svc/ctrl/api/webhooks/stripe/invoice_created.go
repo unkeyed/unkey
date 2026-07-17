@@ -64,12 +64,29 @@ func (h *handler) invoiceCreated(
 			webhook.ErrIgnore, invoice.Subscription, ws.StripeSubscriptionID.String)
 	}
 
-	// Stop Stripe auto-finalizing ~1h later with stale usage. Webhook must
-	// succeed or Stripe redelivers.
+	// Replace Stripe's ~1h auto-finalization with a scheduled one at period end
+	// plus 48 hours. That holds the draft open through the close's 24h usage
+	// ingest wait, but unlike a bare auto_advance=false it bounds the failure
+	// mode where the close never runs: the invoice then finalizes with the last
+	// hourly push's usage (at most an hour stale, still inside the credit
+	// expiry window) instead of sitting open forever with the customer never
+	// billed. The close's manual finalize normally wins the race; the schedule
+	// only fires on a draft. Stripe couples the two fields: setting
+	// automatically_finalizes_at implies auto_advance=true, and auto_advance=
+	// false would clear the schedule. Webhook must succeed or Stripe redelivers.
+	backstopAt := invoice.PeriodEnd + int64((48 * time.Hour).Seconds())
 	if _, err := h.stripe.V1Invoices.Update(ctx, invoice.ID, &stripesdk.InvoiceUpdateParams{
-		AutoAdvance: stripesdk.Bool(false),
+		AutomaticallyFinalizesAt: stripesdk.Int64(backstopAt),
 	}); err != nil {
-		return fmt.Errorf("disable auto_advance on invoice %s: %w", invoice.ID, err)
+		// automatically_finalizes_at is draft-only. A redelivery arriving after
+		// the invoice finalized must not error forever; the close path already
+		// handles finalized invoices, so skip the claim and continue.
+		live, getErr := h.stripe.V1Invoices.Retrieve(ctx, invoice.ID, nil)
+		if getErr != nil || live.Status == stripesdk.InvoiceStatusDraft {
+			return fmt.Errorf("schedule backstop finalization on invoice %s: %w", invoice.ID, err)
+		}
+		logger.Info("invoice already finalized, skipping backstop claim",
+			"invoice_id", invoice.ID, "status", live.Status)
 	}
 
 	// Closed month from period_start: always inside the billed period, unlike
