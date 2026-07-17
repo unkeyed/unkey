@@ -1,20 +1,17 @@
 "use client";
 
 import { useIdentities } from "@/lib/identities-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { toast } from "@unkey/ui";
-import { useEffect } from "react";
 
 export const useFetchIdentities = () => {
-  const { identities, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useIdentities();
-
-  useEffect(() => {
-    if (isError) {
+  const { identities, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useIdentities({
+    onError: (error) => {
       toast.error("Failed to Load Identities", {
-        description: "We were unable to load identities. Please try again.",
+        description: getErrorMessage(error, "We were unable to load identities. Please try again."),
       });
-    }
-  }, [isError]);
+    },
+  });
 
   return {
     identities,

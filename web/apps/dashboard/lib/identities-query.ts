@@ -122,7 +122,8 @@ function updateIdentityListCaches(
 export function useIdentities({
   search = "",
   enabled = true,
-}: { search?: string; enabled?: boolean } = {}) {
+  onError,
+}: { search?: string; enabled?: boolean; onError?: (error: unknown) => void } = {}) {
   const workspace = useWorkspaceNavigation();
   const normalizedSearch = search.trim();
   const query = useInfiniteQuery({
@@ -150,6 +151,7 @@ export function useIdentities({
     },
     getNextPageParam: (lastPage) => lastPage.cursor,
     enabled,
+    onError,
   });
 
   return {

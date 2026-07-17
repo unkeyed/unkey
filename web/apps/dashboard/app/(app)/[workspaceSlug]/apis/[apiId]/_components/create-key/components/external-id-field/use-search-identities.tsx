@@ -1,22 +1,23 @@
 import { useIdentities } from "@/lib/identities-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { toast } from "@unkey/ui";
-import { useDeferredValue, useEffect } from "react";
+import { useDeferredValue } from "react";
 
 export const useSearchIdentities = (query: string) => {
   const search = query.trim();
   const deferredSearch = useDeferredValue(search);
-  const { identities, isLoading, isError } = useIdentities({
+  const { identities, isLoading } = useIdentities({
     search: deferredSearch,
     enabled: deferredSearch.length > 0,
-  });
-
-  useEffect(() => {
-    if (isError) {
+    onError: (error) => {
       toast.error("Failed to Search Identities", {
-        description: "We were unable to search identities. Please try again.",
+        description: getErrorMessage(
+          error,
+          "We were unable to search identities. Please try again.",
+        ),
       });
-    }
-  }, [isError]);
+    },
+  });
 
   return {
     searchResults: identities,
