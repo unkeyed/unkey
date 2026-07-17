@@ -141,6 +141,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: deployment.ToResponse(deployment.Input{
 			Deployment:             dep,
+			ProjectSlug:            state.ProjectSlug,
+			AppSlug:                state.AppSlug,
 			EnvironmentSlug:        state.EnvironmentSlug,
 			AppCurrentDeploymentID: state.AppCurrentDeploymentID.String,
 			AppIsRolledBack:        state.AppIsRolledBack,

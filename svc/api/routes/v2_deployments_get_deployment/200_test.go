@@ -55,9 +55,9 @@ func TestGetDeployment(t *testing.T) {
 	require.Nil(t, d.Runtime.Healthcheck)
 
 	// Enriched fields wired from the deployment row + relations query.
-	require.Equal(t, setup.Environment.ID, d.EnvironmentId)
-	require.Equal(t, setup.App.ID, d.AppId)
-	require.Equal(t, setup.Project.ID, d.ProjectId)
+	require.Equal(t, setup.Environment.Slug, d.Environment)
+	require.Equal(t, setup.App.Slug, d.App)
+	require.Equal(t, setup.Project.Slug, d.Project)
 	require.False(t, d.IsCurrent, "app has no current deployment pointing here")
 
 	// git-sourced: git set from the seeded commit, docker absent.

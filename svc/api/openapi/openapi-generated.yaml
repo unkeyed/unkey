@@ -3958,9 +3958,9 @@ components:
                 - id
                 - status
                 - isCurrent
-                - environmentId
-                - appId
-                - projectId
+                - environment
+                - app
+                - project
                 - availableActions
                 - regions
                 - runtime
@@ -3980,18 +3980,18 @@ components:
                         can be `ready` without being current, for example one that was superseded or
                         not yet promoted.
                     example: true
-                environmentId:
+                environment:
                     type: string
-                    description: The environment this deployment belongs to.
-                    example: env_1234abcd
-                appId:
+                    description: Slug of the environment this deployment belongs to.
+                    example: production
+                app:
                     type: string
-                    description: The app this deployment belongs to.
-                    example: app_1234abcd
-                projectId:
+                    description: Slug of the app this deployment belongs to.
+                    example: payments-api
+                project:
                     type: string
-                    description: The project this deployment belongs to.
-                    example: proj_1234abcd
+                    description: Slug of the project this deployment belongs to.
+                    example: acme
                 git:
                     "$ref": "#/components/schemas/DeploymentGit"
                     description: |

@@ -21,6 +21,8 @@ import (
 // Regions is not gated: both read paths populate it.
 type Input struct {
 	Deployment             db.Deployment
+	ProjectSlug            string
+	AppSlug                string
 	EnvironmentSlug        string
 	AppCurrentDeploymentID string
 	AppIsRolledBack        bool
@@ -66,9 +68,9 @@ func ToResponse(in Input) openapi.Deployment {
 		Id:               d.ID,
 		Status:           openapi.DeploymentStatus(d.Status),
 		IsCurrent:        isCurrent,
-		EnvironmentId:    d.EnvironmentID,
-		AppId:            d.AppID,
-		ProjectId:        d.ProjectID,
+		Environment:      in.EnvironmentSlug,
+		App:              in.AppSlug,
+		Project:          in.ProjectSlug,
 		AvailableActions: availableActions(in),
 		Regions:          regions,
 		Runtime: openapi.DeploymentRuntime{

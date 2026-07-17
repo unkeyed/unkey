@@ -13,49 +13,66 @@ import (
 
 const findDeploymentEnvAndAppState = `-- name: FindDeploymentEnvAndAppState :one
 SELECT
+  p.slug AS project_slug,
+  a.slug AS app_slug,
   e.slug AS environment_slug,
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
+JOIN projects p ON p.id = d.project_id
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
 WHERE d.id = ?
 `
 
 type FindDeploymentEnvAndAppStateRow struct {
+	ProjectSlug            string         `db:"project_slug"`
+	AppSlug                string         `db:"app_slug"`
 	EnvironmentSlug        string         `db:"environment_slug"`
 	AppCurrentDeploymentID sql.NullString `db:"app_current_deployment_id"`
 	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
 }
 
-// Returns the parent environment's slug and the parent app's live-pointer
-// columns (which deployment the app currently serves, and whether it was rolled
-// back). The read path needs these to fill environmentSlug, isCurrent, and
-// availableActions. Selects only these columns (not d.*) so the deployment
-// itself stays a plain db.Deployment.
+// Returns the parent project/app/environment slugs and the parent app's
+// live-pointer columns (which deployment the app currently serves, and whether
+// it was rolled back). The read path needs these to fill the response slugs,
+// isCurrent, and availableActions. Selects only these columns (not d.*) so the
+// deployment itself stays a plain db.Deployment.
 //
 //	SELECT
+//	  p.slug AS project_slug,
+//	  a.slug AS app_slug,
 //	  e.slug AS environment_slug,
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
+//	JOIN projects p ON p.id = d.project_id
 //	JOIN environments e ON e.id = d.environment_id
 //	JOIN apps a ON a.id = d.app_id
 //	WHERE d.id = ?
 func (q *Queries) FindDeploymentEnvAndAppState(ctx context.Context, db DBTX, id string) (FindDeploymentEnvAndAppStateRow, error) {
 	row := db.QueryRowContext(ctx, findDeploymentEnvAndAppState, id)
 	var i FindDeploymentEnvAndAppStateRow
-	err := row.Scan(&i.EnvironmentSlug, &i.AppCurrentDeploymentID, &i.AppIsRolledBack)
+	err := row.Scan(
+		&i.ProjectSlug,
+		&i.AppSlug,
+		&i.EnvironmentSlug,
+		&i.AppCurrentDeploymentID,
+		&i.AppIsRolledBack,
+	)
 	return i, err
 }
 
 const listDeploymentEnvAndAppState = `-- name: ListDeploymentEnvAndAppState :many
 SELECT
   d.id AS deployment_id,
+  p.slug AS project_slug,
+  a.slug AS app_slug,
   e.slug AS environment_slug,
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
+JOIN projects p ON p.id = d.project_id
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
 WHERE d.id IN (/*SLICE:deployment_ids*/?)
@@ -63,20 +80,25 @@ WHERE d.id IN (/*SLICE:deployment_ids*/?)
 
 type ListDeploymentEnvAndAppStateRow struct {
 	DeploymentID           string         `db:"deployment_id"`
+	ProjectSlug            string         `db:"project_slug"`
+	AppSlug                string         `db:"app_slug"`
 	EnvironmentSlug        string         `db:"environment_slug"`
 	AppCurrentDeploymentID sql.NullString `db:"app_current_deployment_id"`
 	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
 }
 
-// Batch form keyed by deployment id: fetches the same env/app state for a whole
-// page of deployments in one query, so listDeployments avoids an N+1.
+// Batch form keyed by deployment id: fetches the same state for a whole page of
+// deployments in one query, so listDeployments avoids an N+1.
 //
 //	SELECT
 //	  d.id AS deployment_id,
+//	  p.slug AS project_slug,
+//	  a.slug AS app_slug,
 //	  e.slug AS environment_slug,
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
+//	JOIN projects p ON p.id = d.project_id
 //	JOIN environments e ON e.id = d.environment_id
 //	JOIN apps a ON a.id = d.app_id
 //	WHERE d.id IN (/*SLICE:deployment_ids*/?)
@@ -101,6 +123,8 @@ func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, dep
 		var i ListDeploymentEnvAndAppStateRow
 		if err := rows.Scan(
 			&i.DeploymentID,
+			&i.ProjectSlug,
+			&i.AppSlug,
 			&i.EnvironmentSlug,
 			&i.AppCurrentDeploymentID,
 			&i.AppIsRolledBack,
