@@ -1,7 +1,7 @@
 import { Button, FormInput } from "@unkey/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { useSignIn } from "../hooks";
-import { LastUsed, useLastUsed } from "./last_used";
+import { useLastUsed } from "./last_used";
 
 export function EmailSignIn() {
   const { handleSignInViaEmail, email } = useSignIn();
@@ -63,7 +63,6 @@ export function EmailSignIn() {
         loading={clientReady && isLoading}
       >
         Continue with Email
-        {clientReady && lastUsed === "email" && <LastUsed />}
       </Button>
     </form>
   );
