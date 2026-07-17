@@ -36,13 +36,16 @@ import Stripe from "stripe";
  * deploy gate and dashboard read without a Stripe call in the hot path.
  */
 async function mirrorDeployPlan(
-  ws: { id: string; deployPlan: string | null },
+  billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const deployPlan = detectDeployPlan(sub);
-  const changed = deployPlan !== ws.deployPlan;
+  const plan = detectDeployPlan(sub);
+  const changed = plan !== billing.plan;
   if (changed) {
-    await db.update(schema.workspaces).set({ deployPlan }).where(eq(schema.workspaces.id, ws.id));
+    await db
+      .update(schema.workspaceBilling)
+      .set({ plan })
+      .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
   }
 }
 
@@ -92,7 +95,10 @@ async function downgradeAfterScheduledApiCancel(
   };
   const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
 
-  await db.update(schema.workspaces).set({ tier: "Free" }).where(eq(schema.workspaces.id, ws.id));
+  await db
+    .update(schema.workspaceBilling)
+    .set({ tier: "Free" })
+    .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
   await db
     .insert(schema.quotas)
@@ -306,11 +312,12 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billing = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
+          with: { workspace: true },
         });
-        if (!ws) {
+        const ws = billing?.workspace ?? null;
+        if (!billing || !ws || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
             subscriptionId: sub.id,
             eventId: event.id,
@@ -322,7 +329,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // mirrored even when the rest of the update is a no-op (renewal, card
         // update) or bails on the API-tier quota validation, which a Deploy-only
         // subscription does not satisfy.
-        await mirrorDeployPlan(ws, sub);
+        await mirrorDeployPlan(billing, sub);
 
         const previousAttributes = event.data.previous_attributes;
 
@@ -357,7 +364,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // them apart and downgrades the workspace for the latter.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return await downgradeAfterScheduledApiCancel(stripe, ws, sub);
+          return await downgradeAfterScheduledApiCancel(
+            stripe,
+            { id: ws.id, orgId: ws.orgId, tier: billing.tier },
+            sub,
+          );
         }
         const { unitAmount, customer, product } = apiContext;
 
@@ -390,11 +401,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // Update quotas and workspace tier
         await db.transaction(async (tx) => {
           await tx
-            .update(schema.workspaces)
+            .update(schema.workspaceBilling)
             .set({
               tier: product.name,
             })
-            .where(eq(schema.workspaces.id, ws.id));
+            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
           await tx
             .insert(schema.quotas)
@@ -507,11 +518,12 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billing = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
+          with: { workspace: true },
         });
-        if (!ws) {
+        const ws = billing?.workspace ?? null;
+        if (!billing || !ws || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
             subscriptionId: sub.id,
             eventId: event.id,
@@ -526,7 +538,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // deploy_plan. Must run before the column clear below, since
         // deprovisionCompute's idempotency guard keys on deploy_plan still being set.
         // Let a failure propagate so Stripe retries; the teardown must not be dropped.
-        if (ws.deployPlan) {
+        if (billing.plan) {
           try {
             const ctrl = createCtrlClient(DeployService);
             await ctrl.deprovisionCompute({ workspaceId: ws.id });
@@ -541,14 +553,14 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         await db
-          .update(schema.workspaces)
+          .update(schema.workspaceBilling)
           .set({
             stripeSubscriptionId: null,
             tier: "Free",
             // The subscription is gone, so the Deploy plan goes with it.
-            deployPlan: null,
+            plan: null,
           })
-          .where(eq(schema.workspaces.id, ws.id));
+          .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
         await db
           .insert(schema.quotas)
@@ -630,12 +642,12 @@ export const POST = async (req: Request): Promise<Response> => {
         // not linked to this subscription yet, a later subscription.updated syncs
         // it. Done before the alert-only logic below so an early return can't skip
         // it.
-        const wsForDeploy = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billingForDeploy = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
+          with: { workspace: true },
         });
-        if (wsForDeploy) {
-          await mirrorDeployPlan(wsForDeploy, sub);
+        if (billingForDeploy && billingForDeploy.workspace?.deletedAtM == null) {
+          await mirrorDeployPlan(billingForDeploy, sub);
         }
 
         // Alert on the API plan item (the Deploy signal is mirrored above).

@@ -1,0 +1,43 @@
+---
+title: Compute billing and spend budgets
+description: "How Compute usage is metered, how plan credits work, and how spend budgets alert or stop workloads."
+---
+
+## Compute billing
+
+Compute bills for what your workloads actually use: CPU, memory, disk, egress, and the active keys verified through the Compute gateway. Your plan fee comes with usage credits worth the same amount, so the fee already covers your first slice of usage. Anything past those credits is added to your invoice at the end of the month.
+
+The billing page shows:
+
+- **Usage this period**: what you have spent on usage so far this month. This is the number your spend budget is measured against.
+- **Per-meter quantities**: CPU hours, memory GiB-hours, egress GiB, disk GiB-hours, and active keys.
+- **Spend budget** (optional): your monthly usage-spend cap and its alert thresholds.
+
+Credits refresh at the start of every billing period. If you upgrade partway through a period, you get a prorated top-up to that period's credits.
+
+## Spend budget
+
+Set a monthly spend budget under **Settings > Billing** on the Compute card.
+
+| Setting | Behavior |
+| --- | --- |
+| **Monthly budget** | Whole dollars. Leave empty for no budget. |
+| **Email alerts** | Sent at 50%, 75%, and 100% of the budget. |
+| **Stop workloads at the budget** | When enabled, your running Compute workloads stop once usage spend reaches the budget. |
+
+The budget caps your total usage spend, credits included. A $100 budget stops you at $100 of usage, not $100 on top of the credits your plan already includes. The meter on the billing page tracks your spend against the budget so you can see how close you are.
+
+### While Compute is paused
+
+If you turned on **Stop workloads** and hit your budget, Compute pauses and the billing page shows a **Compute paused** banner. It starts back up on its own as soon as you:
+
+- Raise the budget above your current spend,
+- Remove the budget,
+- Turn off **Stop workloads at the budget**, or
+- Reach the next billing period, when usage resets.
+
+Resume is automatic and usually takes about a minute.
+
+## Cancel Compute
+
+Canceling Compute stops your deployments right away and removes the plan. Whatever usage you ran up until then still shows on your final invoice.

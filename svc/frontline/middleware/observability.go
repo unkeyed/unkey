@@ -313,6 +313,24 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusServiceUnavailable),
 			Message: "No running instances are available to handle this request.",
 		}
+	case codes.Frontline.Routing.DeploymentOffline.URN():
+		// Distinct from NoRunningInstances: the deployment is intentionally
+		// offline (stopped or the project was cancelled), not transiently
+		// between instances.
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "This deployment is offline.",
+		}
+	case codes.Frontline.Routing.SpendLimitReached.URN():
+		// A billing gate, not an outage: the workspace hit its Compute spend
+		// limit and compute was paused. 402 (not 503) so it reads as "clear the
+		// billing condition to resume" and is greppable apart from real outages.
+		return errorPageInfo{
+			Status:  http.StatusPaymentRequired,
+			Title:   http.StatusText(http.StatusPaymentRequired),
+			Message: "Compute for this workspace is paused because it reached its spend limit. Raise or remove the spend budget to resume.",
+		}
 	case codes.Frontline.Routing.DeploymentSelectionFailed.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,

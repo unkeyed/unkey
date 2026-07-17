@@ -37,7 +37,8 @@
         "WORKOS_API_KEY",
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-        "SENTRY_AUTH_TOKEN"
+        "SENTRY_AUTH_TOKEN",
+        "GITHUB_KEYS_URI"
       ],
       "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
     },

@@ -305,6 +305,11 @@ type DeployTeardownServiceClient interface {
 	// whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown(opts ...sdk_go.ClientOption) sdk_go.Client[*TeardownRequest, *TeardownResponse]
+	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
+	// back to running and restores each app's current deployment from the record
+	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
+	// suspended (no record).
+	Resume(opts ...sdk_go.ClientOption) sdk_go.Client[*ResumeRequest, *ResumeResponse]
 }
 
 type deployTeardownServiceClient struct {
@@ -329,6 +334,14 @@ func (c *deployTeardownServiceClient) Teardown(opts ...sdk_go.ClientOption) sdk_
 	return sdk_go.WithRequestType[*TeardownRequest](sdk_go.Object[*TeardownResponse](c.ctx, "hydra.v1.DeployTeardownService", c.key, "Teardown", cOpts...))
 }
 
+func (c *deployTeardownServiceClient) Resume(opts ...sdk_go.ClientOption) sdk_go.Client[*ResumeRequest, *ResumeResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ResumeRequest](sdk_go.Object[*ResumeResponse](c.ctx, "hydra.v1.DeployTeardownService", c.key, "Resume", cOpts...))
+}
+
 // DeployTeardownServiceIngressClient is the ingress client API for hydra.v1.DeployTeardownService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -339,6 +352,11 @@ type DeployTeardownServiceIngressClient interface {
 	// whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown() ingress.Requester[*TeardownRequest, *TeardownResponse]
+	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
+	// back to running and restores each app's current deployment from the record
+	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
+	// suspended (no record).
+	Resume() ingress.Requester[*ResumeRequest, *ResumeResponse]
 }
 
 type deployTeardownServiceIngressClient struct {
@@ -360,6 +378,11 @@ func (c *deployTeardownServiceIngressClient) Teardown() ingress.Requester[*Teard
 	return ingress.NewRequester[*TeardownRequest, *TeardownResponse](c.client, c.serviceName, "Teardown", &c.key, &codec)
 }
 
+func (c *deployTeardownServiceIngressClient) Resume() ingress.Requester[*ResumeRequest, *ResumeResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ResumeRequest, *ResumeResponse](c.client, c.serviceName, "Resume", &c.key, &codec)
+}
+
 // DeployTeardownServiceServer is the server API for hydra.v1.DeployTeardownService service.
 // All implementations should embed UnimplementedDeployTeardownServiceServer
 // for forward compatibility.
@@ -373,6 +396,11 @@ type DeployTeardownServiceServer interface {
 	// whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error)
+	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
+	// back to running and restores each app's current deployment from the record
+	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
+	// suspended (no record).
+	Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error)
 }
 
 // UnimplementedDeployTeardownServiceServer should be embedded to have
@@ -384,6 +412,9 @@ type UnimplementedDeployTeardownServiceServer struct{}
 
 func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+}
+func (UnimplementedDeployTeardownServiceServer) Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Resume not implemented"), 501)
 }
 func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
 
@@ -405,5 +436,6 @@ func NewDeployTeardownServiceServer(srv DeployTeardownServiceServer, opts ...sdk
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.DeployTeardownService", sOpts...)
 	router = router.Handler("Teardown", sdk_go.NewObjectHandler(srv.Teardown))
+	router = router.Handler("Resume", sdk_go.NewObjectHandler(srv.Resume))
 	return router
 }

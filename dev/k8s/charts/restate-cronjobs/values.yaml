@@ -66,7 +66,8 @@ jobs:
     idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)-backup-$(date -u +%Y-%m-%dT%H%M)"
 
   # Deploy spend-cap check: prices each budgeted workspace's month-to-date
-  # usage and emails budget alerts (50/75/100%). Keyed by the CURRENT billing
+  # usage, emails budget alerts (50/75/100%), and stops compute at 100% when
+  # the workspace opted in. Keyed by the CURRENT billing
   # period (YYYY-MM) so the per-workspace checks serialize on one orchestrator
   # VO. The idempotency key is distinct PER TICK (down to the minute), not per
   # period: a per-period key

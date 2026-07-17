@@ -34,16 +34,24 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("workspace_id is required"))
 	}
 
-	ws, err := s.db.FindWorkspaceByID(ctx, workspaceID)
-	if err != nil {
+	if _, err := s.db.FindWorkspaceByID(ctx, workspaceID); err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace not found"))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
 
-	// Nothing to cancel without a plan; return success so retries are safe.
-	if !ws.DeployPlan.Valid || ws.DeployPlan.String == "" {
+	// Nothing to cancel without a billing row or plan; return success so retries
+	// are safe.
+	billing, err := s.db.FindWorkspaceBillingByWorkspaceID(ctx, workspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			logger.Info("compute already deprovisioned", "workspace_id", workspaceID)
+			return connect.NewResponse(&ctrlv1.DeprovisionComputeResponse{}), nil
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace billing: %w", err))
+	}
+	if !billing.Plan.Valid || billing.Plan.String == "" {
 		logger.Info("compute already deprovisioned", "workspace_id", workspaceID)
 		return connect.NewResponse(&ctrlv1.DeprovisionComputeResponse{}), nil
 	}
@@ -60,8 +68,21 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to dispatch teardown: %w", err))
 	}
 
-	// Clear the entitlement: blocks new deploys and drops the workspace from
-	// billing. No audit log; the dashboard records the user actor.
+	// End enforcement: a plan-less workspace must not stay spend-suspended, or a
+	// later resubscribe starts blocked. Runs before the deploy_plan clear because
+	// the idempotency guard keys on deploy_plan; a crash after the clear would
+	// strand the suspension with no retry path.
+	if err := s.db.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
+		Suspended: false,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:        workspaceID,
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to clear spend-suspended: %w", err))
+	}
+
+	// Clear the entitlement last (it is the idempotency key, so it flips only
+	// after every other step succeeded): blocks new deploys, drops billing. No
+	// audit log; the dashboard records the user actor.
 	if err := s.db.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
 		ID:        workspaceID,
 		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

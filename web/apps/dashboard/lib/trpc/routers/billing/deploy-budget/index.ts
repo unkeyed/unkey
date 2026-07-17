@@ -15,13 +15,15 @@ const MAX_BUDGET_CENTS = 1_000_000_000;
  * The workspace's monthly Compute spend budget. NULL = no budget. Email
  * alerts fire at fixed percentages of the budget (50/75/100); stopAtBudget
  * additionally stops workloads when month-to-date usage spend reaches it.
- * v1 stores the preferences only: nothing alerts or stops yet.
  */
 export const getDeployBudget = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .query(({ ctx }) => ({
     budgetCents: ctx.workspace.deploySpendBudgetCents ?? null,
     stopAtBudget: ctx.workspace.deploySpendBudgetStop,
+    // True while the spend cap has paused this workspace's compute; the
+    // dashboard surfaces it so an admin understands why compute is offline.
+    suspended: ctx.workspace.deploySpendSuspended,
   }));
 
 /**
@@ -49,12 +51,12 @@ export const setDeployBudget = workspaceProcedure
     }
 
     await db
-      .update(schema.workspaces)
+      .update(schema.workspaceBilling)
       .set({
-        deploySpendBudgetCents: input.budgetCents,
-        deploySpendBudgetStop: input.stopAtBudget,
+        spendBudgetCents: input.budgetCents,
+        spendBudgetStop: input.stopAtBudget,
       })
-      .where(eq(schema.workspaces.id, ctx.workspace.id));
+      .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
     await insertAuditLogs(db, {
       workspaceId: ctx.workspace.id,
