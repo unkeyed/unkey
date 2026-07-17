@@ -220,17 +220,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		for i, row := range rows {
-			r := byID[row.ID]
 			data[i] = deployment.ToResponse(deployment.Input{
-				Deployment:             row,
-				ProjectSlug:            r.ProjectSlug,
-				AppSlug:                r.AppSlug,
-				EnvironmentSlug:        r.EnvironmentSlug,
-				AppCurrentDeploymentID: r.AppCurrentDeploymentID.String,
-				AppIsRolledBack:        r.AppIsRolledBack,
-				Regions:                regionsByID[row.ID],
-				Steps:                  stepsByID[row.ID],
-				Domains:                domainsByID[row.ID],
+				Deployment: row,
+				State:      byID[row.ID],
+				Regions:    regionsByID[row.ID],
+				Steps:      stepsByID[row.ID],
+				Domains:    domainsByID[row.ID],
 			})
 		}
 	}

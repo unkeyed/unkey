@@ -540,20 +540,6 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
-	//FindDeploymentEnvAndAppState
-	//
-	//  SELECT
-	//    p.slug AS project_slug,
-	//    a.slug AS app_slug,
-	//    e.slug AS environment_slug,
-	//    a.current_deployment_id AS app_current_deployment_id,
-	//    a.is_rolled_back AS app_is_rolled_back
-	//  FROM deployments d
-	//  JOIN projects p ON p.id = d.project_id
-	//  JOIN environments e ON e.id = d.environment_id
-	//  JOIN apps a ON a.id = d.app_id
-	//  WHERE d.id = ?
-	FindDeploymentEnvAndAppState(ctx context.Context, db DBTX, id string) (FindDeploymentEnvAndAppStateRow, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//

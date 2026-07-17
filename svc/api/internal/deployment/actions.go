@@ -25,20 +25,21 @@ func availableActions(in Input) []openapi.DeploymentAction {
 
 	// An empty slug means the environment could not be resolved; without it the
 	// production gate is unknowable, so offer nothing rather than guess.
-	if in.EnvironmentSlug == "" {
+	if in.State.EnvironmentSlug == "" {
 		return actions
 	}
 
 	ready := d.Status == db.DeploymentsStatusReady
 	running := d.DesiredState == db.DeploymentsDesiredStateRunning
 
-	if in.EnvironmentSlug == productionSlug {
-		hasLiveDeployment := in.AppCurrentDeploymentID != ""
-		isCurrentDeployment := in.AppCurrentDeploymentID == d.ID
+	if in.State.EnvironmentSlug == productionSlug {
+		currentDeploymentID := in.State.AppCurrentDeploymentID.String
+		hasLiveDeployment := currentDeploymentID != ""
+		isCurrentDeployment := currentDeploymentID == d.ID
 		if ready && running && hasLiveDeployment {
 			// promote is illegal only when this is already the promoted-live
 			// deployment (current pointer and not in a rolled-back state).
-			if !isCurrentDeployment || in.AppIsRolledBack {
+			if !isCurrentDeployment || in.State.AppIsRolledBack {
 				actions = append(actions, openapi.DeploymentActionPromote)
 			}
 			// rollback is illegal when this is the current pointer, regardless of

@@ -11,54 +11,6 @@ import (
 	"strings"
 )
 
-const findDeploymentEnvAndAppState = `-- name: FindDeploymentEnvAndAppState :one
-SELECT
-  p.slug AS project_slug,
-  a.slug AS app_slug,
-  e.slug AS environment_slug,
-  a.current_deployment_id AS app_current_deployment_id,
-  a.is_rolled_back AS app_is_rolled_back
-FROM deployments d
-JOIN projects p ON p.id = d.project_id
-JOIN environments e ON e.id = d.environment_id
-JOIN apps a ON a.id = d.app_id
-WHERE d.id = ?
-`
-
-type FindDeploymentEnvAndAppStateRow struct {
-	ProjectSlug            string         `db:"project_slug"`
-	AppSlug                string         `db:"app_slug"`
-	EnvironmentSlug        string         `db:"environment_slug"`
-	AppCurrentDeploymentID sql.NullString `db:"app_current_deployment_id"`
-	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
-}
-
-// FindDeploymentEnvAndAppState
-//
-//	SELECT
-//	  p.slug AS project_slug,
-//	  a.slug AS app_slug,
-//	  e.slug AS environment_slug,
-//	  a.current_deployment_id AS app_current_deployment_id,
-//	  a.is_rolled_back AS app_is_rolled_back
-//	FROM deployments d
-//	JOIN projects p ON p.id = d.project_id
-//	JOIN environments e ON e.id = d.environment_id
-//	JOIN apps a ON a.id = d.app_id
-//	WHERE d.id = ?
-func (q *Queries) FindDeploymentEnvAndAppState(ctx context.Context, db DBTX, id string) (FindDeploymentEnvAndAppStateRow, error) {
-	row := db.QueryRowContext(ctx, findDeploymentEnvAndAppState, id)
-	var i FindDeploymentEnvAndAppStateRow
-	err := row.Scan(
-		&i.ProjectSlug,
-		&i.AppSlug,
-		&i.EnvironmentSlug,
-		&i.AppCurrentDeploymentID,
-		&i.AppIsRolledBack,
-	)
-	return i, err
-}
-
 const listDeploymentEnvAndAppState = `-- name: ListDeploymentEnvAndAppState :many
 SELECT
   d.id AS deployment_id,

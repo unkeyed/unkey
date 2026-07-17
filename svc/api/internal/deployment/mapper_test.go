@@ -109,20 +109,26 @@ func TestToResponseIsCurrent(t *testing.T) {
 		DesiredState: db.DeploymentsDesiredStateRunning,
 	}
 
+	current := func(id string) db.ListDeploymentEnvAndAppStateRow {
+		return db.ListDeploymentEnvAndAppStateRow{AppCurrentDeploymentID: sql.NullString{Valid: id != "", String: id}}
+	}
+
 	t.Run("app points here", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, AppCurrentDeploymentID: "d_1", AppIsRolledBack: false})
+		got := ToResponse(Input{Deployment: dep, State: current("d_1")})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points here even when rolled back (still serves traffic)", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, AppCurrentDeploymentID: "d_1", AppIsRolledBack: true})
+		state := current("d_1")
+		state.AppIsRolledBack = true
+		got := ToResponse(Input{Deployment: dep, State: state})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points elsewhere", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, AppCurrentDeploymentID: "d_other"})
+		got := ToResponse(Input{Deployment: dep, State: current("d_other")})
 		require.False(t, got.IsCurrent)
 	})
 	t.Run("app has no current deployment", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, AppCurrentDeploymentID: ""})
+		got := ToResponse(Input{Deployment: dep, State: current("")})
 		require.False(t, got.IsCurrent)
 	})
 }

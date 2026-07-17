@@ -83,26 +83,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	state, err := db.Query.FindDeploymentEnvAndAppState(ctx, h.DB.RO(), dep.ID)
+	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), []string{dep.ID})
 	if err != nil {
-		if !db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve deployment."),
-			)
-		}
-		// The join can miss during app/environment teardown, when the deployment
-		// row briefly outlives its parents. Degrade to empty state rather than
-		// 500 (matching listDeployments): the deployment is still returned, and the
-		// empty slug suppresses availableActions and isCurrent.
-		state = db.FindDeploymentEnvAndAppStateRow{} //nolint:exhaustruct // deliberate zero value: empty slug suppresses actions/isCurrent
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct // zero value when the join misses
+	if len(states) > 0 {
+		state = states[0]
 	}
 
-	// Steps only carry the failure reason, so only load the failing ones and only
-	// for a failed deployment. Mirrors listDeployments; healthy reads stay at two
-	// queries.
 	var steps []db.DeploymentStep
 	if dep.Status == db.DeploymentsStatusFailed {
 		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), []string{dep.ID})
@@ -141,15 +135,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: deployment.ToResponse(deployment.Input{
-			Deployment:             dep,
-			ProjectSlug:            state.ProjectSlug,
-			AppSlug:                state.AppSlug,
-			EnvironmentSlug:        state.EnvironmentSlug,
-			AppCurrentDeploymentID: state.AppCurrentDeploymentID.String,
-			AppIsRolledBack:        state.AppIsRolledBack,
-			Steps:                  steps,
-			Regions:                regions,
-			Domains:                domains,
+			Deployment: dep,
+			State:      state,
+			Steps:      steps,
+			Regions:    regions,
+			Domains:    domains,
 		}),
 	})
 }

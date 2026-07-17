@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -53,10 +54,12 @@ func TestAvailableActions(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := availableActions(Input{
-				Deployment:             db.Deployment{ID: self, Status: tc.status, DesiredState: tc.desiredState},
-				EnvironmentSlug:        tc.envSlug,
-				AppCurrentDeploymentID: tc.current,
-				AppIsRolledBack:        tc.rolledBack,
+				Deployment: db.Deployment{ID: self, Status: tc.status, DesiredState: tc.desiredState},
+				State: db.ListDeploymentEnvAndAppStateRow{
+					EnvironmentSlug:        tc.envSlug,
+					AppCurrentDeploymentID: sql.NullString{Valid: tc.current != "", String: tc.current},
+					AppIsRolledBack:        tc.rolledBack,
+				},
 			})
 			require.Equal(t, tc.want, got)
 		})

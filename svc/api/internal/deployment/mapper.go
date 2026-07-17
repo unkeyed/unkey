@@ -9,20 +9,16 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// Input is everything ToResponse needs. EnvironmentSlug and the app live-pointer
-// fields are columns the wire type needs but the deployments row does not hold;
-// both read handlers resolve them (per-deployment on get, batched on list) so
-// the mapper never queries.
+// Input is everything ToResponse needs. State carries the env/app columns the
+// wire type needs but the deployments row does not hold (slugs and the app live
+// pointer); both read handlers resolve them (per-deployment on get, batched on
+// list) so the mapper never queries.
 type Input struct {
-	Deployment             db.Deployment
-	ProjectSlug            string
-	AppSlug                string
-	EnvironmentSlug        string
-	AppCurrentDeploymentID string
-	AppIsRolledBack        bool
-	Steps                  []db.DeploymentStep
-	Regions                []string
-	Domains                []string
+	Deployment db.Deployment
+	State      db.ListDeploymentEnvAndAppStateRow
+	Steps      []db.DeploymentStep
+	Regions    []string
+	Domains    []string
 }
 
 func ToResponse(in Input) openapi.Deployment {
@@ -48,7 +44,7 @@ func ToResponse(in Input) openapi.Deployment {
 	// isCurrent means "the app currently routes traffic to this deployment": the
 	// app's current pointer, regardless of how it got there (a rolled-back app
 	// still serves its current deployment).
-	isCurrent := in.AppCurrentDeploymentID != "" && in.AppCurrentDeploymentID == d.ID
+	isCurrent := in.State.AppCurrentDeploymentID.String != "" && in.State.AppCurrentDeploymentID.String == d.ID
 
 	// regions is a required field, so it must marshal as [] not null when the
 	// deployment has no scheduled regions yet.
@@ -61,9 +57,9 @@ func ToResponse(in Input) openapi.Deployment {
 		Id:               d.ID,
 		Status:           openapi.DeploymentStatus(d.Status),
 		IsCurrent:        isCurrent,
-		Environment:      in.EnvironmentSlug,
-		App:              in.AppSlug,
-		Project:          in.ProjectSlug,
+		Environment:      in.State.EnvironmentSlug,
+		App:              in.State.AppSlug,
+		Project:          in.State.ProjectSlug,
 		AvailableActions: availableActions(in),
 		Regions:          regions,
 		Runtime: openapi.DeploymentRuntime{
