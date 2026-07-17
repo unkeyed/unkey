@@ -71,13 +71,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// A missing billing row means the workspace was never linked to billing and
+	// is not suspended.
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
+		)
+	}
+
 	// "Stopped" is keyed on desired_state, not status: stopping sets
 	// desired_state=stopped immediately while status only flips once krane drains
 	// the last instance.
-	//nolint:exhaustruct // start only uses the desired state and environment fields
+	//nolint:exhaustruct // start only uses the desired state, environment, and spend fields
 	if r := deploygate.CheckStartable(deploygate.Input{
 		DesiredState:    string(dep.DesiredState),
 		EnvironmentSlug: dep.EnvironmentSlug,
+		SpendSuspended:  billing.SpendSuspended,
 	}); r != deploygate.StartOK {
 		return deployment.StartFault(r)
 	}

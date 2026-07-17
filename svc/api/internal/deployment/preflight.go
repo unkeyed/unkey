@@ -72,6 +72,10 @@ func StartFault(r deploygate.StartReason) error {
 		code = codes.App.Precondition.DeploymentNotStopped
 	case deploygate.StartIsProduction:
 		code = codes.App.Precondition.DeploymentIsProduction
+	case deploygate.StartSpendSuspended:
+		// Billing state, not deployment lifecycle; no dedicated code exists, so
+		// the generic precondition code carries the specific message.
+		code = codes.App.Precondition.PreconditionFailed
 	case deploygate.StartOK:
 		return nil
 	default:
@@ -153,6 +157,7 @@ func MapCtrlError(err error, action string, preconditionMsg string) error {
 			for _, r := range []deploygate.StartReason{
 				deploygate.StartNotStopped,
 				deploygate.StartIsProduction,
+				deploygate.StartSpendSuspended,
 			} {
 				if msg == r.Message() {
 					return StartFault(r)

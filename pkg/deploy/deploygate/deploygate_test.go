@@ -120,4 +120,8 @@ func TestCheckStartable(t *testing.T) {
 	prod := stopped
 	prod.EnvironmentSlug = envProduction
 	require.Equal(t, StartIsProduction, CheckStartable(prod))
+
+	suspended := stopped
+	suspended.SpendSuspended = true
+	require.Equal(t, StartSpendSuspended, CheckStartable(suspended))
 }

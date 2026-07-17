@@ -8010,8 +8010,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
-                        Precondition failed - The deployment is not stopped, or it belongs to a
-                        production environment.
+                        Precondition failed - The deployment is not stopped, it belongs to a
+                        production environment, or the workspace is suspended by its Compute
+                        spend cap.
                 "429":
                     content:
                         application/problem+json:

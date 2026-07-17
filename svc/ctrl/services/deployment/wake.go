@@ -42,14 +42,6 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
 
-	//nolint:exhaustruct // start only uses the desired state and environment fields
-	if r := deploygate.CheckStartable(deploygate.Input{
-		DesiredState:    string(deployment.DesiredState),
-		EnvironmentSlug: environment.Slug,
-	}); r != deploygate.StartOK {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
-	}
-
 	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, deployment.WorkspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -57,11 +49,14 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
 	}
-	if entitlement.SpendSuspended.Bool {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", deployment.WorkspaceID),
-		)
+
+	//nolint:exhaustruct // start only uses the desired state, environment, and spend fields
+	if r := deploygate.CheckStartable(deploygate.Input{
+		DesiredState:    string(deployment.DesiredState),
+		EnvironmentSlug: environment.Slug,
+		SpendSuspended:  entitlement.SpendSuspended.Bool,
+	}); r != deploygate.StartOK {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
 
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)

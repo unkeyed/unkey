@@ -30,6 +30,7 @@ type Input struct {
 	CurrentDeploymentID  string
 	DeploymentID         string
 	IsRolledBack         bool
+	SpendSuspended       bool
 }
 
 // isCurrent reports whether this deployment is the app's current (live) one.
@@ -165,6 +166,7 @@ const (
 	StartOK StartReason = iota
 	StartNotStopped
 	StartIsProduction
+	StartSpendSuspended
 )
 
 // Message returns a caller-facing explanation.
@@ -176,6 +178,8 @@ func (r StartReason) Message() string {
 		return "The deployment is not stopped."
 	case StartIsProduction:
 		return "Production deployments cannot be started."
+	case StartSpendSuspended:
+		return "The workspace is suspended by its Compute spend cap. Raise the spend limit to resume."
 	default:
 		return ""
 	}
@@ -186,13 +190,16 @@ func (r StartReason) Message() string {
 // immediately, while status only flips to stopped once krane has drained the
 // last instance. Starting flips the intent back to running, so it is valid for
 // any deployment whose intent is stopped (including one still draining), which
-// is what the ctrl service and worker enforce.
+// is what the ctrl service and worker enforce. Starting resumes compute spend,
+// so a workspace suspended by its spend cap is refused last.
 func CheckStartable(in Input) StartReason {
 	switch {
 	case in.DesiredState != desiredStopped:
 		return StartNotStopped
 	case in.EnvironmentSlug == envProduction:
 		return StartIsProduction
+	case in.SpendSuspended:
+		return StartSpendSuspended
 	default:
 		return StartOK
 	}

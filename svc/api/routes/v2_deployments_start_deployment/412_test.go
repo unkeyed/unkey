@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -161,4 +162,49 @@ func TestStartDeploymentCtrlGateRejection(t *testing.T) {
 	require.Len(t, mock.WakeDeploymentCalls, 1)
 	require.Contains(t, res.Body.Error.Type, "deployment_not_stopped")
 	require.Equal(t, deploygate.StartNotStopped.Message(), res.Body.Error.Detail)
+}
+
+// Starting resumes compute spend, so a workspace suspended by its Compute
+// spend cap is rejected before ctrl is called, with the billing reason rather
+// than a misleading lifecycle message.
+func TestStartDeploymentSpendSuspended(t *testing.T) {
+	h := testutil.NewHarness(t)
+	mock := &testutil.MockDeploymentClient{}
+	route := newRoute(h, mock)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.start_deployment"},
+	})
+
+	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		AppID:       setup.App.ID,
+		Slug:        "preview",
+		Description: "preview environment",
+	})
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: preview.ID,
+		Status:        db.DeploymentsStatusStopped,
+		DesiredState:  db.DeploymentsDesiredStateStopped,
+	})
+
+	_, err := h.DB.RW().ExecContext(context.Background(),
+		"INSERT INTO workspace_billing (workspace_id, spend_suspended, created_at_m) VALUES (?, true, ?) ON DUPLICATE KEY UPDATE spend_suspended = true",
+		setup.Workspace.ID, time.Now().UnixMilli(),
+	)
+	require.NoError(t, err)
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Type, "precondition_failed")
+	require.Equal(t, deploygate.StartSpendSuspended.Message(), res.Body.Error.Detail)
+	require.Empty(t, mock.WakeDeploymentCalls, "ctrl must not be called for a spend-suspended workspace")
 }
