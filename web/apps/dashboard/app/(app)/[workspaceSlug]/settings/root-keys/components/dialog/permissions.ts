@@ -27,31 +27,13 @@ export function getScopedPermissions(scope: PermissionScope): {
     case "project":
       return projectPermissions(scope.id);
     case "app":
-      return appWithEnvironmentPermissions(scope.id, scope.environments ?? []);
+      // App scope shows only app-level permissions. Each environment renders as
+      // its own nested scope under the app (see PermissionSheet), so deployment
+      // and settings permissions are scoped per environment.
+      return appPermissions(scope.id);
     case "environment":
       return environmentPermissions(scope.id);
   }
-}
-
-export function appWithEnvironmentPermissions(
-  appId: string,
-  environments: { id: string; name: string }[],
-): { [category: string]: UnkeyPermissions } {
-  const base = appPermissions(appId);
-  if (environments.length === 0) {
-    return base;
-  }
-
-  // Environments share the same action name (read_environment), so key each
-  // entry by the environment name to keep them distinct within the category.
-  const environmentCategory: UnkeyPermissions = {};
-  for (const environment of environments) {
-    for (const entry of Object.values(environmentPermissions(environment.id).Environments)) {
-      environmentCategory[environment.name] = entry;
-    }
-  }
-
-  return { ...base, Environments: environmentCategory };
 }
 
 export const workspacePermissions = {
@@ -218,18 +200,6 @@ export const workspacePermissions = {
       description: "Delete projects in this workspace",
       permission: "project.*.delete_project",
     },
-    create_deployment: {
-      description: "Create new deployments in this workspace",
-      permission: "project.*.create_deployment",
-    },
-    read_deployment: {
-      description: "Read deployment details and status in this workspace",
-      permission: "project.*.read_deployment",
-    },
-    generate_upload_url: {
-      description: "Generate S3 upload URLs for build contexts",
-      permission: "project.*.generate_upload_url",
-    },
   },
   Apps: {
     create_app: {
@@ -269,6 +239,44 @@ export const workspacePermissions = {
     read_environment_variables: {
       description: "Read environment variables for any environment in this workspace",
       permission: "environment.*.read_environment_variables",
+    },
+    set_policies: {
+      description: "Replace the entire gateway policy list for any environment in this workspace",
+      permission: "environment.*.set_policies",
+    },
+    update_policy: {
+      description: "Update a single gateway policy in place for any environment in this workspace",
+      permission: "environment.*.update_policy",
+    },
+    read_policies: {
+      description: "Read gateway policies for any environment in this workspace",
+      permission: "environment.*.read_policies",
+    },
+  },
+  Deployments: {
+    create_deployment: {
+      description: "Create new deployments for any environment in this workspace",
+      permission: "environment.*.create_deployment",
+    },
+    read_deployment: {
+      description: "Read deployment details and status for any environment in this workspace",
+      permission: "environment.*.read_deployment",
+    },
+    stop_deployment: {
+      description: "Stop running preview deployments for any environment in this workspace",
+      permission: "environment.*.stop_deployment",
+    },
+    start_deployment: {
+      description: "Start stopped preview deployments for any environment in this workspace",
+      permission: "environment.*.start_deployment",
+    },
+    promote_deployment: {
+      description: "Promote deployments to live for any environment in this workspace",
+      permission: "environment.*.promote_deployment",
+    },
+    rollback_deployment: {
+      description: "Roll back to previous deployments for any environment in this workspace",
+      permission: "environment.*.rollback_deployment",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
@@ -340,20 +348,6 @@ export function projectPermissions(projectId: string): {
         permission: `project.${projectId}.create_app`,
       },
     },
-    Projects: {
-      create_deployment: {
-        description: "Create new deployments for this project.",
-        permission: `project.${projectId}.create_deployment`,
-      },
-      read_deployment: {
-        description: "Read deployment details and status for this project.",
-        permission: `project.${projectId}.read_deployment`,
-      },
-      generate_upload_url: {
-        description: "Generate S3 upload URLs for this project's build contexts.",
-        permission: `project.${projectId}.generate_upload_url`,
-      },
-    },
   };
 }
 
@@ -402,6 +396,44 @@ export function environmentPermissions(environmentId: string): {
       read_environment_variables: {
         description: "Read environment variables for this environment.",
         permission: `environment.${environmentId}.read_environment_variables`,
+      },
+      set_policies: {
+        description: "Replace the entire gateway policy list for this environment.",
+        permission: `environment.${environmentId}.set_policies`,
+      },
+      update_policy: {
+        description: "Update a single gateway policy in place for this environment.",
+        permission: `environment.${environmentId}.update_policy`,
+      },
+      read_policies: {
+        description: "Read gateway policies for this environment.",
+        permission: `environment.${environmentId}.read_policies`,
+      },
+    },
+    Deployments: {
+      create_deployment: {
+        description: "Create new deployments for this environment.",
+        permission: `environment.${environmentId}.create_deployment`,
+      },
+      read_deployment: {
+        description: "Read deployment details and status for this environment.",
+        permission: `environment.${environmentId}.read_deployment`,
+      },
+      stop_deployment: {
+        description: "Stop running preview deployments for this environment.",
+        permission: `environment.${environmentId}.stop_deployment`,
+      },
+      start_deployment: {
+        description: "Start stopped preview deployments for this environment.",
+        permission: `environment.${environmentId}.start_deployment`,
+      },
+      promote_deployment: {
+        description: "Promote deployments to live for this environment.",
+        permission: `environment.${environmentId}.promote_deployment`,
+      },
+      rollback_deployment: {
+        description: "Roll back to previous deployments for this environment.",
+        permission: `environment.${environmentId}.rollback_deployment`,
       },
     },
   };

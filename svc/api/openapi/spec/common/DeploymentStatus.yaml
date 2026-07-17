@@ -1,0 +1,34 @@
+type: string
+enum:
+  - pending
+  - starting
+  - building
+  - deploying
+  - network
+  - finalizing
+  - ready
+  - failed
+  - skipped
+  - awaiting_approval
+  - stopped
+  - superseded
+  - cancelled
+x-enum-varnames:
+  - DeploymentStatusPending
+  - DeploymentStatusStarting
+  - DeploymentStatusBuilding
+  - DeploymentStatusDeploying
+  - DeploymentStatusNetwork
+  - DeploymentStatusFinalizing
+  - DeploymentStatusReady
+  - DeploymentStatusFailed
+  - DeploymentStatusSkipped
+  - DeploymentStatusAwaitingApproval
+  - DeploymentStatusStopped
+  - DeploymentStatusSuperseded
+  - DeploymentStatusCancelled
+description: |
+  Current lifecycle status of the deployment. Poll until it reaches a
+  terminal state: ready (serving), failed, skipped, superseded, stopped,
+  or cancelled.
+example: ready

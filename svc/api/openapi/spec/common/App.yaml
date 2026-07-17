@@ -34,7 +34,7 @@ properties:
     description: |
       The identifier of the deployment currently serving this app.
       Omitted if the app has no active deployment yet.
-    example: dep_1234abcd
+    example: d_1234abcd
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
   isRolledBack:

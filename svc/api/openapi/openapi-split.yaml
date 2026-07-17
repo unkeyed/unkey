@@ -95,7 +95,7 @@ x-speakeasy-retries:
   retryConnectionErrors: true
 
 security:
-  - rootKey: []
+  - bearer: []
 
 tags:
   - name: analytics
@@ -105,6 +105,8 @@ tags:
   - name: apps
     description: App management operations
   - name: deploy
+    description: Deployment operations
+  - name: deployments
     description: Deployment operations
   - name: environments
     description: Environment management operations
@@ -116,6 +118,8 @@ tags:
     description: Health check operations
   - name: permissions
     description: Permission and role management operations
+  - name: gateway
+    description: Gateway policy operations
   - name: portal
     description: Customer Portal session management
   - name: ratelimit
@@ -140,7 +144,21 @@ paths:
   /v2/apis.listKeys:
     $ref: "./spec/paths/v2/apis/listKeys/index.yaml"
 
-  # Deploy Endpoints
+  # Deployments Endpoints
+  /v2/deployments.createDeployment:
+    $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
+  /v2/deployments.getDeployment:
+    $ref: "./spec/paths/v2/deployments/getDeployment/index.yaml"
+  /v2/deployments.listDeployments:
+    $ref: "./spec/paths/v2/deployments/listDeployments/index.yaml"
+  /v2/deployments.stopDeployment:
+    $ref: "./spec/paths/v2/deployments/stopDeployment/index.yaml"
+  /v2/deployments.startDeployment:
+    $ref: "./spec/paths/v2/deployments/startDeployment/index.yaml"
+  /v2/deployments.promoteDeployment:
+    $ref: "./spec/paths/v2/deployments/promoteDeployment/index.yaml"
+  /v2/deployments.rollbackDeployment:
+    $ref: "./spec/paths/v2/deployments/rollbackDeployment/index.yaml"
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:
@@ -255,6 +273,14 @@ paths:
   /v2/environments.listEnvironmentVariables:
     $ref: "./spec/paths/v2/environments/listEnvironmentVariables/index.yaml"
 
+  # Gateway Endpoints
+  /v2/gateway.setPolicies:
+    $ref: "./spec/paths/v2/gateway/setPolicies/index.yaml"
+  /v2/gateway.listPolicies:
+    $ref: "./spec/paths/v2/gateway/listPolicies/index.yaml"
+  /v2/gateway.updatePolicy:
+    $ref: "./spec/paths/v2/gateway/updatePolicy/index.yaml"
+
   # Permissions Endpoints
   /v2/permissions.createRole:
     $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
@@ -275,13 +301,14 @@ paths:
 
 components:
   securitySchemes:
-    rootKey:
+    bearer:
       type: http
       scheme: bearer
-      bearerFormat: root key
+      bearerFormat: bearer token
+      x-speakeasy-name-override: rootKey
       description: |-
-        Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
-        To authenticate, include your root key in the Authorization header of each request:
+        Unkey uses bearer tokens for authentication. Public integrations use root keys, while the dashboard proxy uses short-lived JWTs.
+        To authenticate, include the token in the Authorization header of each request:
         ```
         Authorization: Bearer unkey_123
         ```
@@ -292,13 +319,6 @@ components:
         - Rotate keys periodically, especially after team member departures
         - Create keys with minimal necessary permissions following least privilege principle
         - Monitor key usage with audit logs.
-    dashboard:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |-
-        Short-lived bearer token used by the Unkey dashboard when it calls api.unkey.com.
-        Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
     portalSession:
       type: apiKey
       in: cookie

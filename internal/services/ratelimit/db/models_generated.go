@@ -1474,6 +1474,7 @@ type Workspace struct {
 	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
 	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
 	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
+	DeploySpendSuspended   bool            `db:"deploy_spend_suspended"`
 	BetaFeatures           json.RawMessage `db:"beta_features"`
 	Subscriptions          json.RawMessage `db:"subscriptions"`
 	Enabled                bool            `db:"enabled"`

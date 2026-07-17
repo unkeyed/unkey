@@ -39,8 +39,18 @@ func (f *fakeUsageReader) GetInstanceMeterUsage(
 	return f.rows, nil
 }
 
-// fakePusher records pushes by customer. failFor exercises the defer path.
-// Mutex because the close fans out concurrently.
+// GetActiveKeysUsage returns no active-keys rows: this suite asserts the
+// instance meters and the finalize behavior, not the active-keys meter.
+func (f *fakeUsageReader) GetActiveKeysUsage(
+	_ context.Context,
+	_ clickhouse.GetActiveKeysUsageRequest,
+) ([]clickhouse.ActiveKeysUsage, error) {
+	return nil, nil
+}
+
+// fakePusher records the meter totals it is asked to push, keyed by customer,
+// and can be told to fail for a given customer to exercise the defer path. The
+// push fans out concurrently, so every field is mutex-guarded.
 type fakePusher struct {
 	mu      sync.Mutex
 	pushed  map[string]billingmeter.PushRequest

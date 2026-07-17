@@ -18,7 +18,7 @@ post:
   operationId: environments.updateSettings
   x-speakeasy-name-override: updateSettings
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -32,7 +32,7 @@ post:
               project: payments
               app: payments-api
               environment: production
-              cpuMillicores: 2000
+              vCpus: 2
               memoryMib: 1024
           setRegions:
             summary: Replace the region set

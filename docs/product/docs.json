@@ -199,6 +199,7 @@
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
                   "platform/workspaces/billing",
+                  "platform/workspaces/compute-billing",
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
@@ -490,6 +491,7 @@
                       "errors/unkey/data/app_already_exists",
                       "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
+                      "errors/unkey/data/deployment_not_found",
                       "errors/unkey/data/environment_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",
@@ -499,6 +501,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/policy_not_found",
                       "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_already_exists",
                       "errors/unkey/data/project_not_found",

@@ -1,0 +1,11 @@
+type: object
+required:
+  - dockerImage
+properties:
+  dockerImage:
+    type: string
+    minLength: 1
+    pattern: "\\S"
+    description: Docker image to deploy as-is.
+    example: "ghcr.io/acme/api:v1.2.3"
+description: Deploy a prebuilt Docker image as-is.

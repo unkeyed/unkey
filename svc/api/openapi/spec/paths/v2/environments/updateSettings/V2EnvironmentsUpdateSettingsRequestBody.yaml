@@ -64,15 +64,16 @@ properties:
       Container port the app listens on.
       Omit to leave unchanged.
     example: 8080
-  cpuMillicores:
-    type: integer
-    minimum: 250
-    multipleOf: 250
+  vCpus:
+    type: number
+    format: double
+    minimum: 0.25
+    multipleOf: 0.25
     description: |
-      CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
+      CPU allocation in vCPUs. Minimum 0.25 (1/4 vCPU), in steps of 0.25.
       The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
-    example: 1000
+    example: 1
   memoryMib:
     type: integer
     minimum: 256
@@ -149,7 +150,7 @@ examples:
       project: payments
       app: payments-api
       environment: production
-      cpuMillicores: 2000
+      vCpus: 2
       memoryMib: 1024
   clearDockerfile:
     summary: Clear the Dockerfile

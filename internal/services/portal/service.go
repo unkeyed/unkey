@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -35,11 +36,13 @@ type Service interface {
 type Config struct {
 	DB           db.Database
 	SessionCache cache.Cache[string, db.PortalSession]
+	Clock        clock.Clock
 }
 
 type service struct {
 	db           db.Database
 	sessionCache cache.Cache[string, db.PortalSession]
+	clock        clock.Clock
 }
 
 // New creates a new portal service instance.
@@ -47,5 +50,6 @@ func New(config Config) Service {
 	return &service{
 		db:           config.DB,
 		sessionCache: config.SessionCache,
+		clock:        config.Clock,
 	}
 }

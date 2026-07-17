@@ -312,3 +312,61 @@ export async function alertPaymentRecovered(
     });
   }
 }
+
+/**
+ * High-severity ops alert for a paid Compute checkout whose subscription could
+ * not be linked to its workspace and cannot be reconciled automatically — most
+ * importantly a `subscription_conflict`, where a race created a second live,
+ * charged subscription while the workspace is already served by another. The
+ * subscription keeps billing until an operator cancels/refunds it, so this must
+ * page a human rather than sit in logs.
+ */
+export async function alertOrphanedDeploySubscription(details: {
+  workspaceId: string;
+  subscriptionId: string;
+  sessionId: string;
+  reason: string;
+}): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `:rotating_light: Orphaned Compute subscription needs manual reconciliation (${details.reason})`,
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `A paid Compute checkout could not be linked to its workspace. The subscription is billing but unlinked — cancel/refund it manually.\nWorkspace: \`${details.workspaceId}\`\nSubscription: \`${details.subscriptionId}\`\nCheckout session: \`${details.sessionId}\``,
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send orphaned-subscription alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        ...details,
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending orphaned-subscription alert:", {
+      error: err instanceof Error ? { message: err.message, name: err.name } : err,
+      ...details,
+    });
+  }
+}

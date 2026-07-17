@@ -3,6 +3,8 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
@@ -141,6 +143,30 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	require.True(t, returnedIDs[setup.key2ID], "key2 should be in results")
 }
 
+// TestPortalSessionListKeysRequiresKeysRead guarantees that another key
+// capability cannot expose identity or key data through the listing endpoint.
+func TestPortalSessionListKeysRequiresKeysRead(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+
+	setup := setupPortalSessionTest(t, h)
+	headers := h.CreatePortalSession(
+		setup.workspace.ID,
+		setup.identity1ExternalID,
+		[]string{setup.keySpaceID},
+		[]string{"keys:reroll"},
+	)
+
+	res := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{})
+
+	require.Equal(t, 403, res.Status, "keys:reroll must not authorize portal.listKeys")
+	require.NotContains(t, res.RawBody, setup.workspace.ID)
+	require.NotContains(t, res.RawBody, setup.identity1ExternalID)
+	require.NotContains(t, res.RawBody, setup.key1ID)
+}
+
 func TestPortalSessionUnionsConfiguredKeyspaces(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -205,4 +231,47 @@ func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {
 	require.NotNil(t, res.Body.Data)
 	require.Len(t, res.Body.Data, 0)
 	require.False(t, res.Body.Pagination.HasMore)
+}
+
+// TestPortalSessionIsRejectedAfterCachedSessionExpires guarantees that the
+// authentication cache cannot extend a portal session beyond its expiry.
+func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+
+	setup := setupPortalSessionTest(t, h)
+	sessionID := uid.New(uid.PortalSessionPrefix)
+	permissions, err := json.Marshal(struct {
+		KeyspaceIDs []string `json:"keyspaceIds"`
+		Permissions []string `json:"permissions"`
+	}{
+		KeyspaceIDs: []string{setup.keySpaceID},
+		Permissions: []string{"keys:read"},
+	})
+	require.NoError(t, err)
+
+	expiresAt := h.Clock.Now().Add(time.Minute)
+	require.NoError(t, db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
+		ID:             sessionID,
+		WorkspaceID:    setup.workspace.ID,
+		PortalConfigID: uid.New(uid.PortalConfigPrefix),
+		ExternalID:     setup.identity1ExternalID,
+		Permissions:    permissions,
+		ExpiresAt:      expiresAt.UnixMilli(),
+		CreatedAt:      h.Clock.Now().UnixMilli(),
+	}))
+
+	headers := http.Header{
+		"Content-Type": {"application/json"},
+		"Cookie":       {"portal_session=" + sessionID},
+	}
+	warm := testutil.CallRoute[Request, Response](h, route, headers, Request{})
+	require.Equal(t, http.StatusOK, warm.Status)
+
+	h.Clock.Tick(time.Minute)
+	expired := testutil.CallRoute[Request, openapi.UnauthorizedErrorResponse](h, route, headers, Request{})
+	require.Equal(t, http.StatusUnauthorized, expired.Status)
+	require.Equal(t, "The portal session is invalid or has expired.", expired.Body.Error.Detail)
+	require.NotContains(t, expired.RawBody, sessionID)
 }

@@ -57,13 +57,9 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, "portal_session_123", source.SessionID)
 	require.Equal(t, "pc_123", source.PortalConfigID)
 
-	// The resolver expands the simplified capability model into RBAC strings via
-	// portalrbac; the principal must carry the expanded permissions, not the verbs.
-	expected := portalrbac.Grant{
-		WorkspaceID:  "ws_123",
-		KeyspaceIDs:  []string{"ks_1"},
-		Capabilities: []portalrbac.Capability{portalrbac.CapKeysReroll},
-	}.Expand()
+	// Portal principals carry the product capability directly. Resource scope is
+	// enforced separately by portal handlers.
+	expected := []string{portalrbac.CapKeysReroll}
 	require.Equal(t, expected, source.Permissions)
 	require.Equal(t, expected, principal.Permissions)
 }

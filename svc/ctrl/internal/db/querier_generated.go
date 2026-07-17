@@ -10,6 +10,29 @@ import (
 )
 
 type Querier interface {
+	// Clears apps.current_deployment_id when it still points at the given
+	// deployment. Teardown calls this before stopping an app's current deployment so
+	// the DeploymentService current-deployment guard permits the change; gating on
+	// the deployment id makes it a safe no-op if a concurrent deploy already
+	// re-pointed current_deployment_id at something else.
+	//
+	//  UPDATE apps
+	//  SET current_deployment_id = NULL,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND current_deployment_id = ?
+	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
+	// Clears the local Deploy entitlement mirror on cancel. Leaves the Stripe
+	// linkage (customer/subscription) intact: a mixed subscription keeps running for
+	// the API plan, and a Deploy-only subscription cancels at period end. After this
+	// the invoice.created webhook and the month-end close both skip the workspace
+	// (they require deploy_plan IS NOT NULL), so the final invoice auto-finalizes.
+	//
+	//  UPDATE `workspaces`
+	//  SET deploy_plan = NULL,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	ClearWorkspaceDeployPlan(ctx context.Context, arg ClearWorkspaceDeployPlanParams) error
 	//CompareAndSwapDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -17,6 +40,18 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND status = ?
 	CompareAndSwapDeploymentStatus(ctx context.Context, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
+	// Counts how many of the given deployments still have live compute to drain.
+	// Teardown polls this until it returns 0. A deployment is draining only while it
+	// has instance rows; krane deletes those rows when it tears the pods down (see
+	// DeleteDeploymentInstances), so their absence is the drain signal. A deployment
+	// that never had instances (pending/building/awaiting_approval, all born
+	// desired_state='running' and swept into the teardown set) counts zero here
+	// rather than waiting out the grace window for a krane Delete that never comes.
+	//
+	//  SELECT COUNT(DISTINCT i.deployment_id) AS count
+	//  FROM instances i
+	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
+	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -338,6 +373,14 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	//FindDeploymentWithEnvironmentAndApp
+	//
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, a.current_deployment_id, a.is_rolled_back
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
@@ -524,19 +567,23 @@ type Querier interface {
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
-	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
-	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
-	// deploy_plan_override (manual comp for internal workspaces). The gate treats
-	// either being set as entitled. Read by ctrl-api outside the billing hot path,
-	// so a single lookup by id is fine. Explicit columns (not SELECT *) so the read
-	// is insensitive to workspace column ordering.
+	// Reads the Unkey Deploy entitlement signals for the project- and
+	// deployment-creation gates: deploy_plan (mirrored from Stripe by the
+	// dashboard webhook), deploy_plan_override (manual comp for internal
+	// workspaces), and deploy_spend_suspended (the spend cap stopped this
+	// workspace's compute). The gates treat either plan column being set as
+	// entitled; deployment creation additionally refuses while suspended. Read by
+	// ctrl-api outside the billing hot path, so a single lookup by id is fine.
+	// Explicit columns (not SELECT *) so the read is insensitive to workspace
+	// column ordering.
 	//
 	//  SELECT
 	//     w.deploy_plan,
-	//     w.deploy_plan_override
+	//     w.deploy_plan_override,
+	//     w.deploy_spend_suspended
 	//  FROM `workspaces` w
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error)
@@ -1425,6 +1472,32 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
+	// Running deployments for a workspace that still have (or will soon have) live
+	// compute: desired_state 'running' and either a status that carries compute or
+	// at least one live instance. The instance check makes this robust to a stale
+	// status: a deployment that a resume revived (an instance started, desired_state
+	// back to 'running') but whose status is still 'stopped' from an earlier drain
+	// would otherwise be skipped here, and the next teardown would no-op and leave
+	// its compute running. Joins apps so the caller knows, per deployment, whether
+	// it is its app's current deployment and therefore must have current_deployment_id
+	// cleared before its desired state can change. Callers pass
+	// db.ActiveComputeDeploymentStatuses so the status set has a single source of
+	// truth (deployment_status.go) instead of a SQL literal that can drift from the
+	// enum.
+	//
+	//  SELECT
+	//    d.id,
+	//    d.app_id,
+	//    a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.workspace_id = ?
+	//    AND d.desired_state = 'running'
+	//    AND (
+	//      d.status IN (/*SLICE:active_statuses*/?)
+	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
+	//    )
+	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -1455,6 +1528,30 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Lists every enabled workspace that has set a Deploy spend budget, plus any
+	// that is currently spend-cap suspended even without a budget: the set the
+	// spend-cap check evaluates. The check prices each one's month-to-date Deploy
+	// usage and compares the gross total spend against the budget. Suspended
+	// workspaces are included even without a budget so the check can resume them
+	// after the budget is removed (otherwise removing the budget would drop them
+	// from this list and they would never resume).
+	// org_id resolves the alert recipients (org admins via WorkOS); the stop flag
+	// decides whether 100% triggers teardown; deploy_spend_suspended tells the check
+	// whether the cap has already stopped this workspace's compute.
+	//
+	//  SELECT
+	//     w.id,
+	//     w.name,
+	//     w.slug,
+	//     w.org_id,
+	//     w.deploy_spend_budget_cents,
+	//     w.deploy_spend_budget_stop,
+	//     w.deploy_spend_suspended
+	//  FROM `workspaces` w
+	//  WHERE (w.deploy_spend_budget_cents IS NOT NULL OR w.deploy_spend_suspended = TRUE)
+	//    AND w.enabled = true
+	//    AND w.deleted_at_m IS NULL
+	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. Called inside the same transaction that selected
 	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
@@ -1559,6 +1656,29 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	// Restores an app's current deployment on resume (the inverse of
+	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
+	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
+	// Guarded on the pointer still being unset: if anything promoted a new
+	// current deployment between suspend and resume, restoring the suspension
+	// record would silently roll the app back to the old version.
+	//
+	//  UPDATE `apps`
+	//  SET current_deployment_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND current_deployment_id IS NULL
+	SetAppCurrentDeployment(ctx context.Context, arg SetAppCurrentDeploymentParams) error
+	// Records whether the spend cap has suspended a workspace's compute. Written by
+	// the spend-cap check on the suspend/resume transition; read by the orchestrator
+	// (to keep checking a suspended workspace even after its budget is removed) and
+	// the dashboard (to show a suspended state).
+	//
+	//  UPDATE `workspaces`
+	//  SET deploy_spend_suspended = ?,
+	//      updated_at_m = ?
+	//  WHERE id = ?
+	SetWorkspaceDeploySpendSuspended(ctx context.Context, arg SetWorkspaceDeploySpendSuspendedParams) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`

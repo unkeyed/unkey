@@ -42,13 +42,13 @@ func TestUpdateSettings400(t *testing.T) {
 		req  handler.Request
 	}{
 		// Resource quota (handler).
-		{name: "cpu over quota", req: handler.Request{CpuMillicores: ptr(5000)}},
+		{name: "cpu over quota", req: handler.Request{VCpus: ptr(5.0)}},
 		{name: "memory over quota", req: handler.Request{MemoryMib: ptr(8192)}},
 		{name: "storage over quota", req: handler.Request{StorageMib: ptr(20480)}},
 
 		// Resource shape: floor and step (spec).
-		{name: "cpu below floor", req: handler.Request{CpuMillicores: ptr(100)}},
-		{name: "cpu off step", req: handler.Request{CpuMillicores: ptr(1300)}},
+		{name: "cpu below floor", req: handler.Request{VCpus: ptr(0.1)}},
+		{name: "cpu off step", req: handler.Request{VCpus: ptr(1.3)}},
 		{name: "memory below floor", req: handler.Request{MemoryMib: ptr(128)}},
 		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
 		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},

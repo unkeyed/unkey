@@ -27,7 +27,7 @@ examples:
           updatedAt: 1704153600000
           runtime:
             port: 8080
-            cpuMillicores: 250
+            vCpus: 0.25
             memoryMib: 256
             storageMib: 0
             command: ["node", "server.js"]
@@ -50,7 +50,7 @@ examples:
           createdAt: 1704240000000
           runtime:
             port: 8080
-            cpuMillicores: 250
+            vCpus: 0.25
             memoryMib: 256
             storageMib: 0
             command: ["node", "server.js"]

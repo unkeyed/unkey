@@ -458,6 +458,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"ratelimit.*.read_override",
 			"ratelimit.*.set_override",
 			"workspace.*.read_workspace",
+			"environment.*.create_deployment",
+			"environment.*.read_deployment",
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",

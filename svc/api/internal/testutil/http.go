@@ -87,27 +87,19 @@ type Harness struct {
 type HarnessConfig struct {
 	Redis      bool
 	ClickHouse bool
-
-	// MySQLDiskStorage starts a disk-backed MySQL container instead of the
-	// shared tmpfs one, whose 256MB would overflow under large seeded
-	// datasets. Use for tests that seed millions of rows.
-	MySQLDiskStorage bool
 }
 
-// NewHarness creates a fully initialized test harness wired against fresh
-// test-owned containers. Docker dependencies are started on demand and removed
-// automatically by t.Cleanup.
+// NewHarness creates a fully initialized test harness wired against shared
+// Docker dependencies. Docker dependencies are started on demand by testutil.
 func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
 	cfg := HarnessConfig{
-		Redis:            false,
-		ClickHouse:       false,
-		MySQLDiskStorage: false,
+		Redis:      false,
+		ClickHouse: false,
 	}
 	for _, c := range configs {
 		cfg.Redis = cfg.Redis || c.Redis
 		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
-		cfg.MySQLDiskStorage = cfg.MySQLDiskStorage || c.MySQLDiskStorage
 	}
 
 	var wg sync.WaitGroup
@@ -116,11 +108,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	var chCfg containers.ClickHouseConfig
 
 	wg.Go(func() {
-		var mysqlOpts []containers.MySQLOpt
-		if cfg.MySQLDiskStorage {
-			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
-		}
-		mysqlCfg = containers.MySQL(t, mysqlOpts...)
+		mysqlCfg = containers.MySQL(t)
 	})
 	if cfg.Redis {
 		wg.Go(func() {
@@ -282,6 +270,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	portalService := portal.New(portal.Config{
 		DB:           database,
 		SessionCache: caches.PortalSession,
+		Clock:        clk,
 	})
 	// Mirror production: portal sessions authenticate only on a dedicated portal
 	// auth service, so protected routes reject portal-session cookies.
@@ -391,6 +380,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	})
 	require.NoError(h.t, err)
 
+	now := h.Clock.Now()
 	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
 		ID:             sessionID,
 		WorkspaceID:    workspaceID,
@@ -398,8 +388,8 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 		ExternalID:     externalID,
 		Permissions:    permsJSON,
 		Preview:        false,
-		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      time.Now().UnixMilli(),
+		ExpiresAt:      now.Add(24 * time.Hour).UnixMilli(),
+		CreatedAt:      now.UnixMilli(),
 	})
 	require.NoError(h.t, err)
 

@@ -88,6 +88,15 @@ export const environmentActions = z.enum([
   "set_environment_variables",
   "remove_environment_variables",
   "read_environment_variables",
+  "create_deployment",
+  "read_deployment",
+  "stop_deployment",
+  "start_deployment",
+  "promote_deployment",
+  "rollback_deployment",
+  "set_policies",
+  "update_policy",
+  "read_policies",
 ]);
 
 // Resources that require an ID (resource.id.action format)

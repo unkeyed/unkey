@@ -1,0 +1,8 @@
+type: object
+required:
+  - path
+properties:
+  path:
+    "$ref": "./StringMatch.yaml"
+additionalProperties: false
+description: Matches on the request path.

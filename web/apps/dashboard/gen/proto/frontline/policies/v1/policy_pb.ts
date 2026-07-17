@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/policy.proto.
  */
 export const file_frontline_policies_v1_policy: GenFile = /*@__PURE__*/
-  fileDesc("CiJmcm9udGxpbmUvcG9saWNpZXMvdjEvcG9saWN5LnByb3RvEgxmcm9udGxpbmUudjEizgIKBlBvbGljeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB2VuYWJsZWQYAyABKAgSJgoFbWF0Y2gYBCADKAsyFy5mcm9udGxpbmUudjEuTWF0Y2hFeHByEigKB2tleWF1dGgYBSABKAsyFS5mcm9udGxpbmUudjEuS2V5QXV0aEgAEigKB2p3dGF1dGgYBiABKAsyFS5mcm9udGxpbmUudjEuSldUQXV0aEgAEiwKCXJhdGVsaW1pdBgIIAEoCzIXLmZyb250bGluZS52MS5SYXRlTGltaXRIABIqCghmaXJld2FsbBgJIAEoCzIWLmZyb250bGluZS52MS5GaXJld2FsbEgAEjkKB29wZW5hcGkYCiABKAsyJi5mcm9udGxpbmUudjEuT3BlbkFwaVJlcXVlc3RWYWxpZGF0aW9uSABCCAoGY29uZmlnQq0BChBjb20uZnJvbnRsaW5lLnYxQgtQb2xpY3lQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw", [file_frontline_policies_v1_firewall, file_frontline_policies_v1_jwtauth, file_frontline_policies_v1_keyauth, file_frontline_policies_v1_match, file_frontline_policies_v1_openapi, file_frontline_policies_v1_ratelimit]);
+  fileDesc("CiJmcm9udGxpbmUvcG9saWNpZXMvdjEvcG9saWN5LnByb3RvEgxmcm9udGxpbmUudjEi3wIKBlBvbGljeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhQKB2VuYWJsZWQYAyABKAhIAYgBARImCgVtYXRjaBgEIAMoCzIXLmZyb250bGluZS52MS5NYXRjaEV4cHISKAoHa2V5YXV0aBgFIAEoCzIVLmZyb250bGluZS52MS5LZXlBdXRoSAASKAoHand0YXV0aBgGIAEoCzIVLmZyb250bGluZS52MS5KV1RBdXRoSAASLAoJcmF0ZWxpbWl0GAggASgLMhcuZnJvbnRsaW5lLnYxLlJhdGVMaW1pdEgAEioKCGZpcmV3YWxsGAkgASgLMhYuZnJvbnRsaW5lLnYxLkZpcmV3YWxsSAASOQoHb3BlbmFwaRgKIAEoCzImLmZyb250bGluZS52MS5PcGVuQXBpUmVxdWVzdFZhbGlkYXRpb25IAEIICgZjb25maWdCCgoIX2VuYWJsZWRCrQEKEGNvbS5mcm9udGxpbmUudjFCC1BvbGljeVByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z", [file_frontline_policies_v1_firewall, file_frontline_policies_v1_jwtauth, file_frontline_policies_v1_keyauth, file_frontline_policies_v1_match, file_frontline_policies_v1_openapi, file_frontline_policies_v1_ratelimit]);
 
 /**
  * Policy is a single middleware layer in a deployment's configuration. Each policy
@@ -63,9 +63,13 @@ export type Policy = Message<"frontline.v1.Policy"> & {
    * or removing the underlying configuration, which is useful during
    * incidents, gradual rollouts, and debugging.
    *
-   * @generated from field: bool enabled = 3;
+   * Explicit presence so writers that serialize configs with protojson emit
+   * `"enabled": false` instead of dropping the field; the dashboard's strict
+   * schema requires it to always be present.
+   *
+   * @generated from field: optional bool enabled = 3;
    */
-  enabled: boolean;
+  enabled?: boolean;
 
   /**
    * Match conditions that determine which requests this policy applies to.

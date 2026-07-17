@@ -1,0 +1,11 @@
+workflowVersion: 1.0.0
+speakeasyVersion: pinned
+sources:
+  api:
+    inputs:
+      - location: ../../../svc/api/openapi/openapi-generated.yaml
+targets:
+  api-ts:
+    target: typescript
+    source: api
+    output: ./.speakeasy/staging/api-ts

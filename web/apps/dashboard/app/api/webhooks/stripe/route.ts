@@ -1,5 +1,7 @@
+import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { auth } from "@/lib/auth/server";
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
@@ -7,15 +9,18 @@ import { freeTierQuotas } from "@/lib/quotas";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
+import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
+  getApiCancelSchedule,
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
 } from "@/lib/stripe/subscriptionUtils";
 import {
   alertIsCancellingSubscription,
+  alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
   alertSubscriptionCancelled,
@@ -39,6 +44,139 @@ async function mirrorDeployPlan(
   if (changed) {
     await db.update(schema.workspaces).set({ deployPlan }).where(eq(schema.workspaces.id, ws.id));
   }
+}
+
+/**
+ * Completes a scheduled API-plan cancellation: when cancelSubscription phases
+ * the API items off a mixed subscription, the phase boundary arrives as a
+ * subscription.updated whose items no longer include an API plan. Mirror the
+ * customer.subscription.deleted downgrade (tier, quotas) but keep the
+ * subscription linked — Compute continues to bill on it.
+ *
+ * Team access follows ANY active paid subscription, so while the surviving
+ * Compute plan is live the members stay active and the team quota stays on;
+ * they only go when the last paid plan does (the whole-subscription deleted
+ * handler). Everything else with no API item is a no-op: Compute-only
+ * subscriptions are already on the Free tier, and an unmarked schedule (or
+ * none) means the item disappeared some other way we must not react to.
+ */
+async function downgradeAfterScheduledApiCancel(
+  stripe: Stripe,
+  ws: { id: string; orgId: string; tier: string | null },
+  sub: Stripe.Subscription,
+): Promise<Response> {
+  if (ws.tier === "Free") {
+    // Compute-only subscriptions and webhook redeliveries land here.
+    return new Response("OK", { status: 200 });
+  }
+  const schedule = await getApiCancelSchedule(stripe, sub);
+  if (!schedule) {
+    return new Response("OK", { status: 200 });
+  }
+
+  // Read the surviving Compute plan off the event's subscription rather than
+  // the workspace row: mirrorDeployPlan already reconciled the DB, but the
+  // in-memory row predates it.
+  const keepsTeam = detectDeployPlan(sub) !== null;
+
+  // When a Compute plan survives, reset only the API-scoped quota fields:
+  // the Compute resource ceilings belong to the surviving plan, so spreading
+  // all of freeTierQuotas would clamp them to Free the moment Compute tiers
+  // diverge from the Free defaults.
+  const apiFreeQuotas = {
+    requestsPerMonth: freeTierQuotas.requestsPerMonth,
+    logsRetentionDays: freeTierQuotas.logsRetentionDays,
+    auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
+    ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
+    ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
+  };
+  const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
+
+  await db.update(schema.workspaces).set({ tier: "Free" }).where(eq(schema.workspaces.id, ws.id));
+
+  await db
+    .insert(schema.quotas)
+    .values({
+      workspaceId: ws.id,
+      ...downgradedQuotas,
+    })
+    .onDuplicateKeyUpdate({
+      set: downgradedQuotas,
+    });
+
+  await insertAuditLogs(db, {
+    workspaceId: ws.id,
+    actor: { type: "system", id: "stripe" },
+    event: "workspace.update",
+    description: keepsTeam
+      ? "Scheduled API plan cancellation took effect; downgraded to Free (team retained via active Compute plan)."
+      : "Scheduled API plan cancellation took effect; downgraded to Free.",
+    resources: [],
+    context: { location: "", userAgent: undefined },
+  });
+
+  if (!keepsTeam) {
+    // Free tier doesn't include team access — deactivate all members except
+    // the original creator, same as a whole-subscription cancellation.
+    await deactivateNonCreatorMemberships(ws.orgId);
+  }
+
+  return new Response("OK", { status: 200 });
+}
+
+/**
+ * Links a subscription-mode Compute checkout to its workspace via the shared
+ * linker, shared by the `checkout.session.completed` and
+ * `checkout.session.async_payment_succeeded` events (the latter fires when a
+ * delayed-notification payment clears after `completed` reported it unpaid).
+ *
+ * Returns 200 for anything a retry cannot fix (not a subscription checkout,
+ * missing workspace ref, or a linker rejection); lets transient Stripe/DB
+ * errors from the linker propagate so the caller returns 500 and Stripe
+ * retries. A `subscription_conflict` means a paid, live subscription exists
+ * that will never link (a race minted a duplicate) — it bills until an operator
+ * intervenes, so page a human rather than only logging.
+ */
+async function linkComputeCheckoutSession(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  eventId: string,
+): Promise<Response> {
+  if (session.mode !== "subscription" || !session.subscription) {
+    return new Response("OK", { status: 200 });
+  }
+  if (!session.client_reference_id) {
+    console.error("Compute checkout link event missing client_reference_id", {
+      sessionId: session.id,
+      eventId,
+    });
+    return new Response("OK", { status: 200 });
+  }
+
+  const result = await linkDeploySubscription(stripe, {
+    sessionId: session.id,
+    expectedWorkspaceId: session.client_reference_id,
+    audit: { actor: { type: "system", id: "stripe" }, location: "", userAgent: undefined },
+  });
+
+  if (!result.ok) {
+    console.error("Failed to link Compute checkout subscription", {
+      sessionId: session.id,
+      eventId,
+      reason: result.reason,
+    });
+    if (result.reason === "subscription_conflict") {
+      const subscriptionId =
+        typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+      await alertOrphanedDeploySubscription({
+        workspaceId: session.client_reference_id,
+        subscriptionId,
+        sessionId: session.id,
+        reason: result.reason,
+      });
+    }
+  }
+  return new Response("OK", { status: 200 });
 }
 
 /**
@@ -143,7 +281,7 @@ export const POST = async (req: Request): Promise<Response> => {
   }
 
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2026-05-27.dahlia",
+    apiVersion: "2026-06-24.dahlia",
     typescript: true,
   });
 
@@ -213,10 +351,13 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         // Reconcile tier/quotas from the API plan item (the Deploy signal is
-        // mirrored above). Nothing to reconcile on a Compute-only subscription.
+        // mirrored above). No API item either means a Compute-only
+        // subscription (no-op) or a scheduled API-plan cancellation whose
+        // phase boundary just hit — downgradeAfterScheduledApiCancel tells
+        // them apart and downgrades the workspace for the latter.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return new Response("OK");
+          return await downgradeAfterScheduledApiCancel(stripe, ws, sub);
         }
         const { unitAmount, customer, product } = apiContext;
 
@@ -377,6 +518,28 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
+
+        // A Stripe-side cancel (e.g. the billing portal) removes the subscription
+        // without going through the dashboard cancel flow, so ctrl never tore down
+        // the workspace's Compute. If this workspace had a Compute plan, run the
+        // same keyed, idempotent teardown here: it stops running compute and clears
+        // deploy_plan. Must run before the column clear below, since
+        // deprovisionCompute's idempotency guard keys on deploy_plan still being set.
+        // Let a failure propagate so Stripe retries; the teardown must not be dropped.
+        if (ws.deployPlan) {
+          try {
+            const ctrl = createCtrlClient(DeployService);
+            await ctrl.deprovisionCompute({ workspaceId: ws.id });
+          } catch (err) {
+            console.error("Failed to deprovision Compute on Stripe-side cancel", {
+              workspaceId: ws.id,
+              subscriptionId: sub.id,
+              error: err instanceof Error ? err.message : err,
+            });
+            throw err;
+          }
+        }
+
         await db
           .update(schema.workspaces)
           .set({
@@ -495,9 +658,40 @@ export const POST = async (req: Request): Promise<Response> => {
           customer.email,
           customer.name || "Unknown",
         );
-        break;
+        // Return rather than break so this case can never fall through into
+        // invoice.payment_failed below; every other terminus in this case
+        // returns too.
+        return new Response("OK");
       } catch (error) {
         console.error("Subscription creation webhook error:", {
+          error:
+            error instanceof Error
+              ? {
+                  message: error.message,
+                  stack: error.stack,
+                  name: error.name,
+                }
+              : error,
+          eventId: event.id,
+          eventType: event.type,
+        });
+        return new Response("Error", { status: 500 });
+      }
+    }
+
+    // Guaranteed server-side link for the no-card Compute flow: fires even if
+    // the user never returns to /success. `completed` covers the immediate
+    // (card) case; `async_payment_succeeded` covers delayed-notification
+    // methods that reported unpaid at `completed` and only clear later. Both
+    // route through the same idempotent linker, so a racing /success call or a
+    // Stripe redelivery cannot double-write.
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
+      try {
+        const session = event.data.object as Stripe.Checkout.Session;
+        return await linkComputeCheckoutSession(stripe, session, event.id);
+      } catch (error) {
+        console.error("Checkout session link webhook error:", {
           error:
             error instanceof Error
               ? {
