@@ -521,11 +521,6 @@ describe("usePaginatedNavigation", () => {
   });
 });
 
-// paginationFilterKey feeds the reset key the page hooks compare across
-// renders. The load-bearing guarantee is content-stability: equal filter
-// content must yield equal keys, and any meaningful difference must yield a
-// different key. A regression here would silently break (or spuriously
-// trigger) page resets across every table.
 // normalizePageSize guards the divisor behind computeTotalPages and the `limit`
 // sent to the server, so a page size of 0 escaping the clamp turns totalPages
 // into Infinity and makes the endpoint reject the query.
@@ -551,6 +546,11 @@ describe("normalizePageSize", () => {
   });
 });
 
+// paginationFilterKey feeds the reset key the page hooks compare across
+// renders. The load-bearing guarantee is content-stability: equal filter
+// content must yield equal keys, and any meaningful difference must yield a
+// different key. A regression here would silently break (or spuriously
+// trigger) page resets across every table.
 describe("paginationFilterKey", () => {
   it("produces the same key for equal content in a fresh array", () => {
     const a = paginationFilterKey([{ field: "status", operator: "is", value: "blocked" }]);

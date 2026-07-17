@@ -41,9 +41,9 @@ export function useSentinelLogsQuery({
 
   // Drives the whole reset — page, window anchor, and realtime buffer — whenever
   // the filters, active app, or refresh signal change. `appId` is included
-  // because it also feeds `queryInput`: omitting it would let an app switch fire a
-  // query against the stale page/window, flashing an empty page until the clamp
-  // effect catches up.
+  // because it also feeds `queryInput`: omitting it would leave the reset
+  // untriggered on an app switch, firing a query for the stale page against the
+  // new app until a later render corrected it.
   const resetKey = useMemo(
     () =>
       `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|app:${appId ?? ""}|r:${refreshNonce}`,
