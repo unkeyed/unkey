@@ -208,6 +208,7 @@ import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
 import { linkDeploySubscription } from "./stripe/linkDeploySubscription";
+import { seedTestCustomer } from "./stripe/seedTestCustomer";
 import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
@@ -319,6 +320,7 @@ export const router = t.router({
     linkDeploySubscription,
     changeDeployPlan,
     cancelDeploy,
+    seedTestCustomer,
     getDeploySubscription,
     getDeployPlans,
     getDeployEntitlement,
