@@ -40,7 +40,7 @@ export function CreateIdentityDialog() {
 
   const createIdentity = useCreateIdentityMutation();
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     const meta =
       data.metadata?.enabled && data.metadata.data
         ? parseIdentityMetadata(data.metadata.data)
@@ -54,33 +54,40 @@ export function CreateIdentityDialog() {
             autoApply: ratelimit.autoApply,
           }))
         : undefined;
-    createIdentity.mutate(
-      {
-        externalId: data.externalId,
-        meta,
-        ratelimits,
-      },
-      {
-        onSuccess: (createdIdentity) => {
-          toast.success("Identity created successfully", {
-            description: `Identity "${createdIdentity.externalId}" has been created.`,
-          });
-          setOpen(false);
-          reset(getDefaultValues());
-        },
-        onError: (error) => {
-          if (error instanceof ConflictErrorResponse) {
-            setError("externalId", {
-              message: "An identity with this external ID already exists",
-            });
-          } else {
-            toast.error("Failed to create identity", {
-              description: getErrorMessage(error),
-            });
-          }
-        },
-      },
-    );
+    const mutation = createIdentity.mutateAsync({
+      externalId: data.externalId,
+      meta,
+      ratelimits,
+    });
+    toast.promise(mutation, {
+      loading: "Creating identity...",
+      success: (createdIdentity) => ({
+        message: "Identity created successfully",
+        description: `Identity "${createdIdentity.externalId}" has been created.`,
+      }),
+      error: (error) => ({
+        message:
+          error instanceof ConflictErrorResponse
+            ? "Identity already exists"
+            : "Failed to create identity",
+        description:
+          error instanceof ConflictErrorResponse
+            ? "An identity with this external ID already exists."
+            : getErrorMessage(error),
+      }),
+    });
+
+    try {
+      await mutation;
+      setOpen(false);
+      reset(getDefaultValues());
+    } catch (error) {
+      if (error instanceof ConflictErrorResponse) {
+        setError("externalId", {
+          message: "An identity with this external ID already exists",
+        });
+      }
+    }
   };
 
   const handleOpenChange = (nextOpen: boolean) => {

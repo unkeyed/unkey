@@ -1,9 +1,9 @@
-import { useCreateIdentity } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-create-identity";
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { useIdentities } from "@/lib/identities-query";
+import { useCreateIdentityMutation, useIdentities } from "@/lib/identities-query";
 import { identityExternalIdSchema } from "@/lib/schemas/identity";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
+import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -59,11 +59,7 @@ export const ExternalIdField = ({
     });
   };
 
-  const createIdentity = useCreateIdentity((data) => {
-    setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
-    setSearchValue("");
-    onChange(data.identityId, data.externalId);
-  });
+  const createIdentity = useCreateIdentityMutation();
 
   // Ensure current identity is always available in the options
   const allIdentitiesWithCurrent = useMemo(() => {
@@ -95,11 +91,43 @@ export const ExternalIdField = ({
     return allIdentitiesWithCurrent.find((id) => id.id === value)?.externalId;
   }, [allIdentitiesWithCurrent, value]);
 
-  const handleCreateIdentity = () => {
-    if (externalIdValidation.success) {
-      createIdentity.mutate({
-        externalId: externalIdValidation.data,
-      });
+  const handleCreateIdentity = async () => {
+    if (!externalIdValidation.success) {
+      return;
+    }
+
+    const mutation = createIdentity.mutateAsync({ externalId: externalIdValidation.data });
+    toast.promise(mutation, {
+      loading: "Creating identity...",
+      success: (data) => ({
+        message: "Identity Created",
+        description: `Identity "${data.externalId}" has been created successfully`,
+        duration: 5000,
+      }),
+      error: (error) => {
+        if (error instanceof ConflictErrorResponse) {
+          return {
+            message: "Identity Already Exists",
+            description: "An identity with this external ID already exists in your workspace.",
+          };
+        }
+        if (error instanceof BadRequestErrorResponse) {
+          return {
+            message: "Invalid Input",
+            description: getErrorMessage(error, "Please check your input and try again."),
+          };
+        }
+        return { message: "Failed to Create Identity", description: getErrorMessage(error) };
+      },
+    });
+
+    try {
+      const data = await mutation;
+      setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
+      setSearchValue("");
+      onChange(data.identityId, data.externalId);
+    } catch {
+      // toast.promise reports the API error.
     }
   };
 
@@ -159,13 +187,13 @@ export const ExternalIdField = ({
       onChange={(e) => {
         setSearchValue(e.currentTarget.value);
       }}
-      onSelect={(val) => {
+      onSelect={async (val) => {
         if (val === "__load_more__") {
           loadMore();
           return;
         }
         if (val === "__create_new__") {
-          handleCreateIdentity();
+          await handleCreateIdentity();
           return;
         }
         const identity = allIdentitiesWithCurrent.find((id) => id.id === val);

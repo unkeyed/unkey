@@ -1,20 +1,8 @@
-import {
-  type InfiniteData,
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import type { Identity } from "@unkey/api/models/components";
 import { type PropsWithChildren, createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
-import {
-  type IdentityPage,
-  identityQueryKeys,
-  removeIdentityFromPages,
-  replaceIdentityInPages,
-  useCreateIdentityMutation,
-} from "./identities-query";
+import { identityQueryKeys, useCreateIdentityMutation } from "./identities-query";
 
 const identityApi = vi.hoisted(() => ({
   createIdentity: vi.fn(),
@@ -27,14 +15,6 @@ vi.mock("@/hooks/use-workspace-navigation", () => ({
 vi.mock("@/lib/unkey-client", () => ({
   getUnkeyClient: () => ({ identities: identityApi }),
 }));
-
-function identity(id: string): Identity {
-  return { id, externalId: `external-${id}` };
-}
-
-function infiniteData(...pages: IdentityPage[]): InfiniteData<IdentityPage> {
-  return { pages, pageParams: pages.map((_, index) => index) };
-}
 
 describe("identity query cache", () => {
   it("scopes list and detail keys to the workspace", () => {
@@ -97,47 +77,25 @@ describe("identity query cache", () => {
     expect(requestCount).toBe(2);
   });
 
-  it("replaces an identity across cached pages without changing cursors", () => {
-    const data = infiniteData(
-      { identities: [identity("id_1")], cursor: "next" },
-      { identities: [identity("id_2")] },
-    );
-    const updated = { ...identity("id_2"), externalId: "updated" };
+  it("refetches an inactive list after identity creation", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const queryKey = identityQueryKeys.list("ws_1", "");
+    let response = "stale";
+    const queryFn = vi.fn(() => Promise.resolve(response));
+    await queryClient.fetchQuery({ queryKey, queryFn });
+    response = "fresh";
+    identityApi.createIdentity.mockResolvedValueOnce({ data: { identityId: "id_new" } });
 
-    expect(
-      replaceIdentityInPages(data, updated, { identity: updated.id, meta: updated.meta }),
-    ).toEqual(
-      infiniteData({ identities: [identity("id_1")], cursor: "next" }, { identities: [updated] }),
-    );
-  });
+    function wrapper({ children }: PropsWithChildren) {
+      return createElement(QueryClientProvider, { client: queryClient }, children);
+    }
 
-  it("preserves fields omitted from a partial update response", () => {
-    const existing = {
-      ...identity("id_1"),
-      meta: { plan: "pro" },
-      ratelimits: [{ id: "rl_1", name: "requests", limit: 10, duration: 60, autoApply: true }],
-    };
-    const response = { ...existing, meta: {} };
+    const { result } = renderHook(() => useCreateIdentityMutation(), { wrapper });
+    await result.current.mutateAsync({ externalId: "new_identity" });
 
-    expect(
-      replaceIdentityInPages(infiniteData({ identities: [existing] }), response, {
-        identity: existing.id,
-        ratelimits: response.ratelimits,
-      }).pages[0]?.identities[0]?.meta,
-    ).toEqual({ plan: "pro" });
-  });
-
-  it("removes an identity from every cached page", () => {
-    const data = infiniteData(
-      { identities: [identity("id_1"), identity("id_2")], cursor: "next" },
-      { identities: [identity("id_2"), identity("id_3")] },
-    );
-
-    expect(removeIdentityFromPages(data, "id_2")).toEqual(
-      infiniteData(
-        { identities: [identity("id_1")], cursor: "next" },
-        { identities: [identity("id_3")] },
-      ),
-    );
+    expect(queryClient.getQueryData(queryKey)).toBe("fresh");
+    expect(queryFn).toHaveBeenCalledTimes(2);
   });
 });

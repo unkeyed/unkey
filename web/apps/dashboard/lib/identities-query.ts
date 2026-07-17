@@ -2,14 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { getUnkeyClient } from "@/lib/unkey-client";
-import {
-  type InfiniteData,
-  type QueryClient,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Identity,
   V2IdentitiesCreateIdentityRequestBody,
@@ -19,7 +12,7 @@ import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 
 const IDENTITY_PAGE_SIZE = 50;
 
-export type IdentityPage = {
+type IdentityPage = {
   identities: Identity[];
   cursor?: string;
 };
@@ -35,89 +28,6 @@ export const identityQueryKeys = {
   detail: (workspaceId: string, identityId: string) =>
     [...identityQueryKeys.details(workspaceId), identityId] as const,
 };
-
-function mergeIdentityUpdate(
-  cachedIdentity: Identity,
-  updatedIdentity: Identity,
-  input: V2IdentitiesUpdateIdentityRequestBody,
-): Identity {
-  return {
-    ...updatedIdentity,
-    meta: input.meta === undefined ? cachedIdentity.meta : updatedIdentity.meta,
-    ratelimits:
-      input.ratelimits === undefined ? cachedIdentity.ratelimits : updatedIdentity.ratelimits,
-  };
-}
-
-export function replaceIdentityInPages(
-  data: InfiniteData<IdentityPage>,
-  updatedIdentity: Identity,
-  input: V2IdentitiesUpdateIdentityRequestBody,
-): InfiniteData<IdentityPage> {
-  return {
-    ...data,
-    pages: data.pages.map((page) => ({
-      ...page,
-      identities: page.identities.map((identity) =>
-        identity.id === updatedIdentity.id
-          ? mergeIdentityUpdate(identity, updatedIdentity, input)
-          : identity,
-      ),
-    })),
-  };
-}
-
-export function removeIdentityFromPages(
-  data: InfiniteData<IdentityPage>,
-  identityId: string,
-): InfiniteData<IdentityPage> {
-  return {
-    ...data,
-    pages: data.pages.map((page) => ({
-      ...page,
-      identities: page.identities.filter((identity) => identity.id !== identityId),
-    })),
-  };
-}
-
-function findIdentityInListCache(
-  queryClient: QueryClient,
-  workspaceId: string,
-  identityId: string,
-): { identity: Identity; updatedAt: number } | undefined {
-  const queries = queryClient.getQueriesData<InfiniteData<IdentityPage>>(
-    identityQueryKeys.lists(workspaceId),
-  );
-  let cachedIdentity: { identity: Identity; updatedAt: number } | undefined;
-
-  for (const [queryKey, data] of queries) {
-    for (const page of data?.pages ?? []) {
-      const identity = page.identities.find((candidate) => candidate.id === identityId);
-      if (identity) {
-        const candidate = {
-          identity,
-          updatedAt: queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
-        };
-        if (!cachedIdentity || candidate.updatedAt > cachedIdentity.updatedAt) {
-          cachedIdentity = candidate;
-        }
-      }
-    }
-  }
-
-  return cachedIdentity;
-}
-
-function updateIdentityListCaches(
-  queryClient: QueryClient,
-  workspaceId: string,
-  update: (data: InfiniteData<IdentityPage>) => InfiniteData<IdentityPage>,
-) {
-  queryClient.setQueriesData<InfiniteData<IdentityPage>>(
-    identityQueryKeys.lists(workspaceId),
-    (data) => (data ? update(data) : data),
-  );
-}
 
 export function useIdentities({
   search = "",
@@ -149,6 +59,7 @@ export function useIdentities({
       } satisfies IdentityPage;
     },
     getNextPageParam: (lastPage) => lastPage.cursor,
+    ...(normalizedSearch && { cacheTime: 0 }),
     onError,
   });
 
@@ -160,8 +71,6 @@ export function useIdentities({
 
 export function useIdentity(identityId: string) {
   const workspace = useWorkspaceNavigation();
-  const queryClient = useQueryClient();
-  const cachedIdentity = findIdentityInListCache(queryClient, workspace.id, identityId);
 
   return useQuery({
     queryKey: identityQueryKeys.detail(workspace.id, identityId),
@@ -179,8 +88,6 @@ export function useIdentity(identityId: string) {
         throw error;
       }
     },
-    initialData: cachedIdentity?.identity,
-    initialDataUpdatedAt: cachedIdentity?.updatedAt,
     staleTime: 0,
   });
 }
@@ -198,7 +105,10 @@ export function useCreateIdentityMutation() {
       await queryClient.cancelQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
+      await queryClient.invalidateQueries({
+        queryKey: identityQueryKeys.lists(workspace.id),
+        refetchType: "all",
+      });
     },
   });
 }
@@ -213,28 +123,14 @@ export function useUpdateIdentityMutation() {
       return response.data;
     },
     onMutate: async () => {
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: identityQueryKeys.lists(workspace.id) }),
-        queryClient.cancelQueries({ queryKey: identityQueryKeys.details(workspace.id) }),
-      ]);
-    },
-    onSuccess: (identity, input) => {
-      updateIdentityListCaches(queryClient, workspace.id, (data) =>
-        replaceIdentityInPages(data, identity, input),
-      );
-      queryClient.setQueryData<Identity | null>(
-        identityQueryKeys.detail(workspace.id, identity.id),
-        (cachedIdentity) => {
-          if (!cachedIdentity) {
-            return cachedIdentity;
-          }
-          return mergeIdentityUpdate(cachedIdentity, identity, input);
-        },
-      );
+      await queryClient.cancelQueries({ queryKey: identityQueryKeys.workspace(workspace.id) });
     },
     onSettled: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: identityQueryKeys.lists(workspace.id) }),
+        queryClient.invalidateQueries({
+          queryKey: identityQueryKeys.lists(workspace.id),
+          refetchType: "all",
+        }),
         queryClient.invalidateQueries({ queryKey: identityQueryKeys.details(workspace.id) }),
       ]);
     },
@@ -253,17 +149,17 @@ export function useDeleteIdentityMutation() {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
     },
-    onSuccess: (identityId) => {
-      updateIdentityListCaches(queryClient, workspace.id, (data) =>
-        removeIdentityFromPages(data, identityId),
-      );
+    onSuccess: (_data, identityId) => {
       queryClient.removeQueries({
         queryKey: identityQueryKeys.detail(workspace.id, identityId),
         exact: true,
       });
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: identityQueryKeys.lists(workspace.id) });
+      await queryClient.invalidateQueries({
+        queryKey: identityQueryKeys.lists(workspace.id),
+        refetchType: "all",
+      });
     },
   });
 }
