@@ -25,12 +25,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         },
       });
     } catch (error) {
-      // Log workspace query errors but don't fail context creation.
-      // Procedures that require a workspace decide how to react.
-      console.debug("Workspace query failed in context creation:", {
-        orgId,
-        userId,
-        error: error instanceof Error ? error.message : String(error),
+      console.debug("Workspace query failed in context creation",
       });
       ws = undefined;
     }
