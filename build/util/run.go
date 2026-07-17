@@ -18,7 +18,7 @@ func RunServiceCommand[T any](name string, usage string, run func(context.Contex
 		Name:  name,
 		Usage: usage,
 		Flags: []cli.Flag{
-			cli.String("config", "Path to a TOML config file",
+			cli.String("config", "Path to a TOML config file, or the raw TOML config itself",
 				cli.Default("unkey.toml"), cli.EnvVar("UNKEY_CONFIG")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
