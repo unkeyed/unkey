@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,16 @@ func TestSetEnvironmentVariablesBadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "DUP", Value: "first"},
 			{Key: "DUP", Value: "second"},
+		}))
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	})
+
+	t.Run("values over the byte cap are rejected even when under the code-point limit", func(t *testing.T) {
+		// 5462 three-byte runes is 16386 UTF-8 bytes but only 5462 code points,
+		// so it passes the spec maxLength (16384 code points) and must be caught
+		// by the handler's server-side byte check.
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "TOO_BIG", Value: strings.Repeat("あ", 5462)},
 		}))
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
