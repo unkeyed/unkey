@@ -10,51 +10,33 @@ import (
 )
 
 const listDeploymentDomains = `-- name: ListDeploymentDomains :many
-SELECT
-  r.fully_qualified_domain_name AS domain,
-  cd.verification_status AS custom_verification_status
+SELECT r.fully_qualified_domain_name AS domain
 FROM frontline_routes r
-LEFT JOIN custom_domains cd
-  ON cd.domain = r.fully_qualified_domain_name
-  AND cd.workspace_id = ?
 WHERE r.deployment_id = ?
+ORDER BY r.fully_qualified_domain_name
 `
 
-type ListDeploymentDomainsParams struct {
-	WorkspaceID  string `db:"workspace_id"`
-	DeploymentID string `db:"deployment_id"`
-}
-
-type ListDeploymentDomainsRow struct {
-	Domain                   string                              `db:"domain"`
-	CustomVerificationStatus NullCustomDomainsVerificationStatus `db:"custom_verification_status"`
-}
-
-// Frontline routes are the hostnames a deployment serves. The left join to
-// custom_domains classifies each as system (no match) or custom (match) and
-// surfaces the custom domain's verification status.
+// Frontline routes are the hostnames a deployment serves. Only these are
+// returned; the custom_domains classification is deliberately skipped so the
+// read stays a single index range scan on frontline_routes.deployment_id.
 //
-//	SELECT
-//	  r.fully_qualified_domain_name AS domain,
-//	  cd.verification_status AS custom_verification_status
+//	SELECT r.fully_qualified_domain_name AS domain
 //	FROM frontline_routes r
-//	LEFT JOIN custom_domains cd
-//	  ON cd.domain = r.fully_qualified_domain_name
-//	  AND cd.workspace_id = ?
 //	WHERE r.deployment_id = ?
-func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]ListDeploymentDomainsRow, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentDomains, arg.WorkspaceID, arg.DeploymentID)
+//	ORDER BY r.fully_qualified_domain_name
+func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, deploymentID string) ([]string, error) {
+	rows, err := db.QueryContext(ctx, listDeploymentDomains, deploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListDeploymentDomainsRow
+	var items []string
 	for rows.Next() {
-		var i ListDeploymentDomainsRow
-		if err := rows.Scan(&i.Domain, &i.CustomVerificationStatus); err != nil {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, domain)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

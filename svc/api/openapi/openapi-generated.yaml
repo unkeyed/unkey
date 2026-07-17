@@ -3957,12 +3957,12 @@ components:
             required:
                 - id
                 - status
-                - desiredState
                 - isCurrent
                 - environmentId
                 - appId
                 - projectId
                 - availableActions
+                - regions
                 - runtime
                 - createdAt
             properties:
@@ -3973,8 +3973,6 @@ components:
                     example: d_1234abcd
                 status:
                     "$ref": "#/components/schemas/DeploymentStatus"
-                desiredState:
-                    "$ref": "#/components/schemas/DeploymentDesiredState"
                 isCurrent:
                     type: boolean
                     description: |
@@ -4010,17 +4008,27 @@ components:
                         Lifecycle operations that are legal to call on this deployment right now.
                         Empty when none apply (e.g. while building or in a terminal state).
                     example: ["stop"]
-                failure:
-                    "$ref": "#/components/schemas/DeploymentFailure"
+                regions:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Regions this deployment is configured to run in. Empty while the deployment
+                        has no scheduled regions yet.
+                    example: ["us-east-1", "eu-west-1"]
+                error:
+                    "$ref": "#/components/schemas/DeploymentError"
                     description: |
                         Why the deployment failed. Present only when `status` is `failed`, and only
                         returned by getDeployment.
                 domains:
                     type: array
                     items:
-                        "$ref": "#/components/schemas/DeploymentDomain"
+                        type: string
                     description: |
-                        Hostnames this deployment is reachable at. Only returned by getDeployment.
+                        Frontline hostnames this deployment is reachable at. Only returned by
+                        getDeployment.
+                    example: ["kebap-app.unkey.app"]
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
                 createdAt:
@@ -4078,19 +4086,6 @@ components:
                 terminal state: ready (serving), failed, skipped, superseded, stopped,
                 or cancelled.
             example: ready
-        DeploymentDesiredState:
-            type: string
-            enum:
-                - running
-                - stopped
-            x-enum-varnames:
-                - DeploymentDesiredStateRunning
-                - DeploymentDesiredStateStopped
-            description: |
-                The intended state of the deployment, independent of its current lifecycle
-                status. `running` means it should serve traffic; `stopped` means it should not,
-                whether taken down on request or by the platform.
-            example: running
         DeploymentGit:
             type: object
             required:
@@ -4129,10 +4124,10 @@ components:
                 - DeploymentActionStart
             description: |
                 A lifecycle operation that can be performed on the deployment in its current
-                state, given its status, desiredState, environment, and whether it is the
-                current deployment.
+                state, given its status, environment, and whether it is the current
+                deployment.
             example: promote
-        DeploymentFailure:
+        DeploymentError:
             type: object
             required:
                 - code
@@ -4140,7 +4135,7 @@ components:
                 - message
             properties:
                 code:
-                    "$ref": "#/components/schemas/DeploymentFailureCode"
+                    "$ref": "#/components/schemas/DeploymentErrorCode"
                 step:
                     type: string
                     description: |
@@ -4152,45 +4147,6 @@ components:
                         Human-readable description of why the deployment failed. For programmatic
                         handling, use `code`.
                     example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
-            additionalProperties: false
-        DeploymentDomain:
-            type: object
-            required:
-                - domain
-                - type
-                - status
-            properties:
-                domain:
-                    type: string
-                    description: |
-                        Fully qualified domain name this deployment is reachable at.
-                    example: kebap-app-preview.unkey.app
-                type:
-                    type: string
-                    enum:
-                        - system
-                        - custom
-                    x-enum-varnames:
-                        - DeploymentDomainTypeSystem
-                        - DeploymentDomainTypeCustom
-                    description: |
-                        `system` is an Unkey-managed hostname (always active). `custom` is a
-                        customer-owned domain whose `status` reflects verification.
-                    example: system
-                status:
-                    type: string
-                    enum:
-                        - active
-                        - pending
-                        - failed
-                    x-enum-varnames:
-                        - DeploymentDomainStatusActive
-                        - DeploymentDomainStatusPending
-                        - DeploymentDomainStatusFailed
-                    description: |
-                        `active` serves traffic. `pending` is a custom domain awaiting
-                        verification. `failed` is a custom domain whose verification failed.
-                    example: active
             additionalProperties: false
         DeploymentRuntime:
             type: object
@@ -4240,7 +4196,7 @@ components:
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
             additionalProperties: false
-        DeploymentFailureCode:
+        DeploymentErrorCode:
             type: string
             enum:
                 - no_schedulable_regions
@@ -4251,13 +4207,13 @@ components:
                 - build_failed
                 - unknown
             x-enum-varnames:
-                - DeploymentFailureCodeNoSchedulableRegions
-                - DeploymentFailureCodeInvalidRuntimeSettings
-                - DeploymentFailureCodeCpuQuotaExceeded
-                - DeploymentFailureCodeMemoryQuotaExceeded
-                - DeploymentFailureCodeStorageQuotaExceeded
-                - DeploymentFailureCodeBuildFailed
-                - DeploymentFailureCodeUnknown
+                - DeploymentErrorCodeNoSchedulableRegions
+                - DeploymentErrorCodeInvalidRuntimeSettings
+                - DeploymentErrorCodeCpuQuotaExceeded
+                - DeploymentErrorCodeMemoryQuotaExceeded
+                - DeploymentErrorCodeStorageQuotaExceeded
+                - DeploymentErrorCodeBuildFailed
+                - DeploymentErrorCodeUnknown
             description: |
                 The reason a deployment failed. `unknown` means Unkey could not classify the
                 failure; see `message` for details.

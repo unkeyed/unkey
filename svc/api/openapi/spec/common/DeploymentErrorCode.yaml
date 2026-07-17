@@ -8,13 +8,13 @@ enum:
   - build_failed
   - unknown
 x-enum-varnames:
-  - DeploymentFailureCodeNoSchedulableRegions
-  - DeploymentFailureCodeInvalidRuntimeSettings
-  - DeploymentFailureCodeCpuQuotaExceeded
-  - DeploymentFailureCodeMemoryQuotaExceeded
-  - DeploymentFailureCodeStorageQuotaExceeded
-  - DeploymentFailureCodeBuildFailed
-  - DeploymentFailureCodeUnknown
+  - DeploymentErrorCodeNoSchedulableRegions
+  - DeploymentErrorCodeInvalidRuntimeSettings
+  - DeploymentErrorCodeCpuQuotaExceeded
+  - DeploymentErrorCodeMemoryQuotaExceeded
+  - DeploymentErrorCodeStorageQuotaExceeded
+  - DeploymentErrorCodeBuildFailed
+  - DeploymentErrorCodeUnknown
 description: |
   The reason a deployment failed. `unknown` means Unkey could not classify the
   failure; see `message` for details.

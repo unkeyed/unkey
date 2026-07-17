@@ -10,7 +10,7 @@ import (
 
 // deriveFailure builds the structured failure for a failed deployment from its
 // recorded steps. Returns nil for any non-failed status.
-func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentFailure {
+func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentError {
 	if status != db.DeploymentsStatusFailed {
 		return nil
 	}
@@ -25,14 +25,14 @@ func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *open
 	}
 
 	if failed == nil {
-		return &openapi.DeploymentFailure{
-			Code:    openapi.DeploymentFailureCodeUnknown,
+		return &openapi.DeploymentError{
+			Code:    openapi.DeploymentErrorCodeUnknown,
 			Step:    "",
 			Message: "The deployment failed for an unknown reason.",
 		}
 	}
 
-	return &openapi.DeploymentFailure{
+	return &openapi.DeploymentError{
 		Code:    classifyFailure(failed.Step, failed.Error.String),
 		Step:    string(failed.Step),
 		Message: failed.Error.String,
@@ -45,28 +45,28 @@ func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *open
 // match on. Other steps are classified by their stored message, which matches
 // the shared deployfail constants the worker writes so the two sides cannot
 // drift. First contained match wins.
-func classifyFailure(step db.DeploymentStepsStep, message string) openapi.DeploymentFailureCode {
+func classifyFailure(step db.DeploymentStepsStep, message string) openapi.DeploymentErrorCode {
 	if step == db.DeploymentStepsStepBuilding {
-		return openapi.DeploymentFailureCodeBuildFailed
+		return openapi.DeploymentErrorCodeBuildFailed
 	}
 	for _, rule := range failureRules {
 		if strings.Contains(message, rule.substr) {
 			return rule.code
 		}
 	}
-	return openapi.DeploymentFailureCodeUnknown
+	return openapi.DeploymentErrorCodeUnknown
 }
 
 var failureRules = []struct {
 	substr string
-	code   openapi.DeploymentFailureCode
+	code   openapi.DeploymentErrorCode
 }{
-	{deployfail.MsgNoSchedulableRegions, openapi.DeploymentFailureCodeNoSchedulableRegions},
-	{deployfail.MsgCPUQuotaExceeded, openapi.DeploymentFailureCodeCpuQuotaExceeded},
-	{deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentFailureCodeMemoryQuotaExceeded},
-	{deployfail.MsgStorageQuotaExceeded, openapi.DeploymentFailureCodeStorageQuotaExceeded},
-	{deployfail.MsgPortTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-	{deployfail.MsgPortTooHigh, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-	{deployfail.MsgCPUTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-	{deployfail.MsgMemoryTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
+	{deployfail.MsgNoSchedulableRegions, openapi.DeploymentErrorCodeNoSchedulableRegions},
+	{deployfail.MsgCPUQuotaExceeded, openapi.DeploymentErrorCodeCpuQuotaExceeded},
+	{deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentErrorCodeMemoryQuotaExceeded},
+	{deployfail.MsgStorageQuotaExceeded, openapi.DeploymentErrorCodeStorageQuotaExceeded},
+	{deployfail.MsgPortTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+	{deployfail.MsgPortTooHigh, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+	{deployfail.MsgCPUTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+	{deployfail.MsgMemoryTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 }

@@ -14,10 +14,11 @@ import (
 // both read handlers resolve them (per-deployment on get, batched on list) so
 // the mapper never queries.
 //
-// Detailed gates the two get-only fields (failure, domains): getDeployment sets
+// Detailed gates the two get-only fields (error, domains): getDeployment sets
 // it with Steps and Domains loaded; listDeployments leaves it false so those
 // fields are omitted. Without this flag a failed deployment in a list would
-// report a bogus `unknown` failure just because its steps were never loaded.
+// report a bogus `unknown` error just because its steps were never loaded.
+// Regions is not gated: both read paths populate it.
 type Input struct {
 	Deployment             db.Deployment
 	EnvironmentSlug        string
@@ -25,7 +26,8 @@ type Input struct {
 	AppIsRolledBack        bool
 	Detailed               bool
 	Steps                  []db.DeploymentStep
-	Domains                []db.ListDeploymentDomainsRow
+	Regions                []string
+	Domains                []string
 }
 
 func ToResponse(in Input) openapi.Deployment {
@@ -53,15 +55,22 @@ func ToResponse(in Input) openapi.Deployment {
 	// still serves its current deployment).
 	isCurrent := in.AppCurrentDeploymentID != "" && in.AppCurrentDeploymentID == d.ID
 
+	// regions is a required field, so it must marshal as [] not null when the
+	// deployment has no scheduled regions yet.
+	regions := in.Regions
+	if regions == nil {
+		regions = []string{}
+	}
+
 	dep := openapi.Deployment{
 		Id:               d.ID,
 		Status:           openapi.DeploymentStatus(d.Status),
-		DesiredState:     openapi.DeploymentDesiredState(d.DesiredState),
 		IsCurrent:        isCurrent,
 		EnvironmentId:    d.EnvironmentID,
 		AppId:            d.AppID,
 		ProjectId:        d.ProjectID,
 		AvailableActions: availableActions(in),
+		Regions:          regions,
 		Runtime: openapi.DeploymentRuntime{
 			VCpus:            float64(d.CpuMillicores) / 1000,
 			MemoryMib:        int(d.MemoryMib),
@@ -76,10 +85,10 @@ func ToResponse(in Input) openapi.Deployment {
 		UpdatedAt: d.UpdatedAt.Int64,
 
 		// Optional fields set below: git/docker from the source discriminator,
-		// failure/domains only when Detailed.
+		// error/domains only when Detailed.
 		Git:     nil,
 		Docker:  nil,
-		Failure: nil,
+		Error:   nil,
 		Domains: nil,
 	}
 
@@ -97,14 +106,18 @@ func ToResponse(in Input) openapi.Deployment {
 		dep.Docker = &openapi.DeploymentDocker{Image: d.Image.String}
 	}
 
-	// failure and domains are get-only. Deriving them requires the per-deployment
+	// error and domains are get-only. Deriving them requires the per-deployment
 	// step and route queries that listDeployments skips, so gate on Detailed
 	// rather than on whether the slices happen to be nil.
 	if in.Detailed {
 		if failure := deriveFailure(d.Status, in.Steps); failure != nil {
-			dep.Failure = failure
+			dep.Error = failure
 		}
-		dep.Domains = ptr.P(mapDomains(in.Domains))
+		domains := in.Domains
+		if domains == nil {
+			domains = []string{}
+		}
+		dep.Domains = ptr.P(domains)
 	}
 
 	return dep

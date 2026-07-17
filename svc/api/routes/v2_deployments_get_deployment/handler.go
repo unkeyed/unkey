@@ -115,10 +115,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
-		WorkspaceID:  dep.WorkspaceID,
-		DeploymentID: dep.ID,
-	})
+	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), dep.ID)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+
+	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), dep.ID)
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -139,6 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			AppIsRolledBack:        state.AppIsRolledBack,
 			Detailed:               true,
 			Steps:                  steps,
+			Regions:                regions,
 			Domains:                domains,
 		}),
 	})

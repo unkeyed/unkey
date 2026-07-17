@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -57,7 +58,6 @@ func TestGetDeployment(t *testing.T) {
 	require.Equal(t, setup.Environment.ID, d.EnvironmentId)
 	require.Equal(t, setup.App.ID, d.AppId)
 	require.Equal(t, setup.Project.ID, d.ProjectId)
-	require.Equal(t, openapi.DeploymentDesiredStateRunning, d.DesiredState)
 	require.False(t, d.IsCurrent, "app has no current deployment pointing here")
 
 	// git-sourced: git set from the seeded commit, docker absent.
@@ -71,7 +71,8 @@ func TestGetDeployment(t *testing.T) {
 	require.NotNil(t, d.AvailableActions)
 	require.NotNil(t, d.Domains)
 	require.Empty(t, *d.Domains, "no routes seeded")
-	require.Nil(t, d.Failure, "pending deployment has no failure")
+	require.Empty(t, d.Regions, "no topology seeded")
+	require.Nil(t, d.Error, "pending deployment has no error")
 
 	// Internal fields must never appear in the response body.
 	for _, leaked := range []string{"k8s_name", "k8sName", "workspace_id", "workspaceId", "sentinel", "encrypted", "build_id", "buildId", "invocation", "github_deployment", "githubDeployment", "\"pk\""} {
@@ -133,10 +134,10 @@ func TestGetDeploymentFailure(t *testing.T) {
 
 		d := get(id)
 		require.Equal(t, openapi.DeploymentStatusFailed, d.Status)
-		require.NotNil(t, d.Failure)
-		require.Equal(t, openapi.DeploymentFailureCodeNoSchedulableRegions, d.Failure.Code)
-		require.Equal(t, "deploying", d.Failure.Step)
-		require.Equal(t, deployfail.MsgNoSchedulableRegions, d.Failure.Message)
+		require.NotNil(t, d.Error)
+		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, d.Error.Code)
+		require.Equal(t, "deploying", d.Error.Step)
+		require.Equal(t, deployfail.MsgNoSchedulableRegions, d.Error.Message)
 		require.Empty(t, d.AvailableActions, "failed deployment has no legal actions")
 	})
 
@@ -145,10 +146,78 @@ func TestGetDeploymentFailure(t *testing.T) {
 		recordFailedStep(id, db.DeploymentStepsStepBuilding, "some opaque depot build output")
 
 		d := get(id)
-		require.NotNil(t, d.Failure)
-		require.Equal(t, openapi.DeploymentFailureCodeBuildFailed, d.Failure.Code)
-		require.Equal(t, "building", d.Failure.Step)
+		require.NotNil(t, d.Error)
+		require.Equal(t, openapi.DeploymentErrorCodeBuildFailed, d.Error.Code)
+		require.Equal(t, "building", d.Error.Step)
 	})
+}
+
+// TestGetDeploymentRegionsAndDomains covers the region-name join and the
+// frontline-only domain query end to end, which the mapper unit tests cannot
+// because the enrichment is pure SQL.
+func TestGetDeploymentRegionsAndDomains(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        db.DeploymentsStatusReady,
+	})
+
+	var wantRegions []string
+	for range 2 {
+		regionID := uid.New(uid.RegionPrefix)
+		regionName := uid.New(uid.RegionPrefix)
+		wantRegions = append(wantRegions, regionName)
+		require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+			ID: regionID, Name: regionName, Platform: "aws",
+		}))
+		require.NoError(t, db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
+			WorkspaceID:            setup.Workspace.ID,
+			DeploymentID:           dep.ID,
+			RegionID:               regionID,
+			AutoscalingReplicasMin: 1,
+			AutoscalingReplicasMax: 1,
+			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
+			CreatedAt:              1,
+		}))
+	}
+	slices.Sort(wantRegions)
+
+	var wantDomains []string
+	for range 2 {
+		fqdn := uid.New(uid.DomainPrefix) + ".unkey.app"
+		wantDomains = append(wantDomains, fqdn)
+		require.NoError(t, db.Query.InsertFrontlineRoute(ctx, h.DB.RW(), db.InsertFrontlineRouteParams{
+			ID:                       uid.New(uid.FrontlineRoutePrefix),
+			ProjectID:                setup.Project.ID,
+			AppID:                    setup.App.ID,
+			DeploymentID:             dep.ID,
+			EnvironmentID:            setup.Environment.ID,
+			FullyQualifiedDomainName: fqdn,
+			Sticky:                   db.FrontlineRoutesStickyNone,
+			CreatedAt:                1,
+		}))
+	}
+	slices.Sort(wantDomains)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+
+	d := res.Body.Data
+	require.Equal(t, wantRegions, d.Regions)
+	require.NotNil(t, d.Domains)
+	require.Equal(t, wantDomains, *d.Domains)
 }
 
 func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {

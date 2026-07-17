@@ -5,7 +5,7 @@ required:
   - message
 properties:
   code:
-    "$ref": "./DeploymentFailureCode.yaml"
+    "$ref": "./DeploymentErrorCode.yaml"
   step:
     type: string
     description: |

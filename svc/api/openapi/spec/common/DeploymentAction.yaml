@@ -11,6 +11,6 @@ x-enum-varnames:
   - DeploymentActionStart
 description: |
   A lifecycle operation that can be performed on the deployment in its current
-  state, given its status, desiredState, environment, and whether it is the
-  current deployment.
+  state, given its status, environment, and whether it is the current
+  deployment.
 example: promote

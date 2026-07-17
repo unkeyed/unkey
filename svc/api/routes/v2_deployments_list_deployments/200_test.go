@@ -52,13 +52,13 @@ func TestListWorkspaceWide(t *testing.T) {
 		require.Equal(t, setup.Environment.ID, d.EnvironmentId)
 		require.Equal(t, setup.App.ID, d.AppId)
 		require.Equal(t, setup.Project.ID, d.ProjectId)
-		require.Equal(t, openapi.DeploymentDesiredStateRunning, d.DesiredState)
 		require.NotNil(t, d.AvailableActions)
+		require.Empty(t, d.Regions, "no topology seeded")
 		require.NotNil(t, d.Git)
 		require.Equal(t, "abc123", d.Git.CommitSha)
 
 		// get-only fields must be omitted from list items.
-		require.Nil(t, d.Failure, "listDeployments must not include failure")
+		require.Nil(t, d.Error, "listDeployments must not include error")
 		require.Nil(t, d.Domains, "listDeployments must not include domains")
 	}
 

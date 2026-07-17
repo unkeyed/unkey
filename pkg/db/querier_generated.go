@@ -2383,19 +2383,15 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
-	// Frontline routes are the hostnames a deployment serves. The left join to
-	// custom_domains classifies each as system (no match) or custom (match) and
-	// surfaces the custom domain's verification status.
+	// Frontline routes are the hostnames a deployment serves. Only these are
+	// returned; the custom_domains classification is deliberately skipped so the
+	// read stays a single index range scan on frontline_routes.deployment_id.
 	//
-	//  SELECT
-	//    r.fully_qualified_domain_name AS domain,
-	//    cd.verification_status AS custom_verification_status
+	//  SELECT r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  LEFT JOIN custom_domains cd
-	//    ON cd.domain = r.fully_qualified_domain_name
-	//    AND cd.workspace_id = ?
 	//  WHERE r.deployment_id = ?
-	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]ListDeploymentDomainsRow, error)
+	//  ORDER BY r.fully_qualified_domain_name
+	ListDeploymentDomains(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
 	// Batch form keyed by deployment id: fetches the same env/app state for a whole
 	// page of deployments in one query, so listDeployments avoids an N+1.
 	//
@@ -2409,6 +2405,25 @@ type Querier interface {
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentEnvAndAppStateRow, error)
+	// Region names a deployment is configured to run in. Reads the covering
+	// unique(deployment_id, region_id) key on deployment_topology, joined to
+	// regions for the human-readable name.
+	//
+	//  SELECT DISTINCT r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.deployment_id = ?
+	//  ORDER BY r.name
+	ListDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
+	// Batch form keyed by deployment id: fetches configured region names for a
+	// whole page of deployments in one query, so listDeployments avoids an N+1.
+	//
+	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY dt.deployment_id, r.name
+	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRegionsByIdsRow, error)
 	//ListDeploymentSteps
 	//
 	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps

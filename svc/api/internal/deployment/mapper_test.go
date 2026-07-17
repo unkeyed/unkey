@@ -23,13 +23,13 @@ func TestToResponseDetailedGating(t *testing.T) {
 		ProjectID:     "proj_1",
 	}
 
-	t.Run("list item omits failure and domains", func(t *testing.T) {
+	t.Run("list item omits error and domains", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: failedDep, Detailed: false})
-		require.Nil(t, got.Failure)
+		require.Nil(t, got.Error)
 		require.Nil(t, got.Domains)
 	})
 
-	t.Run("detailed failed deployment includes failure and empty domains", func(t *testing.T) {
+	t.Run("detailed failed deployment includes error and empty domains", func(t *testing.T) {
 		got := ToResponse(Input{
 			Deployment: failedDep,
 			Detailed:   true,
@@ -38,10 +38,27 @@ func TestToResponseDetailedGating(t *testing.T) {
 			},
 			Domains: nil,
 		})
-		require.NotNil(t, got.Failure)
-		require.Equal(t, openapi.DeploymentFailureCodeNoSchedulableRegions, got.Failure.Code)
+		require.NotNil(t, got.Error)
+		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, got.Error.Code)
 		require.NotNil(t, got.Domains)
 		require.Empty(t, *got.Domains)
+	})
+}
+
+// TestToResponseRegions guards the required regions field: it must marshal as a
+// present slice (never nil) and pass through the configured region names.
+func TestToResponseRegions(t *testing.T) {
+	dep := db.Deployment{ID: "d_KEBAP", Status: db.DeploymentsStatusReady}
+
+	t.Run("populated regions pass through", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: dep, Regions: []string{"us-east-1", "eu-west-1"}})
+		require.Equal(t, []string{"us-east-1", "eu-west-1"}, got.Regions)
+	})
+
+	t.Run("nil regions become an empty slice, not null", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: dep, Regions: nil})
+		require.NotNil(t, got.Regions)
+		require.Empty(t, got.Regions)
 	})
 }
 

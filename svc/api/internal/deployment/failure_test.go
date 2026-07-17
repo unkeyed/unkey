@@ -22,23 +22,23 @@ func TestClassifyFailure(t *testing.T) {
 		name    string
 		step    db.DeploymentStepsStep
 		message string
-		want    openapi.DeploymentFailureCode
+		want    openapi.DeploymentErrorCode
 	}{
-		{"build step ignores message", db.DeploymentStepsStepBuilding, "any opaque depot error", openapi.DeploymentFailureCodeBuildFailed},
-		{"build step even with empty message", db.DeploymentStepsStepBuilding, "", openapi.DeploymentFailureCodeBuildFailed},
-		{"regions", deploying, deployfail.MsgNoSchedulableRegions, openapi.DeploymentFailureCodeNoSchedulableRegions},
-		{"cpu quota", deploying, deployfail.MsgCPUQuotaExceeded, openapi.DeploymentFailureCodeCpuQuotaExceeded},
-		{"memory quota", deploying, deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentFailureCodeMemoryQuotaExceeded},
-		{"storage quota", deploying, deployfail.MsgStorageQuotaExceeded, openapi.DeploymentFailureCodeStorageQuotaExceeded},
-		{"port too low", starting, deployfail.MsgPortTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-		{"port too high", starting, deployfail.MsgPortTooHigh, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-		{"cpu too low", starting, deployfail.MsgCPUTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
-		{"memory too low", starting, deployfail.MsgMemoryTooLow, openapi.DeploymentFailureCodeInvalidRuntimeSettings},
+		{"build step ignores message", db.DeploymentStepsStepBuilding, "any opaque depot error", openapi.DeploymentErrorCodeBuildFailed},
+		{"build step even with empty message", db.DeploymentStepsStepBuilding, "", openapi.DeploymentErrorCodeBuildFailed},
+		{"regions", deploying, deployfail.MsgNoSchedulableRegions, openapi.DeploymentErrorCodeNoSchedulableRegions},
+		{"cpu quota", deploying, deployfail.MsgCPUQuotaExceeded, openapi.DeploymentErrorCodeCpuQuotaExceeded},
+		{"memory quota", deploying, deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentErrorCodeMemoryQuotaExceeded},
+		{"storage quota", deploying, deployfail.MsgStorageQuotaExceeded, openapi.DeploymentErrorCodeStorageQuotaExceeded},
+		{"port too low", starting, deployfail.MsgPortTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+		{"port too high", starting, deployfail.MsgPortTooHigh, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+		{"cpu too low", starting, deployfail.MsgCPUTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+		{"memory too low", starting, deployfail.MsgMemoryTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 		// UserFacingMessage joins public messages, so a match must survive being
 		// embedded in a longer string.
-		{"joined with wrapper", deploying, "Regional deployment targets could not be prepared. " + deployfail.MsgNoSchedulableRegions, openapi.DeploymentFailureCodeNoSchedulableRegions},
-		{"unclassified non-build", deploying, "Instances did not become healthy in time.", openapi.DeploymentFailureCodeUnknown},
-		{"empty non-build", deploying, "", openapi.DeploymentFailureCodeUnknown},
+		{"joined with wrapper", deploying, "Regional deployment targets could not be prepared. " + deployfail.MsgNoSchedulableRegions, openapi.DeploymentErrorCodeNoSchedulableRegions},
+		{"unclassified non-build", deploying, "Instances did not become healthy in time.", openapi.DeploymentErrorCodeUnknown},
+		{"empty non-build", deploying, "", openapi.DeploymentErrorCodeUnknown},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestDeriveFailure(t *testing.T) {
 	t.Run("failed with no recorded error falls back to unknown", func(t *testing.T) {
 		f := deriveFailure(db.DeploymentsStatusFailed, nil)
 		require.NotNil(t, f)
-		require.Equal(t, openapi.DeploymentFailureCodeUnknown, f.Code)
+		require.Equal(t, openapi.DeploymentErrorCodeUnknown, f.Code)
 		require.NotEmpty(t, f.Message)
 	})
 
@@ -66,7 +66,7 @@ func TestDeriveFailure(t *testing.T) {
 		}
 		f := deriveFailure(db.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
-		require.Equal(t, openapi.DeploymentFailureCodeBuildFailed, f.Code)
+		require.Equal(t, openapi.DeploymentErrorCodeBuildFailed, f.Code)
 		require.Equal(t, "building", f.Step)
 	})
 
@@ -76,7 +76,7 @@ func TestDeriveFailure(t *testing.T) {
 		}
 		f := deriveFailure(db.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
-		require.Equal(t, openapi.DeploymentFailureCodeNoSchedulableRegions, f.Code)
+		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, f.Code)
 		require.Equal(t, "deploying", f.Step)
 	})
 }

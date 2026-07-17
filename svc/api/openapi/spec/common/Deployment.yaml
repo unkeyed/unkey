@@ -2,12 +2,12 @@ type: object
 required:
   - id
   - status
-  - desiredState
   - isCurrent
   - environmentId
   - appId
   - projectId
   - availableActions
+  - regions
   - runtime
   - createdAt
 properties:
@@ -18,8 +18,6 @@ properties:
     example: d_1234abcd
   status:
     "$ref": "./DeploymentStatus.yaml"
-  desiredState:
-    "$ref": "./DeploymentDesiredState.yaml"
   isCurrent:
     type: boolean
     description: |
@@ -55,17 +53,27 @@ properties:
       Lifecycle operations that are legal to call on this deployment right now.
       Empty when none apply (e.g. while building or in a terminal state).
     example: ["stop"]
-  failure:
-    "$ref": "./DeploymentFailure.yaml"
+  regions:
+    type: array
+    items:
+      type: string
+    description: |
+      Regions this deployment is configured to run in. Empty while the deployment
+      has no scheduled regions yet.
+    example: ["us-east-1", "eu-west-1"]
+  error:
+    "$ref": "./DeploymentError.yaml"
     description: |
       Why the deployment failed. Present only when `status` is `failed`, and only
       returned by getDeployment.
   domains:
     type: array
     items:
-      "$ref": "./DeploymentDomain.yaml"
+      type: string
     description: |
-      Hostnames this deployment is reachable at. Only returned by getDeployment.
+      Frontline hostnames this deployment is reachable at. Only returned by
+      getDeployment.
+    example: ["kebap-app.unkey.app"]
   runtime:
     "$ref": "./DeploymentRuntime.yaml"
   createdAt:

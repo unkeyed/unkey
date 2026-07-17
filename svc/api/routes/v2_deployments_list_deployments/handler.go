@@ -176,6 +176,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for _, r := range state {
 			byID[r.DeploymentID] = r
 		}
+
+		regionRows, err := db.Query.ListDeploymentRegionsByIds(ctx, h.DB.RO(), ids)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployments."),
+			)
+		}
+		regionsByID := make(map[string][]string, len(rows))
+		for _, rr := range regionRows {
+			regionsByID[rr.DeploymentID] = append(regionsByID[rr.DeploymentID], rr.Region)
+		}
+
 		for i, row := range rows {
 			r := byID[row.ID]
 			data[i] = deployment.ToResponse(deployment.Input{
@@ -183,7 +198,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				EnvironmentSlug:        r.EnvironmentSlug,
 				AppCurrentDeploymentID: r.AppCurrentDeploymentID.String,
 				AppIsRolledBack:        r.AppIsRolledBack,
-				// list is not detailed: failure and domains are getDeployment-only.
+				Regions:                regionsByID[row.ID],
+				// list is not detailed: error and domains are getDeployment-only.
 				Detailed: false,
 				Steps:    nil,
 				Domains:  nil,
