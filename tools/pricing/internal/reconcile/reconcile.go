@@ -254,6 +254,14 @@ func (r *reconciler) ensureAPIProduct(a pricing.APIProduct) error {
 // ── Webhooks ─────────────────────────────────────────────────────────────────
 
 func (r *reconciler) ensureWebhook(w pricing.Webhook) error {
+	// The delivery URL may carry the Vercel bypass secret; change lines and
+	// errors only ever show the base URL so the secret stays out of terminal
+	// output and CI logs.
+	deliveryURL, err := w.DeliveryURL(r.sc.VercelBypass)
+	if err != nil {
+		return err
+	}
+
 	existing := r.webhookByURL(w.URL)
 	if existing == nil {
 		r.result.add(Change{ActionCreate, "webhook", w.Key, w.URL})
@@ -261,7 +269,7 @@ func (r *reconciler) ensureWebhook(w pricing.Webhook) error {
 			return nil
 		}
 		created, err := r.sc.V1WebhookEndpoints.Create(r.ctx, &stripe.WebhookEndpointCreateParams{
-			URL:           stripe.String(w.URL),
+			URL:           stripe.String(deliveryURL),
 			EnabledEvents: stripe.StringSlice(w.EnabledEvents),
 			Description:   stripe.String(w.Description),
 		})
@@ -274,15 +282,26 @@ func (r *reconciler) ensureWebhook(w pricing.Webhook) error {
 		return nil
 	}
 
-	if sameStringSet(existing.EnabledEvents, w.EnabledEvents) {
+	// The URL differs when the bypass parameter is missing, stale, or no longer
+	// wanted. Updating the matched endpoint in place keeps its signing secret,
+	// so the app's STRIPE_WEBHOOK_SECRET stays valid.
+	var fields []string
+	if existing.URL != deliveryURL {
+		fields = append(fields, "url")
+	}
+	if !sameStringSet(existing.EnabledEvents, w.EnabledEvents) {
+		fields = append(fields, "enabled_events")
+	}
+	if len(fields) == 0 {
 		r.result.add(Change{ActionNoop, "webhook", w.Key, w.URL})
 		return nil
 	}
-	r.result.add(Change{ActionUpdate, "webhook", w.Key, "enabled_events"})
+	r.result.add(Change{ActionUpdate, "webhook", w.Key, strings.Join(fields, ", ")})
 	if !r.apply {
 		return nil
 	}
-	_, err := r.sc.V1WebhookEndpoints.Update(r.ctx, existing.ID, &stripe.WebhookEndpointUpdateParams{
+	_, err = r.sc.V1WebhookEndpoints.Update(r.ctx, existing.ID, &stripe.WebhookEndpointUpdateParams{
+		URL:           stripe.String(deliveryURL),
 		EnabledEvents: stripe.StringSlice(w.EnabledEvents),
 		Description:   stripe.String(w.Description),
 	})
