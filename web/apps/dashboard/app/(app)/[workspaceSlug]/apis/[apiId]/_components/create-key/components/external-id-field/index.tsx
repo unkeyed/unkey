@@ -7,7 +7,7 @@ import type { Identity } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
 
 type ExternalIdFieldProps = {
@@ -36,28 +36,21 @@ export const ExternalIdField = ({
   const externalIdError = externalIdValidation.success
     ? undefined
     : externalIdValidation.error.issues.at(0)?.message;
-  const deferredSearch = useDeferredValue(trimmedSearchValue);
   const { identities, isFetchingNextPage, hasNextPage, fetchNextPage, isLoading } = useIdentities({
+    search: trimmedSearchValue || undefined,
     onError: (error) => {
-      toast.error("Failed to Load Identities", {
-        description: getErrorMessage(error, "We were unable to load identities. Please try again."),
-      });
-    },
-  });
-  const { identities: searchResults, isLoading: isSearchLoading } = useIdentities({
-    search: deferredSearch,
-    enabled: deferredSearch.length > 0,
-    onError: (error) => {
-      toast.error("Failed to Search Identities", {
+      const isSearch = trimmedSearchValue.length > 0;
+      toast.error(isSearch ? "Failed to Search Identities" : "Failed to Load Identities", {
         description: getErrorMessage(
           error,
-          "We were unable to search identities. Please try again.",
+          isSearch
+            ? "We were unable to search identities. Please try again."
+            : "We were unable to load identities. Please try again.",
         ),
       });
     },
   });
-  const isSearching =
-    trimmedSearchValue !== deferredSearch || (deferredSearch.length > 0 && isSearchLoading);
+  const isSearching = trimmedSearchValue.length > 0 && isLoading;
   const loadMore = () => {
     fetchNextPage().catch((error: unknown) => {
       console.error("Failed to load more identities", error);
@@ -69,34 +62,17 @@ export const ExternalIdField = ({
     onChange(data.identityId, data.externalId);
   });
 
-  // Combine loaded identities with search results, prioritizing search when available
-  const allIdentities = useMemo(() => {
-    if (trimmedSearchValue && searchResults.length > 0) {
-      // When searching, use search results
-      return searchResults;
-    }
-    if (trimmedSearchValue && searchResults.length === 0 && !isSearching) {
-      // No search results found, filter from loaded identities as fallback
-      const searchTerm = trimmedSearchValue.toLowerCase();
-      return identities.filter((identity) =>
-        identity.externalId.toLowerCase().includes(searchTerm),
-      );
-    }
-    // No search query, use all loaded identities
-    return identities;
-  }, [identities, searchResults, trimmedSearchValue, isSearching]);
-
   // Ensure current identity is always available in the options
   const allIdentitiesWithCurrent = useMemo(() => {
     if (!currentIdentity || !value) {
-      return allIdentities;
+      return identities;
     }
 
     // Check if current identity is already in the list
-    const currentExists = allIdentities.some((identity) => identity.id === currentIdentity.id);
+    const currentExists = identities.some((identity) => identity.id === currentIdentity.id);
 
     if (currentExists) {
-      return allIdentities;
+      return identities;
     }
 
     return [
@@ -105,9 +81,9 @@ export const ExternalIdField = ({
         externalId: currentIdentity.externalId,
         meta: currentIdentity.meta || {},
       },
-      ...allIdentities,
+      ...identities,
     ];
-  }, [allIdentities, currentIdentity, value]);
+  }, [identities, currentIdentity, value]);
 
   const selectedExternalId = useMemo(() => {
     if (!value) {
@@ -167,7 +143,7 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
-  const isComboboxLoading = isLoading || (isSearching && trimmedSearchValue.length > 0);
+  const isComboboxLoading = isLoading;
 
   return (
     <FormCombobox
