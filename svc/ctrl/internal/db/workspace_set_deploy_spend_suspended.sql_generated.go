@@ -11,10 +11,10 @@ import (
 )
 
 const setWorkspaceDeploySpendSuspended = `-- name: SetWorkspaceDeploySpendSuspended :exec
-UPDATE ` + "`" + `workspaces` + "`" + `
-SET deploy_spend_suspended = ?,
+UPDATE ` + "`" + `workspace_billing` + "`" + `
+SET spend_suspended = ?,
     updated_at_m = ?
-WHERE id = ?
+WHERE workspace_id = ?
 `
 
 type SetWorkspaceDeploySpendSuspendedParams struct {
@@ -28,10 +28,10 @@ type SetWorkspaceDeploySpendSuspendedParams struct {
 // (to keep checking a suspended workspace even after its budget is removed) and
 // the dashboard (to show a suspended state).
 //
-//	UPDATE `workspaces`
-//	SET deploy_spend_suspended = ?,
+//	UPDATE `workspace_billing`
+//	SET spend_suspended = ?,
 //	    updated_at_m = ?
-//	WHERE id = ?
+//	WHERE workspace_id = ?
 func (q *Queries) SetWorkspaceDeploySpendSuspended(ctx context.Context, arg SetWorkspaceDeploySpendSuspendedParams) error {
 	_, err := q.db.ExecContext(ctx, setWorkspaceDeploySpendSuspended, arg.Suspended, arg.UpdatedAt, arg.ID)
 	return err

@@ -135,9 +135,9 @@ func (h *Handler) Handle(
 		// past it). Only the check decides resume; the guards below just gate
 		// which quiet workspaces are worth an invocation, and a suspended one
 		// never is quiet.
-		suspended := ws.DeploySpendSuspended
+		suspended := ws.SpendSuspended.Bool
 
-		if !ws.DeploySpendBudgetCents.Valid && !suspended {
+		if !ws.SpendBudgetCents.Valid && !suspended {
 			continue // query filters these out; guard against a future query change
 		}
 
@@ -150,7 +150,7 @@ func (h *Handler) Handle(
 		// skip the invocation entirely. At or past it, the check owns the
 		// decision: its high-water mark decides whether an email is actually
 		// due, so re-dispatching an already-alerted workspace is a cheap no-op.
-		if !suspended && crossedThreshold(gross, ws.DeploySpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
+		if !suspended && crossedThreshold(gross, ws.SpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
 			skippedBelowThreshold++
 			continue
 		}
@@ -164,13 +164,13 @@ func (h *Handler) Handle(
 			CheckWorkspaceSpend().
 			RequestFuture(&hydrav1.CheckWorkspaceSpendRequest{
 				Period:             period,
-				BudgetCents:        ws.DeploySpendBudgetCents.Int64,
-				Stop:               ws.DeploySpendBudgetStop,
+				BudgetCents:        ws.SpendBudgetCents.Int64,
+				Stop:               ws.SpendBudgetStop.Bool,
 				OrgId:              ws.OrgID,
 				WorkspaceName:      ws.Name,
 				WorkspaceSlug:      ws.Slug,
 				SpendMicroCents:    gross,
-				CurrentlySuspended: ws.DeploySpendSuspended,
+				CurrentlySuspended: ws.SpendSuspended.Bool,
 			}))
 		checkWorkspaceIDs = append(checkWorkspaceIDs, ws.ID)
 		dispatched++

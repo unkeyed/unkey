@@ -16,23 +16,24 @@ SELECT
    w.name,
    w.slug,
    w.org_id,
-   w.deploy_spend_budget_cents,
-   w.deploy_spend_budget_stop,
-   w.deploy_spend_suspended
+   b.spend_budget_cents,
+   b.spend_budget_stop,
+   b.spend_suspended
 FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE (w.deploy_spend_budget_cents IS NOT NULL OR w.deploy_spend_suspended = TRUE)
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
   AND w.enabled = true
   AND w.deleted_at_m IS NULL
 `
 
 type ListWorkspacesWithDeployBudgetRow struct {
-	ID                     string        `db:"id"`
-	Name                   string        `db:"name"`
-	Slug                   string        `db:"slug"`
-	OrgID                  string        `db:"org_id"`
-	DeploySpendBudgetCents sql.NullInt64 `db:"deploy_spend_budget_cents"`
-	DeploySpendBudgetStop  bool          `db:"deploy_spend_budget_stop"`
-	DeploySpendSuspended   bool          `db:"deploy_spend_suspended"`
+	ID               string        `db:"id"`
+	Name             string        `db:"name"`
+	Slug             string        `db:"slug"`
+	OrgID            string        `db:"org_id"`
+	SpendBudgetCents sql.NullInt64 `db:"spend_budget_cents"`
+	SpendBudgetStop  sql.NullBool  `db:"spend_budget_stop"`
+	SpendSuspended   sql.NullBool  `db:"spend_suspended"`
 }
 
 // Lists every enabled workspace that has set a Deploy spend budget, plus any
@@ -51,11 +52,12 @@ type ListWorkspacesWithDeployBudgetRow struct {
 //	   w.name,
 //	   w.slug,
 //	   w.org_id,
-//	   w.deploy_spend_budget_cents,
-//	   w.deploy_spend_budget_stop,
-//	   w.deploy_spend_suspended
+//	   b.spend_budget_cents,
+//	   b.spend_budget_stop,
+//	   b.spend_suspended
 //	FROM `workspaces` w
-//	WHERE (w.deploy_spend_budget_cents IS NOT NULL OR w.deploy_spend_suspended = TRUE)
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
 //	  AND w.enabled = true
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error) {
@@ -72,9 +74,9 @@ func (q *Queries) ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWor
 			&i.Name,
 			&i.Slug,
 			&i.OrgID,
-			&i.DeploySpendBudgetCents,
-			&i.DeploySpendBudgetStop,
-			&i.DeploySpendSuspended,
+			&i.SpendBudgetCents,
+			&i.SpendBudgetStop,
+			&i.SpendSuspended,
 		); err != nil {
 			return nil, err
 		}

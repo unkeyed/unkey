@@ -51,12 +51,12 @@ export const setDeployBudget = workspaceProcedure
     }
 
     await db
-      .update(schema.workspaces)
+      .update(schema.workspaceBilling)
       .set({
-        deploySpendBudgetCents: input.budgetCents,
-        deploySpendBudgetStop: input.stopAtBudget,
+        spendBudgetCents: input.budgetCents,
+        spendBudgetStop: input.stopAtBudget,
       })
-      .where(eq(schema.workspaces.id, ctx.workspace.id));
+      .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
     await insertAuditLogs(db, {
       workspaceId: ctx.workspace.id,

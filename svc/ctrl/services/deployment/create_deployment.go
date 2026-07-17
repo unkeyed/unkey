@@ -103,7 +103,7 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to load workspace entitlement: %w", err))
 	}
-	if !deployEntitled(entitlement.DeployPlan, entitlement.DeployPlanOverride) {
+	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
 		if s.enforceDeployGate {
 			return nil, connect.NewError(
 				connect.CodeFailedPrecondition,
@@ -132,7 +132,7 @@ func (s *Service) CreateDeployment(
 		trigger:        triggerFromProto(req.Msg.GetTrigger()),
 		triggeredBy:    req.Msg.GetTriggeredBy(),
 		triggerReason:  req.Msg.GetTriggerReason(),
-		spendSuspended: entitlement.DeploySpendSuspended,
+		spendSuspended: entitlement.SpendSuspended.Bool,
 	})
 	if err != nil {
 		return nil, err

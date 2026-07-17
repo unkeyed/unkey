@@ -557,7 +557,9 @@
                   {
                     "group": "Capacity",
                     "pages": [
-                      "errors/frontline/capacity/no_running_instances"
+                      "errors/frontline/capacity/deployment_offline",
+                      "errors/frontline/capacity/no_running_instances",
+                      "errors/frontline/capacity/spend_limit_reached"
                     ]
                   },
                   {

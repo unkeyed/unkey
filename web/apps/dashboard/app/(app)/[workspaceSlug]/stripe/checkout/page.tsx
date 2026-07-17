@@ -57,10 +57,13 @@ export default async function StripeRedirect(props: {
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    with: { billing: true },
   });
   if (!ws) {
     return redirect(routes.workspaces.create());
   }
+
+  const stripeSubscriptionId = ws.billing?.stripeSubscriptionId;
 
   let stripe: Stripe;
   try {
@@ -115,13 +118,13 @@ export default async function StripeRedirect(props: {
   // or a mid-month cancel could never resubscribe. deployBillingConfig returns
   // null when Compute billing is unconfigured, which also falls back.
   let hasLiveSubscription = false;
-  if (intent === "deploy" && plan && ws.stripeSubscriptionId) {
+  if (intent === "deploy" && plan && stripeSubscriptionId) {
     // A recorded subscription that no longer exists on Stripe is the same
     // "dead recorded subscription counts as absent" case, not a 500; mirrors
     // linkDeploySubscription. Anything else propagates — a transient failure
     // must not silently downgrade a live subscription to "absent".
     const recorded = await stripe.subscriptions
-      .retrieve(ws.stripeSubscriptionId)
+      .retrieve(stripeSubscriptionId)
       .catch((err: unknown) => {
         if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
           return null;

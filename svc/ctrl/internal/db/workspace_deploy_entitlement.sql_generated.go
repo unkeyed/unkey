@@ -12,17 +12,18 @@ import (
 
 const findWorkspaceDeployEntitlement = `-- name: FindWorkspaceDeployEntitlement :one
 SELECT
-   w.deploy_plan,
-   w.deploy_plan_override,
-   w.deploy_spend_suspended
+   b.plan,
+   b.plan_override,
+   b.spend_suspended
 FROM ` + "`" + `workspaces` + "`" + ` w
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
 WHERE w.id = ?
 `
 
 type FindWorkspaceDeployEntitlementRow struct {
-	DeployPlan           sql.NullString `db:"deploy_plan"`
-	DeployPlanOverride   sql.NullString `db:"deploy_plan_override"`
-	DeploySpendSuspended bool           `db:"deploy_spend_suspended"`
+	Plan           sql.NullString `db:"plan"`
+	PlanOverride   sql.NullString `db:"plan_override"`
+	SpendSuspended sql.NullBool   `db:"spend_suspended"`
 }
 
 // Reads the Unkey Deploy entitlement signals for the project- and
@@ -36,14 +37,15 @@ type FindWorkspaceDeployEntitlementRow struct {
 // column ordering.
 //
 //	SELECT
-//	   w.deploy_plan,
-//	   w.deploy_plan_override,
-//	   w.deploy_spend_suspended
+//	   b.plan,
+//	   b.plan_override,
+//	   b.spend_suspended
 //	FROM `workspaces` w
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id = ?
 func (q *Queries) FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error) {
 	row := q.db.QueryRowContext(ctx, findWorkspaceDeployEntitlement, id)
 	var i FindWorkspaceDeployEntitlementRow
-	err := row.Scan(&i.DeployPlan, &i.DeployPlanOverride, &i.DeploySpendSuspended)
+	err := row.Scan(&i.Plan, &i.PlanOverride, &i.SpendSuspended)
 	return i, err
 }

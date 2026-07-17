@@ -62,7 +62,7 @@ export const subscribeDeploy = workspaceProcedure
     // branch runs. Written optimistically so the UI reflects the new plan now;
     // the customer.subscription.* webhook reconciles them (a no-op, since it
     // derives the same value from the subscription we just mutated).
-    let workspaceUpdate: { deployPlan: string; stripeSubscriptionId?: string };
+    let workspaceUpdate: { plan: string; stripeSubscriptionId?: string };
 
     // The recorded subscription can be a corpse (cancelDeploy cancels a
     // Compute-only subscription outright, and the deleted-webhook that clears
@@ -83,43 +83,62 @@ export const subscribeDeploy = workspaceProcedure
       // Items not listed here are left untouched, so API items are preserved.
       const sub = existingSub;
 
-      // A plan-fee item means the workspace is actually subscribed; the
-      // deployPlan guard above should have caught this, so it is a state
-      // mismatch to resolve, not something to double-attach onto.
-      if (findPlanFeeItem(config, sub.items.data)) {
+      const planFeeItem = findPlanFeeItem(config, sub.items.data);
+
+      // A plan-fee item on a subscription that is NOT cancelling means the
+      // workspace is actually subscribed; the deployPlan guard above should have
+      // caught it, so it is a state mismatch, not something to double-attach
+      // onto. A plan-fee item on a subscription set to cancel at period end is
+      // the leftover of a Deploy-only cancel this period, which re-subscribing
+      // resumes rather than rejecting.
+      if (planFeeItem && !sub.cancel_at_period_end) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: "Workspace already has a Compute plan fee on its subscription.",
         });
       }
 
-      // Metered items without a plan fee are the expected leftover of a
-      // mixed-subscription cancel, which keeps them so the frozen usage bills
-      // at the period boundary. Re-subscribing reuses them: attach only the
-      // missing items (the plan fee, plus any metered price not present).
-      // Rejecting here instead would permanently strand such a workspace,
-      // since nothing else ever removes those items.
+      // Build the item set to attach without stranding a workspace whose cancel
+      // left items behind. A Deploy-only cancel sets cancel_at_period_end and
+      // keeps every item, so point the existing plan-fee item at the chosen
+      // tier. A mixed cancel drops the plan fee but keeps the metered items, so
+      // add the plan fee back. Either way, only add metered prices not already
+      // present so they are never duplicated.
       const existingPriceIds = new Set(
         findDeployItems(config, sub.items.data).map((item) => item.priceId),
       );
-      const itemsToAttach = items.filter((item) => !existingPriceIds.has(item.price));
+      const itemsToAttach: Stripe.SubscriptionUpdateParams.Item[] = [
+        planFeeItem
+          ? { id: planFeeItem.id, price: config.planFeePriceIds[input.plan] }
+          : { price: config.planFeePriceIds[input.plan] },
+        ...config.meteredPriceIds
+          .filter((price) => !existingPriceIds.has(price))
+          .map((price) => ({ price })),
+      ];
 
-      // Deploy items only attach to a subscription that will actually keep
-      // billing them; reject anything else here instead of letting Stripe
-      // attach to a subscription that ends at the period roll.
-      assertSubscriptionAttachable(sub);
+      // Resuming a subscription that was cancelling this period just clears the
+      // pending cancellation. A fresh attach onto another subscription (e.g. a
+      // paid API plan) must first be attachable, so we don't attach Deploy items
+      // to something that ends at the period roll.
+      const resuming = sub.cancel_at_period_end;
+      if (!resuming) {
+        assertSubscriptionAttachable(sub);
+      }
 
       try {
         await stripe.subscriptions.update(sub.id, {
+          cancel_at_period_end: false,
           items: itemsToAttach,
-          proration_behavior: "always_invoice",
+          // Resuming keeps the plan fee already paid this period (cancel never
+          // refunded it), so it must not invoice again; a fresh attach bills it.
+          proration_behavior: resuming ? "none" : "always_invoice",
           payment_behavior: "error_if_incomplete",
         });
       } catch (err) {
         throw toBillingError(err);
       }
 
-      workspaceUpdate = { deployPlan: input.plan };
+      workspaceUpdate = { plan: input.plan };
     } else {
       // Free tier: create a subscription whose initial items are the Deploy set.
       // error_if_incomplete keeps us off a half-paid state if the card declines.
@@ -210,16 +229,16 @@ export const subscribeDeploy = workspaceProcedure
 
       // Link the new subscription so the customer.subscription.* webhook can
       // resolve this workspace.
-      workspaceUpdate = { stripeSubscriptionId: sub.id, deployPlan: input.plan };
+      workspaceUpdate = { stripeSubscriptionId: sub.id, plan: input.plan };
     }
 
     // One transaction so the plan write and its audit log commit together; a
     // failure in either rolls back the other.
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
+        .update(schema.workspaceBilling)
         .set(workspaceUpdate)
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },

@@ -6,7 +6,8 @@
 -- so a single lookup by id is fine. Explicit columns (not SELECT *) so the read
 -- is insensitive to workspace column ordering.
 SELECT
-   w.deploy_plan,
-   w.deploy_plan_override
+   b.plan,
+   b.plan_override
 FROM `workspaces` w
+LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 WHERE w.id = sqlc.arg(id);

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Chainable db mock: transaction(cb) runs cb with a tx whose
-// update().set().where() resolves. findFirst returns the workspace row.
+// update().set().where() resolves. findFirst returns the workspace row (with
+// its `billing` relation, since the linker reads and writes workspace_billing).
 const h = vi.hoisted(() => {
   const where = vi.fn().mockResolvedValue(undefined);
   const set = vi.fn().mockReturnValue({ where });
@@ -15,7 +16,7 @@ const h = vi.hoisted(() => {
 vi.mock("@/lib/db", () => ({
   db: { query: { workspaces: { findFirst: h.findFirst } }, transaction: h.transaction },
   eq: vi.fn(),
-  schema: { workspaces: { id: {} } },
+  schema: { workspaces: { id: {} }, workspaceBilling: { workspaceId: {} } },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
 
@@ -190,8 +191,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: null,
-      deployPlan: null,
+      billing: { stripeSubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({});
     const result = await linkDeploySubscription(stripe, {
@@ -204,7 +204,7 @@ describe("linkDeploySubscription", () => {
     expect(h.set).toHaveBeenCalledWith({
       stripeCustomerId: "cus_1",
       stripeSubscriptionId: "sub_1",
-      deployPlan: "starter",
+      plan: "starter",
     });
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
@@ -213,8 +213,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: "sub_1",
-      deployPlan: "starter",
+      billing: { stripeSubscriptionId: "sub_1", plan: "starter" },
     });
     const stripe = stubStripe({});
     const result = await linkDeploySubscription(stripe, {
@@ -230,8 +229,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: "sub_other",
-      deployPlan: "pro",
+      billing: { stripeSubscriptionId: "sub_other", plan: "pro" },
     });
     // The default stub returns an active subscription for any id, so the
     // recorded sub_other reads as live.
@@ -249,8 +247,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: "sub_dead",
-      deployPlan: null,
+      billing: { stripeSubscriptionId: "sub_dead", plan: null },
     });
     const stripe = stubStripe({
       subsById: { sub_dead: subscription({ id: "sub_dead", status: "canceled" }) },
@@ -264,7 +261,7 @@ describe("linkDeploySubscription", () => {
     expect(h.set).toHaveBeenCalledWith({
       stripeCustomerId: "cus_1",
       stripeSubscriptionId: "sub_1",
-      deployPlan: "starter",
+      plan: "starter",
     });
   });
 
@@ -272,8 +269,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: null,
-      deployPlan: null,
+      billing: { stripeSubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({
       sub: subscription({ default_payment_method: "pm_1" } as Partial<Stripe.Subscription>),
@@ -293,8 +289,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: null,
-      deployPlan: null,
+      billing: { stripeSubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({
       sub: subscription({ default_payment_method: "pm_1" } as Partial<Stripe.Subscription>),
@@ -317,8 +312,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      stripeSubscriptionId: "sub_gone",
-      deployPlan: null,
+      billing: { stripeSubscriptionId: "sub_gone", plan: null },
     });
     const stripe = stubStripe({ subsById: { sub_gone: RESOURCE_MISSING } });
     const result = await linkDeploySubscription(stripe, {
