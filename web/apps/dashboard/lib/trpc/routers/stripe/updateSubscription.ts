@@ -8,6 +8,7 @@ import {
   findApiItem,
 } from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import { getApiCancelSchedule, isPendingSchedule } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -86,6 +87,24 @@ export const updateSubscription = workspaceProcedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message: `Could not find subscription ${ctx.workspace.stripeSubscriptionId}.`,
+      });
+    }
+
+    // A mixed-subscription API cancel is a schedule whose next phase snapshots the
+    // CURRENT items (see cancelSubscription), not a cancel_at_period_end. Repricing
+    // the API item under it is rejected (Stripe forbids item-level edits on a
+    // scheduled subscription) or reverted at the boundary, and the cancel_at
+    // un-cancel below never fires because schedule cancels leave cancel_at unset,
+    // so the pending cancellation survives an apparent plan switch. Refuse rather
+    // than silently release the schedule (that would resume an API plan the user
+    // explicitly scheduled to cancel as a side effect of a plan change). The
+    // resume action releases the schedule cleanly first.
+    const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
+    if (apiCancelSchedule && isPendingSchedule(apiCancelSchedule)) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Your plan is scheduled to cancel at the end of this period. Resume it before switching plans.",
       });
     }
 

@@ -1,5 +1,5 @@
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findDeployItems } from "@/lib/stripe/deployBilling";
+import { deployBillingConfig, findDeployItems, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { createApiCancelSchedule, getApiCancelSchedule } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
@@ -79,6 +79,22 @@ export const cancelSubscription = workspaceProcedure
         message:
           "This subscription is managed by a billing schedule. Contact support@unkey.com to cancel.",
       });
+    }
+
+    // The Deploy items still on a mixed subscription are usually the plan fee
+    // plus its metered prices. If the plan fee is already gone (Compute was
+    // cancelled earlier this period, which drops the fee and keeps only the
+    // metered items), there is no live Compute to carry past the boundary: a
+    // Compute-only phase would just renew empty metered items forever as a $0
+    // zombie subscription. Both products are effectively cancelled, so cancel the
+    // whole subscription at period end instead. No schedule exists here (the
+    // sub.schedule branch above returned), so cancel_at_period_end is safe.
+    const planFeeItem = findPlanFeeItem(config, sub.items.data);
+    if (!planFeeItem) {
+      await stripe.subscriptions.update(ctx.workspace.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+      return;
     }
 
     const deployItemIds = new Set(deployItems.map((item) => item.id));
