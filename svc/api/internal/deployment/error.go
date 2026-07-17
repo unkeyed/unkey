@@ -8,9 +8,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// deriveFailure builds the structured failure for a failed deployment from its
+// deriveError builds the structured failure for a failed deployment from its
 // recorded steps. Returns nil for any non-failed status.
-func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentError {
+func deriveError(status db.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentError {
 	if status != db.DeploymentsStatusFailed {
 		return nil
 	}
@@ -33,23 +33,23 @@ func deriveFailure(status db.DeploymentsStatus, steps []db.DeploymentStep) *open
 	}
 
 	return &openapi.DeploymentError{
-		Code:    classifyFailure(failed.Step, failed.Error.String),
+		Code:    classifyError(failed.Step, failed.Error.String),
 		Step:    string(failed.Step),
 		Message: failed.Error.String,
 	}
 }
 
-// classifyFailure maps a failed step to a stable code. A failure in the build
+// classifyError maps a failed step to a stable code. A failure in the build
 // step is always a build failure, classified by step because the worker's build
 // error message is rewritten across the Restate boundary and is not stable to
 // match on. Other steps are classified by their stored message, which matches
 // the shared deployfail constants the worker writes so the two sides cannot
 // drift. First contained match wins.
-func classifyFailure(step db.DeploymentStepsStep, message string) openapi.DeploymentErrorCode {
+func classifyError(step db.DeploymentStepsStep, message string) openapi.DeploymentErrorCode {
 	if step == db.DeploymentStepsStepBuilding {
 		return openapi.DeploymentErrorCodeBuildFailed
 	}
-	for _, rule := range failureRules {
+	for _, rule := range errorRules {
 		if strings.Contains(message, rule.substr) {
 			return rule.code
 		}
@@ -57,7 +57,7 @@ func classifyFailure(step db.DeploymentStepsStep, message string) openapi.Deploy
 	return openapi.DeploymentErrorCodeUnknown
 }
 
-var failureRules = []struct {
+var errorRules = []struct {
 	substr string
 	code   openapi.DeploymentErrorCode
 }{

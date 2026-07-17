@@ -42,19 +42,19 @@ func TestClassifyFailure(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, classifyFailure(tc.step, tc.message))
+			require.Equal(t, tc.want, classifyError(tc.step, tc.message))
 		})
 	}
 }
 
 func TestDeriveFailure(t *testing.T) {
 	t.Run("non-failed status returns nil", func(t *testing.T) {
-		require.Nil(t, deriveFailure(db.DeploymentsStatusReady, nil))
-		require.Nil(t, deriveFailure(db.DeploymentsStatusBuilding, nil))
+		require.Nil(t, deriveError(db.DeploymentsStatusReady, nil))
+		require.Nil(t, deriveError(db.DeploymentsStatusBuilding, nil))
 	})
 
 	t.Run("failed with no recorded error falls back to unknown", func(t *testing.T) {
-		f := deriveFailure(db.DeploymentsStatusFailed, nil)
+		f := deriveError(db.DeploymentsStatusFailed, nil)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeUnknown, f.Code)
 		require.NotEmpty(t, f.Message)
@@ -64,7 +64,7 @@ func TestDeriveFailure(t *testing.T) {
 		steps := []db.DeploymentStep{
 			{Step: db.DeploymentStepsStepBuilding, Error: sql.NullString{Valid: true, String: "opaque depot build output"}},
 		}
-		f := deriveFailure(db.DeploymentsStatusFailed, steps)
+		f := deriveError(db.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeBuildFailed, f.Code)
 		require.Equal(t, "building", f.Step)
@@ -74,7 +74,7 @@ func TestDeriveFailure(t *testing.T) {
 		steps := []db.DeploymentStep{
 			{Step: db.DeploymentStepsStepDeploying, Error: sql.NullString{Valid: true, String: deployfail.MsgNoSchedulableRegions}},
 		}
-		f := deriveFailure(db.DeploymentsStatusFailed, steps)
+		f := deriveError(db.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, f.Code)
 		require.Equal(t, "deploying", f.Step)

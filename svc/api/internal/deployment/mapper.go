@@ -112,7 +112,7 @@ func ToResponse(in Input) openapi.Deployment {
 	// step and route queries that listDeployments skips, so gate on Detailed
 	// rather than on whether the slices happen to be nil.
 	if in.Detailed {
-		if failure := deriveFailure(d.Status, in.Steps); failure != nil {
+		if failure := deriveError(d.Status, in.Steps); failure != nil {
 			dep.Error = failure
 		}
 		domains := in.Domains

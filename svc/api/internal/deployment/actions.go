@@ -34,16 +34,16 @@ func availableActions(in Input) []openapi.DeploymentAction {
 
 	if in.EnvironmentSlug == productionSlug {
 		hasLiveDeployment := in.AppCurrentDeploymentID != ""
-		isCurrentPointer := in.AppCurrentDeploymentID == d.ID
+		isCurrentDeployment := in.AppCurrentDeploymentID == d.ID
 		if ready && running && hasLiveDeployment {
 			// promote is illegal only when this is already the promoted-live
 			// deployment (current pointer and not in a rolled-back state).
-			if !isCurrentPointer || in.AppIsRolledBack {
+			if !isCurrentDeployment || in.AppIsRolledBack {
 				actions = append(actions, openapi.DeploymentActionPromote)
 			}
 			// rollback is illegal when this is the current pointer, regardless of
 			// rolled-back state.
-			if !isCurrentPointer {
+			if !isCurrentDeployment {
 				actions = append(actions, openapi.DeploymentActionRollback)
 			}
 		}
