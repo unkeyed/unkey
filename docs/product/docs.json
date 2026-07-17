@@ -199,6 +199,7 @@
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
                   "platform/workspaces/billing",
+                  "platform/workspaces/compute-billing",
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
