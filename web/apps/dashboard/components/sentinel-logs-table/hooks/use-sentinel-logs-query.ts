@@ -5,12 +5,14 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
+  computeTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { useSearchParams } from "next/navigation";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type UseSentinelLogsQueryParams = {
@@ -23,7 +25,6 @@ type UseSentinelLogsQueryParams = {
 };
 
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
 
 export function useSentinelLogsQuery({
   limit = 50,
@@ -38,10 +39,7 @@ export function useSentinelLogsQuery({
   const appId = searchParams.get("appId");
   const queryClient = trpc.useUtils();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-
-  // Re-anchor the window, reset to page 1, and drop the realtime buffer whenever
+  // Drives the whole reset — page, window anchor, and realtime buffer — whenever
   // the filters, active app, or refresh signal change. `appId` is included
   // because it also feeds `queryInput`: omitting it would let an app switch fire a
   // query against the stale page/window, flashing an empty page until the clamp
@@ -52,18 +50,15 @@ export function useSentinelLogsQuery({
     [filters, appId, refreshNonce],
   );
 
-  // A reset is pending when the key changed but the effect below hasn't committed
-  // setPage(1) yet. We force page 1 synchronously here because the render that
-  // observes the change still sees the old normalizedPage — feeding that to the
-  // query would fire one stale request for the previous page against the new
-  // window before setPage(1) commits.
-  const prevResetKeyRef = useRef<string | null>(null);
-  const isResetting = prevResetKeyRef.current !== null && resetKey !== prevResetKeyRef.current;
+  // usePaginatedPage owns the URL page and the synchronous reset-to-1 on a
+  // resetKey change, so `page` is already 1 on the render that first observes
+  // one — no stale request for the previous page against the new window.
+  const { page, setPage } = usePaginatedPage(resetKey);
 
   // Live mode is a "tail the newest logs" view: it shows page 1 only and streams
   // inserts in via the realtime buffer — pagination is disabled (see the consumer,
-  // which hides the footer). A pending reset also pins the effective page to 1.
-  const effectivePage = startPolling || isResetting ? 1 : normalizedPage;
+  // which hides the footer).
+  const effectivePage = startPolling ? 1 : page;
 
   // Pinned upper bound of the historical window. Offset pagination over a live
   // time series only stays stable if the window does not slide between page
@@ -162,10 +157,13 @@ export function useSentinelLogsQuery({
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  // Commit the reset signalled synchronously above: advance the ref, snap to
-  // page 1, re-anchor the window, and drop the realtime buffer.
+  // Feature-specific half of the reset: re-anchor the window and drop the
+  // realtime buffer. usePaginatedPage owns the page half off the same resetKey;
+  // both fire in the same commit. Skips the mount pass so a first-load
+  // deep link keeps its anchor.
+  const prevResetKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (prevResetKeyRef.current === null) {
       prevResetKeyRef.current = resetKey;
@@ -173,11 +171,10 @@ export function useSentinelLogsQuery({
     }
     if (resetKey !== prevResetKeyRef.current) {
       prevResetKeyRef.current = resetKey;
-      setPage(1);
       setQueryTime(Date.now());
       setRealtimeLogsMap(new Map());
     }
-  }, [resetKey, setPage]);
+  }, [resetKey]);
 
   // Entering live mode pins the view to page 1; clear any stale page param so
   // leaving live mode doesn't drop the user on a page that no longer makes sense.
@@ -187,35 +184,19 @@ export function useSentinelLogsQuery({
     }
   }, [startPolling, page, setPage]);
 
-  // Clamp page into range once totals are known (pagination is off while live).
-  // The `data == null` guard is essential: before the first response totalCount
-  // is 0 and totalPages collapses to 1, so without it a deep-linked ?page=3
-  // would snap back to page 1 on the very first render.
-  useEffect(() => {
-    if (startPolling || data == null) {
-      return;
-    }
-    if (effectivePage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [startPolling, data, effectivePage, totalPages, setPage]);
-
-  // Prefetch the next few pages for snappy navigation (skipped while live).
-  useEffect(() => {
-    if (startPolling) {
-      return;
-    }
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = effectivePage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      queryClient.deploy.sentinelLogs.query.prefetch(
-        { ...queryInput, page: nextPage },
-        PAGINATED_LIST_PREFETCH_OPTIONS,
-      );
-    }
-  }, [startPolling, effectivePage, totalPages, queryInput, queryClient.deploy.sentinelLogs.query]);
+  // The deep-link clamp (ENG-2930), the adjacent-page prefetch, and the
+  // bounds-checked onPageChange. `enabled: !startPolling` keeps both effects off
+  // while live, where the view is pinned to page 1 and the footer is hidden.
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page: effectivePage,
+    totalPages,
+    setPage,
+    queryParams: queryInput,
+    prefetch: (params) =>
+      queryClient.deploy.sentinelLogs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    enabled: !startPolling,
+  });
 
   // Poll for new logs (page 1 only).
   const pollForNewLogs = useCallback(async () => {
@@ -283,16 +264,6 @@ export function useSentinelLogsQuery({
       setRealtimeLogsMap(new Map());
     }
   }, [startPolling]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
 
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;

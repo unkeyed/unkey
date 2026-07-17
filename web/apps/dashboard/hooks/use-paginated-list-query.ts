@@ -80,6 +80,11 @@ type UsePaginatedNavigationParams<TData, TParams extends { page: number }> = {
   // does not carry (e.g. a keyspace id). Without it the prefetch effect cannot
   // see those values change and never re-warms the adjacent pages.
   prefetchKey?: string;
+  // Set false while the view is not paginating at all — live-tail modes pin
+  // themselves to page 1 and hide the footer. Suspends the clamp and the
+  // prefetch; `onPageChange` still validates against totalPages so a caller
+  // cannot navigate out of range. Defaults to true.
+  enabled?: boolean;
 };
 
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
@@ -93,6 +98,7 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   queryParams,
   prefetch,
   prefetchKey,
+  enabled = true,
 }: UsePaginatedNavigationParams<TData, TParams>) {
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
@@ -103,13 +109,13 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   // with a page belonging to the previous result set. usePaginatedPage's
   // synchronous reset closes that window, so no isFetching gate is needed.
   useEffect(() => {
-    if (data == null) {
+    if (!enabled || data == null) {
       return;
     }
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [data, page, totalPages, setPage]);
+  }, [enabled, data, page, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant. A ref keeps a
   // fresh caller arrow each render from re-firing the effect; the effect re-runs
@@ -119,6 +125,9 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   prefetchRef.current = prefetch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
       const nextPage = page + i;
       if (nextPage > totalPages) {
@@ -126,7 +135,7 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
       }
       prefetchRef.current({ ...queryParams, page: nextPage });
     }
-  }, [page, totalPages, queryParams, prefetchKey]);
+  }, [enabled, page, totalPages, queryParams, prefetchKey]);
 
   const onPageChange = useCallback(
     (newPage: number) => {

@@ -461,6 +461,37 @@ describe("usePaginatedNavigation", () => {
     expect(prefetch.mock.calls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
   });
 
+  it("suspends the clamp and the prefetch when disabled, but still guards onPageChange", () => {
+    // Live-tail views (sentinel, ratelimit logs) pin themselves to page 1 and
+    // hide the footer; clamping or warming pages there is wasted work.
+    const prefetch = vi.fn();
+    const setPage = vi.fn();
+    const { result } = renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 20 },
+        page: 9,
+        totalPages: 2,
+        setPage,
+        queryParams: { page: 9 },
+        prefetch,
+        enabled: false,
+      }),
+    );
+
+    expect(prefetch).not.toHaveBeenCalled();
+    expect(setPage).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.onPageChange(5);
+    });
+    expect(setPage).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.onPageChange(2);
+    });
+    expect(setPage).toHaveBeenCalledWith(2);
+  });
+
   it("onPageChange ignores out-of-range targets and navigates in-range ones", () => {
     const setPage = vi.fn();
     const { result } = renderHook(() =>
