@@ -26,7 +26,14 @@ export const ProtectionSwitch = forwardRef<HTMLDivElement, FeatureCardProps>(
           </div>
           <div className="text-gray-9 text-xs">{description}</div>
         </div>
-        <Switch checked={checked} onCheckedChange={onCheckedChange} {...switchProps} />
+        {/*
+          Coerce to a real boolean: RHF's useWatch can yield `undefined` on the
+          first render before form values resolve. Base UI's Switch locks itself
+          to uncontrolled if `checked` is `undefined` on the initial render and
+          then ignores every later value, leaving the toggle stuck OFF. Passing a
+          defined boolean keeps it controlled from the first render.
+        */}
+        <Switch checked={!!checked} onCheckedChange={onCheckedChange} {...switchProps} />
       </div>
     );
   },
