@@ -63,6 +63,9 @@ export function useApiKeysListQuery({
       trpc.api.keys.list.useQuery({ ...params, keyAuthId }, PAGINATED_LIST_QUERY_OPTIONS),
     prefetch: (params) =>
       utils.api.keys.list.prefetch({ ...params, keyAuthId }, PAGINATED_LIST_PREFETCH_OPTIONS),
+    // keyAuthId rides in the closures above rather than in the query params, so
+    // the prefetch effect needs it spelled out to re-warm on a keyspace switch.
+    prefetchKey: keyAuthId,
     getTotalCount: (data) => data.totalCount,
     // Preserve the bespoke hook's behavior: keep the URL clean until the user sorts.
     syncDefaultSortToUrl: false,

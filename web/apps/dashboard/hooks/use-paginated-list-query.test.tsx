@@ -31,6 +31,7 @@ vi.mock("nuqs", async (importOriginal) => {
 });
 
 import {
+  normalizePageSize,
   paginationFilterKey,
   usePaginatedListQuery,
   usePaginatedNavigation,
@@ -430,6 +431,36 @@ describe("usePaginatedNavigation", () => {
     expect(newSortCalls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
   });
 
+  it("re-prefetches when prefetchKey changes while page and queryParams hold steady", () => {
+    // Callers whose prefetch closure captures a value absent from queryParams
+    // (api-keys' keyAuthId) pass it as prefetchKey. Switching keyspaces leaves
+    // page, totalPages and queryParams identity untouched, so without that key
+    // the adjacent pages of the new keyspace are never warmed.
+    const prefetch = vi.fn();
+    const queryParams = { page: 1 };
+    const { rerender } = renderHook(
+      ({ prefetchKey }) =>
+        usePaginatedNavigation({
+          data: { total: 50 },
+          page: 1,
+          totalPages: 5,
+          setPage: vi.fn(),
+          queryParams,
+          prefetch,
+          prefetchKey,
+        }),
+      { initialProps: { prefetchKey: "ks_a" } },
+    );
+
+    prefetch.mockClear();
+
+    act(() => {
+      rerender({ prefetchKey: "ks_b" });
+    });
+
+    expect(prefetch.mock.calls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
+  });
+
   it("onPageChange ignores out-of-range targets and navigates in-range ones", () => {
     const setPage = vi.fn();
     const { result } = renderHook(() =>
@@ -464,6 +495,31 @@ describe("usePaginatedNavigation", () => {
 // content must yield equal keys, and any meaningful difference must yield a
 // different key. A regression here would silently break (or spuriously
 // trigger) page resets across every table.
+// normalizePageSize guards the divisor behind computeTotalPages and the `limit`
+// sent to the server, so a page size of 0 escaping the clamp turns totalPages
+// into Infinity and makes the endpoint reject the query.
+describe("normalizePageSize", () => {
+  it("clamps a fractional page size up to 1 rather than flooring it to 0", () => {
+    expect(normalizePageSize(0.5, 50, 200)).toBe(1);
+  });
+
+  it("floors a fractional page size above 1", () => {
+    expect(normalizePageSize(10.9, 50, 200)).toBe(10);
+  });
+
+  it("caps at maxPageSize and passes an in-range size through", () => {
+    expect(normalizePageSize(500, 50, 200)).toBe(200);
+    expect(normalizePageSize(25, 50, 200)).toBe(25);
+  });
+
+  it("falls back to the default for non-finite or non-positive input", () => {
+    expect(normalizePageSize(Number.NaN, 50, 200)).toBe(50);
+    expect(normalizePageSize(Number.POSITIVE_INFINITY, 50, 200)).toBe(50);
+    expect(normalizePageSize(0, 50, 200)).toBe(50);
+    expect(normalizePageSize(-10, 50, 200)).toBe(50);
+  });
+});
+
 describe("paginationFilterKey", () => {
   it("produces the same key for equal content in a fresh array", () => {
     const a = paginationFilterKey([{ field: "status", operator: "is", value: "blocked" }]);

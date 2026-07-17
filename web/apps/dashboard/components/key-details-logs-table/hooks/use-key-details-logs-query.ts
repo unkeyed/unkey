@@ -13,7 +13,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
 // Maximum number of real-time logs to store
@@ -58,9 +58,14 @@ export function useKeyDetailsLogsQuery({
   // the same render that resets the page also sees an empty buffer — matching
   // the previous behavior where the buffer was never shown against stale inputs.
   // React re-renders synchronously and discards this render's output.
-  const prevFiltersKeyRef = useRef(filtersKey);
-  if (prevFiltersKeyRef.current !== filtersKey) {
-    prevFiltersKeyRef.current = filtersKey;
+  //
+  // The previous key is state, not a ref: a ref advanced during render sticks
+  // even when React throws that render away, which would swallow the paired
+  // buffer clear and leave rows from the old filters on screen. State rolls
+  // back with the discarded render, so the two always land together.
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
     setRealtimeLogsMap(new Map());
   }
 

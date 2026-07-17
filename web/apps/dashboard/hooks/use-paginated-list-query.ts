@@ -76,7 +76,10 @@ type UsePaginatedNavigationParams<TData, TParams extends { page: number }> = {
   // Warm a page's query. Fresh identity each render is fine — a ref stabilizes
   // the effect, so callers do not need to memoize this.
   prefetch: (params: TParams) => void;
-  prefetchPagesAhead?: number;
+  // Extra identity for values the `prefetch` closure captures but `queryParams`
+  // does not carry (e.g. a keyspace id). Without it the prefetch effect cannot
+  // see those values change and never re-warms the adjacent pages.
+  prefetchKey?: string;
 };
 
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
@@ -89,7 +92,7 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   setPage,
   queryParams,
   prefetch,
-  prefetchPagesAhead = PREFETCH_PAGES_AHEAD,
+  prefetchKey,
 }: UsePaginatedNavigationParams<TData, TParams>) {
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
@@ -110,18 +113,20 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
 
   // Prefetch the next few pages so navigation feels instant. A ref keeps a
   // fresh caller arrow each render from re-firing the effect; the effect re-runs
-  // on page/totalPages changes and whenever queryParams identity changes.
+  // on page/totalPages changes, whenever queryParams identity changes, and
+  // whenever prefetchKey covers a closure value queryParams does not carry.
   const prefetchRef = useRef(prefetch);
   prefetchRef.current = prefetch;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
   useEffect(() => {
-    for (let i = 1; i <= prefetchPagesAhead; i++) {
+    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
       const nextPage = page + i;
       if (nextPage > totalPages) {
         break;
       }
       prefetchRef.current({ ...queryParams, page: nextPage });
     }
-  }, [page, totalPages, prefetchPagesAhead, queryParams]);
+  }, [page, totalPages, queryParams, prefetchKey]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -144,8 +149,11 @@ export function computeTotalPages(totalCount: number, pageSize: number) {
 // Clamp a caller-supplied page size into [1, maxPageSize], falling back to the
 // default for non-finite or non-positive input.
 export function normalizePageSize(pageSize: number, defaultPageSize: number, maxPageSize: number) {
+  // Math.max(1, …) after the floor: a fractional size like 0.5 clears the
+  // `> 0` guard but floors to 0, which would make computeTotalPages divide by
+  // zero and send `limit: 0` to the server.
   return Number.isFinite(pageSize) && pageSize > 0
-    ? Math.min(Math.floor(pageSize), maxPageSize)
+    ? Math.min(Math.max(1, Math.floor(pageSize)), maxPageSize)
     : defaultPageSize;
 }
 
@@ -217,6 +225,11 @@ export type PaginatedListConfig<
   // prefetch effect does not re-fire on every caller re-render. Callers do not
   // need to wrap this in useCallback.
   prefetch: (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
+  // Extra identity for values `useListQuery`/`prefetch` capture from their
+  // closure rather than receiving through params (e.g. a keyspace id). Callers
+  // that close over such a value must pass it here so prefetch re-warms the
+  // adjacent pages when it changes.
+  prefetchKey?: string;
   // Read the total row count off the response. Responses spell this differently
   // (`total`, `totalCount`, …), so callers map it explicitly.
   getTotalCount: (data: TResponse) => number;
@@ -250,6 +263,7 @@ export function usePaginatedListQuery<
     filterFieldConfig,
     useListQuery,
     prefetch,
+    prefetchKey,
     getTotalCount,
     syncDefaultSortToUrl = true,
   } = config;
@@ -377,6 +391,7 @@ export function usePaginatedListQuery<
     setPage,
     queryParams,
     prefetch,
+    prefetchKey,
   });
 
   return {

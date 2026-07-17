@@ -346,10 +346,18 @@ export function useRatelimitLogsQuery({
   const knownTotal = logData?.total ?? null;
   const totalCount =
     knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
+  // Without a count, an out-of-range page is only detectable once it comes back
+  // empty. Report totalPages = 1 then, so the clamp in usePaginatedNavigation
+  // snaps a stale deep link (?page=999) back instead of stranding the user on an
+  // empty page: deriving totalPages from queryPage alone keeps it >= queryPage,
+  // and the clamp can never fire.
+  const isEmptyPageBeyondFirst = logData != null && pageRowCount === 0 && queryPage > 1;
   const totalPages =
     knownTotal !== null
       ? computeTotalPages(totalCount, limit)
-      : queryPage + (pageRowCount >= limit ? 1 : 0);
+      : isEmptyPageBeyondFirst
+        ? 1
+        : queryPage + (pageRowCount >= limit ? 1 : 0);
 
   const { onPageChange } = usePaginatedNavigation({
     data: logData,
