@@ -37,7 +37,24 @@ export const envVarValueSchema = z
     (val) => utf8Encoder.encode(val).length <= MAX_ENV_VAR_VALUE_BYTES,
     `Variable value must be at most ${MAX_ENV_VAR_VALUE_BYTES} bytes`,
   )
+  // Builds serialize env vars into a line-oriented .env file that the Dockerfile
+  // shell-sources, so an embedded newline corrupts the format. Nothing rejects
+  // this on write: the v2 setEnvironmentVariables handler encrypts and stores
+  // the value unexamined, and buildEnvFileSecret in svc/ctrl/worker/deploy/
+  // build.go only sees it at deploy time, where it fails as a non-retryable
+  // terminal error. So this is not a client mirror of a server rule: it is the
+  // only pre-build guard, and only on the dashboard path. Values written through
+  // the API still reach the build unchecked.
+  //
+  // Matches actual 0x0A/0x0D, not the two-character sequence \n, which is
+  // legitimate in Windows paths and regexes. .trim() above already removes
+  // leading and trailing newlines, so only embedded ones reach here.
+  //
+  // The message names replacement because values with real newlines predate this
+  // check: an <input> strips CR/LF from display, so in the edit row the rejected
+  // characters are invisible and the rule alone would point at a clean-looking
+  // field.
   .refine(
-    (val) => !val.includes("\\n") && !val.includes("\\r"),
-    "Newline characters are not allowed",
+    (val) => !/[\n\r]/.test(val),
+    "Newline characters are not allowed. Replace this with a single-line value.",
   );
