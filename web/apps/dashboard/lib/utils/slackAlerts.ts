@@ -104,7 +104,6 @@ const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
 };
 
 type SlackMessage = {
-  text?: string;
   blocks: SlackBlock[];
 };
 

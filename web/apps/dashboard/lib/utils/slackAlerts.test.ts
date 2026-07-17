@@ -106,7 +106,6 @@ beforeEach(() => {
   fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
   vi.stubEnv("SLACK_WEBHOOK_CUSTOMERS", "https://hooks.slack.example/services/customers");
-  vi.stubEnv("SLACK_WEBHOOK_URL_LEAKED_KEY", "https://hooks.slack.example/services/leaked");
 });
 
 afterEach(() => {
