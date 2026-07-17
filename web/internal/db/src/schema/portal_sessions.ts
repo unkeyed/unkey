@@ -3,6 +3,12 @@ import { bigint, boolean, index, json, mysqlTable, varchar } from "drizzle-orm/m
 import { portalConfigurations } from "./portal_configurations";
 import { workspaces } from "./workspaces";
 
+/** The capability and keyspace scope persisted in the permissions JSON column. */
+export type PortalSessionGrant = {
+  keyspaceIds: string[];
+  permissions: string[];
+};
+
 export const portalSessions = mysqlTable(
   "portal_sessions",
   {
@@ -11,7 +17,7 @@ export const portalSessions = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: varchar("portal_config_id", { length: 64 }).notNull(),
     externalId: varchar("external_id", { length: 256 }).notNull(),
-    permissions: json("permissions").$type<string[]>().notNull(),
+    permissions: json("permissions").$type<PortalSessionGrant>().notNull(),
     preview: boolean("preview").notNull().default(false),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
