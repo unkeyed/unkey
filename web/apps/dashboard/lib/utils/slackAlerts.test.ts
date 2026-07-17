@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   alertIsCancellingSubscription,
-  alertLeakedKey,
   alertPaymentFailed,
   alertPaymentRecovered,
   alertSubscriptionCancelled,
@@ -9,7 +8,6 @@ import {
   alertSubscriptionUpdate,
   escapeSlackText,
   mrkdwn,
-  slackUrl,
 } from "./slackAlerts";
 
 describe("escapeSlackText", () => {
@@ -92,16 +90,6 @@ describe("mrkdwn", () => {
     );
   });
 
-  /**
-   * `slackUrl` is the module's only producer of trusted text, so it is the only way an
-   * interpolated value can reach a mrkdwn field without being escaped.
-   */
-  it("renders trusted values raw", () => {
-    expect(mrkdwn`URL: ${slackUrl("https://github.com/acme/api")}`).toBe(
-      "URL: https://github.com/acme/api",
-    );
-  });
-
   it("coerces non-string values instead of throwing", () => {
     // Some callers interpolate fields taken from an external payload, so the runtime type is
     // not guaranteed to match the declared one.
@@ -109,50 +97,6 @@ describe("mrkdwn", () => {
 
     expect(mrkdwn`Type: ${unproven}`).toBe("Type: 42");
     expect(mrkdwn`Name: ${undefined}`).toBe("Name: ");
-  });
-});
-
-/**
- * The leaked-key URL is the one field rendered without escaping, so that a query string stays
- * clickable. It is also attacker-influenced: GitHub reports the URL of the file holding the
- * key, and the attacker names their own repo, branch and file. It must not be able to carry
- * slack link syntax.
- */
-describe("slackUrl", () => {
-  it("keeps a query string clickable rather than escaping the ampersand", () => {
-    expect(mrkdwn`URL: ${slackUrl("https://github.com/acme/api?ref=abc&line=10")}`).toBe(
-      "URL: https://github.com/acme/api?ref=abc&line=10",
-    );
-  });
-
-  it("percent-encodes link syntax smuggled through a repo or file name", () => {
-    const hostile = "https://github.com/acme/<https://evil.example|Rotate your key now>.ts";
-
-    const rendered = mrkdwn`URL: ${slackUrl(hostile)}`;
-
-    expect(rendered).not.toContain("<");
-    expect(rendered).not.toContain(">");
-    expect(rendered).toContain("%3C");
-    expect(rendered).toContain("%3E");
-  });
-
-  it("falls back to escaped text when the value is not an http url", () => {
-    expect(mrkdwn`URL: ${slackUrl("javascript:alert(1)")}`).toBe("URL: javascript:alert(1)");
-    expect(mrkdwn`URL: ${slackUrl("<not a url>")}`).toBe("URL: &lt;not a url&gt;");
-  });
-
-  /**
-   * The URL is the one field that skips escaping, so it must not skip the length bound too: a
-   * repo/branch/path GitHub reports can be kilobytes long and would otherwise bury the second
-   * field with the key and workspace an on-call engineer needs.
-   */
-  it("bounds an adversarially long url", () => {
-    const longUrl = `https://github.com/acme/${"a".repeat(500)}`;
-
-    const rendered = mrkdwn`${slackUrl(longUrl)}`;
-
-    expect(Array.from(rendered)).toHaveLength(257);
-    expect(rendered.endsWith("…")).toBe(true);
   });
 });
 
@@ -172,30 +116,36 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-const sentBlocks = (): Array<{ text?: { text: string }; fields?: Array<{ text: string }> }> => {
+type SentTextObject = { type: string; text: string; verbatim?: boolean };
+
+const sentBlocks = (): Array<{ text: SentTextObject }> => {
   expect(fetchMock).toHaveBeenCalledTimes(1);
   return JSON.parse(fetchMock.mock.calls[0][1].body).blocks;
 };
 
-/** Every mrkdwn string in the posted payload, regardless of whether the block uses text or fields. */
+/** Every mrkdwn text object in the posted payload. */
+const sentTextObjects = (): SentTextObject[] => {
+  return sentBlocks().map((block) => block.text);
+};
+
+/** Every mrkdwn string in the posted payload. */
 const sentText = (): string => {
-  return sentBlocks()
-    .flatMap((block) => (block.fields ? block.fields.map((f) => f.text) : [block.text?.text ?? ""]))
+  return sentTextObjects()
+    .map((obj) => obj.text)
     .join("\n");
 };
 
-// Every value below is free text an attacker can set (Stripe billing name, signup email,
-// workspace name, and the repo path GitHub reports), so no alert may render them as markup.
+// Every value below is free text an attacker can set (Stripe billing name, signup email),
+// so no alert may render them as markup.
 const HOSTILE_NAME = "<https://evil.example/invoice|View your invoice>";
 const HOSTILE_EMAIL = "<https://evil.example|support>@evil.example";
 const HOSTILE_TIER = "<https://evil.example|Pro>";
-const HOSTILE_URL = "https://github.com/acme/<https://evil.example|Rotate your key now>.ts";
 
 /**
- * Guards ENG-3020: a customer who sets their billing name or workspace name to slack link
- * syntax must not get a clickable link rendered in our internal channels, which employees
- * would otherwise read as an alert Unkey itself produced. Every alert that embeds a
- * customer-controlled value belongs in this table.
+ * Guards ENG-3020: a customer who sets their billing name to slack link syntax must not get a
+ * clickable link rendered in our internal channels, which employees would otherwise read as an
+ * alert Unkey itself produced. Every alert that embeds a customer-controlled value belongs in
+ * this table.
  */
 describe("alerts escape attacker-controlled fields", () => {
   const cases: Array<{ name: string; send: () => Promise<void> }> = [
@@ -231,31 +181,45 @@ describe("alerts escape attacker-controlled fields", () => {
       name: "alertPaymentRecovered",
       send: () => alertPaymentRecovered(HOSTILE_EMAIL, HOSTILE_NAME, 2500),
     },
-    {
-      name: "alertLeakedKey",
-      send: () =>
-        alertLeakedKey({
-          type: "unkey_root_key",
-          source: "commit",
-          itemUrl: HOSTILE_URL,
-          date: "Mon Jul 14 2026",
-          keyId: "key_123",
-          workspaceName: HOSTILE_NAME,
-          orgId: "org_123",
-          email: HOSTILE_EMAIL,
-        }),
-    },
   ];
 
   for (const { name, send } of cases) {
-    it(`${name} sends no unescaped angle brackets`, async () => {
+    it(`${name} escapes the attacker's link syntax`, async () => {
       await send();
 
       const text = sentText();
+      // The attacker's `<`/`>` become entities, so no literal link delimiters survive.
       expect(text).not.toContain("<");
       expect(text).not.toContain(">");
+      expect(text).toContain("&lt;");
+    });
+
+    it(`${name} sets verbatim on every text object`, async () => {
+      await send();
+
+      const objects = sentTextObjects();
+      expect(objects.length).toBeGreaterThan(0);
+      for (const obj of objects) {
+        expect(obj.verbatim).toBe(true);
+      }
     });
   }
+
+  /**
+   * Escaping only sees `<url|text>` syntax. A bare URL has nothing to escape, and Slack
+   * auto-links it — so `verbatim: true` on the text objects is what stops an attacker-set
+   * billing name of `http://evil.example/rotate` from becoming a live link.
+   */
+  it("does not let a bare-url billing name become a link", async () => {
+    await alertSubscriptionCreation("Pro", "$25", "jane@acme.com", "http://evil.example/rotate");
+
+    const text = sentText();
+    // The value survives as plain text (nothing to escape) but verbatim keeps it unlinked.
+    expect(text).toContain("http://evil.example/rotate");
+    for (const obj of sentTextObjects()) {
+      expect(obj.verbatim).toBe(true);
+    }
+  });
 });
 
 describe("postToSlack", () => {
@@ -291,29 +255,6 @@ describe("postToSlack", () => {
     const logged = JSON.stringify(consoleError.mock.calls[0]);
     expect(logged).not.toContain("jane@acme.com");
     expect(logged).toContain("payment_failed");
-  });
-});
-
-describe("alertLeakedKey", () => {
-  it("leaves the github-supplied url raw so it stays clickable", async () => {
-    await alertLeakedKey({
-      type: "unkey_root_key",
-      source: "commit",
-      itemUrl: "https://github.com/acme/api/blob/main/index.ts?ref=abc&line=10",
-      date: "Mon Jul 14 2026",
-      keyId: "key_123",
-      workspaceName: "Acme",
-      orgId: "org_123",
-      email: "jane@acme.com",
-    });
-
-    const fields = sentBlocks()[0].fields ?? [];
-    expect(fields[0].text).toContain(
-      "URL: https://github.com/acme/api/blob/main/index.ts?ref=abc&line=10",
-    );
-    expect(fields[1].text).toBe(
-      "Key: key_123 \n Workspace: Acme \n Tenant: org_123 \n User: jane@acme.com",
-    );
   });
 });
 

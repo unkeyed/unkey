@@ -1,14 +1,18 @@
 import { formatPrice } from "@/lib/fmt";
 
 /**
- * The longest a value may render as. A billing name is free text and a leaked-key URL carries
- * attacker-chosen path segments, so without a bound either can push the rest of the alert out
- * of view in the channel.
+ * The longest a value may render as. A billing name is free text, so without a bound a
+ * customer can push the rest of the alert out of view in the channel.
  */
 const RENDERED_LENGTH_MAX = 256;
 
 /** Bounds a string to RENDERED_LENGTH_MAX code points, slicing by code point so surrogate pairs stay whole. */
 function boundLength(value: string): string {
+  // UTF-16 length is an upper bound on the code-point count, so a short string skips the
+  // Array.from allocation entirely; only genuinely long values pay for the exact count.
+  if (value.length <= RENDERED_LENGTH_MAX) {
+    return value;
+  }
   const codePoints = Array.from(value);
   if (codePoints.length <= RENDERED_LENGTH_MAX) {
     return value;
@@ -21,7 +25,8 @@ function boundLength(value: string): string {
  *
  * Slack parses `<...>` as a link and `&` as an entity, so an unescaped billing name such as
  * `<https://evil.example|View your invoice>` renders as a live link in our internal channels
- * and reads as though Unkey sent it.
+ * and reads as though Unkey sent it. Escaping closes this explicit-link vector; the separate
+ * `verbatim: true` on the text objects closes bare-URL auto-linking, which escaping cannot see.
  *
  * Line breaks collapse to spaces, including the Unicode separators U+0085, U+2028 and U+2029
  * that some renderers honour: Slack renders each line of a mrkdwn section separately, so a
@@ -29,8 +34,8 @@ function boundLength(value: string): string {
  * emitted by the system.
  *
  * Slack offers no escape for its formatting characters (`*`, `_`, `~`, backtick), so an
- * untrusted value can still render as bold or italic. That is cosmetic. It cannot forge a
- * link or a line, which are the vectors that matter here.
+ * untrusted value can still render as bold or italic. That is cosmetic styling only; it cannot
+ * forge a link or a line, which are the vectors that matter here.
  *
  * https://docs.slack.dev/messaging/formatting-message-text#escaping
  */
@@ -52,58 +57,20 @@ export function escapeSlackText(value: string | undefined): string {
 }
 
 /**
- * A value allowed into a mrkdwn field without escaping. It is deliberately not exported and
- * has exactly one producer, `slackUrl`, so escaping is the only way to get a value in from
- * outside this module.
- */
-class TrustedSlackText {
-  constructor(readonly value: string) {}
-}
-
-/**
- * Renders a URL so that it stays clickable in Slack.
- *
- * Escaping a URL outright would turn a `&` in its query string into `&amp;` and break the
- * link, but rendering one raw is not safe either: arriving over a verified channel does not
- * make a URL's contents trustworthy. GitHub secret scanning reports the URL of the file
- * holding the leaked key, and the attacker picks their own repository, branch and file names,
- * which git allows to contain `<`, `>` and `|`, the characters Slack reads as link syntax.
- *
- * Normalizing through `URL` percent-encodes those characters and leaves the query string
- * intact. A value that is not a parseable http(s) URL is returned untrusted, so `mrkdwn`
- * escapes it as ordinary text: a malformed URL degrades to unclickable, not to injectable.
- * Only pass the result to `mrkdwn`, which is what escapes the untrusted case.
- */
-export function slackUrl(value: string): TrustedSlackText | string {
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return value;
-  }
-
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    return value;
-  }
-  return new TrustedSlackText(boundLength(parsed.href));
-}
-
-/**
  * A string that has been through the `mrkdwn` tag. Blocks accept nothing else, so a plain
  * template literal carrying an unescaped customer value fails to type-check rather than
  * silently reopening ENG-3020.
  */
 type Mrkdwn = string & { readonly __mrkdwn: unique symbol };
 
-type SlackValue = string | number | undefined | TrustedSlackText;
+type SlackValue = string | number | undefined;
 
 /**
- * Builds a mrkdwn string, escaping every interpolated value that is not explicitly trusted.
+ * Builds a mrkdwn string, escaping every interpolated value.
  *
  * This is the boundary that keeps ENG-3020 fixed. Escaping is the default rather than
- * something each author must remember at each `${}`, and the only way past it is `slackUrl`,
- * which validates what it lets through. Values are coerced with `String` first, because some
- * callers interpolate fields parsed from an external payload whose runtime type is unproven.
+ * something each author must remember at each `${}`. Values are coerced with `String` first,
+ * because some callers interpolate fields whose runtime type is unproven.
  */
 export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): Mrkdwn {
   const text = strings.reduce((acc, literal, index) => {
@@ -112,9 +79,6 @@ export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): 
     }
 
     const value = values[index - 1];
-    if (value instanceof TrustedSlackText) {
-      return `${acc}${value.value}${literal}`;
-    }
     const rendered = value === undefined ? "" : escapeSlackText(String(value));
     return `${acc}${rendered}${literal}`;
   }, "");
@@ -123,10 +87,20 @@ export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): 
   return text as Mrkdwn;
 }
 
+/**
+ * A mrkdwn text object with `verbatim: true`, which tells Slack to skip its preprocessing —
+ * most importantly, auto-linking bare URLs and emails. Escaping handles the explicit
+ * `<url|text>` markup; verbatim handles the bare-URL vector that escaping cannot see.
+ */
+type MrkdwnText = { type: "mrkdwn"; text: Mrkdwn; verbatim: true };
+
 type SlackBlock = {
   type: "section";
-  text?: { type: "mrkdwn"; text: Mrkdwn };
-  fields?: Array<{ type: "mrkdwn"; text: Mrkdwn }>;
+  text: MrkdwnText;
+};
+
+const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
+  return { type: "mrkdwn", text, verbatim: true };
 };
 
 type SlackMessage = {
@@ -137,10 +111,10 @@ type SlackMessage = {
 /**
  * Posts a message to a Slack incoming webhook.
  *
- * Alerts are best-effort: a failure here must never fail the stripe webhook or the GitHub
- * secret-scanning response that triggered it, so delivery problems are logged rather than
- * thrown. The log identifies the alert only, so that consolidating the seven callers here
- * does not spread their customer data any wider than the alert itself.
+ * Alerts are best-effort: a failure here must never fail the stripe webhook that triggered
+ * it, so delivery problems are logged rather than thrown. The log identifies the alert only,
+ * so that consolidating the callers here does not spread their customer data any wider than
+ * the alert itself.
  */
 async function postToSlack(
   webhookUrl: string | undefined,
@@ -177,50 +151,8 @@ async function postToSlack(
 }
 
 const section = (text: Mrkdwn): SlackBlock => {
-  return { type: "section", text: { type: "mrkdwn", text } };
+  return { type: "section", text: mrkdwnText(text) };
 };
-
-type LeakedKeyProps = {
-  type: string;
-  source: string;
-  itemUrl: string;
-  date: string;
-  keyId: string;
-  workspaceName: string;
-  orgId: string;
-  email: string;
-};
-
-/** Posts a leaked-key alert from GitHub secret scanning to the on-call channel. */
-export async function alertLeakedKey({
-  type,
-  source,
-  itemUrl,
-  date,
-  keyId,
-  workspaceName,
-  orgId,
-  email,
-}: LeakedKeyProps): Promise<void> {
-  await postToSlack(process.env.SLACK_WEBHOOK_URL_LEAKED_KEY, "leaked_key", {
-    text: "Leaked Key Found",
-    blocks: [
-      {
-        type: "section",
-        fields: [
-          {
-            type: "mrkdwn",
-            text: mrkdwn`Type: ${type} \n Source: ${source} \n Date: ${date} \n URL: ${slackUrl(itemUrl)}`,
-          },
-          {
-            type: "mrkdwn",
-            text: mrkdwn`Key: ${keyId} \n Workspace: ${workspaceName} \n Tenant: ${orgId} \n User: ${email}`,
-          },
-        ],
-      },
-    ],
-  });
-}
 
 export async function alertSubscriptionCreation(
   product: string,
