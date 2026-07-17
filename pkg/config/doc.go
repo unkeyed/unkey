@@ -48,6 +48,11 @@
 //
 //	cfg, err := config.Load[Config]("/etc/unkey/api.toml")
 //
+// [Load] also accepts the raw TOML document in place of a path, so operators can
+// pass configuration inline through UNKEY_CONFIG rather than mounting a file:
+//
+//	cfg, err := config.Load[Config](os.Getenv("UNKEY_CONFIG"))
+//
 // For programmatic use or testing, [LoadBytes] accepts raw TOML bytes directly:
 //
 //	cfg, err := config.LoadBytes[Config](data)
