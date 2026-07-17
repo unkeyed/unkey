@@ -111,7 +111,6 @@ export const UsageSetup = ({
           icon={<ChartPie className="text-gray-12" iconSize="sm-regular" />}
           checked={limitEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("limit.enabled")}
         />
       )}
 

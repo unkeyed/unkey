@@ -45,7 +45,6 @@ export const ExpirationSetup = ({
   overrideEnabled?: boolean;
 }) => {
   const {
-    register,
     formState: { errors },
     control,
     setValue,
@@ -151,7 +150,6 @@ export const ExpirationSetup = ({
           icon={<Clock className="text-gray-12" iconSize="sm-regular" />}
           checked={expirationEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("expiration.enabled")}
         />
       )}
 

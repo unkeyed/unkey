@@ -104,7 +104,6 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
           icon={<Code className="text-gray-12" iconSize="sm-regular" />}
           checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("metadata.enabled")}
         />
       )}
       <div className="flex flex-col gap-2 h-fit duration-300">
