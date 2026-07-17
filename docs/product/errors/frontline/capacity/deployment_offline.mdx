@@ -1,0 +1,16 @@
+---
+title: "deployment_offline"
+description: "The deployment is stopped or its project was cancelled, so it is not serving traffic."
+---
+
+<Danger>`err:frontline:capacity:deployment_offline`</Danger>
+
+The gateway resolved this hostname to a deployment that is intentionally offline. It was stopped, superseded, or its project was cancelled, so there is no running compute to serve the request. The gateway returns `503 Service Unavailable`.
+
+This is not the transient gap you see mid-deploy or mid-scale (that is [`no_running_instances`](/errors/frontline/capacity/no_running_instances)). An offline deployment does not come back on its own.
+
+## What to do
+
+- If the project is still active, deploy again or promote a running deployment so the hostname points at live compute.
+- If the project was cancelled, re-subscribe to Compute to bring it back.
+- If you hit your spend limit, you will see [`spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached) instead, which resumes automatically once you raise the budget.
