@@ -1,5 +1,7 @@
+import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { auth } from "@/lib/auth/server";
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
@@ -516,6 +518,28 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
+
+        // A Stripe-side cancel (e.g. the billing portal) removes the subscription
+        // without going through the dashboard cancel flow, so ctrl never tore down
+        // the workspace's Compute. If this workspace had a Compute plan, run the
+        // same keyed, idempotent teardown here: it stops running compute and clears
+        // deploy_plan. Must run before the column clear below, since
+        // deprovisionCompute's idempotency guard keys on deploy_plan still being set.
+        // Let a failure propagate so Stripe retries; the teardown must not be dropped.
+        if (ws.deployPlan) {
+          try {
+            const ctrl = createCtrlClient(DeployService);
+            await ctrl.deprovisionCompute({ workspaceId: ws.id });
+          } catch (err) {
+            console.error("Failed to deprovision Compute on Stripe-side cancel", {
+              workspaceId: ws.id,
+              subscriptionId: sub.id,
+              error: err instanceof Error ? err.message : err,
+            });
+            throw err;
+          }
+        }
+
         await db
           .update(schema.workspaces)
           .set({
@@ -634,7 +658,10 @@ export const POST = async (req: Request): Promise<Response> => {
           customer.email,
           customer.name || "Unknown",
         );
-        break;
+        // Return rather than break so this case can never fall through into
+        // invoice.payment_failed below; every other terminus in this case
+        // returns too.
+        return new Response("OK");
       } catch (error) {
         console.error("Subscription creation webhook error:", {
           error:

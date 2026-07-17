@@ -782,6 +782,14 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
+	// Returns the subset of the given keyspace ids that exist in this workspace
+	// and are not soft-deleted.
+	//
+	//  SELECT id FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND id IN (/*SLICE:key_auth_ids*/?)
+	//    AND deleted_at_m IS NULL
+	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error)
 	//FindKeyAuthsByKeyAuthIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -3796,6 +3804,28 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
+	// Writes only sentinel_config, creating the row when missing. All other
+	// columns keep their current values.
+	//
+	//  INSERT INTO app_runtime_settings (
+	//      workspace_id,
+	//      app_id,
+	//      environment_id,
+	//      sentinel_config,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      sentinel_config = VALUES(sentinel_config),
+	//      updated_at = VALUES(updated_at)
+	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
 	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
 	//
 	//  INSERT INTO clusters (

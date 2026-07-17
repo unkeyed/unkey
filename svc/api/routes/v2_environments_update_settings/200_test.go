@@ -179,7 +179,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:         env.appID,
 			Environment: env.environmentID,
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method: openapi.GET,
+				Method: openapi.EnvironmentHealthcheckMethodGET,
 				Path:   "/health",
 			}),
 		})
@@ -280,7 +280,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			UpstreamProtocol: ptr(openapi.H2c),
 			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method:          openapi.GET,
+				Method:          openapi.EnvironmentHealthcheckMethodGET,
 				Path:            "/health",
 				IntervalSeconds: ptr(15),
 			}),
@@ -321,7 +321,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:         env.appID,
 			Environment: env.environmentID,
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
-				Method:              openapi.GET,
+				Method:              openapi.EnvironmentHealthcheckMethodGET,
 				Path:                "/v1/liveness",
 				IntervalSeconds:     ptr(5),
 				TimeoutSeconds:      ptr(5),

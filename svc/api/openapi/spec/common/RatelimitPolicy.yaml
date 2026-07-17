@@ -1,0 +1,25 @@
+type: object
+required:
+  - limit
+  - windowMs
+  - identifier
+properties:
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Maximum number of requests per window.
+  windowMs:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Window duration in milliseconds.
+  identifier:
+    "$ref": "./RatelimitIdentifier.yaml"
+additionalProperties: false
+description: Rate limits matching requests.
+example:
+  limit: 100
+  windowMs: 60000
+  identifier:
+    remoteIp: {}

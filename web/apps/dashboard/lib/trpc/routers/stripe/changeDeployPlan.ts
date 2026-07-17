@@ -93,11 +93,9 @@ export const changeDeployPlan = workspaceProcedure
     };
 
     const newPriceId = config.planFeePriceIds[input.plan];
-    try {
-      // DEPLOY_PLANS is ordered lowest to highest, so plan order doubles as
-      // the upgrade/downgrade direction.
-      const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
+    const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
 
+    try {
       await stripe.subscriptionItems.update(planFeeItem.id, {
         price: newPriceId,
         proration_behavior: isDowngrade ? "none" : "always_invoice",

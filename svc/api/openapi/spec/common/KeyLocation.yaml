@@ -1,0 +1,14 @@
+type: object
+properties:
+  bearer:
+    "$ref": "./BearerTokenLocation.yaml"
+  header:
+    "$ref": "./HeaderKeyLocation.yaml"
+  queryParam:
+    "$ref": "./QueryParamKeyLocation.yaml"
+additionalProperties: false
+description: |-
+  Where to look for the API key on incoming requests. Exactly one of
+  `bearer`, `header` or `queryParam` must be set.
+example:
+  bearer: {}

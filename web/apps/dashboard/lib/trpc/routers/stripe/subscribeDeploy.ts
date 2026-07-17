@@ -5,6 +5,7 @@ import {
   deployBillingConfig,
   deploySubscriptionItems,
   findDeployItems,
+  findPlanFeeItem,
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
@@ -21,11 +22,8 @@ import { assertSubscriptionAttachable } from "./subscriptionGuards";
  * tier with no subscription yet.
  *
  * Writes workspaces.deploy_plan optimistically so the UI reflects the new plan
- * immediately. Stripe stays source of truth: the resulting customer.subscription.*
- * webhook reconciles the column, and since it derives the same value from the
- * subscription we just mutated, that reconciliation is a no-op. The
- * no-subscription path also writes stripeSubscriptionId so the webhook can find
- * this workspace.
+ * immediately. Stripe stays source of truth: customer.subscription.* reconciles
+ * deploy_plan on webhook retry.
  */
 export const subscribeDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -85,12 +83,26 @@ export const subscribeDeploy = workspaceProcedure
       // Items not listed here are left untouched, so API items are preserved.
       const sub = existingSub;
 
-      if (findDeployItems(config, sub.items.data).length > 0) {
+      // A plan-fee item means the workspace is actually subscribed; the
+      // deployPlan guard above should have caught this, so it is a state
+      // mismatch to resolve, not something to double-attach onto.
+      if (findPlanFeeItem(config, sub.items.data)) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: "Workspace already has Compute items on its subscription.",
+          message: "Workspace already has a Compute plan fee on its subscription.",
         });
       }
+
+      // Metered items without a plan fee are the expected leftover of a
+      // mixed-subscription cancel, which keeps them so the frozen usage bills
+      // at the period boundary. Re-subscribing reuses them: attach only the
+      // missing items (the plan fee, plus any metered price not present).
+      // Rejecting here instead would permanently strand such a workspace,
+      // since nothing else ever removes those items.
+      const existingPriceIds = new Set(
+        findDeployItems(config, sub.items.data).map((item) => item.priceId),
+      );
+      const itemsToAttach = items.filter((item) => !existingPriceIds.has(item.price));
 
       // Deploy items only attach to a subscription that will actually keep
       // billing them; reject anything else here instead of letting Stripe
@@ -99,7 +111,7 @@ export const subscribeDeploy = workspaceProcedure
 
       try {
         await stripe.subscriptions.update(sub.id, {
-          items,
+          items: itemsToAttach,
           proration_behavior: "always_invoice",
           payment_behavior: "error_if_incomplete",
         });
