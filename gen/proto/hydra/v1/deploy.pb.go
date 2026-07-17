@@ -916,6 +916,87 @@ func (x *TeardownResponse) GetDrained() bool {
 	return false
 }
 
+type ResumeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeRequest) Reset() {
+	*x = ResumeRequest{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeRequest) ProtoMessage() {}
+
+func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeRequest.ProtoReflect.Descriptor instead.
+func (*ResumeRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{16}
+}
+
+type ResumeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// DeploymentsResumed is how many deployments were returned to running.
+	DeploymentsResumed int32 `protobuf:"varint,1,opt,name=deployments_resumed,json=deploymentsResumed,proto3" json:"deployments_resumed,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ResumeResponse) Reset() {
+	*x = ResumeResponse{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeResponse) ProtoMessage() {}
+
+func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeResponse.ProtoReflect.Descriptor instead.
+func (*ResumeResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ResumeResponse) GetDeploymentsResumed() int32 {
+	if x != nil {
+		return x.DeploymentsResumed
+	}
+	return 0
+}
+
 var File_hydra_v1_deploy_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deploy_proto_rawDesc = "" +
@@ -966,7 +1047,10 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x04mode\x18\x01 \x01(\x0e2\x16.hydra.v1.TeardownModeR\x04mode\"]\n" +
 	"\x10TeardownResponse\x12/\n" +
 	"\x13deployments_stopped\x18\x01 \x01(\x05R\x12deploymentsStopped\x12\x18\n" +
-	"\adrained\x18\x02 \x01(\bR\adrained*c\n" +
+	"\adrained\x18\x02 \x01(\bR\adrained\"\x0f\n" +
+	"\rResumeRequest\"A\n" +
+	"\x0eResumeResponse\x12/\n" +
+	"\x13deployments_resumed\x18\x01 \x01(\x05R\x12deploymentsResumed*c\n" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +
@@ -977,9 +1061,10 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x12U\n" +
 	"\x0eStopDeployment\x12\x1f.hydra.v1.StopDeploymentRequest\x1a .hydra.v1.StopDeploymentResponse\"\x00\x12U\n" +
 	"\x0eWakeDeployment\x12\x1f.hydra.v1.WakeDeploymentRequest\x1a .hydra.v1.WakeDeploymentResponse\"\x00\x12k\n" +
-	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x012b\n" +
+	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x012\xa1\x01\n" +
 	"\x15DeployTeardownService\x12C\n" +
-	"\bTeardown\x12\x19.hydra.v1.TeardownRequest\x1a\x1a.hydra.v1.TeardownResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
+	"\bTeardown\x12\x19.hydra.v1.TeardownRequest\x1a\x1a.hydra.v1.TeardownResponse\"\x00\x12=\n" +
+	"\x06Resume\x12\x17.hydra.v1.ResumeRequest\x1a\x18.hydra.v1.ResumeResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
 	"\fcom.hydra.v1B\vDeployProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -995,7 +1080,7 @@ func file_hydra_v1_deploy_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_deploy_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_hydra_v1_deploy_proto_goTypes = []any{
 	(TeardownMode)(0),                    // 0: hydra.v1.TeardownMode
 	(*StopDeploymentRequest)(nil),        // 1: hydra.v1.StopDeploymentRequest
@@ -1014,6 +1099,8 @@ var file_hydra_v1_deploy_proto_goTypes = []any{
 	(*PromoteResponse)(nil),              // 14: hydra.v1.PromoteResponse
 	(*TeardownRequest)(nil),              // 15: hydra.v1.TeardownRequest
 	(*TeardownResponse)(nil),             // 16: hydra.v1.TeardownResponse
+	(*ResumeRequest)(nil),                // 17: hydra.v1.ResumeRequest
+	(*ResumeResponse)(nil),               // 18: hydra.v1.ResumeResponse
 }
 var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	8,  // 0: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
@@ -1026,15 +1113,17 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	3,  // 7: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
 	5,  // 8: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
 	15, // 9: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	10, // 10: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	12, // 11: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	14, // 12: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	2,  // 13: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	4,  // 14: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	6,  // 15: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	16, // 16: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	10, // [10:17] is the sub-list for method output_type
-	3,  // [3:10] is the sub-list for method input_type
+	17, // 10: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	10, // 11: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	12, // 12: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	14, // 13: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	2,  // 14: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	4,  // 15: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	6,  // 16: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	16, // 17: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	18, // 18: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	11, // [11:19] is the sub-list for method output_type
+	3,  // [3:11] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1055,7 +1144,7 @@ func file_hydra_v1_deploy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_proto_rawDesc), len(file_hydra_v1_deploy_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   16,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

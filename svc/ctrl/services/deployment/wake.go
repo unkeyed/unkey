@@ -47,6 +47,20 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("production deployments cannot be woken"))
 	}
 
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, deployment.WorkspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
+	}
+	if entitlement.DeploySpendSuspended {
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", deployment.WorkspaceID),
+		)
+	}
+
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)
 	_, err = s.deploymentClient(deploymentID).
 		WakeDeployment().
