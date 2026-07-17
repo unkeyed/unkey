@@ -459,8 +459,17 @@
                     "group": "Application",
                     "pages": [
                       "errors/unkey/application/assertion_failed",
+                      "errors/unkey/application/deployment_already_live",
+                      "errors/unkey/application/deployment_already_stopping",
+                      "errors/unkey/application/deployment_not_ready",
+                      "errors/unkey/application/deployment_not_running",
+                      "errors/unkey/application/deployment_not_stopped",
                       "errors/unkey/application/invalid_input",
+                      "errors/unkey/application/no_live_deployment",
+                      "errors/unkey/application/not_production_deployment",
                       "errors/unkey/application/precondition_failed",
+                      "errors/unkey/application/production_cannot_start",
+                      "errors/unkey/application/production_cannot_stop",
                       "errors/unkey/application/protected_resource",
                       "errors/unkey/application/service_unavailable",
                       "errors/unkey/application/unexpected_error"

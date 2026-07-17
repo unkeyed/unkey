@@ -1,0 +1,51 @@
+---
+title: "production_cannot_start"
+description: "Production deployments cannot be started; the start action is reserved for non-production environments."
+---
+
+<Danger>`err:unkey:application:production_cannot_start`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Production deployments cannot be started.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/production_cannot_start"
+  }
+}
+```
+
+## What Happened?
+
+You called `startDeployment` on a deployment in the `production` environment. Production deployments are never manually stopped, so there is no stopped state to start from. Production traffic is controlled with `promoteDeployment` and `rollbackDeployment`, not `start`.
+
+`getDeployment` reports the deployment's `environmentId`, and `availableActions` omits `start` for production deployments.
+
+## How To Fix
+
+1. Fetch the deployment with `getDeployment` and inspect `availableActions`; `start` is not listed for production deployments.
+2. To change what production serves, use `promoteDeployment` or `rollbackDeployment`.
+3. The `start` action only applies to non-production deployments that were previously stopped.
+
+```bash
+# Promote a deployment to make it live instead of starting it
+curl -X POST https://api.unkey.com/v2/deployments.promoteDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Starting production**: Using `start` on a production deployment instead of promoting it.
+- **Wrong environment**: Passing a production deployment id when you meant a preview one.
+
+## Related Errors
+
+- [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When the deployment is not stopped
+- [err:unkey:application:production_cannot_stop](./production_cannot_stop) - When stopping a production deployment
+- [err:unkey:application:deployment_not_running](./deployment_not_running) - When stopping a deployment that is not running

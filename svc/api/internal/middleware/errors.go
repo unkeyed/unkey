@@ -313,7 +313,16 @@ func WithErrorHandling() zen.Middleware {
 
 			// Precondition Failed
 			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
-				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotReady,
+				codes.UnkeyAppErrorsPreconditionNotProductionDeployment,
+				codes.UnkeyAppErrorsPreconditionNoLiveDeployment,
+				codes.UnkeyAppErrorsPreconditionDeploymentAlreadyLive,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotRunning,
+				codes.UnkeyAppErrorsPreconditionDeploymentAlreadyStopping,
+				codes.UnkeyAppErrorsPreconditionProductionCannotStop,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotStopped,
+				codes.UnkeyAppErrorsPreconditionProductionCannotStart:
 				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

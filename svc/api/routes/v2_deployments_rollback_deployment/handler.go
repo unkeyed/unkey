@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.Status != db.DeploymentsStatusReady {
 		return fault.New(
 			"deployment not ready",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("rollback target is not in ready status"),
 			fault.Public("The deployment to roll back to is not ready."),
 		)
@@ -87,7 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
 		return fault.New(
 			"deployment shutting down",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("rollback target desired_state is not running"),
 			fault.Public("The deployment to roll back to is shutting down and cannot serve traffic."),
 		)
@@ -98,7 +98,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.EnvironmentSlug != "production" {
 		return fault.New(
 			"not a production deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.NotProductionDeployment.URN()),
 			fault.Internal("rollback is only allowed on production environments"),
 			fault.Public("Only production deployments can be rolled back."),
 		)
@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return fault.New(
 			"no live deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.NoLiveDeployment.URN()),
 			fault.Internal("app has no current deployment to roll back from"),
 			fault.Public("The app has no live deployment to roll back from."),
 		)
@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if app.CurrentDeploymentID.String == dep.ID {
 		return fault.New(
 			"deployment already live",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentAlreadyLive.URN()),
 			fault.Internal("rollback target is already the live deployment"),
 			fault.Public("The deployment is already live."),
 		)

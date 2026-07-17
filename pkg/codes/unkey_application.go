@@ -28,6 +28,37 @@ type appProtection struct {
 type appPrecondition struct {
 	// PreconditionFailed indicates a precondition check failed.
 	PreconditionFailed Code
+
+	// DeploymentNotReady indicates the target deployment is not usable: either it
+	// never reached ready status or it is shutting down and cannot serve traffic.
+	DeploymentNotReady Code
+
+	// NotProductionDeployment indicates the action is only allowed on production
+	// deployments.
+	NotProductionDeployment Code
+
+	// NoLiveDeployment indicates the app has no live deployment to act over.
+	NoLiveDeployment Code
+
+	// DeploymentAlreadyLive indicates the target deployment is already the live
+	// deployment.
+	DeploymentAlreadyLive Code
+
+	// DeploymentNotRunning indicates the target deployment is not running.
+	DeploymentNotRunning Code
+
+	// DeploymentAlreadyStopping indicates a stop is already in flight for the
+	// target deployment.
+	DeploymentAlreadyStopping Code
+
+	// ProductionCannotStop indicates production deployments cannot be stopped.
+	ProductionCannotStop Code
+
+	// DeploymentNotStopped indicates the target deployment is not stopped.
+	DeploymentNotStopped Code
+
+	// ProductionCannotStart indicates production deployments cannot be started.
+	ProductionCannotStart Code
 }
 
 // UnkeyAppErrors defines all application-level errors in the Unkey system.
@@ -66,6 +97,15 @@ var App = UnkeyAppErrors{
 	},
 
 	Precondition: appPrecondition{
-		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
+		PreconditionFailed:        Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
+		DeploymentNotReady:        Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_ready"},
+		NotProductionDeployment:   Code{SystemUnkey, CategoryUnkeyApplication, "not_production_deployment"},
+		NoLiveDeployment:          Code{SystemUnkey, CategoryUnkeyApplication, "no_live_deployment"},
+		DeploymentAlreadyLive:     Code{SystemUnkey, CategoryUnkeyApplication, "deployment_already_live"},
+		DeploymentNotRunning:      Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_running"},
+		DeploymentAlreadyStopping: Code{SystemUnkey, CategoryUnkeyApplication, "deployment_already_stopping"},
+		ProductionCannotStop:      Code{SystemUnkey, CategoryUnkeyApplication, "production_cannot_stop"},
+		DeploymentNotStopped:      Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_stopped"},
+		ProductionCannotStart:     Code{SystemUnkey, CategoryUnkeyApplication, "production_cannot_start"},
 	},
 }

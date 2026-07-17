@@ -1,0 +1,51 @@
+---
+title: "not_production_deployment"
+description: "Promote and rollback change the production live pointer, so they only apply to deployments in the production environment."
+---
+
+<Danger>`err:unkey:application:not_production_deployment`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Only production deployments can be promoted.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/not_production_deployment"
+  }
+}
+```
+
+## What Happened?
+
+You called `promoteDeployment` or `rollbackDeployment` on a deployment that does not belong to the `production` environment. Both operations swap the app's production live pointer, so they are only meaningful for production deployments. Preview and other non-production environments do not have a live pointer to move.
+
+`getDeployment` reports the deployment's `environmentId`, and `availableActions` omits `promote` and `rollback` for non-production deployments.
+
+## How To Fix
+
+1. Fetch the deployment with `getDeployment` and inspect `availableActions`; `promote` and `rollback` are only listed for production deployments.
+2. If you meant to act on production, target a deployment in the production environment.
+3. If you are working in a preview environment, promotion and rollback do not apply; deploy directly instead.
+
+```bash
+# Inspect the deployment's environment before promoting
+curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Confusing preview with production**: Trying to promote a preview deployment that has no live pointer.
+- **Wrong deployment id**: Passing a non-production deployment id by mistake.
+
+## Related Errors
+
+- [err:unkey:application:no_live_deployment](./no_live_deployment) - When the app has no live deployment to act over
+- [err:unkey:application:deployment_already_live](./deployment_already_live) - When the target is already the live deployment
+- [err:unkey:application:deployment_not_ready](./deployment_not_ready) - When the target deployment cannot serve traffic
