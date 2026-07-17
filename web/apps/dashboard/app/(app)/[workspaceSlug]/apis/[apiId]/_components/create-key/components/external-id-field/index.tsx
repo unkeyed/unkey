@@ -1,14 +1,14 @@
 import { useCreateIdentity } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-create-identity";
-import { useFetchIdentities } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities";
-import { createIdentityOptions } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/hooks/use-fetch-identities/create-identity-options";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { useIdentities } from "@/lib/identities-query";
 import { identityExternalIdSchema } from "@/lib/schemas/identity";
+import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
-import { useSearchIdentities } from "./use-search-identities";
+import { useDeferredValue, useMemo, useState } from "react";
+import { createIdentityOptions } from "./create-identity-options";
 
 type ExternalIdFieldProps = {
   value: string | null;
@@ -36,9 +36,33 @@ export const ExternalIdField = ({
   const externalIdError = externalIdValidation.success
     ? undefined
     : externalIdValidation.error.issues.at(0)?.message;
-
-  const { identities, isFetchingNextPage, hasNextPage, loadMore, isLoading } = useFetchIdentities();
-  const { searchResults, isSearching } = useSearchIdentities(searchValue);
+  const deferredSearch = useDeferredValue(trimmedSearchValue);
+  const { identities, isFetchingNextPage, hasNextPage, fetchNextPage, isLoading } = useIdentities({
+    onError: (error) => {
+      toast.error("Failed to Load Identities", {
+        description: getErrorMessage(error, "We were unable to load identities. Please try again."),
+      });
+    },
+  });
+  const { identities: searchResults, isLoading: isSearchLoading } = useIdentities({
+    search: deferredSearch,
+    enabled: deferredSearch.length > 0,
+    onError: (error) => {
+      toast.error("Failed to Search Identities", {
+        description: getErrorMessage(
+          error,
+          "We were unable to search identities. Please try again.",
+        ),
+      });
+    },
+  });
+  const isSearching =
+    trimmedSearchValue !== deferredSearch || (deferredSearch.length > 0 && isSearchLoading);
+  const loadMore = () => {
+    fetchNextPage().catch((error: unknown) => {
+      console.error("Failed to load more identities", error);
+    });
+  };
 
   const createIdentity = useCreateIdentity((data) => {
     setSearchValue("");
@@ -158,9 +182,7 @@ export const ExternalIdField = ({
       }}
       onSelect={(val) => {
         if (val === "__load_more__") {
-          loadMore().catch((error: unknown) => {
-            console.error("Failed to load more identities", error);
-          });
+          loadMore();
           return;
         }
         if (val === "__create_new__") {
