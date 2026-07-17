@@ -1,23 +1,32 @@
 import { z } from "zod";
 
-const METADATA_SIZE_BYTES_MAX = 1024 * 1024;
+const IDENTITY_METADATA_SIZE_BYTES_MAX = 1024 * 1024;
+const KEY_METADATA_SIZE_BYTES_MAX = 65_535;
 
-const metadataValueSchema = z
-  .record(z.string(), z.unknown())
-  .refine((metadata) => Object.keys(metadata).length <= 100, {
-    error: "Metadata cannot contain more than 100 properties",
-  })
-  .refine(
-    (metadata) =>
-      new TextEncoder().encode(JSON.stringify(metadata)).length <= METADATA_SIZE_BYTES_MAX,
-    {
-      error: "Metadata cannot exceed 1 MiB",
-    },
-  );
+function createMetadataValueSchema(sizeBytesMax: number, sizeError: string) {
+  return z
+    .record(z.string(), z.unknown())
+    .refine((metadata) => Object.keys(metadata).length <= 100, {
+      error: "Metadata cannot contain more than 100 properties",
+    })
+    .refine(
+      (metadata) => new TextEncoder().encode(JSON.stringify(metadata)).length <= sizeBytesMax,
+      { error: sizeError },
+    );
+}
 
-export function parseMetadata(value: string): Record<string, unknown> {
+const keyMetadataValueSchema = createMetadataValueSchema(
+  KEY_METADATA_SIZE_BYTES_MAX,
+  "Metadata cannot exceed 65,535 bytes",
+);
+const identityMetadataValueSchema = createMetadataValueSchema(
+  IDENTITY_METADATA_SIZE_BYTES_MAX,
+  "Metadata cannot exceed 1 MiB",
+);
+
+export function parseIdentityMetadata(value: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(value);
-  return metadataValueSchema.parse(parsed);
+  return identityMetadataValueSchema.parse(parsed);
 }
 
 /**
@@ -64,37 +73,50 @@ export const createConditionalSchema = <
   ]);
 };
 
-export const metadataValidationSchema = z.object({
-  enabled: z.literal(true),
-  data: z
-    .string({
-      error: (issue) =>
-        issue.input === undefined ? "Metadata is required" : "Metadata must be a JSON",
-    })
-    .trim()
-    .min(2, {
-      error: "Metadata must contain valid JSON",
-    })
-    .superRefine((value, context) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(value);
-      } catch {
-        context.addIssue({ code: "custom", message: "Must be valid JSON" });
-        return;
-      }
-
-      const result = metadataValueSchema.safeParse(parsed);
-      if (!result.success) {
-        for (const issue of result.error.issues) {
-          context.addIssue({ code: "custom", message: issue.message });
+function createMetadataValidationSchema(metadataValueSchema: typeof keyMetadataValueSchema) {
+  return z.object({
+    enabled: z.literal(true),
+    data: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined ? "Metadata is required" : "Metadata must be a JSON",
+      })
+      .trim()
+      .min(2, {
+        error: "Metadata must contain valid JSON",
+      })
+      .superRefine((value, context) => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(value);
+        } catch {
+          context.addIssue({ code: "custom", message: "Must be valid JSON" });
+          return;
         }
-      }
-    }),
-});
+
+        const result = metadataValueSchema.safeParse(parsed);
+        if (!result.success) {
+          for (const issue of result.error.issues) {
+            context.addIssue({ code: "custom", message: issue.message });
+          }
+        }
+      }),
+  });
+}
+
+export const metadataValidationSchema = createMetadataValidationSchema(keyMetadataValueSchema);
+export const identityMetadataValidationSchema = createMetadataValidationSchema(
+  identityMetadataValueSchema,
+);
 
 export const metadataSchema = z.object({
   metadata: createConditionalSchema("enabled", metadataValidationSchema).prefault({
+    enabled: false,
+  }),
+});
+
+export const identityMetadataSchema = z.object({
+  metadata: createConditionalSchema("enabled", identityMetadataValidationSchema).prefault({
     enabled: false,
   }),
 });

@@ -1,5 +1,5 @@
 import { identityExternalIdSchema } from "@/lib/schemas/identity";
-import { metadataSchema } from "@/lib/schemas/metadata";
+import { identityMetadataSchema } from "@/lib/schemas/metadata";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { z } from "zod";
 
@@ -7,7 +7,7 @@ export const formSchema = z
   .object({
     externalId: identityExternalIdSchema,
   })
-  .extend(metadataSchema.shape)
+  .extend(identityMetadataSchema.shape)
   .extend(ratelimitSchema.shape);
 
 export type FormValues = z.infer<typeof formSchema>;

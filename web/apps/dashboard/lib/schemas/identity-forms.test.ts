@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { identityExternalIdSchema } from "./identity";
-import { metadataSchema, parseMetadata } from "./metadata";
+import { identityMetadataSchema, metadataSchema, parseIdentityMetadata } from "./metadata";
 import { ratelimitSchema } from "./ratelimit";
 
 const rateLimit = {
@@ -28,11 +28,11 @@ describe("identity form schemas", () => {
     );
 
     expect(
-      metadataSchema.safeParse({
+      identityMetadataSchema.safeParse({
         metadata: { enabled: true, data: JSON.stringify(metadata) },
       }).success,
     ).toBe(true);
-    expect(parseMetadata(JSON.stringify(metadata))).toEqual(metadata);
+    expect(parseIdentityMetadata(JSON.stringify(metadata))).toEqual(metadata);
   });
 
   it("rejects non-object metadata and objects over the API limit", () => {
@@ -40,29 +40,42 @@ describe("identity form schemas", () => {
       Array.from({ length: 101 }, (_, index) => [`key-${index}`, index]),
     );
 
-    expect(metadataSchema.safeParse({ metadata: { enabled: true, data: "[]" } }).success).toBe(
-      false,
-    );
-    expect(metadataSchema.safeParse({ metadata: { enabled: true, data: "null" } }).success).toBe(
-      false,
-    );
     expect(
-      metadataSchema.safeParse({
+      identityMetadataSchema.safeParse({ metadata: { enabled: true, data: "[]" } }).success,
+    ).toBe(false);
+    expect(
+      identityMetadataSchema.safeParse({ metadata: { enabled: true, data: "null" } }).success,
+    ).toBe(false);
+    expect(
+      identityMetadataSchema.safeParse({
         metadata: { enabled: true, data: JSON.stringify(metadata) },
       }).success,
     ).toBe(false);
-    expect(() => parseMetadata("[]")).toThrow();
-    expect(() => parseMetadata("null")).toThrow();
-    expect(() => parseMetadata(JSON.stringify(metadata))).toThrow();
+    expect(() => parseIdentityMetadata("[]")).toThrow();
+    expect(() => parseIdentityMetadata("null")).toThrow();
+    expect(() => parseIdentityMetadata(JSON.stringify(metadata))).toThrow();
   });
 
   it("rejects malformed metadata and serialized values over 1 MiB", () => {
-    expect(metadataSchema.safeParse({ metadata: { enabled: true, data: "{" } }).success).toBe(
-      false,
-    );
+    expect(
+      identityMetadataSchema.safeParse({ metadata: { enabled: true, data: "{" } }).success,
+    ).toBe(false);
+    expect(
+      identityMetadataSchema.safeParse({
+        metadata: { enabled: true, data: JSON.stringify({ value: "é".repeat(524_288) }) },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps key metadata within MySQL TEXT storage limits", () => {
     expect(
       metadataSchema.safeParse({
-        metadata: { enabled: true, data: JSON.stringify({ value: "é".repeat(524_288) }) },
+        metadata: { enabled: true, data: JSON.stringify({ value: "a".repeat(65_000) }) },
+      }).success,
+    ).toBe(true);
+    expect(
+      metadataSchema.safeParse({
+        metadata: { enabled: true, data: JSON.stringify({ value: "a".repeat(66_000) }) },
       }).success,
     ).toBe(false);
   });

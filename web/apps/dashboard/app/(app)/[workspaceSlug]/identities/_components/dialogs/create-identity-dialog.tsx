@@ -1,7 +1,7 @@
 "use client";
 
 import { useCreateIdentityMutation } from "@/lib/identities-query";
-import { parseMetadata } from "@/lib/schemas/metadata";
+import { parseIdentityMetadata } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,7 +42,9 @@ export function CreateIdentityDialog() {
 
   const onSubmit = (data: FormValues) => {
     const meta =
-      data.metadata?.enabled && data.metadata.data ? parseMetadata(data.metadata.data) : undefined;
+      data.metadata?.enabled && data.metadata.data
+        ? parseIdentityMetadata(data.metadata.data)
+        : undefined;
     const ratelimits =
       data.ratelimit?.enabled && data.ratelimit.data
         ? data.ratelimit.data.map((ratelimit) => ({

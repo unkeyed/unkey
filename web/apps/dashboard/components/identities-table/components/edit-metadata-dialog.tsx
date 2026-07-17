@@ -5,7 +5,11 @@ import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { useUpdateIdentityMutation } from "@/lib/identities-query";
-import { type MetadataFormValues, metadataSchema, parseMetadata } from "@/lib/schemas/metadata";
+import {
+  type MetadataFormValues,
+  identityMetadataSchema,
+  parseIdentityMetadata,
+} from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +39,9 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
   const methods = usePersistedForm<MetadataFormValues>(
     `${EDIT_METADATA_FORM_STORAGE_KEY}_${identity.id}`,
     {
-      resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
+      resolver: zodResolver(identityMetadataSchema) as DiscriminatedUnionResolver<
+        typeof identityMetadataSchema
+      >,
       mode: "onChange",
       shouldFocusError: true,
       shouldUnregister: true,
@@ -61,7 +67,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
 
   const onSubmit = async (data: MetadataFormValues) => {
     try {
-      const value = data.metadata.enabled ? parseMetadata(data.metadata.data) : {};
+      const value = data.metadata.enabled ? parseIdentityMetadata(data.metadata.data) : {};
       const mutation = updateIdentity.mutateAsync({
         identity: identity.id,
         meta: value,

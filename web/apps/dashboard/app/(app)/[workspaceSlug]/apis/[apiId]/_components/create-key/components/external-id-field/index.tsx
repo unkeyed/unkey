@@ -30,27 +30,29 @@ export const ExternalIdField = ({
   currentIdentity,
 }: ExternalIdFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const [selectedIdentity, setSelectedIdentity] = useState<Identity>();
 
   const trimmedSearchValue = searchValue.trim();
   const externalIdValidation = identityExternalIdSchema.safeParse(trimmedSearchValue);
   const externalIdError = externalIdValidation.success
     ? undefined
     : externalIdValidation.error.issues.at(0)?.message;
-  const { identities, isFetchingNextPage, hasNextPage, fetchNextPage, isLoading } = useIdentities({
-    search: trimmedSearchValue || undefined,
-    onError: (error) => {
-      const isSearch = trimmedSearchValue.length > 0;
-      toast.error(isSearch ? "Failed to Search Identities" : "Failed to Load Identities", {
-        description: getErrorMessage(
-          error,
-          isSearch
-            ? "We were unable to search identities. Please try again."
-            : "We were unable to load identities. Please try again.",
-        ),
-      });
-    },
-  });
-  const isSearching = trimmedSearchValue.length > 0 && isLoading;
+  const { identities, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, isLoading } =
+    useIdentities({
+      search: trimmedSearchValue || undefined,
+      onError: (error) => {
+        const isSearch = trimmedSearchValue.length > 0;
+        toast.error(isSearch ? "Failed to Search Identities" : "Failed to Load Identities", {
+          description: getErrorMessage(
+            error,
+            isSearch
+              ? "We were unable to search identities. Please try again."
+              : "We were unable to load identities. Please try again.",
+          ),
+        });
+      },
+    });
+  const isSearching = trimmedSearchValue.length > 0 && isFetching;
   const loadMore = () => {
     fetchNextPage().catch((error: unknown) => {
       console.error("Failed to load more identities", error);
@@ -58,32 +60,33 @@ export const ExternalIdField = ({
   };
 
   const createIdentity = useCreateIdentity((data) => {
+    setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
     setSearchValue("");
     onChange(data.identityId, data.externalId);
   });
 
   // Ensure current identity is always available in the options
   const allIdentitiesWithCurrent = useMemo(() => {
-    if (!currentIdentity || !value) {
+    if (!value || identities.some((identity) => identity.id === value)) {
       return identities;
     }
 
-    // Check if current identity is already in the list
-    const currentExists = identities.some((identity) => identity.id === currentIdentity.id);
-
-    if (currentExists) {
+    const current =
+      currentIdentity?.id === value
+        ? {
+            id: currentIdentity.id,
+            externalId: currentIdentity.externalId,
+            meta: currentIdentity.meta,
+          }
+        : selectedIdentity?.id === value
+          ? selectedIdentity
+          : undefined;
+    if (!current) {
       return identities;
     }
 
-    return [
-      {
-        id: currentIdentity.id,
-        externalId: currentIdentity.externalId,
-        meta: currentIdentity.meta || {},
-      },
-      ...identities,
-    ];
-  }, [identities, currentIdentity, value]);
+    return [current, ...identities];
+  }, [identities, currentIdentity, selectedIdentity, value]);
 
   const selectedExternalId = useMemo(() => {
     if (!value) {
@@ -143,7 +146,7 @@ export const ExternalIdField = ({
 
   const options = createOption ? [createOption, ...baseOptions] : baseOptions;
 
-  const isComboboxLoading = isLoading;
+  const isComboboxLoading = trimmedSearchValue ? isFetching : isLoading;
 
   return (
     <FormCombobox
@@ -166,6 +169,7 @@ export const ExternalIdField = ({
           return;
         }
         const identity = allIdentitiesWithCurrent.find((id) => id.id === val);
+        setSelectedIdentity(identity);
         setSearchValue("");
         onChange(identity?.id || null, identity?.externalId || null);
       }}
@@ -174,7 +178,7 @@ export const ExternalIdField = ({
       }
       searchPlaceholder="Search External ID..."
       emptyMessage={
-        trimmedSearchValue && !exactMatch ? (
+        trimmedSearchValue && !exactMatch && !isComboboxLoading ? (
           <div
             className={cn(
               "p-0 w-full transition-all duration-300 ease-in-out",
