@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 import type { CreditsFormValues } from "../create-key.schema";
 
 export const UsageSetup = ({
@@ -27,7 +27,10 @@ export const UsageSetup = ({
     trigger,
   } = useFormContext<CreditsFormValues>();
 
-  const limitEnabled = useWatch({
+  // Keep the discriminator registered independently of portal-mounted DOM refs.
+  const {
+    field: { value: limitEnabled },
+  } = useController({
     control,
     name: "limit.enabled",
   });
@@ -111,7 +114,6 @@ export const UsageSetup = ({
           icon={<ChartPie className="text-gray-12" iconSize="sm-regular" />}
           checked={limitEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("limit.enabled")}
         />
       )}
 
