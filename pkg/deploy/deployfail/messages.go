@@ -17,3 +17,32 @@ const (
 	MsgCPUTooLow    = "CPU millicores must be greater than 0"
 	MsgMemoryTooLow = "MemoryMib must be greater than 0"
 )
+
+// RuntimeViolation is one runtime setting that fails a deploy precondition.
+// Message is one of the Msg* constants above, so a violation stays classifiable
+// by the read-path classifier; Actual is the offending value for reporting.
+type RuntimeViolation struct {
+	Message string
+	Actual  int32
+}
+
+// RuntimeViolations reports which runtime settings would fail the deploy
+// pipeline: port must be 1..65535, cpu and memory must be greater than 0. An
+// empty result means the runtime settings are deployable. It is the single
+// source of truth shared by the create-time gates (API, ctrl) and the worker.
+func RuntimeViolations(port, cpuMillicores, memoryMib int32) []RuntimeViolation {
+	var violations []RuntimeViolation
+	switch {
+	case port < 1:
+		violations = append(violations, RuntimeViolation{Message: MsgPortTooLow, Actual: port})
+	case port > 65535:
+		violations = append(violations, RuntimeViolation{Message: MsgPortTooHigh, Actual: port})
+	}
+	if cpuMillicores < 1 {
+		violations = append(violations, RuntimeViolation{Message: MsgCPUTooLow, Actual: cpuMillicores})
+	}
+	if memoryMib < 1 {
+		violations = append(violations, RuntimeViolation{Message: MsgMemoryTooLow, Actual: memoryMib})
+	}
+	return violations
+}

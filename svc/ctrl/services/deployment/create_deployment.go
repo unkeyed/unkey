@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -12,6 +13,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
@@ -93,6 +95,10 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	if err := s.ensureEnvironmentDeployable(ctx, ctxLoad); err != nil {
+		return nil, err
+	}
+
 	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
 	// but leaves the projects behind, so without this a cancelled (or never
 	// entitled) workspace could keep starting new compute through an existing
@@ -150,6 +156,40 @@ func (s *Service) CreateDeployment(
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// ensureEnvironmentDeployable rejects an environment whose runtime or regional
+// settings would fail the deploy pipeline, before the workflow is enqueued. This
+// is the RPC-level enforcement point every caller (v2 API, deprecated deploy API,
+// CLI, future internal callers) passes through, so an undeployable deployment
+// never gets enqueued; the worker keeps the same checks as a backstop. Runtime
+// bounds share deployfail.RuntimeViolations with the worker and the API pre-flight.
+func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deploymentContext) error {
+	messages := make([]string, 0)
+	for _, v := range deployfail.RuntimeViolations(
+		dctx.appRuntimeSettings.Port,
+		dctx.appRuntimeSettings.CpuMillicores,
+		dctx.appRuntimeSettings.MemoryMib,
+	) {
+		messages = append(messages, v.Message)
+	}
+
+	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
+		AppID:         dctx.app.ID,
+		EnvironmentID: dctx.env.Environment.ID,
+	})
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
+	}
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
+		messages = append(messages, deployfail.MsgNoSchedulableRegions)
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+	return connect.NewError(connect.CodeFailedPrecondition,
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
 }
 
 // recordCreateAudit writes a deployment.create audit log attributed to the

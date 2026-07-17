@@ -188,15 +188,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
-		if err := assert.All(
-			assert.Greater(deployment.Port, int32(0), deployfail.MsgPortTooLow),
-			assert.LessOrEqual(deployment.Port, int32(65535), deployfail.MsgPortTooHigh),
-			assert.Greater(deployment.CpuMillicores, int32(0), deployfail.MsgCPUTooLow),
-			assert.Greater(deployment.MemoryMib, int32(0), deployfail.MsgMemoryTooLow),
-		); err != nil {
+		// Backstop only: the create-time gates (API, ctrl) reject these before
+		// enqueue. If one is ever reached here, fail the step with a message the
+		// read-path classifier maps to InvalidRuntimeSettings.
+		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
 			return fault.Wrap(
-				restate.TerminalError(err),
-				fault.Public(err.Error()),
+				restate.TerminalError(errors.New(violations[0].Message)),
+				fault.Public(violations[0].Message),
 			)
 		}
 

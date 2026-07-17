@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -12,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -160,7 +162,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Reject environments whose runtime/regional settings would fail the deploy
 	// pipeline before enqueuing, so callers get a synchronous 400 instead of a
 	// build that dies mid-flight. The worker keeps the same asserts as a backstop.
-	if err = h.checkIfEnvironmentDeployable(ctx, environment); err != nil {
+	if err = h.ensureEnvironmentDeployable(ctx, environment); err != nil {
 		return err
 	}
 
@@ -242,12 +244,12 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	}
 }
 
-// checkIfEnvironmentDeployable mirrors the deploy worker's runtime and region
+// ensureEnvironmentDeployable mirrors the deploy worker's runtime and region
 // preconditions (svc/ctrl/worker/deploy: port 1..65535, cpu>0, mem>0, and at
 // least one schedulable region) so an undeployable environment is rejected up
 // front rather than after a full build. It reports every failing field in one
 // message so the caller can fix them in a single pass.
-func (h *Handler) checkIfEnvironmentDeployable(ctx context.Context, environment db.Environment) error {
+func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment db.Environment) error {
 	runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 		AppID:         environment.AppID,
 		EnvironmentID: environment.ID,
@@ -261,14 +263,8 @@ func (h *Handler) checkIfEnvironmentDeployable(ctx context.Context, environment 
 		problems = append(problems, "runtime settings are not configured")
 	} else {
 		s := runtime.AppRuntimeSetting
-		if s.Port < 1 || s.Port > 65535 {
-			problems = append(problems, fmt.Sprintf("port must be between 1 and 65535 (is %d)", s.Port))
-		}
-		if s.CpuMillicores < 1 {
-			problems = append(problems, fmt.Sprintf("cpu must be greater than 0 (is %d millicores)", s.CpuMillicores))
-		}
-		if s.MemoryMib < 1 {
-			problems = append(problems, fmt.Sprintf("memory must be greater than 0 (is %d MiB)", s.MemoryMib))
+		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
+			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}
 	}
 
@@ -279,13 +275,7 @@ func (h *Handler) checkIfEnvironmentDeployable(ctx context.Context, environment 
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to load regional settings"))
 	}
-	schedulable := 0
-	for _, r := range regional {
-		if r.RegionCanSchedule {
-			schedulable++
-		}
-	}
-	if schedulable == 0 {
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
 		problems = append(problems, "no schedulable regions are configured")
 	}
 
