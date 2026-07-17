@@ -206,6 +206,10 @@ const (
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
+	// EnvironmentNotDeployable indicates the environment's runtime or regional
+	// settings would fail the deploy pipeline, so the deployment is rejected at
+	// create time instead of failing mid-build.
+	UnkeyAppErrorsValidationEnvironmentNotDeployable URN = "err:unkey:application:environment_not_deployable"
 
 	// Protection
 

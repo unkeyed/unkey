@@ -1,0 +1,67 @@
+---
+title: "environment_not_deployable"
+description: "The environment's runtime or regional settings would fail the deploy pipeline, so createDeployment rejects it up front instead of failing after a build."
+---
+
+<Danger>`err:unkey:application:environment_not_deployable`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Environment \"preview\" cannot be deployed: port must be between 1 and 65535 (is 0); cpu must be greater than 0 (is 0 millicores); memory must be greater than 0 (is 0 MiB); no schedulable regions are configured. Update the environment's settings before deploying.",
+    "status": 400,
+    "title": "Bad Request",
+    "type": "https://unkey.com/docs/errors/unkey/application/environment_not_deployable"
+  }
+}
+```
+
+## What Happened?
+
+You called `createDeployment` for an environment whose settings cannot produce a running deployment. Rather than accept the request and let it fail partway through the build, Unkey rejects it immediately and lists every setting that needs fixing. The `detail` message enumerates all failing checks at once so you can fix them in a single pass.
+
+An environment must satisfy the same requirements the deploy pipeline enforces:
+
+- `port` is between 1 and 65535.
+- `cpu` (vCPU) is greater than 0.
+- `memory` is greater than 0.
+- At least one schedulable region is configured.
+
+A freshly created environment starts with default runtime settings and a default region, but this error appears if those were cleared or set to invalid values, or if no schedulable region exists yet.
+
+## How To Fix
+
+1. Read the `detail` message; it names each failing setting and its current value.
+2. Call `updateSettings` on the environment to set a valid `port`, `vcpus`, and `memoryMib`.
+3. If the message mentions regions, configure at least one schedulable region for the environment.
+4. Retry `createDeployment`.
+
+```bash
+# Set deployable runtime values, then retry the deployment
+curl -X POST https://api.unkey.com/v2/environments.updateSettings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{
+    "project": "acme",
+    "app": "payments-api",
+    "environment": "preview",
+    "port": 8080,
+    "vcpus": 0.25,
+    "memoryMib": 256
+  }'
+```
+
+## Common Mistakes
+
+- **Setting `port`, `vcpus`, or `memoryMib` to 0**: Zero values are treated as unset and fail validation.
+- **Clearing all regions**: An environment with no schedulable region cannot be scheduled anywhere.
+- **Fixing one field at a time**: The `detail` lists every problem at once; resolve them all before retrying instead of round-tripping per field.
+
+## Related Errors
+
+- [err:unkey:application:invalid_input](./invalid_input) - When request input fails general validation
+</content>
+</invoke>

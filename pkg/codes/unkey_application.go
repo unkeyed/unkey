@@ -17,6 +17,11 @@ type appValidation struct {
 
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	AssertionFailed Code
+
+	// EnvironmentNotDeployable indicates the environment's runtime or regional
+	// settings would fail the deploy pipeline, so the deployment is rejected at
+	// create time instead of failing mid-build.
+	EnvironmentNotDeployable Code
 }
 
 // appProtection defines errors related to resource protection mechanisms.
@@ -86,8 +91,9 @@ var App = UnkeyAppErrors{
 	},
 
 	Validation: appValidation{
-		InvalidInput:    Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input"},
-		AssertionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed"},
+		InvalidInput:             Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input"},
+		AssertionFailed:          Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed"},
+		EnvironmentNotDeployable: Code{SystemUnkey, CategoryUnkeyApplication, "environment_not_deployable"},
 	},
 
 	Protection: appProtection{
