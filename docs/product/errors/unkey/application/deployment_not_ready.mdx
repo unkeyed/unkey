@@ -32,7 +32,7 @@ You tried to promote or roll back to a deployment that cannot serve traffic. A d
 
 1. Fetch the deployment with `getDeployment` and check its `status`.
 2. If it is still building, wait for `ready` and retry.
-3. If it `failed`, inspect the `failure` object for the reason, fix the underlying issue, and create a new deployment.
+3. If it `failed`, inspect the `error` object for the reason, fix the underlying issue, and create a new deployment.
 4. If `status` is `ready` but `promote` or `rollback` is not listed in `availableActions`, the deployment is shutting down; pick a different one.
 
 ```bash
