@@ -41,9 +41,6 @@ func ToResponse(in Input) openapi.Deployment {
 		}
 	}
 
-	// isCurrent means "the app currently routes traffic to this deployment": the
-	// app's current pointer, regardless of how it got there (a rolled-back app
-	// still serves its current deployment).
 	isCurrent := in.State.AppCurrentDeploymentID.String != "" && in.State.AppCurrentDeploymentID.String == d.ID
 
 	// regions is a required field, so it must marshal as [] not null when the
@@ -75,8 +72,6 @@ func ToResponse(in Input) openapi.Deployment {
 		CreatedAt: d.CreatedAt,
 		UpdatedAt: d.UpdatedAt.Int64,
 
-		// Optional fields set below: git/docker from the source discriminator,
-		// error/domains only when Detailed.
 		Git:     nil,
 		Docker:  nil,
 		Error:   nil,

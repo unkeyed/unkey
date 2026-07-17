@@ -3975,9 +3975,10 @@ components:
                 isCurrent:
                     type: boolean
                     description: |
-                        True when the deployment's app currently routes traffic to it. A deployment
-                        can be `ready` without being current, for example one that was superseded or
-                        not yet promoted.
+                        True when this is the production deployment currently serving traffic. Only
+                        production deployments are ever current; a `ready` deployment is not current
+                        if it was superseded, never promoted, or the app was rolled back to a
+                        different deployment.
                     example: true
                 environment:
                     type: string
@@ -4004,7 +4005,7 @@ components:
                     items:
                         "$ref": "#/components/schemas/DeploymentAction"
                     description: |
-                        Lifecycle operations that are legal to call on this deployment right now.
+                        Lifecycle operations you are allowed to call on this deployment right now.
                         Empty when none apply (e.g. while building or in a terminal state).
                     example: ["stop"]
                 regions:
@@ -4024,7 +4025,7 @@ components:
                     items:
                         type: string
                     description: |
-                        Frontline hostnames this deployment is reachable at.
+                        Public hostnames this deployment is reachable at.
                     example: ["kebap-app.unkey.app"]
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
