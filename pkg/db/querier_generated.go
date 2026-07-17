@@ -1343,6 +1343,14 @@ type Querier interface {
 	//    AND verification_status = 'verified'
 	//  LIMIT 1
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
+	// spend budget and spend-cap state). Use this when only billing state is needed;
+	// when a workspace is already being fetched, prefer joining workspace_billing in
+	// that query rather than a second round trip.
+	//
+	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+	//  WHERE workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (WorkspaceBilling, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1362,9 +1370,10 @@ type Querier interface {
 	// is insensitive to workspace column ordering.
 	//
 	//  SELECT
-	//     w.deploy_plan,
-	//     w.deploy_plan_override
+	//     b.plan,
+	//     b.plan_override
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
@@ -1393,12 +1402,13 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	//HardDeleteWorkspace
@@ -2220,6 +2230,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
+	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
+	// is safe to call after InsertWorkspace/UpsertWorkspace without a prior check.
+	// New workspaces start on the Free tier with no Stripe linkage and no plan.
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      tier,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      'Free',
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE workspace_id = workspace_id
+	InsertWorkspaceBilling(ctx context.Context, db DBTX, arg InsertWorkspaceBillingParams) error
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
@@ -2978,9 +3004,10 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     w.stripe_customer_id,
+	//     b.stripe_customer_id,
 	//     w.enabled
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
 	//ListWorkspacesForQuotaCheck
@@ -2989,12 +3016,13 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id > ?
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
@@ -3129,12 +3157,12 @@ type Querier interface {
 	// stripe_customer_id, which no webhook ever clears. Used by the
 	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
 	//
-	//  UPDATE `workspaces`
+	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
 	//      stripe_subscription_id = NULL,
-	//      deploy_plan = NULL,
+	//      plan = NULL,
 	//      tier = 'Free'
-	//  WHERE id = ?
+	//  WHERE workspace_id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
 	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that

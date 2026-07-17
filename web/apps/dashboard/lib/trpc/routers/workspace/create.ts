@@ -84,6 +84,10 @@ export const createWorkspace = protectedProcedure
           workspaceId: workspace.id,
           ...freeTierQuotas,
         });
+        await tx.insert(schema.workspaceBilling).values({
+          workspaceId: workspace.id,
+          tier: "Free",
+        });
 
         await insertAuditLogs(tx, [
           {

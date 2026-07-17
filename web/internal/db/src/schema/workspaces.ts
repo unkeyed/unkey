@@ -13,6 +13,7 @@ import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
@@ -114,6 +115,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   identities: many(identities),
   githubAppInstallations: many(githubAppInstallations),
   quotas: one(quotas),
+  billing: one(workspaceBilling),
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),

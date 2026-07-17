@@ -3,7 +3,7 @@
 -- the spend-cap check on the suspend/resume transition; read by the orchestrator
 -- (to keep checking a suspended workspace even after its budget is removed) and
 -- the dashboard (to show a suspended state).
-UPDATE `workspaces`
-SET deploy_spend_suspended = sqlc.arg(suspended),
+UPDATE `workspace_billing`
+SET spend_suspended = sqlc.arg(suspended),
     updated_at_m = sqlc.arg(updated_at)
-WHERE id = sqlc.arg(id);
+WHERE workspace_id = sqlc.arg(id);
