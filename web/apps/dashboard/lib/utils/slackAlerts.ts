@@ -234,6 +234,9 @@ export async function alertPaymentFailed(
   customerEmail: string,
   customerName: string,
   amount: number,
+  // Accepted to match the Stripe webhook call site. `formatPrice` renders `amount` as USD,
+  // so the currency is not shown; kept in the signature so the caller need not change.
+  _currency: string,
 ): Promise<void> {
   const formattedAmount = formatPrice(amount);
 
@@ -251,6 +254,9 @@ export async function alertPaymentRecovered(
   customerEmail: string,
   customerName: string,
   amount: number,
+  // Accepted to match the Stripe webhook call site. `formatPrice` renders `amount` as USD,
+  // so the currency is not shown; kept in the signature so the caller need not change.
+  _currency: string,
 ): Promise<void> {
   const formattedAmount = formatPrice(amount);
 

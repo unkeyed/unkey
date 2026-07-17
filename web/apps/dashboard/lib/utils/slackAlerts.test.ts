@@ -174,11 +174,11 @@ describe("alerts escape attacker-controlled fields", () => {
     },
     {
       name: "alertPaymentFailed",
-      send: () => alertPaymentFailed(HOSTILE_EMAIL, HOSTILE_NAME, 2500),
+      send: () => alertPaymentFailed(HOSTILE_EMAIL, HOSTILE_NAME, 2500, "usd"),
     },
     {
       name: "alertPaymentRecovered",
-      send: () => alertPaymentRecovered(HOSTILE_EMAIL, HOSTILE_NAME, 2500),
+      send: () => alertPaymentRecovered(HOSTILE_EMAIL, HOSTILE_NAME, 2500, "usd"),
     },
   ];
 
@@ -248,7 +248,7 @@ describe("postToSlack", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     fetchMock.mockResolvedValue(new Response(null, { status: 500, statusText: "Server Error" }));
 
-    await alertPaymentFailed("jane@acme.com", "Jane", 2500);
+    await alertPaymentFailed("jane@acme.com", "Jane", 2500, "usd");
 
     expect(consoleError).toHaveBeenCalledTimes(1);
     const logged = JSON.stringify(consoleError.mock.calls[0]);
