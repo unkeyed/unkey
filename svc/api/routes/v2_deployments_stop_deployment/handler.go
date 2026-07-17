@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -70,36 +71,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if dep.Status != db.DeploymentsStatusReady {
-		return fault.New(
-			"deployment not running",
-			fault.Code(codes.App.Precondition.DeploymentNotRunning.URN()),
-			fault.Internal("stop target is not in ready status"),
-			fault.Public("The deployment is not running."),
-		)
-	}
-
 	// A draining deployment keeps status ready until krane removes its last
-	// instance, so desired_state is the only signal that a stop is already in
-	// flight. Ctrl enforces the same rule; checking it here avoids a doomed
-	// round-trip and returns a precise message.
-	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
-		return fault.New(
-			"deployment is stopping",
-			fault.Code(codes.App.Precondition.DeploymentIsStopping.URN()),
-			fault.Internal("stop target desired_state is not running"),
-			fault.Public("The deployment is already stopping."),
-		)
-	}
-
-	// Production deployments are never stopped, so this action does not apply.
-	if dep.EnvironmentSlug == "production" {
-		return fault.New(
-			"production deployment",
-			fault.Code(codes.App.Precondition.DeploymentIsProduction.URN()),
-			fault.Internal("stop is not allowed on production environments"),
-			fault.Public("Production deployments cannot be stopped."),
-		)
+	// instance, so desired_state is the signal that a stop is already in flight.
+	//nolint:exhaustruct // stop only uses the runtime status and environment fields
+	if r := deploygate.CheckStoppable(deploygate.Input{
+		Status:          string(dep.Status),
+		DesiredState:    string(dep.DesiredState),
+		EnvironmentSlug: dep.EnvironmentSlug,
+	}); r != deploygate.StopOK {
+		return deployment.StopFault(r)
 	}
 
 	_, err = h.CtrlClient.StopDeployment(ctx, &ctrlv1.StopDeploymentRequest{

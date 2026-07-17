@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -70,66 +71,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The deployment starts serving live traffic the moment routes swap, so it
-	// must have completed successfully.
-	if dep.Status != db.DeploymentsStatusReady {
-		return fault.New(
-			"deployment not ready",
-			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
-			fault.Internal("promotion target is not in ready status"),
-			fault.Public("The deployment is not ready."),
-		)
-	}
-
-	// A demoted deployment keeps status ready while it drains toward standby
-	// (only krane's final instance report flips it to stopped), so status alone
-	// would let traffic swap onto a deployment that is shutting down.
-	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
-		return fault.New(
-			"deployment shutting down",
-			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
-			fault.Internal("promotion target desired_state is not running"),
-			fault.Public("The deployment is shutting down and cannot serve traffic."),
-		)
-	}
-
-	// Promote swaps apps.current_deployment_id, which tracks the current
-	// production deployment, so it only applies to production.
-	if dep.EnvironmentSlug != "production" {
-		return fault.New(
-			"not a production deployment",
-			fault.Code(codes.App.Precondition.DeploymentNotProduction.URN()),
-			fault.Internal("promote is only allowed on production environments"),
-			fault.Public("Only production deployments can be promoted."),
-		)
-	}
-
+	// The current live pointer decides promote eligibility. See
+	// deploygate.CheckPromoteTarget for the invariant the API, ctrl service, and
+	// worker all enforce.
 	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load app for promotion eligibility"),
-			fault.Public("Failed to resolve the current deployment."),
+			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
-		return fault.New(
-			"no current deployment",
-			fault.Code(codes.App.Precondition.DeploymentNoCurrent.URN()),
-			fault.Internal("app has no current deployment to promote over"),
-			fault.Public("The app has no current deployment to promote over."),
-		)
-	}
-	// Promoting the current deployment is only meaningful as a rollback
-	// confirmation; otherwise it is a no-op the caller likely did not intend.
-	if app.CurrentDeploymentID.String == dep.ID && !app.IsRolledBack {
-		return fault.New(
-			"deployment is current",
-			fault.Code(codes.App.Precondition.DeploymentIsCurrent.URN()),
-			fault.Internal("promotion target is already the current deployment"),
-			fault.Public("The deployment is already the current deployment."),
-		)
+
+	if r := deploygate.CheckPromoteTarget(deploygate.Input{
+		Status:               string(dep.Status),
+		DesiredState:         string(dep.DesiredState),
+		EnvironmentSlug:      dep.EnvironmentSlug,
+		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
+		CurrentDeploymentID:  app.CurrentDeploymentID.String,
+		DeploymentID:         dep.ID,
+		IsRolledBack:         app.IsRolledBack,
+	}); r != deploygate.PromotionOK {
+		return deployment.PromotionFault(r)
 	}
 
 	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{
@@ -137,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "promote deployment",
-			"The deployment could not be promoted. It must be ready, belong to the production environment, and not already be the current deployment.")
+			"The deployment could not be promoted. It must be ready, belong to the production environment, and not already be live.")
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

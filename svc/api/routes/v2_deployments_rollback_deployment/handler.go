@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -70,69 +71,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The target starts serving live traffic the moment routes swap, so it
-	// must have completed successfully.
-	if dep.Status != db.DeploymentsStatusReady {
-		return fault.New(
-			"deployment not ready",
-			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
-			fault.Internal("rollback target is not in ready status"),
-			fault.Public("The deployment to roll back to is not ready."),
-		)
-	}
-
-	// A demoted deployment keeps status ready while it drains toward standby
-	// (only krane's final instance report flips it to stopped), so status alone
-	// would let traffic swap onto a deployment that is shutting down.
-	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
-		return fault.New(
-			"deployment shutting down",
-			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
-			fault.Internal("rollback target desired_state is not running"),
-			fault.Public("The deployment to roll back to is shutting down and cannot serve traffic."),
-		)
-	}
-
-	// Rollback swaps apps.current_deployment_id, which tracks the current
-	// production deployment, so it only applies to production.
-	if dep.EnvironmentSlug != "production" {
-		return fault.New(
-			"not a production deployment",
-			fault.Code(codes.App.Precondition.DeploymentNotProduction.URN()),
-			fault.Internal("rollback is only allowed on production environments"),
-			fault.Public("Only production deployments can be rolled back."),
-		)
-	}
-
-	// The caller only names the deployment to roll back TO. The rollback source
-	// must be the app's current deployment, so it is derived here rather
-	// than trusted from input. The ctrl workflow re-validates, so a concurrent
-	// promotion that moves the current deployment out from under us fails the
-	// rollback rather than swapping traffic onto a stale source.
+	// The rollback source is derived from the app's current live pointer, not
+	// trusted from input. The ctrl workflow re-validates, so a concurrent promotion
+	// that moves the pointer fails the rollback rather than swapping traffic onto a
+	// stale source.
 	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load app for rollback source derivation"),
-			fault.Public("Failed to resolve the current deployment."),
+			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
-		return fault.New(
-			"no current deployment",
-			fault.Code(codes.App.Precondition.DeploymentNoCurrent.URN()),
-			fault.Internal("app has no current deployment to roll back from"),
-			fault.Public("The app has no current deployment to roll back from."),
-		)
-	}
-	if app.CurrentDeploymentID.String == dep.ID {
-		return fault.New(
-			"deployment is current",
-			fault.Code(codes.App.Precondition.DeploymentIsCurrent.URN()),
-			fault.Internal("rollback target is already the current deployment"),
-			fault.Public("The deployment is already the current deployment."),
-		)
+
+	if r := deploygate.CheckRollbackTarget(deploygate.Input{
+		Status:               string(dep.Status),
+		DesiredState:         string(dep.DesiredState),
+		EnvironmentSlug:      dep.EnvironmentSlug,
+		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
+		CurrentDeploymentID:  app.CurrentDeploymentID.String,
+		DeploymentID:         dep.ID,
+		IsRolledBack:         app.IsRolledBack,
+	}); r != deploygate.PromotionOK {
+		return deployment.PromotionFault(r)
 	}
 
 	_, err = h.CtrlClient.Rollback(ctx, &ctrlv1.RollbackRequest{
@@ -141,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "rollback deployment",
-			"The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current deployment.")
+			"The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current live deployment.")
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

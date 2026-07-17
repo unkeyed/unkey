@@ -1,11 +1,13 @@
 package deploy
 
 import (
+	"errors"
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -35,12 +37,10 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		"target", req.GetTargetDeploymentId(),
 	)
 
-	// Validate source and target are different
 	if req.GetSourceDeploymentId() == req.GetTargetDeploymentId() {
 		return nil, restate.TerminalError(fmt.Errorf("source and target deployments must be different"), 400)
 	}
 
-	// Get source deployment
 	sourceDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return w.db.FindDeploymentById(stepCtx, req.GetSourceDeploymentId())
 	}, restate.WithName("finding source deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -51,7 +51,6 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, fmt.Errorf("failed to get source deployment: %w", err)
 	}
 
-	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return w.db.FindDeploymentById(stepCtx, req.GetTargetDeploymentId())
 	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -71,7 +70,6 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, restate.TerminalError(err, 400)
 	}
 
-	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
 		return w.db.FindAppById(stepCtx, sourceDeployment.AppID)
 	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -82,9 +80,34 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
-	// Validate source deployment is the current deployment
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
 		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current deployment"), 400)
+	}
+
+	// Re-validate the target against the shared invariant at execution time (the
+	// API and ctrl service already checked it) so a state change between enqueue
+	// and execution fails the rollback instead of swapping traffic onto a target
+	// that is no longer eligible. Environment is loaded only for its slug.
+	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Environment, error) {
+		return w.db.FindEnvironmentById(stepCtx, targetDeployment.EnvironmentID)
+	}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, restate.TerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), 404)
+		}
+		return nil, fmt.Errorf("failed to get environment: %w", err)
+	}
+
+	if r := deploygate.CheckRollbackTarget(deploygate.Input{
+		Status:               string(targetDeployment.Status),
+		DesiredState:         string(targetDeployment.DesiredState),
+		EnvironmentSlug:      environment.Slug,
+		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
+		CurrentDeploymentID:  app.CurrentDeploymentID.String,
+		DeploymentID:         targetDeployment.ID,
+		IsRolledBack:         app.IsRolledBack,
+	}); r != deploygate.PromotionOK {
+		return nil, restate.TerminalError(errors.New(r.Message()), 400)
 	}
 
 	// ensure the rolled back deployment does not get spun down from existing scheduled actions
@@ -93,7 +116,6 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, err
 	}
 
-	// Get all frontlineRoutes on the current deployment that are sticky
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
 		return w.db.FindFrontlineRoutesForRollback(stepCtx, db.FindFrontlineRoutesForRollbackParams{
 			EnvironmentID: sourceDeployment.EnvironmentID,
@@ -113,7 +135,6 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 
 	logger.Info("found frontlineRoutes for rollback", "count", len(frontlineRoutes), "deployment_id", sourceDeployment.ID)
 
-	// Collect frontlineRoute IDs
 	var routeIDs []string
 	for _, frontlineRoute := range frontlineRoutes {
 		if frontlineRoute.Sticky == db.FrontlineRoutesStickyLive ||

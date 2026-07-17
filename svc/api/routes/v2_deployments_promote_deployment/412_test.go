@@ -111,7 +111,7 @@ func TestPromoteDeploymentNonProduction(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "Only production deployments can be promoted.")
+	require.Contains(t, res.Body.Error.Detail, "Only production deployments")
 	require.Contains(t, res.Body.Error.Type, "deployment_not_production")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for non-production deployments")
 }

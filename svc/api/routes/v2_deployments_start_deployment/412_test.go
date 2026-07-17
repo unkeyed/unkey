@@ -63,6 +63,7 @@ func TestStartDeploymentProduction(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 		Status:        db.DeploymentsStatusStopped,
+		DesiredState:  db.DeploymentsDesiredStateStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -104,6 +105,7 @@ func TestStartDeploymentCtrlPreconditionFailed(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
 		Status:        db.DeploymentsStatusStopped,
+		DesiredState:  db.DeploymentsDesiredStateStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})

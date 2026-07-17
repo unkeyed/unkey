@@ -2,12 +2,14 @@ package deployment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -52,16 +54,23 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
 	}
 
-	// A demoted deployment keeps status ready while it drains toward standby, so
-	// status alone would let traffic swap onto one shutting down. Same-app is
-	// asserted before the live-pointer check so a mismatched app fails first.
+	if r := deploygate.CheckRollbackTarget(deploygate.Input{
+		Status:               string(targetDeployment.Status),
+		DesiredState:         string(targetDeployment.DesiredState),
+		EnvironmentSlug:      targetDeployment.EnvironmentSlug,
+		HasCurrentDeployment: targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String != "",
+		CurrentDeploymentID:  targetDeployment.CurrentDeploymentID.String,
+		DeploymentID:         targetDeployment.ID,
+		IsRolledBack:         targetDeployment.IsRolledBack,
+	}); r != deploygate.PromotionOK {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
+	}
+
+	// Rollback-specific checks beyond the shared gate.
 	err = assert.All(
 		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID, "deployments must be in the same project"),
 		assert.Equal(targetDeployment.AppID, sourceDeployment.AppID, "deployments must be in the same app"),
 		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID, "deployments must be in the same environment"),
-		assert.Equal(targetDeployment.Status, db.DeploymentsStatusReady, "target deployment is not ready"),
-		assert.Equal(targetDeployment.DesiredState, db.DeploymentsDesiredStateRunning, "target deployment is shutting down"),
-		assert.Equal(targetDeployment.EnvironmentSlug, "production", "only production deployments can be rolled back"),
 		assert.True(targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String == sourceDeployment.ID, "source deployment is not the current live deployment"),
 	)
 	if err != nil {

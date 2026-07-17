@@ -40,6 +40,7 @@ func TestStartDeployment(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
 		Status:        db.DeploymentsStatusStopped,
+		DesiredState:  db.DeploymentsDesiredStateStopped,
 		GitBranch:     "KEBAP",
 	})
 
@@ -77,6 +78,7 @@ func TestStartDeploymentScopedPermission(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
 		Status:        db.DeploymentsStatusStopped,
+		DesiredState:  db.DeploymentsDesiredStateStopped,
 	})
 
 	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+preview.ID+".start_deployment")

@@ -7,9 +7,83 @@ import (
 	"connectrpc.com/connect"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 )
+
+// PromotionFault maps a deploygate promote/rollback rejection onto the API
+// fault with the matching precondition code, so both handlers surface the same
+// code and message for the same reason.
+func PromotionFault(r deploygate.PromotionReason) error {
+	var code codes.Code
+	switch r {
+	case deploygate.PromotionNotReady, deploygate.PromotionDraining:
+		code = codes.App.Precondition.DeploymentNotReady
+	case deploygate.PromotionNotProduction:
+		code = codes.App.Precondition.DeploymentNotProduction
+	case deploygate.PromotionNoCurrentDeployment:
+		code = codes.App.Precondition.DeploymentNoCurrent
+	case deploygate.PromotionAlreadyCurrent:
+		code = codes.App.Precondition.DeploymentIsCurrent
+	case deploygate.PromotionOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"deployment lifecycle precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected promote/rollback: "+r.Message()),
+		fault.Public(r.Message()),
+	)
+}
+
+// StopFault maps a deploygate stop rejection onto the API fault with the
+// matching precondition code.
+func StopFault(r deploygate.StopReason) error {
+	var code codes.Code
+	switch r {
+	case deploygate.StopNotRunning:
+		code = codes.App.Precondition.DeploymentNotRunning
+	case deploygate.StopAlreadyStopping:
+		code = codes.App.Precondition.DeploymentIsStopping
+	case deploygate.StopIsProduction:
+		code = codes.App.Precondition.DeploymentIsProduction
+	case deploygate.StopOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"stop precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected stop: "+r.Message()),
+		fault.Public(r.Message()),
+	)
+}
+
+// StartFault maps a deploygate start rejection onto the API fault with the
+// matching precondition code.
+func StartFault(r deploygate.StartReason) error {
+	var code codes.Code
+	switch r {
+	case deploygate.StartNotStopped:
+		code = codes.App.Precondition.DeploymentNotStopped
+	case deploygate.StartIsProduction:
+		code = codes.App.Precondition.DeploymentIsProduction
+	case deploygate.StartOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"start precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected start: "+r.Message()),
+		fault.Public(r.Message()),
+	)
+}
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
 // cross-workspace match is masked as not found so a caller can't probe for

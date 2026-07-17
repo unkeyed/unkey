@@ -2,12 +2,13 @@ package deployment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -33,14 +34,6 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	err = assert.All(
-		assert.Equal(deployment.Status, db.DeploymentsStatusReady, "deployment is not running"),
-		assert.Equal(deployment.DesiredState, db.DeploymentsDesiredStateRunning, "deployment is not running"),
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
 	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -49,11 +42,13 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
 
-	err = assert.All(
-		assert.NotEqual(environment.Slug, "production", "production deployments cannot be stopped"),
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	//nolint:exhaustruct // stop only uses the runtime status and environment fields
+	if r := deploygate.CheckStoppable(deploygate.Input{
+		Status:          string(deployment.Status),
+		DesiredState:    string(deployment.DesiredState),
+		EnvironmentSlug: environment.Slug,
+	}); r != deploygate.StopOK {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
 
 	logger.Info("stopping deployment", "deployment_id", deploymentID)

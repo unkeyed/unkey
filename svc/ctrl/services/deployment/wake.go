@@ -2,11 +2,13 @@ package deployment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -32,10 +34,6 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	if deployment.DesiredState != db.DeploymentsDesiredStateStopped {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not stopped"))
-	}
-
 	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -43,8 +41,13 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
-	if environment.Slug == "production" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("production deployments cannot be woken"))
+
+	//nolint:exhaustruct // start only uses the desired state and environment fields
+	if r := deploygate.CheckStartable(deploygate.Input{
+		DesiredState:    string(deployment.DesiredState),
+		EnvironmentSlug: environment.Slug,
+	}); r != deploygate.StartOK {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
 
 	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, deployment.WorkspaceID)
