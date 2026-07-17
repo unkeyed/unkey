@@ -9,6 +9,7 @@ import { authRoutes } from "./auth";
 import { authorizationRoutes } from "./authorization";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
+import { permissionsLabRoutes } from "./permissions-lab";
 import { portalRoutes } from "./portal";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
@@ -27,6 +28,7 @@ export const routes = {
   identities: identityRoutes,
   audit: auditRoutes,
   logs: logRoutes,
+  permissionsLab: permissionsLabRoutes,
   portal: portalRoutes,
   auth: authRoutes,
   workspaces: workspaceRoutes,
