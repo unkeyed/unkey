@@ -24,7 +24,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           quotas: true,
         },
       });
-    } catch (error) {
+    } catch (_error) {
       console.debug("Workspace query failed in context creation");
       ws = undefined;
     }
