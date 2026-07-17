@@ -11,6 +11,7 @@ import {
   matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
+import { newUid } from "@unkey/id";
 import { P, match } from "@unkey/match";
 import { z } from "zod";
 
@@ -365,7 +366,7 @@ export function toSentinelPolicy(
   values: PolicyFormValues,
   existingId?: string,
 ): KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy {
-  const id = existingId ?? crypto.randomUUID();
+  const id = existingId ?? newUid("policy");
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)

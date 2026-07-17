@@ -1,0 +1,38 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |-
+      Name of a rate limit configured on the key or its identity, or the name
+      of the inline override defined by `limit` and `duration`.
+  limit:
+    type: integer
+    format: int64
+    minimum: 1
+    description: |-
+      Inline override: maximum number of operations per window. Must be set
+      together with `duration`.
+  duration:
+    type: integer
+    format: int64
+    minimum: 1
+    description: |-
+      Inline override: window duration in milliseconds. Must be set together
+      with `limit`.
+  cost:
+    type: integer
+    format: int64
+    minimum: 1
+    description: Cost charged against the limit per request. Defaults to 1.
+additionalProperties: false
+description: |-
+  A rate limit applied during key verification. `limit` and `duration`
+  must be set together or both omitted; a partial pair is rejected.
+example:
+  name: requests
+  limit: 100
+  duration: 60000

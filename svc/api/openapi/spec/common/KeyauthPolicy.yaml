@@ -1,0 +1,39 @@
+type: object
+required:
+  - keyspaces
+properties:
+  keyspaces:
+    type: array
+    minItems: 1
+    maxItems: 5
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256
+    description: |-
+      Keyspaces to verify keys against, referenced by id. All keyspaces must
+      belong to your workspace.
+  locations:
+    type: array
+    items:
+      "$ref": "./KeyLocation.yaml"
+    description: |-
+      Where to look for the key on incoming requests, tried in order. Defaults
+      to the `Authorization Bearer` header when omitted.
+  permissionQuery:
+    type: string
+    maxLength: 1000
+    description: |-
+      Optional permission query the verified key must satisfy, e.g.
+      `documents.read AND documents.write`.
+  ratelimits:
+    type: array
+    maxItems: 10
+    items:
+      "$ref": "./KeyRatelimit.yaml"
+    description: Rate limits applied during key verification.
+additionalProperties: false
+description: Verifies Unkey API keys on matching requests.
+example:
+  keyspaces:
+    - ks_1234abcd

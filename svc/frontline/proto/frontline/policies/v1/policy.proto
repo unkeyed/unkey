@@ -36,7 +36,11 @@ message Policy {
   // This allows operators to toggle policies on and off without modifying
   // or removing the underlying configuration, which is useful during
   // incidents, gradual rollouts, and debugging.
-  bool enabled = 3;
+  //
+  // Explicit presence so writers that serialize configs with protojson emit
+  // `"enabled": false` instead of dropping the field; the dashboard's strict
+  // schema requires it to always be present.
+  optional bool enabled = 3;
 
   // Match conditions that determine which requests this policy applies to.
   // All entries must match for the policy to run (implicit AND). An empty

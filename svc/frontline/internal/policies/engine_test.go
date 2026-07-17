@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestParseMiddleware_Nil(t *testing.T) {
@@ -56,7 +57,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 			{
 				Id:      "p1",
 				Name:    "key auth",
-				Enabled: true,
+				Enabled: proto.Bool(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
 					//nolint:exhaustruct

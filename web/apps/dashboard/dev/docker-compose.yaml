@@ -75,8 +75,7 @@ services:
     build:
       context: ../../../..
       dockerfile: dev/Dockerfile
-      args:
-        PACKAGE: ./build/vault
+      target: vault
     command: ["--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"
@@ -100,8 +99,7 @@ services:
     build:
       context: ../../../..
       dockerfile: dev/Dockerfile
-      args:
-        PACKAGE: ./build/control-api
+      target: control-api
     container_name: ctrl-api
     command: ["--config", "/etc/unkey/ctrl-api.toml"]
     ports:
@@ -123,8 +121,7 @@ services:
     build:
       context: ../../../..
       dockerfile: dev/Dockerfile
-      args:
-        PACKAGE: ./build/control-worker
+      target: control-worker
     container_name: ctrl-worker
     command: ["--config", "/etc/unkey/ctrl-worker.toml"]
     ports:
@@ -150,8 +147,7 @@ services:
     build:
       context: ../../../..
       dockerfile: dev/Dockerfile
-      args:
-        PACKAGE: ./build/api
+      target: api
     command: ["--config", "/etc/unkey/api.toml"]
     ports:
       - 7070:7070

@@ -81,6 +81,15 @@ services:
 
   restate:
     image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
+    environment:
+      # Provision a single partition. Restate routes keyed invocations to a
+      # partition by hashing the object key, and each partition processor takes
+      # leadership independently on cold start. The harness readiness gate probes
+      # one fixed key, so with the default 24 partitions it only proves that
+      # key's partition is live while a deploy Send keyed by a random
+      # deployment_id targets a different, possibly-cold partition and silently
+      # queues. One partition makes the readiness probe cover every keyed Send.
+      RESTATE_DEFAULT_NUM_PARTITIONS: "1"
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:

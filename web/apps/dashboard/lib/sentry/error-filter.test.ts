@@ -74,6 +74,37 @@ describe("createErrorFilter", () => {
     });
   });
 
+  it("redacts digit-free token-like secrets under unrecognized keys", () => {
+    // The fail-closed fallback must not require digits: passphrase-style
+    // secrets and digit-free ids are letters-only. Only URL scrubbing applies
+    // the digit heuristic (to spare route identifiers).
+    const alphaSecret = "unkey_secret_plaintextvalue_alpha_only";
+    const event: ErrorEvent = {
+      type: undefined,
+      contexts: {
+        trpc: {
+          procedure_path: "deployment.create",
+          input: {
+            note: `uses ${alphaSecret} internally`,
+            input: { page: "settings" },
+          },
+        },
+      },
+    };
+    const hint: EventHint = { originalException: new Error("backend down") };
+
+    const result = makeFilter()(event, hint);
+
+    expect(result).toBe(event);
+    expect(JSON.stringify(event)).not.toContain(alphaSecret);
+    expect(event.contexts?.trpc?.input).toEqual({
+      note: "uses [REDACTED] internally",
+      // `input` is sensitive only as a URL query param (tRPC GET batch
+      // payloads); as a field name it is benign and recursed into, not dropped.
+      input: { page: "settings" },
+    });
+  });
+
   it("redacts the entire input for procedures whose input is a credential", () => {
     const shareId = "still_valid_one_time_share_id";
     const event: ErrorEvent = {

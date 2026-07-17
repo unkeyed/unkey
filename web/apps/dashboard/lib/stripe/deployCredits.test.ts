@@ -1,7 +1,17 @@
 import type Stripe from "stripe";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DeployBillingConfig } from "./deployBilling";
-import { netDeployFee } from "./deployCredits";
+import { grantDeployCreditsForInvoice, netDeployFee } from "./deployCredits";
+
+vi.mock("./deployBilling", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./deployBilling")>();
+  return {
+    ...actual,
+    deployBillingConfig: vi.fn(),
+  };
+});
+
+import { deployBillingConfig } from "./deployBilling";
 
 const config: DeployBillingConfig = {
   planFeePriceIds: {
@@ -109,5 +119,78 @@ describe("netDeployFee", () => {
     // invoice-level coupons this way): the grant tracks the $40 actually paid.
     const fee = netDeployFee(config, [line("price_fee_business", 5000, 1_700_000_000, 1000)]);
     expect(fee?.amountCents).toBe(4000);
+  });
+});
+
+function invoiceStub(overrides: Partial<Stripe.Invoice> = {}): Stripe.Invoice {
+  const periodEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+  return {
+    id: "in_test",
+    customer: "cus_test",
+    currency: "usd",
+    lines: {
+      has_more: false,
+      data: [line("price_fee_business", 5000, periodEnd)],
+    },
+    ...overrides,
+  } as unknown as Stripe.Invoice;
+}
+
+describe("grantDeployCreditsForInvoice", () => {
+  afterEach(() => {
+    vi.mocked(deployBillingConfig).mockReset();
+  });
+
+  it("grants credits for a paid renewal fee line", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const create = vi.fn().mockResolvedValue({ id: "credgrant_test" });
+    const list = vi.fn().mockReturnValue((async function* () {})());
+    const stripe = {
+      billing: { creditGrants: { create, list } },
+    } as unknown as Stripe;
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result).toEqual({
+      granted: true,
+      grantId: "credgrant_test",
+      amountCents: 5000,
+      periodTotalCents: 5000,
+    });
+    expect(create).toHaveBeenCalledOnce();
+  });
+
+  it("skips when billing is not configured", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(null);
+    const stripe = {
+      billing: { creditGrants: { create: vi.fn(), list: vi.fn() } },
+    } as unknown as Stripe;
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result.granted).toBe(false);
+  });
+
+  it("skips duplicate grants for the same invoice", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const periodEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+    const expiresAt = periodEnd + 3 * 24 * 3600;
+    const list = vi.fn().mockReturnValue(
+      (async function* () {
+        yield {
+          id: "credgrant_existing",
+          expires_at: expiresAt,
+          amount: { monetary: { value: 5000 } },
+          metadata: { stripe_invoice_id: "in_test" },
+        };
+      })(),
+    );
+    const stripe = {
+      billing: { creditGrants: { create: vi.fn(), list } },
+    } as unknown as Stripe;
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result).toMatchObject({
+      granted: false,
+      reason: expect.stringContaining("already granted"),
+      periodTotalCents: 5000,
+    });
   });
 });

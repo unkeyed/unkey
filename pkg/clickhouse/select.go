@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"strings"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 )
@@ -72,3 +73,23 @@ func Select[T any](ctx context.Context, conn ch.Conn, query string, parameters m
 
 	return dest, nil
 }
+
+// stringArrayParam renders items as a ClickHouse Array(String) parameter
+// value. Server-side parameters travel as strings, so array parameters need
+// the literal array syntax with each element quoted and escaped.
+func stringArrayParam(items []string) string {
+	var b strings.Builder
+	b.WriteByte('[')
+	for i, s := range items {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte('\'')
+		b.WriteString(arrayElementEscaper.Replace(s))
+		b.WriteByte('\'')
+	}
+	b.WriteByte(']')
+	return b.String()
+}
+
+var arrayElementEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)

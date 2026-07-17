@@ -219,6 +219,13 @@ message WakeDeploymentRequest {
 
 message WakeDeploymentResponse {}
 
+message DeprovisionComputeRequest {
+  // WorkspaceId is the workspace whose Compute plan is being deprovisioned.
+  string workspace_id = 1;
+}
+
+message DeprovisionComputeResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -247,4 +254,12 @@ service DeployService {
 
   // Wake a stopped deployment by scaling it back up.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
+
+  // DeprovisionCompute tears down a workspace's Compute: it stops all running
+  // compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
+  // deploy_plan entitlement so the workspace can no longer deploy. The dashboard
+  // calls this when a workspace cancels its Compute plan; the dashboard stops the
+  // Stripe renewal itself. Idempotent: succeeds if the workspace already has no
+  // Compute plan.
+  rpc DeprovisionCompute(DeprovisionComputeRequest) returns (DeprovisionComputeResponse) {}
 }

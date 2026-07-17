@@ -61,6 +61,12 @@ type dataDeployment struct {
 	NotFound Code
 }
 
+// dataPolicy defines errors related to gateway policy operations.
+type dataPolicy struct {
+	// NotFound indicates the requested policy does not exist.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -140,6 +146,7 @@ type UnkeyDataErrors struct {
 	App                dataApp
 	Environment        dataEnvironment
 	Deployment         dataDeployment
+	Policy             dataPolicy
 	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
@@ -193,6 +200,10 @@ var Data = UnkeyDataErrors{
 
 	Deployment: dataDeployment{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "deployment_not_found"},
+	},
+
+	Policy: dataPolicy{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "policy_not_found"},
 	},
 
 	Permission: dataPermission{
