@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyGitSignature } from "./verify-signature";
 
 export const runtime = "nodejs";
@@ -61,13 +61,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Classify every reported token using only database lookups so we can answer
-  // GitHub quickly. GitHub retries the webhook when the response is slow, and
-  // each retry would otherwise re-send emails and Slack alerts, so the slow
-  // work (WorkOS lookups, Resend, Slack) is deferred to `after` below. This
-  // classification is the only work on the response path, so tokens are hashed
-  // in parallel and resolved with two batched queries rather than a sequential
-  // pair of lookups per token.
+  // Classify every reported token using only database lookups. GitHub retries
+  // the webhook when the response is slow, and each retry would otherwise
+  // re-send emails and Slack alerts, so classification is kept cheap: tokens
+  // are hashed in parallel and resolved with two batched queries rather than a
+  // sequential pair of lookups per token. The notification work (WorkOS,
+  // Resend, Slack) then runs inline before the 201 below.
   const items = data.map((item) => ({
     rawToken: item.token.toString(),
     source: item.source,
@@ -138,22 +137,23 @@ export async function POST(request: Request) {
     };
   });
 
-  // Notify after the response is flushed to GitHub, deduplicated within this
-  // request so a single leaked key produces at most one email per user and one
-  // Slack alert. Emails are additionally deduplicated across GitHub webhook
-  // retries via a Resend idempotency key; Slack alerts are not, so a retried
-  // delivery can still post a duplicate Slack alert.
+  // Notify inline before responding. This previously ran in a Next.js `after()`
+  // callback so GitHub got its response sooner, but on Vercel that deferred
+  // callback never delivered the emails/Slack alerts, so it runs on the request
+  // path again. Notifications are deduplicated within this request so a single
+  // leaked key produces at most one email per user and one Slack alert. Emails
+  // are additionally deduplicated across GitHub webhook retries via a Resend
+  // idempotency key; Slack alerts are not, so a retried delivery can still post
+  // a duplicate Slack alert.
+  //
+  // A notification failure must not fail the webhook: we still return 201 so
+  // GitHub marks the secret handled, and the error is reported to Sentry.
   const found = classified.filter((key) => key.isFound);
   if (found.length > 0) {
-    // Route Handlers run `after` callbacks with `onAfterTaskError: undefined`, so a
-    // rejection here never reaches Sentry via instrumentation — capture it explicitly
-    // or a failed leaked-key notification is lost silently.
-    after(() =>
-      notifyLeakedKeys(RESEND_API_KEY, found).catch((err) => {
-        console.error("Failed to send leaked key notifications", err);
-        Sentry.captureException(err);
-      }),
-    );
+    await notifyLeakedKeys(RESEND_API_KEY, found).catch((err) => {
+      console.error("Failed to send leaked key notifications", err);
+      Sentry.captureException(err);
+    });
   }
 
   return NextResponse.json([...githubResponse], { status: 201 });
