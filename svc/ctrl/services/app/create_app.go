@@ -10,11 +10,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/services/environment"
 )
 
 // envSpec defines the slug and human-readable description for a default environment.
@@ -29,8 +29,8 @@ var defaultEnvironments = []envSpec{
 	{slug: "preview", description: "Preview"},
 }
 
-// CreateApp creates an app with default environments and their
-// build/runtime settings in a single transaction.
+// CreateApp creates an app with default environments and their settings in a
+// single transaction.
 func (s *Service) CreateApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateAppRequest],
@@ -54,7 +54,8 @@ func (s *Service) CreateApp(
 	now := time.Now().UnixMilli()
 
 	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
+		queries := db.NewQueries(tx)
+		if txErr := queries.InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
 			ProjectID:        projectID,
@@ -68,56 +69,25 @@ func (s *Service) CreateApp(
 			return fmt.Errorf("insert app: %w", txErr)
 		}
 
+		environmentSpecs := make([]environment.CreateSpec, 0, len(defaultEnvironments))
 		for _, env := range defaultEnvironments {
-			envID := uid.New(uid.EnvironmentPrefix)
+			environmentSpecs = append(environmentSpecs, environment.CreateSpec{
+				ID:          uid.New(uid.EnvironmentPrefix),
+				Slug:        env.slug,
+				Description: env.description,
+			})
+		}
 
-			if txErr := db.NewQueries(tx).InsertEnvironment(txCtx, db.InsertEnvironmentParams{
-				ID:          envID,
+		if txErr := environment.CreateMany(txCtx, tx, environment.CreateManyParams{
+			App: environment.AppScope{
 				WorkspaceID: workspaceID,
 				ProjectID:   projectID,
 				AppID:       appID,
-				Slug:        env.slug,
-				Description: env.description,
-				CreatedAt:   now,
-				UpdatedAt:   sql.NullInt64{Valid: false},
-			}); txErr != nil {
-				return fmt.Errorf("insert %s environment: %w", env.slug, txErr)
-			}
-
-			if txErr := db.NewQueries(tx).UpsertAppBuildSettings(txCtx, db.UpsertAppBuildSettingsParams{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: envID,
-				Dockerfile:    sql.NullString{Valid: false, String: ""},
-				DockerContext: "",
-				BuildCommand:  sql.NullString{Valid: false, String: ""},
-				WatchPaths:    nil,
-				AutoDeploy:    true,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-			}); txErr != nil {
-				return fmt.Errorf("upsert %s build settings: %w", env.slug, txErr)
-			}
-
-			if txErr := db.NewQueries(tx).UpsertAppRuntimeSettings(txCtx, db.UpsertAppRuntimeSettingsParams{
-				WorkspaceID:      workspaceID,
-				AppID:            appID,
-				EnvironmentID:    envID,
-				Port:             0,
-				CpuMillicores:    0,
-				MemoryMib:        0,
-				StorageMib:       0,
-				Command:          dbtype.StringSlice{},
-				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
-				SentinelConfig:   []byte("{}"),
-				OpenapiSpecPath:  sql.NullString{Valid: false},
-				CreatedAt:        now,
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
-			}); txErr != nil {
-				return fmt.Errorf("upsert %s runtime settings: %w", env.slug, txErr)
-			}
+			},
+			Environments: environmentSpecs,
+			Now:          now,
+		}); txErr != nil {
+			return fmt.Errorf("create default environments: %w", txErr)
 		}
 
 		a := req.Msg.GetActor()

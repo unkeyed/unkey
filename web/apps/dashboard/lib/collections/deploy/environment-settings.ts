@@ -321,63 +321,6 @@ export function buildSettingsMutations(
   return mutations;
 }
 
-/**
- * Persist real defaults for a new environment at create time, so a user who
- * bails before configuring deployment still has usable settings instead of the
- * empty placeholders it starts with.
- */
-export function buildDefaultSettingsMutations(
-  environmentId: string,
-  availableRegions: { id: string; name: string }[],
-): Promise<unknown>[] {
-  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
-
-  const empty: EnvironmentSettings = {
-    environmentId,
-    autoDeploy: true,
-    dockerfile: "",
-    dockerContext: "",
-    buildCommand: "",
-    watchPaths: [],
-    port: 0,
-    cpuMillicores: 0,
-    memoryMib: 0,
-    storageMib: 0,
-    command: [],
-    healthcheck: null,
-    regions: [],
-    shutdownSignal: "",
-    upstreamProtocol: "http1",
-    openapiSpecPath: null,
-  };
-
-  const defaults: EnvironmentSettings = {
-    environmentId,
-    autoDeploy: d.autoDeploy,
-    dockerfile: d.dockerfile,
-    dockerContext: d.dockerContext,
-    buildCommand: d.buildCommand,
-    watchPaths: [],
-    port: d.port,
-    cpuMillicores: d.cpuMillicores,
-    memoryMib: d.memoryMib,
-    storageMib: d.storageMib,
-    command: [],
-    healthcheck: null,
-    regions: availableRegions.map((r) => ({
-      id: r.id,
-      name: r.name,
-      replicasMin: 1,
-      replicasMax: 1,
-    })),
-    shutdownSignal: d.shutdownSignal,
-    upstreamProtocol: d.upstreamProtocol,
-    openapiSpecPath: null,
-  };
-
-  return buildSettingsMutations(environmentId, empty, defaults);
-}
-
 async function dispatchSettingsMutations(
   original: EnvironmentSettings,
   modified: EnvironmentSettings,
