@@ -30,93 +30,93 @@ func rollbackBase() RollbackInput {
 
 func TestCheckPromoteTarget(t *testing.T) {
 	t.Run("eligible", func(t *testing.T) {
-		require.Equal(t, PromotionOK, CheckPromoteTarget(promoteBase()))
+		require.Equal(t, TargetOK, CheckPromoteTarget(promoteBase()))
 	})
 
 	t.Run("reason order", func(t *testing.T) {
 		in := promoteBase()
 		in.Status = "building"
-		require.Equal(t, PromotionNotReady, CheckPromoteTarget(in))
+		require.Equal(t, TargetNotReady, CheckPromoteTarget(in))
 
 		in = promoteBase()
 		in.DesiredState = "stopped"
-		require.Equal(t, PromotionDraining, CheckPromoteTarget(in))
+		require.Equal(t, TargetDraining, CheckPromoteTarget(in))
 
 		in = promoteBase()
 		in.EnvironmentSlug = "preview"
-		require.Equal(t, PromotionNotProduction, CheckPromoteTarget(in))
+		require.Equal(t, TargetNotProduction, CheckPromoteTarget(in))
 
 		in = promoteBase()
 		in.CurrentDeploymentID = ""
-		require.Equal(t, PromotionNoCurrentDeployment, CheckPromoteTarget(in))
+		require.Equal(t, TargetNoCurrentDeployment, CheckPromoteTarget(in))
 	})
 
 	t.Run("already live is rejected", func(t *testing.T) {
 		in := promoteBase()
 		in.CurrentDeploymentID = in.DeploymentID
-		require.Equal(t, PromotionAlreadyCurrent, CheckPromoteTarget(in))
+		require.Equal(t, TargetAlreadyCurrent, CheckPromoteTarget(in))
 	})
 
 	t.Run("promoting the current deployment while rolled back is allowed", func(t *testing.T) {
 		in := promoteBase()
 		in.CurrentDeploymentID = in.DeploymentID
 		in.IsRolledBack = true
-		require.Equal(t, PromotionOK, CheckPromoteTarget(in), "confirming a rollback")
+		require.Equal(t, TargetOK, CheckPromoteTarget(in), "confirming a rollback")
 	})
 }
 
 func TestCheckRollbackTarget(t *testing.T) {
 	t.Run("eligible", func(t *testing.T) {
-		require.Equal(t, PromotionOK, CheckRollbackTarget(rollbackBase()))
+		require.Equal(t, TargetOK, CheckRollbackTarget(rollbackBase()))
 	})
 
 	t.Run("rolling back to the current deployment is rejected", func(t *testing.T) {
 		in := rollbackBase()
 		in.CurrentDeploymentID = in.DeploymentID
-		require.Equal(t, PromotionAlreadyCurrent, CheckRollbackTarget(in))
+		require.Equal(t, TargetAlreadyCurrent, CheckRollbackTarget(in))
 	})
 
 	t.Run("shares the core preconditions", func(t *testing.T) {
 		in := rollbackBase()
 		in.Status = "failed"
-		require.Equal(t, PromotionNotReady, CheckRollbackTarget(in))
+		require.Equal(t, TargetNotReady, CheckRollbackTarget(in))
 	})
 }
 
-func TestCheckStoppable(t *testing.T) {
+func TestCheckStopTarget(t *testing.T) {
 	running := StopInput{Status: db.DeploymentsStatusReady, DesiredState: db.DeploymentsDesiredStateRunning, EnvironmentSlug: "preview"}
 
-	require.Equal(t, StopOK, CheckStoppable(running))
+	require.Equal(t, StopOK, CheckStopTarget(running))
 
 	notReady := running
 	notReady.Status = db.DeploymentsStatusStopped
-	require.Equal(t, StopNotRunning, CheckStoppable(notReady))
+	require.Equal(t, StopNotRunning, CheckStopTarget(notReady))
 
 	draining := running
 	draining.DesiredState = db.DeploymentsDesiredStateStopped
-	require.Equal(t, StopAlreadyStopping, CheckStoppable(draining))
+	require.Equal(t, StopAlreadyStopping, CheckStopTarget(draining))
 
 	prod := running
 	prod.EnvironmentSlug = envProduction
-	require.Equal(t, StopIsProduction, CheckStoppable(prod))
+	require.Equal(t, StopIsProduction, CheckStopTarget(prod))
 }
 
-func TestCheckStartable(t *testing.T) {
+func TestCheckStartTarget(t *testing.T) {
 	// A stopped deployment is keyed on desired_state, not status: it may still be
 	// draining (status ready) while its intent is stopped.
 	stopped := StartInput{DesiredState: db.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
 
-	require.Equal(t, StartOK, CheckStartable(stopped), "wakeable while draining toward stopped")
+	require.Equal(t, StartOK, CheckStartTarget(stopped), "wakeable while draining toward stopped")
 
 	notStopped := stopped
 	notStopped.DesiredState = db.DeploymentsDesiredStateRunning
-	require.Equal(t, StartNotStopped, CheckStartable(notStopped))
+	require.Equal(t, StartNotStopped, CheckStartTarget(notStopped))
 
 	prod := stopped
 	prod.EnvironmentSlug = envProduction
-	require.Equal(t, StartIsProduction, CheckStartable(prod))
+	require.Equal(t, StartIsProduction, CheckStartTarget(prod))
 
 	suspended := stopped
 	suspended.SpendSuspended = true
-	require.Equal(t, StartSpendSuspended, CheckStartable(suspended))
+	require.Equal(t, StartSpendSuspended, CheckStartTarget(suspended))
 }

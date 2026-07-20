@@ -180,20 +180,20 @@ func TestDeployment_Promote_Validation(t *testing.T) {
 		{"deployment not found", connect.CodeNotFound, "deployment not found", func() string {
 			return uid.New("deployment")
 		}},
-		{"not ready", connect.CodeFailedPrecondition, deploygate.PromotionNotReady.Message(), func() string {
+		{"not ready", connect.CodeFailedPrecondition, deploygate.TargetNotReady.Message(), func() string {
 			return f.deployment(f.prodEnv, db.DeploymentsStatusPending, db.DeploymentsDesiredStateRunning).ID
 		}},
-		{"shutting down", connect.CodeFailedPrecondition, deploygate.PromotionDraining.Message(), func() string {
+		{"shutting down", connect.CodeFailedPrecondition, deploygate.TargetDraining.Message(), func() string {
 			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateStopped).ID
 		}},
-		{"non-production", connect.CodeFailedPrecondition, deploygate.PromotionNotProduction.Message(), func() string {
+		{"non-production", connect.CodeFailedPrecondition, deploygate.TargetNotProduction.Message(), func() string {
 			return f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
 		}},
-		{"app has no live deployment", connect.CodeFailedPrecondition, deploygate.PromotionNoCurrentDeployment.Message(), func() string {
+		{"app has no live deployment", connect.CodeFailedPrecondition, deploygate.TargetNoCurrentDeployment.Message(), func() string {
 			f.setLive("", false)
 			return f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning).ID
 		}},
-		{"already live", connect.CodeFailedPrecondition, deploygate.PromotionAlreadyCurrent.Message(), func() string {
+		{"already live", connect.CodeFailedPrecondition, deploygate.TargetAlreadyCurrent.Message(), func() string {
 			d := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			f.setLive(d.ID, false)
 			return d.ID
@@ -251,25 +251,25 @@ func TestDeployment_Rollback_Validation(t *testing.T) {
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"target not ready", connect.CodeFailedPrecondition, deploygate.PromotionNotReady.Message(), func() (string, string) {
+		{"target not ready", connect.CodeFailedPrecondition, deploygate.TargetNotReady.Message(), func() (string, string) {
 			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			target := f.deployment(f.prodEnv, db.DeploymentsStatusPending, db.DeploymentsDesiredStateRunning)
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"target shutting down", connect.CodeFailedPrecondition, deploygate.PromotionDraining.Message(), func() (string, string) {
+		{"target shutting down", connect.CodeFailedPrecondition, deploygate.TargetDraining.Message(), func() (string, string) {
 			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateStopped)
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"non-production", connect.CodeFailedPrecondition, deploygate.PromotionNotProduction.Message(), func() (string, string) {
+		{"non-production", connect.CodeFailedPrecondition, deploygate.TargetNotProduction.Message(), func() (string, string) {
 			source := f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			target := f.deployment(f.previewEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			f.setLive(source.ID, false)
 			return source.ID, target.ID
 		}},
-		{"target already live", connect.CodeFailedPrecondition, deploygate.PromotionAlreadyCurrent.Message(), func() (string, string) {
+		{"target already live", connect.CodeFailedPrecondition, deploygate.TargetAlreadyCurrent.Message(), func() (string, string) {
 			source := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			target := f.deployment(f.prodEnv, db.DeploymentsStatusReady, db.DeploymentsDesiredStateRunning)
 			f.setLive(target.ID, false)

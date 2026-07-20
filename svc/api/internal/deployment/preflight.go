@@ -12,21 +12,21 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 )
 
-// PromotionFault maps a deploygate promote/rollback rejection onto the API
+// TargetFault maps a deploygate promote/rollback rejection onto the API
 // fault with the matching precondition code, so both handlers surface the same
 // code and message for the same reason.
-func PromotionFault(r deploygate.PromotionReason) error {
+func TargetFault(r deploygate.TargetFailureReason) error {
 	var code codes.Code
 	switch r {
-	case deploygate.PromotionNotReady, deploygate.PromotionDraining:
+	case deploygate.TargetNotReady, deploygate.TargetDraining:
 		code = codes.App.Precondition.DeploymentNotReady
-	case deploygate.PromotionNotProduction:
+	case deploygate.TargetNotProduction:
 		code = codes.App.Precondition.DeploymentNotProduction
-	case deploygate.PromotionNoCurrentDeployment:
+	case deploygate.TargetNoCurrentDeployment:
 		code = codes.App.Precondition.DeploymentNoCurrent
-	case deploygate.PromotionAlreadyCurrent:
+	case deploygate.TargetAlreadyCurrent:
 		code = codes.App.Precondition.DeploymentIsCurrent
-	case deploygate.PromotionOK:
+	case deploygate.TargetOK:
 		return nil
 	default:
 		code = codes.App.Precondition.PreconditionFailed
@@ -41,7 +41,7 @@ func PromotionFault(r deploygate.PromotionReason) error {
 
 // StopFault maps a deploygate stop rejection onto the API fault with the
 // matching precondition code.
-func StopFault(r deploygate.StopReason) error {
+func StopFault(r deploygate.StopFailureReason) error {
 	var code codes.Code
 	switch r {
 	case deploygate.StopNotRunning:
@@ -65,7 +65,7 @@ func StopFault(r deploygate.StopReason) error {
 
 // StartFault maps a deploygate start rejection onto the API fault with the
 // matching precondition code.
-func StartFault(r deploygate.StartReason) error {
+func StartFault(r deploygate.StartFailureReason) error {
 	var code codes.Code
 	switch r {
 	case deploygate.StartNotStopped:
@@ -134,18 +134,18 @@ func MapCtrlError(err error, action string, preconditionMsg string) error {
 		switch connectErr.Code() {
 		case connect.CodeFailedPrecondition:
 			msg := connectErr.Message()
-			for _, r := range []deploygate.PromotionReason{
-				deploygate.PromotionNotReady,
-				deploygate.PromotionDraining,
-				deploygate.PromotionNotProduction,
-				deploygate.PromotionNoCurrentDeployment,
-				deploygate.PromotionAlreadyCurrent,
+			for _, r := range []deploygate.TargetFailureReason{
+				deploygate.TargetNotReady,
+				deploygate.TargetDraining,
+				deploygate.TargetNotProduction,
+				deploygate.TargetNoCurrentDeployment,
+				deploygate.TargetAlreadyCurrent,
 			} {
 				if msg == r.Message() {
-					return PromotionFault(r)
+					return TargetFault(r)
 				}
 			}
-			for _, r := range []deploygate.StopReason{
+			for _, r := range []deploygate.StopFailureReason{
 				deploygate.StopNotRunning,
 				deploygate.StopAlreadyStopping,
 				deploygate.StopIsProduction,
@@ -154,7 +154,7 @@ func MapCtrlError(err error, action string, preconditionMsg string) error {
 					return StopFault(r)
 				}
 			}
-			for _, r := range []deploygate.StartReason{
+			for _, r := range []deploygate.StartFailureReason{
 				deploygate.StartNotStopped,
 				deploygate.StartIsProduction,
 				deploygate.StartSpendSuspended,

@@ -86,7 +86,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 		IsRolledBack:        app.IsRolledBack,
-	}); r != deploygate.PromotionOK {
+	}); r != deploygate.TargetOK {
 		return nil, fault.Wrap(
 			restate.TerminalError(errors.New(r.Message()), 400),
 			fault.Public(r.Message()),

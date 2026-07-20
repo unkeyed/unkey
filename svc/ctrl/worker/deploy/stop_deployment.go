@@ -40,7 +40,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	if r := deploygate.CheckStoppable(deploygate.StopInput{
+	if r := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:          pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,

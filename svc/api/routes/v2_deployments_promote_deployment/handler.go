@@ -91,8 +91,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
 		IsRolledBack:        app.IsRolledBack,
-	}); r != deploygate.PromotionOK {
-		return deployment.PromotionFault(r)
+	}); r != deploygate.TargetOK {
+		return deployment.TargetFault(r)
 	}
 
 	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{

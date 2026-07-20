@@ -91,8 +91,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentSlug:     dep.EnvironmentSlug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
-	}); r != deploygate.PromotionOK {
-		return deployment.PromotionFault(r)
+	}); r != deploygate.TargetOK {
+		return deployment.TargetFault(r)
 	}
 
 	_, err = h.CtrlClient.Rollback(ctx, &ctrlv1.RollbackRequest{

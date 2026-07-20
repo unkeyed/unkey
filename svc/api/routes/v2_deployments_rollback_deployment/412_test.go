@@ -224,7 +224,7 @@ func TestRollbackDeploymentCtrlGateRejection(t *testing.T) {
 	h := testutil.NewHarness(t)
 	mock := &testutil.MockDeploymentClient{
 		RollbackFunc: func(ctx context.Context, req *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.PromotionDraining.Message()))
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.TargetDraining.Message()))
 		},
 	}
 	route := newRoute(h, mock)
@@ -256,5 +256,5 @@ func TestRollbackDeploymentCtrlGateRejection(t *testing.T) {
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Len(t, mock.RollbackCalls, 1)
 	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
-	require.Equal(t, deploygate.PromotionDraining.Message(), res.Body.Error.Detail)
+	require.Equal(t, deploygate.TargetDraining.Message(), res.Body.Error.Detail)
 }

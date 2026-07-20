@@ -61,7 +61,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		EnvironmentSlug:     targetDeployment.EnvironmentSlug,
 		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
-	}); r != deploygate.PromotionOK {
+	}); r != deploygate.TargetOK {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
 

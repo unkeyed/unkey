@@ -51,7 +51,7 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
 	}
 
-	if r := deploygate.CheckStartable(deploygate.StartInput{
+	if r := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
 		SpendSuspended:  entitlement.SpendSuspended.Bool,

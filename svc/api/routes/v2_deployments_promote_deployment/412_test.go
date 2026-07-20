@@ -226,7 +226,7 @@ func TestPromoteDeploymentCtrlGateRejection(t *testing.T) {
 	h := testutil.NewHarness(t)
 	mock := &testutil.MockDeploymentClient{
 		PromoteFunc: func(ctx context.Context, req *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.PromotionAlreadyCurrent.Message()))
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.TargetAlreadyCurrent.Message()))
 		},
 	}
 	route := newRoute(h, mock)
@@ -259,5 +259,5 @@ func TestPromoteDeploymentCtrlGateRejection(t *testing.T) {
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Len(t, mock.PromoteCalls, 1)
 	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
-	require.Equal(t, deploygate.PromotionAlreadyCurrent.Message(), res.Body.Error.Detail)
+	require.Equal(t, deploygate.TargetAlreadyCurrent.Message(), res.Body.Error.Detail)
 }

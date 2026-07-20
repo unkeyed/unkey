@@ -105,7 +105,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		EnvironmentSlug:     environment.Slug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
-	}); r != deploygate.PromotionOK {
+	}); r != deploygate.TargetOK {
 		return nil, restate.TerminalError(errors.New(r.Message()), 400)
 	}
 

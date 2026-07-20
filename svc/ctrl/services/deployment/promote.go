@@ -47,7 +47,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
 		DeploymentID:        deployment.ID,
 		IsRolledBack:        deployment.IsRolledBack,
-	}); r != deploygate.PromotionOK {
+	}); r != deploygate.TargetOK {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
 
