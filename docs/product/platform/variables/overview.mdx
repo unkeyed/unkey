@@ -38,6 +38,17 @@ You can add multiple variables at once:
 - **Drag and drop**: drag a `.env` file onto the form to import all variables from the file.
 - **File picker**: click the import button and select a `.env` file from your file system.
 
+## Multi-line values
+
+Values can span multiple lines, so you can paste TOML configuration, PEM keys, or certificate chains directly into a variable without escaping newlines. The value field is a resizable textarea:
+
+- **Enter** inserts a newline.
+- **Cmd/Ctrl+Enter** moves to the next variable row.
+
+Each value is stored up to **16 KB** (UTF-8 bytes). Leading and trailing whitespace is trimmed automatically, so a trailing newline in a pasted PEM key is fine. Windows-style line endings (`\r\n`) are rejected — convert to LF (`\n`) before pasting.
+
+Multi-line values are quoted safely when injected into your app at runtime and when [mounted as Docker build secrets](/builds/dockerfile#build-time-environment-variables), so the standard `set -a && . /run/secrets/.env && set +a` pattern works unchanged.
+
 ### Form persistence
 
 If you close the panel or navigate away before saving, Unkey preserves your unsaved entries for the current session. When you reopen the panel, your draft is restored so you can pick up where you left off. A leave-prevention prompt also appears if you attempt to refresh or close the browser tab while the panel is open.

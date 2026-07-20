@@ -1,0 +1,48 @@
+---
+title: "July 17, 2026"
+description: "Manage gateway policies over the HTTP API, paste multi-line environment variables directly, and a batch of security hardening across the dashboard."
+noindex: true
+---
+
+## New features
+
+### Manage gateway policies over the HTTP API
+
+The Unkey HTTP API now covers [gateway policies](/platform/gateway/policies/overview) end to end. Three new endpoints let you script an environment's policy list the same way you script keys and identities:
+
+- `POST /v2/policies.setPolicies` — replace the environment's full policy list in evaluation order.
+- `POST /v2/policies.listPolicies` — read the current policies for an environment.
+- `POST /v2/policies.updatePolicy` — modify a single policy in place.
+
+Both actions are gated by dedicated root-key permissions: `environment.<id>.set_policies` for writes and `environment.<id>.read_policies` for reads (wildcard `environment.*` also supported). See [Manage policies via API](/platform/gateway/policies/overview#manage-policies-via-api) for the request shape and an example.
+
+### Multi-line values in environment variables
+
+You can now paste multi-line values — TOML configs, PEM keys, cert chains — directly into an environment [variable](/platform/variables/overview) without escaping newlines. The value field is a resizable textarea; press **Enter** to insert a newline and **Cmd/Ctrl+Enter** to move to the next variable.
+
+The per-value size limit is raised from 3 KB to 16 KB. Multi-line values are quoted safely when injected as [Docker build secrets](/builds/dockerfile#build-time-environment-variables), so `set -a && . /run/secrets/.env && set +a` continues to work.
+
+## Updates
+
+### Distinct offline error for suspended deployments
+
+Requests to a deployment that has been suspended now return a distinct offline error at the gateway instead of a generic upstream failure, so it's obvious in logs and alerts why the request was rejected.
+
+### Identity actions accept project-scoped URNs
+
+Root keys authorized on a project can now perform identity actions using project-scoped URNs, matching how permissions work for other project resources.
+
+## Bug fixes
+
+- Fixed a Modal regression that could leave the dashboard's modal stack in a broken state.
+- GitHub secret scanning ingestion is more resilient to malformed reports.
+- Invitation acceptance no longer surfaces raw internal error messages to the client.
+- The dashboard now sets Content-Security-Policy, HSTS, and other hardening headers.
+- Audit log entries no longer trust the client-supplied `X-Forwarded-For` header for the recorded location.
+- OAuth callback `redirectUrlComplete` is now validated to prevent open redirects.
+- Sentry transactions and spans are captured with PII scrubbing applied.
+- ACME certificate verification requests to the control plane are now authenticated.
+- OpenAPI spec uploads are size-capped to prevent runaway parsing.
+- Distroless service images run as a non-root user.
+- Sensitive variable values are no longer persisted after being toggled sensitive.
+- Full user objects and query bodies are no longer logged from the dashboard.

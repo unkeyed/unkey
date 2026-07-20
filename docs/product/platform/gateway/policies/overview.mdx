@@ -73,6 +73,82 @@ To create OR conditions, create separate policies with the same action but diffe
 | [Firewall](/platform/gateway/policies/firewall)                       | Available   | Deny requests based on path, method, header, or query |
 | [OpenAPI validation](/platform/gateway/policies/openapi-validation)   | Available   | Validate requests against an OpenAPI 3.0/3.1 specification |
 
+## Manage policies via API
+
+You can manage the policy list for an environment through the HTTP API in addition to the dashboard, so policy changes can live in code and ship through CI.
+
+| Endpoint                          | Purpose                                            | Required permission          |
+| --------------------------------- | -------------------------------------------------- | ---------------------------- |
+| `POST /v2/policies.setPolicies`   | Replace the environment's full policy list         | `environment.*.set_policies` |
+| `POST /v2/policies.listPolicies`  | Read the current policies for an environment       | `environment.*.read_policies`|
+| `POST /v2/policies.updatePolicy`  | Update a single policy in place                    | `environment.*.set_policies` |
+
+Grant the permission on a specific environment (`environment.<id>.set_policies`) or workspace-wide (`environment.*.set_policies`) when creating the [root key](/platform/root-keys/overview).
+
+### Replace all policies
+
+`setPolicies` is the primary write endpoint. It replaces every stored policy with the list in the request, in evaluation order. Sending an empty list removes all policies. If any policy in the request is invalid the entire call is rejected, so the environment is never left in a half-updated state.
+
+```bash
+curl -X POST "https://api.unkey.com/v2/policies.setPolicies" \
+  -H "Authorization: Bearer unkey_root_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "environmentId": "env_xxx",
+    "policies": [
+      {
+        "name": "authenticate everything except health",
+        "enabled": true,
+        "match": [
+          { "path": { "prefix": "/", "mode": "prefix" } }
+        ],
+        "config": {
+          "keyauth": {
+            "keyspaces": ["ks_xxx"]
+          }
+        }
+      }
+    ]
+  }'
+```
+
+Up to 50 policies are allowed per environment. The server assigns a fresh `id` to every policy on each write, so treat ids as opaque and short-lived.
+
+### Read the current list
+
+`listPolicies` returns every policy for the environment in evaluation order in a single response. The response includes each policy's server-assigned `id`, which you use with `updatePolicy`.
+
+```bash
+curl -X POST "https://api.unkey.com/v2/policies.listPolicies" \
+  -H "Authorization: Bearer unkey_root_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "environmentId": "env_xxx" }'
+```
+
+### Update a single policy
+
+`updatePolicy` modifies one policy without touching the rest of the list. Fetch the current `id` with `listPolicies`, then send the updated policy fields.
+
+```bash
+curl -X POST "https://api.unkey.com/v2/policies.updatePolicy" \
+  -H "Authorization: Bearer unkey_root_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "environmentId": "env_xxx",
+    "policyId": "pol_xxx",
+    "policy": {
+      "name": "authenticate everything except health",
+      "enabled": false,
+      "match": [{ "path": { "prefix": "/", "mode": "prefix" } }],
+      "config": {
+        "keyauth": { "keyspaces": ["ks_xxx"] }
+      }
+    }
+  }'
+```
+
+Toggling `enabled` to `false` is the recommended way to bypass a misbehaving policy during an incident without deleting its configuration.
+
 ## Error response format
 
 When a policy rejects a request, the gateway returns a structured JSON error following the RFC 7807 Problem Details format:
