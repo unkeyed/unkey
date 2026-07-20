@@ -34,7 +34,11 @@ export type EnvironmentVariableInput = {
    */
   key: string;
   /**
-   * The variable value. Always encrypted at rest.
+   * The variable value. Always encrypted at rest. The limit is enforced
+   *
+   * @remarks
+   * server-side in UTF-8 bytes, so a multibyte value may be rejected before
+   * it reaches this code-point maximum.
    */
   value: string;
   /**

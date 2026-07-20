@@ -13,7 +13,7 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
  *
  * @remarks
  */
-export const Method = {
+export const EnvironmentHealthcheckMethod = {
   Get: "GET",
   Post: "POST",
 } as const;
@@ -22,7 +22,9 @@ export const Method = {
  *
  * @remarks
  */
-export type Method = ClosedEnum<typeof Method>;
+export type EnvironmentHealthcheckMethod = ClosedEnum<
+  typeof EnvironmentHealthcheckMethod
+>;
 
 export type EnvironmentHealthcheck = {
   /**
@@ -30,7 +32,7 @@ export type EnvironmentHealthcheck = {
    *
    * @remarks
    */
-  method: Method;
+  method: EnvironmentHealthcheckMethod;
   /**
    * HTTP path probed on the container. Must start with a slash.
    *
@@ -64,11 +66,13 @@ export type EnvironmentHealthcheck = {
 };
 
 /** @internal */
-export const Method$inboundSchema: z.ZodNativeEnum<typeof Method> = z
-  .nativeEnum(Method);
+export const EnvironmentHealthcheckMethod$inboundSchema: z.ZodNativeEnum<
+  typeof EnvironmentHealthcheckMethod
+> = z.nativeEnum(EnvironmentHealthcheckMethod);
 /** @internal */
-export const Method$outboundSchema: z.ZodNativeEnum<typeof Method> =
-  Method$inboundSchema;
+export const EnvironmentHealthcheckMethod$outboundSchema: z.ZodNativeEnum<
+  typeof EnvironmentHealthcheckMethod
+> = EnvironmentHealthcheckMethod$inboundSchema;
 
 /** @internal */
 export const EnvironmentHealthcheck$inboundSchema: z.ZodType<
@@ -76,7 +80,7 @@ export const EnvironmentHealthcheck$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
-  method: Method$inboundSchema,
+  method: EnvironmentHealthcheckMethod$inboundSchema,
   path: z.string(),
   intervalSeconds: z.number().int().optional(),
   timeoutSeconds: z.number().int().optional(),
@@ -99,7 +103,7 @@ export const EnvironmentHealthcheck$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   EnvironmentHealthcheck
 > = z.object({
-  method: Method$outboundSchema,
+  method: EnvironmentHealthcheckMethod$outboundSchema,
   path: z.string(),
   intervalSeconds: z.number().int().optional(),
   timeoutSeconds: z.number().int().optional(),
