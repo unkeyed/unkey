@@ -1,4 +1,4 @@
-speakeasyVersion: 1.790.1
+speakeasyVersion: 1.790.3
 sources: {}
 targets:
     api-ts:

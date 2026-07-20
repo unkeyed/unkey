@@ -119,8 +119,13 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 	)
 	require.NoError(t, err)
 	_, err = database.RW().ExecContext(context.Background(),
-		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id, stripe_subscription_id) VALUES (?, ?, ?, ?)`,
-		"ws_deploy", "pro", "cus_deploy", "sub_deploy",
+		`INSERT INTO workspace_billing (workspace_id, plan, stripe_customer_id) VALUES (?, ?, ?)`,
+		"ws_deploy", "pro", "cus_deploy",
+	)
+	require.NoError(t, err)
+	_, err = database.RW().ExecContext(context.Background(),
+		`INSERT INTO billing_subscriptions (workspace_id, product, stripe_subscription_id) VALUES (?, 'compute', ?)`,
+		"ws_deploy", "sub_deploy",
 	)
 	require.NoError(t, err)
 

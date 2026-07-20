@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
@@ -89,7 +90,7 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Make the deployment its app's current deployment so suspend/resume have
@@ -174,7 +175,7 @@ func TestDeploySpendCheck_BudgetChurnDoesNotSpam(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	sender := email.NewCapture()
@@ -224,7 +225,7 @@ func TestDeploySpendCheck_SuspendedDoesNotWarn(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	}).Deployment
 
 	// Column says suspended, but the VO carries no high-water state (fresh key),

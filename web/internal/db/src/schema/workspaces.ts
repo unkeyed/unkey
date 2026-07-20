@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { billingSubscriptions } from "./billing_subscriptions";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
 import { githubAppInstallations } from "./github_app";
@@ -116,6 +117,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   githubAppInstallations: many(githubAppInstallations),
   quotas: one(quotas),
   billing: one(workspaceBilling),
+  billingSubscriptions: many(billingSubscriptions),
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),
