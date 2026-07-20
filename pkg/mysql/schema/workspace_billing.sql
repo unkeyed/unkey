@@ -3,7 +3,6 @@ CREATE TABLE `workspace_billing` (
 	`workspace_id` varchar(256) NOT NULL,
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
-	`stripe_subscription_id` varchar(256),
 	`plan` varchar(64),
 	`plan_override` varchar(64),
 	`spend_budget_cents` bigint unsigned,

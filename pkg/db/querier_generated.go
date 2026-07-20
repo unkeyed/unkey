@@ -876,7 +876,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -974,7 +974,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -1385,12 +1385,12 @@ type Querier interface {
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//FindWorkspaceByOrgID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE org_id = ?
 	//  AND deleted_at_m IS NULL
 	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
@@ -2243,7 +2243,6 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      created_at_m,
-	//      tier,
 	//      beta_features,
 	//      enabled,
 	//      delete_protection,
@@ -2255,7 +2254,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      'Free',
 	//      '{}',
 	//      true,
 	//      true,
@@ -3079,7 +3077,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.deploy_spend_suspended, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -4129,11 +4127,10 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      created_at_m,
-	//      tier,
 	//      beta_features,
 	//      enabled,
 	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, true, false)
 	//  ON DUPLICATE KEY UPDATE
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)

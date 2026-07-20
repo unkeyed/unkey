@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertWorkspace is the base query for bulk insert
-const bulkInsertWorkspace = `INSERT INTO ` + "`" + `workspaces` + "`" + ` ( id, org_id, name, slug, created_at_m, tier, beta_features, enabled, delete_protection, k8s_namespace ) VALUES %s`
+const bulkInsertWorkspace = `INSERT INTO ` + "`" + `workspaces` + "`" + ` ( id, org_id, name, slug, created_at_m, beta_features, enabled, delete_protection, k8s_namespace ) VALUES %s`
 
 // InsertWorkspaces performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertWorkspaces(ctx context.Context, args []InsertWorkspa
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, 'Free', '{}', true, true, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, '{}', true, true, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertWorkspace, strings.Join(valueClauses, ", "))
