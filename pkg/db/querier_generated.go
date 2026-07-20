@@ -493,7 +493,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -782,6 +782,14 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
+	// Returns the subset of the given keyspace ids that exist in this workspace
+	// and are not soft-deleted.
+	//
+	//  SELECT id FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND id IN (/*SLICE:key_auth_ids*/?)
+	//    AND deleted_at_m IS NULL
+	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error)
 	//FindKeyAuthsByKeyAuthIds
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
@@ -863,7 +871,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -961,7 +969,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -1193,7 +1201,7 @@ type Querier interface {
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindQuotaByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
+	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
 	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
@@ -1335,14 +1343,22 @@ type Querier interface {
 	//    AND verification_status = 'verified'
 	//  LIMIT 1
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
+	// spend budget and spend-cap state). Use this when only billing state is needed;
+	// when a workspace is already being fetched, prefer joining workspace_billing in
+	// that query rather than a second round trip.
+	//
+	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+	//  WHERE workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (WorkspaceBilling, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//FindWorkspaceByOrgID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE org_id = ?
 	//  AND deleted_at_m IS NULL
 	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
@@ -1354,9 +1370,10 @@ type Querier interface {
 	// is insensitive to workspace column ordering.
 	//
 	//  SELECT
-	//     w.deploy_plan,
-	//     w.deploy_plan_override
+	//     b.plan,
+	//     b.plan_override
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
@@ -1385,12 +1402,13 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	//HardDeleteWorkspace
@@ -2212,6 +2230,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
+	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
+	// is safe to call after InsertWorkspace/UpsertWorkspace without a prior check.
+	// New workspaces start on the Free tier with no Stripe linkage and no plan.
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      tier,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      'Free',
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE workspace_id = workspace_id
+	InsertWorkspaceBilling(ctx context.Context, db DBTX, arg InsertWorkspaceBillingParams) error
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
@@ -2953,8 +2987,8 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.deploy_spend_suspended, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
 	//  WHERE w.id > ?
@@ -2970,9 +3004,10 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     w.stripe_customer_id,
+	//     b.stripe_customer_id,
 	//     w.enabled
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
 	//ListWorkspacesForQuotaCheck
@@ -2981,12 +3016,13 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id > ?
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
@@ -3121,12 +3157,12 @@ type Querier interface {
 	// stripe_customer_id, which no webhook ever clears. Used by the
 	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
 	//
-	//  UPDATE `workspaces`
+	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
 	//      stripe_subscription_id = NULL,
-	//      deploy_plan = NULL,
+	//      plan = NULL,
 	//      tier = 'Free'
-	//  WHERE id = ?
+	//  WHERE workspace_id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
 	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
@@ -3659,7 +3695,8 @@ type Querier interface {
 	//      max_cpu_millicores_per_instance = ?,
 	//      max_memory_mib_per_instance = ?,
 	//      max_storage_mib_per_instance = ?,
-	//      max_concurrent_builds = ?
+	//      max_concurrent_builds = ?,
+	//      max_replicas_per_region = ?
 	//  WHERE workspace_id = ?
 	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
@@ -3796,6 +3833,28 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
+	// Writes only sentinel_config, creating the row when missing. All other
+	// columns keep their current values.
+	//
+	//  INSERT INTO app_runtime_settings (
+	//      workspace_id,
+	//      app_id,
+	//      environment_id,
+	//      sentinel_config,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      sentinel_config = VALUES(sentinel_config),
+	//      updated_at = VALUES(updated_at)
+	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
 	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
 	//
 	//  INSERT INTO clusters (

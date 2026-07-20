@@ -29,6 +29,10 @@ function SuccessContent() {
   // just add a card), so we hand them back to the billing page with that
   // intent instead of forcing the legacy API plan modal below.
   const intent = searchParams?.get("intent") ?? null;
+  // Threaded through for the "deploy" intent so /success can hand the user back
+  // to the projects page, where the subscription is created.
+  const plan = searchParams?.get("plan") ?? null;
+  const from = searchParams?.get("from") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -37,6 +41,7 @@ function SuccessContent() {
   const updateCustomerMutation = trpc.stripe.updateCustomer.useMutation();
   const updateWorkspaceStripeCustomerMutation =
     trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
+  const linkDeploySubscriptionMutation = trpc.stripe.linkDeploySubscription.useMutation();
 
   const trpcUtils = trpc.useUtils();
 
@@ -53,6 +58,7 @@ function SuccessContent() {
     const processStripeSession = async (
       updateCustomerFn: typeof updateCustomerMutation.mutateAsync,
       updateWorkspaceFn: typeof updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkDeployFn: typeof linkDeploySubscriptionMutation.mutateAsync,
     ) => {
       try {
         if (!isMounted) {
@@ -90,6 +96,54 @@ function SuccessContent() {
         const workspace = await trpcUtils.workspace.getById.fetch();
 
         if (!isMounted) {
+          return;
+        }
+
+        // Subscription-mode deploy checkout: Stripe already created and charged
+        // the subscription, so there is no setup intent to process. Link it onto
+        // the workspace via the server-verified mutation, then hand back to the
+        // projects landing (SuccessClient redirects on intent === "deploy").
+        // The checkout.session.completed webhook may have linked it already; the
+        // shared linker is idempotent, so this is a safe fast-path.
+        if (
+          intent === "deploy" &&
+          (sessionResponse.mode === "subscription" || sessionResponse.subscription)
+        ) {
+          try {
+            await linkDeployFn({ sessionId });
+          } catch (error) {
+            // This mutation is only a fast-path; the checkout.session.completed
+            // webhook is the guaranteed linker. If it already linked (or a
+            // transient error hit after the write committed), the workspace is
+            // entitled — treat that as success rather than showing an alarming
+            // error for a charge that actually went through. Mirrors the
+            // entitlement-first check in projects/page.tsx usePendingSubscribe.
+            const entitled = await trpcUtils.stripe.getDeployEntitlement
+              .fetch(undefined, { staleTime: 0 })
+              .then((e) => Boolean(e?.entitled))
+              .catch(() => false);
+            if (!isMounted) {
+              return;
+            }
+            if (!entitled) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              setError(`Failed to activate your Compute plan: ${errorMessage}`);
+              setLoading(false);
+              return;
+            }
+            // Entitled despite the fast-path error — fall through to success.
+          }
+
+          if (!isMounted) {
+            return;
+          }
+
+          await trpcUtils.workspace.invalidate();
+          await trpcUtils.stripe.invalidate();
+          await trpcUtils.billing.invalidate();
+
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
           return;
         }
 
@@ -138,9 +192,11 @@ function SuccessContent() {
           return;
         }
 
-        // Update customer with default payment method
+        // Pass sessionId: the workspace has no bound customer yet, so the server
+        // resolves and verifies it from the session.
         try {
           await updateCustomerFn({
+            sessionId,
             customerId: customer.id,
             paymentMethod: setupIntent.payment_method,
           });
@@ -243,6 +299,7 @@ function SuccessContent() {
     processStripeSession(
       updateCustomerMutation.mutateAsync,
       updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkDeploySubscriptionMutation.mutateAsync,
     );
 
     // Cleanup function to prevent state updates after unmount
@@ -255,6 +312,7 @@ function SuccessContent() {
     trpcUtils,
     updateCustomerMutation.mutateAsync,
     updateWorkspaceStripeCustomerMutation.mutateAsync,
+    linkDeploySubscriptionMutation.mutateAsync,
   ]);
 
   if (loading) {
@@ -278,6 +336,8 @@ function SuccessContent() {
       showPlanSelection={processedData.showPlanSelection}
       products={processedData.products}
       intent={intent ?? undefined}
+      plan={plan ?? undefined}
+      from={from ?? undefined}
     />
   );
 }

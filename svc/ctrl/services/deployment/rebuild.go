@@ -105,6 +105,15 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		return "", err
 	}
 
+	// A rebuild starts compute just like a fresh deploy, so it is gated by the
+	// spend cap too — an ops rebuild must not resurrect compute the suspension
+	// tore down. createAndDeploy enforces this from p.spendSuspended.
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, src.WorkspaceID)
+	if err != nil {
+		return "", connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to load workspace entitlement: %w", err))
+	}
+
 	params := createParams{
 		context:     depCtx,
 		dockerImage: "",
@@ -117,11 +126,12 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			Timestamp:       src.GitCommitTimestamp.Int64,
 			ForkRepository:  src.ForkRepositoryFullName.String,
 		},
-		keyAuthID:     nil,
-		command:       nil,
-		trigger:       db.DeploymentsTriggerUnkey,
-		triggeredBy:   "",
-		triggerReason: reason,
+		keyAuthID:      nil,
+		command:        nil,
+		trigger:        db.DeploymentsTriggerUnkey,
+		triggeredBy:    "",
+		triggerReason:  reason,
+		spendSuspended: entitlement.SpendSuspended.Bool,
 	}
 
 	if useGit {

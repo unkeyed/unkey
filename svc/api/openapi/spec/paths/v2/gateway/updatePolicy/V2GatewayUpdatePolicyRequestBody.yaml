@@ -1,0 +1,57 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - policyId
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  policyId:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |-
+      Id of the policy to update, as returned by `gateway.listPolicies`.
+      Ids are regenerated whenever `gateway.setPolicies` replaces the list,
+      so list the policies first if you are unsure the id is current.
+    example: pol_9d2Fk1LmQ
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |-
+      New human-readable name. Omit to keep the current name.
+  enabled:
+    type: boolean
+    description: |-
+      Enable or disable the policy. Disabled policies are stored but skipped
+      during evaluation. Omit to keep the current setting.
+  match:
+    type:
+      - array
+      - "null"
+    maxItems: 10
+    items:
+      "$ref": "../../../../common/MatchExpr.yaml"
+    description: |-
+      Replaces all match expressions. Set null to remove them so the policy
+      applies to every request. Omit to keep the current expressions.
+  keyauth:
+    "$ref": "../../../../common/KeyauthPolicy.yaml"
+  ratelimit:
+    "$ref": "../../../../common/RatelimitPolicy.yaml"
+  firewall:
+    "$ref": "../../../../common/FirewallPolicy.yaml"
+  openapi:
+    "$ref": "../../../../common/OpenapiPolicy.yaml"
+additionalProperties: false
+description: |-
+  Partial update of a single policy. Omitted fields keep their stored
+  values; at least one updatable field must be provided. Providing one of
+  `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
+  rule entirely, including switching its type; at most one may be set.

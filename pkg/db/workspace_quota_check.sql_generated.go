@@ -16,12 +16,13 @@ SELECT
    w.id,
    w.org_id,
    w.name,
-   w.stripe_customer_id,
-   w.tier,
+   b.stripe_customer_id,
+   b.tier,
    w.enabled,
    q.requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -41,12 +42,13 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
-//	   w.stripe_customer_id,
-//	   w.tier,
+//	   b.stripe_customer_id,
+//	   b.tier,
 //	   w.enabled,
 //	   q.requests_per_month
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
+//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
 	query := getWorkspacesForQuotaCheckByIDs
@@ -94,12 +96,13 @@ SELECT
    w.id,
    w.org_id,
    w.name,
-   w.stripe_customer_id,
-   w.tier,
+   b.stripe_customer_id,
+   b.tier,
    w.enabled,
    q.requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
 WHERE w.id > ?
 ORDER BY w.id ASC
 LIMIT 100
@@ -121,12 +124,13 @@ type ListWorkspacesForQuotaCheckRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
-//	   w.stripe_customer_id,
-//	   w.tier,
+//	   b.stripe_customer_id,
+//	   b.tier,
 //	   w.enabled,
 //	   q.requests_per_month
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
+//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE w.id > ?
 //	ORDER BY w.id ASC
 //	LIMIT 100

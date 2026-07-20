@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -17,22 +18,25 @@ type Validator interface {
 	Validate() error
 }
 
-// Load reads a TOML configuration file at path and returns the validated
-// result. Returns the zero value of T on file-read errors; delegates all
-// other behavior (env expansion, defaults, validation) to [LoadBytes].
-func Load[T any](path string) (T, error) {
+// Load resolves a TOML configuration and returns the validated result. The
+// argument is either a filesystem path to a TOML file or the raw TOML document
+// itself, so a service can be configured from a mounted file or from an inline
+// value such as UNKEY_CONFIG. TOML content always contains a key assignment or
+// spans multiple lines while a path never does, so that split distinguishes the
+// two without a sigil. All other behavior (env expansion, defaults, validation)
+// is delegated to [LoadBytes].
+func Load[T any](pathOrContent string) (T, error) {
 	var zero T
 
-	if filepath.Ext(path) != ".toml" {
-		return zero, fault.New("failed to read config: only .toml files are supported")
+	if !strings.ContainsAny(pathOrContent, "=\n") {
+		data, err := os.ReadFile(pathOrContent)
+		if err != nil {
+			return zero, fault.Wrap(err, fault.Internal("failed to read config file: "+pathOrContent))
+		}
+		return LoadBytes[T](data)
 	}
 
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return zero, fault.Wrap(err, fault.Internal("failed to read config file: "+path))
-	}
-
-	return LoadBytes[T](data)
+	return LoadBytes[T]([]byte(pathOrContent))
 }
 
 // LoadBytes parses raw TOML bytes into T, applies defaults, and validates the

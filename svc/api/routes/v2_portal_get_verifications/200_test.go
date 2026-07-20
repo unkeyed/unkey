@@ -214,11 +214,9 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-// TestPortalSessionAnalyticsRequiresReadAnalytics verifies that a portal session
-// whose permissions do not include a read_analytics grant is rejected, even
-// though the endpoint is otherwise scoped to its own identity. The workspace
-// owner gates analytics access via the session permissions.
-func TestPortalSessionAnalyticsRequiresReadAnalytics(t *testing.T) {
+// TestPortalSessionAnalyticsRequiresAnalyticsRead verifies that reading keys
+// does not implicitly grant access to analytics.
+func TestPortalSessionAnalyticsRequiresAnalyticsRead(t *testing.T) {
 	// No ClickHouse needed: the handler rejects on the permission check before it
 	// ever queries analytics.
 	h := testutil.NewHarness(t, testutil.HarnessConfig{})
@@ -227,15 +225,17 @@ func TestPortalSessionAnalyticsRequiresReadAnalytics(t *testing.T) {
 	route := newHandler(h)
 	h.Register(route, h.PortalMiddleware()...)
 
-	// Session granted key access but not analytics.
 	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{"ks_none"}, []string{"keys:read"})
 
 	now := time.Now().UnixMilli()
-	res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+	res := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{
 		StartTime: now - int64(time.Hour/time.Millisecond),
 		EndTime:   now + int64(time.Minute/time.Millisecond),
 	})
 
 	require.Equal(t, 403, res.Status,
-		"portal session without read_analytics must be forbidden from reading analytics")
+		"portal session without analytics:read must be forbidden from reading analytics")
+	require.NotContains(t, res.RawBody, workspace.ID)
+	require.NotContains(t, res.RawBody, "portal_user_A")
+	require.NotContains(t, res.RawBody, "ks_none")
 }

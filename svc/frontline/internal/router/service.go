@@ -7,6 +7,8 @@ import (
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
@@ -41,6 +43,31 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 	route, err := s.findRoute(ctx, hostname)
 	if err != nil {
 		return RouteDecision{}, err
+	}
+
+	// A workspace paused for reaching its Compute spend limit is a billing gate:
+	// refuse traffic with a 402 up front, before the desired-state check and
+	// before instance selection. spend_suspended is the authoritative "paused"
+	// signal, so this fires even while the stop is still propagating (the
+	// deployment's desired_state has not flipped, or an instance is still
+	// draining). Resumes when the budget is raised or removed.
+	if route.SpendSuspended.Valid && route.SpendSuspended.Bool {
+		return RouteDecision{}, fault.New("workspace spend limit reached",
+			fault.Code(codes.Frontline.Routing.SpendLimitReached.URN()),
+			fault.Internal(fmt.Sprintf("workspace spend-cap suspended; deployment %s", route.DeploymentID)),
+			fault.Public("Compute for this workspace is paused because it reached its spend limit."),
+		)
+	}
+
+	// A stopped or archived deployment was torn down on purpose, so it is
+	// intentionally offline rather than transiently between instances like the
+	// no_running_instances seen mid-deploy or mid-scale.
+	if route.DesiredState != db.DeploymentsDesiredStateRunning {
+		return RouteDecision{}, fault.New("deployment offline",
+			fault.Code(codes.Frontline.Routing.DeploymentOffline.URN()),
+			fault.Internal(fmt.Sprintf("deployment %s desired_state=%s", route.DeploymentID, route.DesiredState)),
+			fault.Public("This deployment is offline."),
+		)
 	}
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)

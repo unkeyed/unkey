@@ -38,6 +38,11 @@ export default async function Page() {
       workspaceId: id,
       ...freeTierQuotas,
     });
+
+    await db.insert(schema.workspaceBilling).values({
+      workspaceId: id,
+      tier: "Free",
+    });
   }
 
   return redirect("/apis?new=true");

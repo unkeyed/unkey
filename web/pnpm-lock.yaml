@@ -248,8 +248,8 @@ importers:
         specifier: 3.7.0
         version: 3.7.0(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react-is@18.3.1)(react@19.2.4)(redux@5.0.1)
       stripe:
-        specifier: 22.2.0
-        version: 22.2.0(@types/node@22.14.0)
+        specifier: 22.3.0
+        version: 22.3.0(@types/node@22.14.0)
       superjson:
         specifier: 2.2.1
         version: 2.2.1
@@ -7527,8 +7527,8 @@ packages:
     resolution: {integrity: sha512-OPD7LqBmni6uDdqA05GGgMZyyRWxJOehONBNC9tYgY4Uh089EtXd6QLIgRGrqTDlQH3cA2BXo848nxwa/zsQzw==}
     engines: {node: '>=12.*'}
 
-  stripe@22.2.0:
-    resolution: {integrity: sha512-WFGpMOom9QZqso1kcnSwJsCdC1QHDlMoCOxBZRf3JraMzhkfw7dgSdD2a1CFZrqC+mzAfqeEtYILrZhWKIDruA==}
+  stripe@22.3.0:
+    resolution: {integrity: sha512-ypO6xjVrMWs9SmIMeHr8naCx3dAQ0clxMdUTxn7Ejd7hmY9meBGfE+N4pVHkf9sUNebAHp6uJo6mV3GxDIc2cA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -15259,7 +15259,7 @@ snapshots:
       '@types/node': 25.0.10
       qs: 6.15.2
 
-  stripe@22.2.0(@types/node@22.14.0):
+  stripe@22.3.0(@types/node@22.14.0):
     optionalDependencies:
       '@types/node': 22.14.0
 

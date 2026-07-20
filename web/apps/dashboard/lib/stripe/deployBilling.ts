@@ -146,6 +146,23 @@ export function deploySubscriptionItems(
 }
 
 /**
+ * The Checkout `line_items` for a Deploy plan, in the shape Stripe Checkout
+ * requires. Unlike `deploySubscriptionItems` (for `subscriptions.create`, which
+ * defaults licensed quantity to 1), Checkout demands an explicit `quantity` on
+ * the licensed plan-fee item and rejects `quantity` on metered prices. So the
+ * plan-fee carries `quantity: 1` and the metered items omit it entirely.
+ */
+export function deployCheckoutLineItems(
+  config: DeployBillingConfig,
+  plan: DeployPlan,
+): Array<{ price: string; quantity?: number }> {
+  return [
+    { price: config.planFeePriceIds[plan], quantity: 1 },
+    ...config.meteredPriceIds.map((price) => ({ price })),
+  ];
+}
+
+/**
  * Maps a plan-fee price id back to its plan, or undefined if it is not a
  * plan-fee price. Used to find the current Deploy plan-fee item on a
  * subscription so change/cancel act on the right item.

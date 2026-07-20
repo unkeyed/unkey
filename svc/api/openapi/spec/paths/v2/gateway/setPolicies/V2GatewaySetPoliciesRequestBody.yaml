@@ -1,0 +1,25 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - policies
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  policies:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "../../../../common/Policy.yaml"
+    description: |-
+      The environment's complete policy list, in evaluation order. Every call
+      replaces all stored policies with exactly this list; an empty list
+      removes every policy. The operation is atomic: if any policy is
+      invalid, nothing is written. An environment can hold at most 50
+      policies.
+additionalProperties: false

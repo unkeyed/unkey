@@ -7,7 +7,10 @@
     "light": "#F5E6BE",
     "dark": "#A68509"
   },
-  "favicon": "/unkey.png",
+  "favicon": {
+    "light": "/favicon-light.svg",
+    "dark": "/favicon-dark.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -122,7 +125,8 @@
                           "architecture/services/control-plane/worker/workflows/custom-domains",
                           "architecture/services/control-plane/worker/workflows/github-app",
                           "architecture/services/control-plane/worker/workflows/key-last-used-sync",
-                          "architecture/services/control-plane/worker/workflows/deploy-billing"
+                          "architecture/services/control-plane/worker/workflows/deploy-billing",
+                          "architecture/services/control-plane/worker/workflows/deploy-spend-cap"
                         ]
                       }
                     ]
@@ -260,8 +264,8 @@
     "decoration": "gradient"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "navbar": {
     "links": [

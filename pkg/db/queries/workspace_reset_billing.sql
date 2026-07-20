@@ -3,9 +3,9 @@
 -- tier. Mirrors what the customer.subscription.deleted webhook writes, plus
 -- stripe_customer_id, which no webhook ever clears. Used by the
 -- `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
-UPDATE `workspaces`
+UPDATE `workspace_billing`
 SET stripe_customer_id = NULL,
     stripe_subscription_id = NULL,
-    deploy_plan = NULL,
+    plan = NULL,
     tier = 'Free'
-WHERE id = sqlc.arg(id);
+WHERE workspace_id = sqlc.arg(id);

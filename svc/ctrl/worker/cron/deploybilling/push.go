@@ -7,7 +7,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
@@ -137,30 +136,11 @@ func (h *Handler) resolvePushTasks(
 	endMillis int64,
 	eventTimestamp int64,
 ) (tasks []pushTask, workspacesWithUsage int, err error) {
-	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
-		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
-			WorkspaceID: "", // all workspaces; we filter to billable ones below
-			Start:       p.Start().UnixMilli(),
-			End:         endMillis,
-		})
-	}, restate.WithName("get period usage"))
+	// Whole fleet (no id scoping): billable workspaces are filtered below.
+	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, nil)
 	if err != nil {
-		return nil, 0, fmt.Errorf("get period usage: %w", err)
+		return nil, 0, err
 	}
-
-	keyRows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ActiveKeysUsage, error) {
-		return h.usage.GetActiveKeysUsage(rc, clickhouse.GetActiveKeysUsageRequest{
-			WorkspaceID: "", // all workspaces; we filter to billable ones below
-			Year:        p.Year,
-			Month:       p.Month,
-		})
-	}, restate.WithName("get active keys"))
-	if err != nil {
-		return nil, 0, fmt.Errorf("get active keys: %w", err)
-	}
-
-	valuesByWorkspace := aggregateUsage(rows)
-	mergeActiveKeys(valuesByWorkspace, keyRows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return nil, 0, nil

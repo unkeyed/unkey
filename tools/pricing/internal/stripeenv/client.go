@@ -36,6 +36,13 @@ func awsProfileEnvVar(env pricing.Environment) string {
 	return "AWS_PROFILE_" + strings.ToUpper(string(env))
 }
 
+// vercelBypassEnvVar is the per-environment Vercel "Protection Bypass for
+// Automation" secret variable, e.g. VERCEL_PROTECTION_BYPASS_CANARY. Like the
+// AWS profiles it is deployment-specific and lives in the untracked .env.
+func vercelBypassEnvVar(env pricing.Environment) string {
+	return "VERCEL_PROTECTION_BYPASS_" + strings.ToUpper(string(env))
+}
+
 // awsProfile resolves the per-account AWS profile for env, used for the Secrets
 // Manager call. Names like unkey-<account>-<role> are deployment-specific, so
 // none is baked into the source. Resolution order:
@@ -82,6 +89,11 @@ func region() string {
 type Client struct {
 	*stripe.Client
 	Env pricing.Environment
+	// VercelBypass is the Protection Bypass for Automation secret for this
+	// environment's Vercel-protected webhook hosts, from
+	// VERCEL_PROTECTION_BYPASS_<ENV>. Empty when unset; reconcile errors only
+	// when a protected endpoint actually needs it.
+	VercelBypass string
 }
 
 // New builds a Stripe client for env. The key is sourced as:
@@ -104,7 +116,11 @@ func New(ctx context.Context, env pricing.Environment) (*Client, error) {
 	if err := guardKeyMatchesEnv(key, env); err != nil {
 		return nil, err
 	}
-	return &Client{Client: stripe.NewClient(key), Env: env}, nil
+	return &Client{
+		Client:       stripe.NewClient(key),
+		Env:          env,
+		VercelBypass: strings.TrimSpace(os.Getenv(vercelBypassEnvVar(env))),
+	}, nil
 }
 
 func resolveKey(ctx context.Context, env pricing.Environment) (string, error) {

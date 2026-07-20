@@ -89,6 +89,15 @@ service CronService {
   // claims the draft; pushes final usage for this workspace only and
   // finalizes the invoice id from the request.
   rpc CloseDeployBillingWorkspace(CloseDeployBillingWorkspaceRequest) returns (CloseDeployBillingWorkspaceResponse) {}
+
+  // RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+  // period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+  // Deploy spend budget and fans out one DeploySpendCheckService invocation per
+  // workspace. Runs every few minutes (far tighter than the hourly billing
+  // push) because a runaway can blow past the cap between hourly ticks; the
+  // per-workspace work prices usage locally from ClickHouse, so the tight
+  // cadence costs no Stripe calls.
+  rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -149,7 +158,6 @@ message RunDeployBillingCloseResponse {
   // Number of invoices that needed no action (already finalized or paid).
   int32 invoices_skipped = 3;
 }
-
 message CloseDeployBillingWorkspaceRequest {
   // Closed billing period "YYYY-MM", derived from the invoice's period_start.
   string period = 1;
@@ -163,3 +171,9 @@ message CloseDeployBillingWorkspaceRequest {
 // CloseDeployBillingWorkspaceResponse is intentionally empty: the outcome is
 // logged by the handler, not consumed by a caller.
 message CloseDeployBillingWorkspaceResponse {}
+
+message RunDeploySpendCheckRequest {}
+message RunDeploySpendCheckResponse {
+  // Number of budgeted workspaces the orchestrator fanned out a check for.
+  int32 workspaces_dispatched = 1;
+}

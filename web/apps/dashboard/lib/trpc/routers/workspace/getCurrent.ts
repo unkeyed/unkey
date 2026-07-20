@@ -22,13 +22,14 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   // attempt before reporting the workspace as missing.
   const orgId = ctx.tenant.id;
   let workspace: Awaited<
-    ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true } }>>
+    ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true; billing: true } }>>
   >;
   try {
     workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
       with: {
         quotas: true,
+        billing: true,
       },
     });
   } catch (error) {
@@ -47,5 +48,18 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     });
   }
 
-  return workspace;
+  // Billing state moved to the workspace_billing relation. Surface it under the
+  // legacy workspace field names so existing consumers (the workspace provider,
+  // billing pages) read the fresh values from the billing row.
+  return {
+    ...workspace,
+    tier: workspace.billing?.tier ?? "Free",
+    stripeCustomerId: workspace.billing?.stripeCustomerId ?? null,
+    stripeSubscriptionId: workspace.billing?.stripeSubscriptionId ?? null,
+    deployPlan: workspace.billing?.plan ?? null,
+    deployPlanOverride: workspace.billing?.planOverride ?? null,
+    deploySpendBudgetCents: workspace.billing?.spendBudgetCents ?? null,
+    deploySpendBudgetStop: workspace.billing?.spendBudgetStop ?? false,
+    deploySpendSuspended: workspace.billing?.spendSuspended ?? false,
+  };
 });

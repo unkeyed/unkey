@@ -41,7 +41,7 @@ export function SidebarBody() {
           ? buildAppLinks(slug, context.projectId, context.appId, segments, appOverview)
           : buildProjectLinks(slug, context.projectId, segments);
       case "api":
-        return buildApiLinks(slug, context.apiId, keyAuthId, segments);
+        return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);
       case "namespace":
         return buildNamespaceLinks(slug, context.namespaceId, segments);
     }

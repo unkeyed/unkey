@@ -187,7 +187,6 @@ import { connectRoleToKey } from "./rbac/connectRoleToKey";
 import { createPermission } from "./rbac/createPermission";
 import { createRole } from "./rbac/createRole";
 import { deletePermission } from "./rbac/deletePermission";
-import { deleteRole } from "./rbac/deleteRole";
 import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
@@ -208,6 +207,8 @@ import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
+import { linkDeploySubscription } from "./stripe/linkDeploySubscription";
+import { seedTestCustomer } from "./stripe/seedTestCustomer";
 import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
@@ -316,8 +317,10 @@ export const router = t.router({
     getSetupIntent,
     updateWorkspaceStripeCustomer,
     subscribeDeploy,
+    linkDeploySubscription,
     changeDeployPlan,
     cancelDeploy,
+    seedTestCustomer,
     getDeploySubscription,
     getDeployPlans,
     getDeployEntitlement,
@@ -358,7 +361,6 @@ export const router = t.router({
     createPermission: createPermission,
     createRole: createRole,
     deletePermission: deletePermission,
-    deleteRole: deleteRole,
     disconnectPermissionFromRole: disconnectPermissionFromRole,
     disconnectRoleFromKey: disconnectRoleFromKey,
     updatePermission: updatePermission,

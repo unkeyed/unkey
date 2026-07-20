@@ -17,7 +17,10 @@
     ]
   },
   "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
-  "favicon": "/unkey.png",
+  "favicon": {
+    "dark": "/favicon-dark.svg",
+    "light": "/favicon-light.svg"
+  },
   "fonts": {
     "family": "Geist"
   },
@@ -33,8 +36,8 @@
     "library": "fontawesome"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "metadata": {
     "timestamp": true
@@ -199,6 +202,7 @@
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
                   "platform/workspaces/billing",
+                  "platform/workspaces/compute-billing",
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
@@ -500,6 +504,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/policy_not_found",
                       "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_already_exists",
                       "errors/unkey/data/project_not_found",
@@ -555,7 +560,9 @@
                   {
                     "group": "Capacity",
                     "pages": [
-                      "errors/frontline/capacity/no_running_instances"
+                      "errors/frontline/capacity/deployment_offline",
+                      "errors/frontline/capacity/no_running_instances",
+                      "errors/frontline/capacity/spend_limit_reached"
                     ]
                   },
                   {
