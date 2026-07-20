@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -40,15 +40,15 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	if r := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:        pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug:     deployment.EnvironmentSlug,
 		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
 		DeploymentID:        deployment.ID,
 		IsRolledBack:        deployment.IsRolledBack,
-	}); r != deploygate.TargetOK {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("initiating promotion via Restate",

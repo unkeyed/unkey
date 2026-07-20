@@ -3,9 +3,20 @@
 // services, and the ctrl Restate workflows. Centralizing the invariant here is
 // what stops the three copies from drifting — a promote that is legal at the API
 // is legal at the worker, by construction.
+//
+// The Check* functions return nil when the action is allowed, or a fault
+// carrying the precondition code and a caller-facing message. Surface that
+// message with fault.UserFacingMessage(err) — never err.Error(), which also
+// includes internal detail. The API returns the fault directly (its error
+// middleware renders UserFacingMessage); ctrl wraps UserFacingMessage into its
+// connect or restate error.
 package deploygate
 
-import "github.com/unkeyed/unkey/pkg/db"
+import (
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
+)
 
 // envProduction is the environment whose deployment serves production traffic:
 // promote/rollback require it, stop/start reject it.
@@ -34,14 +45,14 @@ type RollbackInput struct {
 	DeploymentID        string
 }
 
-// StopInput is the state CheckStopTarget needs.
+// StopInput is the state CheckStoppable needs.
 type StopInput struct {
 	Status          db.DeploymentsStatus
 	DesiredState    db.DeploymentsDesiredState
 	EnvironmentSlug string
 }
 
-// StartInput is the state CheckStartTarget needs.
+// StartInput is the state CheckStartable needs.
 type StartInput struct {
 	DesiredState    db.DeploymentsDesiredState
 	EnvironmentSlug string
@@ -53,17 +64,20 @@ func isCurrent(currentDeploymentID, deploymentID string) bool {
 	return currentDeploymentID != "" && currentDeploymentID == deploymentID
 }
 
-// TargetFailureReason is why a deployment fails a promote/rollback precondition.
-// TargetOK means it is eligible to become the app's current deployment.
+// The *FailureReason enums are the internal discriminator each Check* builds its
+// fault from; they are also the source of the caller-facing message strings.
+
+// TargetFailureReason is why a deployment cannot become the app's current
+// deployment (promote/rollback). TargetOK means it is eligible.
 type TargetFailureReason int
 
 const (
 	TargetOK TargetFailureReason = iota
 	TargetNotReady
-	TargetDraining
+	TargetIsDraining
 	TargetNotProduction
 	TargetNoCurrentDeployment
-	TargetAlreadyCurrent
+	TargetIsCurrent
 )
 
 // Message returns a caller-facing explanation. It is deliberately generic across
@@ -74,17 +88,43 @@ func (r TargetFailureReason) Message() string {
 		return ""
 	case TargetNotReady:
 		return "The deployment is not ready."
-	case TargetDraining:
+	case TargetIsDraining:
 		return "The deployment is shutting down and cannot serve traffic."
 	case TargetNotProduction:
 		return "Only production deployments can be promoted or rolled back."
 	case TargetNoCurrentDeployment:
 		return "The app has no current deployment."
-	case TargetAlreadyCurrent:
+	case TargetIsCurrent:
 		return "The deployment is already the current deployment."
 	default:
 		return ""
 	}
+}
+
+// targetFault maps a target failure reason onto a fault with its precondition
+// code, or nil for TargetOK.
+func targetFault(r TargetFailureReason) error {
+	var code codes.Code
+	switch r {
+	case TargetNotReady, TargetIsDraining:
+		code = codes.App.Precondition.DeploymentNotReady
+	case TargetNotProduction:
+		code = codes.App.Precondition.DeploymentNotProduction
+	case TargetNoCurrentDeployment:
+		code = codes.App.Precondition.DeploymentNoCurrent
+	case TargetIsCurrent:
+		code = codes.App.Precondition.DeploymentIsCurrent
+	case TargetOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"target precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected promote/rollback: "+r.Message()),
+		fault.Public(r.Message()),
+	)
 }
 
 // targetCore holds the preconditions common to promote and rollback: the
@@ -100,7 +140,7 @@ func targetCore(
 	case status != db.DeploymentsStatusReady:
 		return TargetNotReady
 	case desiredState != db.DeploymentsDesiredStateRunning:
-		return TargetDraining
+		return TargetIsDraining
 	case environmentSlug != envProduction:
 		return TargetNotProduction
 	case currentDeploymentID == "":
@@ -113,36 +153,26 @@ func targetCore(
 // CheckPromoteTarget validates a deployment may be promoted to current.
 // Promoting the deployment that is already current is rejected, unless the app
 // is in a rolled-back state (then it is a rollback confirmation, allowed).
-func CheckPromoteTarget(in PromoteInput) TargetFailureReason {
-	if r := targetCore(
-		in.Status,
-		in.DesiredState,
-		in.EnvironmentSlug,
-		in.CurrentDeploymentID,
-	); r != TargetOK {
-		return r
+func CheckPromoteTarget(in PromoteInput) error {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentSlug, in.CurrentDeploymentID); r != TargetOK {
+		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) && !in.IsRolledBack {
-		return TargetAlreadyCurrent
+		return targetFault(TargetIsCurrent)
 	}
-	return TargetOK
+	return nil
 }
 
 // CheckRollbackTarget validates a deployment may be rolled back to. Rolling back
 // to the deployment that is already current is always a no-op, so it is rejected.
-func CheckRollbackTarget(in RollbackInput) TargetFailureReason {
-	if r := targetCore(
-		in.Status,
-		in.DesiredState,
-		in.EnvironmentSlug,
-		in.CurrentDeploymentID,
-	); r != TargetOK {
-		return r
+func CheckRollbackTarget(in RollbackInput) error {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentSlug, in.CurrentDeploymentID); r != TargetOK {
+		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) {
-		return TargetAlreadyCurrent
+		return targetFault(TargetIsCurrent)
 	}
-	return TargetOK
+	return nil
 }
 
 // StopFailureReason is why a deployment cannot be stopped. StopOK means it can.
@@ -151,7 +181,7 @@ type StopFailureReason int
 const (
 	StopOK StopFailureReason = iota
 	StopNotRunning
-	StopAlreadyStopping
+	StopIsStopping
 	StopIsProduction
 )
 
@@ -162,7 +192,7 @@ func (r StopFailureReason) Message() string {
 		return ""
 	case StopNotRunning:
 		return "The deployment is not running."
-	case StopAlreadyStopping:
+	case StopIsStopping:
 		return "The deployment is already stopping."
 	case StopIsProduction:
 		return "Production deployments cannot be stopped."
@@ -171,24 +201,48 @@ func (r StopFailureReason) Message() string {
 	}
 }
 
+// stopFault maps a stop failure reason onto a fault with its precondition code,
+// or nil for StopOK.
+func stopFault(r StopFailureReason) error {
+	var code codes.Code
+	switch r {
+	case StopNotRunning:
+		code = codes.App.Precondition.DeploymentNotRunning
+	case StopIsStopping:
+		code = codes.App.Precondition.DeploymentIsStopping
+	case StopIsProduction:
+		code = codes.App.Precondition.DeploymentIsProduction
+	case StopOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"stop precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected stop: "+r.Message()),
+		fault.Public(r.Message()),
+	)
+}
+
 // CheckStopTarget validates a deployment may be stopped: it must be running
 // (ready with a running desired state) and not in production. Order matches the
 // order every layer reports failures in.
-func CheckStopTarget(in StopInput) StopFailureReason {
+func CheckStopTarget(in StopInput) error {
 	switch {
 	case in.Status != db.DeploymentsStatusReady:
-		return StopNotRunning
+		return stopFault(StopNotRunning)
 	case in.DesiredState != db.DeploymentsDesiredStateRunning:
-		return StopAlreadyStopping
+		return stopFault(StopIsStopping)
 	case in.EnvironmentSlug == envProduction:
-		return StopIsProduction
+		return stopFault(StopIsProduction)
 	default:
-		return StopOK
+		return nil
 	}
 }
 
-// StartFailureReason is why a deployment cannot be started (woken). StartOK means it
-// can.
+// StartFailureReason is why a deployment cannot be started (woken). StartOK means
+// it can.
 type StartFailureReason int
 
 const (
@@ -214,6 +268,31 @@ func (r StartFailureReason) Message() string {
 	}
 }
 
+// startFault maps a start failure reason onto a fault with its precondition
+// code, or nil for StartOK. SpendSuspended is a billing state, not a deployment
+// lifecycle one, so it carries the generic precondition code.
+func startFault(r StartFailureReason) error {
+	var code codes.Code
+	switch r {
+	case StartNotStopped:
+		code = codes.App.Precondition.DeploymentNotStopped
+	case StartIsProduction:
+		code = codes.App.Precondition.DeploymentIsProduction
+	case StartSpendSuspended:
+		code = codes.App.Precondition.PreconditionFailed
+	case StartOK:
+		return nil
+	default:
+		code = codes.App.Precondition.PreconditionFailed
+	}
+	return fault.New(
+		"start precondition failed",
+		fault.Code(code.URN()),
+		fault.Internal("deploygate rejected start: "+r.Message()),
+		fault.Public(r.Message()),
+	)
+}
+
 // CheckStartTarget validates a deployment may be started (woken). "Stopped" is
 // keyed on desired_state, not status: stopping sets desired_state=stopped
 // immediately, while status only flips to stopped once krane has drained the
@@ -221,15 +300,15 @@ func (r StartFailureReason) Message() string {
 // any deployment whose intent is stopped (including one still draining), which
 // is what the ctrl service and worker enforce. Starting resumes compute spend,
 // so a workspace suspended by its spend cap is refused last.
-func CheckStartTarget(in StartInput) StartFailureReason {
+func CheckStartTarget(in StartInput) error {
 	switch {
 	case in.DesiredState != db.DeploymentsDesiredStateStopped:
-		return StartNotStopped
+		return startFault(StartNotStopped)
 	case in.EnvironmentSlug == envProduction:
-		return StartIsProduction
+		return startFault(StartIsProduction)
 	case in.SpendSuspended:
-		return StartSpendSuspended
+		return startFault(StartSpendSuspended)
 	default:
-		return StartOK
+		return nil
 	}
 }

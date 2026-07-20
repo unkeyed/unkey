@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
@@ -79,18 +79,15 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to find the environment"))
 	}
 
-	if r := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:     environment.Slug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 		IsRolledBack:        app.IsRolledBack,
-	}); r != deploygate.TargetOK {
-		return nil, fault.Wrap(
-			restate.TerminalError(errors.New(r.Message()), 400),
-			fault.Public(r.Message()),
-		)
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	isConfirmingRollback := app.IsRolledBack && targetDeployment.ID == app.CurrentDeploymentID.String

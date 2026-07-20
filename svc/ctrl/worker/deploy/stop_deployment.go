@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"errors"
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
@@ -9,6 +8,7 @@ import (
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // StopDeployment is the public Restate entrypoint for putting a running
@@ -40,12 +40,12 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	if r := deploygate.CheckStopTarget(deploygate.StopInput{
+	if err := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:          pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
-	}); r != deploygate.StopOK {
-		return nil, restate.TerminalError(errors.New(r.Message()), 400)
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).

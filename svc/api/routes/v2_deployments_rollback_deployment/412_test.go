@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -215,46 +213,4 @@ func TestRollbackDeploymentCtrlPreconditionFailed(t *testing.T) {
 	// text must stay in the logs.
 	require.Contains(t, res.Body.Error.Detail, "The rollback could not be performed.")
 	require.NotContains(t, res.RawBody, "source deployment is not the current live deployment")
-}
-
-// When ctrl rejects with a deploygate message (a race: the target started
-// draining after the handler's own gate passed), the response carries the same
-// specific code and message the local gate would have produced.
-func TestRollbackDeploymentCtrlGateRejection(t *testing.T) {
-	h := testutil.NewHarness(t)
-	mock := &testutil.MockDeploymentClient{
-		RollbackFunc: func(ctx context.Context, req *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(deploygate.TargetDraining.Message()))
-		},
-	}
-	route := newRoute(h, mock)
-	h.Register(route)
-
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
-	})
-
-	previous := h.CreateDeployment(seed.CreateDeploymentRequest{
-		ID:            uid.New(uid.DeploymentPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
-	})
-	live := h.CreateDeployment(seed.CreateDeploymentRequest{
-		ID:            uid.New(uid.DeploymentPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
-	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
-
-	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: previous.ID})
-	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Len(t, mock.RollbackCalls, 1)
-	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
-	require.Equal(t, deploygate.TargetDraining.Message(), res.Body.Error.Detail)
 }

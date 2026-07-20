@@ -84,15 +84,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if r := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
 		EnvironmentSlug:     dep.EnvironmentSlug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
 		IsRolledBack:        app.IsRolledBack,
-	}); r != deploygate.TargetOK {
-		return deployment.TargetFault(r)
+	}); err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{

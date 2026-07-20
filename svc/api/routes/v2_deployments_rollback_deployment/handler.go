@@ -85,14 +85,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
 		EnvironmentSlug:     dep.EnvironmentSlug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
-	}); r != deploygate.TargetOK {
-		return deployment.TargetFault(r)
+	}); err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.Rollback(ctx, &ctrlv1.RollbackRequest{

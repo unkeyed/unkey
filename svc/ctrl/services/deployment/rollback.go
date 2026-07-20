@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -14,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Rollback switches traffic from the source deployment to a previous target
@@ -55,14 +55,14 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
 	}
 
-	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:     targetDeployment.EnvironmentSlug,
 		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
-	}); r != deploygate.TargetOK {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	// Rollback-specific checks beyond the shared gate.

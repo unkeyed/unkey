@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
@@ -45,14 +45,14 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	if r := deploygate.CheckStartTarget(deploygate.StartInput{
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
 		// Spend is gated by the ctrl service before enqueue; the worker only
 		// re-checks lifecycle state.
 		SpendSuspended: false,
-	}); r != deploygate.StartOK {
-		return nil, restate.TerminalError(errors.New(r.Message()), 400)
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).

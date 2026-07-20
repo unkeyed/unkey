@@ -86,12 +86,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// "Stopped" is keyed on desired_state, not status: stopping sets
 	// desired_state=stopped immediately while status only flips once krane drains
 	// the last instance.
-	if r := deploygate.CheckStartTarget(deploygate.StartInput{
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    dep.DesiredState,
 		EnvironmentSlug: dep.EnvironmentSlug,
 		SpendSuspended:  billing.SpendSuspended,
-	}); r != deploygate.StartOK {
-		return deployment.StartFault(r)
+	}); err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.WakeDeployment(ctx, &ctrlv1.WakeDeploymentRequest{

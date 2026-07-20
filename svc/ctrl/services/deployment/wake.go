@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // WakeDeployment transitions a stopped deployment back to running. The actual
@@ -51,12 +51,12 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
 	}
 
-	if r := deploygate.CheckStartTarget(deploygate.StartInput{
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
 		SpendSuspended:  entitlement.SpendSuspended.Bool,
-	}); r != deploygate.StartOK {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)

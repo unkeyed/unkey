@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"errors"
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
@@ -11,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Rollback performs a rollback to a previous deployment.
@@ -99,14 +99,14 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
 
-	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:     environment.Slug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
-	}); r != deploygate.TargetOK {
-		return nil, restate.TerminalError(errors.New(r.Message()), 400)
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	// ensure the rolled back deployment does not get spun down from existing scheduled actions

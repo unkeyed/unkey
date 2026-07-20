@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // StopDeployment transitions a running deployment to stopped. The actual
@@ -43,12 +43,12 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
 
-	if r := deploygate.CheckStopTarget(deploygate.StopInput{
+	if err := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:          pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
-	}); r != deploygate.StopOK {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("stopping deployment", "deployment_id", deploymentID)
