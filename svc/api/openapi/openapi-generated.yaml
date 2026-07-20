@@ -711,6 +711,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -722,8 +723,6 @@ components:
                     description: Array of deployments, ordered newest first.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2DeploymentsPromoteDeploymentRequestBody:
             type: object
@@ -3957,6 +3956,12 @@ components:
             required:
                 - id
                 - status
+                - isCurrent
+                - environment
+                - app
+                - project
+                - availableActions
+                - regions
                 - runtime
                 - createdAt
             properties:
@@ -3967,6 +3972,61 @@ components:
                     example: d_1234abcd
                 status:
                     "$ref": "#/components/schemas/DeploymentStatus"
+                isCurrent:
+                    type: boolean
+                    description: |
+                        True when this is the production deployment currently serving traffic, i.e.
+                        on api.acme.com. Only production deployments can be current, and at most one
+                        deployment is current. Rollbacks and promotions change which deployment is
+                        current and serves requests to api.acme.com.
+                    example: true
+                environment:
+                    type: string
+                    description: Slug of the environment this deployment belongs to.
+                    example: production
+                app:
+                    type: string
+                    description: Slug of the app this deployment belongs to.
+                    example: payments-api
+                project:
+                    type: string
+                    description: Slug of the project this deployment belongs to.
+                    example: acme
+                git:
+                    "$ref": "#/components/schemas/DeploymentGit"
+                    description: |
+                        Present for git-sourced deployments. Mutually exclusive with `docker`.
+                docker:
+                    "$ref": "#/components/schemas/DeploymentDocker"
+                    description: |
+                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                availableActions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentAction"
+                    description: |
+                        Lifecycle operations you are allowed to call on this deployment right now.
+                        Empty when none apply (e.g. while building or in a terminal state).
+                    example: ["stop"]
+                regions:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Regions this deployment is configured to run in. Empty while the deployment
+                        has no scheduled regions yet.
+                    example: ["us-east-1", "eu-west-1"]
+                error:
+                    "$ref": "#/components/schemas/DeploymentError"
+                    description: |
+                        Why the deployment failed. Present only when `status` is `failed`.
+                domains:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Public hostnames this deployment is reachable at.
+                    example: ["kebap-app.unkey.app"]
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
                 createdAt:
@@ -4024,6 +4084,68 @@ components:
                 terminal state: ready (serving), failed, skipped, superseded, stopped,
                 or cancelled.
             example: ready
+        DeploymentGit:
+            type: object
+            required:
+                - commitSha
+            properties:
+                commitSha:
+                    type: string
+                    description: The git commit SHA this deployment was built from.
+                    example: 9f2c1a7d3b
+                branch:
+                    type: string
+                    description: The git branch this deployment was built from. Omitted when unknown.
+                    example: main
+            additionalProperties: false
+        DeploymentDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The Docker image this deployment runs.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
+        DeploymentAction:
+            type: string
+            enum:
+                - promote
+                - rollback
+                - stop
+                - start
+            x-enum-varnames:
+                - DeploymentActionPromote
+                - DeploymentActionRollback
+                - DeploymentActionStop
+                - DeploymentActionStart
+            description: |
+                A lifecycle operation that can be performed on the deployment in its current
+                state, given its status, environment, and whether it is the current
+                deployment.
+            example: promote
+        DeploymentError:
+            type: object
+            required:
+                - code
+                - step
+                - message
+            properties:
+                code:
+                    "$ref": "#/components/schemas/DeploymentErrorCode"
+                step:
+                    type: string
+                    description: |
+                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                    example: deploying
+                message:
+                    type: string
+                    description: |
+                        Human-readable description of why the deployment failed. For programmatic
+                        handling, use `code`.
+                    example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -4072,6 +4194,28 @@ components:
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
             additionalProperties: false
+        DeploymentErrorCode:
+            type: string
+            enum:
+                - no_schedulable_regions
+                - invalid_runtime_settings
+                - cpu_quota_exceeded
+                - memory_quota_exceeded
+                - storage_quota_exceeded
+                - build_failed
+                - unknown
+            x-enum-varnames:
+                - DeploymentErrorCodeNoSchedulableRegions
+                - DeploymentErrorCodeInvalidRuntimeSettings
+                - DeploymentErrorCodeCpuQuotaExceeded
+                - DeploymentErrorCodeMemoryQuotaExceeded
+                - DeploymentErrorCodeStorageQuotaExceeded
+                - DeploymentErrorCodeBuildFailed
+                - DeploymentErrorCodeUnknown
+            description: |
+                The reason a deployment failed. `unknown` means Unkey could not classify the
+                failure; see `message` for details.
+            example: no_schedulable_regions
         EnvironmentShutdownSignal:
             type: string
             enum:

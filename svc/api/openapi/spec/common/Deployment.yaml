@@ -2,6 +2,12 @@ type: object
 required:
   - id
   - status
+  - isCurrent
+  - environment
+  - app
+  - project
+  - availableActions
+  - regions
   - runtime
   - createdAt
 properties:
@@ -12,6 +18,61 @@ properties:
     example: d_1234abcd
   status:
     "$ref": "./DeploymentStatus.yaml"
+  isCurrent:
+    type: boolean
+    description: |
+      True when this is the production deployment currently serving traffic, i.e.
+      on api.acme.com. Only production deployments can be current, and at most one
+      deployment is current. Rollbacks and promotions change which deployment is
+      current and serves requests to api.acme.com.
+    example: true
+  environment:
+    type: string
+    description: Slug of the environment this deployment belongs to.
+    example: production
+  app:
+    type: string
+    description: Slug of the app this deployment belongs to.
+    example: payments-api
+  project:
+    type: string
+    description: Slug of the project this deployment belongs to.
+    example: acme
+  git:
+    "$ref": "./DeploymentGit.yaml"
+    description: |
+      Present for git-sourced deployments. Mutually exclusive with `docker`.
+  docker:
+    "$ref": "./DeploymentDocker.yaml"
+    description: |
+      Present for image-sourced deployments. Mutually exclusive with `git`.
+  availableActions:
+    type: array
+    items:
+      "$ref": "./DeploymentAction.yaml"
+    description: |
+      Lifecycle operations you are allowed to call on this deployment right now.
+      Empty when none apply (e.g. while building or in a terminal state).
+    example: ["stop"]
+  regions:
+    type: array
+    items:
+      type: string
+    description: |
+      Regions this deployment is configured to run in. Empty while the deployment
+      has no scheduled regions yet.
+    example: ["us-east-1", "eu-west-1"]
+  error:
+    "$ref": "./DeploymentError.yaml"
+    description: |
+      Why the deployment failed. Present only when `status` is `failed`.
+  domains:
+    type: array
+    items:
+      type: string
+    description: |
+      Public hostnames this deployment is reachable at.
+    example: ["kebap-app.unkey.app"]
   runtime:
     "$ref": "./DeploymentRuntime.yaml"
   createdAt:
