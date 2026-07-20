@@ -1348,7 +1348,7 @@ type Querier interface {
 	// when a workspace is already being fetched, prefer joining workspace_billing in
 	// that query rather than a second round trip.
 	//
-	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, stripe_deploy_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
 	//  WHERE workspace_id = ?
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (WorkspaceBilling, error)
 	//FindWorkspaceByID
@@ -3160,6 +3160,7 @@ type Querier interface {
 	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
 	//      stripe_subscription_id = NULL,
+	//      stripe_deploy_subscription_id = NULL,
 	//      plan = NULL,
 	//      tier = 'Free'
 	//  WHERE workspace_id = ?

@@ -56,6 +56,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     tier: workspace.billing?.tier ?? "Free",
     stripeCustomerId: workspace.billing?.stripeCustomerId ?? null,
     stripeSubscriptionId: workspace.billing?.stripeSubscriptionId ?? null,
+    stripeDeploySubscriptionId: workspace.billing?.stripeDeploySubscriptionId ?? null,
     deployPlan: workspace.billing?.plan ?? null,
     deployPlanOverride: workspace.billing?.planOverride ?? null,
     deploySpendBudgetCents: workspace.billing?.spendBudgetCents ?? null,

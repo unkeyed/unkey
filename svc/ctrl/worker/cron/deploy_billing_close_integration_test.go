@@ -149,7 +149,7 @@ func seedBillableWorkspace(t *testing.T, h *harness.Harness, customerID, subscri
 	}
 	_, err := h.DB.RW().ExecContext(
 		h.Ctx,
-		"UPDATE workspace_billing SET plan = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE workspace_id = ?",
+		"UPDATE workspace_billing SET plan = ?, stripe_customer_id = ?, stripe_deploy_subscription_id = ? WHERE workspace_id = ?",
 		"pro", customerID, sub, ws.ID,
 	)
 	require.NoError(t, err)

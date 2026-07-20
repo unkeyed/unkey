@@ -324,7 +324,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     b.stripe_subscription_id
+	//     b.stripe_deploy_subscription_id
 	//  FROM `workspace_billing` b
 	//  JOIN `workspaces` w ON w.id = b.workspace_id
 	//  WHERE b.stripe_customer_id = ?
@@ -572,7 +572,7 @@ type Querier interface {
 	// fetched, prefer joining workspace_billing in that query over a second round
 	// trip.
 	//
-	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, stripe_deploy_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
 	//  WHERE workspace_id = ?
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (WorkspaceBilling, error)
 	//FindWorkspaceByID
@@ -1341,7 +1341,7 @@ type Querier interface {
 	//  SELECT
 	//     w.id,
 	//     b.stripe_customer_id,
-	//     b.stripe_subscription_id
+	//     b.stripe_deploy_subscription_id
 	//  FROM `workspaces` w
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE b.plan IS NOT NULL

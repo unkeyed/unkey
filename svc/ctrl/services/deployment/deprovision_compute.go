@@ -66,7 +66,7 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 	// leaving resubscribed compute running unbilled. A retry of the same call
 	// (row unchanged) still dedupes.
 	idempotencyKey := fmt.Sprintf("deploy-teardown-archive-%s-%s-%d",
-		workspaceID, billing.StripeSubscriptionID.String, billing.UpdatedAtM.Int64)
+		workspaceID, billing.StripeDeploySubscriptionID.String, billing.UpdatedAtM.Int64)
 	_, err = hydrav1.NewDeployTeardownServiceIngressClient(s.restate, workspaceID).
 		Teardown().
 		Send(ctx, &hydrav1.TeardownRequest{

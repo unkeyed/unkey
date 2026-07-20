@@ -1488,17 +1488,18 @@ type Workspace struct {
 }
 
 type WorkspaceBilling struct {
-	Pk                   uint64         `db:"pk"`
-	WorkspaceID          string         `db:"workspace_id"`
-	Tier                 sql.NullString `db:"tier"`
-	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
-	Plan                 sql.NullString `db:"plan"`
-	PlanOverride         sql.NullString `db:"plan_override"`
-	SpendBudgetCents     sql.NullInt64  `db:"spend_budget_cents"`
-	SpendBudgetStop      bool           `db:"spend_budget_stop"`
-	SpendSuspended       bool           `db:"spend_suspended"`
-	CreatedAtM           int64          `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64  `db:"deleted_at_m"`
+	Pk                         uint64         `db:"pk"`
+	WorkspaceID                string         `db:"workspace_id"`
+	Tier                       sql.NullString `db:"tier"`
+	StripeCustomerID           sql.NullString `db:"stripe_customer_id"`
+	StripeSubscriptionID       sql.NullString `db:"stripe_subscription_id"`
+	StripeDeploySubscriptionID sql.NullString `db:"stripe_deploy_subscription_id"`
+	Plan                       sql.NullString `db:"plan"`
+	PlanOverride               sql.NullString `db:"plan_override"`
+	SpendBudgetCents           sql.NullInt64  `db:"spend_budget_cents"`
+	SpendBudgetStop            bool           `db:"spend_budget_stop"`
+	SpendSuspended             bool           `db:"spend_suspended"`
+	CreatedAtM                 int64          `db:"created_at_m"`
+	UpdatedAtM                 sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM                 sql.NullInt64  `db:"deleted_at_m"`
 }

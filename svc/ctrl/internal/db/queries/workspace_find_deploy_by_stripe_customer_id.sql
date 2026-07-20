@@ -5,7 +5,7 @@
 -- finalization.
 SELECT
    w.id,
-   b.stripe_subscription_id
+   b.stripe_deploy_subscription_id
 FROM `workspace_billing` b
 JOIN `workspaces` w ON w.id = b.workspace_id
 WHERE b.stripe_customer_id = sqlc.arg(stripe_customer_id)

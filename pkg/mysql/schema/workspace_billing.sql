@@ -4,6 +4,7 @@ CREATE TABLE `workspace_billing` (
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
+	`stripe_deploy_subscription_id` varchar(256),
 	`plan` varchar(64),
 	`plan_override` varchar(64),
 	`spend_budget_cents` bigint unsigned,
@@ -19,4 +20,8 @@ CREATE TABLE `workspace_billing` (
 CREATE INDEX `spend_budget_cents_idx` ON `workspace_billing` (`spend_budget_cents`);
 
 CREATE INDEX `spend_suspended_idx` ON `workspace_billing` (`spend_suspended`);
+
+CREATE INDEX `stripe_subscription_id_idx` ON `workspace_billing` (`stripe_subscription_id`);
+
+CREATE INDEX `stripe_deploy_subscription_id_idx` ON `workspace_billing` (`stripe_deploy_subscription_id`);
 

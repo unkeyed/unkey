@@ -6,6 +6,7 @@
 UPDATE `workspace_billing`
 SET stripe_customer_id = NULL,
     stripe_subscription_id = NULL,
+    stripe_deploy_subscription_id = NULL,
     plan = NULL,
     tier = 'Free'
 WHERE workspace_id = sqlc.arg(id);

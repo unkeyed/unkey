@@ -12,7 +12,7 @@
 SELECT
    w.id,
    b.stripe_customer_id,
-   b.stripe_subscription_id
+   b.stripe_deploy_subscription_id
 FROM `workspaces` w
 LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 WHERE b.plan IS NOT NULL

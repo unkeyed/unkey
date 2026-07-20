@@ -34,7 +34,24 @@ export const workspaceBilling = mysqlTable(
 
     // stripe
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
+
+    /**
+     * The API product's Stripe subscription. Every current prod customer's id
+     * here is an API subscription, so the column keeps its name and existing
+     * rows need no migration. Distinct from stripeDeploySubscriptionId, which
+     * holds the Deploy product's subscription. Both subscriptions live on the
+     * shared stripeCustomerId.
+     */
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+
+    /**
+     * The Deploy (Compute) product's Stripe subscription, split out from the
+     * API subscription so each product cancels as a native whole-subscription
+     * operation. NULL means no Deploy subscription. Read by the ctrl deploy
+     * billing machinery (invoice close, deprovision). Shares the same
+     * stripeCustomerId as stripeSubscriptionId.
+     */
+    stripeDeploySubscriptionId: varchar("stripe_deploy_subscription_id", { length: 256 }),
 
     /**
      * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by
@@ -81,6 +98,13 @@ export const workspaceBilling = mysqlTable(
     // no partial index; two single-column indexes let index-merge cover the OR.
     spendBudgetCentsIdx: index("spend_budget_cents_idx").on(table.spendBudgetCents),
     spendSuspendedIdx: index("spend_suspended_idx").on(table.spendSuspended),
+    // Back the webhook subscription-id lookups, which are full scans today. One
+    // index per subscription column, since the API and Deploy webhooks match on
+    // their own column.
+    stripeSubscriptionIdIdx: index("stripe_subscription_id_idx").on(table.stripeSubscriptionId),
+    stripeDeploySubscriptionIdIdx: index("stripe_deploy_subscription_id_idx").on(
+      table.stripeDeploySubscriptionId,
+    ),
   }),
 );
 

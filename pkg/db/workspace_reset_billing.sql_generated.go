@@ -13,6 +13,7 @@ const resetWorkspaceBilling = `-- name: ResetWorkspaceBilling :exec
 UPDATE ` + "`" + `workspace_billing` + "`" + `
 SET stripe_customer_id = NULL,
     stripe_subscription_id = NULL,
+    stripe_deploy_subscription_id = NULL,
     plan = NULL,
     tier = 'Free'
 WHERE workspace_id = ?
@@ -26,6 +27,7 @@ WHERE workspace_id = ?
 //	UPDATE `workspace_billing`
 //	SET stripe_customer_id = NULL,
 //	    stripe_subscription_id = NULL,
+//	    stripe_deploy_subscription_id = NULL,
 //	    plan = NULL,
 //	    tier = 'Free'
 //	WHERE workspace_id = ?

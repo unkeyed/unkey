@@ -13,7 +13,7 @@ import (
 const findDeployWorkspaceByStripeCustomerID = `-- name: FindDeployWorkspaceByStripeCustomerID :one
 SELECT
    w.id,
-   b.stripe_subscription_id
+   b.stripe_deploy_subscription_id
 FROM ` + "`" + `workspace_billing` + "`" + ` b
 JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = b.workspace_id
 WHERE b.stripe_customer_id = ?
@@ -22,8 +22,8 @@ WHERE b.stripe_customer_id = ?
 `
 
 type FindDeployWorkspaceByStripeCustomerIDRow struct {
-	ID                   string         `db:"id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	ID                         string         `db:"id"`
+	StripeDeploySubscriptionID sql.NullString `db:"stripe_deploy_subscription_id"`
 }
 
 // Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
@@ -33,7 +33,7 @@ type FindDeployWorkspaceByStripeCustomerIDRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   b.stripe_subscription_id
+//	   b.stripe_deploy_subscription_id
 //	FROM `workspace_billing` b
 //	JOIN `workspaces` w ON w.id = b.workspace_id
 //	WHERE b.stripe_customer_id = ?
@@ -42,6 +42,6 @@ type FindDeployWorkspaceByStripeCustomerIDRow struct {
 func (q *Queries) FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeployWorkspaceByStripeCustomerID, stripeCustomerID)
 	var i FindDeployWorkspaceByStripeCustomerIDRow
-	err := row.Scan(&i.ID, &i.StripeSubscriptionID)
+	err := row.Scan(&i.ID, &i.StripeDeploySubscriptionID)
 	return i, err
 }

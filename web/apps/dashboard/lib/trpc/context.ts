@@ -58,6 +58,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           tier: ws.billing?.tier ?? "Free",
           stripeCustomerId: ws.billing?.stripeCustomerId ?? null,
           stripeSubscriptionId: ws.billing?.stripeSubscriptionId ?? null,
+          stripeDeploySubscriptionId: ws.billing?.stripeDeploySubscriptionId ?? null,
           deployPlan: ws.billing?.plan ?? null,
           deployPlanOverride: ws.billing?.planOverride ?? null,
           deploySpendBudgetCents: ws.billing?.spendBudgetCents ?? null,

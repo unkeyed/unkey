@@ -10,7 +10,7 @@ import (
 )
 
 const findWorkspaceBillingByWorkspaceID = `-- name: FindWorkspaceBillingByWorkspaceID :one
-SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspace_billing` + "`" + `
+SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, stripe_deploy_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspace_billing` + "`" + `
 WHERE workspace_id = ?
 `
 
@@ -20,7 +20,7 @@ WHERE workspace_id = ?
 // fetched, prefer joining workspace_billing in that query over a second round
 // trip.
 //
-//	SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+//	SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, stripe_deploy_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
 //	WHERE workspace_id = ?
 func (q *Queries) FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (WorkspaceBilling, error) {
 	row := q.db.QueryRowContext(ctx, findWorkspaceBillingByWorkspaceID, workspaceID)
@@ -31,6 +31,7 @@ func (q *Queries) FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspa
 		&i.Tier,
 		&i.StripeCustomerID,
 		&i.StripeSubscriptionID,
+		&i.StripeDeploySubscriptionID,
 		&i.Plan,
 		&i.PlanOverride,
 		&i.SpendBudgetCents,
