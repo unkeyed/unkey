@@ -75,8 +75,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// instance, so desired_state is the signal that a stop is already in flight.
 	//nolint:exhaustruct // stop only uses the runtime status and environment fields
 	if r := deploygate.CheckStoppable(deploygate.Input{
-		Status:          string(dep.Status),
-		DesiredState:    string(dep.DesiredState),
+		Status:          dep.Status,
+		DesiredState:    dep.DesiredState,
 		EnvironmentSlug: dep.EnvironmentSlug,
 	}); r != deploygate.StopOK {
 		return deployment.StopFault(r)

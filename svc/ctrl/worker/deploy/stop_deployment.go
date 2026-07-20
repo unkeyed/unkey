@@ -6,6 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -41,8 +42,8 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 
 	//nolint:exhaustruct // stop only uses the runtime status and environment fields
 	if r := deploygate.CheckStoppable(deploygate.Input{
-		Status:          string(deployment.Status),
-		DesiredState:    string(deployment.DesiredState),
+		Status:          pkgdb.DeploymentsStatus(deployment.Status),
+		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
 	}); r != deploygate.StopOK {
 		return nil, restate.TerminalError(errors.New(r.Message()), 400)

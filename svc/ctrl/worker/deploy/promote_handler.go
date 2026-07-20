@@ -7,6 +7,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -78,9 +79,10 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to find the environment"))
 	}
 
+	//nolint:exhaustruct // SpendSuspended applies to start only
 	if r := deploygate.CheckPromoteTarget(deploygate.Input{
-		Status:               string(targetDeployment.Status),
-		DesiredState:         string(targetDeployment.DesiredState),
+		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      environment.Slug,
 		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,

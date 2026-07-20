@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -44,8 +45,8 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 
 	//nolint:exhaustruct // stop only uses the runtime status and environment fields
 	if r := deploygate.CheckStoppable(deploygate.Input{
-		Status:          string(deployment.Status),
-		DesiredState:    string(deployment.DesiredState),
+		Status:          pkgdb.DeploymentsStatus(deployment.Status),
+		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
 	}); r != deploygate.StopOK {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))

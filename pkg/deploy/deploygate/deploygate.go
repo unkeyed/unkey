@@ -3,28 +3,21 @@
 // services, and the ctrl Restate workflows. Centralizing the invariant here is
 // what stops the three copies from drifting — a promote that is legal at the API
 // is legal at the worker, by construction.
-//
-// Callers pass the deployment's fields as primitives (the API and ctrl use
-// different generated db packages, so the typed enums cannot be shared) and map
-// the returned reason onto their own error surface.
 package deploygate
 
-// These mirror the deployment enum string values. A test pins them to the
-// db-generated constants so a schema rename cannot silently weaken the gates.
-const (
-	statusReady    = "ready"
-	statusStopped  = "stopped"
-	desiredRunning = "running"
-	desiredStopped = "stopped"
-	envProduction  = "production"
-)
+import "github.com/unkeyed/unkey/pkg/db"
 
-// Input is a deployment's lifecycle-relevant state. Callers fill it from their
-// own db row; unused fields (e.g. the live-pointer fields for stop/start) may be
-// left zero.
+// envProduction is the environment whose deployment serves production traffic:
+// promote/rollback require it, stop/start reject it.
+const envProduction = "production"
+
+// Input is a deployment's lifecycle-relevant state, typed to the pkg/db enums:
+// the API passes its db row fields directly, ctrl converts from its own db
+// package at the boundary. Fields unused by a check (the current-pointer fields
+// for stop/start) may be left zero.
 type Input struct {
-	Status               string
-	DesiredState         string
+	Status               db.DeploymentsStatus
+	DesiredState         db.DeploymentsDesiredState
 	EnvironmentSlug      string
 	HasCurrentDeployment bool
 	CurrentDeploymentID  string
@@ -78,9 +71,9 @@ func (r PromotionReason) Message() string {
 // layer reports failures in.
 func promotionCore(in Input) PromotionReason {
 	switch {
-	case in.Status != statusReady:
+	case in.Status != db.DeploymentsStatusReady:
 		return PromotionNotReady
-	case in.DesiredState != desiredRunning:
+	case in.DesiredState != db.DeploymentsDesiredStateRunning:
 		return PromotionDraining
 	case in.EnvironmentSlug != envProduction:
 		return PromotionNotProduction
@@ -147,9 +140,9 @@ func (r StopReason) Message() string {
 // order every layer reports failures in.
 func CheckStoppable(in Input) StopReason {
 	switch {
-	case in.Status != statusReady:
+	case in.Status != db.DeploymentsStatusReady:
 		return StopNotRunning
-	case in.DesiredState != desiredRunning:
+	case in.DesiredState != db.DeploymentsDesiredStateRunning:
 		return StopAlreadyStopping
 	case in.EnvironmentSlug == envProduction:
 		return StopIsProduction
@@ -194,7 +187,7 @@ func (r StartReason) Message() string {
 // so a workspace suspended by its spend cap is refused last.
 func CheckStartable(in Input) StartReason {
 	switch {
-	case in.DesiredState != desiredStopped:
+	case in.DesiredState != db.DeploymentsDesiredStateStopped:
 		return StartNotStopped
 	case in.EnvironmentSlug == envProduction:
 		return StartIsProduction

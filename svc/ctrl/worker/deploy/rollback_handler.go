@@ -7,6 +7,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -98,9 +99,10 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
 
+	//nolint:exhaustruct // SpendSuspended applies to start only
 	if r := deploygate.CheckRollbackTarget(deploygate.Input{
-		Status:               string(targetDeployment.Status),
-		DesiredState:         string(targetDeployment.DesiredState),
+		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      environment.Slug,
 		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,

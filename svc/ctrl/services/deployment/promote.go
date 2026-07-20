@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -39,9 +40,10 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
+	//nolint:exhaustruct // SpendSuspended applies to start only
 	if r := deploygate.CheckPromoteTarget(deploygate.Input{
-		Status:               string(deployment.Status),
-		DesiredState:         string(deployment.DesiredState),
+		Status:               pkgdb.DeploymentsStatus(deployment.Status),
+		DesiredState:         pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug:      deployment.EnvironmentSlug,
 		HasCurrentDeployment: deployment.CurrentDeploymentID.Valid && deployment.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  deployment.CurrentDeploymentID.String,

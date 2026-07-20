@@ -7,20 +7,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
-// TestEnumLiterals pins the package's string literals to the db-generated enum
-// values, so a schema rename can't silently weaken the gates. pkg/db and the
-// ctrl db package are generated from the same schema, so pinning one covers both.
-func TestEnumLiterals(t *testing.T) {
-	require.Equal(t, statusReady, string(db.DeploymentsStatusReady))
-	require.Equal(t, statusStopped, string(db.DeploymentsStatusStopped))
-	require.Equal(t, desiredRunning, string(db.DeploymentsDesiredStateRunning))
-	require.Equal(t, desiredStopped, string(db.DeploymentsDesiredStateStopped))
-}
-
 func base() Input {
 	return Input{
-		Status:               statusReady,
-		DesiredState:         desiredRunning,
+		Status:               db.DeploymentsStatusReady,
+		DesiredState:         db.DeploymentsDesiredStateRunning,
 		EnvironmentSlug:      envProduction,
 		HasCurrentDeployment: true,
 		CurrentDeploymentID:  "dep_live",
@@ -89,16 +79,16 @@ func TestCheckRollbackTarget(t *testing.T) {
 }
 
 func TestCheckStoppable(t *testing.T) {
-	running := Input{Status: statusReady, DesiredState: desiredRunning, EnvironmentSlug: "preview"}
+	running := Input{Status: db.DeploymentsStatusReady, DesiredState: db.DeploymentsDesiredStateRunning, EnvironmentSlug: "preview"}
 
 	require.Equal(t, StopOK, CheckStoppable(running))
 
 	notReady := running
-	notReady.Status = statusStopped
+	notReady.Status = db.DeploymentsStatusStopped
 	require.Equal(t, StopNotRunning, CheckStoppable(notReady))
 
 	draining := running
-	draining.DesiredState = desiredStopped
+	draining.DesiredState = db.DeploymentsDesiredStateStopped
 	require.Equal(t, StopAlreadyStopping, CheckStoppable(draining))
 
 	prod := running
@@ -109,12 +99,12 @@ func TestCheckStoppable(t *testing.T) {
 func TestCheckStartable(t *testing.T) {
 	// A stopped deployment is keyed on desired_state, not status: it may still be
 	// draining (status ready) while its intent is stopped.
-	stopped := Input{Status: statusReady, DesiredState: desiredStopped, EnvironmentSlug: "preview"}
+	stopped := Input{Status: db.DeploymentsStatusReady, DesiredState: db.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
 
 	require.Equal(t, StartOK, CheckStartable(stopped), "wakeable while draining toward stopped")
 
 	notStopped := stopped
-	notStopped.DesiredState = desiredRunning
+	notStopped.DesiredState = db.DeploymentsDesiredStateRunning
 	require.Equal(t, StartNotStopped, CheckStartable(notStopped))
 
 	prod := stopped

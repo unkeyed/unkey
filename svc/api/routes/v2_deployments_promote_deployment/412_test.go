@@ -258,6 +258,6 @@ func TestPromoteDeploymentCtrlGateRejection(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: target.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Len(t, mock.PromoteCalls, 1)
-	require.Contains(t, res.Body.Error.Type, "deployment_already_live")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
 	require.Equal(t, deploygate.PromotionAlreadyCurrent.Message(), res.Body.Error.Detail)
 }

@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// the last instance.
 	//nolint:exhaustruct // start only uses the desired state, environment, and spend fields
 	if r := deploygate.CheckStartable(deploygate.Input{
-		DesiredState:    string(dep.DesiredState),
+		DesiredState:    dep.DesiredState,
 		EnvironmentSlug: dep.EnvironmentSlug,
 		SpendSuspended:  billing.SpendSuspended,
 	}); r != deploygate.StartOK {

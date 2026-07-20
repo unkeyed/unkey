@@ -84,9 +84,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	//nolint:exhaustruct // SpendSuspended applies to start only
 	if r := deploygate.CheckPromoteTarget(deploygate.Input{
-		Status:               string(dep.Status),
-		DesiredState:         string(dep.DesiredState),
+		Status:               dep.Status,
+		DesiredState:         dep.DesiredState,
 		EnvironmentSlug:      dep.EnvironmentSlug,
 		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,

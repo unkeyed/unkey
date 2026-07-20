@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -54,9 +55,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
 	}
 
+	//nolint:exhaustruct // SpendSuspended applies to start only
 	if r := deploygate.CheckRollbackTarget(deploygate.Input{
-		Status:               string(targetDeployment.Status),
-		DesiredState:         string(targetDeployment.DesiredState),
+		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      targetDeployment.EnvironmentSlug,
 		HasCurrentDeployment: targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  targetDeployment.CurrentDeploymentID.String,
@@ -77,7 +79,8 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	logger.Info("initiating rollback via Restate",
+	logger.Info(
+		"initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
@@ -88,9 +91,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
 		})
-
 	if err != nil {
-		logger.Error("rollback workflow failed",
+		logger.Error(
+			"rollback workflow failed",
 			"source", req.Msg.GetSourceDeploymentId(),
 			"target", req.Msg.GetTargetDeploymentId(),
 			"error", err.Error(),
@@ -98,7 +101,8 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("rollback workflow failed: %w", err))
 	}
 
-	logger.Info("rollback completed successfully via Restate",
+	logger.Info(
+		"rollback completed successfully via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
