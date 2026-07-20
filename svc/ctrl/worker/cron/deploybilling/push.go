@@ -3,6 +3,7 @@ package deploybilling
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -22,7 +23,10 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeployBillingPushRequest,
 ) (*hydrav1.RunDeployBillingPushResponse, error) {
-	period := restate.Key(ctx)
+	// Task-prefixed VO key ("deploy-billing-push-YYYY-MM") keeps this off the
+	// other period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare
+	// key, so old in-flight invocations still parse during a rolling deploy.
+	period := strings.TrimPrefix(restate.Key(ctx), "deploy-billing-push-")
 	logger.Info("running deploy billing push", "billing_period", period)
 
 	if h.usage == nil {

@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import { cancelDeploySubscription } from "./cancelDeploySubscription";
 import type { DeployBillingConfig } from "./deployBilling";
+import { API_CANCEL_SCHEDULE_MARKER } from "./subscriptionUtils";
 
 const CONFIG: DeployBillingConfig = {
   planFeePriceIds: { starter: "price_starter", pro: "price_pro", business: "price_business" },
@@ -66,5 +67,48 @@ describe("cancelDeploySubscription", () => {
       items: [{ id: "si_fee", deleted: true }],
       proration_behavior: "none",
     });
+  });
+
+  it("releases a pending API-cancel schedule and cancels the whole subscription when both products are cancelled", async () => {
+    // Mixed subscription whose API plan is already being cancelled via a marked
+    // schedule. Cancelling Compute now must not edit items directly (the schedule
+    // would reinstate the plan fee at the boundary): release the schedule and end
+    // the whole subscription at period end.
+    const update = vi.fn().mockResolvedValue({});
+    const release = vi.fn().mockResolvedValue({});
+    const stripe = {
+      subscriptions: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "sub_1",
+          schedule: "sched_1",
+          items: {
+            data: [
+              item("si_api", "price_api"),
+              item("si_fee", "price_pro"),
+              item("si_cpu", "price_cpu"),
+            ],
+          },
+        }),
+        update,
+      },
+      subscriptionSchedules: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "sched_1",
+          status: "active",
+          metadata: { [API_CANCEL_SCHEDULE_MARKER]: "true" },
+        }),
+        release,
+      },
+    } as unknown as Stripe;
+
+    const result = await cancelDeploySubscription(stripe, "sub_1", CONFIG);
+    expect(result).toBe("mixed");
+    expect(release).toHaveBeenCalledWith("sched_1");
+    expect(update).toHaveBeenCalledWith("sub_1", { cancel_at_period_end: true });
+    // Must NOT fall through to the direct item-delete edit.
+    expect(update).not.toHaveBeenCalledWith(
+      "sub_1",
+      expect.objectContaining({ proration_behavior: "none" }),
+    );
   });
 });

@@ -70,6 +70,20 @@ export const changeDeployPlan = workspaceProcedure
       return;
     }
 
+    // The whole subscription is set to cancel at period end (a Deploy-only or
+    // both-products cancel). Repricing the fee would charge an upgrade proration
+    // for a plan that ends this period anyway, or repoint a plan that is on its
+    // way out. Refuse rather than take money for a plan that will not renew; the
+    // user should resume before changing tiers. (Note: a mixed API cancel is a
+    // schedule, handled below, not cancel_at_period_end.)
+    if (sub.cancel_at_period_end) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "Your Compute plan is set to cancel at the end of this period. Resume it before changing plans.",
+      });
+    }
+
     // A pending API-plan cancellation is a schedule whose next phase snapshots
     // the CURRENT Compute items — left in place, it would revert the plan
     // change at the period boundary. Release it, apply the change, then
