@@ -1,13 +1,8 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findDeployItems, findPlanFeeItem } from "@/lib/stripe/deployBilling";
+import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import {
-  createApiCancelSchedule,
-  getApiCancelSchedule,
-  isPendingSchedule,
-} from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -45,7 +40,7 @@ export const changeDeployPlan = workspaceProcedure
       });
     }
 
-    if (!ctx.workspace.stripeSubscriptionId) {
+    if (!ctx.workspace.stripeDeploySubscriptionId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "Workspace has no Compute plan to change.",
@@ -53,7 +48,7 @@ export const changeDeployPlan = workspaceProcedure
     }
 
     const stripe = getStripeClient();
-    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+    const sub = await stripe.subscriptions.retrieve(ctx.workspace.stripeDeploySubscriptionId);
 
     // Find the current plan-fee item by matching its price against the
     // configured plan-fee ids, rather than trusting any client input.
@@ -70,12 +65,10 @@ export const changeDeployPlan = workspaceProcedure
       return;
     }
 
-    // The whole subscription is set to cancel at period end (a Deploy-only or
-    // both-products cancel). Repricing the fee would charge an upgrade proration
-    // for a plan that ends this period anyway, or repoint a plan that is on its
-    // way out. Refuse rather than take money for a plan that will not renew; the
-    // user should resume before changing tiers. (Note: a mixed API cancel is a
-    // schedule, handled below, not cancel_at_period_end.)
+    // The Deploy subscription is set to cancel at period end. Repricing the fee
+    // would charge an upgrade proration for a plan that ends this period anyway,
+    // or repoint a plan that is on its way out. Refuse rather than take money for
+    // a plan that will not renew; the user should resume before changing tiers.
     if (sub.cancel_at_period_end) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -83,28 +76,6 @@ export const changeDeployPlan = workspaceProcedure
           "Your Compute plan is set to cancel at the end of this period. Resume it before changing plans.",
       });
     }
-
-    // A pending API-plan cancellation is a schedule whose next phase snapshots
-    // the CURRENT Compute items — left in place, it would revert the plan
-    // change at the period boundary. Release it, apply the change, then
-    // recreate it from the updated items so the pending cancellation survives.
-    const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
-    const pendingApiCancel = apiCancelSchedule !== null && isPendingSchedule(apiCancelSchedule);
-    if (pendingApiCancel && apiCancelSchedule) {
-      await stripe.subscriptionSchedules.release(apiCancelSchedule.id);
-    }
-
-    const restoreApiCancel = async () => {
-      const updated = await stripe.subscriptions.retrieve(sub.id);
-      const deployItemIds = new Set(
-        findDeployItems(config, updated.items.data).map((item) => item.id),
-      );
-      await createApiCancelSchedule(
-        stripe,
-        sub.id,
-        updated.items.data.filter((item) => deployItemIds.has(item.id)),
-      );
-    };
 
     const newPriceId = config.planFeePriceIds[input.plan];
     const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
@@ -116,19 +87,6 @@ export const changeDeployPlan = workspaceProcedure
         payment_behavior: "error_if_incomplete",
       });
     } catch (err) {
-      if (pendingApiCancel) {
-        // The item is unchanged (the update failed), so put the pending
-        // cancellation back. Best-effort: losing it means the API plan keeps
-        // billing until the user cancels again, not a wrong charge.
-        try {
-          await restoreApiCancel();
-        } catch (restoreErr) {
-          console.error("Failed to restore pending API cancellation after plan-change error", {
-            subscriptionId: sub.id,
-            error: restoreErr instanceof Error ? restoreErr.message : restoreErr,
-          });
-        }
-      }
       if (
         err instanceof Stripe.errors.StripeCardError ||
         err instanceof Stripe.errors.StripeError
@@ -141,22 +99,6 @@ export const changeDeployPlan = workspaceProcedure
         });
       }
       throw err;
-    }
-
-    if (pendingApiCancel) {
-      // The plan change already went through, so a throw here would skip the
-      // DB write below and a same-plan retry would short-circuit before ever
-      // recreating the schedule. Best-effort instead: losing the pending
-      // cancellation means the API plan keeps billing until the user cancels
-      // again, not a wrong charge.
-      try {
-        await restoreApiCancel();
-      } catch (restoreErr) {
-        console.error("Failed to restore pending API cancellation after plan change", {
-          subscriptionId: sub.id,
-          error: restoreErr instanceof Error ? restoreErr.message : restoreErr,
-        });
-      }
     }
 
     // One transaction so the plan write and its audit log commit together; a

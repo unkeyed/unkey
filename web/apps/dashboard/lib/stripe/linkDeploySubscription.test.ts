@@ -191,7 +191,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: null, plan: null },
+      billing: { stripeDeploySubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({});
     const result = await linkDeploySubscription(stripe, {
@@ -203,7 +203,7 @@ describe("linkDeploySubscription", () => {
     expect(h.transaction).toHaveBeenCalledOnce();
     expect(h.set).toHaveBeenCalledWith({
       stripeCustomerId: "cus_1",
-      stripeSubscriptionId: "sub_1",
+      stripeDeploySubscriptionId: "sub_1",
       plan: "starter",
     });
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
@@ -213,7 +213,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: "sub_1", plan: "starter" },
+      billing: { stripeDeploySubscriptionId: "sub_1", plan: "starter" },
     });
     const stripe = stubStripe({});
     const result = await linkDeploySubscription(stripe, {
@@ -229,7 +229,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: "sub_other", plan: "pro" },
+      billing: { stripeDeploySubscriptionId: "sub_other", plan: "pro" },
     });
     // The default stub returns an active subscription for any id, so the
     // recorded sub_other reads as live.
@@ -247,7 +247,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: "sub_dead", plan: null },
+      billing: { stripeDeploySubscriptionId: "sub_dead", plan: null },
     });
     const stripe = stubStripe({
       subsById: { sub_dead: subscription({ id: "sub_dead", status: "canceled" }) },
@@ -260,7 +260,7 @@ describe("linkDeploySubscription", () => {
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: false });
     expect(h.set).toHaveBeenCalledWith({
       stripeCustomerId: "cus_1",
-      stripeSubscriptionId: "sub_1",
+      stripeDeploySubscriptionId: "sub_1",
       plan: "starter",
     });
   });
@@ -269,7 +269,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: null, plan: null },
+      billing: { stripeDeploySubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({
       sub: subscription({ default_payment_method: "pm_1" } as Partial<Stripe.Subscription>),
@@ -289,7 +289,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: null, plan: null },
+      billing: { stripeDeploySubscriptionId: null, plan: null },
     });
     const stripe = stubStripe({
       sub: subscription({ default_payment_method: "pm_1" } as Partial<Stripe.Subscription>),
@@ -312,7 +312,7 @@ describe("linkDeploySubscription", () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
-      billing: { stripeSubscriptionId: "sub_gone", plan: null },
+      billing: { stripeDeploySubscriptionId: "sub_gone", plan: null },
     });
     const stripe = stubStripe({ subsById: { sub_gone: RESOURCE_MISSING } });
     const result = await linkDeploySubscription(stripe, {

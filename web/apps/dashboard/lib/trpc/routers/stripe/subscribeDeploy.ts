@@ -4,7 +4,6 @@ import { getStripeClient } from "@/lib/stripe";
 import {
   deployBillingConfig,
   deploySubscriptionItems,
-  findDeployItems,
   findPlanFeeItem,
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
@@ -13,7 +12,6 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
-import { assertSubscriptionAttachable } from "./subscriptionGuards";
 
 /**
  * Subscribes the workspace to an Unkey Deploy plan: attaches the plan-fee price
@@ -105,95 +103,59 @@ export const subscribeDeploy = workspaceProcedure
       // branch runs. Written optimistically so the UI reflects the new plan now;
       // the customer.subscription.* webhook reconciles them (a no-op, since it
       // derives the same value from the subscription we just mutated).
-      let workspaceUpdate: { plan: string; stripeSubscriptionId?: string };
+      let workspaceUpdate: { plan: string; stripeDeploySubscriptionId?: string };
 
-      // The recorded subscription can be a corpse (cancelDeploy cancels a
-      // Compute-only subscription outright, and the deleted-webhook that clears
-      // the column may not have landed yet). A dead one still carries its old
-      // Compute items, so without this check a mid-month resubscribe dies on the
-      // "already has Compute items" guard below. Treat it as absent and create a
-      // fresh subscription instead.
+      // The recorded Deploy subscription can be a corpse (cancelDeploy cancels it
+      // outright, and the deleted-webhook that clears the column may not have
+      // landed yet). A dead one still carries its old Compute items, so treat it
+      // as absent and create a fresh subscription instead of resuming it.
       let existingSub: Stripe.Subscription | null = null;
-      if (ctx.workspace.stripeSubscriptionId) {
-        const recorded = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+      if (ctx.workspace.stripeDeploySubscriptionId) {
+        const recorded = await stripe.subscriptions.retrieve(
+          ctx.workspace.stripeDeploySubscriptionId,
+        );
         if (!isDeadSubscription(recorded)) {
           existingSub = recorded;
         }
       }
 
       if (existingSub) {
-        // Existing subscription (e.g. a paid API plan): append the Deploy items.
-        // Items not listed here are left untouched, so API items are preserved.
+        // A live Deploy subscription already exists. The only supported path is
+        // resuming one that is cancelling this period (a Deploy-only cancel keeps
+        // every item and just sets cancel_at_period_end); a live, non-cancelling
+        // one already carries this workspace's plan, which the deployPlan/CAS
+        // guards above should have caught.
         const sub = existingSub;
 
+        if (!sub.cancel_at_period_end) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Workspace already has a Compute plan. Use change instead.",
+          });
+        }
+
+        // Resume only at the SAME tier that was cancelled: proration "none" below
+        // keeps the plan fee already paid this period from re-invoicing, so
+        // repointing the fee at a different tier under "none" would grant the new
+        // tier for the old tier's payment. Route a tier change through
+        // changeDeployPlan (resume first, then switch) instead.
         const planFeeItem = findPlanFeeItem(config, sub.items.data);
-
-        // A plan-fee item on a subscription that is NOT cancelling means the
-        // workspace is actually subscribed; the deployPlan guard above should have
-        // caught it, so it is a state mismatch, not something to double-attach
-        // onto. A plan-fee item on a subscription set to cancel at period end is
-        // the leftover of a Deploy-only cancel this period, which re-subscribing
-        // resumes rather than rejecting.
-        if (planFeeItem && !sub.cancel_at_period_end) {
+        if (!planFeeItem || planFeeItem.plan !== input.plan) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "Workspace already has a Compute plan fee on its subscription.",
+            message: planFeeItem
+              ? `Your cancelled Compute plan is ${planFeeItem.plan}. Resume it by subscribing to ${planFeeItem.plan} again, then switch to ${input.plan}.`
+              : "Your cancelled Compute subscription has no plan fee to resume. Contact support@unkey.com.",
           });
-        }
-
-        // A genuine resume keeps the plan fee already paid this period, so it must
-        // not re-invoice (proration "none" below). That only holds when the
-        // resumed tier is the SAME one that was cancelled: repointing the fee at a
-        // different tier under "none" would grant the new tier for the old tier's
-        // payment, dodging the upgrade proration changeDeployPlan charges. Route a
-        // tier change through changeDeployPlan (resume first, then switch) so the
-        // proration and credit-grant rules apply exactly once, in one place.
-        if (planFeeItem && sub.cancel_at_period_end && planFeeItem.plan !== input.plan) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: `Your cancelled Compute plan is ${planFeeItem.plan}. Resume it by subscribing to ${planFeeItem.plan} again, then switch to ${input.plan}.`,
-          });
-        }
-
-        // Build the item set to attach without stranding a workspace whose cancel
-        // left items behind. A Deploy-only cancel sets cancel_at_period_end and
-        // keeps every item, so point the existing plan-fee item at the chosen
-        // tier. A mixed cancel drops the plan fee but keeps the metered items, so
-        // add the plan fee back. Either way, only add metered prices not already
-        // present so they are never duplicated.
-        const existingPriceIds = new Set(
-          findDeployItems(config, sub.items.data).map((item) => item.priceId),
-        );
-        const itemsToAttach: Stripe.SubscriptionUpdateParams.Item[] = [
-          planFeeItem
-            ? { id: planFeeItem.id, price: config.planFeePriceIds[input.plan] }
-            : { price: config.planFeePriceIds[input.plan] },
-          ...config.meteredPriceIds
-            .filter((price) => !existingPriceIds.has(price))
-            .map((price) => ({ price })),
-        ];
-
-        // Resuming a subscription that was cancelling this period just clears the
-        // pending cancellation. It requires a leftover Compute plan-fee item:
-        // without one (e.g. a cancelling API-only subscription) there is nothing
-        // Compute to resume, so falling through to assertSubscriptionAttachable
-        // rejects the cancelling subscription and tells the user to resume it
-        // first, instead of un-cancelling an API plan they killed and attaching
-        // Compute uninvoiced. A fresh attach onto another subscription must first
-        // be attachable, so we don't attach Deploy items to something that ends at
-        // the period roll.
-        const resuming = sub.cancel_at_period_end && planFeeItem !== undefined;
-        if (!resuming) {
-          assertSubscriptionAttachable(sub);
         }
 
         try {
           await stripe.subscriptions.update(sub.id, {
+            // Clearing the pending cancellation resumes the plan. All items are
+            // still present (Deploy-only cancel keeps them), so nothing is
+            // re-attached; proration "none" keeps the paid fee from re-invoicing.
             cancel_at_period_end: false,
-            items: itemsToAttach,
-            // Resuming keeps the plan fee already paid this period (cancel never
-            // refunded it), so it must not invoice again; a fresh attach bills it.
-            proration_behavior: resuming ? "none" : "always_invoice",
+            proration_behavior: "none",
             payment_behavior: "error_if_incomplete",
           });
         } catch (err) {
@@ -254,7 +216,7 @@ export const subscribeDeploy = workspaceProcedure
           // the SAME subscription instead of charging a second one. Unlike the
           // checkout-session path there is no webhook backstop for this create —
           // customer.subscription.created resolves the workspace by
-          // stripeSubscriptionId, which was never written.
+          // stripeDeploySubscriptionId, which was never written.
           //
           // The key is scoped to the workspace, NOT the plan: a retry that picks
           // a different plan (or two admins racing on different plans, though the
@@ -300,7 +262,7 @@ export const subscribeDeploy = workspaceProcedure
 
         // Link the new subscription so the customer.subscription.* webhook can
         // resolve this workspace.
-        workspaceUpdate = { stripeSubscriptionId: sub.id, plan: input.plan };
+        workspaceUpdate = { stripeDeploySubscriptionId: sub.id, plan: input.plan };
       }
 
       // One transaction so the plan write and its audit log commit together; a

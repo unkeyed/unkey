@@ -1,6 +1,5 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -36,9 +35,9 @@ export const getProducts = workspaceProcedure
         const subscription = await stripe.subscriptions.retrieve(
           ctx.workspace.stripeSubscriptionId,
         );
-        // The API item, skipping Deploy items (items[0] is a Deploy price on
-        // a Compute-first subscription); product via price, plan is legacy.
-        const apiItem = findApiItem(await deployBillingConfig(), subscription.items.data);
+        // The API subscription carries only the API plan item; product via
+        // price, plan is legacy.
+        const apiItem = subscription.items.data[0];
         const product = apiItem?.price.product;
         const currentProductId = typeof product === "string" ? product : product?.id;
         if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {

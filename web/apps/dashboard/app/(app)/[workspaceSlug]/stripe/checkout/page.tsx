@@ -63,7 +63,7 @@ export default async function StripeRedirect(props: {
     return redirect(routes.workspaces.create());
   }
 
-  const stripeSubscriptionId = ws.billing?.stripeSubscriptionId;
+  const stripeDeploySubscriptionId = ws.billing?.stripeDeploySubscriptionId;
 
   let stripe: Stripe;
   try {
@@ -111,20 +111,20 @@ export default async function StripeRedirect(props: {
   // For the Compute-plan gate's no-card path, create the subscription in
   // Checkout itself (mode: "subscription") so Stripe shows the plan name and
   // monthly price and charges at checkout. Every other intent — and a
-  // workspace that already has a LIVE subscription, to avoid creating a second
-  // one — falls through to the card-vault setup session below. A dead recorded
-  // subscription (cancelDeploy cancels a Compute-only subscription outright,
-  // and the deleted-webhook that clears the column may lag) counts as absent,
-  // or a mid-month cancel could never resubscribe. deployBillingConfig returns
-  // null when Compute billing is unconfigured, which also falls back.
+  // workspace that already has a LIVE Deploy subscription, to avoid creating a
+  // second one — falls through to the card-vault setup session below. A dead
+  // recorded subscription (cancelDeploy cancels the Compute subscription
+  // outright, and the deleted-webhook that clears the column may lag) counts as
+  // absent, or a mid-month cancel could never resubscribe. deployBillingConfig
+  // returns null when Compute billing is unconfigured, which also falls back.
   let hasLiveSubscription = false;
-  if (intent === "deploy" && plan && stripeSubscriptionId) {
+  if (intent === "deploy" && plan && stripeDeploySubscriptionId) {
     // A recorded subscription that no longer exists on Stripe is the same
     // "dead recorded subscription counts as absent" case, not a 500; mirrors
     // linkDeploySubscription. Anything else propagates — a transient failure
     // must not silently downgrade a live subscription to "absent".
     const recorded = await stripe.subscriptions
-      .retrieve(stripeSubscriptionId)
+      .retrieve(stripeDeploySubscriptionId)
       .catch((err: unknown) => {
         if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
           return null;
@@ -193,7 +193,7 @@ export default async function StripeRedirect(props: {
       // Idempotency key so a retry within Stripe's window returns the SAME
       // session instead of creating a second live, charged subscription — the
       // race where the user pays, abandons before the link is written, then
-      // re-opens the gate (stripeSubscriptionId still null). Keyed by workspace
+      // re-opens the gate (stripeDeploySubscriptionId still null). Keyed by workspace
       // + plan + origin, since success_url varies by `from` and a differing
       // param under the same key would trip an idempotency mismatch.
       //

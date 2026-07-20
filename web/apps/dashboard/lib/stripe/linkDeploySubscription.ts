@@ -36,7 +36,7 @@ export type LinkDeployResult =
  * Links a subscription-mode Compute checkout onto its workspace: verifies the
  * session belongs to the workspace and was paid, that the resulting
  * subscription is live and carries a recognized Deploy plan, then writes
- * `stripeCustomerId` + `stripeSubscriptionId` + `plan` to workspace_billing
+ * `stripeCustomerId` + `stripeDeploySubscriptionId` + `plan` to workspace_billing
  * optimistically (mirroring subscribeDeploy; the customer.subscription.* webhook
  * then derives the same value and no-ops).
  *
@@ -126,15 +126,14 @@ export async function linkDeploySubscription(
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
   }
 
-  const recordedSubscriptionId = ws.billing?.stripeSubscriptionId ?? null;
+  const recordedSubscriptionId = ws.billing?.stripeDeploySubscriptionId ?? null;
 
   // Idempotency + conflict: re-entry (webhook + /success, refresh, redelivery)
   // for the same subscription is a success no-op; a *different* LIVE existing
   // subscription is a hard failure so we never orphan a live one by repointing.
-  // A dead recorded subscription (cancelDeploy cancels a Compute-only
-  // subscription outright, and the deleted-webhook that clears the column may
-  // lag) is safe to repoint away from — refusing would strand this checkout's
-  // paid subscription instead.
+  // A dead recorded subscription (cancelDeploy cancels the Compute subscription
+  // outright, and the deleted-webhook that clears the column may lag) is safe to
+  // repoint away from — refusing would strand this checkout's paid subscription.
   if (recordedSubscriptionId === subscriptionId) {
     if (ws.billing?.plan === plan) {
       return { ok: true, plan, alreadyLinked: true };
@@ -160,7 +159,7 @@ export async function linkDeploySubscription(
   await db.transaction(async (tx) => {
     await tx
       .update(schema.workspaceBilling)
-      .set({ stripeCustomerId, stripeSubscriptionId: subscriptionId, plan })
+      .set({ stripeCustomerId, stripeDeploySubscriptionId: subscriptionId, plan })
       .where(eq(schema.workspaceBilling.workspaceId, ws.id));
     await insertAuditLogs(tx, {
       workspaceId: ws.id,

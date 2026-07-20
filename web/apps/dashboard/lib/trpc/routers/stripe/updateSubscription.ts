@@ -2,13 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import {
-  deployBillingConfig,
-  deployBillingConfigured,
-  findApiItem,
-} from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { getApiCancelSchedule, isPendingSchedule } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -90,44 +84,10 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    // A mixed-subscription API cancel is a schedule whose next phase snapshots the
-    // CURRENT items (see cancelSubscription), not a cancel_at_period_end. Repricing
-    // the API item under it is rejected (Stripe forbids item-level edits on a
-    // scheduled subscription) or reverted at the boundary, and the cancel_at
-    // un-cancel below never fires because schedule cancels leave cancel_at unset,
-    // so the pending cancellation survives an apparent plan switch. Refuse rather
-    // than silently release the schedule (that would resume an API plan the user
-    // explicitly scheduled to cancel as a side effect of a plan change). The
-    // resume action releases the schedule cleanly first.
-    const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
-    if (apiCancelSchedule && isPendingSchedule(apiCancelSchedule)) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message:
-          "Your plan is scheduled to cancel at the end of this period. Resume it before switching plans.",
-      });
-    }
-
-    // Derive the current subscription item from the existing subscription
-    // rather than trusting a client-supplied `oldProductId`. The client should
-    // not be able to influence which item gets repriced. On a mixed
-    // subscription the Deploy items (plan-fee + meters) are skipped — items[0]
-    // would be one of them on a Compute-first subscription, and repricing it
-    // to an API price would destroy the Compute plan.
-    //
-    // Fail closed when Deploy is configured but its config can't be resolved:
-    // findApiItem(null) falls back to items[0], which on a Compute-first
-    // subscription is a Deploy item, so repricing under a transient resolution
-    // failure would destroy Compute. Unconfigured (no Deploy at all) still uses
-    // the items[0] fallback safely.
-    const deployConfig = await deployBillingConfig();
-    if (!deployConfig && deployBillingConfigured()) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Billing is temporarily unavailable. Please try again in a moment.",
-      });
-    }
-    const item = findApiItem(deployConfig, sub.items.data);
+    // The API subscription carries only the API plan item now, so items[0] is
+    // it. Derived from the subscription rather than a client-supplied product id
+    // so the client cannot influence which item gets repriced.
+    const item = sub.items.data[0];
 
     if (!item) {
       throw new TRPCError({
