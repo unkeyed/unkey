@@ -114,7 +114,7 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(setup.RootKey), req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		require.Equal(t, docsURL, res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Port must be greater than 0")
+		require.Contains(t, res.Body.Error.Detail, "Port must be between 1 and 65535")
 		require.Contains(t, res.Body.Error.Detail, "CPU millicores must be at least 250")
 		require.Contains(t, res.Body.Error.Detail, "MemoryMib must be at least 256")
 		require.NotContains(t, res.Body.Error.Detail, "region", "a configured region must not be reported")

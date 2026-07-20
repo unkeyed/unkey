@@ -12,10 +12,9 @@ const (
 	MsgMemoryQuotaExceeded  = "We are unable to deploy this application as you have exceeded your Memory quota."
 	MsgStorageQuotaExceeded = "We are unable to deploy this application as you have exceeded your Storage quota."
 
-	MsgPortTooLow   = "Port must be greater than 0"
-	MsgPortTooHigh  = "Port cannot exceed 65535"
-	MsgCPUTooLow    = "CPU millicores must be at least 250"
-	MsgMemoryTooLow = "MemoryMib must be at least 256"
+	MsgPortOutOfRange = "Port must be between 1 and 65535"
+	MsgCPUTooLow      = "CPU millicores must be at least 250"
+	MsgMemoryTooLow   = "MemoryMib must be at least 256"
 )
 
 // RuntimeViolation is one runtime setting that fails a deploy precondition.
@@ -33,10 +32,8 @@ type RuntimeViolation struct {
 // (API, ctrl) and the worker.
 func RuntimeViolations(port, cpuMillicores, memoryMib int32) []RuntimeViolation {
 	var violations []RuntimeViolation
-	if port < 1 {
-		violations = append(violations, RuntimeViolation{Message: MsgPortTooLow, Actual: port})
-	} else if port > 65535 {
-		violations = append(violations, RuntimeViolation{Message: MsgPortTooHigh, Actual: port})
+	if port < 1 || port > 65535 {
+		violations = append(violations, RuntimeViolation{Message: MsgPortOutOfRange, Actual: port})
 	}
 	if cpuMillicores < 250 {
 		violations = append(violations, RuntimeViolation{Message: MsgCPUTooLow, Actual: cpuMillicores})

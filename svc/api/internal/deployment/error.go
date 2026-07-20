@@ -65,8 +65,7 @@ var errorRules = []struct {
 	{deployfail.MsgCPUQuotaExceeded, openapi.DeploymentErrorCodeCpuQuotaExceeded},
 	{deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentErrorCodeMemoryQuotaExceeded},
 	{deployfail.MsgStorageQuotaExceeded, openapi.DeploymentErrorCodeStorageQuotaExceeded},
-	{deployfail.MsgPortTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
-	{deployfail.MsgPortTooHigh, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+	{deployfail.MsgPortOutOfRange, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 	{deployfail.MsgCPUTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 	{deployfail.MsgMemoryTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 }
