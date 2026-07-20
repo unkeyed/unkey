@@ -194,8 +194,11 @@ function SuccessContent() {
 
         // Update customer with default payment method
         try {
+          // Pass sessionId rather than a client-supplied customer id: the
+          // server resolves the customer from the workspace, falling back to
+          // the session it verifies belongs to this workspace.
           await updateCustomerFn({
-            customerId: customer.id,
+            sessionId,
             paymentMethod: setupIntent.payment_method,
           });
 
