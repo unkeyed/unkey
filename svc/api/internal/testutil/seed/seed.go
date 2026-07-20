@@ -678,6 +678,7 @@ type CreateDeploymentRequest struct {
 	AppID                  string
 	EnvironmentID          string
 	Status                 db.DeploymentsStatus
+	DesiredState           db.DeploymentsDesiredState
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -733,6 +734,13 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+
+	// InsertDeployment does not take desired_state (it defaults to running), so a
+	// test that needs a stopped deployment sets it here.
+	if req.DesiredState != "" {
+		_, err = s.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, req.ID)
+		require.NoError(s.t, err)
+	}
 
 	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)

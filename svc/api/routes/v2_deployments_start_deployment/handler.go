@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -70,23 +71,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if dep.Status != db.DeploymentsStatusStopped {
-		return fault.New(
-			"deployment not stopped",
-			fault.Code(codes.App.Precondition.DeploymentNotStopped.URN()),
-			fault.Internal("start target is not in stopped status"),
-			fault.Public("The deployment is not stopped."),
+	// A missing billing row means the workspace was never linked to billing and
+	// is not suspended.
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
 		)
 	}
 
-	// Production deployments are never stopped, so this action does not apply.
-	if dep.EnvironmentSlug == "production" {
-		return fault.New(
-			"production deployment",
-			fault.Code(codes.App.Precondition.DeploymentIsProduction.URN()),
-			fault.Internal("start is not allowed on production environments"),
-			fault.Public("Production deployments cannot be started."),
-		)
+	// "Stopped" is keyed on desired_state, not status: stopping sets
+	// desired_state=stopped immediately while status only flips once krane drains
+	// the last instance.
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
+		DesiredState:    dep.DesiredState,
+		EnvironmentSlug: dep.EnvironmentSlug,
+		SpendSuspended:  billing.SpendSuspended,
+	}); err != nil {
+		return err
 	}
 
 	_, err = h.CtrlClient.WakeDeployment(ctx, &ctrlv1.WakeDeploymentRequest{
