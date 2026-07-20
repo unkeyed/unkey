@@ -283,10 +283,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:                     cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
-		Database:  database,
-		Restate:   restateClient,
-		Auditlogs: auditlogSvc,
-		Bearer:    cfg.AuthToken,
+		Database:          database,
+		Restate:           restateClient,
+		Auditlogs:         auditlogSvc,
+		Bearer:            cfg.AuthToken,
+		EnforceDeployGate: cfg.DeployGate.Enforce,
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{

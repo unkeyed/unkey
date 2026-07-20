@@ -55,7 +55,6 @@ export const connectPermissionToRole = workspaceProcedure
           "We are unable to find the correct permission. Please try again or contact support@unkey.com.",
       });
     }
-
     const tuple = {
       workspaceId: workspace.id,
       permissionId: permission.id,

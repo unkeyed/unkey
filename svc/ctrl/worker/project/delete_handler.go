@@ -2,6 +2,7 @@ package project
 
 import (
 	"fmt"
+	"strings"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -37,6 +38,9 @@ func (s *Service) Delete(
 	}, restate.WithName("find project"))
 	if err != nil {
 		return nil, fmt.Errorf("find project: %w", err)
+	}
+	if strings.EqualFold(project.Slug, "default") {
+		return nil, fmt.Errorf("default project cannot be deleted")
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {

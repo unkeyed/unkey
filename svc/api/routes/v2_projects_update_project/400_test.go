@@ -9,7 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 )
@@ -68,5 +70,41 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
+	})
+
+	t.Run("default slug is reserved", func(t *testing.T) {
+		workspace := h.Resources().UserWorkspace
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:               uid.New(uid.ProjectPrefix),
+			WorkspaceID:      workspace.ID,
+			Name:             "Payments",
+			Slug:             "payments",
+			DeleteProtection: false,
+		})
+		for _, reservedSlug := range []string{"default", "Default", "DEFAULT"} {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+				Project: project.ID,
+				Slug:    &reservedSlug,
+			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for %q, received: %s", reservedSlug, res.RawBody)
+		}
+	})
+
+	t.Run("default project cannot be renamed", func(t *testing.T) {
+		workspace := h.Resources().UserWorkspace
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:               uid.New(uid.ProjectPrefix),
+			WorkspaceID:      workspace.ID,
+			Name:             "Default",
+			Slug:             "default",
+			DeleteProtection: true,
+		})
+		newSlug := "renamed"
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+			Project: project.ID,
+			Slug:    &newSlug,
+		})
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 }

@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -38,12 +39,15 @@ func (s *Service) DeleteProject(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	_, err := s.db.FindProjectById(ctx, req.Msg.GetProjectId())
+	project, err := s.db.FindProjectById(ctx, req.Msg.GetProjectId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find project: %w", err))
+	}
+	if strings.EqualFold(project.Slug, "default") {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("default project cannot be deleted"))
 	}
 
 	client := hydrav1.NewProjectServiceIngressClient(s.restate, req.Msg.GetProjectId())

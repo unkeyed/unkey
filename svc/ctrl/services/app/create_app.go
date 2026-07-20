@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/logger"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
@@ -50,10 +51,42 @@ func (s *Service) CreateApp(
 
 	workspaceID := req.Msg.GetWorkspaceId()
 	projectID := req.Msg.GetProjectId()
+
+	project, err := s.db.FindProjectById(ctx, projectID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project %q not found", projectID))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load project: %w", err))
+	}
+	if project.WorkspaceID != workspaceID {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project %q not found", projectID))
+	}
+
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace %q not found", workspaceID))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
+	}
+	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
+		if s.enforceDeployGate {
+			return nil, connect.NewError(
+				connect.CodeFailedPrecondition,
+				fmt.Errorf("workspace %q has no Compute plan", workspaceID),
+			)
+		}
+		logger.Warn("deploy gate would block app creation",
+			"event", "deploy_gate.would_block",
+			"workspaceId", workspaceID,
+		)
+	}
+
 	appID := uid.New(uid.AppPrefix)
 	now := time.Now().UnixMilli()
 
-	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
@@ -159,4 +192,8 @@ func (s *Service) CreateApp(
 	return connect.NewResponse(&ctrlv1.CreateAppResponse{
 		Id: appID,
 	}), nil
+}
+
+func deployEntitled(plan, override sql.NullString) bool {
+	return (plan.Valid && plan.String != "") || (override.Valid && override.String != "")
 }

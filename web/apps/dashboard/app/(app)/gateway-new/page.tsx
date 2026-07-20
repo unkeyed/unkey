@@ -25,23 +25,31 @@ export default async function Page() {
 
   if (!ws) {
     const id = newId("workspace");
-    await db.insert(schema.workspaces).values({
-      id,
-      name: "Personal Workspace",
-      slug: `personal-workspace-${randomInt(100000)}`,
-      orgId,
-      betaFeatures: {},
-      k8sNamespace: dns1035(12),
-    });
-
-    await db.insert(schema.quotas).values({
-      workspaceId: id,
-      ...freeTierQuotas,
-    });
-
-    await db.insert(schema.workspaceBilling).values({
-      workspaceId: id,
-      tier: "Free",
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.workspaces).values({
+        id,
+        name: "Personal Workspace",
+        slug: `personal-workspace-${randomInt(100000)}`,
+        orgId,
+        betaFeatures: {},
+        k8sNamespace: dns1035(12),
+      });
+      await tx.insert(schema.projects).values({
+        id: newId("project"),
+        workspaceId: id,
+        name: "Default",
+        slug: "default",
+        deleteProtection: true,
+        createdAt: Date.now(),
+      });
+      await tx.insert(schema.quotas).values({
+        workspaceId: id,
+        ...freeTierQuotas,
+      });
+      await tx.insert(schema.workspaceBilling).values({
+        workspaceId: id,
+        tier: "Free",
+      });
     });
   }
 

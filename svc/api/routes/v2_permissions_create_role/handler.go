@@ -73,10 +73,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 5. Create role in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID := ""
+		project, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+			WorkspaceID: principal.WorkspaceID,
+			Project:     "default",
+		})
+		if findErr == nil {
+			if project.Slug == "default" {
+				projectID = project.ID
+			}
+		} else if !db.IsNotFound(findErr) {
+			return fault.Wrap(findErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to resolve default project"),
+				fault.Public("Failed to resolve the project for the role."),
+			)
+		}
+
 		// Insert the role
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			Name:        req.Name,
 			Description: sql.NullString{Valid: description != "", String: description},
 			CreatedAt:   time.Now().UnixMilli(),

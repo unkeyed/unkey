@@ -12,10 +12,11 @@ import (
 // durable cleanup of associated resources.
 type Service struct {
 	ctrlv1connect.UnimplementedAppServiceHandler
-	db        db.Database
-	restate   *restateingress.Client
-	auditlogs auditlogs.AuditLogService
-	bearer    string
+	db                db.Database
+	restate           *restateingress.Client
+	auditlogs         auditlogs.AuditLogService
+	bearer            string
+	enforceDeployGate bool
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -31,6 +32,10 @@ type Config struct {
 
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
+
+	// EnforceDeployGate hard-blocks app creation for workspaces without an
+	// Unkey Deploy entitlement. False runs in observe mode.
+	EnforceDeployGate bool
 }
 
 // New creates a new [Service] with the given configuration.
@@ -41,5 +46,6 @@ func New(cfg Config) *Service {
 		restate:                        cfg.Restate,
 		auditlogs:                      cfg.Auditlogs,
 		bearer:                         cfg.Bearer,
+		enforceDeployGate:              cfg.EnforceDeployGate,
 	}
 }

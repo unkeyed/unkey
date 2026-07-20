@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type InsertIdentity, db, schema } from "@/lib/db";
+import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
 import { isDuplicateKeyError } from "@/lib/utils/db-errors";
 import { TRPCError } from "@trpc/server";
@@ -47,10 +48,12 @@ export const createIdentity = workspaceProcedure
       }
 
       await db.transaction(async (tx) => {
+        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
         const payload: InsertIdentity = {
           id: identityId,
           externalId: input.externalId,
           workspaceId: ctx.workspace.id,
+          projectId,
           createdAt: Date.now(),
           updatedAt: null,
           meta: input.meta,

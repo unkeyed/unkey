@@ -1,5 +1,5 @@
 import * as clack from "@clack/prompts";
-import { eq, schema } from "@unkey/db";
+import { and, eq, schema } from "@unkey/db";
 import { promptForBatchSize, selectOrCreateResource, withDatabase } from "./batch-helper";
 import { insertRatelimitEvents } from "./batch-operations";
 import { clickhouse, connectDatabase, generateRandomString } from "./utils";
@@ -27,10 +27,15 @@ async function getRatelimitNamespaces(workspaceId: string) {
  */
 async function createRatelimitNamespace(workspaceId: string, name: string) {
   return withDatabase(async (db) => {
+    const defaultProject = await db.query.projects.findFirst({
+      columns: { id: true, slug: true },
+      where: and(eq(schema.projects.workspaceId, workspaceId), eq(schema.projects.slug, "default")),
+    });
     const namespaceId = `rlns_${generateRandomString(24)}`;
     const namespace = {
       id: namespaceId,
       workspaceId: workspaceId,
+      projectId: defaultProject?.slug === "default" ? defaultProject.id : "",
       name: name,
       createdAtM: Date.now(),
       updatedAtM: Date.now(),

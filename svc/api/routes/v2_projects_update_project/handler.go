@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -66,6 +67,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to retrieve project."),
+			)
+		}
+		if req.Slug != nil && *req.Slug != project.Slug && (strings.EqualFold(project.Slug, "default") || strings.EqualFold(*req.Slug, "default")) {
+			return openapi.Project{}, fault.New(
+				"default project slug is reserved",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("default project slug is reserved"),
+				fault.Public("The 'default' project slug cannot be assigned or changed."),
 			)
 		}
 

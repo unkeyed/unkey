@@ -29,10 +29,18 @@ async function getAPIs(workspaceId: string) {
  */
 async function createApi(workspaceId: string, name: string) {
   return withDatabase(async (db) => {
+    const [defaultProject] = await db
+      .select({ id: schema.projects.id })
+      .from(schema.projects)
+      .where(and(eq(schema.projects.workspaceId, workspaceId), eq(schema.projects.slug, "default")))
+      .limit(1);
+    const projectId = defaultProject?.id ?? "";
+
     const keyAuthId = `kauth_${generateRandomString(24)}`;
     const payload = {
       id: keyAuthId,
       workspaceId: workspaceId,
+      projectId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       storeEncryptedKeys: Math.random() > 0.7, // 30% chance to store encrypted keys
@@ -49,6 +57,7 @@ async function createApi(workspaceId: string, name: string) {
       id: apiId,
       name: name,
       workspaceId: workspaceId,
+      projectId,
       ipWhitelist: Math.random() > 0.8 ? "192.168.1.1,10.0.0.1" : null, // 20% chance to have IP whitelist
       authType: "key",
       keyAuthId: keyAuthId,

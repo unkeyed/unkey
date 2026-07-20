@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -34,6 +35,9 @@ func (s *Service) CreateProject(
 		assert.NotNil(req.Msg.GetActor(), "actor is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if strings.EqualFold(req.Msg.GetSlug(), "default") {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("project slug %q is reserved", req.Msg.GetSlug()))
 	}
 
 	workspaceID := req.Msg.GetWorkspaceId()

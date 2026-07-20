@@ -29,7 +29,15 @@ func TestCreateApiSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_api")
+	workspace := h.Resources().UserWorkspace
+	defaultProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      workspace.ID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: true,
+	})
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.create_api")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -39,11 +47,15 @@ func TestCreateApiSuccessfully(t *testing.T) {
 	// This test validates that the underlying database queries work correctly
 	// by bypassing the HTTP handler and directly testing the DB operations.
 	t.Run("insert api via DB", func(t *testing.T) {
-		createdAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID})
+		createdAPI := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: workspace.ID,
+			ProjectID:   defaultProject.ID,
+		})
 
 		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), createdAPI.ID)
 		require.NoError(t, err)
-		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
+		require.Equal(t, workspace.ID, api.WorkspaceID)
+		require.Equal(t, defaultProject.ID, api.ProjectID)
 		require.True(t, api.KeyAuthID.Valid)
 		require.Equal(t, createdAPI.KeyAuthID.String, api.KeyAuthID.String)
 	})
@@ -67,7 +79,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
-		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
+		require.Equal(t, workspace.ID, api.WorkspaceID)
+		require.Equal(t, defaultProject.ID, api.ProjectID)
 		require.True(t, api.AuthType.Valid)
 		require.Equal(t, db.ApisAuthTypeKey, api.AuthType.ApisAuthType)
 		require.True(t, api.KeyAuthID.Valid)
@@ -77,7 +90,8 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		// Verify the key space was created
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 		require.NoError(t, err)
-		require.Equal(t, h.Resources().UserWorkspace.ID, keySpace.WorkspaceID)
+		require.Equal(t, workspace.ID, keySpace.WorkspaceID)
+		require.Equal(t, defaultProject.ID, keySpace.ProjectID)
 		require.False(t, keySpace.DeletedAtM.Valid)
 
 		// Verify the audit log was queued in clickhouse_outbox
@@ -86,7 +100,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		for _, ev := range auditLogs {
 			if ev.Event == "api.create" {
 				foundCreateEvent = true
-				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
+				require.Equal(t, workspace.ID, ev.WorkspaceID)
 				break
 			}
 		}

@@ -10,12 +10,12 @@ import (
 )
 
 const deleteProjectById = `-- name: DeleteProjectById :exec
-DELETE FROM projects WHERE id = ?
+DELETE FROM projects WHERE id = ? AND slug <> 'default'
 `
 
 // DeleteProjectById
 //
-//	DELETE FROM projects WHERE id = ?
+//	DELETE FROM projects WHERE id = ? AND slug <> 'default'
 func (q *Queries) DeleteProjectById(ctx context.Context, db DBTX, id string) error {
 	_, err := db.ExecContext(ctx, deleteProjectById, id)
 	return err

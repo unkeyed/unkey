@@ -65,10 +65,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Create permission in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID := ""
+		project, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+			WorkspaceID: principal.WorkspaceID,
+			Project:     "default",
+		})
+		if findErr == nil {
+			if project.Slug == "default" {
+				projectID = project.ID
+			}
+		} else if !db.IsNotFound(findErr) {
+			return fault.Wrap(findErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to resolve default project"),
+				fault.Public("Failed to resolve the project for the permission."),
+			)
+		}
+
 		// Insert the permission
 		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  principal.WorkspaceID,
+			ProjectID:    projectID,
 			Name:         req.Name,
 			Slug:         req.Slug,
 			Description:  dbtype.NullString{Valid: description != "", String: description},

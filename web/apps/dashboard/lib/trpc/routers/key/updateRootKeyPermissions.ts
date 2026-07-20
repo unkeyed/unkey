@@ -68,8 +68,20 @@ export const updateRootKeyPermissions = workspaceProcedure
           });
 
         // Upsert new permissions
+        const keyAuth = await tx.query.keyAuth.findFirst({
+          where: (table, { eq }) => eq(table.id, key.keyAuthId),
+          columns: { projectId: true },
+        });
+        if (!keyAuth) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Root key keyspace not found" });
+        }
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
+          await upsertPermissions(
+            ctx,
+            env().UNKEY_WORKSPACE_ID,
+            keyAuth.projectId,
+            input.permissions,
+          );
 
         auditLogs.push(...createPermissionLogs);
 

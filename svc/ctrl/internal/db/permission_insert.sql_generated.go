@@ -15,12 +15,14 @@ const insertPermission = `-- name: InsertPermission :exec
 INSERT INTO permissions (
   id,
   workspace_id,
+  project_id,
   name,
   slug,
   description,
   created_at_m
 )
 VALUES (
+  ?,
   ?,
   ?,
   ?,
@@ -33,6 +35,7 @@ VALUES (
 type InsertPermissionParams struct {
 	PermissionID string            `db:"permission_id"`
 	WorkspaceID  string            `db:"workspace_id"`
+	ProjectID    string            `db:"project_id"`
 	Name         string            `db:"name"`
 	Slug         string            `db:"slug"`
 	Description  dbtype.NullString `db:"description"`
@@ -44,6 +47,7 @@ type InsertPermissionParams struct {
 //	INSERT INTO permissions (
 //	  id,
 //	  workspace_id,
+//	  project_id,
 //	  name,
 //	  slug,
 //	  description,
@@ -55,12 +59,14 @@ type InsertPermissionParams struct {
 //	  ?,
 //	  ?,
 //	  ?,
+//	  ?,
 //	  ?
 //	)
 func (q *Queries) InsertPermission(ctx context.Context, arg InsertPermissionParams) error {
 	_, err := q.db.ExecContext(ctx, insertPermission,
 		arg.PermissionID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Name,
 		arg.Slug,
 		arg.Description,

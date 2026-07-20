@@ -157,6 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   key.KeyAuth.ProjectID,
 					Environment: "default",
 					CreatedAt:   time.Now().UnixMilli(),
 					Meta:        []byte("{}"),
@@ -412,6 +413,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 					PermissionID: newPermID,
 					WorkspaceID:  principal.WorkspaceID,
+					ProjectID:    key.KeyAuth.ProjectID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
 					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},

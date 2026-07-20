@@ -5,6 +5,7 @@ import { task } from "./util";
 
 const ROW_IDS = {
   rootWorkspace: "ws_local_root",
+  defaultProject: "proj_local_default",
   rootKeySpace: "ks_local_root_keys",
   rootApi: "api_local_root_keys",
   webhookKeySpace: "ks_local_webhook_keys",
@@ -46,10 +47,24 @@ export async function prepareDatabase(): Promise<{
     s.message("Created root workspace");
 
     await db
+      .insert(schema.projects)
+      .values({
+        id: ROW_IDS.defaultProject,
+        workspaceId: ROW_IDS.rootWorkspace,
+        name: "Default",
+        slug: "default",
+        deleteProtection: true,
+        createdAt: Date.now(),
+      })
+      .onDuplicateKeyUpdate({ set: { slug: "default" } });
+    s.message("Created default project");
+
+    await db
       .insert(schema.keyAuth)
       .values({
         id: ROW_IDS.rootKeySpace,
         workspaceId: ROW_IDS.rootWorkspace,
+        projectId: ROW_IDS.defaultProject,
       })
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
     s.message("Created root keyspace");
@@ -63,6 +78,7 @@ export async function prepareDatabase(): Promise<{
         id: ROW_IDS.rootApi,
         name: "Unkey",
         workspaceId: ROW_IDS.rootWorkspace,
+        projectId: ROW_IDS.defaultProject,
         authType: "key",
         keyAuthId: ROW_IDS.rootKeySpace,
         createdAtM: Date.now(),

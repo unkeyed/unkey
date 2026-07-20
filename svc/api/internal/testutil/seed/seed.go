@@ -89,6 +89,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
 		WorkspaceID:   s.Resources.RootWorkspace.ID,
+		ProjectID:     "",
 		IpWhitelist:   "",
 		EncryptedKeys: false,
 		Name:          nil,
@@ -104,6 +105,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 // CreateApiRequest configures the API to create.
 type CreateApiRequest struct {
 	WorkspaceID   string
+	ProjectID     string
 	IpWhitelist   string
 	EncryptedKeys bool
 	Name          *string
@@ -120,6 +122,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
 		WorkspaceID:        req.WorkspaceID,
+		ProjectID:          req.ProjectID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		DefaultPrefix:      sql.NullString{String: ptr.SafeDeref(req.DefaultPrefix), Valid: req.DefaultPrefix != nil},
 		DefaultBytes:       sql.NullInt32{Int32: ptr.SafeDeref(req.DefaultBytes), Valid: req.DefaultBytes != nil},
@@ -132,6 +135,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		ID:          apiID,
 		Name:        ptr.SafeDeref(req.Name, "test-api"),
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   req.ProjectID,
 		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
@@ -334,6 +338,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permissionID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
+				ProjectID:    "", // Deliberate rollout sentinel for workspace-scoped test data.
 				Name:         permission,
 				Slug:         permission,
 				Description:  dbtype.NullString{String: "", Valid: false},
@@ -588,6 +593,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "", // Deliberate rollout sentinel; callers do not select a project yet.
 		Environment: "",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
@@ -604,6 +610,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Environment: "",
 		Meta:        metaBytes,
 		Deleted:     false,
@@ -633,6 +640,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "", // Deliberate rollout sentinel; callers do not select a project yet.
 		Name:        req.Name,
 		CreatedAt:   createdAt,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
@@ -654,6 +662,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 		Pk:          0, // db internal
 		ID:          roleID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Name:        req.Name,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
@@ -752,6 +761,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 	err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    "", // Deliberate rollout sentinel; callers do not select a project yet.
 		Name:         req.Name,
 		Slug:         req.Slug,
 		Description:  dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
@@ -763,6 +773,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Pk:          0, // db internal
 		ID:          permissionID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},

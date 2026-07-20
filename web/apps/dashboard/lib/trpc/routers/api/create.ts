@@ -51,10 +51,17 @@ export async function createApiCore(
 ) {
   const keyAuthId = newId("keyAuth");
   const apiId = newId("api");
+  const defaultProject = await tx.query.projects.findFirst({
+    columns: { id: true, slug: true },
+    where: (projects, { and, eq }) =>
+      and(eq(projects.workspaceId, ctx.workspace.id), eq(projects.slug, "default")),
+  });
+  const projectId = defaultProject?.slug === "default" ? defaultProject.id : "";
 
   await tx.insert(schema.keyAuth).values({
     id: keyAuthId,
     workspaceId: ctx.workspace.id,
+    projectId,
     createdAtM: Date.now(),
   });
 
@@ -62,6 +69,7 @@ export async function createApiCore(
     id: apiId,
     name: input.name,
     workspaceId: ctx.workspace.id,
+    projectId,
     keyAuthId,
     authType: "key",
     ipWhitelist: null,

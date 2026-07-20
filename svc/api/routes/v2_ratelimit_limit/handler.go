@@ -236,10 +236,27 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
+			projectID := ""
+			project, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+				WorkspaceID: principal.WorkspaceID,
+				Project:     "default",
+			})
+			if findErr == nil {
+				if project.Slug == "default" {
+					projectID = project.ID
+				}
+			} else if !db.IsNotFound(findErr) {
+				return db.FindRatelimitNamespace{}, fault.Wrap(findErr, //nolint:exhaustruct
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to resolve default project"),
+					fault.Public("We're unable to resolve the project for the rate limit namespace."),
+				)
+			}
 
 			insertErr := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
 				ID:          id,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Name:        name,
 				CreatedAt:   now,
 			})
@@ -265,6 +282,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			result := db.FindRatelimitNamespace{
 				ID:                id,
 				WorkspaceID:       principal.WorkspaceID,
+				ProjectID:         projectID,
 				Name:              name,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},

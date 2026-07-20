@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { newId } from "@unkey/id";
 import { workspaceProcedure } from "../../trpc";
 export const createNamespace = workspaceProcedure
@@ -15,11 +16,12 @@ export const createNamespace = workspaceProcedure
     const namespaceId = newId("ratelimitNamespace");
     await db
       .transaction(async (tx) => {
+        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
         await tx.insert(schema.ratelimitNamespaces).values({
           id: namespaceId,
           name: input.name,
           workspaceId: ctx.workspace.id,
-
+          projectId,
           createdAtM: Date.now(),
         });
         await insertAuditLogs(tx, {

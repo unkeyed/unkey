@@ -229,6 +229,7 @@ func TestWithRetryContext_Integration(t *testing.T) {
 	err = dbInstance.InsertKeySpace(ctx, InsertKeySpaceParams{
 		ID:          keySpaceID,
 		WorkspaceID: workspaceID,
+		ProjectID:   "",
 		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

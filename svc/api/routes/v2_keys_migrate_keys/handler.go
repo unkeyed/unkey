@@ -349,6 +349,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ID:          id,
 				ExternalID:  externalId,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   api.KeyAuth.ProjectID,
 				Environment: "default",
 				CreatedAt:   now,
 				Meta:        []byte("{}"),
@@ -366,6 +367,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
 				PermissionID: id,
 				WorkspaceID:  principal.WorkspaceID,
+				ProjectID:    api.KeyAuth.ProjectID,
 				Name:         slug,
 				Slug:         slug,
 				Description:  dbtype.NullString{Valid: false, String: ""},
@@ -384,6 +386,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			rolesToInsert = append(rolesToInsert, db.InsertRoleParams{
 				RoleID:      id,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   api.KeyAuth.ProjectID,
 				Name:        name,
 				Description: sql.NullString{Valid: false, String: ""},
 				CreatedAt:   now,

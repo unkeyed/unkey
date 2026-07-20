@@ -1,10 +1,13 @@
 package project
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 )
 
 func TestDeployEntitled(t *testing.T) {
@@ -29,6 +32,27 @@ func TestDeployEntitled(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, deployEntitled(tc.plan, tc.override))
+		})
+	}
+}
+
+func TestCreateProjectRejectsReservedSlug(t *testing.T) {
+	const bearer = "test-token"
+	svc := New(Config{Bearer: bearer}) //nolint:exhaustruct
+
+	for _, slug := range []string{"default", "Default", "DEFAULT"} {
+		t.Run(slug, func(t *testing.T) {
+			req := connect.NewRequest(&ctrlv1.CreateProjectRequest{
+				WorkspaceId: "ws_test",
+				Name:        "Reserved",
+				Slug:        slug,
+				Actor:       &ctrlv1.ActorInfo{}, //nolint:exhaustruct
+			})
+			req.Header().Set("Authorization", "Bearer "+bearer)
+
+			_, err := svc.CreateProject(context.Background(), req)
+			require.Error(t, err)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}
 }

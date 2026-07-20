@@ -69,6 +69,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	projectID := uid.New(uid.ProjectPrefix)
 	projectSlug := fmt.Sprintf("%s-api", slug)
 	projectName := fmt.Sprintf("%s API", titleCase)
+	defaultProjectID := uid.New(uid.ProjectPrefix)
+	rootDefaultProjectID := uid.New(uid.ProjectPrefix)
 	appID := uid.New(uid.AppPrefix)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
@@ -122,27 +124,44 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create workspaces: %w", err)
 		}
 
-		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
-			ID:               projectID,
-			WorkspaceID:      workspaceID,
-			Name:             projectName,
-			Slug:             projectSlug,
-			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
-			CreatedAt:        time.Now().UnixMilli(),
-			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
-		})
-		if err != nil {
-			if !db.IsDuplicateKeyError(err) {
-				return fmt.Errorf("failed to create project: %w", err)
+		ensureProject := func(id, targetWorkspaceID, name, projectSlug string, deleteProtection bool) (string, error) {
+			insertErr := db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
+				ID:               id,
+				WorkspaceID:      targetWorkspaceID,
+				Name:             name,
+				Slug:             projectSlug,
+				DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
+				CreatedAt:        time.Now().UnixMilli(),
+				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+			})
+			if insertErr == nil {
+				return id, nil
 			}
-			existing, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
-				WorkspaceID: workspaceID,
+			if !db.IsDuplicateKeyError(insertErr) {
+				return "", fmt.Errorf("failed to create project: %w", insertErr)
+			}
+
+			existing, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+				WorkspaceID: targetWorkspaceID,
 				Project:     projectSlug,
 			})
-			if err != nil {
-				return fmt.Errorf("failed to find existing project: %w", err)
+			if findErr != nil {
+				return "", fmt.Errorf("failed to find existing project: %w", findErr)
 			}
-			projectID = existing.ID
+			return existing.ID, nil
+		}
+
+		projectID, err = ensureProject(projectID, workspaceID, projectName, projectSlug, false)
+		if err != nil {
+			return err
+		}
+		defaultProjectID, err = ensureProject(defaultProjectID, workspaceID, "Default", "default", true)
+		if err != nil {
+			return err
+		}
+		rootDefaultProjectID, err = ensureProject(rootDefaultProjectID, rootWorkspaceID, "Default", "default", true)
+		if err != nil {
+			return err
 		}
 
 		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
@@ -363,6 +382,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 rootKeySpaceID,
 				WorkspaceID:        rootWorkspaceID,
+				ProjectID:          rootDefaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -371,6 +391,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 userKeySpaceID,
 				WorkspaceID:        workspaceID,
+				ProjectID:          defaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -386,6 +407,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          rootApiID,
 				Name:        "Unkey",
 				WorkspaceID: rootWorkspaceID,
+				ProjectID:   rootDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
@@ -395,6 +417,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          userApiID,
 				Name:        fmt.Sprintf("%s API", titleCase),
 				WorkspaceID: workspaceID,
+				ProjectID:   defaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
@@ -473,6 +496,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			permissionParams[i] = db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  rootWorkspaceID,
+				ProjectID:    rootDefaultProjectID,
 				Name:         perm,
 				Slug:         perm,
 				Description:  dbtype.NullString{Valid: false, String: ""},

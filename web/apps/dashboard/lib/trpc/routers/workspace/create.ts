@@ -80,6 +80,14 @@ export const createWorkspace = protectedProcedure
         };
 
         await tx.insert(schema.workspaces).values(workspace);
+        await tx.insert(schema.projects).values({
+          id: newId("project"),
+          workspaceId: workspace.id,
+          name: "Default",
+          slug: "default",
+          deleteProtection: true,
+          createdAt: Date.now(),
+        });
         await tx.insert(schema.quotas).values({
           workspaceId: workspace.id,
           ...freeTierQuotas,

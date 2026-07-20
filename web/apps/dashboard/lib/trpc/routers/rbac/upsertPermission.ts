@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Permission, db, schema } from "@/lib/db";
+import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
@@ -9,6 +10,10 @@ export async function upsertPermission(
   workspaceId: string,
   name: string,
 ): Promise<Omit<Permission, "pk">> {
+  const userId = ctx.user?.id;
+  if (!userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+  }
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions
       .findFirst({
@@ -32,9 +37,12 @@ export async function upsertPermission(
       return existingPermission;
     }
 
+    const projectId = await resolveDefaultProjectId(tx, workspaceId);
+
     const permission = {
       id: newId("permission"),
       workspaceId,
+      projectId,
       name,
       slug: name,
       description: null,
@@ -54,8 +62,7 @@ export async function upsertPermission(
       });
     await insertAuditLogs(tx, {
       workspaceId,
-      // biome-ignore lint/style/noNonNullAssertion: Safe to leave
-      actor: { type: "user", id: ctx.user!.id },
+      actor: { type: "user", id: userId },
       event: "permission.create",
       description: `Created ${permission.id}`,
       resources: [

@@ -1,6 +1,15 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  json,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -15,24 +24,30 @@ export const identities = mysqlTable(
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
     ...lifecycleDates,
   },
-  (table) => ({
-    uniqueDeletedExternalIdPerWorkspace: uniqueIndex("workspace_id_external_id_deleted_idx").on(
+  (table) => [
+    uniqueIndex("workspace_id_external_id_deleted_idx").on(
       table.workspaceId,
       table.externalId,
       table.deleted,
     ),
-  }),
+    index("identity_project_id_idx").on(table.projectId),
+  ],
 );
 
 export const identitiesRelations = relations(identities, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [identities.workspaceId],
     references: [workspaces.id],
+  }),
+  project: one(projects, {
+    fields: [identities.projectId],
+    references: [projects.id],
   }),
   keys: many(keys),
   ratelimits: many(ratelimits),

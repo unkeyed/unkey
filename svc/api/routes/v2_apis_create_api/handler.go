@@ -57,10 +57,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		projectID := ""
+		project, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+			WorkspaceID: principal.WorkspaceID,
+			Project:     "default",
+		})
+		if findErr == nil {
+			if project.Slug == "default" {
+				projectID = project.ID
+			}
+		} else if !db.IsNotFound(findErr) {
+			return "", fault.Wrap(findErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to resolve default project"),
+				fault.Public("We're unable to resolve the project for the API."),
+			)
+		}
+
 		keySpaceId := uid.New(uid.KeySpacePrefix)
 		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
 			ID:                 keySpaceId,
 			WorkspaceID:        principal.WorkspaceID,
+			ProjectID:          projectID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
 			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
@@ -78,6 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          apiId,
 			Name:        req.Name,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
 			IpWhitelist: sql.NullString{Valid: false, String: ""},

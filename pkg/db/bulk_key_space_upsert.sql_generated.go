@@ -9,8 +9,9 @@ import (
 )
 
 // bulkUpsertKeySpace is the base query for bulk insert
-const bulkUpsertKeySpace = `INSERT INTO key_auth ( id, workspace_id, created_at_m, default_prefix, default_bytes, store_encrypted_keys ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertKeySpace = `INSERT INTO key_auth ( id, workspace_id, project_id, created_at_m, default_prefix, default_bytes, store_encrypted_keys ) VALUES %s ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
+    project_id = VALUES(project_id),
     store_encrypted_keys = VALUES(store_encrypted_keys)`
 
 // UpsertKeySpace performs bulk insert in a single query
@@ -23,7 +24,7 @@ func (q *BulkQueries) UpsertKeySpace(ctx context.Context, db DBTX, args []Upsert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertKeySpace, strings.Join(valueClauses, ", "))
@@ -33,6 +34,7 @@ func (q *BulkQueries) UpsertKeySpace(ctx context.Context, db DBTX, args []Upsert
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.CreatedAtM)
 		allArgs = append(allArgs, arg.DefaultPrefix)
 		allArgs = append(allArgs, arg.DefaultBytes)

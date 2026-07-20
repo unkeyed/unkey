@@ -8,6 +8,7 @@ import type { Context } from "../context";
 export async function upsertPermissions(
   ctx: Context,
   workspaceId: string,
+  projectId: string,
   slugs: string[],
 ): Promise<{
   permissions: Omit<Permission, "pk">[];
@@ -40,6 +41,7 @@ export async function upsertPermissions(
       const permission = {
         id: newId("permission"),
         workspaceId,
+        projectId,
         name: slug,
         slug: slug,
         description: null,

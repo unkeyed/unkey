@@ -99,10 +99,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identityID := uid.New(uid.IdentityPrefix)
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID := ""
+		project, findErr := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+			WorkspaceID: principal.WorkspaceID,
+			Project:     "default",
+		})
+		if findErr == nil {
+			if project.Slug == "default" {
+				projectID = project.ID
+			}
+		} else if !db.IsNotFound(findErr) {
+			return fault.Wrap(findErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to resolve default project"),
+				fault.Public("We're unable to resolve the project for the identity."),
+			)
+		}
+
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
 			Meta:        meta,
