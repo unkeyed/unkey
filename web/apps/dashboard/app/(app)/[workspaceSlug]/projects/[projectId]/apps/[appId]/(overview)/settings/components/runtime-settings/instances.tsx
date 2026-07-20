@@ -2,11 +2,13 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { freeTierQuotas } from "@/lib/quotas";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Connections3 } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
@@ -19,28 +21,35 @@ import { EnvironmentDisplayValue } from "../shared/resource-slider/environment-d
 import { EnvironmentSliderSection } from "../shared/resource-slider/environment-slider-section";
 
 const REPLICAS_MIN = 1;
-const REPLICAS_MAX = 4;
 const COLOR_VAR = "featureA";
+
+// Per-region instance cap from the workspace quota, or the free-tier default
+// until quotas load.
+const useReplicasMax = () => {
+  const { quotas } = useWorkspace();
+  return quotas?.maxReplicasPerRegion ?? freeTierQuotas.maxReplicasPerRegion;
+};
 
 const formatRangeParts = (replicasMin: number, replicasMax: number) => ({
   value: replicasMin === replicasMax ? String(replicasMax) : `${replicasMin} – ${replicasMax}`,
   unit: "",
 });
 
-const rangeSchema = z
-  .object({
-    replicasMin: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-    replicasMax: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-  })
-  .refine((d) => d.replicasMin <= d.replicasMax, {
-    message: "replicasMin must be ≤ replicasMax",
-    path: ["replicasMin"],
-  });
+const makeRangeSchema = (limit: number) =>
+  z
+    .object({
+      replicasMin: z.number().int().min(REPLICAS_MIN).max(limit),
+      replicasMax: z.number().int().min(REPLICAS_MIN).max(limit),
+    })
+    .refine((d) => d.replicasMin <= d.replicasMax, {
+      message: "replicasMin must be ≤ replicasMax",
+      path: ["replicasMin"],
+    });
 
-type RangeFormValues = z.infer<typeof rangeSchema>;
+type RangeFormValues = z.infer<ReturnType<typeof makeRangeSchema>>;
 
-const buildSliderRangeStyle = (replicasMin: number, replicasMax: number) => {
-  const span = REPLICAS_MAX - REPLICAS_MIN;
+const buildSliderRangeStyle = (replicasMin: number, replicasMax: number, limit: number) => {
+  const span = limit - REPLICAS_MIN;
   const left = span > 0 ? (replicasMin - REPLICAS_MIN) / span : 0;
   const right = span > 0 ? (replicasMax - REPLICAS_MIN) / span : 0;
   return {
@@ -110,13 +119,16 @@ export const Instances = () => {
 
 const description =
   "Autoscaling range per region. Scales up to the maximum based on CPU usage, down to the minimum when load is low.";
-const settingDescription =
-  "Changes apply on next deploy. During beta, instances are limited to 4 per region. Contact support@unkey.com if you need more.";
+const settingDescription = (limit: number) =>
+  `Changes apply on next deploy. Instances are limited to ${limit} per region. Contact support@unkey.com if you need more.`;
 
 const SingleMode = () => {
   const { settings, variant } = useEnvironmentSettings();
   const updateAllEnvironments = useUpdateAllEnvironments();
+  const replicasMaxLimit = useReplicasMax();
   const defaultValues = readRange(settings);
+
+  const rangeSchema = useMemo(() => makeRangeSchema(replicasMaxLimit), [replicasMaxLimit]);
 
   const {
     handleSubmit,
@@ -170,7 +182,7 @@ const SingleMode = () => {
         <div className="flex items-center gap-3">
           <Slider
             min={REPLICAS_MIN}
-            max={REPLICAS_MAX}
+            max={replicasMaxLimit}
             step={1}
             value={[currentReplicasMin, currentReplicasMax]}
             onValueChange={([replicasMin, replicasMax]) => {
@@ -200,36 +212,41 @@ const SingleMode = () => {
                 : undefined
             }
             className="flex-1 max-w-(--setting-w)"
-            rangeStyle={buildSliderRangeStyle(currentReplicasMin, currentReplicasMax)}
+            rangeStyle={buildSliderRangeStyle(
+              currentReplicasMin,
+              currentReplicasMax,
+              replicasMaxLimit,
+            )}
           />
           <RegionFlags settings={settings} />
           <span className="text-[13px] font-medium text-gray-12">
             {formatRangeParts(currentReplicasMin, currentReplicasMax).value}
           </span>
         </div>
-        <SettingDescription>{settingDescription}</SettingDescription>
+        <SettingDescription>{settingDescription(replicasMaxLimit)}</SettingDescription>
       </WideContent>
     </FormSettingCard>
   );
 };
 
-const dualSchema = z
-  .object({
-    productionReplicasMin: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-    productionReplicasMax: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-    previewReplicasMin: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-    previewReplicasMax: z.number().int().min(REPLICAS_MIN).max(REPLICAS_MAX),
-  })
-  .refine((d) => d.productionReplicasMin <= d.productionReplicasMax, {
-    message: "replicasMin must be ≤ replicasMax",
-    path: ["productionReplicasMin"],
-  })
-  .refine((d) => d.previewReplicasMin <= d.previewReplicasMax, {
-    message: "replicasMin must be ≤ replicasMax",
-    path: ["previewReplicasMin"],
-  });
+const makeDualSchema = (limit: number) =>
+  z
+    .object({
+      productionReplicasMin: z.number().int().min(REPLICAS_MIN).max(limit),
+      productionReplicasMax: z.number().int().min(REPLICAS_MIN).max(limit),
+      previewReplicasMin: z.number().int().min(REPLICAS_MIN).max(limit),
+      previewReplicasMax: z.number().int().min(REPLICAS_MIN).max(limit),
+    })
+    .refine((d) => d.productionReplicasMin <= d.productionReplicasMax, {
+      message: "replicasMin must be ≤ replicasMax",
+      path: ["productionReplicasMin"],
+    })
+    .refine((d) => d.previewReplicasMin <= d.previewReplicasMax, {
+      message: "replicasMin must be ≤ replicasMax",
+      path: ["previewReplicasMin"],
+    });
 
-type DualFormValues = z.infer<typeof dualSchema>;
+type DualFormValues = z.infer<ReturnType<typeof makeDualSchema>>;
 
 const DualMode = () => {
   const multiSettings = useMultiEnvironmentSettings();
@@ -247,8 +264,11 @@ type DualInnerProps = {
 };
 
 const DualInner = ({ production, preview }: DualInnerProps) => {
+  const replicasMaxLimit = useReplicasMax();
   const defaultProduction = readRange(production);
   const defaultPreview = readRange(preview);
+
+  const dualSchema = useMemo(() => makeDualSchema(replicasMaxLimit), [replicasMaxLimit]);
 
   const {
     handleSubmit,
@@ -355,6 +375,7 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
           settings={production}
           replicasMin={currentProductionReplicasMin}
           replicasMax={currentProductionReplicasMax}
+          replicasMaxLimit={replicasMaxLimit}
           onChange={(replicasMin, replicasMax) => {
             setValue("productionReplicasMin", replicasMin, { shouldValidate: true });
             setValue("productionReplicasMax", replicasMax, { shouldValidate: true });
@@ -365,12 +386,13 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
           settings={preview}
           replicasMin={currentPreviewReplicasMin}
           replicasMax={currentPreviewReplicasMax}
+          replicasMaxLimit={replicasMaxLimit}
           onChange={(replicasMin, replicasMax) => {
             setValue("previewReplicasMin", replicasMin, { shouldValidate: true });
             setValue("previewReplicasMax", replicasMax, { shouldValidate: true });
           }}
         />
-        <SettingDescription>{settingDescription}</SettingDescription>
+        <SettingDescription>{settingDescription(replicasMaxLimit)}</SettingDescription>
       </WideContent>
     </FormSettingCard>
   );
@@ -381,6 +403,7 @@ type DualSliderSectionProps = {
   settings: EnvironmentSettings;
   replicasMin: number;
   replicasMax: number;
+  replicasMaxLimit: number;
   onChange: (replicasMin: number, replicasMax: number) => void;
 };
 
@@ -389,13 +412,14 @@ const DualSliderSection = ({
   settings,
   replicasMin,
   replicasMax,
+  replicasMaxLimit,
   onChange,
 }: DualSliderSectionProps) => (
   <EnvironmentSliderSection label={label}>
     <div className="flex items-center gap-3">
       <Slider
         min={REPLICAS_MIN}
-        max={REPLICAS_MAX}
+        max={replicasMaxLimit}
         step={1}
         value={[replicasMin, replicasMax]}
         onValueChange={([nextReplicasMin, nextReplicasMax]) => {
@@ -404,7 +428,7 @@ const DualSliderSection = ({
           }
         }}
         className="flex-1 max-w-(--setting-w)"
-        rangeStyle={buildSliderRangeStyle(replicasMin, replicasMax)}
+        rangeStyle={buildSliderRangeStyle(replicasMin, replicasMax, replicasMaxLimit)}
       />
       <RegionFlags settings={settings} />
       <span className="text-[13px] font-medium text-gray-12">

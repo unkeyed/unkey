@@ -24,7 +24,8 @@ SET requests_per_month = ?,
     max_cpu_millicores_per_instance = ?,
     max_memory_mib_per_instance = ?,
     max_storage_mib_per_instance = ?,
-    max_concurrent_builds = ?
+    max_concurrent_builds = ?,
+    max_replicas_per_region = ?
 WHERE workspace_id = ?
 `
 
@@ -42,6 +43,7 @@ type UpdateQuotaParams struct {
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
 	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
+	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
 	WorkspaceID                 string        `db:"workspace_id"`
 }
 
@@ -64,7 +66,8 @@ type UpdateQuotaParams struct {
 //	    max_cpu_millicores_per_instance = ?,
 //	    max_memory_mib_per_instance = ?,
 //	    max_storage_mib_per_instance = ?,
-//	    max_concurrent_builds = ?
+//	    max_concurrent_builds = ?,
+//	    max_replicas_per_region = ?
 //	WHERE workspace_id = ?
 func (q *Queries) UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error {
 	_, err := db.ExecContext(ctx, updateQuota,
@@ -81,6 +84,7 @@ func (q *Queries) UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParam
 		arg.MaxMemoryMibPerInstance,
 		arg.MaxStorageMibPerInstance,
 		arg.MaxConcurrentBuilds,
+		arg.MaxReplicasPerRegion,
 		arg.WorkspaceID,
 	)
 	return err
