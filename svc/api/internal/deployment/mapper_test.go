@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -16,12 +17,12 @@ import (
 // present slice.
 func TestToResponseError(t *testing.T) {
 	failedDep := db.Deployment{
-		ID:            "d_KEBAP",
+		ID:            uid.New(uid.DeploymentPrefix),
 		Status:        db.DeploymentsStatusFailed,
 		DesiredState:  db.DeploymentsDesiredStateRunning,
-		EnvironmentID: "env_1",
-		AppID:         "app_1",
-		ProjectID:     "proj_1",
+		EnvironmentID: uid.New(uid.EnvironmentPrefix),
+		AppID:         uid.New(uid.AppPrefix),
+		ProjectID:     uid.New(uid.ProjectPrefix),
 	}
 
 	t.Run("failed deployment reports classified error", func(t *testing.T) {
@@ -52,7 +53,7 @@ func TestToResponseError(t *testing.T) {
 // TestToResponseRegions guards the required regions field: it must marshal as a
 // present slice (never nil) and pass through the configured region names.
 func TestToResponseRegions(t *testing.T) {
-	dep := db.Deployment{ID: "d_KEBAP", Status: db.DeploymentsStatusReady}
+	dep := db.Deployment{ID: uid.New(uid.DeploymentPrefix), Status: db.DeploymentsStatusReady}
 
 	t.Run("populated regions pass through", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: dep, Regions: []string{"us-east-1", "eu-west-1"}})
@@ -69,7 +70,7 @@ func TestToResponseRegions(t *testing.T) {
 func TestToResponseSource(t *testing.T) {
 	t.Run("git-sourced sets git, not docker", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
-			ID:           "d_1",
+			ID:           uid.New(uid.DeploymentPrefix),
 			GitCommitSha: sql.NullString{Valid: true, String: "9f2c1a7d3b"},
 			GitBranch:    sql.NullString{Valid: true, String: "main"},
 			// git builds also fill image with the built output; must not leak as docker
@@ -84,7 +85,7 @@ func TestToResponseSource(t *testing.T) {
 
 	t.Run("image-sourced sets docker, not git", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
-			ID:    "d_2",
+			ID:    uid.New(uid.DeploymentPrefix),
 			Image: sql.NullString{Valid: true, String: "ghcr.io/acme/api:v1.2.3"},
 		}})
 		require.NotNil(t, got.Docker)
@@ -94,7 +95,7 @@ func TestToResponseSource(t *testing.T) {
 
 	t.Run("git without branch omits branch", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
-			ID:           "d_3",
+			ID:           uid.New(uid.DeploymentPrefix),
 			GitCommitSha: sql.NullString{Valid: true, String: "abc"},
 		}})
 		require.NotNil(t, got.Git)
@@ -104,7 +105,7 @@ func TestToResponseSource(t *testing.T) {
 
 func TestToResponseIsCurrent(t *testing.T) {
 	dep := db.Deployment{
-		ID:           "d_1",
+		ID:           uid.New(uid.DeploymentPrefix),
 		Status:       db.DeploymentsStatusReady,
 		DesiredState: db.DeploymentsDesiredStateRunning,
 	}
@@ -114,17 +115,17 @@ func TestToResponseIsCurrent(t *testing.T) {
 	}
 
 	t.Run("app points here", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, State: current("d_1")})
+		got := ToResponse(Input{Deployment: dep, State: current(dep.ID)})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points here even when rolled back (still serves traffic)", func(t *testing.T) {
-		state := current("d_1")
+		state := current(dep.ID)
 		state.AppIsRolledBack = true
 		got := ToResponse(Input{Deployment: dep, State: state})
 		require.True(t, got.IsCurrent)
 	})
 	t.Run("app points elsewhere", func(t *testing.T) {
-		got := ToResponse(Input{Deployment: dep, State: current("d_other")})
+		got := ToResponse(Input{Deployment: dep, State: current(uid.New(uid.DeploymentPrefix))})
 		require.False(t, got.IsCurrent)
 	})
 	t.Run("app has no current deployment", func(t *testing.T) {
