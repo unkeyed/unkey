@@ -286,7 +286,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	joined := strings.Join(problems, "; ")
 	return fault.New(
 		"environment not deployable",
-		fault.Code(codes.App.Validation.EnvironmentNotDeployable.URN()),
+		fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
 		fault.Internal(fmt.Sprintf("environment %s fails deploy preconditions: %s", environment.Slug, joined)),
 		fault.Public(fmt.Sprintf("Environment %q cannot be deployed: %s. Update the environment's settings before deploying.", environment.Slug, joined)),
 	)

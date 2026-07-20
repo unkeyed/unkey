@@ -70,11 +70,11 @@ func TestValidationErrors(t *testing.T) {
 	}
 }
 
-// TestEnvironmentNotDeployable covers the create-time pre-flight that rejects an
+// TestInvalidEnvironmentSettings covers the create-time pre-flight that rejects an
 // environment whose runtime or regional settings would fail the deploy pipeline,
 // so the caller gets a synchronous 400 instead of a build that dies mid-flight.
-func TestEnvironmentNotDeployable(t *testing.T) {
-	const docsURL = "https://unkey.com/docs/errors/unkey/application/environment_not_deployable"
+func TestInvalidEnvironmentSettings(t *testing.T) {
+	const docsURL = "https://unkey.com/docs/errors/unkey/application/invalid_environment_settings"
 
 	t.Run("no schedulable region", func(t *testing.T) {
 		h := testutil.NewHarness(t)
@@ -115,8 +115,8 @@ func TestEnvironmentNotDeployable(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		require.Equal(t, docsURL, res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Port must be greater than 0")
-		require.Contains(t, res.Body.Error.Detail, "CPU millicores must be greater than 0")
-		require.Contains(t, res.Body.Error.Detail, "MemoryMib must be greater than 0")
+		require.Contains(t, res.Body.Error.Detail, "CPU millicores must be at least 250")
+		require.Contains(t, res.Body.Error.Detail, "MemoryMib must be at least 256")
 		require.NotContains(t, res.Body.Error.Detail, "region", "a configured region must not be reported")
 		require.False(t, capture.called, "ctrl must not be called for an undeployable environment")
 	})

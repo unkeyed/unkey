@@ -14,8 +14,8 @@ const (
 
 	MsgPortTooLow   = "Port must be greater than 0"
 	MsgPortTooHigh  = "Port cannot exceed 65535"
-	MsgCPUTooLow    = "CPU millicores must be greater than 0"
-	MsgMemoryTooLow = "MemoryMib must be greater than 0"
+	MsgCPUTooLow    = "CPU millicores must be at least 250"
+	MsgMemoryTooLow = "MemoryMib must be at least 256"
 )
 
 // RuntimeViolation is one runtime setting that fails a deploy precondition.
@@ -27,21 +27,21 @@ type RuntimeViolation struct {
 }
 
 // RuntimeViolations reports which runtime settings would fail the deploy
-// pipeline: port must be 1..65535, cpu and memory must be greater than 0. An
-// empty result means the runtime settings are deployable. It is the single
-// source of truth shared by the create-time gates (API, ctrl) and the worker.
+// pipeline: port must be 1..65535, cpu must be at least 250 millicores, and
+// memory at least 256 MiB. An empty result means the runtime settings are
+// deployable. It is the single source of truth shared by the create-time gates
+// (API, ctrl) and the worker.
 func RuntimeViolations(port, cpuMillicores, memoryMib int32) []RuntimeViolation {
 	var violations []RuntimeViolation
-	switch {
-	case port < 1:
+	if port < 1 {
 		violations = append(violations, RuntimeViolation{Message: MsgPortTooLow, Actual: port})
-	case port > 65535:
+	} else if port > 65535 {
 		violations = append(violations, RuntimeViolation{Message: MsgPortTooHigh, Actual: port})
 	}
-	if cpuMillicores < 1 {
+	if cpuMillicores < 250 {
 		violations = append(violations, RuntimeViolation{Message: MsgCPUTooLow, Actual: cpuMillicores})
 	}
-	if memoryMib < 1 {
+	if memoryMib < 256 {
 		violations = append(violations, RuntimeViolation{Message: MsgMemoryTooLow, Actual: memoryMib})
 	}
 	return violations

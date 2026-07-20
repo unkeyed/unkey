@@ -1,9 +1,9 @@
 ---
-title: "environment_not_deployable"
+title: "invalid_environment_settings"
 description: "The environment's runtime or regional settings would fail the deploy pipeline, so createDeployment rejects it up front instead of failing after a build."
 ---
 
-<Danger>`err:unkey:application:environment_not_deployable`</Danger>
+<Danger>`err:unkey:application:invalid_environment_settings`</Danger>
 
 ```json Example
 {
@@ -11,10 +11,10 @@ description: "The environment's runtime or regional settings would fail the depl
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Environment \"preview\" cannot be deployed: port must be between 1 and 65535 (is 0); cpu must be greater than 0 (is 0 millicores); memory must be greater than 0 (is 0 MiB); no schedulable regions are configured. Update the environment's settings before deploying.",
+    "detail": "Environment \"preview\" cannot be deployed: Port must be greater than 0 (is 0); CPU millicores must be at least 250 (is 0); MemoryMib must be at least 256 (is 0); no schedulable regions are configured. Update the environment's settings before deploying.",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/unkey/application/environment_not_deployable"
+    "type": "https://unkey.com/docs/errors/unkey/application/invalid_environment_settings"
   }
 }
 ```
@@ -26,8 +26,8 @@ You called `createDeployment` for an environment whose settings cannot produce a
 An environment must satisfy the same requirements the deploy pipeline enforces:
 
 - `port` is between 1 and 65535.
-- `cpu` (vCPU) is greater than 0.
-- `memory` is greater than 0.
+- `cpu` is at least 0.25 vCPU (250 millicores).
+- `memory` is at least 256 MiB.
 - At least one schedulable region is configured.
 
 A freshly created environment starts with default runtime settings and a default region, but this error appears if those were cleared or set to invalid values, or if no schedulable region exists yet.
@@ -56,12 +56,10 @@ curl -X POST https://api.unkey.com/v2/environments.updateSettings \
 
 ## Common Mistakes
 
-- **Setting `port`, `vcpus`, or `memoryMib` to 0**: Zero values are treated as unset and fail validation.
+- **Values below the minimum**: `cpu` must be at least 0.25 vCPU, `memory` at least 256 MiB, and `port` within 1-65535; anything lower fails validation.
 - **Clearing all regions**: An environment with no schedulable region cannot be scheduled anywhere.
 - **Fixing one field at a time**: The `detail` lists every problem at once; resolve them all before retrying instead of round-tripping per field.
 
 ## Related Errors
 
 - [err:unkey:application:invalid_input](./invalid_input) - When request input fails general validation
-</content>
-</invoke>

@@ -109,7 +109,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
-				codes.UnkeyAppErrorsValidationEnvironmentNotDeployable,
+				codes.UnkeyAppErrorsValidationInvalidEnvironmentSettings,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
