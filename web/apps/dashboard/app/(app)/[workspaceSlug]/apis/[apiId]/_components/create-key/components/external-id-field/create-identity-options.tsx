@@ -1,19 +1,12 @@
-import type { InsertIdentity } from "@/lib/db";
+import type { Identity } from "@unkey/api/models/components";
 import { User } from "@unkey/icons";
-import {
-  Button,
-  CopyButton,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@unkey/ui";
+import { CopyButton, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type IdentitySelectorProps = {
-  identities: Omit<InsertIdentity, "deleted">[];
+  identities: Identity[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
-  loadMore: () => void;
+  queryError?: string;
 };
 
 const isMetaEmpty = (meta: unknown) => {
@@ -30,7 +23,7 @@ export function createIdentityOptions({
   identities,
   hasNextPage,
   isFetchingNextPage,
-  loadMore,
+  queryError,
 }: IdentitySelectorProps) {
   const options = identities.map((identity) => ({
     label: (
@@ -88,15 +81,10 @@ export function createIdentityOptions({
                       </div>
                       {/* Copy Button */}
                       <div className="p-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <CopyButton
+                          value={JSON.stringify(identity.meta, null, 4)}
                           className="bg-white dark:bg-grayA-3 hover:bg-grayA-3 dark:hover:bg-grayA-4 shadow-xs"
-                        >
-                          <div className="flex items-center justify-center">
-                            <CopyButton value={JSON.stringify(identity.meta, null, 4)} />
-                          </div>
-                        </Button>
+                        />
                       </div>
                     </div>
                   </div>
@@ -123,22 +111,24 @@ export function createIdentityOptions({
     searchValue: identity.externalId,
   }));
 
-  if (hasNextPage) {
+  if (queryError) {
     options.push({
       label: (
-        <Button
-          type="button"
-          variant="ghost"
-          loading={isFetchingNextPage}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            loadMore();
-          }}
-          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
-        >
-          Load more...
-        </Button>
+        <div className="flex w-full flex-col gap-1 px-2 py-1 text-left">
+          <span className="text-xs text-error-11">{queryError}</span>
+          <span className="text-xs font-medium text-accent-11">Select to retry</span>
+        </div>
+      ),
+      value: "__retry_identities__",
+      selectedLabel: <></>,
+      searchValue: "",
+    });
+  } else if (hasNextPage) {
+    options.push({
+      label: (
+        <div className="w-full px-2 py-0.5 text-left text-xs font-medium text-accent-12">
+          {isFetchingNextPage ? "Loading more..." : "Load more..."}
+        </div>
       ),
       value: "__load_more__",
       selectedLabel: <></>,
