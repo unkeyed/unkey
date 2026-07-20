@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -184,23 +186,21 @@ func (s *Service) CreateApp(
 	}), nil
 }
 
-// defaultRegionPreference lists the regions we prefer to seed for fresh
-// environments, in priority order. The first schedulable match wins.
-var defaultRegionPreference = []string{"us-east-1", "us-west-2"}
-
-// pickDefaultRegion returns the id of the highest-priority schedulable region in
-// defaultRegionPreference, or ("", false) when none of them can be scheduled.
+// pickDefaultRegion returns the id of the schedulable region whose name sorts
+// first lexically, or ("", false) when none can be scheduled. Sorting by name
+// keeps the choice deterministic without depending on a fixed region being up.
 func pickDefaultRegion(regions []db.ListRegionsRow) (string, bool) {
-	schedulable := make(map[string]string, len(regions))
+	schedulable := make([]db.ListRegionsRow, 0, len(regions))
 	for _, r := range regions {
 		if r.CanSchedule {
-			schedulable[r.Name] = r.ID
+			schedulable = append(schedulable, r)
 		}
 	}
-	for _, name := range defaultRegionPreference {
-		if id, ok := schedulable[name]; ok {
-			return id, true
-		}
+	if len(schedulable) == 0 {
+		return "", false
 	}
-	return "", false
+	slices.SortFunc(schedulable, func(a, b db.ListRegionsRow) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return schedulable[0].ID, true
 }
