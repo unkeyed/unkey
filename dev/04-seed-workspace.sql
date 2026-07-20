@@ -34,6 +34,17 @@ INSERT INTO quota (
   false
 ) ON DUPLICATE KEY UPDATE workspace_id = 'ws_local_root';
 
+-- Insert root workspace billing row (billing state lives in workspace_billing)
+INSERT INTO workspace_billing (
+  workspace_id,
+  tier,
+  created_at_m
+) VALUES (
+  'ws_local_root',
+  'Free',
+  UNIX_TIMESTAMP() * 1000
+) ON DUPLICATE KEY UPDATE workspace_id = 'ws_local_root';
+
 -- Insert root keyspace
 INSERT INTO key_auth (
   id,

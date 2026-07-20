@@ -242,6 +242,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BillingPusher:      o.billingPusher,
 		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
+		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
+		// means the check resolves no recipients and logs instead of emailing.
+		WorkOSAPIKey:   "",
+		ResendAPIKey:   "",
+		BillingBaseURL: "",
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),
@@ -250,6 +255,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			AuditLogCleanup:    healthcheck.NewNoop(),
 			DeployBillingPush:  healthcheck.NewNoop(),
 			DeployBillingClose: healthcheck.NewNoop(),
+			DeploySpendCheck:   healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)
@@ -297,6 +303,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// The deploy billing orchestrator (push and close) fans out to this per-workspace
 	// push service, so it must be bound for those handlers to route end to end.
 	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
+	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))

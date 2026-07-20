@@ -1,0 +1,85 @@
+---
+title: Deploy Spend Cap
+description: "How Compute spend budgets are checked, alerted, and enforced."
+---
+
+## Why this exists
+
+Workspace admins can set a monthly Compute spend budget in the dashboard. The spend cap emails them at 50%, 75%, and 100% of that budget (measured as gross total metered spend, credits included), and optionally stops all running Compute workloads when the budget is reached.
+
+The check prices usage from ClickHouse with the same catalog rates as the hourly billing push, so enforcement matches what customers see on the billing page.
+
+## How it works
+
+A cronjob invokes `CronService.RunDeploySpendCheck`, keyed by billing period (`YYYY-MM`). The orchestrator:
+
+1. Lists workspaces with a configured budget, plus any workspace that is currently spend-cap suspended (so it can resume after a budget raise, period roll, or budget removal).
+2. Reads month-to-date Deploy usage for every workspace in one ClickHouse scan (instance meters + active keys).
+3. Prices gross month-to-date usage locally (credits included; the cap is on total metered spend).
+4. Fans out to `DeploySpendCheckService.CheckWorkspaceSpend` for workspaces at or above the 50% alert threshold, or any suspended workspace.
+
+Each per-workspace check owns threshold emails, the `deploy_spend_suspended` column, and suspend/resume via `DeployTeardownService`.
+
+```mermaid
+sequenceDiagram
+    participant Cron as CronJob
+    participant Orch as RunDeploySpendCheck
+    participant CH as ClickHouse
+    participant Check as CheckWorkspaceSpend
+    participant TD as DeployTeardownService
+
+    Cron->>Orch: keyed YYYY-MM
+    Orch->>CH: fleet usage scan
+    Orch->>Check: fan-out (≥50% or suspended)
+    alt New threshold crossed
+        Check->>Check: Resend alert email
+    end
+    alt stop=true and gross ≥ budget
+        Check->>TD: Teardown(SUSPEND)
+        Check->>Check: deploy_spend_suspended=true
+    end
+    alt suspended and (stop=false or gross < budget)
+        Check->>TD: Resume
+        Check->>Check: deploy_spend_suspended=false
+    end
+```
+
+## Cap on gross spend
+
+Spend budgets apply to gross month-to-date metered spend, credits included: a $100 budget stops at $100 of usage, not $100 on top of the plan's included credit. The check subtracts no credit and reads no Stripe balance; it prices the same gross total the hourly billing push reports and compares it directly against the budget.
+
+## Enforcement gates
+
+- **New deployments** are blocked while `deploy_spend_suspended=true`.
+- **Wake deployment** (preview environments) is also blocked while suspended.
+- **Cancel Deploy** clears `deploy_spend_suspended` along with the plan entitlement.
+
+## Cadence
+
+The local dev cron runs **every 3 minutes** so alerts and enforcement are observable without a long wait. Production runs every 15 minutes (configured in the infra repo). Worst-case detection latency equals the cron cadence plus teardown drain time.
+
+## Configuration
+
+The worker needs ClickHouse (usage reader), Resend (`RESEND_API_KEY`), and WorkOS (`WORKOS_API_KEY`) for alert emails. Without Resend or WorkOS the check still runs and can suspend compute, but no email is sent.
+
+Resend templates `compute-budget-alert` and `compute-budget-stopped` must be published (`web/internal/resend/scripts/sync-templates.tsx --publish`).
+
+See [local development](/contributing/local/development) for `dev/.env.resend` and `dev/.env.workos`.
+
+## Code layout
+
+| Package | Responsibility |
+| --- | --- |
+| `svc/ctrl/worker/cron/deployspendcheck` | Orchestrator, per-workspace check, threshold math, alert emails |
+| `svc/ctrl/worker/deployteardown` | Suspend (stop workloads, record snapshot) and resume |
+| `web/apps/dashboard/.../spend-budget.tsx` | Budget UI and spend meter |
+| `web/apps/dashboard/lib/trpc/routers/billing/deploy-budget` | Get/set budget preferences |
+
+## Testing
+
+```bash
+mise exec -- bazel test //svc/ctrl/worker/cron/deployspendcheck:deployspendcheck_test
+mise exec -- bazel test //svc/ctrl/integration:integration_test --test_filter=DeploySpendCheck
+```
+
+Integration tests cover suspend/resume, budget removal while suspended, and resuming when stopping is turned off.

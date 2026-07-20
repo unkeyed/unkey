@@ -39,6 +39,8 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Routing.ConfigNotFound.URN(), http.StatusNotFound},
 		{codes.Frontline.Routing.DeploymentNotFound.URN(), http.StatusNotFound},
 		{codes.Frontline.Routing.NoRunningInstances.URN(), http.StatusServiceUnavailable},
+		{codes.Frontline.Routing.DeploymentOffline.URN(), http.StatusServiceUnavailable},
+		{codes.Frontline.Routing.SpendLimitReached.URN(), http.StatusPaymentRequired},
 		{codes.Frontline.Proxy.BadGateway.URN(), http.StatusBadGateway},
 		{codes.Frontline.Proxy.ProxyForwardFailed.URN(), http.StatusBadGateway},
 		{codes.Frontline.Proxy.ServiceUnavailable.URN(), http.StatusServiceUnavailable},

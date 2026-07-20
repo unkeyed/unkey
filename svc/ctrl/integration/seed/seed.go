@@ -58,6 +58,12 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := s.DB.InsertWorkspace(ctx, params)
 	require.NoError(s.t, err)
 
+	err = s.DB.InsertWorkspaceBilling(ctx, db.InsertWorkspaceBillingParams{
+		WorkspaceID: params.ID,
+		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+
 	ws, err := s.DB.FindWorkspaceByID(ctx, params.ID)
 	require.NoError(s.t, err)
 

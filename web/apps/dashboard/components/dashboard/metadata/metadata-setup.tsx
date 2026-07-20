@@ -2,7 +2,7 @@
 import type { MetadataFormValues } from "@/lib/schemas/metadata";
 import { Code } from "@unkey/icons";
 import { Button, FormTextarea, toast } from "@unkey/ui";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useController, useFormContext, useWatch } from "react-hook-form";
 import { ProtectionSwitch } from "./protection-switch";
 
 export const EXAMPLE_JSON = {
@@ -48,7 +48,10 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
     trigger,
   } = useFormContext<MetadataFormValues>();
 
-  const metadataEnabled = useWatch({
+  // Keep the discriminator registered independently of portal-mounted DOM refs.
+  const {
+    field: { value: metadataEnabled },
+  } = useController({
     control,
     name: "metadata.enabled",
   });
@@ -104,7 +107,6 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
           icon={<Code className="text-gray-12" iconSize="sm-regular" />}
           checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("metadata.enabled")}
         />
       )}
       <div className="flex flex-col gap-2 h-fit duration-300">

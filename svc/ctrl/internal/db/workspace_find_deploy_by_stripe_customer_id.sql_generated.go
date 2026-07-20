@@ -13,10 +13,11 @@ import (
 const findDeployWorkspaceByStripeCustomerID = `-- name: FindDeployWorkspaceByStripeCustomerID :one
 SELECT
    w.id,
-   w.stripe_subscription_id
-FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE w.stripe_customer_id = ?
-  AND w.deploy_plan IS NOT NULL
+   b.stripe_subscription_id
+FROM ` + "`" + `workspace_billing` + "`" + ` b
+JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = b.workspace_id
+WHERE b.stripe_customer_id = ?
+  AND b.plan IS NOT NULL
   AND w.deleted_at_m IS NULL
 `
 
@@ -32,10 +33,11 @@ type FindDeployWorkspaceByStripeCustomerIDRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_subscription_id
-//	FROM `workspaces` w
-//	WHERE w.stripe_customer_id = ?
-//	  AND w.deploy_plan IS NOT NULL
+//	   b.stripe_subscription_id
+//	FROM `workspace_billing` b
+//	JOIN `workspaces` w ON w.id = b.workspace_id
+//	WHERE b.stripe_customer_id = ?
+//	  AND b.plan IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeployWorkspaceByStripeCustomerID, stripeCustomerID)

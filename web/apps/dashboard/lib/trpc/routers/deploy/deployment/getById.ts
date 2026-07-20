@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { mapRegionToFlag } from "../network/utils";
 import {
+  computeLastExit,
   deploymentSelectFields,
   mapInstanceRow,
   normalizeDeploymentRow,
@@ -60,6 +61,7 @@ export const getById = workspaceProcedure
             regionName: regions.name,
             regionPlatform: regions.platform,
             status: instances.status,
+            containerStatus: instances.containerStatus,
           })
           .from(instances)
           .innerJoin(regions, eq(regions.id, instances.regionId))
@@ -99,6 +101,7 @@ export const getById = workspaceProcedure
         ...deployment,
         ...normalizeDeploymentRow(deployment),
         instances: instanceRows.map(mapInstanceRow),
+        lastExit: computeLastExit(instanceRows),
         desiredInstanceCount,
         desiredRegions,
         hasOpenApiSpec: specRows.length > 0,

@@ -9,7 +9,6 @@ import (
 	"slices"
 	"time"
 
-	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -17,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -89,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	policies, err := mapPoliciesToProto(req.Policies)
+	policies, err := policyconfig.ToProto(req.Policies)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fmt.Sprintf("Set policy %s (%s) for environment %s", p.GetName(), p.GetId(), env.ID),
 			map[string]any{
 				"policyId":   p.GetId(),
-				"policyType": variantName(p),
+				"policyType": policyconfig.VariantName(p),
 				"policy":     json.RawMessage(doc),
 			},
 		))
@@ -179,19 +179,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		))
 	}
 
-	// protojson omits empty repeated fields but the dashboard's strict schema
-	// requires the `policies` key, so an empty config is written literally.
-	blob := []byte(`{"policies":[]}`)
-	if len(policies) > 0 {
-		blob, err = protojson.Marshal(&frontlinev1.Config{Policies: policies})
-		if err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("policy serialization failed"),
-				fault.Public("We're unable to set the policies."),
-			)
-		}
+	blob, err := policyconfig.Marshal(policies)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("policy serialization failed"),
+			fault.Public("We're unable to set the policies."),
+		)
 	}
 
 	now := time.Now().UnixMilli()

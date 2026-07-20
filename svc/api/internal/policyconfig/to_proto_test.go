@@ -1,4 +1,4 @@
-package handler
+package policyconfig
 
 import (
 	"testing"
@@ -159,7 +159,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := mapPoliciesToProto(tc.policies)
+			_, err := ToProto(tc.policies)
 			if tc.wantErr == "" {
 				require.NoError(t, err)
 				return
