@@ -44,7 +44,7 @@ function IdentityRow({
   const rateLimitCount = identity.ratelimits?.length ?? 0;
 
   return (
-    <ResourceListItem className="group flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="group flex h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-grayA-2">
       <Link
         href={href}
         className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
@@ -80,7 +80,7 @@ function IdentitiesSkeleton() {
           <ResourceListItem
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
             key={index}
-            className="flex min-h-16 items-center gap-3 px-4 py-3"
+            className="flex h-16 items-center gap-3 px-4 py-3"
           >
             <div className="size-8 shrink-0 animate-pulse rounded-md bg-grayA-3" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
