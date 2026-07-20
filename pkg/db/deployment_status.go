@@ -1,79 +1,40 @@
 package db
 
-// IsTerminal reports whether a deployment has reached a final lifecycle
-// state. Acts as the spec the TerminalDeploymentStatuses and
-// ProgressingDeploymentStatuses slices must mirror — the test in
-// deployment_status_test.go enforces that mapping. Unknown statuses fall
-// through to false; the slices, not this function, drive cancellation
-// decisions.
-func (s DeploymentsStatus) IsTerminal() bool {
-	switch s {
-	case DeploymentsStatusReady,
-		DeploymentsStatusFailed,
-		DeploymentsStatusSkipped,
-		DeploymentsStatusStopped,
-		DeploymentsStatusSuperseded,
-		DeploymentsStatusCancelled:
-		return true
-	case DeploymentsStatusPending,
-		DeploymentsStatusStarting,
-		DeploymentsStatusBuilding,
-		DeploymentsStatusDeploying,
-		DeploymentsStatusNetwork,
-		DeploymentsStatusFinalizing,
-		DeploymentsStatusAwaitingApproval:
-		return false
-	}
-	return false
-}
+import mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
-// TerminalDeploymentStatuses enumerates every status that ends the
-// deployment lifecycle. Single source of truth for SQL queries that
-// guard transitions against terminal rows (UpdateDeploymentStatusIfActive).
-// Must stay in sync with IsTerminal; the test in
-// deployment_status_test.go enforces that.
-var TerminalDeploymentStatuses = []DeploymentsStatus{
-	DeploymentsStatusReady,
-	DeploymentsStatusFailed,
-	DeploymentsStatusSkipped,
-	DeploymentsStatusStopped,
-	DeploymentsStatusSuperseded,
-	DeploymentsStatusCancelled,
-}
+// The deployment lifecycle enums live in pkg/mysql/types so pkg/db and
+// svc/ctrl/internal/db share one type instead of each generating its own copy
+// (which forced casting at every boundary). The sqlc go_type override points the
+// generated deployments.status/desired_state columns at that package; these
+// aliases and re-exports keep the db.DeploymentsStatus* call sites unchanged. See
+// pkg/mysql/types/deployment_status.go for IsTerminal and the status slices.
 
-// ProgressingDeploymentStatuses enumerates every status that represents
-// an in-flight deployment. Single source of truth for SQL queries that
-// cancel in-progress work (ListProgressingDeploymentsByEnvironmentId).
-// Cancellation is destructive, so this is an explicit allowlist: new
-// statuses are not cancelled by default until intentionally added here.
-// Must stay in sync with IsTerminal; the test in
-// deployment_status_test.go enforces that.
-var ProgressingDeploymentStatuses = []DeploymentsStatus{
-	DeploymentsStatusPending,
-	DeploymentsStatusStarting,
-	DeploymentsStatusBuilding,
-	DeploymentsStatusDeploying,
-	DeploymentsStatusNetwork,
-	DeploymentsStatusFinalizing,
-	DeploymentsStatusAwaitingApproval,
-}
+type (
+	DeploymentsStatus       = mysqltype.DeploymentsStatus
+	DeploymentsDesiredState = mysqltype.DeploymentsDesiredState
+)
 
-// AllDeploymentStatuses lists every value of the DeploymentsStatus enum.
-// Exists so deployment_status_test.go does not maintain a parallel copy:
-// adding a new status here forces classification in IsTerminal and
-// membership in exactly one of the Terminal/Progressing slices.
-var AllDeploymentStatuses = []DeploymentsStatus{
-	DeploymentsStatusPending,
-	DeploymentsStatusStarting,
-	DeploymentsStatusBuilding,
-	DeploymentsStatusDeploying,
-	DeploymentsStatusNetwork,
-	DeploymentsStatusFinalizing,
-	DeploymentsStatusReady,
-	DeploymentsStatusFailed,
-	DeploymentsStatusSkipped,
-	DeploymentsStatusAwaitingApproval,
-	DeploymentsStatusStopped,
-	DeploymentsStatusSuperseded,
-	DeploymentsStatusCancelled,
-}
+const (
+	DeploymentsStatusPending          = mysqltype.DeploymentsStatusPending
+	DeploymentsStatusStarting         = mysqltype.DeploymentsStatusStarting
+	DeploymentsStatusBuilding         = mysqltype.DeploymentsStatusBuilding
+	DeploymentsStatusDeploying        = mysqltype.DeploymentsStatusDeploying
+	DeploymentsStatusNetwork          = mysqltype.DeploymentsStatusNetwork
+	DeploymentsStatusFinalizing       = mysqltype.DeploymentsStatusFinalizing
+	DeploymentsStatusReady            = mysqltype.DeploymentsStatusReady
+	DeploymentsStatusFailed           = mysqltype.DeploymentsStatusFailed
+	DeploymentsStatusSkipped          = mysqltype.DeploymentsStatusSkipped
+	DeploymentsStatusAwaitingApproval = mysqltype.DeploymentsStatusAwaitingApproval
+	DeploymentsStatusStopped          = mysqltype.DeploymentsStatusStopped
+	DeploymentsStatusSuperseded       = mysqltype.DeploymentsStatusSuperseded
+	DeploymentsStatusCancelled        = mysqltype.DeploymentsStatusCancelled
+
+	DeploymentsDesiredStateRunning = mysqltype.DeploymentsDesiredStateRunning
+	DeploymentsDesiredStateStopped = mysqltype.DeploymentsDesiredStateStopped
+)
+
+var (
+	TerminalDeploymentStatuses    = mysqltype.TerminalDeploymentStatuses
+	ProgressingDeploymentStatuses = mysqltype.ProgressingDeploymentStatuses
+	AllDeploymentStatuses         = mysqltype.AllDeploymentStatuses
+)

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listDeployments = `-- name: ListDeployments :many
@@ -26,14 +28,14 @@ LIMIT ?
 `
 
 type ListDeploymentsParams struct {
-	WorkspaceID     string              `db:"workspace_id"`
-	ProjectID       string              `db:"project_id"`
-	AppID           string              `db:"app_id"`
-	EnvironmentID   string              `db:"environment_id"`
-	HasStatusFilter interface{}         `db:"has_status_filter"`
-	Statuses        []DeploymentsStatus `db:"statuses"`
-	CursorID        string              `db:"cursor_id"`
-	Limit           int32               `db:"limit"`
+	WorkspaceID     string                        `db:"workspace_id"`
+	ProjectID       string                        `db:"project_id"`
+	AppID           string                        `db:"app_id"`
+	EnvironmentID   string                        `db:"environment_id"`
+	HasStatusFilter interface{}                   `db:"has_status_filter"`
+	Statuses        []mysqltype.DeploymentsStatus `db:"statuses"`
+	CursorID        string                        `db:"cursor_id"`
+	Limit           int32                         `db:"limit"`
 }
 
 // has_status_filter gates the status clause; without it sqlc renders an empty

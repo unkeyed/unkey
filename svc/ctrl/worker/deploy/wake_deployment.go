@@ -7,7 +7,6 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
@@ -46,7 +45,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
-		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
+		DesiredState:    deployment.DesiredState,
 		EnvironmentSlug: environment.Slug,
 		// Spend is gated by the ctrl service before enqueue; the worker only
 		// re-checks lifecycle state.
