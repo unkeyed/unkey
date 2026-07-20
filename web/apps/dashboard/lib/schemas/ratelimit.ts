@@ -8,13 +8,14 @@ export const ratelimitItemSchema = z.object({
     .min(3, {
       error: "Name is required and should have at least 3 characters",
     })
-    .max(256, {
-      message: "Name cannot exceed 256 characters",
+    .max(128, {
+      message: "Name cannot exceed 128 characters",
     }),
   refillInterval: z.coerce
     .number({
       message: "Duration must be a valid number",
     })
+    .int({ message: "Refill interval must be a whole number" })
     .min(1000, {
       message: "Refill interval must be at least 1 second (1000ms)",
     }),
@@ -22,6 +23,7 @@ export const ratelimitItemSchema = z.object({
     .number({
       message: "Limit must be a valid number",
     })
+    .int({ message: "Limit must be a whole number" })
     .positive({
       message: "Limit must be greater than 0",
     }),
@@ -35,6 +37,9 @@ export const ratelimitValidationSchema = z.object({
     .min(1, {
       error: "At least one rate limit is required",
     })
+    .max(50, {
+      error: "An identity cannot have more than 50 rate limits",
+    })
     .superRefine((items, ctx) => {
       const seenNames = new Set<string>();
       for (let i = 0; i < items.length; i++) {
@@ -43,7 +48,7 @@ export const ratelimitValidationSchema = z.object({
           ctx.addIssue({
             code: "custom",
             message: "Ratelimit name must be unique",
-            path: ["data", i, "name"],
+            path: [i, "name"],
           });
         }
         seenNames.add(name);
