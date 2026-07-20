@@ -1,26 +1,18 @@
 import { and, db, eq } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { TRPCError } from "@trpc/server";
-import { appRegionalSettings, horizontalAutoscalingPolicies } from "@unkey/db/src/schema";
+import { appRegionalSettings, horizontalAutoscalingPolicies, quotas } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
-
-const REPLICAS_MAX_BETA = 4;
 
 export const updateInstances = workspaceProcedure
   .input(
     z
       .object({
         environmentId: z.string(),
-        replicasMin: z.number().int().min(1).max(REPLICAS_MAX_BETA),
-        replicasMax: z
-          .number()
-          .int()
-          .min(1)
-          .max(
-            REPLICAS_MAX_BETA,
-            "Instances are limited to 4 per region during beta. Please contact support@unkey.com if you need more.",
-          ),
+        replicasMin: z.number().int().min(1),
+        replicasMax: z.number().int().min(1),
       })
       .refine((d) => d.replicasMin <= d.replicasMax, {
         message: "replicasMin must be ≤ replicasMax",
@@ -28,6 +20,19 @@ export const updateInstances = workspaceProcedure
       }),
   )
   .mutation(async ({ ctx, input }) => {
+    const quota = await db.query.quotas.findFirst({
+      where: eq(quotas.workspaceId, ctx.workspace.id),
+      columns: { maxReplicasPerRegion: true },
+    });
+
+    const maxPerRegion = quota?.maxReplicasPerRegion ?? freeTierQuotas.maxReplicasPerRegion;
+    if (input.replicasMax > maxPerRegion) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Instances per region cannot exceed ${maxPerRegion}. Contact support@unkey.com to increase it.`,
+      });
+    }
+
     await db.transaction(async (tx) => {
       const regions = await tx.query.appRegionalSettings.findMany({
         where: and(

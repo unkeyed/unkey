@@ -102,17 +102,21 @@ describe("verifyGitSignature", () => {
     const signature = sign(payload, privateKey);
     const keyId = "kid-1";
 
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ public_keys: [{ key_identifier: keyId, key: pem(publicKey), is_current: true }] }),
-          { status: 200 },
-        ),
-      );
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          public_keys: [{ key_identifier: keyId, key: pem(publicKey), is_current: true }],
+        }),
+        { status: 200 },
+      ),
+    );
 
-    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(true);
-    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(true);
+    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(
+      true,
+    );
+    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(
+      true,
+    );
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
