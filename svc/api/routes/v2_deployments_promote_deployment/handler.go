@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.Status != db.DeploymentsStatusReady {
 		return fault.New(
 			"deployment not ready",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("promotion target is not in ready status"),
 			fault.Public("The deployment is not ready."),
 		)
@@ -87,18 +87,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
 		return fault.New(
 			"deployment shutting down",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("promotion target desired_state is not running"),
 			fault.Public("The deployment is shutting down and cannot serve traffic."),
 		)
 	}
 
-	// Promote swaps apps.current_deployment_id, which tracks the production live
-	// deployment, so it only applies to production.
+	// Promote swaps apps.current_deployment_id, which tracks the current
+	// production deployment, so it only applies to production.
 	if dep.EnvironmentSlug != "production" {
 		return fault.New(
 			"not a production deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotProduction.URN()),
 			fault.Internal("promote is only allowed on production environments"),
 			fault.Public("Only production deployments can be promoted."),
 		)
@@ -110,25 +110,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load app for promotion eligibility"),
-			fault.Public("Failed to resolve the current live deployment."),
+			fault.Public("Failed to resolve the current deployment."),
 		)
 	}
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return fault.New(
-			"no live deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			"no current deployment",
+			fault.Code(codes.App.Precondition.DeploymentNoCurrent.URN()),
 			fault.Internal("app has no current deployment to promote over"),
-			fault.Public("The app has no live deployment to promote over."),
+			fault.Public("The app has no current deployment to promote over."),
 		)
 	}
-	// Promoting the live deployment is only meaningful as a rollback
+	// Promoting the current deployment is only meaningful as a rollback
 	// confirmation; otherwise it is a no-op the caller likely did not intend.
 	if app.CurrentDeploymentID.String == dep.ID && !app.IsRolledBack {
 		return fault.New(
-			"deployment already live",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("promotion target is already the live deployment"),
-			fault.Public("The deployment is already live."),
+			"deployment is current",
+			fault.Code(codes.App.Precondition.DeploymentIsCurrent.URN()),
+			fault.Internal("promotion target is already the current deployment"),
+			fault.Public("The deployment is already the current deployment."),
 		)
 	}
 
@@ -137,7 +137,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "promote deployment",
-			"The deployment could not be promoted. It must be ready, belong to the production environment, and not already be live.")
+			"The deployment could not be promoted. It must be ready, belong to the production environment, and not already be the current deployment.")
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

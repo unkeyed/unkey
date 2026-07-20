@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.Status != db.DeploymentsStatusReady {
 		return fault.New(
 			"deployment not ready",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("rollback target is not in ready status"),
 			fault.Public("The deployment to roll back to is not ready."),
 		)
@@ -87,25 +87,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
 		return fault.New(
 			"deployment shutting down",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotReady.URN()),
 			fault.Internal("rollback target desired_state is not running"),
 			fault.Public("The deployment to roll back to is shutting down and cannot serve traffic."),
 		)
 	}
 
-	// Rollback swaps apps.current_deployment_id, which tracks the production live
-	// deployment, so it only applies to production.
+	// Rollback swaps apps.current_deployment_id, which tracks the current
+	// production deployment, so it only applies to production.
 	if dep.EnvironmentSlug != "production" {
 		return fault.New(
 			"not a production deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.App.Precondition.DeploymentNotProduction.URN()),
 			fault.Internal("rollback is only allowed on production environments"),
 			fault.Public("Only production deployments can be rolled back."),
 		)
 	}
 
 	// The caller only names the deployment to roll back TO. The rollback source
-	// must be the app's current live deployment, so it is derived here rather
+	// must be the app's current deployment, so it is derived here rather
 	// than trusted from input. The ctrl workflow re-validates, so a concurrent
 	// promotion that moves the current deployment out from under us fails the
 	// rollback rather than swapping traffic onto a stale source.
@@ -115,23 +115,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load app for rollback source derivation"),
-			fault.Public("Failed to resolve the current live deployment."),
+			fault.Public("Failed to resolve the current deployment."),
 		)
 	}
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
 		return fault.New(
-			"no live deployment",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			"no current deployment",
+			fault.Code(codes.App.Precondition.DeploymentNoCurrent.URN()),
 			fault.Internal("app has no current deployment to roll back from"),
-			fault.Public("The app has no live deployment to roll back from."),
+			fault.Public("The app has no current deployment to roll back from."),
 		)
 	}
 	if app.CurrentDeploymentID.String == dep.ID {
 		return fault.New(
-			"deployment already live",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("rollback target is already the live deployment"),
-			fault.Public("The deployment is already live."),
+			"deployment is current",
+			fault.Code(codes.App.Precondition.DeploymentIsCurrent.URN()),
+			fault.Internal("rollback target is already the current deployment"),
+			fault.Public("The deployment is already the current deployment."),
 		)
 	}
 
@@ -141,7 +141,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "rollback deployment",
-			"The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current live deployment.")
+			"The rollback could not be performed. The target must be a ready production deployment in the same app and environment as the current deployment.")
 	}
 
 	return s.JSON(http.StatusAccepted, Response{
