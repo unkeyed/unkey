@@ -150,9 +150,9 @@ export const changeDeployPlan = workspaceProcedure
     // subscription.updated webhook reconciles deploy_plan to the same value.
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
-        .set({ deployPlan: input.plan })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .update(schema.workspaceBilling)
+        .set({ plan: input.plan })
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },

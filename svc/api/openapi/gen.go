@@ -469,7 +469,9 @@ type EnvironmentVariableInput struct {
 	// Kind How the value may be read back. Defaults to `writeonly`.
 	Kind *EnvironmentVariableKind `json:"kind,omitempty"`
 
-	// Value The variable value. Always encrypted at rest.
+	// Value The variable value. Always encrypted at rest. The limit is enforced
+	// server-side in UTF-8 bytes, so a multibyte value may be rejected before
+	// it reaches this code-point maximum.
 	Value string `json:"value"`
 }
 

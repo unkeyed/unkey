@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { verifyGitSignature } from "./verify-signature";
+import { __resetGithubKeysCacheForTests, verifyGitSignature } from "./verify-signature";
 
 const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
 
@@ -26,6 +26,9 @@ function mockGithubKeys(keys: Array<{ key_identifier: string; key: string; is_cu
 describe("verifyGitSignature", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    // The public keys are cached in module memory, so reset between tests to
+    // stop one test's fetched keys from satisfying the next test's lookup.
+    __resetGithubKeysCacheForTests();
   });
 
   it("returns true for a valid signature", async () => {
@@ -91,5 +94,64 @@ describe("verifyGitSignature", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("err", { status: 500 }));
 
     await expect(verifyGitSignature("p", "sig", "kid", GITHUB_KEYS_URI)).resolves.toBe(false);
+  });
+
+  it("fetches the keys only once across repeated verifications", async () => {
+    const { privateKey, publicKey } = makeKeyPair();
+    const payload = JSON.stringify([{ token: "x" }]);
+    const signature = sign(payload, privateKey);
+    const keyId = "kid-1";
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ public_keys: [{ key_identifier: keyId, key: pem(publicKey), is_current: true }] }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(true);
+    await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(true);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to cached keys when a refresh is rate limited", async () => {
+    vi.useFakeTimers();
+    try {
+      const { privateKey, publicKey } = makeKeyPair();
+      const payload = JSON.stringify([{ token: "x" }]);
+      const signature = sign(payload, privateKey);
+      const keyId = "kid-1";
+
+      const fetchSpy = vi
+        .spyOn(globalThis, "fetch")
+        // First call populates the cache; every later refresh is rate limited.
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              public_keys: [{ key_identifier: keyId, key: pem(publicKey), is_current: true }],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValue(new Response("rate limited", { status: 429 }));
+
+      await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(
+        true,
+      );
+
+      // Age the cache past its TTL (1h) so the next call attempts a refresh,
+      // which is rate limited and must fall back to the cached keys.
+      vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+
+      await expect(verifyGitSignature(payload, signature, keyId, GITHUB_KEYS_URI)).resolves.toBe(
+        true,
+      );
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

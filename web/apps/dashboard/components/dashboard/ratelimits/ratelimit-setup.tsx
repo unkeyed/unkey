@@ -7,7 +7,7 @@ import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useController, useFieldArray, useFormContext } from "react-hook-form";
 
 // The form's `ratelimit` field is a Zod discriminated union (enabled false/true),
 // which makes react-hook-form collapse the `ratelimit.data` field-array element
@@ -133,7 +133,10 @@ export const RatelimitSetup = ({
     name: "ratelimit.data",
   });
 
-  const ratelimitEnabled = useWatch({
+  // Keep the discriminator registered independently of portal-mounted DOM refs.
+  const {
+    field: { value: ratelimitEnabled },
+  } = useController({
     control,
     name: "ratelimit.enabled",
   });
@@ -187,7 +190,6 @@ export const RatelimitSetup = ({
           icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("ratelimit.enabled")}
         />
       )}
 

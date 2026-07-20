@@ -16,38 +16,48 @@ SELECT
    w.name,
    w.slug,
    w.org_id,
-   w.deploy_spend_budget_cents,
-   w.deploy_spend_budget_stop
+   b.spend_budget_cents,
+   b.spend_budget_stop,
+   b.spend_suspended
 FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE w.deploy_spend_budget_cents IS NOT NULL
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
   AND w.enabled = true
   AND w.deleted_at_m IS NULL
 `
 
 type ListWorkspacesWithDeployBudgetRow struct {
-	ID                     string        `db:"id"`
-	Name                   string        `db:"name"`
-	Slug                   string        `db:"slug"`
-	OrgID                  string        `db:"org_id"`
-	DeploySpendBudgetCents sql.NullInt64 `db:"deploy_spend_budget_cents"`
-	DeploySpendBudgetStop  bool          `db:"deploy_spend_budget_stop"`
+	ID               string        `db:"id"`
+	Name             string        `db:"name"`
+	Slug             string        `db:"slug"`
+	OrgID            string        `db:"org_id"`
+	SpendBudgetCents sql.NullInt64 `db:"spend_budget_cents"`
+	SpendBudgetStop  sql.NullBool  `db:"spend_budget_stop"`
+	SpendSuspended   sql.NullBool  `db:"spend_suspended"`
 }
 
-// Lists every enabled workspace that has set a Deploy spend budget: the opt-in
-// set the spend-cap check evaluates. The check prices each one's month-to-date
-// Deploy usage and compares the gross total spend against the budget.
+// Lists every enabled workspace that has set a Deploy spend budget, plus any
+// that is currently spend-cap suspended even without a budget: the set the
+// spend-cap check evaluates. The check prices each one's month-to-date Deploy
+// usage and compares the gross total spend against the budget. Suspended
+// workspaces are included even without a budget so the check can resume them
+// after the budget is removed (otherwise removing the budget would drop them
+// from this list and they would never resume).
 // org_id resolves the alert recipients (org admins via WorkOS); the stop flag
-// decides whether 100% triggers teardown once enforcement (ENG-2923) lands.
+// decides whether 100% triggers teardown; deploy_spend_suspended tells the check
+// whether the cap has already stopped this workspace's compute.
 //
 //	SELECT
 //	   w.id,
 //	   w.name,
 //	   w.slug,
 //	   w.org_id,
-//	   w.deploy_spend_budget_cents,
-//	   w.deploy_spend_budget_stop
+//	   b.spend_budget_cents,
+//	   b.spend_budget_stop,
+//	   b.spend_suspended
 //	FROM `workspaces` w
-//	WHERE w.deploy_spend_budget_cents IS NOT NULL
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
 //	  AND w.enabled = true
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error) {
@@ -64,8 +74,9 @@ func (q *Queries) ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWor
 			&i.Name,
 			&i.Slug,
 			&i.OrgID,
-			&i.DeploySpendBudgetCents,
-			&i.DeploySpendBudgetStop,
+			&i.SpendBudgetCents,
+			&i.SpendBudgetStop,
+			&i.SpendSuspended,
 		); err != nil {
 			return nil, err
 		}

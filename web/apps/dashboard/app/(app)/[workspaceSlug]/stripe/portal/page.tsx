@@ -34,11 +34,14 @@ export default async function StripeRedirect() {
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    with: { billing: true },
   });
 
   if (!ws) {
     return redirect(routes.workspaces.create());
   }
+
+  const stripeCustomerId = ws.billing?.stripeCustomerId;
 
   let stripe: Stripe;
   try {
@@ -60,7 +63,7 @@ export default async function StripeRedirect() {
   // breaks links the user already has open.
   const baseUrl = getBaseUrl();
 
-  if (!ws.stripeCustomerId) {
+  if (!stripeCustomerId) {
     return (
       <Empty>
         <Empty.Title>No customer found</Empty.Title>
@@ -79,7 +82,7 @@ export default async function StripeRedirect() {
   // empty state, and (depending on auth state after the Stripe round-trip)
   // can bounce the user to sign-in.
   const { url } = await stripe.billingPortal.sessions.create({
-    customer: ws.stripeCustomerId,
+    customer: stripeCustomerId,
     return_url: `${baseUrl}${routes.settings.billing({ workspaceSlug: ws.slug })}`,
   });
   return redirect(url as Route);

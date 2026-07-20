@@ -48,8 +48,13 @@ type CheckWorkspaceSpendRequest struct {
 	// pricing boundary, and carries the result here, so the per-workspace check
 	// reads no usage of its own and does pure integer math.
 	SpendMicroCents int64 `protobuf:"varint,8,opt,name=spend_micro_cents,json=spendMicroCents,proto3" json:"spend_micro_cents,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// CurrentlySuspended is the workspace's deploy_spend_suspended column as the
+	// orchestrator saw it: whether the cap has already stopped this workspace's
+	// compute. The check uses it to decide suspend vs resume and to resume a
+	// workspace whose budget was removed while suspended.
+	CurrentlySuspended bool `protobuf:"varint,9,opt,name=currently_suspended,json=currentlySuspended,proto3" json:"currently_suspended,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CheckWorkspaceSpendRequest) Reset() {
@@ -131,6 +136,13 @@ func (x *CheckWorkspaceSpendRequest) GetSpendMicroCents() int64 {
 	return 0
 }
 
+func (x *CheckWorkspaceSpendRequest) GetCurrentlySuspended() bool {
+	if x != nil {
+		return x.CurrentlySuspended
+	}
+	return false
+}
+
 type CheckWorkspaceSpendResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SpendCents is the priced month-to-date Compute spend, truncated to whole
@@ -139,7 +151,10 @@ type CheckWorkspaceSpendResponse struct {
 	// ThresholdCrossed is the high-water threshold after this run (0/50/75/100).
 	ThresholdCrossed int32 `protobuf:"varint,3,opt,name=threshold_crossed,json=thresholdCrossed,proto3" json:"threshold_crossed,omitempty"`
 	// Alerted is true when this run sent a budget alert (a newly crossed level).
-	Alerted       bool `protobuf:"varint,4,opt,name=alerted,proto3" json:"alerted,omitempty"`
+	Alerted bool `protobuf:"varint,4,opt,name=alerted,proto3" json:"alerted,omitempty"`
+	// Suspended is true when this workspace's compute is currently spend-cap
+	// suspended after this run (set on trip, cleared on resume).
+	Suspended     bool `protobuf:"varint,5,opt,name=suspended,proto3" json:"suspended,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -195,11 +210,18 @@ func (x *CheckWorkspaceSpendResponse) GetAlerted() bool {
 	return false
 }
 
+func (x *CheckWorkspaceSpendResponse) GetSuspended() bool {
+	if x != nil {
+		return x.Suspended
+	}
+	return false
+}
+
 var File_hydra_v1_deploy_spend_check_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deploy_spend_check_proto_rawDesc = "" +
 	"\n" +
-	"!hydra/v1/deploy_spend_check.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xfc\x01\n" +
+	"!hydra/v1/deploy_spend_check.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xad\x02\n" +
 	"\x1aCheckWorkspaceSpendRequest\x12\x16\n" +
 	"\x06period\x18\x01 \x01(\tR\x06period\x12!\n" +
 	"\fbudget_cents\x18\x02 \x01(\x03R\vbudgetCents\x12\x12\n" +
@@ -207,12 +229,14 @@ const file_hydra_v1_deploy_spend_check_proto_rawDesc = "" +
 	"\x06org_id\x18\x05 \x01(\tR\x05orgId\x12%\n" +
 	"\x0eworkspace_name\x18\x06 \x01(\tR\rworkspaceName\x12%\n" +
 	"\x0eworkspace_slug\x18\a \x01(\tR\rworkspaceSlug\x12*\n" +
-	"\x11spend_micro_cents\x18\b \x01(\x03R\x0fspendMicroCents\"\x85\x01\n" +
+	"\x11spend_micro_cents\x18\b \x01(\x03R\x0fspendMicroCents\x12/\n" +
+	"\x13currently_suspended\x18\t \x01(\bR\x12currentlySuspended\"\xa3\x01\n" +
 	"\x1bCheckWorkspaceSpendResponse\x12\x1f\n" +
 	"\vspend_cents\x18\x01 \x01(\x03R\n" +
 	"spendCents\x12+\n" +
 	"\x11threshold_crossed\x18\x03 \x01(\x05R\x10thresholdCrossed\x12\x18\n" +
-	"\aalerted\x18\x04 \x01(\bR\aalerted2\x85\x01\n" +
+	"\aalerted\x18\x04 \x01(\bR\aalerted\x12\x1c\n" +
+	"\tsuspended\x18\x05 \x01(\bR\tsuspended2\x85\x01\n" +
 	"\x17DeploySpendCheckService\x12d\n" +
 	"\x13CheckWorkspaceSpend\x12$.hydra.v1.CheckWorkspaceSpendRequest\x1a%.hydra.v1.CheckWorkspaceSpendResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9b\x01\n" +
 	"\fcom.hydra.v1B\x15DeploySpendCheckProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
