@@ -13,11 +13,6 @@ export const IdentitiesSearch = () => {
       clearOnDefault: true,
     }),
   );
-  const updateSearch = (value: string | null) => {
-    setSearch(value).catch((error: unknown) => {
-      console.error("Failed to update identity search", error);
-    });
-  };
 
   return (
     <div className="flex h-8 w-full items-center md:w-80">
@@ -35,17 +30,17 @@ export const IdentitiesSearch = () => {
               variant="ghost"
               size="icon"
               aria-label="Clear search"
-              onClick={() => updateSearch(null)}
+              onClick={() => setSearch(null)}
             >
               <XMark className="size-4" />
             </Button>
           ) : null
         }
         className="h-8 text-[13px] font-medium"
-        onChange={(event) => updateSearch(event.target.value || null)}
+        onChange={(event) => setSearch(event.target.value || null)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
-            updateSearch(null);
+            setSearch(null);
           }
         }}
       />
