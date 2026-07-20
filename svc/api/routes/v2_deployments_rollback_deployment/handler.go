@@ -85,14 +85,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	//nolint:exhaustruct // SpendSuspended applies to start only
-	if r := deploygate.CheckRollbackTarget(deploygate.Input{
-		Status:               dep.Status,
-		DesiredState:         dep.DesiredState,
-		EnvironmentSlug:      dep.EnvironmentSlug,
-		CurrentDeploymentID:  app.CurrentDeploymentID.String,
-		DeploymentID:         dep.ID,
-		IsRolledBack:         app.IsRolledBack,
+	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+		Status:              dep.Status,
+		DesiredState:        dep.DesiredState,
+		EnvironmentSlug:     dep.EnvironmentSlug,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        dep.ID,
 	}); r != deploygate.PromotionOK {
 		return deployment.PromotionFault(r)
 	}

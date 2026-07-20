@@ -43,8 +43,7 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
 
-	//nolint:exhaustruct // stop only uses the runtime status and environment fields
-	if r := deploygate.CheckStoppable(deploygate.Input{
+	if r := deploygate.CheckStoppable(deploygate.StopInput{
 		Status:          pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,

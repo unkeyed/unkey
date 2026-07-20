@@ -99,14 +99,12 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
 
-	//nolint:exhaustruct // SpendSuspended applies to start only
-	if r := deploygate.CheckRollbackTarget(deploygate.Input{
-		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
-		EnvironmentSlug:      environment.Slug,
-		CurrentDeploymentID:  app.CurrentDeploymentID.String,
-		DeploymentID:         targetDeployment.ID,
-		IsRolledBack:         app.IsRolledBack,
+	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		EnvironmentSlug:     environment.Slug,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        targetDeployment.ID,
 	}); r != deploygate.PromotionOK {
 		return nil, restate.TerminalError(errors.New(r.Message()), 400)
 	}

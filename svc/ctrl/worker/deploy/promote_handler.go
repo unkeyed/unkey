@@ -79,14 +79,13 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to find the environment"))
 	}
 
-	//nolint:exhaustruct // SpendSuspended applies to start only
-	if r := deploygate.CheckPromoteTarget(deploygate.Input{
-		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
-		EnvironmentSlug:      environment.Slug,
-		CurrentDeploymentID:  app.CurrentDeploymentID.String,
-		DeploymentID:         targetDeployment.ID,
-		IsRolledBack:         app.IsRolledBack,
+	if r := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		EnvironmentSlug:     environment.Slug,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        targetDeployment.ID,
+		IsRolledBack:        app.IsRolledBack,
 	}); r != deploygate.PromotionOK {
 		return nil, fault.Wrap(
 			restate.TerminalError(errors.New(r.Message()), 400),

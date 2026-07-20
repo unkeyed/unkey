@@ -45,10 +45,12 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	//nolint:exhaustruct // start only uses the desired state and environment fields
-	if r := deploygate.CheckStartable(deploygate.Input{
+	if r := deploygate.CheckStartable(deploygate.StartInput{
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,
+		// Spend is gated by the ctrl service before enqueue; the worker only
+		// re-checks lifecycle state.
+		SpendSuspended: false,
 	}); r != deploygate.StartOK {
 		return nil, restate.TerminalError(errors.New(r.Message()), 400)
 	}

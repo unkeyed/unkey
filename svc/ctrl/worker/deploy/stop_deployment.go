@@ -40,8 +40,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
 
-	//nolint:exhaustruct // stop only uses the runtime status and environment fields
-	if r := deploygate.CheckStoppable(deploygate.Input{
+	if r := deploygate.CheckStoppable(deploygate.StopInput{
 		Status:          pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug: environment.Slug,

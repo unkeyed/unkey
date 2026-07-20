@@ -11,23 +11,46 @@ import "github.com/unkeyed/unkey/pkg/db"
 // promote/rollback require it, stop/start reject it.
 const envProduction = "production"
 
-// Input is a deployment's lifecycle-relevant state, typed to the pkg/db enums:
-// the API passes its db row fields directly, ctrl converts from its own db
-// package at the boundary. Fields unused by a check (the current-pointer fields
-// for stop/start) may be left zero.
-type Input struct {
+// Each check takes its own input holding exactly the fields it needs. Status and
+// DesiredState are typed to the pkg/db enums: the API passes its db row fields
+// directly, ctrl converts from its own db package at the boundary.
+
+// PromoteInput is the state CheckPromoteTarget needs.
+type PromoteInput struct {
 	Status              db.DeploymentsStatus
 	DesiredState        db.DeploymentsDesiredState
 	EnvironmentSlug     string
 	CurrentDeploymentID string
 	DeploymentID        string
 	IsRolledBack        bool
-	SpendSuspended      bool
 }
 
-// isCurrent reports whether this deployment is the app's current (live) one.
-func (in Input) isCurrent() bool {
-	return in.CurrentDeploymentID != "" && in.CurrentDeploymentID == in.DeploymentID
+// RollbackInput is the state CheckRollbackTarget needs.
+type RollbackInput struct {
+	Status              db.DeploymentsStatus
+	DesiredState        db.DeploymentsDesiredState
+	EnvironmentSlug     string
+	CurrentDeploymentID string
+	DeploymentID        string
+}
+
+// StopInput is the state CheckStoppable needs.
+type StopInput struct {
+	Status          db.DeploymentsStatus
+	DesiredState    db.DeploymentsDesiredState
+	EnvironmentSlug string
+}
+
+// StartInput is the state CheckStartable needs.
+type StartInput struct {
+	DesiredState    db.DeploymentsDesiredState
+	EnvironmentSlug string
+	SpendSuspended  bool
+}
+
+// isCurrent reports whether the target is the app's current (live) deployment.
+func isCurrent(currentDeploymentID, deploymentID string) bool {
+	return currentDeploymentID != "" && currentDeploymentID == deploymentID
 }
 
 // PromotionReason is why a deployment fails a promote/rollback precondition.
@@ -68,15 +91,19 @@ func (r PromotionReason) Message() string {
 // deployment must be ready, running (not draining), in production, and its app
 // must already have a current deployment. Order matters — it is the order every
 // layer reports failures in.
-func promotionCore(in Input) PromotionReason {
+func promotionCore(
+	status db.DeploymentsStatus,
+	desiredState db.DeploymentsDesiredState,
+	environmentSlug, currentDeploymentID string,
+) PromotionReason {
 	switch {
-	case in.Status != db.DeploymentsStatusReady:
+	case status != db.DeploymentsStatusReady:
 		return PromotionNotReady
-	case in.DesiredState != db.DeploymentsDesiredStateRunning:
+	case desiredState != db.DeploymentsDesiredStateRunning:
 		return PromotionDraining
-	case in.EnvironmentSlug != envProduction:
+	case environmentSlug != envProduction:
 		return PromotionNotProduction
-	case in.CurrentDeploymentID == "":
+	case currentDeploymentID == "":
 		return PromotionNoCurrentDeployment
 	default:
 		return PromotionOK
@@ -86,11 +113,16 @@ func promotionCore(in Input) PromotionReason {
 // CheckPromoteTarget validates a deployment may be promoted to current.
 // Promoting the deployment that is already current is rejected, unless the app
 // is in a rolled-back state (then it is a rollback confirmation, allowed).
-func CheckPromoteTarget(in Input) PromotionReason {
-	if r := promotionCore(in); r != PromotionOK {
+func CheckPromoteTarget(in PromoteInput) PromotionReason {
+	if r := promotionCore(
+		in.Status,
+		in.DesiredState,
+		in.EnvironmentSlug,
+		in.CurrentDeploymentID,
+	); r != PromotionOK {
 		return r
 	}
-	if in.isCurrent() && !in.IsRolledBack {
+	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) && !in.IsRolledBack {
 		return PromotionAlreadyCurrent
 	}
 	return PromotionOK
@@ -98,11 +130,16 @@ func CheckPromoteTarget(in Input) PromotionReason {
 
 // CheckRollbackTarget validates a deployment may be rolled back to. Rolling back
 // to the deployment that is already current is always a no-op, so it is rejected.
-func CheckRollbackTarget(in Input) PromotionReason {
-	if r := promotionCore(in); r != PromotionOK {
+func CheckRollbackTarget(in RollbackInput) PromotionReason {
+	if r := promotionCore(
+		in.Status,
+		in.DesiredState,
+		in.EnvironmentSlug,
+		in.CurrentDeploymentID,
+	); r != PromotionOK {
 		return r
 	}
-	if in.isCurrent() {
+	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) {
 		return PromotionAlreadyCurrent
 	}
 	return PromotionOK
@@ -137,7 +174,7 @@ func (r StopReason) Message() string {
 // CheckStoppable validates a deployment may be stopped: it must be running
 // (ready with a running desired state) and not in production. Order matches the
 // order every layer reports failures in.
-func CheckStoppable(in Input) StopReason {
+func CheckStoppable(in StopInput) StopReason {
 	switch {
 	case in.Status != db.DeploymentsStatusReady:
 		return StopNotRunning
@@ -184,7 +221,7 @@ func (r StartReason) Message() string {
 // any deployment whose intent is stopped (including one still draining), which
 // is what the ctrl service and worker enforce. Starting resumes compute spend,
 // so a workspace suspended by its spend cap is refused last.
-func CheckStartable(in Input) StartReason {
+func CheckStartable(in StartInput) StartReason {
 	switch {
 	case in.DesiredState != db.DeploymentsDesiredStateStopped:
 		return StartNotStopped

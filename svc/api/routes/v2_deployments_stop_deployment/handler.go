@@ -73,8 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// A draining deployment keeps status ready until krane removes its last
 	// instance, so desired_state is the signal that a stop is already in flight.
-	//nolint:exhaustruct // stop only uses the runtime status and environment fields
-	if r := deploygate.CheckStoppable(deploygate.Input{
+	if r := deploygate.CheckStoppable(deploygate.StopInput{
 		Status:          dep.Status,
 		DesiredState:    dep.DesiredState,
 		EnvironmentSlug: dep.EnvironmentSlug,

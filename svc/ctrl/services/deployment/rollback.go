@@ -55,14 +55,12 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
 	}
 
-	//nolint:exhaustruct // SpendSuspended applies to start only
-	if r := deploygate.CheckRollbackTarget(deploygate.Input{
-		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
-		EnvironmentSlug:      targetDeployment.EnvironmentSlug,
-		CurrentDeploymentID:  targetDeployment.CurrentDeploymentID.String,
-		DeploymentID:         targetDeployment.ID,
-		IsRolledBack:         targetDeployment.IsRolledBack,
+	if r := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
+		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
+		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		EnvironmentSlug:     targetDeployment.EnvironmentSlug,
+		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
+		DeploymentID:        targetDeployment.ID,
 	}); r != deploygate.PromotionOK {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}

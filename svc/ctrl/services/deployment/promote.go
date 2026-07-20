@@ -40,14 +40,13 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	//nolint:exhaustruct // SpendSuspended applies to start only
-	if r := deploygate.CheckPromoteTarget(deploygate.Input{
-		Status:               pkgdb.DeploymentsStatus(deployment.Status),
-		DesiredState:         pkgdb.DeploymentsDesiredState(deployment.DesiredState),
-		EnvironmentSlug:      deployment.EnvironmentSlug,
-		CurrentDeploymentID:  deployment.CurrentDeploymentID.String,
-		DeploymentID:         deployment.ID,
-		IsRolledBack:         deployment.IsRolledBack,
+	if r := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              pkgdb.DeploymentsStatus(deployment.Status),
+		DesiredState:        pkgdb.DeploymentsDesiredState(deployment.DesiredState),
+		EnvironmentSlug:     deployment.EnvironmentSlug,
+		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
+		DeploymentID:        deployment.ID,
+		IsRolledBack:        deployment.IsRolledBack,
 	}); r != deploygate.PromotionOK {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(r.Message()))
 	}
