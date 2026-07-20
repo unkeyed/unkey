@@ -9,6 +9,8 @@ import {
   createClientErrorFilter,
   createTracesSampler,
   replayPrivacyOptions,
+  scrubLog,
+  scrubReplayFrame,
   scrubSpanPii,
   scrubTransactionPii,
   scrubUrl,
@@ -40,13 +42,22 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
     // Add optional integrations for additional features
     integrations: [
       // Session Replay is private by default — see lib/sentry/replay-privacy.ts
-      Sentry.replayIntegration(replayPrivacyOptions),
+      Sentry.replayIntegration({
+        ...replayPrivacyOptions,
+        // Recording envelopes bypass `beforeSend`, and replay captures console
+        // breadcrumbs off the scope itself, so they need scrubbing here.
+        beforeAddRecordingEvent: scrubReplayFrame,
+      }),
     ],
 
     // Use dynamic sampling to reduce non-error traces while ensuring all errors are captured
     tracesSampler: createTracesSampler(),
     // Enable logs to be sent to Sentry
     enableLogs: true,
+
+    // Log envelopes bypass `beforeSend` entirely, and `createClientErrorFilter`
+    // routes dropped tRPC errors into logs with their raw message attached.
+    beforeSendLog: scrubLog,
 
     // Define how likely Replay events are sampled.
     // This sets the sample rate to be 10%. You may want this to be 100% while

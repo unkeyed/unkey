@@ -50,8 +50,17 @@ export {
 // Export trace sampling functionality
 export { createTracesSampler } from "./trace-sampler";
 
-// Export PII/URL scrubbing utilities
-export { scrubUrl, scrubEventPii, scrubTransactionPii, scrubSpanPii } from "./pii-scrubber";
+// Export PII/URL scrubbing utilities. `scrubLog` and `scrubReplayFrame` cover
+// the two egress paths that bypass `beforeSend` entirely — structured logs and
+// Session Replay recording frames.
+export {
+  scrubUrl,
+  scrubEventPii,
+  scrubTransactionPii,
+  scrubSpanPii,
+  scrubLog,
+  scrubReplayFrame,
+} from "./pii-scrubber";
 
 // Export Replay privacy config and noise filters
 export { replayPrivacyOptions } from "./replay-privacy";

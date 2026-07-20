@@ -1,9 +1,13 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 import { describe, expect, it } from "vitest";
 import {
+  type ReplayFrameEvent,
+  type SentryLog,
   type SpanJson,
   type TransactionEvent,
   scrubEventPii,
+  scrubLog,
+  scrubReplayFrame,
   scrubSpanPii,
   scrubTransactionPii,
   scrubUrl,
@@ -293,6 +297,153 @@ describe("scrubEventPii", () => {
     scrubEventPii(event);
 
     expect(event.request?.data).toBe('{"email":"[REDACTED]","password":"[REDACTED]","keep":"ok"}');
+  });
+
+  it("redacts by key inside a form-encoded string body", () => {
+    // The SDK attaches real bodies (`RequestData` includes `data` and does not
+    // gate it on `sendDefaultPii`), and a form body has field names the token
+    // net cannot use — `hunter2` is far too short for it to see.
+    const event: ErrorEvent = {
+      type: undefined,
+      request: { data: "email=a%40b.com&password=hunter2&page=2" },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.request?.data).toContain("password=%5BREDACTED%5D");
+    expect(event.request?.data).not.toContain("hunter2");
+    expect(event.request?.data).toContain("page=2");
+  });
+
+  it("survives a cyclic object request body instead of dropping it", () => {
+    // A non-string body reaches the walker un-normalized; a reference cycle
+    // must not throw and delete the whole body.
+    const body: Record<string, unknown> = { password: "hunter2", keep: "ok" };
+    body.self = body;
+    const event: ErrorEvent = { type: undefined, request: { data: body } };
+
+    scrubEventPii(event);
+
+    const scrubbed = event.request?.data as Record<string, unknown>;
+    expect(scrubbed.password).toBe("[REDACTED]");
+    expect(scrubbed.keep).toBe("ok");
+    expect(scrubbed.self).toBe("[REDACTED]");
+  });
+
+  it("leaves a plain-text body unmangled", () => {
+    // `URLSearchParams` parses anything, so without the form-encoded shape
+    // check prose would be rewritten into `Something+went+wrong=`.
+    const event: ErrorEvent = { type: undefined, request: { data: "Something went wrong" } };
+
+    scrubEventPii(event);
+
+    expect(event.request?.data).toBe("Something went wrong");
+  });
+
+  it("redacts the parsed request cookies, not just the cookie header", () => {
+    // `RequestData` parses the cookie header into `request.cookies` and does
+    // not gate it on `sendDefaultPii`, so redacting only the header would
+    // leave the live session token one field over.
+    const event: ErrorEvent = {
+      type: undefined,
+      request: {
+        headers: { cookie: `__session=${JWT}` },
+        cookies: { __session: JWT, theme: "dark" },
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event.request?.cookies)).not.toContain(JWT);
+    expect(event.request?.cookies?.__session).toBe("[REDACTED]");
+    // Names are kept — knowing which cookies were present aids debugging and
+    // is not the secret.
+    expect(Object.keys(event.request?.cookies ?? {})).toEqual(["__session", "theme"]);
+  });
+
+  it("still redacts credential headers when url scrubbing throws", () => {
+    // Regression guard: `scrubRequest` used to run its surfaces in one
+    // un-isolated sequence, so a throw on the URL skipped the cookie and
+    // authorization redaction below it.
+    const event: ErrorEvent = {
+      type: undefined,
+      request: {
+        get url(): string {
+          throw new Error("exotic getter");
+        },
+        headers: { authorization: `Bearer ${JWT}`, cookie: `__session=${JWT}` },
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.request?.headers?.authorization).toBe("[REDACTED]");
+    expect(event.request?.headers?.cookie).toBe("[REDACTED]");
+  });
+
+  it("keeps scrubbing later breadcrumbs when one throws", () => {
+    // Regression guard at breadcrumb granularity: the message scrub runs
+    // inside the loop, so a frozen breadcrumb used to abort iteration and
+    // leave every later breadcrumb's URL raw.
+    const event: ErrorEvent = {
+      type: undefined,
+      breadcrumbs: [
+        Object.freeze({ category: "console", message: `boom ${ROOT_KEY}` }),
+        { category: "fetch", data: { url: `/v1/keys?token=${JWT}` } },
+      ],
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event.breadcrumbs?.[1])).not.toContain(JWT);
+  });
+
+  it("leaves ui.click selector paths intact", () => {
+    // `ui.click` messages are DOM selector paths, not prose; the digit-bearing
+    // net would shred hashed class names and destroy the click trail.
+    const selector = "div > button.Button_root__1a2b3c4d5e6f7g8h > span";
+    const event: ErrorEvent = {
+      type: undefined,
+      breadcrumbs: [{ category: "ui.click", message: selector }],
+    };
+
+    scrubEventPii(event);
+
+    expect(event.breadcrumbs?.[0]?.message).toBe(selector);
+  });
+
+  it("redacts an email carried inside a URL query in prose", () => {
+    // `scrubUrl` percent-encodes `@` to `%40`, so the email matcher has to run
+    // before the URL treatment or it finds no `@` at all.
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: {
+        values: [{ type: "Error", value: "Failed to fetch /api/users?q=john.doe@customer.com" }],
+      },
+    };
+
+    scrubEventPii(event);
+
+    const value = event.exception?.values?.[0]?.value;
+    expect(value).not.toContain("john.doe");
+    expect(value).not.toContain("customer.com");
+  });
+
+  it("scrubs a repeated param reference instead of treating it as a cycle", () => {
+    // Only an object that contains *itself* is a cycle. A permanent seen-set
+    // flagged the second occurrence of a shared reference and destroyed it.
+    const shared = { token: ROOT_KEY, keep: "visible" };
+    const event: ErrorEvent = {
+      type: undefined,
+      logentry: { message: "compare %s with %s", params: [{ a: shared, b: shared }] },
+    };
+
+    scrubEventPii(event);
+
+    const param = event.logentry?.params?.[0] as { a: unknown; b: unknown };
+    expect(param.a).toEqual({ token: "[REDACTED]", keep: "visible" });
+    // Previously `[REDACTED]` — the whole object destroyed for being repeated.
+    expect(param.b).toEqual({ token: "[REDACTED]", keep: "visible" });
   });
 
   it("drops the whole tRPC input when scrubbing it throws", () => {
@@ -798,5 +949,187 @@ describe("scrubSpanPii", () => {
     const returned = scrubSpanPii(span);
 
     expect(JSON.stringify(returned)).not.toContain(ROOT_KEY);
+  });
+});
+
+describe("scrubLog", () => {
+  it("scrubs the raw error message the error filter routes into logs", () => {
+    // `createErrorFilter` drops expected tRPC errors from the event pipeline
+    // and hands them to `logTRPCError`, which attaches the pre-scrub
+    // `error.message`. Logs bypass `beforeSend`, so this hook is the only
+    // thing standing between that message and the ingest.
+    const log: SentryLog = {
+      level: "error",
+      message: "tRPC operation completed with expected error",
+      attributes: {
+        trpc_error_message: `Failed to verify key ${ROOT_KEY}`,
+        trpc_code: "INTERNAL_SERVER_ERROR",
+        user_email: "jane@acme.com",
+      },
+    };
+
+    const scrubbed = scrubLog(log);
+
+    expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
+    // Non-sensitive diagnostics survive.
+    expect(scrubbed?.attributes?.trpc_code).toBe("INTERNAL_SERVER_ERROR");
+  });
+
+  it("drops the log when scrubbing throws", () => {
+    const log: SentryLog = {
+      level: "error",
+      message: "boom",
+      attributes: {
+        get exploding(): string {
+          throw new Error("getter exploded");
+        },
+      },
+    };
+
+    // Fail closed: a lost diagnostic log costs less than a leaked credential.
+    expect(scrubLog(log)).toBeNull();
+  });
+});
+
+describe("scrubReplayFrame", () => {
+  it("scrubs console frames, including the raw arguments alongside the message", () => {
+    // Replay records console breadcrumbs into its own envelope, which never
+    // passes through `beforeSend`, and carries the payload twice.
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "console",
+          level: "error",
+          message: `Tree layout error: ${ROOT_KEY}`,
+          data: { logger: "console", arguments: ["Tree layout error:", { message: ROOT_KEY }] },
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    const scrubbed = scrubReplayFrame(frame);
+
+    expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
+  });
+
+  it("keeps console message and arguments consistent under one policy", () => {
+    // A diagnostic constant must not survive in one field and be redacted in
+    // the other. Both use the digit-net policy, so `INTERNAL_SERVER_ERROR`
+    // stays in message AND arguments.
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "console",
+          level: "error",
+          message: "request failed INTERNAL_SERVER_ERROR",
+          data: { logger: "console", arguments: ["request failed", "INTERNAL_SERVER_ERROR"] },
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    scrubReplayFrame(frame);
+
+    const payload = (frame.data as { payload: { message: string; data: { arguments: string[] } } })
+      .payload;
+    expect(payload.message).toContain("INTERNAL_SERVER_ERROR");
+    expect(payload.data.arguments).toContain("INTERNAL_SERVER_ERROR");
+  });
+
+  it("survives a cyclic console argument instead of dropping the frame", () => {
+    // Console args reach replay un-normalized, so a self-referential object
+    // (a React fiber, a DOM node) must not blow the stack and null the frame.
+    const cyclic: Record<string, unknown> = { token: ROOT_KEY };
+    cyclic.self = cyclic;
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "console",
+          level: "error",
+          message: "boom",
+          data: { logger: "console", arguments: [cyclic] },
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    const scrubbed = scrubReplayFrame(frame);
+
+    expect(scrubbed).toBe(frame);
+    expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
+  });
+
+  it("scrubs the URL a navigation/resource span carries in its description", () => {
+    // Span recording frames bypass `beforeSend` like every replay frame, and
+    // the resource/navigation URL — query string and all — rides in
+    // `description`.
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "performanceSpan",
+        payload: {
+          op: "resource.fetch",
+          description: `https://api.unkey.com/v1/keys.verifyKey?token=${JWT}`,
+          startTimestamp: 0,
+          endTimestamp: 1,
+          data: {},
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    scrubReplayFrame(frame);
+
+    expect(JSON.stringify(frame)).not.toContain(JWT);
+  });
+
+  it("scrubs URL data fields on navigation breadcrumb frames", () => {
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "navigation",
+          data: { from: `/auth/callback?code=${ROOT_KEY}`, to: "/dashboard" },
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    scrubReplayFrame(frame);
+
+    expect(JSON.stringify(frame)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(frame)).toContain("/dashboard");
+  });
+
+  it("leaves ui.click selector paths untouched", () => {
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "ui.click",
+          message: "div > button.Button_root__1a2b3",
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    scrubReplayFrame(frame);
+
+    const message = (frame.data as { payload: { message: string } }).payload.message;
+    expect(message).toBe("div > button.Button_root__1a2b3");
   });
 });

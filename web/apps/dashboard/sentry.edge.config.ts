@@ -8,6 +8,7 @@ import { env } from "./lib/env";
 import {
   createEdgeErrorFilter,
   createTracesSampler,
+  scrubLog,
   scrubSpanPii,
   scrubTransactionPii,
 } from "./lib/sentry";
@@ -34,6 +35,10 @@ if (process.env.NODE_ENV !== "development" && !envVars.SENTRY_DISABLED) {
 
     // Enable logs to be sent to Sentry
     enableLogs: true,
+
+    // Log envelopes bypass `beforeSend` entirely, and the error filter routes
+    // dropped tRPC errors into logs with their raw message attached.
+    beforeSendLog: scrubLog,
 
     // Enable sending user PII (Personally Identifiable Information)
     // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
