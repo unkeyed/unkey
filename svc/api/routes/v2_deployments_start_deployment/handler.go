@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if dep.EnvironmentSlug == "production" {
 		return fault.New(
 			"production deployment",
-			fault.Code(codes.App.Precondition.ProductionCannotStart.URN()),
+			fault.Code(codes.App.Precondition.DeploymentIsProduction.URN()),
 			fault.Internal("start is not allowed on production environments"),
 			fault.Public("Production deployments cannot be started."),
 		)

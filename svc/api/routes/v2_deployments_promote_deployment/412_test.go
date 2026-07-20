@@ -112,7 +112,7 @@ func TestPromoteDeploymentNonProduction(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "Only production deployments can be promoted.")
-	require.Contains(t, res.Body.Error.Type, "not_production_deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_production")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for non-production deployments")
 }
 
@@ -138,8 +138,8 @@ func TestPromoteDeploymentNoLiveDeployment(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "no live deployment")
-	require.Contains(t, res.Body.Error.Type, "no_live_deployment")
+	require.Contains(t, res.Body.Error.Detail, "no current deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_no_current")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called when the app has no live deployment")
 }
 
@@ -167,8 +167,8 @@ func TestPromoteDeploymentAlreadyLive(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: live.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "already live")
-	require.Contains(t, res.Body.Error.Type, "deployment_already_live")
+	require.Contains(t, res.Body.Error.Detail, "already the current deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called when the deployment is already live")
 }
 

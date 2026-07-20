@@ -219,25 +219,24 @@ const (
 	// DeploymentNotReady indicates the target deployment is not usable: either it
 	// never reached ready status or it is shutting down and cannot serve traffic.
 	UnkeyAppErrorsPreconditionDeploymentNotReady URN = "err:unkey:application:deployment_not_ready"
-	// NotProductionDeployment indicates the action is only allowed on production
+	// DeploymentNotProduction indicates the action is only allowed on production
 	// deployments.
-	UnkeyAppErrorsPreconditionNotProductionDeployment URN = "err:unkey:application:not_production_deployment"
-	// NoLiveDeployment indicates the app has no live deployment to act over.
-	UnkeyAppErrorsPreconditionNoLiveDeployment URN = "err:unkey:application:no_live_deployment"
-	// DeploymentAlreadyLive indicates the target deployment is already the live
+	UnkeyAppErrorsPreconditionDeploymentNotProduction URN = "err:unkey:application:deployment_not_production"
+	// DeploymentNoCurrent indicates the app has no current deployment to act over.
+	UnkeyAppErrorsPreconditionDeploymentNoCurrent URN = "err:unkey:application:deployment_no_current"
+	// DeploymentIsCurrent indicates the target deployment is already the current
 	// deployment.
-	UnkeyAppErrorsPreconditionDeploymentAlreadyLive URN = "err:unkey:application:deployment_already_live"
+	UnkeyAppErrorsPreconditionDeploymentIsCurrent URN = "err:unkey:application:deployment_is_current"
 	// DeploymentNotRunning indicates the target deployment is not running.
 	UnkeyAppErrorsPreconditionDeploymentNotRunning URN = "err:unkey:application:deployment_not_running"
-	// DeploymentAlreadyStopping indicates a stop is already in flight for the
-	// target deployment.
-	UnkeyAppErrorsPreconditionDeploymentAlreadyStopping URN = "err:unkey:application:deployment_already_stopping"
-	// ProductionCannotStop indicates production deployments cannot be stopped.
-	UnkeyAppErrorsPreconditionProductionCannotStop URN = "err:unkey:application:production_cannot_stop"
+	// DeploymentIsStopping indicates a stop is already in flight for the target
+	// deployment.
+	UnkeyAppErrorsPreconditionDeploymentIsStopping URN = "err:unkey:application:deployment_is_stopping"
 	// DeploymentNotStopped indicates the target deployment is not stopped.
 	UnkeyAppErrorsPreconditionDeploymentNotStopped URN = "err:unkey:application:deployment_not_stopped"
-	// ProductionCannotStart indicates production deployments cannot be started.
-	UnkeyAppErrorsPreconditionProductionCannotStart URN = "err:unkey:application:production_cannot_start"
+	// DeploymentIsProduction indicates the action does not apply to production
+	// deployments, which cannot be stopped or started directly.
+	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
 
 // ----------------
 // UnkeyFrontlineErrors

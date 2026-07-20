@@ -5,4 +5,4 @@ properties:
   deploymentId:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
-description: Promote a ready deployment to become the live deployment for its environment.
+description: Promote a ready deployment to become the current deployment for its environment.

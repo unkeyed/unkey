@@ -1,9 +1,9 @@
 ---
-title: "not_production_deployment"
-description: "Promote and rollback change the production live pointer, so they only apply to deployments in the production environment."
+title: "deployment_not_production"
+description: "Promote and rollback change the app's current production deployment, so they only apply to deployments in the production environment."
 ---
 
-<Danger>`err:unkey:application:not_production_deployment`</Danger>
+<Danger>`err:unkey:application:deployment_not_production`</Danger>
 
 ```json Example
 {
@@ -14,14 +14,14 @@ description: "Promote and rollback change the production live pointer, so they o
     "detail": "Only production deployments can be promoted.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/not_production_deployment"
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_not_production"
   }
 }
 ```
 
 ## What Happened?
 
-You called `promoteDeployment` or `rollbackDeployment` on a deployment that does not belong to the `production` environment. Both operations swap the app's production live pointer, so they are only meaningful for production deployments. Preview and other non-production environments do not have a live pointer to move.
+You called `promoteDeployment` or `rollbackDeployment` on a deployment that does not belong to the `production` environment. Both operations move the app's current production deployment, so they are only meaningful for production deployments. Preview and other non-production environments do not have a current deployment to move.
 
 `getDeployment` reports the deployment's `environmentId`, and `availableActions` omits `promote` and `rollback` for non-production deployments.
 
@@ -41,11 +41,11 @@ curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
 
 ## Common Mistakes
 
-- **Confusing preview with production**: Trying to promote a preview deployment that has no live pointer.
+- **Confusing preview with production**: Trying to promote a preview deployment that has no current deployment to move.
 - **Wrong deployment id**: Passing a non-production deployment id by mistake.
 
 ## Related Errors
 
-- [err:unkey:application:no_live_deployment](./no_live_deployment) - When the app has no live deployment to act over
-- [err:unkey:application:deployment_already_live](./deployment_already_live) - When the target is already the live deployment
+- [err:unkey:application:deployment_no_current](./deployment_no_current) - When the app has no current deployment to act over
+- [err:unkey:application:deployment_is_current](./deployment_is_current) - When the target is already the current deployment
 - [err:unkey:application:deployment_not_ready](./deployment_not_ready) - When the target deployment cannot serve traffic

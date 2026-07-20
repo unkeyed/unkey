@@ -1,9 +1,9 @@
 ---
-title: "deployment_already_stopping"
+title: "deployment_is_stopping"
 description: "A stop is already in progress for this deployment; it is finishing in-flight work and does not need to be stopped again."
 ---
 
-<Danger>`err:unkey:application:deployment_already_stopping`</Danger>
+<Danger>`err:unkey:application:deployment_is_stopping`</Danger>
 
 ```json Example
 {
@@ -14,7 +14,7 @@ description: "A stop is already in progress for this deployment; it is finishing
     "detail": "The deployment is already stopping.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/deployment_already_stopping"
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_is_stopping"
   }
 }
 ```
@@ -46,4 +46,4 @@ curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
 
 - [err:unkey:application:deployment_not_running](./deployment_not_running) - When the deployment is not running
 - [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When starting a deployment that is not stopped
-- [err:unkey:application:production_cannot_stop](./production_cannot_stop) - When the deployment is in production
+- [err:unkey:application:deployment_is_production](./deployment_is_production) - When the deployment is in production

@@ -84,7 +84,7 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "already stopping")
-	require.Contains(t, res.Body.Error.Type, "deployment_already_stopping")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_stopping")
 	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called for a deployment that is already stopping")
 }
 
@@ -111,7 +111,7 @@ func TestStopDeploymentProduction(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "Production deployments cannot be stopped.")
-	require.Contains(t, res.Body.Error.Type, "production_cannot_stop")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
 	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called for production deployments")
 }
 

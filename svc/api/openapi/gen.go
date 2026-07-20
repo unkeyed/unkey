@@ -1762,7 +1762,7 @@ type V2DeploymentsListDeploymentsResponseBody struct {
 	Pagination Pagination `json:"pagination"`
 }
 
-// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the live deployment for its environment.
+// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the current deployment for its environment.
 type V2DeploymentsPromoteDeploymentRequestBody struct {
 	// DeploymentId Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.

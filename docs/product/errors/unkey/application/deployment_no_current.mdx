@@ -1,0 +1,49 @@
+---
+title: "deployment_no_current"
+description: "The app has no current deployment, so there is nothing to promote over or roll back from."
+---
+
+<Danger>`err:unkey:application:deployment_no_current`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The app has no current deployment to promote over.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_no_current"
+  }
+}
+```
+
+## What Happened?
+
+You called `promoteDeployment` or `rollbackDeployment`, but the app has no current deployment. Promotion swaps the current deployment over the existing one, and rollback derives its source from it, so both require an app that has already gone live at least once. A brand-new app that has never had a successful production deployment has no current deployment set.
+
+## How To Fix
+
+1. Deploy to production and wait for the deployment to reach `ready`.
+2. Once the app has a current deployment, promote or roll back as needed.
+3. Confirm the current deployment with `getDeployment`: the current one reports `isCurrent: true`.
+
+```bash
+# Verify the app has a current deployment
+curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Promoting on a fresh app**: Trying to promote or roll back before the app has ever gone live.
+- **Assuming a failed deploy went live**: A deployment that never reached `ready` does not become the current deployment.
+
+## Related Errors
+
+- [err:unkey:application:deployment_not_ready](./deployment_not_ready) - When the target deployment cannot serve traffic
+- [err:unkey:application:deployment_is_current](./deployment_is_current) - When the target is already the current deployment
+- [err:unkey:application:deployment_not_production](./deployment_not_production) - When the action requires a production deployment

@@ -68,7 +68,7 @@ func TestStartDeploymentProduction(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "Production deployments cannot be started.")
-	require.Contains(t, res.Body.Error.Type, "production_cannot_start")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
 	require.Empty(t, mock.WakeDeploymentCalls, "ctrl must not be called for production deployments")
 }
 
