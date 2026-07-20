@@ -23,8 +23,14 @@ FROM deployments d
 JOIN projects p ON p.id = d.project_id
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
-WHERE d.id IN (/*SLICE:deployment_ids*/?)
+WHERE d.workspace_id = ?
+  AND d.id IN (/*SLICE:deployment_ids*/?)
 `
+
+type ListDeploymentEnvAndAppStateParams struct {
+	WorkspaceID   string   `db:"workspace_id"`
+	DeploymentIds []string `db:"deployment_ids"`
+}
 
 type ListDeploymentEnvAndAppStateRow struct {
 	DeploymentID           string         `db:"deployment_id"`
@@ -48,15 +54,17 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	JOIN projects p ON p.id = d.project_id
 //	JOIN environments e ON e.id = d.environment_id
 //	JOIN apps a ON a.id = d.app_id
-//	WHERE d.id IN (/*SLICE:deployment_ids*/?)
-func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentEnvAndAppStateRow, error) {
+//	WHERE d.workspace_id = ?
+//	  AND d.id IN (/*SLICE:deployment_ids*/?)
+func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {
 	query := listDeploymentEnvAndAppState
 	var queryParams []interface{}
-	if len(deploymentIds) > 0 {
-		for _, v := range deploymentIds {
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.DeploymentIds) > 0 {
+		for _, v := range arg.DeploymentIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(deploymentIds))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(arg.DeploymentIds))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", "NULL", 1)
 	}

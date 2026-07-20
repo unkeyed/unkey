@@ -14,19 +14,26 @@ const listDeploymentRegions = `-- name: ListDeploymentRegions :many
 SELECT DISTINCT r.name AS region
 FROM deployment_topology dt
 JOIN regions r ON r.id = dt.region_id
-WHERE dt.deployment_id = ?
+WHERE dt.workspace_id = ?
+  AND dt.deployment_id = ?
 ORDER BY r.name
 `
+
+type ListDeploymentRegionsParams struct {
+	WorkspaceID  string `db:"workspace_id"`
+	DeploymentID string `db:"deployment_id"`
+}
 
 // ListDeploymentRegions
 //
 //	SELECT DISTINCT r.name AS region
 //	FROM deployment_topology dt
 //	JOIN regions r ON r.id = dt.region_id
-//	WHERE dt.deployment_id = ?
+//	WHERE dt.workspace_id = ?
+//	  AND dt.deployment_id = ?
 //	ORDER BY r.name
-func (q *Queries) ListDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error) {
-	rows, err := db.QueryContext(ctx, listDeploymentRegions, deploymentID)
+func (q *Queries) ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, listDeploymentRegions, arg.WorkspaceID, arg.DeploymentID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +59,15 @@ const listDeploymentRegionsByIds = `-- name: ListDeploymentRegionsByIds :many
 SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 FROM deployment_topology dt
 JOIN regions r ON r.id = dt.region_id
-WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+WHERE dt.workspace_id = ?
+  AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 ORDER BY dt.deployment_id, r.name
 `
+
+type ListDeploymentRegionsByIdsParams struct {
+	WorkspaceID   string   `db:"workspace_id"`
+	DeploymentIds []string `db:"deployment_ids"`
+}
 
 type ListDeploymentRegionsByIdsRow struct {
 	DeploymentID string `db:"deployment_id"`
@@ -66,16 +79,18 @@ type ListDeploymentRegionsByIdsRow struct {
 //	SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 //	FROM deployment_topology dt
 //	JOIN regions r ON r.id = dt.region_id
-//	WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+//	WHERE dt.workspace_id = ?
+//	  AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY dt.deployment_id, r.name
-func (q *Queries) ListDeploymentRegionsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRegionsByIdsRow, error) {
+func (q *Queries) ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error) {
 	query := listDeploymentRegionsByIds
 	var queryParams []interface{}
-	if len(deploymentIds) > 0 {
-		for _, v := range deploymentIds {
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.DeploymentIds) > 0 {
+		for _, v := range arg.DeploymentIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(deploymentIds))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(arg.DeploymentIds))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", "NULL", 1)
 	}

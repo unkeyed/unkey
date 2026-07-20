@@ -21,10 +21,10 @@ properties:
   isCurrent:
     type: boolean
     description: |
-      True when this is the production deployment currently serving traffic. Only
-      production deployments are ever current; a `ready` deployment is not current
-      if it was superseded, never promoted, or the app was rolled back to a
-      different deployment.
+      True when this is the production deployment currently serving traffic, i.e.
+      on api.acme.com. Only production deployments can be current, and at most one
+      deployment is current. Rollbacks and promotions change which deployment is
+      current and serves requests to api.acme.com.
     example: true
   environment:
     type: string

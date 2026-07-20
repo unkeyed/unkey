@@ -12,25 +12,33 @@ import (
 
 const listFailedDeploymentStepsByIds = `-- name: ListFailedDeploymentStepsByIds :many
 SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
-WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+WHERE workspace_id = ?
+  AND deployment_id IN (/*SLICE:deployment_ids*/?)
   AND error IS NOT NULL AND error != ''
 ORDER BY deployment_id, started_at ASC
 `
 
+type ListFailedDeploymentStepsByIdsParams struct {
+	WorkspaceID   string   `db:"workspace_id"`
+	DeploymentIds []string `db:"deployment_ids"`
+}
+
 // ListFailedDeploymentStepsByIds
 //
 //	SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
-//	WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+//	WHERE workspace_id = ?
+//	  AND deployment_id IN (/*SLICE:deployment_ids*/?)
 //	  AND error IS NOT NULL AND error != ''
 //	ORDER BY deployment_id, started_at ASC
-func (q *Queries) ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]DeploymentStep, error) {
+func (q *Queries) ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error) {
 	query := listFailedDeploymentStepsByIds
 	var queryParams []interface{}
-	if len(deploymentIds) > 0 {
-		for _, v := range deploymentIds {
+	queryParams = append(queryParams, arg.WorkspaceID)
+	if len(arg.DeploymentIds) > 0 {
+		for _, v := range arg.DeploymentIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(deploymentIds))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", strings.Repeat(",?", len(arg.DeploymentIds))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:deployment_ids*/?", "NULL", 1)
 	}

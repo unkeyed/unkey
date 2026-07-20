@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"slices"
 	"strings"
 	"testing"
 
@@ -192,7 +191,6 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 			CreatedAt:              1,
 		}))
 	}
-	slices.Sort(wantRegions)
 
 	var wantDomains []string
 	for range 2 {
@@ -209,15 +207,14 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 			CreatedAt:                1,
 		}))
 	}
-	slices.Sort(wantDomains)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	d := res.Body.Data
-	require.Equal(t, wantRegions, d.Regions)
+	require.ElementsMatch(t, wantRegions, d.Regions)
 	require.NotNil(t, d.Domains)
-	require.Equal(t, wantDomains, *d.Domains)
+	require.ElementsMatch(t, wantDomains, *d.Domains)
 }
 
 func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {

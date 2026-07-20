@@ -158,7 +158,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for i, row := range rows {
 			ids[i] = row.ID
 		}
-		state, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), ids)
+		state, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: ids,
+		})
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -172,7 +175,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			byID[r.DeploymentID] = r
 		}
 
-		regionRows, err := db.Query.ListDeploymentRegionsByIds(ctx, h.DB.RO(), ids)
+		regionRows, err := db.Query.ListDeploymentRegionsByIds(ctx, h.DB.RO(), db.ListDeploymentRegionsByIdsParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: ids,
+		})
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -186,7 +192,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			regionsByID[rr.DeploymentID] = append(regionsByID[rr.DeploymentID], rr.Region)
 		}
 
-		stepRows, err := db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), ids)
+		stepRows, err := db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: ids,
+		})
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -200,7 +209,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			stepsByID[sr.DeploymentID] = append(stepsByID[sr.DeploymentID], sr)
 		}
 
-		domainRows, err := db.Query.ListDeploymentDomainsByIds(ctx, h.DB.RO(), ids)
+		domainRows, err := db.Query.ListDeploymentDomainsByIds(ctx, h.DB.RO(), db.ListDeploymentDomainsByIdsParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: ids,
+		})
 		if err != nil {
 			return fault.Wrap(
 				err,

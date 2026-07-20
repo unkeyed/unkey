@@ -2372,16 +2372,20 @@ type Querier interface {
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  WHERE r.deployment_id = ?
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id = ?
 	//  ORDER BY r.fully_qualified_domain_name
-	ListDeploymentDomains(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
+	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error)
 	//ListDeploymentDomainsByIds
 	//
 	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  WHERE r.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
-	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentDomainsByIdsRow, error)
+	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error)
 	//ListDeploymentEnvAndAppState
 	//
 	//  SELECT
@@ -2395,24 +2399,27 @@ type Querier interface {
 	//  JOIN projects p ON p.id = d.project_id
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
-	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
-	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentEnvAndAppStateRow, error)
+	//  WHERE d.workspace_id = ?
+	//    AND d.id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
 	//ListDeploymentRegions
 	//
 	//  SELECT DISTINCT r.name AS region
 	//  FROM deployment_topology dt
 	//  JOIN regions r ON r.id = dt.region_id
-	//  WHERE dt.deployment_id = ?
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id = ?
 	//  ORDER BY r.name
-	ListDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error)
+	ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error)
 	//ListDeploymentRegionsByIds
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 	//  FROM deployment_topology dt
 	//  JOIN regions r ON r.id = dt.region_id
-	//  WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
-	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]ListDeploymentRegionsByIdsRow, error)
+	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
@@ -2509,10 +2516,11 @@ type Querier interface {
 	//ListFailedDeploymentStepsByIds
 	//
 	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
-	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
-	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, deploymentIds []string) ([]DeploymentStep, error)
+	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	//ListGithubRepoConnections
 	//
 	//  SELECT

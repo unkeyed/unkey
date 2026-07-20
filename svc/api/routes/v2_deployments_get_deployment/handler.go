@@ -83,7 +83,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), []string{dep.ID})
+	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
+		WorkspaceID:   principal.WorkspaceID,
+		DeploymentIds: []string{dep.ID},
+	})
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -99,7 +102,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	var steps []db.DeploymentStep
 	if dep.Status == db.DeploymentsStatusFailed {
-		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), []string{dep.ID})
+		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: []string{dep.ID},
+		})
 		if err != nil {
 			return fault.Wrap(
 				err,
@@ -110,7 +116,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), dep.ID)
+	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
+		WorkspaceID:  principal.WorkspaceID,
+		DeploymentID: dep.ID,
+	})
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -120,7 +129,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), dep.ID)
+	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), db.ListDeploymentRegionsParams{
+		WorkspaceID:  principal.WorkspaceID,
+		DeploymentID: dep.ID,
+	})
 	if err != nil {
 		return fault.Wrap(
 			err,

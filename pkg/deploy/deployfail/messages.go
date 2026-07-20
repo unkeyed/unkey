@@ -6,7 +6,7 @@
 package deployfail
 
 const (
-	MsgNoSchedulableRegions = "No schedulable regions configured. Please configure at least one schedulable region before deploying."
+	MsgNoSchedulableRegions = "No regions configured. Please configure at least one region before deploying."
 
 	MsgCPUQuotaExceeded     = "We are unable to deploy this application as you have exceeded your CPU quota."
 	MsgMemoryQuotaExceeded  = "We are unable to deploy this application as you have exceeded your Memory quota."
