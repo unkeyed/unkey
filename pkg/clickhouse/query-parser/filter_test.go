@@ -19,7 +19,7 @@ func TestParser_WorkspaceFilter(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2")
 	require.NoError(t, err)
 
-	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE workspace_id = 'ws_123'", output)
+	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_123'", output)
 }
 
 func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
@@ -33,7 +33,57 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2 WHERE active = 1")
 	require.NoError(t, err)
 
-	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE workspace_id = 'ws_456' AND (active = 1)", output)
+	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_456' AND (active = 1)", output)
+}
+
+func TestParser_QualifiesFiltersForEveryPhysicalSource(t *testing.T) {
+	config := chquery.Config{
+		WorkspaceID:     "ws_safe",
+		AllowedTables:   []string{"default.events", "default.other"},
+		SecurityFilters: []chquery.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"ns_safe"}}},
+	}
+	tests := []struct {
+		name  string
+		query string
+		want  []string
+	}{
+		{"expression alias collision", "SELECT 1 AS workspace_id FROM default.events e", []string{"e.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')"}},
+		{"scalar WITH alias collision", "WITH (SELECT 1) AS namespace_id SELECT * FROM default.events e", []string{"e.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')"}},
+		{"table plus scalar subquery", "SELECT (SELECT 1) FROM default.events e CROSS JOIN (SELECT 1) x WHERE 1=0 OR 1=1", []string{"e.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')"}},
+		{"two physical tables", "SELECT * FROM default.events e CROSS JOIN default.other o", []string{"e.workspace_id = 'ws_safe'", "o.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')", "o.namespace_id IN ('ns_safe')"}},
+		{"table joined to filtered subquery", "SELECT * FROM default.events e CROSS JOIN (SELECT * FROM default.other) o", []string{"e.workspace_id = 'ws_safe'", "other.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')", "other.namespace_id IN ('ns_safe')"}},
+		{"CTE filters inner physical source only", "WITH c AS (SELECT * FROM default.events) SELECT * FROM c", []string{"events.workspace_id = 'ws_safe'", "events.namespace_id IN ('ns_safe')"}},
+		{"unused CTE collides with rewritten physical table", "WITH ratelimits_raw_v2 AS (SELECT * FROM default.other) SELECT * FROM ratelimits_v1 WHERE 1=0 OR 1=1", []string{"ratelimits_raw_v2.workspace_id = 'ws_safe'", "ratelimits_raw_v2.namespace_id IN ('ns_safe')"}},
+		{"UNION filters both branches", "SELECT * FROM default.events e UNION ALL SELECT * FROM default.other o", []string{"e.workspace_id = 'ws_safe'", "o.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')", "o.namespace_id IN ('ns_safe')"}},
+	}
+	config.TableAliases = map[string]string{"ratelimits_v1": "default.ratelimits_raw_v2"}
+	config.AllowedTables = append(config.AllowedTables, "default.ratelimits_raw_v2")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			output, err := chquery.NewParser(config).Parse(context.Background(), test.query)
+			require.NoError(t, err)
+			for _, want := range test.want {
+				require.Contains(t, output, want)
+			}
+			if test.name == "CTE filters inner physical source only" {
+				require.NotContains(t, output, "c.workspace_id")
+				require.NotContains(t, output, "c.namespace_id")
+			}
+		})
+	}
+}
+
+func TestParser_PreservesQuotedAliasOnInjectedFilters(t *testing.T) {
+	p := chquery.NewParser(chquery.Config{
+		WorkspaceID:     "ws_safe",
+		AllowedTables:   []string{"default.events"},
+		SecurityFilters: []chquery.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"ns_safe"}}},
+	})
+
+	output, err := p.Parse(context.Background(), "SELECT * FROM default.events AS `r-l`")
+	require.NoError(t, err)
+	require.Contains(t, output, "`r-l`.workspace_id = 'ws_safe'")
+	require.Contains(t, output, "`r-l`.namespace_id IN ('ns_safe')")
 }
 
 func TestSecurityFilterInjection(t *testing.T) {
@@ -54,7 +104,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' LIMIT 100", result)
 	})
 
 	t.Run("fails closed when a filter has no allowed values", func(t *testing.T) {
@@ -81,7 +131,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 
 		// Empty allowed values must render as a constant-false predicate, not be
 		// dropped, so the query returns zero rows instead of leaking the workspace.
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (0) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (0) LIMIT 100", result)
 	})
 
 	t.Run("injects single key_space_id filter", func(t *testing.T) {
@@ -106,7 +156,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (key_space_id IN ('ks_123')) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (key_verifications_raw_v2.key_space_id IN ('ks_123')) LIMIT 100", result)
 	})
 
 	t.Run("injects multiple key_space_id filter", func(t *testing.T) {
@@ -131,7 +181,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (key_space_id IN ('ks_123', 'ks_456', 'ks_789')) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (key_verifications_raw_v2.key_space_id IN ('ks_123', 'ks_456', 'ks_789')) LIMIT 100", result)
 	})
 
 	t.Run("combines with existing WHERE clause", func(t *testing.T) {
@@ -156,7 +206,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (key_space_id IN ('ks_123') AND (outcome = 'VALID')) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (key_verifications_raw_v2.key_space_id IN ('ks_123') AND (outcome = 'VALID')) LIMIT 100", result)
 	})
 
 	t.Run("restricts access even when user queries different key_space_id", func(t *testing.T) {
@@ -186,7 +236,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		// Injected: key_space_id IN ('ks_123') - only ks_123
 		// User's: key_space_id = 'ks_999'
 		// Result: no rows (ks_123 AND ks_999 = impossible)
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (key_space_id IN ('ks_123') AND (key_space_id = 'ks_999')) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (key_verifications_raw_v2.key_space_id IN ('ks_123') AND (key_space_id = 'ks_999')) LIMIT 100", result)
 	})
 
 	t.Run("OR cannot bypass security filter", func(t *testing.T) {
@@ -214,7 +264,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (key_id IN ('key_123') AND (key_id = 'key_999' OR 1 = 1)) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_test' AND (key_verifications_raw_v2.key_id IN ('key_123') AND (key_id = 'key_999' OR 1 = 1)) LIMIT 100", result)
 	})
 
 	t.Run("supports multiple security filters simultaneously", func(t *testing.T) {
@@ -243,7 +293,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 		result, err := parser.Parse(context.Background(), query)
 		require.NoError(t, err)
 
-		require.Equal(t, "SELECT COUNT(*) FROM default.ratelimits_v2 WHERE workspace_id = 'ws_test' AND (namespace_id IN ('nsid_111', 'nsid_222') AND (key_space_id IN ('ks_123', 'ks_456'))) LIMIT 100", result)
+		require.Equal(t, "SELECT COUNT(*) FROM default.ratelimits_v2 WHERE ratelimits_v2.workspace_id = 'ws_test' AND (ratelimits_v2.namespace_id IN ('nsid_111', 'nsid_222') AND (ratelimits_v2.key_space_id IN ('ks_123', 'ks_456'))) LIMIT 100", result)
 	})
 }
 
@@ -264,22 +314,22 @@ func TestParser_WorkspaceFilterInjection(t *testing.T) {
 		{
 			name:     "OR cannot bypass workspace filter",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_attacker' OR 1=1",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_victim' AND (workspace_id = 'ws_attacker' OR 1 = 1) LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_victim' AND (workspace_id = 'ws_attacker' OR 1 = 1) LIMIT 1000",
 		},
 		{
 			name:     "NOT cannot invert workspace filter",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE NOT workspace_id = 'ws_victim'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_victim' AND (NOT workspace_id = 'ws_victim') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_victim' AND (NOT workspace_id = 'ws_victim') LIMIT 1000",
 		},
 		{
 			name:     "workspace_id in SELECT to confuse parser",
 			query:    "SELECT workspace_id FROM default.key_verifications_raw_v2 WHERE key_id = 'test'",
-			expected: "SELECT workspace_id FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_victim' AND (key_id = 'test') LIMIT 1000",
+			expected: "SELECT workspace_id FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_victim' AND (key_id = 'test') LIMIT 1000",
 		},
 		{
 			name:     "workspace_id with different case",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE WORKSPACE_ID = 'ws_attacker'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_victim' AND (WORKSPACE_ID = 'ws_attacker') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_victim' AND (WORKSPACE_ID = 'ws_attacker') LIMIT 1000",
 		},
 	}
 
@@ -309,22 +359,22 @@ func TestParser_SQLInjectionWithFilters(t *testing.T) {
 		{
 			name:     "injection in WHERE clause with quotes",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '' OR '1'='1'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '' OR '1' = '1') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '' OR '1' = '1') LIMIT 1000",
 		},
 		{
 			name:     "injection with comment",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '' -- comment",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '') LIMIT 1000",
 		},
 		{
 			name:     "injection with multiline comment",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '/* comment */'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '/* comment */') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '/* comment */') LIMIT 1000",
 		},
 		{
 			name:     "injection with semicolon",
 			query:    "SELECT * FROM default.key_verifications_raw_v2; DROP TABLE users",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' LIMIT 1000",
 		},
 	}
 
@@ -354,22 +404,22 @@ func TestParser_SpecialCharactersInFilters(t *testing.T) {
 		{
 			name:     "null bytes",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '\x00'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '\x00') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '\x00') LIMIT 1000",
 		},
 		{
 			name:     "unicode characters",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '你好'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '你好') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '你好') LIMIT 1000",
 		},
 		{
 			name:     "emoji",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '🔥'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '🔥') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '🔥') LIMIT 1000",
 		},
 		{
 			name:     "backslashes",
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '\\\\'",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (key_id = '\\\\') LIMIT 1000",
+			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '\\\\') LIMIT 1000",
 		},
 	}
 

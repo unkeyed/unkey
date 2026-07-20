@@ -108,7 +108,7 @@ func TestParser_ValidateTimeRange_WithRetention(t *testing.T) {
 			errorContains: "retention period of 7 days",
 		},
 		{
-			name:          "query with no time filter (should auto-inject)",
+			name:          "query with no time filter relies on row policy",
 			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE key_space_id = 'ks_123'",
 			retentionDays: 7,
 			shouldPass:    true,
@@ -379,7 +379,7 @@ func TestParser_ValidateTimeRange_IntervalUnits(t *testing.T) {
 	}
 }
 
-func TestParser_InjectDefaultTimeFilter(t *testing.T) {
+func TestParser_TimeRetentionIsEnforcedByRowPolicyWhenLowerBoundIsOmitted(t *testing.T) {
 	parser := NewParser(Config{
 		WorkspaceID: "test_ws",
 		TableAliases: map[string]string{
@@ -392,22 +392,24 @@ func TestParser_InjectDefaultTimeFilter(t *testing.T) {
 	})
 
 	tests := []struct {
-		name          string
-		query         string
-		expectTimeIn  bool
-		expectPattern string
+		name  string
+		query string
 	}{
 		{
-			name:          "query without time filter should have filter injected",
-			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE key_space_id = 'ks_123'",
-			expectTimeIn:  true,
-			expectPattern: "time >= now() - INTERVAL 7 DAY",
+			name:  "single table",
+			query: "SELECT * FROM key_verifications_per_hour_v1 WHERE key_space_id = 'ks_123'",
 		},
 		{
-			name:          "query with time filter should not have another injected",
-			query:         "SELECT * FROM key_verifications_per_hour_v1 WHERE time >= now() - INTERVAL 5 DAY",
-			expectTimeIn:  true,
-			expectPattern: "time >= now() - INTERVAL 5 DAY",
+			name:  "CTE outer select has no time column",
+			query: "WITH recent AS (SELECT key_space_id FROM key_verifications_per_hour_v1) SELECT key_space_id FROM recent",
+		},
+		{
+			name:  "subquery outer select has no time column",
+			query: "SELECT key_space_id FROM (SELECT key_space_id FROM key_verifications_per_hour_v1)",
+		},
+		{
+			name:  "UNION branches are not partially constrained by parser",
+			query: "SELECT key_space_id FROM key_verifications_per_hour_v1 UNION ALL SELECT key_space_id FROM key_verifications_per_hour_v1",
 		},
 	}
 
@@ -415,10 +417,7 @@ func TestParser_InjectDefaultTimeFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := parser.Parse(context.Background(), tt.query)
 			require.NoError(t, err)
-
-			if tt.expectTimeIn {
-				require.Contains(t, result, "time >=", "expected time filter in result")
-			}
+			require.NotContains(t, result, "time >=", "retention must be source-aware and enforced by ClickHouse row policy")
 		})
 	}
 }
@@ -558,14 +557,14 @@ func TestParser_ValidateTimeRange_ReversedComparisons(t *testing.T) {
 			shouldPass: false,
 		},
 		{
-			name:       "reversed upper bound (value >= time) - should inject default filter",
+			name:       "reversed upper bound relies on row policy",
 			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() >= time",
-			shouldPass: true, // Should inject default time filter
+			shouldPass: true,
 		},
 		{
-			name:       "reversed upper bound (value > time) - should inject default filter",
+			name:       "strict reversed upper bound relies on row policy",
 			query:      "SELECT * FROM key_verifications_per_hour_v1 WHERE now() > time",
-			shouldPass: true, // Should inject default time filter
+			shouldPass: true,
 		},
 		{
 			name:       "combined: reversed lower bound with upper bound",
@@ -616,24 +615,20 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 	})
 
 	tests := []struct {
-		name                   string
-		query                  string
-		shouldInjectTimeFilter bool
+		name  string
+		query string
 	}{
 		{
-			name:                   "time <= old_date should inject default time filter (no lower bound)",
-			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now() - INTERVAL 90 DAY",
-			shouldInjectTimeFilter: true,
+			name:  "old upper bound",
+			query: "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now() - INTERVAL 90 DAY",
 		},
 		{
-			name:                   "time < old_date should inject default time filter (no lower bound)",
-			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time < now() - INTERVAL 90 DAY",
-			shouldInjectTimeFilter: true,
+			name:  "strict old upper bound",
+			query: "SELECT * FROM key_verifications_per_hour_v1 WHERE time < now() - INTERVAL 90 DAY",
 		},
 		{
-			name:                   "time <= now() should inject default time filter (no lower bound)",
-			query:                  "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now()",
-			shouldInjectTimeFilter: true,
+			name:  "current upper bound",
+			query: "SELECT * FROM key_verifications_per_hour_v1 WHERE time <= now()",
 		},
 	}
 
@@ -641,11 +636,24 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := parser.Parse(context.Background(), tt.query)
 			require.NoError(t, err)
-
-			if tt.shouldInjectTimeFilter {
-				// The result should contain a time >= filter that was injected
-				require.Contains(t, result, "time >=", "expected default time filter to be injected")
-			}
+			require.NotContains(t, result, "time >=", "upper-only queries must rely on ClickHouse row policy")
 		})
 	}
+}
+
+func TestParser_ValidateTimeRange_QualifiedTime(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "test_ws",
+		TableAliases: map[string]string{
+			"key_verifications_per_hour_v1": "default.key_verifications_per_hour_v2",
+		},
+		AllowedTables:     []string{"default.key_verifications_per_hour_v2"},
+		MaxQueryRangeDays: 7,
+	})
+
+	_, err := parser.Parse(context.Background(), "SELECT * FROM key_verifications_per_hour_v1 r WHERE r.time >= now() - INTERVAL 5 DAY")
+	require.NoError(t, err)
+
+	_, err = parser.Parse(context.Background(), "SELECT * FROM key_verifications_per_hour_v1 r WHERE r.time >= now() - INTERVAL 90 DAY")
+	require.ErrorContains(t, err, "retention period of 7 days")
 }

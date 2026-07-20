@@ -12,6 +12,7 @@ import (
 // Must be called after Parse().
 func (p *Parser) ExtractColumn(columnName string) []string {
 	uniqueValues := make(map[string]bool)
+	result := make([]string, 0)
 
 	extractFunc := func(node clickhouse.Expr) bool {
 		binOp, ok := node.(*clickhouse.BinaryOperation)
@@ -19,8 +20,9 @@ func (p *Parser) ExtractColumn(columnName string) []string {
 			return true
 		}
 
-		// Check if left side is our column
-		leftIdent, ok := binOp.LeftExpr.(*clickhouse.Ident)
+		// Match both `column` and `qualifier.column`. Only the terminal
+		// identifier names the column in a qualified reference.
+		leftIdent, ok := terminalIdentifier(binOp.LeftExpr)
 		if !ok || !strings.EqualFold(leftIdent.Name, columnName) {
 			return true
 		}
@@ -28,38 +30,50 @@ func (p *Parser) ExtractColumn(columnName string) []string {
 		// Only extract from positive assertions (= or IN)
 		// Ignore negative operators: !=, NOT IN, <, >, <=, >=
 		if binOp.Operation == clickhouse.TokenKindSingleEQ || strings.EqualFold(string(binOp.Operation), "IN") {
-			extractValues(binOp.RightExpr, uniqueValues)
+			extractValues(binOp.RightExpr, uniqueValues, &result)
 		}
 
 		return true
 	}
 
-	if p.stmt.Where != nil {
-		clickhouse.Walk(p.stmt.Where.Expr, extractFunc)
-	}
-
-	if p.stmt.Having != nil {
-		clickhouse.Walk(p.stmt.Having.Expr, extractFunc)
-	}
+	// Walk all branches and nested SELECTs. Route policy applies to every
+	// physical source, so literals hidden in a subquery must also be authorized.
+	clickhouse.Walk(p.stmt, extractFunc)
 
 	if len(uniqueValues) == 0 {
 		return []string{}
 	}
 
-	// Convert map to slice
-	result := make([]string, 0, len(uniqueValues))
-	for value := range uniqueValues {
-		result = append(result, value)
-	}
-
 	return result
 }
 
-func extractValues(expr clickhouse.Expr, values map[string]bool) {
+func terminalIdentifier(expr clickhouse.Expr) (*clickhouse.Ident, bool) {
+	switch ident := expr.(type) {
+	case *clickhouse.Ident:
+		return ident, true
+	case *clickhouse.NestedIdentifier:
+		if ident.DotIdent != nil {
+			return ident.DotIdent, true
+		}
+		return ident.Ident, ident.Ident != nil
+	case *clickhouse.Path:
+		if len(ident.Fields) == 0 {
+			return nil, false
+		}
+		return ident.Fields[len(ident.Fields)-1], true
+	default:
+		return nil, false
+	}
+}
+
+func extractValues(expr clickhouse.Expr, values map[string]bool, result *[]string) {
 	// Handle single string literal (for = operator)
 	strLit, ok := expr.(*clickhouse.StringLiteral)
 	if ok {
-		values[strLit.Literal] = true
+		if !values[strLit.Literal] {
+			values[strLit.Literal] = true
+			*result = append(*result, strLit.Literal)
+		}
 		return
 	}
 
@@ -85,6 +99,9 @@ func extractValues(expr clickhouse.Expr, values map[string]bool) {
 			continue
 		}
 
-		values[strLit.Literal] = true
+		if !values[strLit.Literal] {
+			values[strLit.Literal] = true
+			*result = append(*result, strLit.Literal)
+		}
 	}
 }

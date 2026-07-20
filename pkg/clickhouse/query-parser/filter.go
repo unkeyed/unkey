@@ -21,13 +21,10 @@ func parenthesize(expr clickhouse.Expr) clickhouse.Expr {
 }
 
 func (p *Parser) injectWorkspaceFilter() {
-	// Walk the AST to inject workspace filter only on SELECT statements that directly access tables
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
-		// Check if this is a SELECT query
 		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-			// Only inject if this SELECT directly references a table (not a subquery)
-			if p.selectReferencesTable(selectQuery) {
-				p.injectWorkspaceFilterOnSelect(selectQuery)
+			for _, source := range p.directTableSources(selectQuery) {
+				p.injectWorkspaceFilterOnSelect(selectQuery, source)
 			}
 		}
 
@@ -37,11 +34,12 @@ func (p *Parser) injectWorkspaceFilter() {
 }
 
 // injectWorkspaceFilterOnSelect injects the workspace filter on a single SELECT statement
-func (p *Parser) injectWorkspaceFilterOnSelect(stmt *clickhouse.SelectQuery) {
+func (p *Parser) injectWorkspaceFilterOnSelect(stmt *clickhouse.SelectQuery, source clickhouse.Ident) {
 	// Create: workspace_id = 'ws_xxx'
 	filter := &clickhouse.BinaryOperation{
 		LeftExpr: &clickhouse.NestedIdentifier{
-			Ident: &clickhouse.Ident{Name: "workspace_id"},
+			Ident:    cloneIdentifier(source),
+			DotIdent: &clickhouse.Ident{Name: "workspace_id"},
 		},
 		Operation: "=",
 		RightExpr: &clickhouse.StringLiteral{
@@ -69,13 +67,10 @@ func (p *Parser) injectSecurityFilters() {
 		// skipping the filter, which would leak all rows the other filters allow.
 		// This must not be a `continue`: dropping the filter is fail-open.
 
-		// Walk the AST to inject security filter only on SELECT statements that directly access tables
 		clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
-			// Check if this is a SELECT query
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-				// Only inject if this SELECT directly references a table (not a subquery)
-				if p.selectReferencesTable(selectQuery) {
-					p.injectSecurityFilterOnSelect(selectQuery, securityFilter)
+				for _, source := range p.directTableSources(selectQuery) {
+					p.injectSecurityFilterOnSelect(selectQuery, source, securityFilter)
 				}
 			}
 			return true
@@ -84,45 +79,58 @@ func (p *Parser) injectSecurityFilters() {
 
 }
 
-// selectReferencesTable checks if a SELECT statement directly references a table in its FROM clause
-// Returns true if the FROM clause contains a table, false if it contains only a subquery
-func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
+// directTableSources returns the qualifiers for physical tables in this SELECT's
+// FROM clause. It deliberately does not descend into subqueries, which are
+// visited and filtered as independent SELECT nodes by the caller's AST walk.
+func (p *Parser) directTableSources(stmt *clickhouse.SelectQuery) []clickhouse.Ident {
 	if stmt.From == nil {
-		return false
+		return nil
 	}
-
-	// Check if the FROM clause directly contains a subquery
-	// If it does, we should NOT inject filters here
-	hasSubquery := false
-	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
-		if _, ok := node.(*clickhouse.SelectQuery); ok {
-			hasSubquery = true
-			return false // Stop walking
+	sources := make([]clickhouse.Ident, 0, 1)
+	var visit func(clickhouse.Expr)
+	visit = func(expr clickhouse.Expr) {
+		switch node := expr.(type) {
+		case *clickhouse.JoinExpr:
+			visit(node.Left)
+			if node.Right != nil {
+				visit(node.Right)
+			}
+		case *clickhouse.JoinTableExpr:
+			visit(node.Table)
+		case *clickhouse.TableExpr:
+			tableExpr := node.Expr
+			var alias *clickhouse.Ident
+			if aliased, ok := tableExpr.(*clickhouse.AliasExpr); ok {
+				tableExpr = aliased.Expr
+				alias, _ = aliased.Alias.(*clickhouse.Ident)
+			}
+			table, ok := tableExpr.(*clickhouse.TableIdentifier)
+			// CTE references are always unqualified. A qualified physical table may
+			// have the same name as a CTE, especially after alias rewriting, and
+			// must still receive row-level filters.
+			if !ok || (table.Database == nil && p.isCTE(table.Table.Name)) {
+				return
+			}
+			qualifier := *table.Table
+			if alias != nil {
+				qualifier = *alias
+			}
+			sources = append(sources, qualifier)
 		}
-		return true
-	})
-
-	// If there's a subquery in the FROM, don't inject filters
-	if hasSubquery {
-		return false
 	}
+	visit(stmt.From.Expr)
+	return sources
+}
 
-	// Otherwise, check if there's a table reference
-	hasTable := false
-	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
-		if _, ok := node.(*clickhouse.TableExpr); ok {
-			hasTable = true
-			return false // Stop walking
-		}
-
-		return true
-	})
-
-	return hasTable
+// cloneIdentifier returns an independent identifier so generated predicates
+// retain source quoting without sharing mutable AST pointers.
+func cloneIdentifier(ident clickhouse.Ident) *clickhouse.Ident {
+	clone := ident
+	return &clone
 }
 
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement
-func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, securityFilter SecurityFilter) {
+func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, source clickhouse.Ident, securityFilter SecurityFilter) {
 	var filter clickhouse.Expr
 	if len(securityFilter.AllowedValues) == 0 {
 		// Fail closed: no allowed values means no rows are visible. We cannot
@@ -142,7 +150,10 @@ func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, secu
 
 		// Create filter using column name
 		filter = &clickhouse.BinaryOperation{
-			LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
+			LeftExpr: &clickhouse.NestedIdentifier{
+				Ident:    cloneIdentifier(source),
+				DotIdent: &clickhouse.Ident{Name: securityFilter.Column},
+			},
 			Operation: "IN",
 			RightExpr: &clickhouse.ParamExprList{
 				Items: &clickhouse.ColumnExprList{Items: items},

@@ -65,6 +65,27 @@ func TestParser_ErrorCodes(t *testing.T) {
 			expectedCode:  codes.User.BadRequest.InvalidAnalyticsQueryType.URN(),
 			expectedError: "Only SELECT queries are allowed",
 		},
+		{
+			name:          "EXCEPT with physical table",
+			config:        Config{WorkspaceID: "ws_123", AllowedTables: []string{"default.keys_v2"}},
+			query:         "SELECT * FROM default.keys_v2 EXCEPT SELECT * FROM default.keys_v2",
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsQuery.URN(),
+			expectedError: "EXCEPT queries are not supported",
+		},
+		{
+			name:          "EXCEPT with table function on right",
+			config:        Config{WorkspaceID: "ws_123", AllowedTables: []string{"default.keys_v2"}},
+			query:         "SELECT * FROM default.keys_v2 EXCEPT SELECT * FROM file('secret')",
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsQuery.URN(),
+			expectedError: "EXCEPT queries are not supported",
+		},
+		{
+			name:          "nested EXCEPT",
+			config:        Config{WorkspaceID: "ws_123", AllowedTables: []string{"default.keys_v2"}},
+			query:         "SELECT * FROM (SELECT * FROM default.keys_v2 EXCEPT SELECT * FROM default.keys_v2)",
+			expectedCode:  codes.User.BadRequest.InvalidAnalyticsQuery.URN(),
+			expectedError: "EXCEPT queries are not supported",
+		},
 	}
 
 	for _, tt := range tests {

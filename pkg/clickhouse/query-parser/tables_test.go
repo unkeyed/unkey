@@ -21,7 +21,39 @@ func TestParser_TableAliases(t *testing.T) {
 	output, err := p.Parse(context.Background(), "SELECT * FROM keys")
 	require.NoError(t, err)
 
-	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE workspace_id = 'ws_123'", output)
+	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_123'", output)
+}
+
+func TestParser_PublicTableAliasesOnly(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"ratelimits_v1":            "default.ratelimits_raw_v2",
+			"ratelimits_per_minute_v1": "default.ratelimits_per_minute_v2",
+			"ratelimits_per_hour_v1":   "default.ratelimits_per_hour_v2",
+			"ratelimits_per_day_v1":    "default.ratelimits_per_day_v2",
+			"ratelimits_per_month_v1":  "default.ratelimits_per_month_v2",
+		},
+		AllowedTables:          []string{"default.ratelimits_raw_v2", "default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"},
+		PublicTableAliasesOnly: true,
+	})
+
+	for _, alias := range []string{"ratelimits_v1", "ratelimits_per_minute_v1", "ratelimits_per_hour_v1", "ratelimits_per_day_v1", "ratelimits_per_month_v1"} {
+		_, err := p.Parse(context.Background(), "SELECT * FROM "+alias)
+		require.NoError(t, err, alias)
+	}
+	var err error
+	queries := []string{
+		"SELECT * FROM default.ratelimits_raw_v2",
+		"SELECT * FROM ratelimits_v1 JOIN default.ratelimits_raw_v2 physical USING namespace_id",
+		"SELECT * FROM (SELECT * FROM default.ratelimits_raw_v2)",
+		"WITH hidden AS (SELECT * FROM default.ratelimits_raw_v2) SELECT * FROM hidden",
+		"SELECT * FROM ratelimits_v1 UNION ALL SELECT * FROM default.ratelimits_raw_v2",
+	}
+	for _, query := range queries {
+		_, err = p.Parse(context.Background(), query)
+		require.Error(t, err, query)
+	}
 }
 
 func TestParser_BlockSystemTables(t *testing.T) {
@@ -241,13 +273,13 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 		{
 			name:        "subquery in FROM with allowed table",
 			query:       "SELECT * FROM (SELECT * FROM default.key_verifications_raw_v2 LIMIT 10000) LIMIT 5",
-			expected:    "SELECT * FROM (SELECT * FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' LIMIT 10) LIMIT 5",
+			expected:    "SELECT * FROM (SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' LIMIT 10) LIMIT 5",
 			shouldBlock: false,
 		},
 		{
 			name:        "subquery with aggregation not selecting workspace_id",
 			query:       "SELECT date, verifications FROM (SELECT time as date, SUM(count) as verifications FROM default.key_verifications_raw_v2 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date) ORDER BY date",
-			expected:    "SELECT date, verifications FROM (SELECT time AS date, SUM(count) AS verifications FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (time >= now() - INTERVAL 60 DAY) GROUP BY date LIMIT 10) ORDER BY date LIMIT 10",
+			expected:    "SELECT date, verifications FROM (SELECT time AS date, SUM(count) AS verifications FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (time >= now() - INTERVAL 60 DAY) GROUP BY date LIMIT 10) ORDER BY date LIMIT 10",
 			shouldBlock: false,
 		},
 		{

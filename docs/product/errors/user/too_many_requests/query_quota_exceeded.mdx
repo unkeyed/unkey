@@ -43,7 +43,7 @@ app.get("/dashboard", async (req, res) => {
   const stats = await fetch("https://api.unkey.com/v2/analytics.getVerifications", {
     method: "POST",
     headers: { Authorization: "Bearer unkey_XXX" },
-    body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications" }),
+    body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications_v1" }),
   });
   res.json(stats);
 });
@@ -63,7 +63,7 @@ app.get("/dashboard", async (req, res) => {
     stats = await fetch("https://api.unkey.com/v2/analytics.getVerifications", {
       method: "POST",
       headers: { Authorization: "Bearer unkey_XXX" },
-      body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications" }),
+      body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications_v1" }),
     });
 
     // Cache for 5 minutes
@@ -78,7 +78,7 @@ app.get("/dashboard", async (req, res) => {
 
 ### 3. Batch Your Queries
 
-If you're making multiple queries, try to combine them into a single query with JOINs or subqueries.
+If you're making multiple queries, try to combine them into a single query with subqueries or a `UNION`.
 
 ### 4. Use Webhooks Instead
 

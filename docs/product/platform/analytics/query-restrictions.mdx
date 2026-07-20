@@ -15,15 +15,14 @@ Only `SELECT` queries are permitted. All other SQL statement types return a `que
 - `WITH` (Common Table Expressions)
 - `UNION`
 - Subqueries
-- Joins
 - Aggregations
 - Window functions
 
-**Not allowed:** `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`
+**Not allowed:** `JOIN` clauses, `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`
 
 ### Table Access Control
 
-Only explicitly allowed analytics tables are accessible. Any attempt to access tables not on the allow list (including `system.*` or `information_schema.*`) will return an `invalid_table` error.
+Queries must reference analytics data through the public, versioned table aliases listed in the endpoint schema reference. Physical ClickHouse table names under `default.*` are unsupported, including when nested in a CTE or subquery. Attempts to use physical names or other tables such as `system.*` and `information_schema.*` return an `invalid_table` error.
 
 ### Function Allow List
 
@@ -35,7 +34,7 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 
 <Accordion title="Aggregates">
   `count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`,
-  `uniq`, `uniqExact`, `quantile`, `countIf`
+  `uniq`, `uniqExact`, `quantile`, `countIf`, `sumIf`
 </Accordion>
 
 <Accordion title="Date/Time">

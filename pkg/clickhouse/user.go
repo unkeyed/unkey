@@ -237,5 +237,11 @@ func DefaultAllowedTables() []string {
 		"default.key_verifications_per_hour_v3",
 		"default.key_verifications_per_day_v3",
 		"default.key_verifications_per_month_v3",
+		// Rate limits
+		"default.ratelimits_raw_v2",
+		"default.ratelimits_per_minute_v2",
+		"default.ratelimits_per_hour_v2",
+		"default.ratelimits_per_day_v2",
+		"default.ratelimits_per_month_v2",
 	}
 }

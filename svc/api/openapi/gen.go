@@ -1271,10 +1271,32 @@ type UpdateKeyCreditsRefill struct {
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
 
+// V2AnalyticsGetRatelimitsRequestBody defines model for V2AnalyticsGetRatelimitsRequestBody.
+type V2AnalyticsGetRatelimitsRequestBody struct {
+	// Query SQL query to execute against your rate limit analytics data.
+	// Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, and UNION queries are supported, but joins are not supported.
+	// Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
+	// Workspace retention and query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetRatelimitsResponseBody defines model for V2AnalyticsGetRatelimitsResponseBody.
+type V2AnalyticsGetRatelimitsResponseBody struct {
+	// Data Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+	Data V2AnalyticsGetRatelimitsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetRatelimitsResponseData Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+type V2AnalyticsGetRatelimitsResponseData = []map[string]interface{}
+
 // V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
 type V2AnalyticsGetVerificationsRequestBody struct {
 	// Query SQL query to execute against your analytics data.
-	// Only SELECT queries are allowed.
+	// Queries may reference only the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
+	// Only SELECT queries are allowed. CTEs, subqueries, and UNION queries are supported, but joins are not supported.
 	Query string `json:"query"`
 }
 
@@ -4002,6 +4024,9 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// AnalyticsGetRatelimitsJSONRequestBody defines body for AnalyticsGetRatelimits for application/json ContentType.
+type AnalyticsGetRatelimitsJSONRequestBody = V2AnalyticsGetRatelimitsRequestBody
 
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody

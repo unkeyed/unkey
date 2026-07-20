@@ -3,25 +3,25 @@ post:
     - analytics
   security:
     - bearer: []
-  x-speakeasy-name-override: getVerifications
-  operationId: analytics.getVerifications
-  summary: Query key verification data
+  x-speakeasy-name-override: getRatelimits
+  operationId: analytics.getRatelimits
+  summary: Query rate limit data
   description: |
-    Execute custom SQL queries against your key verification analytics. CTEs, subqueries, and UNION queries are supported, but joins are not supported.
-    Queries must use one of the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
-    For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
+    Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, and UNION queries are supported, but joins are not supported.
+    Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
+    Workspace retention and query limits apply.
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          "$ref": "./V2AnalyticsGetVerificationsRequestBody.yaml"
+          "$ref": "./V2AnalyticsGetRatelimitsRequestBody.yaml"
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "./V2AnalyticsGetVerificationsResponseBody.yaml"
+            "$ref": "./V2AnalyticsGetRatelimitsResponseBody.yaml"
       description: Query executed successfully
     "400":
       content:
@@ -46,13 +46,19 @@ post:
         application/json:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
-      description: Referenced API or identity not found
+      description: Referenced namespace not found
+    "412":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
+      description: Analytics is not configured for the workspace
     "422":
       content:
         application/json:
           schema:
             $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
-      description: Query exceeds resource limits (timeout, memory, rows scanned, or result size)
+      description: Query exceeds workspace query limits
     "429":
       content:
         application/problem+json:

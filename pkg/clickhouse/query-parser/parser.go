@@ -65,15 +65,25 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", err
 	}
 
+	// The pinned parser's Walk implementation does not visit SelectQuery.Except.
+	// Reject EXCEPT before any validation or rewriting can silently inspect only
+	// its left operand.
+	if err := p.validateSetOperations(); err != nil {
+		return "", err
+	}
+	if err := p.validateJoins(); err != nil {
+		return "", err
+	}
+
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
-	// Inject security filters
-	p.injectSecurityFilters()
 	if err := p.rewriteTables(); err != nil {
 		return "", err
 	}
 
+	// Qualify every injected predicate with its rewritten physical source.
+	p.injectSecurityFilters()
 	p.injectWorkspaceFilter()
 
 	p.enforceLimit()
@@ -130,4 +140,44 @@ func newQueryLimitError(messageInternal, messagePublic string) error {
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 		fault.Public(messagePublic),
 	)
+}
+
+func (p *Parser) validateSetOperations() error {
+	var validationErr error
+	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+		selectQuery, ok := node.(*clickhouse.SelectQuery)
+		if !ok || selectQuery.Except == nil {
+			return true
+		}
+
+		validationErr = fault.New("EXCEPT queries are not supported",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("EXCEPT queries are not supported"),
+		)
+		return false
+	})
+	return validationErr
+}
+
+// validateJoins rejects multi-source FROM clauses without rejecting the
+// single-source JoinExpr wrapper produced by the pinned SQL parser.
+func (p *Parser) validateJoins() error {
+	if !p.config.DisallowJoins {
+		return nil
+	}
+
+	var validationErr error
+	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+		join, ok := node.(*clickhouse.JoinExpr)
+		if !ok || join.Right == nil {
+			return true
+		}
+
+		validationErr = fault.New("JOIN queries are not supported",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("JOIN queries are not supported"),
+		)
+		return false
+	})
+	return validationErr
 }

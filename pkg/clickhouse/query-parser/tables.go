@@ -34,8 +34,16 @@ func (p *Parser) rewriteTables() error {
 		}
 
 		// Resolve alias
-		if actualTable, ok := p.config.TableAliases[tableName]; ok {
-			tableName = actualTable
+		physicalTable, usesPublicAlias := p.config.TableAliases[tableName]
+		if p.config.PublicTableAliasesOnly && !usesPublicAlias && !p.isCTE(tableName) {
+			rewriteErr = fault.New(fmt.Sprintf("table '%s' must use a public alias", tableName),
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsTable.URN()),
+				fault.Public(fmt.Sprintf("Access to table '%s' is not allowed", tableName)),
+			)
+			return false
+		}
+		if usesPublicAlias {
+			tableName = physicalTable
 		}
 
 		// Validate access
