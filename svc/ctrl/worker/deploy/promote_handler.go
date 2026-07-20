@@ -84,7 +84,6 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      environment.Slug,
-		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,
 		DeploymentID:         targetDeployment.ID,
 		IsRolledBack:         app.IsRolledBack,

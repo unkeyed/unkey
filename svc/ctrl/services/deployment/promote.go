@@ -45,7 +45,6 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		Status:               pkgdb.DeploymentsStatus(deployment.Status),
 		DesiredState:         pkgdb.DeploymentsDesiredState(deployment.DesiredState),
 		EnvironmentSlug:      deployment.EnvironmentSlug,
-		HasCurrentDeployment: deployment.CurrentDeploymentID.Valid && deployment.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  deployment.CurrentDeploymentID.String,
 		DeploymentID:         deployment.ID,
 		IsRolledBack:         deployment.IsRolledBack,

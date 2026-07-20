@@ -12,7 +12,6 @@ func base() Input {
 		Status:               db.DeploymentsStatusReady,
 		DesiredState:         db.DeploymentsDesiredStateRunning,
 		EnvironmentSlug:      envProduction,
-		HasCurrentDeployment: true,
 		CurrentDeploymentID:  "dep_live",
 		DeploymentID:         "dep_target",
 		IsRolledBack:         false,
@@ -38,7 +37,7 @@ func TestCheckPromoteTarget(t *testing.T) {
 		require.Equal(t, PromotionNotProduction, CheckPromoteTarget(in))
 
 		in = base()
-		in.HasCurrentDeployment = false
+		in.CurrentDeploymentID = ""
 		require.Equal(t, PromotionNoCurrentDeployment, CheckPromoteTarget(in))
 	})
 

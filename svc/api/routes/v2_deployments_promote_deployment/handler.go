@@ -89,7 +89,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Status:               dep.Status,
 		DesiredState:         dep.DesiredState,
 		EnvironmentSlug:      dep.EnvironmentSlug,
-		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,
 		DeploymentID:         dep.ID,
 		IsRolledBack:         app.IsRolledBack,

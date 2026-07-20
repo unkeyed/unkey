@@ -60,7 +60,6 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      targetDeployment.EnvironmentSlug,
-		HasCurrentDeployment: targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:         targetDeployment.ID,
 		IsRolledBack:         targetDeployment.IsRolledBack,

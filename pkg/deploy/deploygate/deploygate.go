@@ -16,19 +16,18 @@ const envProduction = "production"
 // package at the boundary. Fields unused by a check (the current-pointer fields
 // for stop/start) may be left zero.
 type Input struct {
-	Status               db.DeploymentsStatus
-	DesiredState         db.DeploymentsDesiredState
-	EnvironmentSlug      string
-	HasCurrentDeployment bool
-	CurrentDeploymentID  string
-	DeploymentID         string
-	IsRolledBack         bool
-	SpendSuspended       bool
+	Status              db.DeploymentsStatus
+	DesiredState        db.DeploymentsDesiredState
+	EnvironmentSlug     string
+	CurrentDeploymentID string
+	DeploymentID        string
+	IsRolledBack        bool
+	SpendSuspended      bool
 }
 
 // isCurrent reports whether this deployment is the app's current (live) one.
 func (in Input) isCurrent() bool {
-	return in.HasCurrentDeployment && in.CurrentDeploymentID == in.DeploymentID
+	return in.CurrentDeploymentID != "" && in.CurrentDeploymentID == in.DeploymentID
 }
 
 // PromotionReason is why a deployment fails a promote/rollback precondition.
@@ -77,7 +76,7 @@ func promotionCore(in Input) PromotionReason {
 		return PromotionDraining
 	case in.EnvironmentSlug != envProduction:
 		return PromotionNotProduction
-	case !in.HasCurrentDeployment:
+	case in.CurrentDeploymentID == "":
 		return PromotionNoCurrentDeployment
 	default:
 		return PromotionOK

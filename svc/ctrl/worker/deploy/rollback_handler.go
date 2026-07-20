@@ -104,7 +104,6 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		Status:               pkgdb.DeploymentsStatus(targetDeployment.Status),
 		DesiredState:         pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
 		EnvironmentSlug:      environment.Slug,
-		HasCurrentDeployment: app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "",
 		CurrentDeploymentID:  app.CurrentDeploymentID.String,
 		DeploymentID:         targetDeployment.ID,
 		IsRolledBack:         app.IsRolledBack,
