@@ -14,4 +14,5 @@ export const freeTierQuotas: Omit<Quotas, "workspaceId" | "pk"> = {
   maxMemoryMibPerInstance: 4096, // 4 GiB
   maxStorageMibPerInstance: 10240, // 10 GiB
   maxConcurrentBuilds: 1,
+  maxReplicasPerRegion: 4,
 };
