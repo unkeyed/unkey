@@ -184,18 +184,23 @@ func (s *Service) CreateApp(
 	}), nil
 }
 
-// pickDefaultRegion returns the id of the alphabetically-first schedulable
-// region, or ("", false) when none can be scheduled. The choice is deterministic
-// so a fresh app always seeds the same default given the same set of regions.
+// defaultRegionPreference lists the regions we prefer to seed for fresh
+// environments, in priority order. The first schedulable match wins.
+var defaultRegionPreference = []string{"us-east-1", "us-west-2"}
+
+// pickDefaultRegion returns the id of the highest-priority schedulable region in
+// defaultRegionPreference, or ("", false) when none of them can be scheduled.
 func pickDefaultRegion(regions []db.ListRegionsRow) (string, bool) {
-	var id, name string
+	schedulable := make(map[string]string, len(regions))
 	for _, r := range regions {
-		if !r.CanSchedule {
-			continue
-		}
-		if id == "" || r.Name < name {
-			id, name = r.ID, r.Name
+		if r.CanSchedule {
+			schedulable[r.Name] = r.ID
 		}
 	}
-	return id, id != ""
+	for _, name := range defaultRegionPreference {
+		if id, ok := schedulable[name]; ok {
+			return id, true
+		}
+	}
+	return "", false
 }
