@@ -1,7 +1,7 @@
 package deployment
 
 import (
-	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -29,8 +29,8 @@ func availableActions(in Input) []openapi.DeploymentAction {
 		return actions
 	}
 
-	ready := d.Status == db.DeploymentsStatusReady
-	running := d.DesiredState == db.DeploymentsDesiredStateRunning
+	ready := d.Status == mysqltype.DeploymentsStatusReady
+	running := d.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 
 	if in.State.EnvironmentSlug == productionSlug {
 		currentDeploymentID := in.State.AppCurrentDeploymentID.String
@@ -54,7 +54,7 @@ func availableActions(in Input) []openapi.DeploymentAction {
 	if ready && running {
 		actions = append(actions, openapi.DeploymentActionStop)
 	}
-	if d.Status == db.DeploymentsStatusStopped {
+	if d.Status == mysqltype.DeploymentsStatusStopped {
 		actions = append(actions, openapi.DeploymentActionStart)
 	}
 	return actions

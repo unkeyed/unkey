@@ -9,6 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -531,7 +533,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        mysqltype.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
@@ -578,7 +580,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusFailed,
+			Status:    mysqltype.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {

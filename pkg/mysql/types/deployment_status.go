@@ -8,8 +8,7 @@ import (
 // DeploymentsStatus is the canonical deployment lifecycle status enum, shared by
 // every db package instead of each sqlc config regenerating its own copy. The
 // generated code in pkg/db and svc/ctrl/internal/db points its deployments.status
-// column at this type via a go_type override, and each package re-exports it under
-// the DeploymentsStatus name so existing call sites are unaffected.
+// column at this type via a go_type override; callers import this package directly.
 type DeploymentsStatus string
 
 const (

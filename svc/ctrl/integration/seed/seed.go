@@ -322,7 +322,7 @@ type CreateDeploymentRequest struct {
 	ProjectID     string
 	AppID         string
 	EnvironmentID string
-	Status        db.DeploymentsStatus
+	Status        dbtype.DeploymentsStatus
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
 }

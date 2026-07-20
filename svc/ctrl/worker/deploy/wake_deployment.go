@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
@@ -70,7 +72,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusDeploying,
+			Status:    mysqltype.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("mark waking deployment as deploying"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -131,7 +133,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusReady,
+			Status:    mysqltype.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("mark woken deployment ready"), restate.WithMaxRetryAttempts(runMaxAttempts))

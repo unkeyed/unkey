@@ -23,8 +23,8 @@ import (
 const envProduction = "production"
 
 // Each check takes its own input holding exactly the fields it needs. Status and
-// DesiredState are typed to the shared pkg/mysql/types enums, which every db
-// package re-exports, so callers pass their db row fields directly without casting.
+// DesiredState are typed to the shared pkg/mysql/types enums that the generated db
+// row fields already use, so callers pass their db row fields directly without casting.
 
 // PromoteInput is the state CheckPromoteTarget needs.
 type PromoteInput struct {
@@ -45,14 +45,14 @@ type RollbackInput struct {
 	DeploymentID        string
 }
 
-// StopInput is the state CheckStoppable needs.
+// StopInput is the state CheckStopTarget needs.
 type StopInput struct {
 	Status          dbtype.DeploymentsStatus
 	DesiredState    dbtype.DeploymentsDesiredState
 	EnvironmentSlug string
 }
 
-// StartInput is the state CheckStartable needs.
+// StartInput is the state CheckStartTarget needs.
 type StartInput struct {
 	DesiredState    dbtype.DeploymentsDesiredState
 	EnvironmentSlug string

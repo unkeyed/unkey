@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -36,7 +37,7 @@ func TestStartDeploymentNotStopped(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -64,8 +65,8 @@ func TestStartDeploymentProduction(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusStopped,
-		DesiredState:  db.DeploymentsDesiredStateStopped,
+		Status:        mysqltype.DeploymentsStatusStopped,
+		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -106,8 +107,8 @@ func TestStartDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusStopped,
-		DesiredState:  db.DeploymentsDesiredStateStopped,
+		Status:        mysqltype.DeploymentsStatusStopped,
+		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -148,8 +149,8 @@ func TestStartDeploymentSpendSuspended(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusStopped,
-		DesiredState:  db.DeploymentsDesiredStateStopped,
+		Status:        mysqltype.DeploymentsStatusStopped,
+		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
 	})
 
 	_, err := h.DB.RW().ExecContext(context.Background(),

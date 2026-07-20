@@ -7,7 +7,7 @@ import (
 
 // DeploymentsDesiredState is the canonical deployment intent enum, shared by every
 // db package instead of each sqlc config regenerating its own copy. See
-// DeploymentsStatus for how the generated packages point at and re-export it.
+// DeploymentsStatus for how the generated packages point at it via a go_type override.
 type DeploymentsDesiredState string
 
 const (

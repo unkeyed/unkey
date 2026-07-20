@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -56,7 +58,7 @@ func (w *Workflow) skipIfSuperseded(
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		if updErr := w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deployment.ID,
-			Status:    db.DeploymentsStatusSuperseded,
+			Status:    mysqltype.DeploymentsStatusSuperseded,
 			UpdatedAt: now,
 		}); updErr != nil {
 			return updErr
