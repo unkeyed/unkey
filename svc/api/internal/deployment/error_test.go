@@ -30,8 +30,7 @@ func TestClassifyFailure(t *testing.T) {
 		{"cpu quota", deploying, deployfail.MsgCPUQuotaExceeded, openapi.DeploymentErrorCodeCpuQuotaExceeded},
 		{"memory quota", deploying, deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentErrorCodeMemoryQuotaExceeded},
 		{"storage quota", deploying, deployfail.MsgStorageQuotaExceeded, openapi.DeploymentErrorCodeStorageQuotaExceeded},
-		{"port too low", starting, deployfail.MsgPortTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
-		{"port too high", starting, deployfail.MsgPortTooHigh, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+		{"port out of range", starting, deployfail.MsgPortOutOfRange, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 		{"cpu too low", starting, deployfail.MsgCPUTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 		{"memory too low", starting, deployfail.MsgMemoryTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 		// UserFacingMessage joins public messages, so a match must survive being

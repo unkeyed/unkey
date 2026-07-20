@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -69,6 +70,23 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		SentinelConfig:   []byte("{}"),
 		DeleteProtection: false,
 	})
+
+	// Seed a schedulable region and regional settings so the environment passes
+	// the deployability gate in CreateDeployment, which requires at least one
+	// schedulable region.
+	region := harness.Seed.CreateRegion(ctx, seed.CreateRegionRequest{
+		Name:     "us-east-1",
+		Platform: "test",
+	})
+	require.NoError(t, harness.DB.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
+		WorkspaceID:   workspaceID,
+		AppID:         app.ID,
+		EnvironmentID: environment.ID,
+		RegionID:      region.ID,
+		Replicas:      1,
+		CreatedAt:     time.Now().UnixMilli(),
+		UpdatedAt:     sql.NullInt64{Valid: false},
+	}))
 
 	client := ctrlv1connect.NewDeployServiceClient(harness.ConnectClient(), harness.CtrlURL, harness.ConnectOptions()...)
 	resp, err := client.CreateDeployment(ctx, connect.NewRequest(&ctrlv1.CreateDeploymentRequest{

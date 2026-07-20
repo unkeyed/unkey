@@ -467,6 +467,7 @@
                       "errors/unkey/application/deployment_not_ready",
                       "errors/unkey/application/deployment_not_running",
                       "errors/unkey/application/deployment_not_stopped",
+                      "errors/unkey/application/invalid_environment_settings",
                       "errors/unkey/application/invalid_input",
                       "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
