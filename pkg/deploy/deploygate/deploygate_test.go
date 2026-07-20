@@ -1,0 +1,155 @@
+package deploygate
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
+)
+
+func promoteBase() PromoteInput {
+	return PromoteInput{
+		Status:              db.DeploymentsStatusReady,
+		DesiredState:        db.DeploymentsDesiredStateRunning,
+		EnvironmentSlug:     envProduction,
+		CurrentDeploymentID: "dep_live",
+		DeploymentID:        "dep_target",
+		IsRolledBack:        false,
+	}
+}
+
+func rollbackBase() RollbackInput {
+	return RollbackInput{
+		Status:              db.DeploymentsStatusReady,
+		DesiredState:        db.DeploymentsDesiredStateRunning,
+		EnvironmentSlug:     envProduction,
+		CurrentDeploymentID: "dep_live",
+		DeploymentID:        "dep_target",
+	}
+}
+
+// requireCode asserts err is a fault carrying the given precondition code.
+func requireCode(t *testing.T, want codes.Code, err error) {
+	t.Helper()
+	require.Error(t, err)
+	got, ok := fault.GetCode(err)
+	require.True(t, ok, "expected a coded fault")
+	require.Equal(t, want.URN(), got)
+}
+
+// ctrl surfaces fault.UserFacingMessage(err) on its own error surface, so verify
+// the faults deploygate builds expose exactly the public message — not the base
+// "precondition failed" text or the internal detail.
+func TestFaultUserFacingMessage(t *testing.T) {
+	in := promoteBase()
+	in.Status = "building"
+	require.Equal(t, "The deployment is not ready.", fault.UserFacingMessage(CheckPromoteTarget(in)))
+
+	in = promoteBase()
+	in.CurrentDeploymentID = in.DeploymentID
+	require.Equal(t, "The deployment is already the current deployment.", fault.UserFacingMessage(CheckPromoteTarget(in)))
+
+	stop := StopInput{Status: db.DeploymentsStatusReady, DesiredState: db.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
+	require.Equal(t, "The deployment is already stopping.", fault.UserFacingMessage(CheckStopTarget(stop)))
+
+	start := StartInput{DesiredState: db.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview", SpendSuspended: true}
+	require.Equal(t, "The workspace is suspended by its Compute spend cap. Raise the spend limit to resume.", fault.UserFacingMessage(CheckStartTarget(start)))
+
+	// The base and internal strings must never leak into the user-facing message.
+	require.NotContains(t, fault.UserFacingMessage(CheckStopTarget(StopInput{})), "precondition failed")
+}
+
+func TestCheckPromoteTarget(t *testing.T) {
+	t.Run("eligible", func(t *testing.T) {
+		require.NoError(t, CheckPromoteTarget(promoteBase()))
+	})
+
+	t.Run("reason order", func(t *testing.T) {
+		in := promoteBase()
+		in.Status = "building"
+		requireCode(t, codes.App.Precondition.DeploymentNotReady, CheckPromoteTarget(in))
+
+		in = promoteBase()
+		in.DesiredState = "stopped"
+		requireCode(t, codes.App.Precondition.DeploymentNotReady, CheckPromoteTarget(in))
+
+		in = promoteBase()
+		in.EnvironmentSlug = "preview"
+		requireCode(t, codes.App.Precondition.DeploymentNotProduction, CheckPromoteTarget(in))
+
+		in = promoteBase()
+		in.CurrentDeploymentID = ""
+		requireCode(t, codes.App.Precondition.DeploymentNoCurrent, CheckPromoteTarget(in))
+	})
+
+	t.Run("already current is rejected", func(t *testing.T) {
+		in := promoteBase()
+		in.CurrentDeploymentID = in.DeploymentID
+		requireCode(t, codes.App.Precondition.DeploymentIsCurrent, CheckPromoteTarget(in))
+	})
+
+	t.Run("promoting the current deployment while rolled back is allowed", func(t *testing.T) {
+		in := promoteBase()
+		in.CurrentDeploymentID = in.DeploymentID
+		in.IsRolledBack = true
+		require.NoError(t, CheckPromoteTarget(in), "confirming a rollback")
+	})
+}
+
+func TestCheckRollbackTarget(t *testing.T) {
+	t.Run("eligible", func(t *testing.T) {
+		require.NoError(t, CheckRollbackTarget(rollbackBase()))
+	})
+
+	t.Run("rolling back to the current deployment is rejected", func(t *testing.T) {
+		in := rollbackBase()
+		in.CurrentDeploymentID = in.DeploymentID
+		requireCode(t, codes.App.Precondition.DeploymentIsCurrent, CheckRollbackTarget(in))
+	})
+
+	t.Run("shares the core preconditions", func(t *testing.T) {
+		in := rollbackBase()
+		in.Status = "failed"
+		requireCode(t, codes.App.Precondition.DeploymentNotReady, CheckRollbackTarget(in))
+	})
+}
+
+func TestCheckStopTarget(t *testing.T) {
+	running := StopInput{Status: db.DeploymentsStatusReady, DesiredState: db.DeploymentsDesiredStateRunning, EnvironmentSlug: "preview"}
+
+	require.NoError(t, CheckStopTarget(running))
+
+	notReady := running
+	notReady.Status = db.DeploymentsStatusStopped
+	requireCode(t, codes.App.Precondition.DeploymentNotRunning, CheckStopTarget(notReady))
+
+	draining := running
+	draining.DesiredState = db.DeploymentsDesiredStateStopped
+	requireCode(t, codes.App.Precondition.DeploymentIsStopping, CheckStopTarget(draining))
+
+	prod := running
+	prod.EnvironmentSlug = envProduction
+	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
+}
+
+func TestCheckStartTarget(t *testing.T) {
+	// A stopped deployment is keyed on desired_state, not status: it may still be
+	// draining (status ready) while its intent is stopped.
+	stopped := StartInput{DesiredState: db.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
+
+	require.NoError(t, CheckStartTarget(stopped), "wakeable while draining toward stopped")
+
+	notStopped := stopped
+	notStopped.DesiredState = db.DeploymentsDesiredStateRunning
+	requireCode(t, codes.App.Precondition.DeploymentNotStopped, CheckStartTarget(notStopped))
+
+	prod := stopped
+	prod.EnvironmentSlug = envProduction
+	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStartTarget(prod))
+
+	suspended := stopped
+	suspended.SpendSuspended = true
+	requireCode(t, codes.App.Precondition.PreconditionFailed, CheckStartTarget(suspended))
+}

@@ -5,7 +5,7 @@ CREATE TABLE `app_environment_variables` (
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`key` varchar(256) NOT NULL,
-	`value` varchar(4096) NOT NULL,
+	`value` text NOT NULL,
 	`type` enum('recoverable','writeonly') NOT NULL,
 	`description` varchar(255),
 	`delete_protection` boolean DEFAULT false,

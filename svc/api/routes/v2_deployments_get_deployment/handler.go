@@ -83,10 +83,75 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	states, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
+		WorkspaceID:   principal.WorkspaceID,
+		DeploymentIds: []string{dep.ID},
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct // zero value when the join misses
+	if len(states) > 0 {
+		state = states[0]
+	}
+
+	var steps []db.DeploymentStep
+	if dep.Status == db.DeploymentsStatusFailed {
+		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
+			WorkspaceID:   principal.WorkspaceID,
+			DeploymentIds: []string{dep.ID},
+		})
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployment."),
+			)
+		}
+	}
+
+	domains, err := db.Query.ListDeploymentDomains(ctx, h.DB.RO(), db.ListDeploymentDomainsParams{
+		WorkspaceID:  principal.WorkspaceID,
+		DeploymentID: dep.ID,
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+
+	regions, err := db.Query.ListDeploymentRegions(ctx, h.DB.RO(), db.ListDeploymentRegionsParams{
+		WorkspaceID:  principal.WorkspaceID,
+		DeploymentID: dep.ID,
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve deployment."),
+		)
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: deployment.ToResponse(dep),
+		Data: deployment.ToResponse(deployment.Input{
+			Deployment: dep,
+			State:      state,
+			Steps:      steps,
+			Regions:    regions,
+			Domains:    domains,
+		}),
 	})
 }

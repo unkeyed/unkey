@@ -13,6 +13,7 @@ import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
@@ -62,6 +63,14 @@ export const workspaces = mysqlTable("workspaces", {
   deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
 
   /**
+   * Written by the spend-cap check when it suspends or resumes a workspace's
+   * compute. The dashboard reads it to show a "suspended by spend cap" state.
+   * Lets the orchestrator find suspended workspaces even after their budget is
+   * removed, so they still resume.
+   */
+  deploySpendSuspended: boolean("deploy_spend_suspended").notNull().default(false),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access
@@ -106,6 +115,7 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   identities: many(identities),
   githubAppInstallations: many(githubAppInstallations),
   quotas: one(quotas),
+  billing: one(workspaceBilling),
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),

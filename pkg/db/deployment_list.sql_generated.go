@@ -19,7 +19,7 @@ WHERE d.workspace_id = ?
   AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
   AND (
     ? = ''
-    OR d.pk < (SELECT c.pk FROM ` + "`" + `deployments` + "`" + ` c WHERE c.id = ?)
+    OR d.pk <= (SELECT c.pk FROM ` + "`" + `deployments` + "`" + ` c WHERE c.id = ?)
   )
 ORDER BY d.pk DESC
 LIMIT ?
@@ -47,7 +47,7 @@ type ListDeploymentsParams struct {
 //	  AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 //	  AND (
 //	    ? = ''
-//	    OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+//	    OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 //	  )
 //	ORDER BY d.pk DESC
 //	LIMIT ?

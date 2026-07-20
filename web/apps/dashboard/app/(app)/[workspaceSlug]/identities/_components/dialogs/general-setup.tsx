@@ -14,10 +14,10 @@ export const GeneralSetup = () => {
     <div className="flex flex-col gap-5 px-2 py-1">
       <FormInput
         label="External ID"
-        description="A unique identifier for this identity (3-255 characters)"
+        description="A unique identifier for this identity (1-255 characters)"
         error={errors.externalId?.message}
         {...register("externalId")}
-        placeholder="user_123 or user@example.com"
+        placeholder="user_123"
         data-1p-ignore
         requirement="required"
       />

@@ -168,6 +168,37 @@ describe("grantDeployCreditsForInvoice", () => {
     expect(result.granted).toBe(false);
   });
 
+  it("paginates the invoice lines when the webhook payload has more pages", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const periodEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+    const create = vi.fn().mockResolvedValue({ id: "credgrant_paged" });
+    const grantsList = vi.fn().mockReturnValue((async function* () {})());
+    // The webhook payload's first page has only a metered line; the fee line
+    // lands on page 2, so netDeployFee must see the paginated set to size the
+    // grant. listLineItems returns the full set as an async iterable.
+    const listLineItems = vi.fn().mockReturnValue(
+      (async function* () {
+        yield line("price_cpu", 123, periodEnd);
+        yield line("price_fee_business", 5000, periodEnd);
+      })(),
+    );
+    const stripe = {
+      billing: { creditGrants: { create, list: grantsList } },
+      invoices: { listLineItems },
+    } as unknown as Stripe;
+
+    const invoice = invoiceStub({
+      lines: {
+        has_more: true,
+        data: [line("price_cpu", 123, periodEnd)],
+      } as unknown as Stripe.Invoice["lines"],
+    });
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoice);
+    expect(listLineItems).toHaveBeenCalledWith("in_test", { limit: 100 });
+    expect(result).toMatchObject({ granted: true, amountCents: 5000 });
+  });
+
   it("skips duplicate grants for the same invoice", async () => {
     vi.mocked(deployBillingConfig).mockResolvedValue(config);
     const periodEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;

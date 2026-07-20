@@ -711,6 +711,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -722,8 +723,6 @@ components:
                     description: Array of deployments, ordered newest first.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2DeploymentsPromoteDeploymentRequestBody:
             type: object
@@ -733,7 +732,7 @@ components:
                 deploymentId:
                     "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
-            description: Promote a ready deployment to become the live deployment for its environment.
+            description: Promote a ready deployment to become the current deployment for its environment.
         V2DeploymentsPromoteDeploymentResponseBody:
             type: object
             required:
@@ -753,7 +752,7 @@ components:
                 deploymentId:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
-                        The deployment to roll back TO. Its app's current live deployment is used
+                        The deployment to roll back TO. Its app's current deployment is used
                         as the rollback source automatically.
             additionalProperties: false
             description: Roll live traffic back to a previous deployment.
@@ -3957,6 +3956,12 @@ components:
             required:
                 - id
                 - status
+                - isCurrent
+                - environment
+                - app
+                - project
+                - availableActions
+                - regions
                 - runtime
                 - createdAt
             properties:
@@ -3967,6 +3972,61 @@ components:
                     example: d_1234abcd
                 status:
                     "$ref": "#/components/schemas/DeploymentStatus"
+                isCurrent:
+                    type: boolean
+                    description: |
+                        True when this is the production deployment currently serving traffic, i.e.
+                        on api.acme.com. Only production deployments can be current, and at most one
+                        deployment is current. Rollbacks and promotions change which deployment is
+                        current and serves requests to api.acme.com.
+                    example: true
+                environment:
+                    type: string
+                    description: Slug of the environment this deployment belongs to.
+                    example: production
+                app:
+                    type: string
+                    description: Slug of the app this deployment belongs to.
+                    example: payments-api
+                project:
+                    type: string
+                    description: Slug of the project this deployment belongs to.
+                    example: acme
+                git:
+                    "$ref": "#/components/schemas/DeploymentGit"
+                    description: |
+                        Present for git-sourced deployments. Mutually exclusive with `docker`.
+                docker:
+                    "$ref": "#/components/schemas/DeploymentDocker"
+                    description: |
+                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                availableActions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentAction"
+                    description: |
+                        Lifecycle operations you are allowed to call on this deployment right now.
+                        Empty when none apply (e.g. while building or in a terminal state).
+                    example: ["stop"]
+                regions:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Regions this deployment is configured to run in. Empty while the deployment
+                        has no scheduled regions yet.
+                    example: ["us-east-1", "eu-west-1"]
+                error:
+                    "$ref": "#/components/schemas/DeploymentError"
+                    description: |
+                        Why the deployment failed. Present only when `status` is `failed`.
+                domains:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Public hostnames this deployment is reachable at.
+                    example: ["kebap-app.unkey.app"]
                 runtime:
                     "$ref": "#/components/schemas/DeploymentRuntime"
                 createdAt:
@@ -4024,6 +4084,68 @@ components:
                 terminal state: ready (serving), failed, skipped, superseded, stopped,
                 or cancelled.
             example: ready
+        DeploymentGit:
+            type: object
+            required:
+                - commitSha
+            properties:
+                commitSha:
+                    type: string
+                    description: The git commit SHA this deployment was built from.
+                    example: 9f2c1a7d3b
+                branch:
+                    type: string
+                    description: The git branch this deployment was built from. Omitted when unknown.
+                    example: main
+            additionalProperties: false
+        DeploymentDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The Docker image this deployment runs.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
+        DeploymentAction:
+            type: string
+            enum:
+                - promote
+                - rollback
+                - stop
+                - start
+            x-enum-varnames:
+                - DeploymentActionPromote
+                - DeploymentActionRollback
+                - DeploymentActionStop
+                - DeploymentActionStart
+            description: |
+                A lifecycle operation that can be performed on the deployment in its current
+                state, given its status, environment, and whether it is the current
+                deployment.
+            example: promote
+        DeploymentError:
+            type: object
+            required:
+                - code
+                - step
+                - message
+            properties:
+                code:
+                    "$ref": "#/components/schemas/DeploymentErrorCode"
+                step:
+                    type: string
+                    description: |
+                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                    example: deploying
+                message:
+                    type: string
+                    description: |
+                        Human-readable description of why the deployment failed. For programmatic
+                        handling, use `code`.
+                    example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -4072,6 +4194,28 @@ components:
                     description: |
                         HTTP health probe configuration. Omitted when no healthcheck is configured.
             additionalProperties: false
+        DeploymentErrorCode:
+            type: string
+            enum:
+                - no_schedulable_regions
+                - invalid_runtime_settings
+                - cpu_quota_exceeded
+                - memory_quota_exceeded
+                - storage_quota_exceeded
+                - build_failed
+                - unknown
+            x-enum-varnames:
+                - DeploymentErrorCodeNoSchedulableRegions
+                - DeploymentErrorCodeInvalidRuntimeSettings
+                - DeploymentErrorCodeCpuQuotaExceeded
+                - DeploymentErrorCodeMemoryQuotaExceeded
+                - DeploymentErrorCodeStorageQuotaExceeded
+                - DeploymentErrorCodeBuildFailed
+                - DeploymentErrorCodeUnknown
+            description: |
+                The reason a deployment failed. `unknown` means Unkey could not classify the
+                failure; see `message` for details.
+            example: no_schedulable_regions
         EnvironmentShutdownSignal:
             type: string
             enum:
@@ -4392,8 +4536,11 @@ components:
                 value:
                     type: string
                     minLength: 1
-                    maxLength: 4096
-                    description: The variable value. Always encrypted at rest.
+                    maxLength: 16384
+                    description: |
+                        The variable value. Always encrypted at rest. The limit is enforced
+                        server-side in UTF-8 bytes, so a multibyte value may be rejected before
+                        it reaches this code-point maximum.
                     example: postgresql://user:pass@host:5432/db
                 kind:
                     allOf:
@@ -7592,13 +7739,13 @@ paths:
     /v2/deployments.promoteDeployment:
         post:
             description: |
-                Promote a deployment to become the live deployment for its environment.
-                All sticky domains are reassigned from the current live deployment to the
+                Promote a deployment to become the current deployment for its environment.
+                All sticky domains are reassigned from the current deployment to the
                 promoted one, and the previous deployment is scheduled for standby.
 
                 The deployment must be ready, not already shutting down, belong to the
-                production environment, and its app must already have a live deployment.
-                Promoting the deployment that is already live fails, unless the app is in
+                production environment, and its app must already have a current deployment.
+                Promoting the deployment that is already current fails, unless the app is in
                 a rolled-back state, in which case promoting the current deployment
                 confirms the rollback and re-enables automatic promotion of future
                 deployments.
@@ -7668,9 +7815,9 @@ paths:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
                         Precondition failed - The deployment is not ready, is shutting down, is
-                        already live (and the app is not in a rolled-back state), does not
-                        belong to the production environment, or its app has no live deployment
-                        to promote from.
+                        already the current deployment (and the app is not in a rolled-back
+                        state), does not belong to the production environment, or its app has
+                        no current deployment to promote over.
                 "429":
                     content:
                         application/problem+json:
@@ -7693,11 +7840,11 @@ paths:
         post:
             description: |
                 Roll live traffic back to a previous deployment. `deploymentId` is the
-                deployment to roll back TO; the app's current live deployment is used as
+                deployment to roll back TO; the app's current deployment is used as
                 the rollback source automatically.
 
                 The target deployment must be ready, not already shutting down, belong to
-                the production environment, and must not itself be the live deployment.
+                the production environment, and must not itself be the current deployment.
 
                 After a rollback the app is marked as rolled back, which prevents new
                 deployments from automatically taking over live traffic. Promote the
@@ -7768,8 +7915,8 @@ paths:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
                         Precondition failed - The deployment is not ready, is shutting down, is
-                        already live, does not belong to the production environment, or the app
-                        has no live deployment to roll back from.
+                        already the current deployment, does not belong to the production
+                        environment, or the app has no current deployment to roll back from.
                 "429":
                     content:
                         application/problem+json:
@@ -7863,8 +8010,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
-                        Precondition failed - The deployment is not stopped, or it belongs to a
-                        production environment.
+                        Precondition failed - The deployment is not stopped, it belongs to a
+                        production environment, or the workspace is suspended by its Compute
+                        spend cap.
                 "429":
                     content:
                         application/problem+json:

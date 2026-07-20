@@ -58,6 +58,12 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := s.DB.InsertWorkspace(ctx, params)
 	require.NoError(s.t, err)
 
+	err = s.DB.InsertWorkspaceBilling(ctx, db.InsertWorkspaceBillingParams{
+		WorkspaceID: params.ID,
+		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+
 	ws, err := s.DB.FindWorkspaceByID(ctx, params.ID)
 	require.NoError(s.t, err)
 
@@ -205,8 +211,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		EnvironmentID:    req.ID,
 		Port:             8080,
-		CpuMillicores:    100,
-		MemoryMib:        128,
+		CpuMillicores:    250,
+		MemoryMib:        256,
 		StorageMib:       0,
 		Command:          nil,
 		Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},

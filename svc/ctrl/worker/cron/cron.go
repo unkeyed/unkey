@@ -294,6 +294,7 @@ func New(cfg Config) (*Service, error) {
 		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
 	}
 	deploySpendCheckWorkH, err := deployspendcheck.NewCheckHandler(deployspendcheck.CheckConfig{
+		DB:             cfg.DB,
 		Admins:         admins,
 		Email:          alertSender,
 		BillingBaseURL: cfg.BillingBaseURL,

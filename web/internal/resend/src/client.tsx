@@ -71,18 +71,22 @@ export class Resend {
     date: string;
     source: string;
     url: string;
+    idempotencyKey?: string;
   }): Promise<void> {
-    const { date, email, source, url } = req;
+    const { date, email, source, url, idempotencyKey } = req;
     const html = await render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
 
     try {
-      const result = await this.client.emails.send({
-        to: email,
-        from: "James from Unkey <james@updates.unkey.com>",
-        replyTo: this.replyTo,
-        subject: "Unkey root key exposed in public Github repository",
-        html: html,
-      });
+      const result = await this.client.emails.send(
+        {
+          to: email,
+          from: "James from Unkey <james@updates.unkey.com>",
+          replyTo: this.replyTo,
+          subject: "Unkey root key exposed in public Github repository",
+          html: html,
+        },
+        idempotencyKey ? { idempotencyKey } : undefined,
+      );
       if (!result.error) {
         return;
       }

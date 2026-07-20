@@ -4,7 +4,7 @@ import { z } from "zod";
 import { env } from "./env";
 import type { PortalConfig } from "./portal-config";
 
-const SESSION_COOKIE_NAME = "portal_session";
+export const SESSION_COOKIE_NAME = "portal_session";
 const SESSION_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours
 
 export type SessionData = {
@@ -15,6 +15,25 @@ export type SessionData = {
   preview: boolean;
   expiresAt: number;
 };
+
+/**
+ * The session `permissions` column holds the grant `portal.createSession`
+ * persists: `{ keyspaceIds, permissions: ["keys:read", ...] }`. The portal only
+ * needs the capability list for tab/visibility decisions, so normalize to that
+ * array here. Tolerates a plain string array too, in case the shape changes.
+ */
+function readCapabilities(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((p): p is string => typeof p === "string");
+  }
+  if (raw && typeof raw === "object" && "permissions" in raw) {
+    const inner = (raw as { permissions?: unknown }).permissions;
+    if (Array.isArray(inner)) {
+      return inner.filter((p): p is string => typeof p === "string");
+    }
+  }
+  return [];
+}
 
 type ExchangeResult = { success: true } | { success: false; error: string };
 
@@ -133,7 +152,10 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       });
     }
 
-    return { session, config };
+    return {
+      session: { ...session, permissions: readCapabilities(session.permissions) },
+      config,
+    };
   },
 );
 

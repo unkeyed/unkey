@@ -1,0 +1,51 @@
+---
+title: "deployment_not_stopped"
+description: "The deployment cannot be started because it is not in stopped status."
+---
+
+<Danger>`err:unkey:application:deployment_not_stopped`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is not stopped.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_not_stopped"
+  }
+}
+```
+
+## What Happened?
+
+You called `startDeployment` on a deployment that is not in `stopped` status. Start only applies to a deployment that was previously stopped; a deployment that is building, `ready`, or in another state has nothing to start.
+
+`getDeployment` reports the current `status`, and `availableActions` lists `start` only when the deployment is `stopped`.
+
+## How To Fix
+
+1. Fetch the deployment with `getDeployment` and check `status`.
+2. Only call `start` when the deployment is `stopped`.
+3. If the deployment is already `ready`, it is running and no action is needed.
+
+```bash
+# Confirm the deployment is stopped before starting it
+curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Starting a running deployment**: Calling `start` on a deployment that is already `ready`.
+- **Starting mid-build**: Calling `start` before the deployment has ever been stopped.
+
+## Related Errors
+
+- [err:unkey:application:deployment_not_running](./deployment_not_running) - When stopping a deployment that is not running
+- [err:unkey:application:deployment_is_production](./deployment_is_production) - When the deployment is in production
+- [err:unkey:application:deployment_is_stopping](./deployment_is_stopping) - When a stop is already in flight

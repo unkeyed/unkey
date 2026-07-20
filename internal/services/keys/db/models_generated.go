@@ -213,6 +213,7 @@ type Quotas struct {
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
 	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
+	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
 }
 
 type Ratelimit struct {
@@ -262,6 +263,7 @@ type Workspace struct {
 	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
 	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
 	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
+	DeploySpendSuspended   bool            `db:"deploy_spend_suspended"`
 	BetaFeatures           json.RawMessage `db:"beta_features"`
 	Subscriptions          []byte          `db:"subscriptions"`
 	Enabled                bool            `db:"enabled"`

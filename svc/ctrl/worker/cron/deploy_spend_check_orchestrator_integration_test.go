@@ -21,12 +21,12 @@ func seedBudgetedWorkspace(
 	ws := h.Seed.CreateWorkspace(h.Ctx)
 	_, err := h.DB.RW().ExecContext(
 		h.Ctx,
-		`UPDATE workspaces SET
-			deploy_plan = ?,
+		`UPDATE workspace_billing SET
+			plan = ?,
 			stripe_customer_id = ?,
-			deploy_spend_budget_cents = ?,
-			deploy_spend_budget_stop = ?
-		WHERE id = ?`,
+			spend_budget_cents = ?,
+			spend_budget_stop = ?
+		WHERE workspace_id = ?`,
 		"pro", customerID, budgetCents, true, ws.ID,
 	)
 	require.NoError(t, err)
@@ -41,7 +41,7 @@ func clearBudgetOnCleanup(t *testing.T, h *harness.Harness, workspaceID string) 
 	t.Helper()
 	t.Cleanup(func() {
 		_, err := h.DB.RW().ExecContext(h.Ctx,
-			`UPDATE workspaces SET deploy_spend_budget_cents = NULL WHERE id = ?`, workspaceID)
+			`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE workspace_id = ?`, workspaceID)
 		require.NoError(t, err)
 	})
 }
@@ -56,7 +56,7 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 	// other tests) can leave budgeted workspaces behind. The orchestrator
 	// counts below are asserted exactly, so start from an empty opt-in set.
 	_, err := h.DB.RW().ExecContext(h.Ctx,
-		`UPDATE workspaces SET deploy_spend_budget_cents = NULL WHERE deploy_spend_budget_cents IS NOT NULL`)
+		`UPDATE workspace_billing SET spend_budget_cents = NULL WHERE spend_budget_cents IS NOT NULL`)
 	require.NoError(t, err)
 
 	period := time.Now().UTC().Format("2006-01")

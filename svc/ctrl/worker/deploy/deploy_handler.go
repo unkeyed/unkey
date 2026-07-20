@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
@@ -187,15 +188,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
-		if err := assert.All(
-			assert.Greater(deployment.Port, int32(0), "Port must be greater than 0"),
-			assert.LessOrEqual(deployment.Port, int32(65535), "Port cannot exceed 65535"),
-			assert.Greater(deployment.CpuMillicores, int32(0), "CPU millicores must be greater than 0"),
-			assert.Greater(deployment.MemoryMib, int32(0), "MemoryMib must be greater than 0"),
-		); err != nil {
+		// Backstop only: the create-time gates (API, ctrl) reject these before
+		// enqueue. If one is ever reached here, fail the step with a message the
+		// read-path classifier maps to InvalidRuntimeSettings.
+		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
 			return fault.Wrap(
-				restate.TerminalError(err),
-				fault.Public(err.Error()),
+				restate.TerminalError(errors.New(violations[0].Message)),
+				fault.Public(violations[0].Message),
 			)
 		}
 
@@ -541,7 +540,7 @@ func (w *Workflow) createTopologies(
 	if len(regionalSettings) == 0 {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
-			fault.Public("No schedulable regions configured. Please configure at least one schedulable region before deploying."),
+			fault.Public(deployfail.MsgNoSchedulableRegions),
 		)
 	}
 
@@ -572,19 +571,19 @@ func (w *Workflow) createTopologies(
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
-			fault.Public("We are unable to deploy this application as you have exceeded your CPU quota."),
+			fault.Public(deployfail.MsgCPUQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
-			fault.Public("We are unable to deploy this application as you have exceeded your Memory quota."),
+			fault.Public(deployfail.MsgMemoryQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalStorageMib > int64(quota.AllocatedStorageMibTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Storage quota exceeded: consumed %d, quota %d", allocatedResources.TotalStorageMib, quota.AllocatedStorageMibTotal)),
-			fault.Public("We are unable to deploy this application as you have exceeded your Storage quota."),
+			fault.Public(deployfail.MsgStorageQuotaExceeded),
 		)
 	}
 

@@ -1,14 +1,23 @@
 "use client";
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
+import { useDeleteIdentityMutation } from "@/lib/identities-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Identity } from "@unkey/api/models/components";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  ConfirmPopover,
+  DialogContainer,
+  FormCheckbox,
+} from "@unkey/ui";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useDeleteIdentity } from "./hooks/use-delete-identity";
 import { IdentityInfo } from "./identity-info";
 
 const deleteIdentityFormSchema = z.object({
@@ -20,7 +29,7 @@ const deleteIdentityFormSchema = z.object({
 type DeleteIdentityFormValues = z.infer<typeof deleteIdentityFormSchema>;
 
 type DeleteIdentityDialogProps = {
-  identity: IdentityForActions;
+  identity: Identity;
   // Optional callback fired after a successful deletion, in addition to
   // closing the dialog. The identity detail page uses this to navigate back
   // to the list once the just-deleted identity is gone.
@@ -36,6 +45,7 @@ export const DeleteIdentityDialog = ({
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteIdentity = useDeleteIdentityMutation();
 
   const methods = useForm<DeleteIdentityFormValues>({
     resolver: zodResolver(deleteIdentityFormSchema),
@@ -48,25 +58,25 @@ export const DeleteIdentityDialog = ({
   });
 
   const {
-    formState: { errors },
+    formState: { errors, isSubmitting },
     control,
+    handleSubmit,
     watch,
   } = methods;
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deleteIdentity = useDeleteIdentity(() => {
-    onDeleted?.();
-    onClose();
-  });
-
   const handleDialogOpenChange = (open: boolean) => {
+    if (!open && isSubmitting) {
+      return;
+    }
     if (isConfirmPopoverOpen) {
       // If confirm popover is active don't let this trigger outer popover
       if (!open) {
         return;
       }
     } else if (!open) {
+      deleteIdentity.reset();
       onClose();
     }
   };
@@ -75,16 +85,15 @@ export const DeleteIdentityDialog = ({
     setIsConfirmPopoverOpen(true);
   };
 
-  const performIdentityDeletion = async () => {
+  const performIdentityDeletion = handleSubmit(async () => {
     try {
-      await deleteIdentity.mutateAsync({
-        identityId: identity.id,
-      });
+      await deleteIdentity.mutateAsync(identity.id);
+      onDeleted?.();
+      onClose();
     } catch {
-      // `useDeleteIdentity` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      // The mutation state keeps the error visible in the dialog.
     }
-  };
+  });
 
   return (
     <>
@@ -104,8 +113,8 @@ export const DeleteIdentityDialog = ({
                   color="danger"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!confirmDeletion || deleteIdentity.isLoading}
-                  loading={deleteIdentity.isLoading}
+                  disabled={!confirmDeletion || isSubmitting}
+                  loading={isSubmitting}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
@@ -118,6 +127,14 @@ export const DeleteIdentityDialog = ({
             }
           >
             <IdentityInfo identity={identity} />
+            {deleteIdentity.isError ? (
+              <Alert variant="alert" className="mt-4">
+                <AlertTitle>Couldn&apos;t Delete Identity</AlertTitle>
+                <AlertDescription>
+                  {getErrorMessage(deleteIdentity.error)} Try again.
+                </AlertDescription>
+              </Alert>
+            ) : null}
             <div className="py-1 my-2">
               <div className="h-px bg-grayA-3 w-full" />
             </div>

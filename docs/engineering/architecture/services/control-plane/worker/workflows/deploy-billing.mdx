@@ -67,7 +67,7 @@ The events carry no idempotency identifier on purpose. `last` aggregation alread
 
 ### Fan-out
 
-Pushing workspaces one at a time is slow once tenant counts grow, and pushing all of them at once risks Stripe's rate limits. The handler fans out with `restate.RunAsync` in batches of `pushConcurrency` (16), awaiting each batch before starting the next. Each push runs as its own journaled Restate step, so a crash retries only the incomplete batch.
+Each workspace push runs as its own `DeployBillingPushService` invocation, keyed by workspace id, so a customer's pushes serialize and a broken workspace retries and fails in isolation. The hourly orchestrator dispatches all tasks, awaits each child response, and withholds the Checkly heartbeat when any push fails so monitoring surfaces partial fleet failures.
 
 ## Month-end close
 
