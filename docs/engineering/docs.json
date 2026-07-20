@@ -7,7 +7,10 @@
     "light": "#F5E6BE",
     "dark": "#A68509"
   },
-  "favicon": "/unkey.png",
+  "favicon": {
+    "light": "/favicon-light.svg",
+    "dark": "/favicon-dark.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -260,8 +263,8 @@
     "decoration": "gradient"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "navbar": {
     "links": [
