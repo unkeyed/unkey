@@ -45,7 +45,10 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
       Sentry.replayIntegration({
         ...replayPrivacyOptions,
         // Recording envelopes bypass `beforeSend`, and replay captures console
-        // breadcrumbs off the scope itself, so they need scrubbing here.
+        // breadcrumbs off the scope itself, so they need scrubbing here. Note
+        // the SDK only routes CUSTOM frames through this hook — DOM snapshots
+        // and their element attributes are covered by the masking config, not
+        // by the scrubber. See `scrubReplayFrame`.
         beforeAddRecordingEvent: scrubReplayFrame,
       }),
     ],

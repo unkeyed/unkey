@@ -1133,3 +1133,358 @@ describe("scrubReplayFrame", () => {
     expect(message).toBe("div > button.Button_root__1a2b3");
   });
 });
+
+describe("event-path parity with the transaction and replay paths", () => {
+  it("scrubs console breadcrumb data.arguments, not just the formatted message", () => {
+    // The console integration attaches the raw arguments alongside the joined
+    // message, and `safeJoin` renders an object argument as `[object Object]`
+    // — so for an object argument the message pass sees nothing and `data.
+    // arguments` is the only carrier. `structured-logger.ts` does exactly this
+    // with the PRE-scrub tRPC error message.
+    const event: ErrorEvent = {
+      type: undefined,
+      breadcrumbs: [
+        {
+          category: "console",
+          message: "Failed to log to Sentry: [object Object]",
+          data: {
+            logger: "console",
+            arguments: [
+              "Failed to log to Sentry:",
+              { attributes: { trpc_error_message: `Failed to verify key ${ROOT_KEY}` } },
+            ],
+          },
+        },
+      ],
+    };
+
+    scrubEventPii(event);
+
+    expect(JSON.stringify(event.breadcrumbs)).not.toContain(ROOT_KEY);
+    // The diagnostic shape survives; only the secret goes.
+    expect(JSON.stringify(event.breadcrumbs)).toContain("trpc_error_message");
+  });
+
+  it("scrubs event.transaction, which carries the route just like request.url", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      transaction: `/keys/${ROOT_KEY}/settings`,
+      request: { url: `https://app.unkey.com/keys/${ROOT_KEY}/settings` },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.transaction).not.toContain(ROOT_KEY);
+    expect(event.request?.url).not.toContain(ROOT_KEY);
+    // The route shape survives so Sentry can still group on it.
+    expect(event.transaction).toContain("/settings");
+  });
+
+  it("scrubs contexts.trace.data on error events, as the transaction path does", () => {
+    // Errors captured inside a span carry the root span's attributes.
+    const event: ErrorEvent = {
+      type: undefined,
+      contexts: {
+        trace: {
+          trace_id: "abc",
+          span_id: "def",
+          data: {
+            "http.url": `https://api.unkey.com/verify?token=${JWT}`,
+            "db.query.text": "SELECT * FROM keys WHERE email = 'jane@acme.com'",
+          },
+        },
+      },
+    };
+
+    scrubEventPii(event);
+
+    const traceData = event.contexts?.trace?.data;
+    expect(JSON.stringify(traceData)).not.toContain(JWT);
+    expect(JSON.stringify(traceData)).not.toContain("jane@acme.com");
+    // SQL keeps its shape for grouping.
+    expect(traceData?.["db.query.text"]).toContain("SELECT * FROM keys WHERE email =");
+  });
+});
+
+describe("redaction-net coverage gaps", () => {
+  it("redacts emails in URL path segments", () => {
+    // `TOKEN_LIKE` stops at `.` and `@`, so no run in an address reaches 20
+    // chars and the digit-bearing net alone cannot see it.
+    const out = scrubUrl("/api/users/jane.doe@acme.com/keys");
+
+    expect(out).not.toContain("jane.doe@acme.com");
+    expect(out).toContain("/api/users/");
+    expect(out).toContain("/keys");
+  });
+
+  it("scrubs bracketed (nested) form-encoded bodies by key", () => {
+    // Bracketed keys are a real form encoding; excluding them from the shape
+    // check dropped the body to the blind token net, which cannot tell that a
+    // 7-char value under a `password` key is a secret.
+    const event: ErrorEvent = {
+      type: undefined,
+      request: { data: "user[password]=hunter2&user[email]=jane@acme.com&user[name]=Jane" },
+    };
+
+    scrubEventPii(event);
+
+    const data = String(event.request?.data);
+    expect(data).not.toContain("hunter2");
+    expect(data).not.toContain("jane@acme.com");
+    // A non-sensitive field under the same nesting survives.
+    expect(data).toContain("Jane");
+  });
+
+  it("redacts credential headers outside the exact allowlist", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      request: {
+        headers: {
+          "x-unkey-key": ROOT_KEY,
+          "x-csrf-token": "short",
+          "x-clerk-session": "sess_abc",
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+          accept: "application/json",
+        },
+      },
+    };
+
+    scrubEventPii(event);
+
+    const headers = event.request?.headers ?? {};
+    expect(headers["x-unkey-key"]).toBe("[REDACTED]");
+    // Name-based matching is what catches a SHORT credential the token net misses.
+    expect(headers["x-csrf-token"]).toBe("[REDACTED]");
+    expect(headers["x-clerk-session"]).toBe("[REDACTED]");
+    // Benign headers survive intact.
+    expect(headers["user-agent"]).toBe("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+    expect(headers.accept).toBe("application/json");
+  });
+
+  it("scrubs Errors and Maps reaching un-normalized log surfaces", () => {
+    // `logentry.params` and `log.attributes` skip the SDK's normalization, so
+    // an Error arrives live. Passing exotic objects through untouched shipped
+    // the very message `scrubExceptions` strips out of the event.
+    const log: SentryLog = {
+      level: "error",
+      message: "operation failed",
+      attributes: {
+        cause: new Error(`Failed to verify key ${ROOT_KEY}`),
+        lookup: new Map([["contact", "jane@acme.com"]]),
+      },
+    };
+
+    const scrubbed = scrubLog(log);
+
+    expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
+    // The Error is flattened rather than dropped, so it stays diagnosable.
+    expect(JSON.stringify(scrubbed)).toContain("Error");
+  });
+});
+
+describe("scrubLog correlation identifiers", () => {
+  it("preserves the ids structured logging exists to provide", () => {
+    // These are opaque, self-generated, and all match the digit-bearing token
+    // shape. Redacting them severs the link between a Sentry issue and its
+    // tRPC log line, its user, and its deploy, while protecting nothing.
+    const log: SentryLog = {
+      level: "error",
+      message: "tRPC operation completed with expected error",
+      attributes: {
+        service: "dashboard",
+        request_id: "req_1763648000000_k3j9xq2mz",
+        user_id: "user_2nQ9xPz1AbCdEfGhIjKlMnOpQr",
+        workspace_id: "ws_3ZjKcT9pQxV2mNbW",
+        version: "a1b2c3d4e5f67890a1b2c3d4e5f67890",
+        trpc_procedure: "key.create",
+        trpc_error_code: "INTERNAL_SERVER_ERROR",
+        trpc_error_message: `Failed to verify key ${ROOT_KEY}`,
+      },
+    };
+
+    const scrubbed = scrubLog(log);
+    const attributes = scrubbed?.attributes ?? {};
+
+    expect(attributes.request_id).toBe("req_1763648000000_k3j9xq2mz");
+    expect(attributes.user_id).toBe("user_2nQ9xPz1AbCdEfGhIjKlMnOpQr");
+    expect(attributes.workspace_id).toBe("ws_3ZjKcT9pQxV2mNbW");
+    expect(attributes.version).toBe("a1b2c3d4e5f67890a1b2c3d4e5f67890");
+    expect(attributes.trpc_procedure).toBe("key.create");
+    expect(attributes.trpc_error_code).toBe("INTERNAL_SERVER_ERROR");
+    // The exemption is narrow: the message attribute is still scrubbed.
+    expect(String(attributes.trpc_error_message)).not.toContain(ROOT_KEY);
+  });
+
+  it("scrubs a templated (fmt) message, which is a String object at runtime", () => {
+    // `fmt`/`parameterize` build the message with `new String(...)`, so a
+    // `typeof === "string"` check skips it entirely. The SDK extracts the
+    // template and its values into attributes BEFORE `beforeSendLog` runs —
+    // this models the exact shape `_INTERNAL_captureLog` hands the hook.
+    const templated = new String(
+      `fetch failed for /api/keys?keyId=${ROOT_KEY}`,
+    ) as unknown as SentryLog["message"];
+
+    const scrubbed = scrubLog({
+      level: "error",
+      message: templated,
+      attributes: {
+        "sentry.message.template": "fetch failed for /api/keys?keyId=%s",
+        "sentry.message.parameter.0": ROOT_KEY,
+      },
+    });
+
+    // The interpolated body is scrubbed...
+    expect(String(scrubbed?.message)).not.toContain(ROOT_KEY);
+    // ...and so is the parameter attribute, the copy Sentry actually ships.
+    expect(String(scrubbed?.attributes?.["sentry.message.parameter.0"])).not.toContain(ROOT_KEY);
+    // The template attribute is developer-authored source: it must survive
+    // VERBATIM — `scrubUrl` would re-encode `%s` to `%25s`, breaking
+    // interpolation and splitting grouping.
+    expect(scrubbed?.attributes?.["sentry.message.template"]).toBe(
+      "fetch failed for /api/keys?keyId=%s",
+    );
+  });
+});
+
+describe("over-redaction and encoded-form regressions", () => {
+  it("scrubs caller-supplied PII arriving under correlation attribute names", () => {
+    // `logUserAction`/`logOperation` spread caller attributes over the base
+    // record, so allowlisted names can carry caller data. The exemption must
+    // be by name AND value shape.
+    const log: SentryLog = {
+      level: "info",
+      message: "user action: invite.send",
+      attributes: {
+        resource_id: "jane@acme.com",
+        action_type: "invite jane@acme.com",
+        request_id: "req_1763648000000_k3j9xq2mz",
+      },
+    };
+
+    const scrubbed = scrubLog(log);
+
+    expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
+    // The genuinely id-shaped value keeps its exemption.
+    expect(scrubbed?.attributes?.request_id).toBe("req_1763648000000_k3j9xq2mz");
+  });
+
+  it("redacts Map values by key instead of flattening keys away", () => {
+    // Flattening a Map to an entries array hides its keys from the key-based
+    // policy — `password: hunter2` is invisible to every string net.
+    const log: SentryLog = {
+      level: "error",
+      message: "x",
+      attributes: { ctx: new Map<string, string>([["password", "hunter2"]]) },
+    };
+
+    const scrubbed = scrubLog(log);
+
+    expect(JSON.stringify(scrubbed)).not.toContain("hunter2");
+    expect(JSON.stringify(scrubbed)).toContain("password");
+  });
+
+  it("redacts percent-encoded emails in URL path segments", () => {
+    // `encodeURIComponent` is the normal way an address reaches a path, and
+    // the encoded form has no literal `@` for the email net.
+    const out = scrubUrl("https://app.unkey.com/api/users/jane%40acme.com/keys");
+
+    expect(out).not.toContain("jane%40acme.com");
+    expect(out).toContain("/api/users/");
+    expect(out).toContain("/keys");
+  });
+
+  it("preserves correlation and infrastructure headers", () => {
+    const event: ErrorEvent = {
+      type: undefined,
+      request: {
+        headers: {
+          ":authority": "app.unkey.com",
+          "x-request-id": "123e4567-e89b-12d3-a456-426614174000",
+          traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+          "sentry-trace": "4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1",
+          "x-unkey-key": ROOT_KEY,
+        },
+      },
+    };
+
+    scrubEventPii(event);
+
+    const headers = event.request?.headers ?? {};
+    // The values an on-call engineer joins Sentry issues to logs/traces with.
+    expect(headers[":authority"]).toBe("app.unkey.com");
+    expect(headers["x-request-id"]).toBe("123e4567-e89b-12d3-a456-426614174000");
+    expect(headers.traceparent).toBe("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
+    expect(headers["sentry-trace"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1");
+    // Credential-named headers still go.
+    expect(headers["x-unkey-key"]).toBe("[REDACTED]");
+  });
+
+  it("leaves bracketed UI-state params alone while catching credential leaves", () => {
+    const out = scrubUrl(
+      "https://app.unkey.com/logs?filters[state]=open&sort[key]=name&user[password]=hunter2&user[email]=j@a.co",
+    );
+
+    // `state`/`key` are OAuth-sensitive as WHOLE names but benign as leaves.
+    expect(out).toContain("open");
+    expect(out).toContain("name");
+    // Unambiguous credential leaves are still redacted.
+    expect(out).not.toContain("hunter2");
+    expect(out).not.toContain("j%40a.co");
+  });
+
+  it("redacts array params named for credentials (token[])", () => {
+    // `token[]=a&token[]=b` is a single param NAME with brackets; the leaf is
+    // the only segment and must still match the credential list.
+    const out = scrubUrl("https://app.unkey.com/verify?token[]=abc123&token[]=def456");
+
+    expect(out).not.toContain("abc123");
+    expect(out).not.toContain("def456");
+  });
+
+  it("keeps Error stack frames readable and carries the non-enumerable cause", () => {
+    const inner = new Error(`vault sealed for key ${ROOT_KEY}`);
+    const outer = new Error("teardown failed", { cause: inner });
+    const log: SentryLog = { level: "error", message: "x", attributes: { e: outer } };
+
+    const scrubbed = scrubLog(log);
+    const flat = scrubbed?.attributes?.e as {
+      stack?: string;
+      cause?: { message?: string };
+    };
+
+    // `cause` is installed non-enumerably by V8; Object.entries misses it.
+    expect(flat.cause?.message).toBeDefined();
+    expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
+    // Frame lines are code locations, not data: the digit-bearing net must
+    // not eat directory or chunk-hash segments out of them.
+    const frames = (flat.stack ?? "").split("\n").filter((line) => /^\s+at\s/.test(line));
+    expect(frames.length).toBeGreaterThan(0);
+    for (const frame of frames) {
+      expect(frame).not.toContain("[REDACTED]");
+    }
+  });
+
+  it("gives replay ui.* selector messages the same email pass as the event path", () => {
+    const frame = {
+      type: 5,
+      timestamp: 0,
+      data: {
+        tag: "breadcrumb",
+        payload: {
+          type: "default",
+          category: "ui.click",
+          message: 'div > button[id="jane@acme.com"]',
+          timestamp: 0,
+        },
+      },
+    } as unknown as ReplayFrameEvent;
+
+    const scrubbed = scrubReplayFrame(frame);
+
+    const message = (scrubbed?.data as { payload: { message: string } }).payload.message;
+    expect(message).not.toContain("jane@acme.com");
+    // The selector path itself survives for the click trail.
+    expect(message).toContain("div > button");
+  });
+});

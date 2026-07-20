@@ -14,6 +14,17 @@
  *
  * Never add these attributes to anything that can render user data, keys,
  * emails, tokens, or workspace/identity identifiers.
+ *
+ * Element ATTRIBUTES are a separate surface from text. `maskAllText` masks text
+ * nodes only, and the `beforeAddRecordingEvent` scrubber in `pii-scrubber.ts`
+ * never sees DOM frames (the SDK gates it to custom events), so an `href` or
+ * `src` carrying a credential in its query string is recorded verbatim. There
+ * is no attribute-level scrubbing hook in this SDK version — `maskAttributes`
+ * replaces the whole value with `*`, which cannot be applied to `href`
+ * globally because rrweb needs stylesheet hrefs to render the replay at all.
+ * So credential-bearing links must be masked at the element level, via the
+ * `block` list below or a `data-sensitive-media`/`.sensitive-media` marker on
+ * the element.
  */
 
 import type * as Sentry from "@sentry/nextjs";

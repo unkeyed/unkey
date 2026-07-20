@@ -57,9 +57,11 @@
  *
  * This module redacts those values before the payload leaves the browser/server.
  * Error events run through `beforeSend`, transactions through
- * `beforeSendTransaction`, standalone spans through `beforeSendSpan`; the hooks
- * fire on disjoint payloads, so each family needs its own wiring in the Sentry
- * configs.
+ * `beforeSendTransaction`, standalone spans through `beforeSendSpan`,
+ * structured logs through `beforeSendLog` (`scrubLog`), and Session Replay
+ * recording frames through `beforeAddRecordingEvent` (`scrubReplayFrame` —
+ * custom frames only, see its scope-limit note). The hooks fire on disjoint
+ * payloads, so each family needs its own wiring in the Sentry configs.
  */
 
 import type { ErrorEvent, EventHint, NodeOptions, replayIntegration } from "@sentry/nextjs";
@@ -175,6 +177,66 @@ function redactDigitBearingTokens(text: string): string {
 }
 
 /**
+ * The URL-path redaction policy: emails by shape, then digit-bearing token
+ * runs. `redactDigitBearingTokens` alone cannot catch an address — `TOKEN_LIKE`
+ * stops at `.` and `@`, so `/api/users/jane.doe@acme.com` has no run over 20
+ * chars and would survive intact — while `email` is in `SENSITIVE_NAME_KEYS`,
+ * i.e. we already treat addresses as PII wherever a field name is readable. A
+ * path segment has no field name, so the shape is the only signal, exactly as
+ * in `scrubText`. Emails go first for the same reason they do in
+ * `redactTokenLike`: token redaction could otherwise eat the local part and
+ * strand the domain.
+ *
+ * Each segment is tested in DECODED form: the WHATWG parser hands back
+ * `pathname` percent-encoded, and the normal way an address reaches a path is
+ * `encodeURIComponent`, i.e. `jane%40acme.com` — no literal `@` for
+ * `EMAIL_LIKE`, and `%`/`.` break every run under `TOKEN_LIKE`'s threshold.
+ * A segment whose decoded form contains an address is redacted whole; the
+ * others are left in their encoded form for the raw-text passes.
+ */
+function scrubUrlPath(path: string): string {
+  const emailSafe = path
+    .split("/")
+    .map((segment) => {
+      let decoded = segment;
+      try {
+        decoded = decodeURIComponent(segment);
+      } catch {
+        // Malformed percent-escape; test the raw form below.
+      }
+      // Replace-and-compare rather than `.test()`: `EMAIL_LIKE` is a global
+      // regex, and `test` on a global regex is stateful via `lastIndex`.
+      if (decoded.replace(EMAIL_LIKE, REDACTED) !== decoded) {
+        return REDACTED;
+      }
+      return segment;
+    })
+    .join("/");
+  return redactDigitBearingTokens(emailSafe);
+}
+
+/**
+ * Names that are sensitive as a WHOLE param name but benign as a bracket leaf
+ * — see `isSensitiveParamKey`. A credential under one of these leaves still
+ * loses token-shaped values to `redactTokenLike` in `scrubParamValue`.
+ */
+const AMBIGUOUS_BRACKET_LEAVES = new Set(["key", "state", "code", "auth", "session"]);
+
+/**
+ * The last non-empty bracket segment of a param name (`user[password]` →
+ * `password`, `credentials[][token]` → `token`, array params like `token[]` →
+ * `token`), or null for un-bracketed names, which are matched whole by the
+ * caller.
+ */
+function bracketLeafSegment(name: string): string | null {
+  if (!name.includes("[")) {
+    return null;
+  }
+  const segments = name.split(/[[\]]+/).filter((segment) => segment.length > 0);
+  return segments[segments.length - 1] ?? null;
+}
+
+/**
  * Whether a URL query parameter name is sensitive: the shared name list plus
  * the URL-only entries.
  */
@@ -186,7 +248,19 @@ function isSensitiveParamKey(name: string): boolean {
   if (lower.startsWith("param_")) {
     return true;
   }
-  return isSensitiveKey(name) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower);
+  if (isSensitiveKey(lower) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower)) {
+    return true;
+  }
+  // Bracketed nesting (`user[password]`, `credentials[][token]`) is a single
+  // param name to `URLSearchParams`, so the sensitive part is the LEAF
+  // segment, not the whole name. Only the leaf is tested — matching every
+  // segment would fire on any nesting under a `user`/`session` namespace —
+  // and only against the unambiguous credential names: `state`, `key`, `code`
+  // are sensitive as bare OAuth-style params but are ordinary UI-state leaves
+  // when bracketed (`filters[state]`, `sort[key]`), and redacting those erases
+  // the repro context of a bug report for no secret gained.
+  const leaf = bracketLeafSegment(lower);
+  return leaf !== null && isSensitiveKey(leaf) && !AMBIGUOUS_BRACKET_LEAVES.has(leaf);
 }
 
 /**
@@ -266,7 +340,7 @@ export function scrubUrl(url: string): string {
     // which would strip the scheme and skip path scrubbing entirely.
     const hadScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
     if (hadScheme && parsed.host === "" && !url.startsWith("//")) {
-      const scrubbedPath = redactDigitBearingTokens(parsed.pathname);
+      const scrubbedPath = scrubUrlPath(parsed.pathname);
       return `${parsed.protocol}${scrubbedPath}${parsed.search}`;
     }
 
@@ -277,7 +351,7 @@ export function scrubUrl(url: string): string {
     // `/_next/static/` is exempt — `/_next/data/` payload URLs embed dynamic
     // route params, which can be token-like ids.
     if (!parsed.pathname.startsWith("/_next/static/")) {
-      parsed.pathname = redactDigitBearingTokens(parsed.pathname);
+      parsed.pathname = scrubUrlPath(parsed.pathname);
     }
 
     // Drop the fragment entirely. It is never useful for debugging and can carry
@@ -347,11 +421,11 @@ function scrubQueryString(
 /**
  * Scrubs the URLs and free-form text carried by breadcrumbs. Sentry's default
  * fetch/xhr/navigation breadcrumbs put URLs under `data.url`, `data.from` and
- * `data.to`, while the console integration puts the formatted console
- * arguments in `breadcrumb.message` — so `console.error("...", rootKey)`
- * (which `error-boundary.tsx` does with the caught error) would otherwise
- * carry the secret verbatim into the next event, right past the scrubbing
- * `exception.values[].value` gets.
+ * `data.to`, while the console integration puts the console arguments in
+ * `breadcrumb.message` (formatted) AND `data.arguments` (raw) — so
+ * `console.error("...", rootKey)` (which `error-boundary.tsx` does with the
+ * caught error) would otherwise carry the secret verbatim into the next
+ * event, right past the scrubbing `exception.values[].value` gets.
  */
 function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent, run: StepRunner): void {
   if (!event.breadcrumbs) {
@@ -365,21 +439,60 @@ function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent, run: StepRunner)
 }
 
 /**
+ * The message policy shared by event and replay breadcrumbs. `ui.click`/
+ * `ui.input` messages are `htmlTreeAsString` selector paths, not prose: their
+ * ids and hashed class names are exactly the digit-bearing token shape
+ * `scrubText` redacts, which would reduce the click trail to
+ * `div > [REDACTED] > button` — so they get the email-only pass (an address
+ * can reach a selector through an `id` or `title` attribute, and redacting it
+ * costs no grouping). Every other category's message is free text (console
+ * output, custom `addBreadcrumb`) and gets `scrubText`.
+ *
+ * ONE shared function on purpose: the event and replay paths carry the same
+ * values, and while they were separate implementations they drifted apart
+ * twice — first the console `data.arguments`, then the `ui.*` email pass.
+ */
+function scrubBreadcrumbMessage(category: string | undefined, message: string): string {
+  return category?.startsWith("ui.") ? message.replace(EMAIL_LIKE, REDACTED) : scrubText(message);
+}
+
+/**
+ * Scrubs a console breadcrumb's raw `data.arguments` in place — shared by the
+ * event and replay paths for the same anti-drift reason as
+ * `scrubBreadcrumbMessage`. The console integration attaches the arguments
+ * here as well as in the formatted `message`, and `safeJoin` renders an
+ * object argument as `[object Object]` — so for
+ * `console.error("msg:", err, { attributes })` (which `structured-logger.ts`
+ * does with the PRE-scrub tRPC error message) the message pass sees nothing
+ * and this is the only carrier. Args are un-normalized live objects on the
+ * replay path, so they take `redactLogValue` (cycle-safe, exotic-preserving)
+ * with the same digit-net string policy as the message, keeping one value
+ * from reading two ways within one frame.
+ */
+function scrubConsoleArguments(category: string | undefined, data: unknown): void {
+  if (category !== "console" || !data || typeof data !== "object") {
+    return;
+  }
+  // The replay frame's `data` is a union the SDK does not narrow for us (same
+  // situation as `scrubReplayUrlDataFields`), so read it structurally.
+  const record = data as Record<string, unknown>;
+  if (Array.isArray(record.arguments)) {
+    record.arguments = record.arguments.map(redactLogValue);
+  }
+}
+
+/**
  * Scrubs one breadcrumb in place.
  */
 function scrubBreadcrumb(breadcrumb: NonNullable<ErrorEvent["breadcrumbs"]>[number]): void {
-  // `ui.click`/`ui.input` messages are `htmlTreeAsString` selector paths, not
-  // prose: their ids and hashed class names are exactly the digit-bearing
-  // token shape `scrubText` redacts, which would reduce the click trail to
-  // `div > [REDACTED] > button`. Every other category's message is free text
-  // (console output, custom `addBreadcrumb`) and gets scrubbed.
-  if (typeof breadcrumb.message === "string" && !breadcrumb.category?.startsWith("ui.")) {
-    breadcrumb.message = scrubText(breadcrumb.message);
+  if (typeof breadcrumb.message === "string") {
+    breadcrumb.message = scrubBreadcrumbMessage(breadcrumb.category, breadcrumb.message);
   }
   const data = breadcrumb.data;
   if (!data) {
     return;
   }
+  scrubConsoleArguments(breadcrumb.category, data);
   for (const field of ["url", "from", "to"] as const) {
     const value = data[field];
     if (typeof value === "string") {
@@ -409,8 +522,36 @@ export function scrubEventPii(event: ErrorEvent, _hint?: EventHint): void {
   isolate(() => scrubExtra(event));
   isolate(() => scrubExceptions(event));
   isolate(() => scrubMessage(event));
+  isolate(() => scrubTransactionName(event));
+  // The scope's trace context rides along on error events captured inside a
+  // span, carrying the same root-span attributes (`http.url`, `db.query.text`,
+  // `Referer`) the transaction path scrubs. Without this an error thrown
+  // inside a db span ships the interpolated SQL one field over from the
+  // request URL that `scrubRequest` just masked.
+  isolate(() => scrubSpanAttributes(event.contexts?.trace?.data));
   scrubRequest(event.request, isolate);
   scrubBreadcrumbs(event, isolate);
+}
+
+/**
+ * Scrubs an event's `transaction` name in place — the route the event was
+ * captured on, copied onto errors from the active span. Browser tracing names
+ * pageload transactions after `window.location.pathname`, so an error on
+ * `/keys/key_3ZjK.../settings` carries the key id here even once
+ * `request.url` has been masked. Db-rooted transactions name themselves after
+ * the raw interpolated statement, hence the SQL branch, matching
+ * `scrubTransactionPii`.
+ */
+function scrubTransactionName(event: ErrorEvent | TransactionEvent): void {
+  if (typeof event.transaction !== "string") {
+    return;
+  }
+  event.transaction = isSqlSpan({
+    op: event.contexts?.trace?.op,
+    data: event.contexts?.trace?.data,
+  })
+    ? maskSqlLiterals(event.transaction)
+    : scrubUrlsInText(event.transaction);
 }
 
 /**
@@ -449,8 +590,14 @@ function propagate(step: () => void): void {
  * strict about the key: `URLSearchParams` happily "parses" any string at all
  * (`hello world` becomes the key `hello world`), so without a shape check a
  * plain-text body would be mangled into `hello+world=`.
+ *
+ * The key class includes brackets because PHP/Rails-style nesting
+ * (`user[password]=hunter2`) is a real form-encoding: excluding them failed the
+ * shape check and dropped the body to the blind token net, which cannot see
+ * that a 7-char value under a `password` key is a secret. The bracketed name's
+ * LEAF segment is what `isSensitiveParamKey` matches on.
  */
-const FORM_ENCODED = /^[\w.%+-]+=[^&]*(?:&[\w.%+-]+=[^&]*)*$/;
+const FORM_ENCODED = /^[\w.%+\-[\]]+=[^&]*(?:&[\w.%+\-[\]]+=[^&]*)*$/;
 
 /**
  * Scrubs an `event.request.data` body. Bodies usually arrive as a raw *string*,
@@ -494,7 +641,41 @@ function scrubRequestData(data: unknown): unknown {
  * e.g. the OAuth code in a `Referer` sent by a page loaded as
  * `/auth/callback?code=...`.
  */
-const URL_HEADERS = new Set(["referer", "referrer", "location"]);
+const URL_HEADERS = new Set(["referer", "referrer", "location", ":path"]);
+
+/**
+ * Headers exempt from ALL header scrubbing, checked before every other rule.
+ * Two families:
+ *
+ *   - Correlation/trace ids (`x-request-id`, `traceparent`, `sentry-trace`,
+ *     `baggage`, CDN ray ids): token-shaped BY DESIGN, so the token-net
+ *     fallback would eat them whole — and they are the values an on-call
+ *     engineer needs to join a Sentry issue to server logs and traces. None
+ *     carries a credential; Sentry's own baggage holds only the public DSN
+ *     key.
+ *   - Names the substring patterns would otherwise false-positive on:
+ *     `:authority` (the HTTP/2 host pseudo-header — the substring `auth` is
+ *     incidental) and cache validators (`etag`/`if-none-match`/`if-match`,
+ *     opaque hashes that are not secrets).
+ */
+const HEADER_SCRUB_EXEMPT = new Set([
+  ":authority",
+  ":method",
+  ":scheme",
+  "host",
+  "x-request-id",
+  "x-correlation-id",
+  "x-amzn-trace-id",
+  "x-vercel-id",
+  "cf-ray",
+  "traceparent",
+  "tracestate",
+  "sentry-trace",
+  "baggage",
+  "etag",
+  "if-none-match",
+  "if-match",
+]);
 
 /**
  * Headers whose values are credentials and are redacted wholesale. Contrary to
@@ -510,6 +691,29 @@ const SENSITIVE_HEADERS = new Set([
   "set-cookie",
   "x-api-key",
 ]);
+
+/**
+ * Substrings that mark a header name as credential-bearing beyond the exact
+ * list above. Header names are not a closed set — vendors and our own code
+ * invent `x-unkey-key`, `x-clerk-session`, `x-csrf-token` — so an exact-match
+ * allowlist is guaranteed to lag reality. Matching on the name rather than
+ * the value is what lets a SHORT credential be caught: the token net below
+ * only sees 20+ char runs.
+ */
+const SENSITIVE_HEADER_PATTERNS = ["auth", "token", "secret", "session", "credential", "key"];
+
+/**
+ * Whether a (lowercased) header name is credential-bearing. `key` as a
+ * substring is deliberately broad — it also catches `x-goog-api-key` and
+ * friends — and the false positives it can produce (`x-cache-key`,
+ * `idempotency-key`) are values we lose nothing by redacting.
+ */
+function isSensitiveHeaderName(lowerName: string): boolean {
+  if (SENSITIVE_HEADERS.has(lowerName)) {
+    return true;
+  }
+  return SENSITIVE_HEADER_PATTERNS.some((pattern) => lowerName.includes(pattern));
+}
 
 /**
  * Scrubs the URL, query string, body, cookies, and URL/credential-bearing
@@ -576,10 +780,22 @@ function scrubRequest(
     }
     for (const [name, value] of Object.entries(request.headers)) {
       const lowerName = name.toLowerCase();
-      if (SENSITIVE_HEADERS.has(lowerName)) {
+      // Exemptions first: correlation ids the token net would otherwise eat,
+      // and the `:authority` pseudo-header the `auth` substring would.
+      if (HEADER_SCRUB_EXEMPT.has(lowerName)) {
+        continue;
+      }
+      if (isSensitiveHeaderName(lowerName)) {
         request.headers[name] = REDACTED;
       } else if (URL_HEADERS.has(lowerName) && typeof value === "string") {
         request.headers[name] = scrubUrl(value);
+      } else if (typeof value === "string") {
+        // Fail closed on the open set of remaining headers, the same way every
+        // other unstructured surface in this module does: a credential under a
+        // name neither list anticipates still loses its token-like runs.
+        // Token-shaped values that are NOT secrets belong in
+        // `HEADER_SCRUB_EXEMPT` above, not in a weaker net here.
+        request.headers[name] = redactTokenLike(value);
       }
     }
   });
@@ -664,6 +880,41 @@ function redactStructured(
     return REDACTED;
   }
 
+  // Errors, Maps and Sets are the exotic types these un-normalized surfaces
+  // actually receive, and every one of them carries strings we must scrub —
+  // an Error's `message` is the very text `scrubExceptions` strips out of the
+  // corresponding event. Convert each to the plain shape Sentry serializes it
+  // as anyway, so its contents go through the same policy as everything else.
+  if (value instanceof Error) {
+    ancestors.add(value);
+    try {
+      return redactError(value, scrubString, ancestors);
+    } finally {
+      ancestors.delete(value);
+    }
+  }
+  // A Map with string keys is a record in disguise: convert it to one so its
+  // keys go through the SAME key-based redaction as a plain object —
+  // flattening it to an entries ARRAY instead would hide the keys from
+  // `isSensitiveInputKey` and let `Map([["password", "hunter2"]])` ship a
+  // 7-char secret the blind string nets cannot see. A Map with non-string
+  // keys, and a Set, deliberately fall through to the prototype gate below and
+  // pass untouched: JSON-serializing either yields `{}`, so nothing ships,
+  // which beats emitting values stripped of the key context the redaction
+  // policy needs.
+  if (value instanceof Map && [...value.keys()].every((key) => typeof key === "string")) {
+    ancestors.add(value);
+    try {
+      return redactStructuredRecord(
+        Object.fromEntries(value) as Record<string, unknown>,
+        scrubString,
+        ancestors,
+      );
+    } finally {
+      ancestors.delete(value);
+    }
+  }
+
   const prototype = Object.getPrototypeOf(value);
   if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
     return value;
@@ -678,6 +929,66 @@ function redactStructured(
   } finally {
     ancestors.delete(value);
   }
+}
+
+/**
+ * Flattens an Error to a scrubbed plain object. `name` is a constructor name
+ * and never data, so it is kept verbatim; `message` is scrubbed as prose. Own
+ * enumerable properties are carried over too — the ad-hoc fields our code
+ * attaches to thrown errors are where a secret most often hides — and so are
+ * `cause` and an AggregateError's `errors`, which V8 installs NON-enumerably
+ * (so `Object.entries` never sees them): a wrapped error's cause is usually
+ * the actual failure, and dropping it would leave only the generic outer
+ * message in the log.
+ */
+function redactError(
+  error: Error,
+  scrubString: (s: string) => string,
+  ancestors: WeakSet<object>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { name: error.name };
+  if (typeof error.message === "string") {
+    result.message = scrubString(error.message);
+  }
+  if (typeof error.stack === "string") {
+    result.stack = scrubErrorStack(error.stack, scrubString);
+  }
+  if ("cause" in error && error.cause !== undefined) {
+    result.cause = redactStructured(error.cause, scrubString, ancestors);
+  }
+  if (error instanceof AggregateError && Array.isArray(error.errors)) {
+    result.errors = error.errors.map((nested) => redactStructured(nested, scrubString, ancestors));
+  }
+  for (const [key, nested] of Object.entries(error)) {
+    if (key === "name" || key === "message" || key === "stack" || key === "cause") {
+      continue;
+    }
+    result[key] = isSensitiveInputKey(key)
+      ? REDACTED
+      : redactStructured(nested, scrubString, ancestors);
+  }
+  return result;
+}
+
+/**
+ * Scrubs an Error's stack: the header lines (which repeat the message and can
+ * carry an interpolated secret) get the caller's string policy, while the
+ * ` at file:line` frame lines are left verbatim. Frames are code locations,
+ * not data — the same reasoning that leaves `event.exception` stack frames
+ * alone (module header) — and the token net would otherwise eat any
+ * digit-bearing directory or hashed-chunk segment in every path, leaving a
+ * stack that no longer identifies its files.
+ *
+ * Frame detection is V8-shaped (`    at ...`). A Firefox/Safari stack
+ * (`func@file:line`) has no such lines, so the whole stack is treated as
+ * header and scrubbed — degraded frame readability there, but fail-closed:
+ * the message never slips through unscrubbed on an unrecognized format.
+ */
+function scrubErrorStack(stack: string, scrubString: (s: string) => string): string {
+  const lines = stack.split("\n");
+  const firstFrame = lines.findIndex((line) => /^\s+at\s/.test(line));
+  const headerEnd = firstFrame === -1 ? lines.length : firstFrame;
+  return lines.map((line, index) => (index < headerEnd ? scrubString(line) : line)).join("\n");
 }
 
 /**
@@ -906,11 +1217,19 @@ const EMBEDDED_URL = /^(.*?[=(])((?:https?:\/\/|\/(?!\*)).*?)(\)*)$/i;
  * transaction names (`/auth/callback`, `middleware GET /api/keys`). Works
  * token-by-token across any whitespace so text around the URL survives, and
  * text without a URL-shaped token (db/ui span descriptions,
- * `trpc/key.create`-style names) is returned unchanged. A URL glued to a
- * prefix such as `url=` or `fetch(` is still found and scrubbed.
+ * `trpc/key.create`-style names) is otherwise returned unchanged. A URL glued
+ * to a prefix such as `url=` or `fetch(` is still found and scrubbed.
+ *
+ * Emails are redacted up front, as in `scrubText` and for the same two
+ * reasons: they span characters `TOKEN_LIKE` excludes so no later pass would
+ * catch them, and an address inside a query string would otherwise come back
+ * from `scrubUrl` percent-encoded as `%40` with no `@` left to match. Unlike
+ * `scrubText` this deliberately stops there — non-URL tokens keep their
+ * digit-bearing runs, because the surfaces using this helper (span
+ * descriptions, transaction names) are what Sentry groups on.
  */
 function scrubUrlsInText(text: string): string {
-  return mapTextTokens(text, (token) => token);
+  return mapTextTokens(text.replace(EMAIL_LIKE, REDACTED), (token) => token);
 }
 
 /**
@@ -1032,8 +1351,75 @@ function redactLogValue(value: unknown): unknown {
   return redactStructured(value, scrubText, new WeakSet());
 }
 
+/**
+ * Log attribute names holding correlation identifiers — `generateRequestId()`
+ * emits `req_<epoch>_<rand>`, Clerk ids are `user_<opaque>`, `version` is a
+ * build sha, `resource_id` is a `prefix_token` entity id. All are 20+ chars
+ * with a digit, exactly the shape `redactDigitBearingTokens` collapses, and
+ * scrubbing them severs the link between a Sentry issue and its tRPC log line,
+ * its user, and its deploy. Names deliberately absent: `service`,
+ * `environment`, `action_type`, `resource_type`, `trpc_error_code` — their
+ * legitimate values are short digit-free labels the normal policy already
+ * leaves intact, so exempting them would only widen the bypass.
+ *
+ * The name alone is NOT enough to skip scrubbing: `logUserAction`/
+ * `logOperation` spread caller attributes over the base record, so any of
+ * these keys can arrive carrying caller data (`resource_id: <email>`). Values
+ * are therefore exempted only when they also match
+ * `CORRELATION_ID_VALUE_SHAPE`.
+ */
+const CORRELATION_ATTRIBUTE_KEYS = new Set([
+  "version",
+  "user_id",
+  "workspace_id",
+  "request_id",
+  "resource_id",
+  "trpc_procedure",
+]);
+
+/**
+ * The shape of a legitimate correlation identifier: one opaque token. No `@`,
+ * so an email under an exempted key still gets scrubbed; no whitespace, so
+ * prose does too. A token-shaped SECRET under one of these keys (a root key
+ * passed as `resource_id`) is a residual miss — by shape it is
+ * indistinguishable from the entity ids the exemption exists to preserve.
+ */
+const CORRELATION_ID_VALUE_SHAPE = /^[A-Za-z0-9_.-]{1,64}$/;
+
+/**
+ * `redactLogValue` for a whole attribute record, exempting correlation
+ * identifiers — by name AND value shape, see `CORRELATION_ATTRIBUTE_KEYS`.
+ * Only top-level strings are exempt: a nested object reached through one of
+ * these names is caller data, not an identifier.
+ */
 function redactLogRecord(record: Record<string, unknown>): Record<string, unknown> {
-  return redactStructuredRecord(record, scrubText, new WeakSet());
+  const result: Record<string, unknown> = {};
+  const ancestors = new WeakSet<object>();
+  for (const [key, value] of Object.entries(record)) {
+    if (
+      CORRELATION_ATTRIBUTE_KEYS.has(key) &&
+      typeof value === "string" &&
+      CORRELATION_ID_VALUE_SHAPE.test(value)
+    ) {
+      result[key] = value;
+      continue;
+    }
+    // `sentry.message.template` is the SDK's copy of the `fmt` template — the
+    // SDK extracts it into attributes BEFORE `beforeSendLog` runs. It is
+    // developer-authored source whose runtime values travel separately in
+    // `sentry.message.parameter.<n>` (scrubbed below), and `scrubText` would
+    // corrupt it: `scrubUrl` re-encodes a `%s` placeholder to `%25s`, breaking
+    // interpolation and splitting grouping. Same reasoning as `scrubMessage`'s
+    // `logentry` branch.
+    if (key === "sentry.message.template" && typeof value === "string") {
+      result[key] = value;
+      continue;
+    }
+    result[key] = isSensitiveInputKey(key)
+      ? REDACTED
+      : redactStructured(value, scrubText, ancestors);
+  }
+  return result;
 }
 
 /**
@@ -1105,16 +1491,10 @@ export function scrubTransactionPii(
   _hint?: EventHint,
 ): TransactionEvent | null {
   try {
-    if (typeof event.transaction === "string") {
-      // When a db span is the trace root (a query running outside any request
-      // span), the transaction name IS the raw interpolated SQL statement.
-      event.transaction = isSqlSpan({
-        op: event.contexts?.trace?.op,
-        data: event.contexts?.trace?.data,
-      })
-        ? maskSqlLiterals(event.transaction)
-        : scrubUrlsInText(event.transaction);
-    }
+    // When a db span is the trace root (a query running outside any request
+    // span), the transaction name IS the raw interpolated SQL statement —
+    // `scrubTransactionName` handles both shapes, shared with the error path.
+    scrubTransactionName(event);
     // `propagate`, not `isolate`: this path fails closed, so a throw must
     // reach the catch below and drop the transaction rather than send it
     // half-scrubbed.
@@ -1225,8 +1605,21 @@ export type SentryLog = Parameters<NonNullable<NodeOptions["beforeSendLog"]>>[0]
  */
 export function scrubLog(log: SentryLog): SentryLog | null {
   try {
-    if (typeof log.message === "string") {
-      log.message = scrubText(log.message);
+    // `ParameterizedString` is typed as `string & {...}` but `fmt`/
+    // `parameterize` build it with `new String(...)`, so a templated message is
+    // a wrapper OBJECT at runtime and `typeof` reports "object". Reading
+    // through `unknown` is what lets the object branch be written at all; a
+    // plain `typeof === "string"` check silently skips every `fmt` message,
+    // interpolated secrets and all. Returning a plain scrubbed string is
+    // sufficient: the SDK extracts the template and its values into
+    // `sentry.message.template` / `sentry.message.parameter.<n>` attributes
+    // BEFORE this hook runs (handled by `redactLogRecord` below), and after
+    // the hook only reads the message back as the serialized log body.
+    const message: unknown = log.message;
+    if (typeof message === "string") {
+      log.message = scrubText(message);
+    } else if (message instanceof String) {
+      log.message = scrubText(message.valueOf());
     }
     if (log.attributes) {
       log.attributes = redactLogRecord(log.attributes);
@@ -1273,6 +1666,15 @@ const REPLAY_URL_DATA_FIELDS = new Set(["url", "from", "to", "previous"]);
  * navigation URL — query string and all — in `description`. Both are scrubbed;
  * option frames carry only config and are left alone.
  *
+ * SCOPE LIMIT — this hook does NOT see DOM frames. The SDK gates it behind
+ * `isCustomEvent`, so only breadcrumb/performanceSpan/option frames reach it,
+ * while rrweb's full and incremental DOM snapshots go straight to the event
+ * buffer. Element ATTRIBUTES are therefore unscrubbed: `maskAllText` masks
+ * text nodes, not attributes, so a rendered `<a href="/share/x?token=...">`
+ * records with the credential intact. That surface is covered by the masking
+ * config in `replay-privacy.ts`, not here — anything rendering a
+ * credential-bearing `href`/`src` needs a `block`/`mask` selector there.
+ *
  * Fails closed by dropping the frame: replay frames are best-effort UI history,
  * and losing one is cheaper than shipping a root key.
  */
@@ -1291,21 +1693,17 @@ export function scrubReplayFrame(frame: ReplayFrameEvent): ReplayFrameEvent | nu
 }
 
 /**
- * Scrubs a replay breadcrumb frame payload in place. Mirrors `scrubBreadcrumb`
- * on the event side — prose message (except `ui.*` selector paths) and URL data
- * fields — plus the console frame's raw `data.arguments`, which carry the same
- * values as the message. Console args are un-normalized live objects, so they
- * take `redactLogValue` (cycle-safe, exotic-preserving) with the same digit-net
- * string policy as the message, keeping one value from reading two ways within
- * one frame.
+ * Scrubs a replay breadcrumb frame payload in place. Applies the SAME policy
+ * functions as `scrubBreadcrumb` on the event side (`scrubBreadcrumbMessage`,
+ * `scrubConsoleArguments`) — sharing them is what keeps one value from
+ * reading two ways across the event and replay envelopes — plus the replay
+ * frame's own URL data fields.
  */
 function scrubReplayBreadcrumb(payload: ReplayBreadcrumbPayload): void {
-  if (typeof payload.message === "string" && !payload.category?.startsWith("ui.")) {
-    payload.message = scrubText(payload.message);
+  if (typeof payload.message === "string") {
+    payload.message = scrubBreadcrumbMessage(payload.category, payload.message);
   }
-  if (payload.category === "console" && payload.data && Array.isArray(payload.data.arguments)) {
-    payload.data.arguments = payload.data.arguments.map(redactLogValue);
-  }
+  scrubConsoleArguments(payload.category, payload.data);
   scrubReplayUrlDataFields(payload.data);
 }
 
