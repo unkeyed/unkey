@@ -18,8 +18,8 @@
   },
   "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
   "favicon": {
-    "light": "/favicon-light.svg",
-    "dark": "/favicon-dark.svg"
+    "dark": "/favicon-dark.svg",
+    "light": "/favicon-light.svg"
   },
   "fonts": {
     "family": "Geist"

@@ -236,6 +236,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       variant="outline"
       className="size-5 [&_svg]:size-3 rounded-sm"
       onClick={onClick}
+      aria-label="Open actions"
       {...buttonProps}
     >
       <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
