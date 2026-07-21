@@ -70,12 +70,6 @@ jobs:
         if: steps.preflight.outputs.required == 'true'
         run: |
           set -euo pipefail
-          cleanup() {
-            pscale branch delete "$PSCALE_DB" "$BRANCH" \
-              --org "$PSCALE_ORG" --force || true
-          }
-          trap cleanup EXIT
-
           BRANCH="$BRANCH" FROM="$PSCALE_BASE" mise run pscale-branch
 
           # PlanetScale's schema API can lag a completed drizzle-kit push by a
@@ -100,6 +94,12 @@ jobs:
           done
 
           echo "The production PlanetScale schema matches this change."
+
+      - name: Delete schema check branch
+        if: always() && steps.preflight.outputs.required == 'true'
+        run: |
+          pscale branch delete "$PSCALE_DB" "$BRANCH" \
+            --org "$PSCALE_ORG" --force || true
 
   cleanup:
     if: github.event_name == 'schedule'
