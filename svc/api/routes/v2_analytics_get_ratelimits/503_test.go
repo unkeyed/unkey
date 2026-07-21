@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test503_ClickHouseConnectionFailure guarantees backend connection failures
+// are reported as unavailable rather than invalid caller SQL.
 func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()

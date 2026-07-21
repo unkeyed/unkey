@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// Test404_UnknownAndForeignNamespacesAreIndistinguishable guarantees namespace
+// resolution does not reveal whether an ID belongs to another workspace.
 func Test404_UnknownAndForeignNamespacesAreIndistinguishable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	owned := createNamespace(t, h, workspaceID)

@@ -38,7 +38,7 @@ func (p *Parser) ExtractColumn(columnName string) []string {
 
 	// Walk all branches and nested SELECTs. Route policy applies to every
 	// physical source, so literals hidden in a subquery must also be authorized.
-	clickhouse.Walk(p.stmt, extractFunc)
+	walkQueryIncludingExcept(p.stmt, extractFunc)
 
 	if len(uniqueValues) == 0 {
 		return []string{}

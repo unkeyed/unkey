@@ -8,8 +8,22 @@ import (
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 )
 
+// newParserWithIdentityAliases lets filter tests use compact physical fixture
+// names while production callers remain restricted to distinct public aliases.
+func newParserWithIdentityAliases(config chquery.Config) *chquery.Parser {
+	if config.TableAliases == nil {
+		config.TableAliases = make(map[string]string, len(config.AllowedTables))
+	}
+	for _, table := range config.AllowedTables {
+		if _, exists := config.TableAliases[table]; !exists {
+			config.TableAliases[table] = table
+		}
+	}
+	return chquery.NewParser(config)
+}
+
 func TestParser_WorkspaceFilter(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -23,7 +37,7 @@ func TestParser_WorkspaceFilter(t *testing.T) {
 }
 
 func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_456",
 		AllowedTables: []string{
 			"default.keys_v2",
@@ -36,6 +50,8 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_456' AND (active = 1)", output)
 }
 
+// TestParser_QualifiesFiltersForEveryPhysicalSource guarantees aliases,
+// subqueries, CTEs, UNIONs, and joins cannot leave a physical source unscoped.
 func TestParser_QualifiesFiltersForEveryPhysicalSource(t *testing.T) {
 	config := chquery.Config{
 		WorkspaceID:     "ws_safe",
@@ -55,12 +71,13 @@ func TestParser_QualifiesFiltersForEveryPhysicalSource(t *testing.T) {
 		{"CTE filters inner physical source only", "WITH c AS (SELECT * FROM default.events) SELECT * FROM c", []string{"events.workspace_id = 'ws_safe'", "events.namespace_id IN ('ns_safe')"}},
 		{"unused CTE collides with rewritten physical table", "WITH ratelimits_raw_v2 AS (SELECT * FROM default.other) SELECT * FROM ratelimits_v1 WHERE 1=0 OR 1=1", []string{"ratelimits_raw_v2.workspace_id = 'ws_safe'", "ratelimits_raw_v2.namespace_id IN ('ns_safe')"}},
 		{"UNION filters both branches", "SELECT * FROM default.events e UNION ALL SELECT * FROM default.other o", []string{"e.workspace_id = 'ws_safe'", "o.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')", "o.namespace_id IN ('ns_safe')"}},
+		{"EXCEPT filters both branches", "SELECT * FROM default.events e EXCEPT SELECT * FROM default.other o", []string{"e.workspace_id = 'ws_safe'", "o.workspace_id = 'ws_safe'", "e.namespace_id IN ('ns_safe')", "o.namespace_id IN ('ns_safe')"}},
 	}
 	config.TableAliases = map[string]string{"ratelimits_v1": "default.ratelimits_raw_v2"}
 	config.AllowedTables = append(config.AllowedTables, "default.ratelimits_raw_v2")
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			output, err := chquery.NewParser(config).Parse(context.Background(), test.query)
+			output, err := newParserWithIdentityAliases(config).Parse(context.Background(), test.query)
 			require.NoError(t, err)
 			for _, want := range test.want {
 				require.Contains(t, output, want)
@@ -73,8 +90,10 @@ func TestParser_QualifiesFiltersForEveryPhysicalSource(t *testing.T) {
 	}
 }
 
+// TestParser_PreservesQuotedAliasOnInjectedFilters guarantees generated
+// predicates remain valid when callers use aliases requiring identifier quotes.
 func TestParser_PreservesQuotedAliasOnInjectedFilters(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID:     "ws_safe",
 		AllowedTables:   []string{"default.events"},
 		SecurityFilters: []chquery.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"ns_safe"}}},
@@ -88,7 +107,7 @@ func TestParser_PreservesQuotedAliasOnInjectedFilters(t *testing.T) {
 
 func TestSecurityFilterInjection(t *testing.T) {
 	t.Run("no filter when SecurityFilters is empty", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID:     "ws_test",
 			SecurityFilters: nil, // No restriction
 			Limit:           100,
@@ -108,7 +127,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("fails closed when a filter has no allowed values", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -135,7 +154,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("injects single key_space_id filter", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -160,7 +179,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("injects multiple key_space_id filter", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -185,7 +204,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("combines with existing WHERE clause", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -210,7 +229,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("restricts access even when user queries different key_space_id", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -240,7 +259,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("OR cannot bypass security filter", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -268,7 +287,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 	})
 
 	t.Run("supports multiple security filters simultaneously", func(t *testing.T) {
-		parser := chquery.NewParser(chquery.Config{
+		parser := newParserWithIdentityAliases(chquery.Config{
 			WorkspaceID: "ws_test",
 			SecurityFilters: []chquery.SecurityFilter{
 				{
@@ -298,7 +317,7 @@ func TestSecurityFilterInjection(t *testing.T) {
 }
 
 func TestParser_WorkspaceFilterInjection(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_victim",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -343,7 +362,7 @@ func TestParser_WorkspaceFilterInjection(t *testing.T) {
 }
 
 func TestParser_SQLInjectionWithFilters(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -388,7 +407,7 @@ func TestParser_SQLInjectionWithFilters(t *testing.T) {
 }
 
 func TestParser_SpecialCharactersInFilters(t *testing.T) {
-	p := chquery.NewParser(chquery.Config{
+	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{

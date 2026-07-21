@@ -10,18 +10,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-func TestVerificationParserConfigRejectsJoins(t *testing.T) {
-	parser := queryparser.NewParser(verificationParserConfig())
-	_, err := parser.Parse(context.Background(), "SELECT * FROM key_verifications_v1 a JOIN key_verifications_per_hour_v1 b ON a.key_id = b.key_id")
-	require.Error(t, err)
-	code, ok := fault.GetCode(err)
-	require.True(t, ok)
-	require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
-	require.Equal(t, "JOIN queries are not supported", fault.UserFacingMessage(err))
-}
-
+// TestVerificationParserConfigRequiresPublicAliases locks the public table
+// contract and rejects stale aliases and internal physical table names.
 func TestVerificationParserConfigRequiresPublicAliases(t *testing.T) {
-	parser := queryparser.NewParser(verificationParserConfig())
+	parser := queryparser.NewParser(verificationParserConfig("ws_test"))
 
 	for _, table := range verificationTables {
 		publicAlias := table.alias

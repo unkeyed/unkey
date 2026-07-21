@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	queryparser "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -18,7 +19,6 @@ type FilterBuilder func() ([]queryparser.SecurityFilter, error)
 
 // ExecuteRequest describes one constrained analytics query execution.
 type ExecuteRequest struct {
-	WorkspaceID   string
 	Query         string
 	ParserConfig  queryparser.Config
 	FilterBuilder FilterBuilder
@@ -28,11 +28,14 @@ type ExecuteRequest struct {
 // Execute resolves the connection first, then parses, applies route policy and
 // executes. Returned policy filters are applied by reparsing before execution.
 func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest) ([]map[string]any, error) {
-	conn, settings, err := manager.GetConnection(ctx, req.WorkspaceID)
+	if err := assert.NotEmpty(req.ParserConfig.WorkspaceID, "analytics parser workspace ID is required"); err != nil {
+		return nil, err
+	}
+
+	conn, settings, err := manager.GetConnection(ctx, req.ParserConfig.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
-	req.ParserConfig.WorkspaceID = req.WorkspaceID
 	req.ParserConfig.Limit = int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows)
 	req.ParserConfig.QueryRangeDaysMax = settings.Quotas.LogsRetentionDays
 	if req.FilterBuilder != nil {

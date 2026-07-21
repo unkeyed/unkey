@@ -69,10 +69,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Build a list of keySpaceIds that the root key has permissions for.
 	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
-		WorkspaceID: principal.WorkspaceID,
-		Query:       req.Query,
+		Query: req.Query,
 		// The executor supplies workspace-specific limits and security fields.
-		ParserConfig: verificationParserConfig(),
+		ParserConfig: verificationParserConfig(principal.WorkspaceID),
 		FilterBuilder: func() ([]chquery.SecurityFilter, error) {
 			return h.buildSecurityFilters(ctx, principal)
 		},
@@ -112,12 +111,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // verificationParserConfig defines the verification route's query policy.
-func verificationParserConfig() chquery.Config {
+func verificationParserConfig(workspaceID string) chquery.Config {
 	config := chquery.Config{ //nolint:exhaustruct
-		TableAliases:           make(map[string]string, len(verificationTables)),
-		AllowedTables:          make([]string, 0, len(verificationTables)),
-		PublicTableAliasesOnly: true,
-		DisallowJoins:          true,
+		WorkspaceID:   workspaceID,
+		TableAliases:  make(map[string]string, len(verificationTables)),
+		AllowedTables: make([]string, 0, len(verificationTables)),
 	}
 	for _, table := range verificationTables {
 		config.TableAliases[table.alias] = table.name

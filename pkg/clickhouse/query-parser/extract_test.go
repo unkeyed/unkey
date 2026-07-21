@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestExtractColumnValues guarantees authorization-relevant literals are
+// found across qualified predicates, nested queries, and supported operators.
 func TestExtractColumnValues(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -97,6 +99,12 @@ func TestExtractColumnValues(t *testing.T) {
 			query:      "SELECT * FROM key_verifications WHERE key_space_id = 'ks_outer' AND key_id IN (SELECT key_id FROM key_verifications WHERE key_space_id IN ('ks_inner_1', 'ks_inner_2'))",
 			columnName: "key_space_id",
 			expected:   []string{"ks_outer", "ks_inner_1", "ks_inner_2"},
+		},
+		{
+			name:       "EXCEPT branches retain first-seen order",
+			query:      "SELECT * FROM key_verifications WHERE key_space_id = 'ks_left' EXCEPT SELECT * FROM key_verifications WHERE key_space_id = 'ks_right'",
+			columnName: "key_space_id",
+			expected:   []string{"ks_left", "ks_right"},
 		},
 		{
 			name:       "negative operator != ignored",

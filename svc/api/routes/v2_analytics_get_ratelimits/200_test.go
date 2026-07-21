@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test200_RawEventsWildcard guarantees wildcard analytics permission can read
+// raw events for a named namespace through its public alias.
 func Test200_RawEventsWildcard(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	namespaceID := createNamespace(t, h, workspaceID)
@@ -29,6 +31,8 @@ func Test200_RawEventsWildcard(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// Test200_QualifiedNamespacePredicate guarantees route authorization extracts
+// a namespace ID when the caller qualifies the predicate with a table alias.
 func Test200_QualifiedNamespacePredicate(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	namespaceID := createNamespace(t, h, workspaceID)
@@ -37,6 +41,8 @@ func Test200_QualifiedNamespacePredicate(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 }
 
+// Test200_WildcardUnionCannotEscapeNamedNamespace guarantees the authorized
+// namespace filter is injected into every UNION branch.
 func Test200_WildcardUnionCannotEscapeNamedNamespace(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowed, other := createNamespace(t, h, workspaceID), createNamespace(t, h, workspaceID)
@@ -55,6 +61,8 @@ func Test200_WildcardUnionCannotEscapeNamedNamespace(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// Test200_ScopedPermissionCannotEscapeWithOr guarantees caller-controlled OR
+// precedence cannot bypass the injected namespace filter.
 func Test200_ScopedPermissionCannotEscapeWithOr(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowed := createNamespace(t, h, workspaceID)
@@ -70,6 +78,8 @@ func Test200_ScopedPermissionCannotEscapeWithOr(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// Test200_ExactPermissionsForMultipleNamespaces guarantees individually
+// scoped permissions can authorize one query spanning multiple namespaces.
 func Test200_ExactPermissionsForMultipleNamespaces(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	first, second := createNamespace(t, h, workspaceID), createNamespace(t, h, workspaceID)
@@ -78,6 +88,8 @@ func Test200_ExactPermissionsForMultipleNamespaces(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 }
 
+// Test200_SoftDeletedNamespace guarantees historical analytics remain
+// queryable after the namespace is soft-deleted.
 func Test200_SoftDeletedNamespace(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	id := createNamespace(t, h, workspaceID)

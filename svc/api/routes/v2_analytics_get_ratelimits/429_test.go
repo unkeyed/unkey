@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test429_WorkspaceQueryQuota guarantees exhausting the workspace query quota
+// maps to the public rate-limit response.
 func Test429_WorkspaceQueryQuota(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()

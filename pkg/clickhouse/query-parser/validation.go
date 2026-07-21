@@ -124,7 +124,7 @@ func (p *Parser) validateSettings() error {
 func (p *Parser) validateFunctions() error {
 	var validateErr error
 
-	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		// Check regular functions
 		funcExpr, isFuncExpr := node.(*clickhouse.FunctionExpr)
 		if isFuncExpr {

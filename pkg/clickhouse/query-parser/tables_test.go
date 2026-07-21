@@ -7,6 +7,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newParserWithIdentityAliases lets legacy parser tests focus on validation
+// other than the public alias boundary. Production callers provide distinct
+// public aliases instead of mapping physical names to themselves.
+func newParserWithIdentityAliases(config Config) *Parser {
+	if config.TableAliases == nil {
+		config.TableAliases = make(map[string]string, len(config.AllowedTables))
+	}
+	for _, table := range config.AllowedTables {
+		if _, exists := config.TableAliases[table]; !exists {
+			config.TableAliases[table] = table
+		}
+	}
+	return NewParser(config)
+}
+
 func TestParser_TableAliases(t *testing.T) {
 	p := NewParser(Config{
 		WorkspaceID: "ws_123",
@@ -24,7 +39,9 @@ func TestParser_TableAliases(t *testing.T) {
 	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_123'", output)
 }
 
-func TestParser_PublicTableAliasesOnly(t *testing.T) {
+// TestParser_RequiresPublicTableAliases guarantees every physical source,
+// including nested and UNION sources, is introduced through a configured alias.
+func TestParser_RequiresPublicTableAliases(t *testing.T) {
 	p := NewParser(Config{
 		WorkspaceID: "ws_123",
 		TableAliases: map[string]string{
@@ -34,13 +51,19 @@ func TestParser_PublicTableAliasesOnly(t *testing.T) {
 			"ratelimits_per_day_v1":    "default.ratelimits_per_day_v2",
 			"ratelimits_per_month_v1":  "default.ratelimits_per_month_v2",
 		},
-		AllowedTables:          []string{"default.ratelimits_raw_v2", "default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"},
-		PublicTableAliasesOnly: true,
+		AllowedTables: []string{"default.ratelimits_raw_v2", "default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"},
 	})
 
 	for _, alias := range []string{"ratelimits_v1", "ratelimits_per_minute_v1", "ratelimits_per_hour_v1", "ratelimits_per_day_v1", "ratelimits_per_month_v1"} {
 		_, err := p.Parse(context.Background(), "SELECT * FROM "+alias)
 		require.NoError(t, err, alias)
+	}
+	for _, query := range []string{
+		"SELECT * FROM ratelimits_v1 r JOIN ratelimits_per_hour_v1 h USING namespace_id",
+		"SELECT * FROM ratelimits_v1 EXCEPT SELECT * FROM ratelimits_v1",
+	} {
+		_, err := p.Parse(context.Background(), query)
+		require.NoError(t, err, query)
 	}
 	var err error
 	queries := []string{
@@ -49,6 +72,7 @@ func TestParser_PublicTableAliasesOnly(t *testing.T) {
 		"SELECT * FROM (SELECT * FROM default.ratelimits_raw_v2)",
 		"WITH hidden AS (SELECT * FROM default.ratelimits_raw_v2) SELECT * FROM hidden",
 		"SELECT * FROM ratelimits_v1 UNION ALL SELECT * FROM default.ratelimits_raw_v2",
+		"SELECT * FROM ratelimits_v1 EXCEPT SELECT * FROM default.ratelimits_raw_v2",
 	}
 	for _, query := range queries {
 		_, err = p.Parse(context.Background(), query)
@@ -99,17 +123,21 @@ func TestParser_BlockSystemTables(t *testing.T) {
 func TestParser_AllowedTables(t *testing.T) {
 	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"keys":  "default.keys_v2",
+			"other": "default.other_table",
+		},
 		AllowedTables: []string{
 			"default.keys_v2",
 		},
 	})
 
 	// Allowed table should work
-	_, err := p.Parse(context.Background(), "SELECT * FROM default.keys_v2")
+	_, err := p.Parse(context.Background(), "SELECT * FROM keys")
 	require.NoError(t, err)
 
 	// Non-allowed table should fail
-	_, err = p.Parse(context.Background(), "SELECT * FROM default.other_table")
+	_, err = p.Parse(context.Background(), "SELECT * FROM other")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not allowed")
 }
@@ -147,7 +175,7 @@ func TestParser_BlockInformationSchema(t *testing.T) {
 }
 
 func TestParser_UNIONWithTables(t *testing.T) {
-	p := NewParser(Config{
+	p := newParserWithIdentityAliases(Config{
 		WorkspaceID: "ws_123",
 		Limit:       1000,
 		AllowedTables: []string{
@@ -197,7 +225,7 @@ func TestParser_UNIONWithTables(t *testing.T) {
 }
 
 func TestParser_JOINWithTables(t *testing.T) {
-	p := NewParser(Config{
+	p := newParserWithIdentityAliases(Config{
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -256,7 +284,7 @@ func TestParser_JOINWithTables(t *testing.T) {
 }
 
 func TestParser_SubqueryWithTables(t *testing.T) {
-	p := NewParser(Config{
+	p := newParserWithIdentityAliases(Config{
 		WorkspaceID: "ws_123",
 		Limit:       10,
 		AllowedTables: []string{
@@ -315,7 +343,7 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 }
 
 func TestParser_CTEWithTables(t *testing.T) {
-	p := NewParser(Config{
+	p := newParserWithIdentityAliases(Config{
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -379,7 +407,7 @@ func TestParser_CTEWithTables(t *testing.T) {
 }
 
 func TestParser_ScalarSubqueryWithTables(t *testing.T) {
-	p := NewParser(Config{
+	p := newParserWithIdentityAliases(Config{
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",

@@ -379,6 +379,9 @@ func TestParser_ValidateTimeRange_IntervalUnits(t *testing.T) {
 	}
 }
 
+// TestParser_TimeRetentionIsEnforcedByRowPolicyWhenLowerBoundIsOmitted
+// guarantees the parser does not inject an invalid or partial time predicate
+// into CTE, subquery, UNION, or multi-source query shapes.
 func TestParser_TimeRetentionIsEnforcedByRowPolicyWhenLowerBoundIsOmitted(t *testing.T) {
 	parser := NewParser(Config{
 		WorkspaceID: "test_ws",
@@ -641,6 +644,8 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 	}
 }
 
+// TestParser_ValidateTimeRange_QualifiedTime guarantees callers cannot bypass
+// explicit retention validation by qualifying the time column with an alias.
 func TestParser_ValidateTimeRange_QualifiedTime(t *testing.T) {
 	parser := NewParser(Config{
 		WorkspaceID: "test_ws",
@@ -648,7 +653,7 @@ func TestParser_ValidateTimeRange_QualifiedTime(t *testing.T) {
 			"key_verifications_per_hour_v1": "default.key_verifications_per_hour_v2",
 		},
 		AllowedTables:     []string{"default.key_verifications_per_hour_v2"},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	_, err := parser.Parse(context.Background(), "SELECT * FROM key_verifications_per_hour_v1 r WHERE r.time >= now() - INTERVAL 5 DAY")

@@ -7,6 +7,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test412_UnconfiguredPrecedesNamespaceAndPermissionChecks guarantees analytics
+// configuration is resolved before namespace existence or authorization.
 func Test412_UnconfiguredPrecedesNamespaceAndPermissionChecks(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_namespace")

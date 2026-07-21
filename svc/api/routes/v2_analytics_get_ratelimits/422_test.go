@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test422_ClickHouseResourceLimit guarantees a per-query ClickHouse resource
+// limit maps to the public unprocessable-query response.
 func Test422_ClickHouseResourceLimit(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()

@@ -12,7 +12,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// Validation runs before authentication, so a missing bearer header is a 400 response.
+// Test400_NoAuthHeaderFailsValidation guarantees request validation runs before
+// authentication and retains the API's established status precedence.
 func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 	h, route, _ := newRoute(t, true)
 	query := Request{Query: "SELECT * FROM ratelimits_v1 WHERE namespace_id = 'rlns_missing'"}
@@ -22,6 +23,8 @@ func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 	require.Equal(t, 400, res.Status)
 }
 
+// Test400_InvalidQueriesAndNamespaceRequirements guarantees malformed SQL,
+// missing positive namespace filters, excess IDs, and physical tables fail.
 func Test400_InvalidQueriesAndNamespaceRequirements(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
@@ -41,20 +44,8 @@ func Test400_InvalidQueriesAndNamespaceRequirements(t *testing.T) {
 	}
 }
 
-func Test400_JoinQueriesAreRejectedAtEveryNestingLevel(t *testing.T) {
-	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
-	queries := []string{
-		"SELECT * FROM ratelimits_v1 a JOIN ratelimits_per_hour_v1 b ON a.namespace_id = b.namespace_id",
-		"SELECT * FROM (SELECT * FROM ratelimits_v1 a JOIN ratelimits_per_hour_v1 b ON a.namespace_id = b.namespace_id)",
-	}
-	for _, query := range queries {
-		res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, auth(rootKey), Request{Query: query})
-		require.Equal(t, 400, res.Status, query)
-		require.Contains(t, res.RawBody, "JOIN queries are not supported")
-	}
-}
-
+// TestAuthorizeAllowsExactlyTenUniqueNamespaces locks the inclusive upper
+// bound for namespace authorization.
 func TestAuthorizeAllowsExactlyTenUniqueNamespaces(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	ids := make([]string, 10)

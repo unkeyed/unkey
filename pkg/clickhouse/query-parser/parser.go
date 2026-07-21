@@ -24,6 +24,30 @@ func NewParser(config Config) *Parser {
 	}
 }
 
+// walkQueryIncludingExcept traverses the complete query tree, including the
+// right side of EXCEPT expressions omitted by the upstream Walk function.
+func walkQueryIncludingExcept(node clickhouse.Expr, visit clickhouse.WalkFunc) bool {
+	exceptBranches := make([]*clickhouse.SelectQuery, 0)
+	if !clickhouse.Walk(node, func(current clickhouse.Expr) bool {
+		if !visit(current) {
+			return false
+		}
+		if query, ok := current.(*clickhouse.SelectQuery); ok && query.Except != nil {
+			exceptBranches = append(exceptBranches, query.Except)
+		}
+		return true
+	}) {
+		return false
+	}
+
+	for _, branch := range exceptBranches {
+		if !walkQueryIncludingExcept(branch, visit) {
+			return false
+		}
+	}
+	return true
+}
+
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	if len(query) > queryBytesMax {
@@ -65,16 +89,6 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", err
 	}
 
-	// The pinned parser's Walk implementation does not visit SelectQuery.Except.
-	// Reject EXCEPT before any validation or rewriting can silently inspect only
-	// its left operand.
-	if err := p.validateSetOperations(); err != nil {
-		return "", err
-	}
-	if err := p.validateJoins(); err != nil {
-		return "", err
-	}
-
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
@@ -102,37 +116,23 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 func (p *Parser) validateComplexity() error {
 	astNodesCount := 0
 	projectedColumnsCount := 0
-	expressionsPending := []clickhouse.Expr{p.stmt}
-	for len(expressionsPending) > 0 {
-		expressionsPendingIndexLast := len(expressionsPending) - 1
-		expression := expressionsPending[expressionsPendingIndexLast]
-		expressionsPending = expressionsPending[:expressionsPendingIndexLast]
-		var errLimit error
-		clickhouse.Walk(expression, func(node clickhouse.Expr) bool {
-			astNodesCount++
-			if astNodesCount > astNodesMax {
-				errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
+	var errLimit error
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		astNodesCount++
+		if astNodesCount > astNodesMax {
+			errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
+			return false
+		}
+		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
+			projectedColumnsCount += len(selectQuery.SelectItems)
+			if projectedColumnsCount > projectedColumnsMax {
+				errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
 				return false
 			}
-			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-				projectedColumnsCount += len(selectQuery.SelectItems)
-				if projectedColumnsCount > projectedColumnsMax {
-					errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
-					return false
-				}
-				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
-				if selectQuery.Except != nil {
-					expressionsPending = append(expressionsPending, selectQuery.Except)
-				}
-			}
-			return true
-		})
-		if errLimit != nil {
-			return errLimit
 		}
-	}
-
-	return nil
+		return true
+	})
+	return errLimit
 }
 
 func newQueryLimitError(messageInternal, messagePublic string) error {
@@ -140,44 +140,4 @@ func newQueryLimitError(messageInternal, messagePublic string) error {
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 		fault.Public(messagePublic),
 	)
-}
-
-func (p *Parser) validateSetOperations() error {
-	var validationErr error
-	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
-		selectQuery, ok := node.(*clickhouse.SelectQuery)
-		if !ok || selectQuery.Except == nil {
-			return true
-		}
-
-		validationErr = fault.New("EXCEPT queries are not supported",
-			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
-			fault.Public("EXCEPT queries are not supported"),
-		)
-		return false
-	})
-	return validationErr
-}
-
-// validateJoins rejects multi-source FROM clauses without rejecting the
-// single-source JoinExpr wrapper produced by the pinned SQL parser.
-func (p *Parser) validateJoins() error {
-	if !p.config.DisallowJoins {
-		return nil
-	}
-
-	var validationErr error
-	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
-		join, ok := node.(*clickhouse.JoinExpr)
-		if !ok || join.Right == nil {
-			return true
-		}
-
-		validationErr = fault.New("JOIN queries are not supported",
-			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
-			fault.Public("JOIN queries are not supported"),
-		)
-		return false
-	})
-	return validationErr
 }

@@ -7,7 +7,7 @@ post:
   operationId: analytics.getRatelimits
   summary: Query rate limit data
   description: |
-    Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, and UNION queries are supported, but joins are not supported.
+    Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, UNION queries, and joins are supported.
     Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
     Workspace retention and query limits apply.
   requestBody:

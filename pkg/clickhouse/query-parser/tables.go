@@ -20,8 +20,8 @@ func (p *Parser) rewriteTables() error {
 
 	var rewriteErr error
 
-	// Walk the ENTIRE statement to find all tables, including those in UNION queries
-	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+	// Walk every query branch so aliases and table access are validated uniformly.
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		tableIdent, ok := node.(*clickhouse.TableIdentifier)
 		if !ok {
 			return true
@@ -35,8 +35,8 @@ func (p *Parser) rewriteTables() error {
 
 		// Resolve alias
 		physicalTable, usesPublicAlias := p.config.TableAliases[tableName]
-		if p.config.PublicTableAliasesOnly && !usesPublicAlias && !p.isCTE(tableName) {
-			rewriteErr = fault.New(fmt.Sprintf("table '%s' must use a public alias", tableName),
+		if !usesPublicAlias && !p.isCTE(tableName) {
+			rewriteErr = fault.New(fmt.Sprintf("table '%s' not allowed: public alias required", tableName),
 				fault.Code(codes.User.BadRequest.InvalidAnalyticsTable.URN()),
 				fault.Public(fmt.Sprintf("Access to table '%s' is not allowed", tableName)),
 			)

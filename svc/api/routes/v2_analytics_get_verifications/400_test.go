@@ -90,36 +90,6 @@ func Test400_QueryLengthIsBoundedBeforeParsing(t *testing.T) {
 	require.Contains(t, res.Body.Error.Detail, "maximum length")
 }
 
-func Test400_JoinQuery(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
-
-	workspace := h.CreateWorkspace()
-	h.SetupAnalytics(workspace.ID)
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
-
-	route := &Handler{
-		DB:                         h.DB,
-		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-		Caches:                     h.Caches,
-	}
-	h.Register(route)
-
-	headers := http.Header{
-		"Authorization": []string{"Bearer " + rootKey},
-		"Content-Type":  []string{"application/json"},
-	}
-
-	req := Request{
-		Query: "SELECT * FROM key_verifications_v1 a JOIN key_verifications_per_hour_v1 b ON a.key_id = b.key_id",
-	}
-
-	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-	require.Equal(t, http.StatusBadRequest, res.Status)
-	require.NotNil(t, res.Body)
-	require.Contains(t, res.Body.Error.Type, "invalid_analytics_query")
-	require.Equal(t, "JOIN queries are not supported", res.Body.Error.Detail)
-}
-
 func Test400_UnknownColumn(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
@@ -180,6 +150,8 @@ func Test400_InvalidTable(t *testing.T) {
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should have a descriptive message")
 }
 
+// Test400_PhysicalVerificationTables guarantees the existing endpoint accepts
+// only public aliases, including for nested physical table references.
 func Test400_PhysicalVerificationTables(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 

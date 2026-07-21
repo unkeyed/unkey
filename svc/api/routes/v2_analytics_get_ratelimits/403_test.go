@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+// Test403_Permissions guarantees read_namespace and partially scoped analytics
+// grants cannot authorize rate limit analytics queries.
 func Test403_Permissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	first, second := createNamespace(t, h, workspaceID), createNamespace(t, h, workspaceID)

@@ -21,7 +21,7 @@ func parenthesize(expr clickhouse.Expr) clickhouse.Expr {
 }
 
 func (p *Parser) injectWorkspaceFilter() {
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 			for _, source := range p.directTableSources(selectQuery) {
 				p.injectWorkspaceFilterOnSelect(selectQuery, source)
@@ -67,7 +67,7 @@ func (p *Parser) injectSecurityFilters() {
 		// skipping the filter, which would leak all rows the other filters allow.
 		// This must not be a `continue`: dropping the filter is fail-open.
 
-		clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+		walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 				for _, source := range p.directTableSources(selectQuery) {
 					p.injectSecurityFilterOnSelect(selectQuery, source, securityFilter)

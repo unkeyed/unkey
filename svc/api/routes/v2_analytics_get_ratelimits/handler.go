@@ -40,9 +40,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	// FilterBuilder is optional because namespace policy supplies filters after parsing.
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{ //nolint:exhaustruct
-		WorkspaceID:  p.WorkspaceID,
 		Query:        req.Query,
-		ParserConfig: rateLimitParserConfig(),
+		ParserConfig: rateLimitParserConfig(p.WorkspaceID),
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			return h.authorize(ctx, p, parser.ExtractColumn("namespace_id"))
 		},
@@ -66,7 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // rateLimitParserConfig builds aliases and allowed tables from one stable list.
 // Returning fresh collections prevents one request from mutating another's policy.
-func rateLimitParserConfig() queryparser.Config {
+func rateLimitParserConfig(workspaceID string) queryparser.Config {
 	tables := [...]struct {
 		alias string
 		name  string
@@ -79,10 +78,9 @@ func rateLimitParserConfig() queryparser.Config {
 	}
 	// The executor supplies workspace-specific limits and security fields.
 	config := queryparser.Config{ //nolint:exhaustruct
-		TableAliases:           make(map[string]string, len(tables)),
-		AllowedTables:          make([]string, 0, len(tables)),
-		PublicTableAliasesOnly: true,
-		DisallowJoins:          true,
+		WorkspaceID:   workspaceID,
+		TableAliases:  make(map[string]string, len(tables)),
+		AllowedTables: make([]string, 0, len(tables)),
 	}
 	for _, table := range tables {
 		config.TableAliases[table.alias] = table.name

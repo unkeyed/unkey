@@ -22,54 +22,55 @@ func (f *fakeConnection) QueryToMaps(_ context.Context, query string, _ ...any) 
 
 type fakeManager struct {
 	connection *fakeConnection
-	events     *[]string
+	workspace  string
 }
 
 var _ ConnectionManager = (*fakeManager)(nil)
 
-func (f *fakeManager) GetConnection(context.Context, string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
-	*f.events = append(*f.events, "connection")
+func (f *fakeManager) GetConnection(_ context.Context, workspaceID string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
+	f.workspace = workspaceID
 	return f.connection, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{
 		ClickhouseWorkspaceSetting: db.ClickhouseWorkspaceSetting{MaxQueryResultRows: 100},
 		Quotas:                     db.Quotas{LogsRetentionDays: 30},
 	}, nil
 }
 
-func TestExecuteOrderingAndFilterComposition(t *testing.T) {
-	events := []string{}
+// TestExecuteAppliesFiltersFromBothPhases guarantees that filters known before
+// parsing and filters returned by parsed-query policy both reach ClickHouse.
+func TestExecuteAppliesFiltersFromBothPhases(t *testing.T) {
 	connection := &fakeConnection{}
-	rows, err := Execute(context.Background(), &fakeManager{connection: connection, events: &events}, ExecuteRequest{
-		WorkspaceID: "ws_test",
-		Query:       "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
+	manager := &fakeManager{connection: connection}
+	rows, err := Execute(context.Background(), manager, ExecuteRequest{
+		Query: "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
 		ParserConfig: queryparser.Config{
+			WorkspaceID:   "ws_test",
 			TableAliases:  map[string]string{"events": "default.events"},
 			AllowedTables: []string{"default.events"},
 		},
 		FilterBuilder: func() ([]queryparser.SecurityFilter, error) {
-			events = append(events, "pre-parse")
 			return []queryparser.SecurityFilter{{Column: "environment", AllowedValues: []string{"prod"}}}, nil
 		},
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
-			events = append(events, "post-parse-policy")
 			require.Equal(t, []string{"requested"}, parser.ExtractColumn("namespace_id"))
 			return []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"allowed"}}}, nil
 		},
 	})
 	require.NoError(t, err)
-	require.Equal(t, []string{"connection", "pre-parse", "post-parse-policy"}, events)
+	require.Equal(t, "ws_test", manager.workspace)
 	require.Equal(t, []map[string]any{{"ok": true}}, rows)
 	require.Contains(t, connection.query, "events.environment IN ('prod')")
 	require.Contains(t, connection.query, "events.namespace_id IN ('allowed')")
 	require.Contains(t, connection.query, "events.workspace_id = 'ws_test'")
 }
 
-func TestExecutePolicyExtractsInjectedQualifiedFilter(t *testing.T) {
-	events := []string{}
+// TestExecuteMakesInitialFiltersVisibleToPolicy preserves verification
+// authorization semantics after injected predicates became table-qualified.
+func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
 	connection := &fakeConnection{}
-	_, err := Execute(context.Background(), &fakeManager{connection: connection, events: &events}, ExecuteRequest{
-		WorkspaceID: "ws_test",
-		Query:       "SELECT count(*) FROM events",
+	_, err := Execute(context.Background(), &fakeManager{connection: connection}, ExecuteRequest{
+		Query: "SELECT count(*) FROM events",
 		ParserConfig: queryparser.Config{
+			WorkspaceID:   "ws_test",
 			TableAliases:  map[string]string{"events": "default.events"},
 			AllowedTables: []string{"default.events"},
 		},
@@ -82,4 +83,14 @@ func TestExecutePolicyExtractsInjectedQualifiedFilter(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+}
+
+// TestExecuteRequiresParserWorkspaceID guarantees callers cannot open an
+// unscoped analytics connection or inject an empty workspace predicate.
+func TestExecuteRequiresParserWorkspaceID(t *testing.T) {
+	_, err := Execute(context.Background(), &fakeManager{}, ExecuteRequest{ //nolint:exhaustruct
+		Query:        "SELECT count(*) FROM events",
+		ParserConfig: queryparser.Config{}, //nolint:exhaustruct
+	})
+	require.ErrorContains(t, err, "analytics parser workspace ID is required")
 }

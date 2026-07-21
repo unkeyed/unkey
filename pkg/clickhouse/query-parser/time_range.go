@@ -22,7 +22,7 @@ func (p *Parser) validateTimeRange() error {
 	earliestAllowed := time.Now().AddDate(0, 0, -int(p.config.QueryRangeDaysMax))
 	var validationErr error
 
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok {
 			return true
