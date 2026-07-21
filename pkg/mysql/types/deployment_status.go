@@ -1,8 +1,70 @@
-package db
+package dbtype
+
+import (
+	"database/sql/driver"
+	"fmt"
+)
+
+// DeploymentsStatus is the canonical deployment lifecycle status enum, shared by
+// every db package instead of each sqlc config regenerating its own copy. The
+// generated code in pkg/db and svc/ctrl/internal/db points its deployments.status
+// column at this type via a go_type override; callers import this package directly.
+type DeploymentsStatus string
+
+const (
+	DeploymentsStatusPending          DeploymentsStatus = "pending"
+	DeploymentsStatusStarting         DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding         DeploymentsStatus = "building"
+	DeploymentsStatusDeploying        DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork          DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady            DeploymentsStatus = "ready"
+	DeploymentsStatusFailed           DeploymentsStatus = "failed"
+	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
+	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
+	DeploymentsStatusStopped          DeploymentsStatus = "stopped"
+	DeploymentsStatusSuperseded       DeploymentsStatus = "superseded"
+	DeploymentsStatusCancelled        DeploymentsStatus = "cancelled"
+)
+
+func (e *DeploymentsStatus) Scan(src any) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsStatus(s)
+	case string:
+		*e = DeploymentsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsStatus struct {
+	DeploymentsStatus DeploymentsStatus
+	Valid             bool // Valid is true if DeploymentsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsStatus) Scan(value any) error {
+	if value == nil {
+		ns.DeploymentsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsStatus), nil
+}
 
 // IsTerminal reports whether a deployment has reached a final lifecycle
 // state. Acts as the spec the TerminalDeploymentStatuses and
-// ProgressingDeploymentStatuses slices must mirror — the test in
+// ProgressingDeploymentStatuses slices must mirror; the test in
 // deployment_status_test.go enforces that mapping. Unknown statuses fall
 // through to false; the slices, not this function, drive cancellation
 // decisions.

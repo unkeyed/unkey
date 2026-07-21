@@ -3,6 +3,8 @@ package deployment
 import (
 	"strings"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -10,8 +12,8 @@ import (
 
 // deriveError builds the structured failure for a failed deployment from its
 // recorded steps. Returns nil for any non-failed status.
-func deriveError(status db.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentError {
-	if status != db.DeploymentsStatusFailed {
+func deriveError(status mysqltype.DeploymentsStatus, steps []db.DeploymentStep) *openapi.DeploymentError {
+	if status != mysqltype.DeploymentsStatusFailed {
 		return nil
 	}
 
@@ -65,8 +67,7 @@ var errorRules = []struct {
 	{deployfail.MsgCPUQuotaExceeded, openapi.DeploymentErrorCodeCpuQuotaExceeded},
 	{deployfail.MsgMemoryQuotaExceeded, openapi.DeploymentErrorCodeMemoryQuotaExceeded},
 	{deployfail.MsgStorageQuotaExceeded, openapi.DeploymentErrorCodeStorageQuotaExceeded},
-	{deployfail.MsgPortTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
-	{deployfail.MsgPortTooHigh, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
+	{deployfail.MsgPortOutOfRange, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 	{deployfail.MsgCPUTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 	{deployfail.MsgMemoryTooLow, openapi.DeploymentErrorCodeInvalidRuntimeSettings},
 }

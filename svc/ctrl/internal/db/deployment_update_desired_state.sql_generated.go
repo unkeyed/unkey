@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const updateDeploymentDesiredState = `-- name: UpdateDeploymentDesiredState :exec
@@ -17,9 +19,9 @@ WHERE id = ?
 `
 
 type UpdateDeploymentDesiredStateParams struct {
-	DesiredState DeploymentsDesiredState `db:"desired_state"`
-	UpdatedAt    sql.NullInt64           `db:"updated_at"`
-	ID           string                  `db:"id"`
+	DesiredState mysqltype.DeploymentsDesiredState `db:"desired_state"`
+	UpdatedAt    sql.NullInt64                     `db:"updated_at"`
+	ID           string                            `db:"id"`
 }
 
 // UpdateDeploymentDesiredState

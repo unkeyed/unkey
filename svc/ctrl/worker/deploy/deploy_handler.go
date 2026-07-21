@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -109,9 +111,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// completion (ready). Only transitions from active statuses to failed.
 		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 			ID:               req.GetDeploymentId(),
-			Status:           db.DeploymentsStatusFailed,
+			Status:           mysqltype.DeploymentsStatusFailed,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			TerminalStatuses: db.TerminalDeploymentStatuses,
+			TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
 		})
 	})
 
@@ -188,15 +190,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
-		if err := assert.All(
-			assert.Greater(deployment.Port, int32(0), deployfail.MsgPortTooLow),
-			assert.LessOrEqual(deployment.Port, int32(65535), deployfail.MsgPortTooHigh),
-			assert.Greater(deployment.CpuMillicores, int32(0), deployfail.MsgCPUTooLow),
-			assert.Greater(deployment.MemoryMib, int32(0), deployfail.MsgMemoryTooLow),
-		); err != nil {
+		// Backstop only: the create-time gates (API, ctrl) reject these before
+		// enqueue. If one is ever reached here, fail the step with a message the
+		// read-path classifier maps to InvalidRuntimeSettings.
+		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
 			return fault.Wrap(
-				restate.TerminalError(err),
-				fault.Public(err.Error()),
+				restate.TerminalError(errors.New(violations[0].Message)),
+				fault.Public(violations[0].Message),
 			)
 		}
 
@@ -319,7 +319,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
-				Status:    db.DeploymentsStatusReady,
+				Status:    mysqltype.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))

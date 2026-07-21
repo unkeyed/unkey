@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -93,7 +95,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	// Region (needed for topology and cilium policies)

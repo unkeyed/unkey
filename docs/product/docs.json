@@ -459,6 +459,15 @@
                     "group": "Application",
                     "pages": [
                       "errors/unkey/application/assertion_failed",
+                      "errors/unkey/application/deployment_is_current",
+                      "errors/unkey/application/deployment_is_production",
+                      "errors/unkey/application/deployment_is_stopping",
+                      "errors/unkey/application/deployment_no_current",
+                      "errors/unkey/application/deployment_not_production",
+                      "errors/unkey/application/deployment_not_ready",
+                      "errors/unkey/application/deployment_not_running",
+                      "errors/unkey/application/deployment_not_stopped",
+                      "errors/unkey/application/invalid_environment_settings",
                       "errors/unkey/application/invalid_input",
                       "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
@@ -756,7 +765,7 @@
     {
       "destination": "/platform/apis/features/authorization/introduction",
       "source": "/security/roles"
-    }
+    } 
   ],
   "styling": {
     "codeblocks": {

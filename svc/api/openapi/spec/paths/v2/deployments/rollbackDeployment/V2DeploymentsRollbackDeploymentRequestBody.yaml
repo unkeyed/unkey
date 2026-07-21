@@ -5,7 +5,7 @@ properties:
   deploymentId:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
-      The deployment to roll back TO. Its app's current live deployment is used
+      The deployment to roll back TO. Its app's current deployment is used
       as the rollback source automatically.
 additionalProperties: false
 description: Roll live traffic back to a previous deployment.

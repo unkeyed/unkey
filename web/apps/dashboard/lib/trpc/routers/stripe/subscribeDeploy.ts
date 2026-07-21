@@ -173,7 +173,7 @@ export const subscribeDeploy = workspaceProcedure
         customer: ctx.workspace.stripeCustomerId,
         items,
         ...(defaultPaymentMethod ? { default_payment_method: defaultPaymentMethod } : {}),
-        billing_cycle_anchor_config: { day_of_month: 1 },
+        billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
         // Pin classic billing mode (clover defaults new subscriptions to
         // "flexible", which itemizes prorations differently); see the same
         // pin in createSubscription.

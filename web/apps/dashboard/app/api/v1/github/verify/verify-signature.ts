@@ -55,6 +55,10 @@ async function fetchGithubKeys(githubKeysUri: string): Promise<PublicKeys | null
 
 async function getGithubKeys(githubKeysUri: string): Promise<PublicKeys | null> {
   if (cachedKeys && Date.now() - cachedAt < KEYS_TTL_MS) {
+    console.info("[github-verify] using cached github public keys", {
+      count: cachedKeys.length,
+      ageMs: Date.now() - cachedAt,
+    });
     return cachedKeys;
   }
 
@@ -70,15 +74,20 @@ async function getGithubKeys(githubKeysUri: string): Promise<PublicKeys | null> 
   if (refreshed) {
     cachedKeys = refreshed;
     cachedAt = Date.now();
+    console.info("[github-verify] refreshed github public keys", { count: refreshed.length });
     return refreshed;
   }
 
   // Refresh failed (e.g. rate-limited). Serve the last known-good keys if we
   // have any; they change rarely enough that a stale set still verifies.
   if (cachedKeys) {
-    console.warn("Falling back to cached GitHub public keys after refresh failure");
+    console.warn("[github-verify] falling back to stale cached github public keys", {
+      count: cachedKeys.length,
+      ageMs: Date.now() - cachedAt,
+    });
     return cachedKeys;
   }
+  console.error("[github-verify] no github public keys available (refresh failed, no cache)");
   return null;
 }
 
@@ -95,10 +104,15 @@ export async function verifyGitSignature(
 
   const publicKey = publicKeys.find((k) => k.key_identifier === keyId);
   if (!publicKey) {
-    console.error("No public key found");
+    console.error("[github-verify] no matching public key for requested key id", {
+      requestedKeyId: keyId,
+      availableKeyIds: publicKeys.map((k) => k.key_identifier),
+    });
     return false;
   }
 
   const verifier = crypto.createVerify("SHA256").update(payload);
-  return verifier.verify(publicKey.key, Buffer.from(signature, "base64"));
+  const valid = verifier.verify(publicKey.key, Buffer.from(signature, "base64"));
+  console.info("[github-verify] signature check complete", { keyId, valid });
+  return valid;
 }
