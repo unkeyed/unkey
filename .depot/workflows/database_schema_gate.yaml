@@ -52,9 +52,8 @@ jobs:
           set -euo pipefail
           mise run pscale-branch
 
-          # PlanetScale's schema API can lag a completed drizzle-kit push by a
-          # few seconds. Keep checking through a bounded propagation window so
-          # an initially empty response cannot produce a false pass.
+          # PlanetScale may take a few seconds to show schema changes. Retry so
+          # an early empty diff does not pass incorrectly.
           for attempt in $(seq 1 7); do
             BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --format json)
