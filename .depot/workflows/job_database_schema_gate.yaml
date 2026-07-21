@@ -1,0 +1,45 @@
+name: Database Schema Gate
+on:
+  workflow_call:
+    inputs:
+      detect_changes_result:
+        required: true
+        type: string
+      db_schema_changed:
+        required: true
+        type: string
+      pscale_result:
+        required: true
+        type: string
+      pscale_validated:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  gate:
+    name: Database schema gate
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    steps:
+      - name: Require successful schema validation
+        env:
+          DETECT_CHANGES_RESULT: ${{ inputs.detect_changes_result }}
+          DB_SCHEMA_CHANGED: ${{ inputs.db_schema_changed }}
+          PSCALE_RESULT: ${{ inputs.pscale_result }}
+          PSCALE_VALIDATED: ${{ inputs.pscale_validated }}
+        run: |
+          set -euo pipefail
+          if [ "$DETECT_CHANGES_RESULT" != "success" ]; then
+            echo "::error::Could not determine whether the database schema changed."
+            exit 1
+          fi
+          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
+            echo "The database schema did not change."
+            exit 0
+          fi
+          if [ "$PSCALE_RESULT" != "success" ] || [ "$PSCALE_VALIDATED" != "true" ]; then
+            echo "::error::The production database schema was not validated successfully."
+            exit 1
+          fi
+          echo "The production database schema matches this change."

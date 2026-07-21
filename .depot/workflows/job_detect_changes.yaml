@@ -52,6 +52,8 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
+          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
+          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || '' }}
           filters: |
             # API application and its direct dependencies
 
@@ -126,6 +128,8 @@ jobs:
             # MySQL schema (drizzle source of truth)
             db_schema:
               - 'web/internal/db/src/schema/**'
+              - 'web/internal/db/drizzle.config.ts'
+              - 'web/internal/db/package.json'
 
             # Configuration files
             configs:

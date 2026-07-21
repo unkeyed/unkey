@@ -392,6 +392,35 @@ checksum = "sha256:339707071180099a0bfc42bd4faaa9f7618d20be10ce450f77f9e59a257b2
 url = "https://github.com/planetscale/cli/releases/download/v0.284.0/pscale_0.284.0_windows_amd64.zip"
 url_api = "https://api.github.com/repos/planetscale/cli/releases/assets/424448028"
 
+[[tools."github:planetscale/schemadiff"]]
+version = "1.4"
+backend = "github:planetscale/schemadiff"
+
+[tools."github:planetscale/schemadiff"."platforms.linux-arm64"]
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-linux.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520241"
+
+[tools."github:planetscale/schemadiff"."platforms.linux-arm64-musl"]
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-linux.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520241"
+
+[tools."github:planetscale/schemadiff"."platforms.linux-x64"]
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-linux.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520241"
+
+[tools."github:planetscale/schemadiff"."platforms.linux-x64-musl"]
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-linux.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520241"
+
+[tools."github:planetscale/schemadiff"."platforms.macos-arm64"]
+checksum = "blake3:616e6b369aa11ec0b40a30be39e895bdbde96b8529222bbed729f64487cc6d83"
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-osx.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520252"
+
+[tools."github:planetscale/schemadiff"."platforms.macos-x64"]
+url = "https://github.com/planetscale/schemadiff/releases/download/v1.4/schemadiff-osx.tar.gz"
+url_api = "https://api.github.com/repos/planetscale/schemadiff/releases/assets/173520252"
+
 [[tools."github:pnpm/pnpm"]]
 version = "11.5.0"
 backend = "github:pnpm/pnpm"

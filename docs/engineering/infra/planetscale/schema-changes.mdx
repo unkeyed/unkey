@@ -1,0 +1,71 @@
+---
+title: "PlanetScale schema changes"
+description: "Apply MySQL schema changes before merging application code"
+---
+
+The MySQL schema in a pull request must match the production PlanetScale
+schema before the pull request can merge. This ordering prevents application
+code from querying tables or columns that don't exist in production.
+
+## Schema sources
+
+Drizzle definitions in `web/internal/db/src/schema/` are the source of truth.
+The `mise run generate-sql` task converts those definitions into SQL files in
+`pkg/mysql/schema/` for Go tooling and code generation.
+
+Commit the Drizzle definitions and generated SQL in the same pull request.
+Run the generator after every schema edit:
+
+```bash
+mise run generate-sql
+```
+
+## Apply a schema change
+
+The PR workflow creates a PlanetScale branch named `pr-<number>` from
+`staging`, applies the Drizzle schema, and opens a deploy request into
+`staging`. CI then compares the normalized schema on that PR branch with the
+schema on the production `main` branch.
+
+Complete these steps for a schema change:
+
+1. Update the Drizzle schema and run `mise run generate-sql`.
+2. Commit the Drizzle and generated SQL changes.
+3. Open a pull request and wait for the PlanetScale PR branch workflow.
+4. Review and deploy the `pr-<number>` deploy request into `staging`.
+5. Create, review, and deploy the `staging` deploy request into `main`.
+6. Rerun the PR checks and merge after the schemas match.
+
+The schema gate doesn't use deploy request state to decide whether schemas
+match. It fails whenever the normalized schemas differ and passes whenever
+they match. This catches undeployed changes and manual production drift when
+the gate runs, even if no deploy request exists.
+
+## Split incompatible changes
+
+Use separate pull requests when application and schema changes require a
+specific deployment order. Each pull request must leave the repository schema
+equal to the production schema before it merges.
+
+To remove a column safely:
+
+1. Remove all application reads and writes for the column without changing the
+   Drizzle schema.
+2. Merge and deploy the application change.
+3. Deploy the column removal through `staging` and `main` in PlanetScale.
+4. Remove the column from the Drizzle schema and generated SQL in a second pull
+   request.
+
+For an additive change, deploy the new table or column through `staging` and
+`main` before merging code that uses it.
+
+## Troubleshoot the schema check
+
+The `PlanetScale PR Branch` check prints the SQL required to transform the
+production schema into the pull request schema. Use that diff to identify the
+pending PlanetScale change.
+
+If CI doesn't create a PlanetScale branch, confirm that the pull request changes
+a file under `web/internal/db/src/schema/`. PlanetScale credentials aren't
+available to pull requests from forks, so a maintainer must move an approved
+change to a branch in the Unkey repository.

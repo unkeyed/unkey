@@ -1,19 +1,25 @@
 name: PlanetScale PR Branch
 on:
   workflow_call:
+    outputs:
+      validated:
+        description: "Whether the production schema matches the proposed schema"
+        value: ${{ jobs.validate.outputs.validated }}
 permissions:
   contents: read
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
   PSCALE_PARENT: staging
-  BRANCH: pr-${{ github.event.pull_request.number }}
+  BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.run_id, github.run_attempt) }}
 jobs:
   validate:
     name: Validate schema on PlanetScale branch
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      validated: ${{ steps.production_schema.outputs.validated }}
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
@@ -21,6 +27,14 @@ jobs:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
       - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
+
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install schemadiff
+        run: mise install --locked --yes github:planetscale/schemadiff
 
       - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
         with:
@@ -59,6 +73,7 @@ jobs:
           pnpm --dir=web/internal/db run migrate
 
       - name: ensure deploy request
+        if: github.event_name == 'pull_request'
         # Open a DR into staging so reviewers have a one-click promotion
         # surface. Reuse existing open DR for repeat runs of the same PR.
         # PR_NUMBER and PR_TITLE come in via env so untrusted PR title text
@@ -68,6 +83,17 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
+          BRANCH_DIFF=$(pscale branch diff "$PSCALE_DB" "$BRANCH" \
+            --org "$PSCALE_ORG" --format json)
+          if ! jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch diff."
+            exit 1
+          fi
+          if jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
+            echo "The PlanetScale PR branch already matches staging."
+            exit 0
+          fi
+
           EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
             | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
                 '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
@@ -79,3 +105,59 @@ jobs:
           else
             echo "Reusing existing deploy request #$EXISTING"
           fi
+
+      - name: require production schema
+        id: production_schema
+        run: |
+          set -euo pipefail
+          TMP_DIR=$(mktemp -d)
+          trap 'rm -rf "$TMP_DIR"' EXIT
+
+          fetch_schema() {
+            local branch="$1"
+            local output="$2"
+            local response="$TMP_DIR/${branch}.json"
+
+            pscale branch schema "$PSCALE_DB" "$branch" \
+              --org "$PSCALE_ORG" --format json > "$response"
+            jq -er '
+              if type != "array" or length == 0 then
+                error("PlanetScale returned an empty or invalid schema")
+              else
+                map(
+                  if (.raw | type) != "string" then
+                    error("PlanetScale returned a schema without SQL")
+                  else
+                    .raw
+                  end
+                ) | join("\n")
+              end
+            ' "$response" > "$output"
+          }
+
+          PRODUCTION_SCHEMA="$TMP_DIR/main.sql"
+          EXPECTED_SCHEMA="$TMP_DIR/expected.sql"
+          SCHEMA_DIFF="$TMP_DIR/schema.diff.sql"
+          fetch_schema main "$PRODUCTION_SCHEMA"
+          fetch_schema "$BRANCH" "$EXPECTED_SCHEMA"
+
+          if ! mise exec -- schemadiff diff \
+              --source "$PRODUCTION_SCHEMA" \
+              --target "$EXPECTED_SCHEMA" \
+              > "$SCHEMA_DIFF"; then
+            echo "::error::Could not compare the PlanetScale schemas."
+            exit 1
+          fi
+
+          if [ -s "$SCHEMA_DIFF" ]; then
+            echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
+            cat "$SCHEMA_DIFF"
+            exit 1
+          fi
+
+          echo "The production PlanetScale schema matches this pull request."
+          echo "validated=true" >> "$GITHUB_OUTPUT"
+
+      - name: delete temporary branch
+        if: always() && github.event_name != 'pull_request'
+        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true
