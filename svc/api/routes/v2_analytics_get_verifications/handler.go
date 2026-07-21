@@ -136,31 +136,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	responseBytes, err := marshalAnalyticsResponse(Response{
+	responseBytes, err := json.Marshal(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: verifications,
 	})
 	if err != nil {
-		return err
-	}
-	s.AddHeader("Content-Type", "application/json")
-	return s.Send(http.StatusOK, responseBytes)
-}
-
-func marshalAnalyticsResponse(response Response) ([]byte, error) {
-	responseBytes, err := json.Marshal(response)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to encode query results"))
+		return fault.Wrap(err, fault.Public("Failed to encode query results"))
 	}
 	if len(responseBytes) > clickhouse.AnalyticsResultBytesMax {
-		return nil, fault.New("analytics response byte limit exceeded",
+		return fault.New("analytics response byte limit exceeded",
 			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
 			fault.Public("Query result exceeds the maximum response size."),
 		)
 	}
-	return responseBytes, nil
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

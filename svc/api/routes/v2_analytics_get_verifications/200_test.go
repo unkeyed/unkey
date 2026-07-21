@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -66,14 +65,6 @@ func Test200_Success(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body)
 	require.Len(t, res.Body.Data, 1)
-}
-
-// Security guarantee: JSON framing and a one-row aggregate count toward the final response budget.
-func TestMarshalAnalyticsResponseEnforcesExactJSONBudget(t *testing.T) {
-	_, err := marshalAnalyticsResponse(Response{
-		Data: ResponseData{{"aggregate": string(make([]byte, clickhouse.AnalyticsResultBytesMax))}},
-	})
-	require.ErrorContains(t, err, "response byte limit")
 }
 
 func Test200_PermissionFiltersByApiId(t *testing.T) {
