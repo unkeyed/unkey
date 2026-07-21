@@ -36,6 +36,16 @@ jobs:
               - 'web/internal/db/drizzle.config.ts'
               - 'web/internal/db/package.json'
 
+      - name: Report schema check decision
+        env:
+          DB_SCHEMA_CHANGED: ${{ steps.changes.outputs.db_schema }}
+        run: |
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Schema files changed: $DB_SCHEMA_CHANGED"
+          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
+            echo "No schema changes to compare."
+          fi
+
       - name: Install mise
         if: steps.changes.outputs.db_schema == 'true'
         run: |
@@ -50,7 +60,9 @@ jobs:
         if: steps.changes.outputs.db_schema == 'true'
         run: |
           set -euo pipefail
+          echo "Creating PlanetScale branch $BRANCH from $FROM."
           mise run pscale-branch
+          echo "Applied the proposed schema to $BRANCH."
 
           # PlanetScale may take a few seconds to show schema changes. We're retrying
           # to ensure it's stable and no changes are detected for 30s
@@ -58,11 +70,12 @@ jobs:
             BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --format json)
 
-            if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
+            if ! DIFF_COUNT=$(mise exec -- jq -e 'if type == "array" then length else error("expected an array") end' <<< "$BRANCH_DIFF"); then
               echo "::error::PlanetScale returned an invalid branch diff."
               exit 1
             fi
-            if ! mise exec -- jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
+            echo "Diff check $attempt/7 found $DIFF_COUNT change(s)."
+            if [ "$DIFF_COUNT" -gt 0 ]; then
               echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
               mise exec -- jq -r '.[].raw' <<< "$BRANCH_DIFF"
               exit 1
@@ -79,8 +92,13 @@ jobs:
         run: |
           # Preserve the comparison result if immediate cleanup fails. The
           # scheduled cleanup job removes any branch left behind.
-          mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
-            --org "$PSCALE_ORG" --force || true
+          echo "Deleting PlanetScale branch $BRANCH."
+          if mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force; then
+            echo "Deleted $BRANCH."
+          else
+            echo "::warning::Could not delete $BRANCH. The daily cleanup job will retry."
+          fi
 
   # A runner can stop before the delete step runs. Clean up any temporary
   # branches left behind so they do not build up in PlanetScale.
@@ -106,13 +124,23 @@ jobs:
       - name: Delete leftover schema check branches
         run: |
           set -euo pipefail
-          mise exec -- pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | mise exec -- jq -r '
+          BRANCH_LIST=$(mise exec -- pscale branch list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCH_LIST" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch list."
+            exit 1
+          fi
+          mapfile -t BRANCHES < <(
+            mise exec -- jq -r '
                 .[]
                 | select(.name | startswith("schema-check-"))
                 | .name
-              ' \
-            | while read -r branch; do
-                mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \
-                  --org "$PSCALE_ORG" --force
-              done
+              ' <<< "$BRANCH_LIST"
+          )
+          echo "Found ${#BRANCHES[@]} leftover schema check branch(es)."
+          for branch in "${BRANCHES[@]}"; do
+            echo "Deleting $branch."
+            mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \
+              --org "$PSCALE_ORG" --force
+          done
+          echo "Daily schema branch cleanup complete."
