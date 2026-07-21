@@ -91,10 +91,19 @@ func (p *Parser) validateComplexity() error {
 		last := len(pending) - 1
 		root := pending[last]
 		pending = pending[:last]
+		var limitErr error
 		clickhouse.Walk(root, func(node clickhouse.Expr) bool {
 			astNodes++
+			if p.config.MaxASTNodes > 0 && astNodes > p.config.MaxASTNodes {
+				limitErr = invalidQueryLimitError("query is too complex", "Analytics query is too complex")
+				return false
+			}
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 				projectedColumns += len(selectQuery.SelectItems)
+				if p.config.MaxProjectedColumns > 0 && projectedColumns > p.config.MaxProjectedColumns {
+					limitErr = invalidQueryLimitError("too many projected columns", "Analytics query projects too many columns")
+					return false
+				}
 				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
 				if selectQuery.Except != nil {
 					pending = append(pending, selectQuery.Except)
@@ -102,14 +111,11 @@ func (p *Parser) validateComplexity() error {
 			}
 			return true
 		})
+		if limitErr != nil {
+			return limitErr
+		}
 	}
 
-	if p.config.MaxProjectedColumns > 0 && projectedColumns > p.config.MaxProjectedColumns {
-		return invalidQueryLimitError("too many projected columns", "Analytics query projects too many columns")
-	}
-	if p.config.MaxASTNodes > 0 && astNodes > p.config.MaxASTNodes {
-		return invalidQueryLimitError("query is too complex", "Analytics query is too complex")
-	}
 	return nil
 }
 
