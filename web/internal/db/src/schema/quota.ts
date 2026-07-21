@@ -123,6 +123,9 @@ export const quotas = mysqlTable("quota", {
   })
     .notNull()
     .default(4),
+
+  // Temporary column for proving that the production schema gate fails.
+  schemaGateTest: int("schema_gate_test"),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {
