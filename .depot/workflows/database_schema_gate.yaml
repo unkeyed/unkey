@@ -5,8 +5,8 @@ on:
   schedule:
     - cron: "17 * * * *"
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
-  cancel-in-progress: true
+  group: database-schema-gate
+  cancel-in-progress: false
 permissions:
   contents: read
   pull-requests: read
