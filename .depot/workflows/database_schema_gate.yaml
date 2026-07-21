@@ -101,18 +101,13 @@ jobs:
       - name: Install toolchain
         run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
 
-      - name: Delete branches older than six hours
+      - name: Delete leftover schema check branches
         run: |
           set -euo pipefail
-          CUTOFF=$(date -u -d '6 hours ago' +%s)
           mise exec -- pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | mise exec -- jq -r --argjson cutoff "$CUTOFF" '
+            | mise exec -- jq -r '
                 .[]
                 | select(.name | startswith("schema-check-"))
-                | select(
-                    (.created_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)
-                    < $cutoff
-                  )
                 | .name
               ' \
             | while read -r branch; do

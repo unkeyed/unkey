@@ -27,8 +27,9 @@ The schema gate creates a temporary PlanetScale branch from `main`, applies the
 Drizzle schema, and uses PlanetScale's native branch diff to compare it with
 production. The gate deletes this validation branch without creating a deploy
 request. A scheduled cleanup job in the same workflow also deletes
-`schema-check-*` branches older than 6 hours if a CI runner terminates before
-its cleanup runs.
+leftover `schema-check-*` branches if a CI runner terminates before its cleanup
+runs. Global workflow concurrency prevents cleanup from overlapping a schema
+check.
 
 Complete these steps for a schema change:
 
