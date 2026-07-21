@@ -131,6 +131,35 @@ func Test400_InvalidTable(t *testing.T) {
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should have a descriptive message")
 }
 
+func Test400_TableBackedInRejectedBeforeExecution(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+
+	route := &Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route)
+
+	headers := http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}
+
+	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, Request{
+		Query: "SELECT key_id FROM key_verifications_v1 WHERE key_id IN default.ratelimits_raw_v2",
+	})
+
+	// The production-version ClickHouse test route must reject cross-family reads in the parser.
+	require.Equal(t, 400, res.Status)
+	require.NotNil(t, res.Body)
+	require.Contains(t, res.Body.Error.Type, "invalid_analytics_table")
+}
+
 func Test400_NonSelectQuery(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 

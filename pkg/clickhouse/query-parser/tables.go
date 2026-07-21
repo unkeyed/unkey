@@ -10,6 +10,82 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
+func (p *Parser) validateMembershipOperands() error {
+	var validationErr error
+
+	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+		operation, ok := node.(*clickhouse.BinaryOperation)
+		if !ok || !isMembershipOperation(operation.Operation) {
+			return true
+		}
+
+		if rhs, ok := operation.RightExpr.(*clickhouse.ParamExprList); ok {
+			if isLiteralList(rhs) {
+				return true
+			}
+		}
+
+		validationErr = fault.New("IN-family right-hand operand not allowed",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsTable.URN()),
+			fault.Public("IN-family operators require a literal list; table, dynamic, and subquery operands are not allowed"),
+		)
+		return false
+	})
+
+	return validationErr
+}
+
+func isMembershipOperation(operation clickhouse.TokenKind) bool {
+	switch strings.ToUpper(string(operation)) {
+	case "IN", "NOT IN", "GLOBAL IN", "GLOBAL NOT IN":
+		return true
+	default:
+		return false
+	}
+}
+
+func isLiteralList(list *clickhouse.ParamExprList) bool {
+	if list.Items == nil || list.ColumnArgList != nil {
+		return false
+	}
+
+	for _, item := range list.Items.Items {
+		column, ok := item.(*clickhouse.ColumnExpr)
+		if !ok || column.Alias != nil || !isLiteral(column.Expr) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isLiteral(expr clickhouse.Expr) bool {
+	switch literal := expr.(type) {
+	case *clickhouse.StringLiteral, *clickhouse.NumberLiteral, *clickhouse.BoolLiteral, *clickhouse.NullLiteral:
+		return true
+	case *clickhouse.Ident:
+		if literal.QuoteType != clickhouse.Unquoted {
+			return false
+		}
+		switch strings.ToUpper(literal.Name) {
+		case "TRUE", "FALSE", "NULL":
+			return true
+		default:
+			return false
+		}
+	case *clickhouse.UnaryExpr:
+		if literal.Kind != clickhouse.TokenKindPlus && literal.Kind != clickhouse.TokenKindMinus {
+			return false
+		}
+		_, ok := literal.Expr.(*clickhouse.NumberLiteral)
+		return ok
+	case *clickhouse.ParamExprList:
+		return isLiteralList(literal)
+	default:
+		return false
+	}
+}
+
 func (p *Parser) rewriteTables() error {
 	if p.stmt.From == nil || p.stmt.From.Expr == nil {
 		return fault.New("query must have FROM clause",

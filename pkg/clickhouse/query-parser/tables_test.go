@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestParser_TableAliases(t *testing.T) {
@@ -80,6 +82,200 @@ func TestParser_AllowedTables(t *testing.T) {
 	_, err = p.Parse(context.Background(), "SELECT * FROM default.other_table")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not allowed")
+}
+
+func TestParser_RejectsTableBackedMembershipOperands(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		AllowedTables: []string{
+			"default.key_verifications_raw_v2",
+		},
+	})
+
+	for _, operator := range []string{"IN", "NOT IN", "GLOBAL IN", "GLOBAL NOT IN"} {
+		for _, table := range []string{"ratelimits_raw_v2", "default.ratelimits_raw_v2"} {
+			t.Run(operator+"_"+table, func(t *testing.T) {
+				query := "SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id " + operator + " " + table
+				_, err := p.Parse(context.Background(), query)
+
+				// A physical table on an IN-family RHS must be rejected before ClickHouse can read it.
+				require.Error(t, err)
+				code, ok := fault.GetCode(err)
+				require.True(t, ok)
+				if operator == "GLOBAL NOT IN" {
+					require.Equal(t, codes.User.BadRequest.InvalidAnalyticsQuery.URN(), code)
+				} else {
+					require.Equal(t, codes.User.BadRequest.InvalidAnalyticsTable.URN(), code)
+					require.Contains(t, err.Error(), "right-hand operand not allowed")
+				}
+			})
+		}
+	}
+}
+
+func TestParser_TableFamiliesCannotCrossViaMembershipRHS(t *testing.T) {
+	tests := map[string]struct {
+		allowedTable string
+		rhsTable     string
+	}{
+		"verifications cannot read ratelimits": {
+			allowedTable: "default.key_verifications_raw_v2",
+			rhsTable:     "default.ratelimits_raw_v2",
+		},
+		"ratelimits cannot read verifications": {
+			allowedTable: "default.ratelimits_raw_v2",
+			rhsTable:     "default.key_verifications_raw_v2",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			p := NewParser(Config{
+				WorkspaceID:   "ws_123",
+				AllowedTables: []string{test.allowedTable},
+			})
+
+			_, err := p.Parse(context.Background(), "SELECT workspace_id FROM "+test.allowedTable+" WHERE workspace_id IN "+test.rhsTable)
+
+			// Each analytics route's physical table family must remain isolated.
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.User.BadRequest.InvalidAnalyticsTable.URN(), code)
+		})
+	}
+}
+
+func TestParser_RejectsTableBackedMembershipOperandsInEveryQueryShape(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		AllowedTables: []string{
+			"default.key_verifications_raw_v2",
+		},
+	})
+
+	tests := map[string]string{
+		"nested": "SELECT * FROM (SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id IN default.ratelimits_raw_v2)",
+		"CTE":    "WITH ids AS (SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id NOT IN default.ratelimits_raw_v2) SELECT * FROM ids",
+		"UNION":  "SELECT key_id FROM default.key_verifications_raw_v2 UNION ALL SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id GLOBAL IN default.ratelimits_raw_v2",
+	}
+
+	for name, query := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := p.Parse(context.Background(), query)
+
+			// Nesting, CTEs, and UNION branches must not hide a table-backed RHS.
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.User.BadRequest.InvalidAnalyticsTable.URN(), code)
+		})
+	}
+}
+
+func TestParser_RejectsDynamicMembershipOperands(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		AllowedTables: []string{
+			"default.key_verifications_raw_v2",
+		},
+	})
+
+	for name, operand := range map[string]string{
+		"identifier":               "other_ids",
+		"path":                     "default.other_ids",
+		"placeholder":              "?",
+		"placeholder list":         "(?)",
+		"parameter":                "{ids:Array(String)}",
+		"backtick identifier":      "(`TRUE`)",
+		"double quoted identifier": `("FALSE")`,
+		"identifier in tuple":      "((`NULL`, 'VALID'))",
+	} {
+		t.Run(name, func(t *testing.T) {
+			query := "SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id IN " + operand
+			_, err := p.Parse(context.Background(), query)
+
+			// Dynamic RHS operands must not defer table selection or authorization to execution time.
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.User.BadRequest.InvalidAnalyticsTable.URN(), code)
+		})
+	}
+}
+
+func TestParser_PreservesLiteralMembershipLists(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		AllowedTables: []string{
+			"default.key_verifications_raw_v2",
+		},
+	})
+
+	tests := map[string]string{
+		"strings":        "key_id IN ('key_1', 'key_2')",
+		"numbers":        "key_id NOT IN (1, 2)",
+		"signed numbers": "key_id GLOBAL IN (-1, 0, 1)",
+		"booleans":       "key_id IN (TRUE, FALSE)",
+		"null":           "key_id IN (NULL, 'key_1')",
+		"tuples":         "(key_id, outcome) IN (('key_1', 'VALID'), ('key_2', 'INVALID'))",
+	}
+
+	for name, predicate := range tests {
+		t.Run(name, func(t *testing.T) {
+			output, err := p.Parse(context.Background(), "SELECT key_id FROM default.key_verifications_raw_v2 WHERE "+predicate)
+
+			// Literal lists are values, not table sources, and must remain supported.
+			require.NoError(t, err)
+			require.Contains(t, output, predicate)
+		})
+	}
+}
+
+func TestParser_RejectsMembershipSubqueries(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID: "ws_123",
+		AllowedTables: []string{
+			"default.key_verifications_raw_v2",
+		},
+	})
+
+	tests := map[string]struct {
+		query        string
+		expectedCode codes.URN
+	}{
+		"SELECT": {
+			query:        "SELECT key_id FROM default.key_verifications_raw_v2",
+			expectedCode: codes.User.BadRequest.InvalidAnalyticsTable.URN(),
+		},
+		"nested": {
+			query:        "SELECT key_id FROM (SELECT key_id FROM default.key_verifications_raw_v2)",
+			expectedCode: codes.User.BadRequest.InvalidAnalyticsTable.URN(),
+		},
+		"CTE": {
+			query:        "WITH ids AS (SELECT key_id FROM default.key_verifications_raw_v2) SELECT key_id FROM ids",
+			expectedCode: codes.User.BadRequest.InvalidAnalyticsQuery.URN(),
+		},
+		"UNION": {
+			query:        "SELECT key_id FROM default.key_verifications_raw_v2 UNION ALL SELECT key_id FROM default.key_verifications_raw_v2",
+			expectedCode: codes.User.BadRequest.InvalidAnalyticsTable.URN(),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := p.Parse(context.Background(), "SELECT key_id FROM default.key_verifications_raw_v2 WHERE key_id IN ("+test.query+")")
+
+			// Subquery RHS sources are rejected until each source can be independently filtered.
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, test.expectedCode, code)
+			if code == codes.User.BadRequest.InvalidAnalyticsTable.URN() {
+				require.Contains(t, err.Error(), "right-hand operand not allowed")
+			}
+		})
+	}
 }
 
 func TestParser_BlockInformationSchema(t *testing.T) {

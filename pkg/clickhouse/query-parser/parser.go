@@ -51,6 +51,10 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
+	if err := p.validateMembershipOperands(); err != nil {
+		return "", err
+	}
+
 	// Inject security filters
 	p.injectSecurityFilters()
 	if err := p.rewriteTables(); err != nil {
