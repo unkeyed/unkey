@@ -1,45 +1,200 @@
 name: Database Schema Gate
 on:
-  workflow_call:
-    inputs:
-      detect_changes_result:
-        required: true
-        type: string
-      db_schema_changed:
-        required: true
-        type: string
-      pscale_result:
-        required: true
-        type: string
-      pscale_validated:
-        required: true
-        type: string
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
 permissions:
   contents: read
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+  PSCALE_PARENT: staging
+  BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.run_id, github.run_attempt) }}
 jobs:
   gate:
     name: Database schema gate
     runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
-      - name: Require successful schema validation
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
+          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || '' }}
+          filters: |
+            db_schema:
+              - 'web/internal/db/src/schema/**'
+              - 'web/internal/db/drizzle.config.ts'
+              - 'web/internal/db/package.json'
+
+      - name: Check whether validation is required
+        id: preflight
         env:
-          DETECT_CHANGES_RESULT: ${{ inputs.detect_changes_result }}
-          DB_SCHEMA_CHANGED: ${{ inputs.db_schema_changed }}
-          PSCALE_RESULT: ${{ inputs.pscale_result }}
-          PSCALE_VALIDATED: ${{ inputs.pscale_validated }}
+          DB_SCHEMA_CHANGED: ${{ steps.changes.outputs.db_schema }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || '' }}
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if [ "$DETECT_CHANGES_RESULT" != "success" ]; then
-            echo "::error::Could not determine whether the database schema changed."
-            exit 1
-          fi
           if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
             echo "The database schema did not change."
+            echo "required=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ "$PSCALE_RESULT" != "success" ] || [ "$PSCALE_VALIDATED" != "true" ]; then
-            echo "::error::The production database schema was not validated successfully."
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; then
+            echo "::error::Schema changes from forks must be moved to a branch in this repository."
             exit 1
           fi
-          echo "The production database schema matches this change."
+          echo "required=true" >> "$GITHUB_OUTPUT"
+
+      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
+        if: steps.preflight.outputs.required == 'true'
+
+      - name: Install mise
+        if: steps.preflight.outputs.required == 'true'
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install schemadiff
+        if: steps.preflight.outputs.required == 'true'
+        run: mise install --locked --yes github:planetscale/schemadiff
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        if: steps.preflight.outputs.required == 'true'
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        if: steps.preflight.outputs.required == 'true'
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install web dependencies
+        if: steps.preflight.outputs.required == 'true'
+        run: pnpm --dir=web install --frozen-lockfile
+
+      - name: Ensure PlanetScale branch
+        if: steps.preflight.outputs.required == 'true'
+        # Re-runs on a PR reuse its branch. Probe with `branch show` to
+        # distinguish an existing branch from other creation errors.
+        run: |
+          set -euo pipefail
+          if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --from "$PSCALE_PARENT" --wait; then
+            pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
+          fi
+
+      - name: Apply proposed schema
+        if: steps.preflight.outputs.required == 'true'
+        # Encode credentials before composing the DSN so reserved characters
+        # in any field can't change how the URL is parsed.
+        run: |
+          set -euo pipefail
+          PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
+                 --org "$PSCALE_ORG" --format json)
+          USER=$(echo "$PW" | jq -r '.username | @uri')
+          PASS=$(echo "$PW" | jq -r '.plain_text | @uri')
+          HOST=$(echo "$PW" | jq -r '.access_host_url | @uri')
+          export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
+          pnpm --dir=web/internal/db run migrate
+
+      - name: Ensure deploy request
+        if: steps.preflight.outputs.required == 'true' && github.event_name == 'pull_request'
+        # Open a deploy request into staging when the branch still differs.
+        # PR_NUMBER and PR_TITLE are passed through env so title text can't be
+        # interpreted as shell.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          BRANCH_DIFF=$(pscale branch diff "$PSCALE_DB" "$BRANCH" \
+            --org "$PSCALE_ORG" --format json)
+          if ! jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch diff."
+            exit 1
+          fi
+          if jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
+            echo "The PlanetScale PR branch already matches staging."
+            exit 0
+          fi
+
+          EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
+                '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
+            | head -n1)
+          if [ -z "$EXISTING" ]; then
+            pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
+              --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
+          else
+            echo "Reusing existing deploy request #$EXISTING"
+          fi
+
+      - name: Require production schema
+        if: steps.preflight.outputs.required == 'true'
+        run: |
+          set -euo pipefail
+          TMP_DIR=$(mktemp -d)
+          trap 'rm -rf "$TMP_DIR"' EXIT
+
+          fetch_schema() {
+            local branch="$1"
+            local output="$2"
+            local response="$TMP_DIR/${branch}.json"
+
+            pscale branch schema "$PSCALE_DB" "$branch" \
+              --org "$PSCALE_ORG" --format json > "$response"
+            jq -er '
+              if type != "array" or length == 0 then
+                error("PlanetScale returned an empty or invalid schema")
+              else
+                map(
+                  if (.raw | type) != "string" then
+                    error("PlanetScale returned a schema without SQL")
+                  else
+                    .raw
+                  end
+                ) | join("\n")
+              end
+            ' "$response" > "$output"
+          }
+
+          PRODUCTION_SCHEMA="$TMP_DIR/main.sql"
+          EXPECTED_SCHEMA="$TMP_DIR/expected.sql"
+          SCHEMA_DIFF="$TMP_DIR/schema.diff.sql"
+          fetch_schema main "$PRODUCTION_SCHEMA"
+          fetch_schema "$BRANCH" "$EXPECTED_SCHEMA"
+
+          if ! mise exec -- schemadiff diff \
+              --source "$PRODUCTION_SCHEMA" \
+              --target "$EXPECTED_SCHEMA" \
+              > "$SCHEMA_DIFF"; then
+            echo "::error::Could not compare the PlanetScale schemas."
+            exit 1
+          fi
+
+          if [ -s "$SCHEMA_DIFF" ]; then
+            echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
+            cat "$SCHEMA_DIFF"
+            exit 1
+          fi
+
+          echo "The production PlanetScale schema matches this change."
+
+      - name: Delete temporary branch
+        if: always() && steps.preflight.outputs.required == 'true' && github.event_name != 'pull_request'
+        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true

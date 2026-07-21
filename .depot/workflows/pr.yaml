@@ -42,19 +42,3 @@ jobs:
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.workflows == 'true'
     needs: [detect_changes]
     uses: ./.depot/workflows/job_validate_workflows.yaml
-  pscale_pr:
-    name: PlanetScale PR Branch
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.db_schema == 'true'
-    needs: [detect_changes]
-    uses: ./.depot/workflows/job_pscale_pr.yaml
-    secrets: inherit
-  database_schema_gate:
-    name: Database schema gate
-    if: always() && ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request')
-    needs: [detect_changes, pscale_pr]
-    uses: ./.depot/workflows/job_database_schema_gate.yaml
-    with:
-      detect_changes_result: ${{ needs.detect_changes.result }}
-      db_schema_changed: ${{ needs.detect_changes.outputs.db_schema }}
-      pscale_result: ${{ needs.pscale_pr.result }}
-      pscale_validated: ${{ needs.pscale_pr.outputs.validated }}
