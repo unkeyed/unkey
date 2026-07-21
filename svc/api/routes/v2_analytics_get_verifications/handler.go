@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	resultRowsMax := int(clickhouse.AnalyticsWorkspaceResultRowsMax(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows))
+	resultRowsMax := int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows)
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:         principal.WorkspaceID,
 		Limit:               resultRowsMax,

@@ -19,15 +19,8 @@ func (c *profileConnectionRecorder) Exec(_ context.Context, query string, _ ...a
 	return nil
 }
 
-func TestAnalyticsWorkspaceResultRowsMax(t *testing.T) {
-	// Security guarantee: the ClickHouse profile uses the lower workspace limit without permitting zero or oversized defaults.
-	require.Equal(t, int32(37), AnalyticsWorkspaceResultRowsMax(37))
-	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsWorkspaceResultRowsMax(10_000_000))
-	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsWorkspaceResultRowsMax(0))
-}
-
 func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
-	// Security guarantee: ClickHouse applies row, byte, and AST caps before producing analytics results.
+	// Security guarantee: ClickHouse applies the workspace row quota plus byte and AST caps before producing analytics results.
 	connection := &profileConnectionRecorder{}
 	client := &Client{conn: connection}
 
@@ -48,7 +41,7 @@ func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
 
 	profileSQL := connection.queries[len(connection.queries)-1]
 	for _, setting := range []string{
-		"max_result_rows = 10000",
+		"max_result_rows = 10000000",
 		"max_result_bytes = 4194304",
 		"result_overflow_mode = 'throw'",
 		"max_ast_depth = 100",
@@ -56,4 +49,18 @@ func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
 	} {
 		require.True(t, strings.Contains(profileSQL, setting), "missing profile setting %q", setting)
 	}
+}
+
+func TestConfigureUserRejectsDisabledResultRowBound(t *testing.T) {
+	// Security guarantee: an invalid workspace quota cannot disable the ClickHouse result row bound.
+	connection := &profileConnectionRecorder{}
+	client := &Client{conn: connection}
+
+	err := client.ConfigureUser(context.Background(), UserConfig{
+		WorkspaceID:        "ws_test",
+		Username:           "ws_test",
+		MaxQueryResultRows: 0,
+	})
+	require.ErrorContains(t, err, "query result row limit must be positive")
+	require.Empty(t, connection.queries)
 }

@@ -100,29 +100,20 @@ func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
 	require.ErrorContains(t, err, "query result row limit must be positive")
 }
 
-func TestQueryToMapsRejectsBoundsAboveHardMaximums(t *testing.T) {
-	// Security guarantee: callers cannot weaken global analytics bounds with permissive per-query values.
-	tests := []struct {
-		name   string
-		limits QueryResultLimits
-		err    string
-	}{
-		{
-			name:   "rows",
-			limits: QueryResultLimits{RowsMax: AnalyticsResultRowsMax + 1, BytesMax: AnalyticsResultBytesMax},
-			err:    "query result row limit exceeds the hard maximum",
-		},
-		{
-			name:   "bytes",
-			limits: QueryResultLimits{RowsMax: AnalyticsResultRowsMax, BytesMax: AnalyticsResultBytesMax + 1},
-			err:    "query result byte limit exceeds the hard maximum",
-		},
-	}
+func TestQueryToMapsUsesWorkspaceRowBound(t *testing.T) {
+	// Security guarantee: the API enforces the positive workspace quota without silently replacing it with a separate row policy.
+	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
+		RowsMax:  10_000_000,
+		BytesMax: AnalyticsResultBytesMax,
+	})
+	require.NoError(t, err)
+}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", test.limits)
-			require.ErrorContains(t, err, test.err)
-		})
-	}
+func TestQueryToMapsRejectsByteBoundAboveHardMaximum(t *testing.T) {
+	// Security guarantee: callers cannot weaken the global encoded-response bound.
+	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
+		RowsMax:  10_000_000,
+		BytesMax: AnalyticsResultBytesMax + 1,
+	})
+	require.ErrorContains(t, err, "query result byte limit exceeds the hard maximum")
 }

@@ -147,15 +147,13 @@ func (c *Client) Conn() ch.Conn {
 }
 
 // QueryResultLimits bounds dynamic query results while scanning them into memory.
-// Both values must be positive and cannot exceed the analytics hard maximums.
+// Both values must be positive. BytesMax cannot exceed the analytics hard maximum.
 type QueryResultLimits struct {
 	RowsMax  int
 	BytesMax int
 }
 
 const (
-	// AnalyticsResultRowsMax is the maximum number of rows returned by customer analytics queries.
-	AnalyticsResultRowsMax = 10_000
 	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
 	AnalyticsResultBytesMax = 4 << 20
 	// AnalyticsASTDepthMax is the maximum ClickHouse AST depth for customer analytics queries.
@@ -164,20 +162,10 @@ const (
 	AnalyticsASTElementsMax = 2_000
 )
 
-// AnalyticsWorkspaceResultRowsMax returns the lower of a positive workspace
-// limit and the API hard limit. Non-positive workspace values use the hard limit.
-func AnalyticsWorkspaceResultRowsMax(workspaceRowsMax int32) int32 {
-	if workspaceRowsMax > 0 && workspaceRowsMax < int32(AnalyticsResultRowsMax) {
-		return workspaceRowsMax
-	}
-	return int32(AnalyticsResultRowsMax)
-}
-
 // validate rejects programmer errors that would disable a mandatory result bound.
 func (limits QueryResultLimits) validate() error {
 	return assert.All(
 		assert.Greater(limits.RowsMax, 0, "query result row limit must be positive"),
-		assert.LessOrEqual(limits.RowsMax, AnalyticsResultRowsMax, "query result row limit exceeds the hard maximum"),
 		assert.Greater(limits.BytesMax, 0, "query result byte limit must be positive"),
 		assert.LessOrEqual(limits.BytesMax, AnalyticsResultBytesMax, "query result byte limit exceeds the hard maximum"),
 	)
@@ -214,7 +202,7 @@ func (c *Client) QueryToMaps(ctx context.Context, query string, limits QueryResu
 // QueryToMaps scans dynamic rows while accounting for their JSON encoding.
 func queryToMapsScanRows(rows driver.Rows, limits QueryResultLimits) ([]map[string]any, error) {
 	columns := rows.Columns()
-	results := make([]map[string]any, 0, limits.RowsMax)
+	results := make([]map[string]any, 0)
 	resultSizeBytes := 2 // JSON array brackets.
 
 	for rows.Next() {

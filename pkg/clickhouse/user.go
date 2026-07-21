@@ -101,6 +101,10 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
 
+	if config.MaxQueryResultRows <= 0 {
+		return fmt.Errorf("query result row limit must be positive")
+	}
+
 	// Validate all identifiers to prevent SQL injection
 	if err := validateIdentifiers(config); err != nil {
 		return fmt.Errorf("identifier validation failed: %w", err)
@@ -179,7 +183,6 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	// Create or replace settings profile
 	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
 	logger.Info("creating/updating settings profile", "name", profileName)
-	resultRowsMax := AnalyticsWorkspaceResultRowsMax(config.MaxQueryResultRows)
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
@@ -196,7 +199,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		profileName,
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
-		resultRowsMax,
+		config.MaxQueryResultRows,
 		AnalyticsResultBytesMax,
 		AnalyticsASTDepthMax,
 		AnalyticsASTElementsMax,
