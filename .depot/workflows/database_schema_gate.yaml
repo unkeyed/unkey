@@ -4,6 +4,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
     branches: [main]
+  schedule:
+    - cron: "17 * * * *"
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
@@ -17,6 +19,7 @@ env:
   BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
 jobs:
   gate:
+    if: github.event_name != 'schedule'
     name: Compare production schema
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
@@ -97,3 +100,33 @@ jobs:
           done
 
           echo "The production PlanetScale schema matches this change."
+
+  cleanup:
+    if: github.event_name == 'schedule'
+    name: Delete stale schema check branches
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
+
+      - name: Delete branches older than six hours
+        run: |
+          set -euo pipefail
+          CUTOFF=$(date -u -d '6 hours ago' +%s)
+          pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --argjson cutoff "$CUTOFF" '
+                .[]
+                | select(.name | startswith("schema-check-"))
+                | select(
+                    (.created_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)
+                    < $cutoff
+                  )
+                | .name
+              ' \
+            | while read -r branch; do
+                pscale branch delete "$PSCALE_DB" "$branch" \
+                  --org "$PSCALE_ORG" --force
+              done
