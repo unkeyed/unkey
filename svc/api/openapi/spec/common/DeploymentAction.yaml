@@ -1,0 +1,16 @@
+type: string
+enum:
+  - promote
+  - rollback
+  - stop
+  - start
+x-enum-varnames:
+  - DeploymentActionPromote
+  - DeploymentActionRollback
+  - DeploymentActionStop
+  - DeploymentActionStart
+description: |
+  A lifecycle operation that can be performed on the deployment in its current
+  state, given its status, environment, and whether it is the current
+  deployment.
+example: promote

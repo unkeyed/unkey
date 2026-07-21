@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -48,7 +50,7 @@ func (v *VirtualObject) Teardown(
 	running, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListRunningDeploymentsByWorkspaceIdRow, error) {
 		return v.db.ListRunningDeploymentsByWorkspaceId(rc, db.ListRunningDeploymentsByWorkspaceIdParams{
 			WorkspaceID:    workspaceID,
-			ActiveStatuses: db.ActiveComputeDeploymentStatuses,
+			ActiveStatuses: mysqltype.ActiveComputeDeploymentStatuses,
 		})
 	}, restate.WithName("list running deployments"))
 	if err != nil {

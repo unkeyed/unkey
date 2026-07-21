@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -87,15 +89,15 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 
-	var desiredState db.DeploymentsDesiredState
+	var desiredState mysqltype.DeploymentsDesiredState
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
 
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
-		desiredState = db.DeploymentsDesiredStateRunning
+		desiredState = mysqltype.DeploymentsDesiredStateRunning
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED:
-		desiredState = db.DeploymentsDesiredStateStopped
+		desiredState = mysqltype.DeploymentsDesiredStateStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())
@@ -164,7 +166,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 // its own write, while Resume (DeployTeardownService) calls this to bring a
 // suspended deployment back to running while it is not yet current, so no guard
 // applies. Not for callers that need the guard.
-func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState db.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
+func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return database.UpdateDeploymentDesiredState(runCtx, db.UpdateDeploymentDesiredStateParams{
 			ID:           deploymentID,

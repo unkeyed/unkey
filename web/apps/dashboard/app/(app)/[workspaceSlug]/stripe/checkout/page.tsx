@@ -173,7 +173,7 @@ export default async function StripeRedirect(props: {
         // which Checkout does not accept; "create_prorations" is the closest
         // Checkout-valid behavior and still collects the prorated partial period
         // on the first invoice at checkout.
-        billing_cycle_anchor_config: { day_of_month: 1 },
+        billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
         billing_mode: { type: "classic" },
         proration_behavior: "create_prorations",
       },

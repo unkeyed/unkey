@@ -3,16 +3,31 @@
 import { IdentityTableActions } from "@/components/identities-table/components/identity-table-actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useIdentity } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { Gear } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 
 export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) => {
-  const { data: identity } = trpc.identity.getById.useQuery({ identityId });
+  const { data: identity, isError, refetch } = useIdentity(identityId);
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const trpcUtils = trpc.useUtils();
+
+  if (isError && !identity) {
+    return (
+      <NavbarActionButton
+        variant="outline"
+        onClick={() => {
+          refetch().catch((error: unknown) => {
+            console.error("Failed to retry identity query", error);
+          });
+        }}
+      >
+        <Gear />
+        Retry Settings
+      </NavbarActionButton>
+    );
+  }
 
   if (!identity) {
     return (
@@ -27,11 +42,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
     <div>
       <IdentityTableActions
         identity={identity}
-        onDeleted={async () => {
-          // Wait for the refetch kicked off by `useDeleteIdentity` to complete
-          // before navigating, so the destination list renders without the
-          // just-deleted row instead of flickering it in then out.
-          await trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
+        onDeleted={() => {
           router.push(routes.identities.list({ workspaceSlug: workspace.slug }));
         }}
       >
