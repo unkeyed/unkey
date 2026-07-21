@@ -61,35 +61,68 @@ func (r *boundedTestRows) Close() error {
 }
 func (r *boundedTestRows) Err() error { return r.err }
 
-func TestQueryToMapsBoundedRejectsOneHugeAggregate(t *testing.T) {
+func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
 	// Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
 	rows := &boundedTestRows{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, 1024))}}}
 	client := &Client{conn: &boundedTestConn{rows: rows}}
 
-	_, err := client.QueryToMapsBounded(context.Background(), "SELECT groupArray(payload)", ResultLimits{MaxRows: 10, MaxBytes: 128})
+	_, err := client.QueryToMaps(context.Background(), "SELECT groupArray(payload)", QueryResultLimits{RowsMax: 10, BytesMax: 128})
 	require.ErrorContains(t, err, "result byte limit")
 	require.True(t, rows.closed)
 }
 
-func TestQueryToMapsBoundedRejectsWideRows(t *testing.T) {
+func TestQueryToMapsRejectsWideRows(t *testing.T) {
 	// Security guarantee: wide rows consume the same byte budget as many narrow rows.
 	rows := &boundedTestRows{columns: []string{"a", "b", "c"}, rows: [][]any{{string(make([]byte, 60)), string(make([]byte, 60)), string(make([]byte, 60))}}}
 	client := &Client{conn: &boundedTestConn{rows: rows}}
 
-	_, err := client.QueryToMapsBounded(context.Background(), "SELECT a, b, c", ResultLimits{MaxRows: 10, MaxBytes: 128})
+	_, err := client.QueryToMaps(context.Background(), "SELECT a, b, c", QueryResultLimits{RowsMax: 10, BytesMax: 128})
 	require.ErrorContains(t, err, "result byte limit")
 	require.True(t, rows.closed)
 }
 
-func TestQueryToMapsBoundedClosesRowsAtHardRowCap(t *testing.T) {
+func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
 	// Security guarantee: stopping response consumption closes ClickHouse rows and cancels further delivery.
 	rows := &boundedTestRows{columns: []string{"n"}, rows: [][]any{{1}, {2}}}
 	conn := &boundedTestConn{rows: rows}
 	client := &Client{conn: conn}
 
-	_, err := client.QueryToMapsBounded(context.Background(), "SELECT n", ResultLimits{MaxRows: 1, MaxBytes: 1024})
+	_, err := client.QueryToMaps(context.Background(), "SELECT n", QueryResultLimits{RowsMax: 1, BytesMax: 1024})
 	require.ErrorContains(t, err, "result row limit")
 	require.True(t, rows.closed)
 	require.ErrorIs(t, conn.queryCtx.Err(), context.Canceled)
 	require.ErrorIs(t, rows.closeContextErr, context.Canceled)
+}
+
+func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
+	// Security guarantee: callers cannot accidentally execute an unbounded dynamic query.
+	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{RowsMax: 0, BytesMax: 0})
+	require.ErrorContains(t, err, "query result row limit must be positive")
+}
+
+func TestQueryToMapsRejectsBoundsAboveHardMaximums(t *testing.T) {
+	// Security guarantee: callers cannot weaken global analytics bounds with permissive per-query values.
+	tests := []struct {
+		name   string
+		limits QueryResultLimits
+		err    string
+	}{
+		{
+			name:   "rows",
+			limits: QueryResultLimits{RowsMax: AnalyticsResultRowsMax + 1, BytesMax: AnalyticsResultBytesMax},
+			err:    "query result row limit exceeds the hard maximum",
+		},
+		{
+			name:   "bytes",
+			limits: QueryResultLimits{RowsMax: AnalyticsResultRowsMax, BytesMax: AnalyticsResultBytesMax + 1},
+			err:    "query result byte limit exceeds the hard maximum",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", tt.limits)
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
 }

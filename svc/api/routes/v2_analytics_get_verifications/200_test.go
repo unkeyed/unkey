@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -67,16 +68,10 @@ func Test200_Success(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 }
 
-func TestEffectiveResultRowLimit(t *testing.T) {
-	// Security guarantee: a permissive workspace setting cannot exceed the API's process-memory cap.
-	require.Equal(t, maxAnalyticsResultRows, effectiveResultRowLimit(10_000_000))
-	require.Equal(t, 37, effectiveResultRowLimit(37))
-}
-
 func TestMarshalAnalyticsResponseEnforcesExactJSONBudget(t *testing.T) {
 	// Security guarantee: JSON framing and a one-row aggregate count toward the final response budget.
 	_, err := marshalAnalyticsResponse(Response{
-		Data: ResponseData{{"aggregate": string(make([]byte, maxAnalyticsResponseBytes))}},
+		Data: ResponseData{{"aggregate": string(make([]byte, clickhouse.AnalyticsResultBytesMax))}},
 	})
 	require.ErrorContains(t, err, "response byte limit")
 }

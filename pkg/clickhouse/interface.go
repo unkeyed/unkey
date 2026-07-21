@@ -11,14 +11,8 @@ type Querier interface {
 	// Conn returns a connection to the ClickHouse database.
 	Conn() ch.Conn
 
-	// QueryToMaps executes a query and scans all rows into a slice of maps.
-	// Each map represents a row with column names as keys.
-	// This is useful for dynamic queries where the schema is not known at compile time.
-	QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error)
-
-	// QueryToMapsBounded applies immutable server-side result limits and stops
-	// scanning if the encoded application result crosses either bound.
-	QueryToMapsBounded(ctx context.Context, query string, limits ResultLimits, args ...any) ([]map[string]any, error)
+	// QueryToMaps executes a dynamic query within mandatory row and encoded-byte bounds.
+	QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, args ...any) ([]map[string]any, error)
 
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
 	Exec(ctx context.Context, sql string, args ...any) error

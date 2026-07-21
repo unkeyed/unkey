@@ -59,11 +59,10 @@ func (n *noop) Conn() ch.Conn {
 }
 
 // QueryToMaps implements the Querier interface but always returns an empty slice.
-func (n *noop) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
-	return []map[string]any{}, nil
-}
-
-func (n *noop) QueryToMapsBounded(ctx context.Context, query string, limits ResultLimits, args ...any) ([]map[string]any, error) {
+func (n *noop) QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, args ...any) ([]map[string]any, error) {
+	if err := limits.validate(); err != nil {
+		return nil, err
+	}
 	return []map[string]any{}, nil
 }
 

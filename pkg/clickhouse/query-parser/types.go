@@ -18,9 +18,9 @@ type Config struct {
 	SecurityFilters     []SecurityFilter // Row-level security filters (auto-injected)
 	Limit               int
 	MaxQueryRangeDays   int32 // Maximum historical data range user can query in days
-	MaxQueryBytes       int
-	MaxProjectedColumns int
-	MaxASTNodes         int
+	QueryBytesMax       int
+	ProjectedColumnsMax int
+	ASTNodesMax         int
 }
 
 // Parser rewrites ClickHouse queries

@@ -20,7 +20,7 @@ func NewParser(config Config) *Parser {
 
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
-	if p.config.MaxQueryBytes > 0 && len(query) > p.config.MaxQueryBytes {
+	if p.config.QueryBytesMax > 0 && len(query) > p.config.QueryBytesMax {
 		return "", invalidQueryLimitError("query exceeds maximum length", "Analytics query exceeds the maximum length")
 	}
 
@@ -94,13 +94,13 @@ func (p *Parser) validateComplexity() error {
 		var limitErr error
 		clickhouse.Walk(root, func(node clickhouse.Expr) bool {
 			astNodes++
-			if p.config.MaxASTNodes > 0 && astNodes > p.config.MaxASTNodes {
+			if p.config.ASTNodesMax > 0 && astNodes > p.config.ASTNodesMax {
 				limitErr = invalidQueryLimitError("query is too complex", "Analytics query is too complex")
 				return false
 			}
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 				projectedColumns += len(selectQuery.SelectItems)
-				if p.config.MaxProjectedColumns > 0 && projectedColumns > p.config.MaxProjectedColumns {
+				if p.config.ProjectedColumnsMax > 0 && projectedColumns > p.config.ProjectedColumnsMax {
 					limitErr = invalidQueryLimitError("too many projected columns", "Analytics query projects too many columns")
 					return false
 				}

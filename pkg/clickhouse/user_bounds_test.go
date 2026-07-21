@@ -19,11 +19,11 @@ func (c *profileCaptureConn) Exec(_ context.Context, query string, _ ...any) err
 	return nil
 }
 
-func TestEffectiveAnalyticsResultRows(t *testing.T) {
+func TestAnalyticsResultRowsMaxForWorkspace(t *testing.T) {
 	// Security guarantee: the ClickHouse profile uses the lower workspace limit without permitting zero or oversized defaults.
-	require.Equal(t, int32(37), effectiveAnalyticsResultRows(37))
-	require.Equal(t, int32(AnalyticsMaxResultRows), effectiveAnalyticsResultRows(10_000_000))
-	require.Equal(t, int32(AnalyticsMaxResultRows), effectiveAnalyticsResultRows(0))
+	require.Equal(t, int32(37), AnalyticsResultRowsMaxForWorkspace(37))
+	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsResultRowsMaxForWorkspace(10_000_000))
+	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsResultRowsMaxForWorkspace(0))
 }
 
 func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {

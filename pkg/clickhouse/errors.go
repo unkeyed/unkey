@@ -196,18 +196,6 @@ var resourceLimitCodes = map[int32]errorResponse{
 		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
 		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
 	},
-	394: { // QUERY_WAS_CANCELLED
-		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
-		message: "Query was cancelled due to resource limits.",
-	},
-	396: { // TOO_MANY_ROWS_OR_BYTES
-		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
-		message: "Query result exceeds the maximum response size.",
-	},
-	158: { // TOO_MANY_ROWS
-		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
-		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
-	},
 	198: { // TOO_MANY_ROWS
 		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
