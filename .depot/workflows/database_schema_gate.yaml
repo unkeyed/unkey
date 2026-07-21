@@ -82,6 +82,8 @@ jobs:
           mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
             --org "$PSCALE_ORG" --force || true
 
+  # A runner can stop before the delete step runs. Clean up any temporary
+  # branches left behind so they do not build up in PlanetScale.
   cleanup:
     if: github.event_name == 'schedule'
     name: Delete stale schema check branches
