@@ -224,7 +224,6 @@
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
-              "infra/clickhouse/raw-analytics-sql-security-review",
               {
                 "group": "Roles",
                 "pages": [
