@@ -47,6 +47,9 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	}
 
 	p.stmt = stmt
+	if err := p.validateSettings(); err != nil {
+		return "", err
+	}
 
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
