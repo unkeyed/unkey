@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
@@ -112,5 +114,5 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	deployment, err := harness.DB.FindDeploymentById(ctx, resp.Msg.GetDeploymentId())
 	require.NoError(t, err)
 	require.Equal(t, project.ID, deployment.ProjectID)
-	require.Equal(t, db.DeploymentsStatusPending, deployment.Status)
+	require.Equal(t, mysqltype.DeploymentsStatusPending, deployment.Status)
 }

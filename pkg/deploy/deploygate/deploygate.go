@@ -14,8 +14,8 @@ package deploygate
 
 import (
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 // envProduction is the environment whose deployment serves production traffic:
@@ -23,13 +23,13 @@ import (
 const envProduction = "production"
 
 // Each check takes its own input holding exactly the fields it needs. Status and
-// DesiredState are typed to the pkg/db enums: the API passes its db row fields
-// directly, ctrl converts from its own db package at the boundary.
+// DesiredState are typed to the shared pkg/mysql/types enums that the generated db
+// row fields already use, so callers pass their db row fields directly without casting.
 
 // PromoteInput is the state CheckPromoteTarget needs.
 type PromoteInput struct {
-	Status              db.DeploymentsStatus
-	DesiredState        db.DeploymentsDesiredState
+	Status              dbtype.DeploymentsStatus
+	DesiredState        dbtype.DeploymentsDesiredState
 	EnvironmentSlug     string
 	CurrentDeploymentID string
 	DeploymentID        string
@@ -38,23 +38,23 @@ type PromoteInput struct {
 
 // RollbackInput is the state CheckRollbackTarget needs.
 type RollbackInput struct {
-	Status              db.DeploymentsStatus
-	DesiredState        db.DeploymentsDesiredState
+	Status              dbtype.DeploymentsStatus
+	DesiredState        dbtype.DeploymentsDesiredState
 	EnvironmentSlug     string
 	CurrentDeploymentID string
 	DeploymentID        string
 }
 
-// StopInput is the state CheckStoppable needs.
+// StopInput is the state CheckStopTarget needs.
 type StopInput struct {
-	Status          db.DeploymentsStatus
-	DesiredState    db.DeploymentsDesiredState
+	Status          dbtype.DeploymentsStatus
+	DesiredState    dbtype.DeploymentsDesiredState
 	EnvironmentSlug string
 }
 
-// StartInput is the state CheckStartable needs.
+// StartInput is the state CheckStartTarget needs.
 type StartInput struct {
-	DesiredState    db.DeploymentsDesiredState
+	DesiredState    dbtype.DeploymentsDesiredState
 	EnvironmentSlug string
 	SpendSuspended  bool
 }
@@ -132,14 +132,14 @@ func targetFault(r TargetFailureReason) error {
 // must already have a current deployment. Order matters — it is the order every
 // layer reports failures in.
 func targetCore(
-	status db.DeploymentsStatus,
-	desiredState db.DeploymentsDesiredState,
+	status dbtype.DeploymentsStatus,
+	desiredState dbtype.DeploymentsDesiredState,
 	environmentSlug, currentDeploymentID string,
 ) TargetFailureReason {
 	switch {
-	case status != db.DeploymentsStatusReady:
+	case status != dbtype.DeploymentsStatusReady:
 		return TargetNotReady
-	case desiredState != db.DeploymentsDesiredStateRunning:
+	case desiredState != dbtype.DeploymentsDesiredStateRunning:
 		return TargetIsDraining
 	case environmentSlug != envProduction:
 		return TargetNotProduction
@@ -230,9 +230,9 @@ func stopFault(r StopFailureReason) error {
 // order every layer reports failures in.
 func CheckStopTarget(in StopInput) error {
 	switch {
-	case in.Status != db.DeploymentsStatusReady:
+	case in.Status != dbtype.DeploymentsStatusReady:
 		return stopFault(StopNotRunning)
-	case in.DesiredState != db.DeploymentsDesiredStateRunning:
+	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
 	case in.EnvironmentSlug == envProduction:
 		return stopFault(StopIsProduction)
@@ -302,7 +302,7 @@ func startFault(r StartFailureReason) error {
 // so a workspace suspended by its spend cap is refused last.
 func CheckStartTarget(in StartInput) error {
 	switch {
-	case in.DesiredState != db.DeploymentsDesiredStateStopped:
+	case in.DesiredState != dbtype.DeploymentsDesiredStateStopped:
 		return startFault(StartNotStopped)
 	case in.EnvironmentSlug == envProduction:
 		return startFault(StartIsProduction)

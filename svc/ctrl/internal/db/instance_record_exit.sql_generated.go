@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const recordInstanceExit = `-- name: RecordInstanceExit :exec
@@ -29,12 +29,12 @@ WHERE k8s_name = ?
 `
 
 type RecordInstanceExitParams struct {
-	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
-	K8sName         string                 `db:"k8s_name"`
-	RegionID        string                 `db:"region_id"`
-	RestartCount    int64                  `db:"restart_count"`
-	RestartCount_2  int64                  `db:"restart_count_2"`
-	FinishedAt      int64                  `db:"finished_at"`
+	ContainerStatus mysqltype.ContainerStatus `db:"container_status"`
+	K8sName         string                    `db:"k8s_name"`
+	RegionID        string                    `db:"region_id"`
+	RestartCount    int64                     `db:"restart_count"`
+	RestartCount_2  int64                     `db:"restart_count_2"`
+	FinishedAt      int64                     `db:"finished_at"`
 }
 
 // Denormalizes the most recent container exit info onto the instances row's

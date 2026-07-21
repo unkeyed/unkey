@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const findDeploymentWithEnvironmentAndApp = `-- name: FindDeploymentWithEnvironmentAndApp :one
@@ -21,45 +21,45 @@ WHERE d.id = ?
 `
 
 type FindDeploymentWithEnvironmentAndAppRow struct {
-	Pk                            uint64                      `db:"pk"`
-	ID                            string                      `db:"id"`
-	K8sName                       string                      `db:"k8s_name"`
-	WorkspaceID                   string                      `db:"workspace_id"`
-	ProjectID                     string                      `db:"project_id"`
-	EnvironmentID                 string                      `db:"environment_id"`
-	AppID                         string                      `db:"app_id"`
-	Image                         sql.NullString              `db:"image"`
-	BuildID                       sql.NullString              `db:"build_id"`
-	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
-	GitBranch                     sql.NullString              `db:"git_branch"`
-	GitCommitMessage              sql.NullString              `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString              `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString              `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
-	SentinelConfig                []byte                      `db:"sentinel_config"`
-	CpuMillicores                 int32                       `db:"cpu_millicores"`
-	MemoryMib                     int32                       `db:"memory_mib"`
-	StorageMib                    uint32                      `db:"storage_mib"`
-	DesiredState                  DeploymentsDesiredState     `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice          `db:"command"`
-	Port                          int32                       `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
-	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
-	Healthcheck                   dbtype.NullHealthcheck      `db:"healthcheck"`
-	PrNumber                      sql.NullInt64               `db:"pr_number"`
-	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
-	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
-	InvocationID                  sql.NullString              `db:"invocation_id"`
-	Status                        DeploymentsStatus           `db:"status"`
-	Trigger                       DeploymentsTrigger          `db:"trigger"`
-	TriggeredBy                   sql.NullString              `db:"triggered_by"`
-	TriggerReason                 sql.NullString              `db:"trigger_reason"`
-	CreatedAt                     int64                       `db:"created_at"`
-	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
-	EnvironmentSlug               string                      `db:"environment_slug"`
-	CurrentDeploymentID           sql.NullString              `db:"current_deployment_id"`
-	IsRolledBack                  bool                        `db:"is_rolled_back"`
+	Pk                            uint64                            `db:"pk"`
+	ID                            string                            `db:"id"`
+	K8sName                       string                            `db:"k8s_name"`
+	WorkspaceID                   string                            `db:"workspace_id"`
+	ProjectID                     string                            `db:"project_id"`
+	EnvironmentID                 string                            `db:"environment_id"`
+	AppID                         string                            `db:"app_id"`
+	Image                         sql.NullString                    `db:"image"`
+	BuildID                       sql.NullString                    `db:"build_id"`
+	GitCommitSha                  sql.NullString                    `db:"git_commit_sha"`
+	GitBranch                     sql.NullString                    `db:"git_branch"`
+	GitCommitMessage              sql.NullString                    `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString                    `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString                    `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64                     `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                            `db:"sentinel_config"`
+	CpuMillicores                 int32                             `db:"cpu_millicores"`
+	MemoryMib                     int32                             `db:"memory_mib"`
+	StorageMib                    uint32                            `db:"storage_mib"`
+	DesiredState                  mysqltype.DeploymentsDesiredState `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                            `db:"encrypted_environment_variables"`
+	Command                       mysqltype.StringSlice             `db:"command"`
+	Port                          int32                             `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
+	UpstreamProtocol              DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
+	Healthcheck                   mysqltype.NullHealthcheck         `db:"healthcheck"`
+	PrNumber                      sql.NullInt64                     `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString                    `db:"fork_repository_full_name"`
+	GithubDeploymentID            sql.NullInt64                     `db:"github_deployment_id"`
+	InvocationID                  sql.NullString                    `db:"invocation_id"`
+	Status                        mysqltype.DeploymentsStatus       `db:"status"`
+	Trigger                       DeploymentsTrigger                `db:"trigger"`
+	TriggeredBy                   sql.NullString                    `db:"triggered_by"`
+	TriggerReason                 sql.NullString                    `db:"trigger_reason"`
+	CreatedAt                     int64                             `db:"created_at"`
+	UpdatedAt                     sql.NullInt64                     `db:"updated_at"`
+	EnvironmentSlug               string                            `db:"environment_slug"`
+	CurrentDeploymentID           sql.NullString                    `db:"current_deployment_id"`
+	IsRolledBack                  bool                              `db:"is_rolled_back"`
 }
 
 // FindDeploymentWithEnvironmentAndApp

@@ -182,10 +182,10 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
-			max_execution_time = %d,
-			max_memory_usage = %d,
-			max_result_rows = %d,
-			readonly = 2
+			max_execution_time = %d READONLY,
+			max_memory_usage = %d READONLY,
+			max_result_rows = %d READONLY,
+			readonly = 1 READONLY
 		TO %s
 	`,
 		profileName,

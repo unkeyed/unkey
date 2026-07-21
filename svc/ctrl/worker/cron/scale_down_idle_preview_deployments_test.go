@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -53,7 +55,7 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
@@ -62,7 +64,7 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentRequests
@@ -105,7 +107,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
@@ -116,7 +118,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments guarantees
@@ -158,7 +160,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
@@ -167,7 +169,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus
@@ -210,7 +212,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusPending,
+		Status:        mysqltype.DeploymentsStatusPending,
 		CreatedAt:     oldTime,
 		UpdatedAt:     oldUpdatedAt,
 	})
@@ -219,7 +221,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments
@@ -261,7 +263,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     recentTime,
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: recentTime},
 	})
@@ -270,7 +272,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments
@@ -312,7 +314,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldTime,
 		UpdatedAt:     sql.NullInt64{Valid: true, Int64: recentUpdate},
 	})
@@ -321,7 +323,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 
 	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
 // TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments
@@ -368,7 +370,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -380,7 +382,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -393,12 +395,12 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 	for _, dep := range idleDeployments {
 		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "idle deployment %s should be stopped", dep.ID)
+		require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, updated.DesiredState, "idle deployment %s should be stopped", dep.ID)
 	}
 	for _, dep := range activeDeployments {
 		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState, "active deployment %s should be running", dep.ID)
+		require.Equal(t, mysqltype.DeploymentsDesiredStateRunning, updated.DesiredState, "active deployment %s should be running", dep.ID)
 	}
 }
 
@@ -445,7 +447,7 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 			ProjectID:     project.ID,
 			AppID:         app.ID,
 			EnvironmentID: env.ID,
-			Status:        db.DeploymentsStatusReady,
+			Status:        mysqltype.DeploymentsStatusReady,
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
@@ -457,7 +459,7 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 	for _, id := range depIDs {
 		updated, err := h.DB.FindDeploymentById(h.Ctx, id)
 		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "deployment %s should be stopped", id)
+		require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, updated.DesiredState, "deployment %s should be stopped", id)
 	}
 }
 

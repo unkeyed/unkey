@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
@@ -64,12 +65,21 @@ func NewCheckHandler(cfg CheckConfig) (*CheckHandler, error) {
 	}, nil
 }
 
-// alertHighWaterKey is the VO state key for the highest budget threshold already
-// alerted, scoped to a billing period. Scoping by period means the zero value is
-// "nothing alerted yet this period", so a new month starts clean with no reset
-// bookkeeping.
+// alertHighWaterKey is the VO state key for the gross spend (micro-cents) at
+// which we last alerted, scoped to a billing period. Storing spend instead of a
+// threshold keeps alerting correct across budget edits: the effective threshold
+// is recomputed against the current budget each tick, and spend only grows
+// within a period, so a budget edit alone can never re-alert. Zero value means
+// nothing alerted this period.
 func alertHighWaterKey(period string) string {
 	return "spend_alert_high_water:" + period
+}
+
+// suspendGenerationKey counts suspension transitions this period. It feeds the
+// stopped email's idempotency key: retries of one suspension dedupe, a later
+// suspension sends.
+func suspendGenerationKey(period string) string {
+	return "spend_suspend_generation:" + period
 }
 
 // setSuspended persists the workspace's deploy_spend_suspended column on a
@@ -101,6 +111,33 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 ) (*hydrav1.CheckWorkspaceSpendResponse, error) {
 	workspaceID := restate.Key(ctx)
 
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get current time: %w", err)
+	}
+
+	// Enforce nothing outside the period this tick was priced for: a check
+	// delayed across the month roll would otherwise act on the new month with
+	// old spend. Journaled Now() so replays agree.
+	reqPeriod, err := billingperiod.Parse(req.GetPeriod())
+	if err != nil {
+		return nil, restate.TerminalError(fmt.Errorf("invalid period %q: %w", req.GetPeriod(), err))
+	}
+	if reqPeriod != billingperiod.From(now) {
+		logger.Info("deploy spend cap: skipping stale-period tick",
+			"workspace_id", workspaceID,
+			"request_period", req.GetPeriod(),
+			"current_period", billingperiod.From(now).Key(),
+		)
+		return &hydrav1.CheckWorkspaceSpendResponse{}, nil
+	}
+
+	// Clear the previous period's keys so workspaces don't accrue an immortal
+	// key pair per month. Clear is idempotent, so no first-tick bookkeeping.
+	prev := reqPeriod.Prev()
+	restate.Clear(ctx, alertHighWaterKey(prev.Key()))
+	restate.Clear(ctx, suspendGenerationKey(prev.Key()))
+
 	if req.GetBudgetCents() <= 0 {
 		if req.GetCurrentlySuspended() {
 			// Budget was removed while suspended: nothing caps spend anymore, so
@@ -117,11 +154,6 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 		// A non-positive budget can't define a meaningful threshold; nothing else
 		// to do.
 		return &hydrav1.CheckWorkspaceSpendResponse{}, nil
-	}
-
-	now, err := restateutil.Now(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get current time: %w", err)
 	}
 
 	// All spend math is integer micro-cents: the orchestrator quantized the
@@ -142,18 +174,23 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// implies crossed == 100.
 	willSuspend := req.GetStop() && !suspended && gross >= budgetMicroCents
 
-	// crossed: highest threshold gross spend reaches now. alerted: highest we've
-	// already emailed this period. We email only when spend has climbed to a
-	// higher threshold than we've alerted, then raise the high-water mark.
+	// crossed: highest threshold gross reaches now. alerted: recomputed from the
+	// spend we last alerted at, against the current budget, so raising the
+	// budget re-arms higher thresholds and lowering it suppresses re-sends. Only
+	// real spend growth into a new bucket emails; budget churn alone never does.
 	crossed := crossedThreshold(gross, budgetMicroCents)
 	stateKey := alertHighWaterKey(req.GetPeriod())
-	alerted, err := restate.Get[int32](ctx, stateKey)
+	alertedSpend, err := restate.Get[int64](ctx, stateKey)
 	if err != nil {
 		return nil, fmt.Errorf("get alert high-water: %w", err)
 	}
+	alerted := crossedThreshold(alertedSpend, budgetMicroCents)
 
+	// No threshold warnings while suspended: the stopped email owns that
+	// messaging, and a suspend tick that died before recording the mark must not
+	// yield a stale 100% warning on the next tick.
 	sentAlert := false
-	if crossed > alerted && !willSuspend {
+	if crossed > alerted && !willSuspend && !suspended {
 		logger.Info("deploy spend threshold crossed",
 			"workspace_id", workspaceID,
 			"billing_period", req.GetPeriod(),
@@ -173,12 +210,14 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			SpendMicroCents: gross,
 			BudgetCents:     req.GetBudgetCents(),
 			Year:            now.Year(),
+			// Only the stopped email keys on Suspension.
+			Suspension: 0,
 		})
 		if err != nil {
 			return nil, err
 		}
 		sentAlert = true
-		restate.Set(ctx, stateKey, crossed)
+		restate.Set(ctx, stateKey, gross)
 		alerted = crossed
 	}
 
@@ -211,6 +250,16 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
 
+		// Journaled read+write: a replay reuses this generation and dedupes at
+		// Resend; a later suspension reads a higher value and sends.
+		genKey := suspendGenerationKey(req.GetPeriod())
+		generation, err := restate.Get[int32](ctx, genKey)
+		if err != nil {
+			return nil, fmt.Errorf("get suspend generation: %w", err)
+		}
+		generation++
+		restate.Set(ctx, genKey, generation)
+
 		err = h.stoppedAlert(ctx, budgetAlert{
 			WorkspaceID:     workspaceID,
 			Period:          req.GetPeriod(),
@@ -221,12 +270,26 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			SpendMicroCents: gross,
 			BudgetCents:     req.GetBudgetCents(),
 			Year:            now.Year(),
+			Suspension:      generation,
 		})
 		if err != nil {
 			return nil, err
 		}
-		restate.Set(ctx, stateKey, crossed)
+		restate.Set(ctx, stateKey, gross)
 		alerted = crossed
+
+	case suspended && req.GetStop() && gross >= budgetMicroCents:
+		// The flag can say stopped while compute still runs (kill before the
+		// teardown send, drain grace expired, create racing the gate). Re-send
+		// Teardown: it early-returns when nothing runs and merges into the
+		// recorded suspension state so previously stopped apps stay resumable.
+		// No email, no flag change: enforcement catching up, not a transition.
+		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
+			Teardown().
+			Send(&hydrav1.TeardownRequest{Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND})
+		logger.Info("deploy spend cap: re-enforced suspension",
+			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
+			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
 
 	case suspended && (!req.GetStop() || gross < budgetMicroCents):
 		// Budget raised above gross spend, period reset, or stopping turned

@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const upsertAppRuntimeSettings = `-- name: UpsertAppRuntimeSettings :exec
@@ -68,8 +68,8 @@ type UpsertAppRuntimeSettingsParams struct {
 	CpuMillicores    int32                              `db:"cpu_millicores"`
 	MemoryMib        int32                              `db:"memory_mib"`
 	StorageMib       uint32                             `db:"storage_mib"`
-	Command          dbtype.StringSlice                 `db:"command"`
-	Healthcheck      dbtype.NullHealthcheck             `db:"healthcheck"`
+	Command          mysqltype.StringSlice              `db:"command"`
+	Healthcheck      mysqltype.NullHealthcheck          `db:"healthcheck"`
 	ShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
 	SentinelConfig   []byte                             `db:"sentinel_config"`
