@@ -105,7 +105,7 @@ var allowedTableFunctions = map[string]bool{
 
 func (p *Parser) validateSettings() error {
 	var validationErr error
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok || selectQuery.Settings == nil {
 			return true
@@ -118,6 +118,38 @@ func (p *Parser) validateSettings() error {
 		return false
 	})
 
+	return validationErr
+}
+
+// validateSetOperands rejects ClickHouse's table-backed set syntax because
+// those sources are not represented as table identifiers and cannot receive
+// public-alias validation or row-level filters. Callers can express the same
+// operation with a subquery, whose physical sources are validated normally.
+func (p *Parser) validateSetOperands() error {
+	var validationErr error
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		operation, ok := node.(*clickhouse.BinaryOperation)
+		if !ok {
+			return true
+		}
+
+		switch strings.ToUpper(string(operation.Operation)) {
+		case "IN", "NOT IN", "GLOBAL IN", "GLOBAL NOT IN":
+		default:
+			return true
+		}
+
+		switch operation.RightExpr.(type) {
+		case *clickhouse.ParamExprList, *clickhouse.ArrayParamList, *clickhouse.SubQuery:
+			return true
+		default:
+			validationErr = fault.New("table-backed set expressions are not supported",
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+				fault.Public("Table-backed IN expressions are not supported; use a literal list or a subquery"),
+			)
+			return false
+		}
+	})
 	return validationErr
 }
 

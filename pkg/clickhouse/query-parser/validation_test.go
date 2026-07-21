@@ -170,6 +170,10 @@ func TestParser_RejectsSettingsClauses(t *testing.T) {
 			query: "SELECT * FROM default.keys_v2 UNION ALL SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
 		},
 		{
+			name:  "except branch",
+			query: "SELECT * FROM default.keys_v2 EXCEPT SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+		},
+		{
 			name:  "deeply nested",
 			query: "SELECT * FROM (SELECT * FROM (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0))",
 		},
@@ -180,5 +184,53 @@ func TestParser_RejectsSettingsClauses(t *testing.T) {
 			_, err := p.Parse(context.Background(), tt.query)
 			require.ErrorContains(t, err, "SETTINGS clauses are not allowed")
 		})
+	}
+}
+
+// TestParser_RejectsTableBackedSetOperands guarantees a secondary table read
+// cannot bypass public aliases or row-level filters through ClickHouse's
+// unparenthesized IN-table syntax, including from an EXCEPT branch.
+func TestParser_RejectsTableBackedSetOperands(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	queries := []string{
+		"SELECT * FROM events_v1 WHERE id IN default.events",
+		"SELECT * FROM events_v1 WHERE id NOT IN events_v1",
+		"SELECT * FROM events_v1 WHERE id GLOBAL IN default.events",
+		"SELECT * FROM events_v1 WHERE id IN numbers(10)",
+		"SELECT * FROM events_v1 WHERE id IN {ids:Array(String)}",
+		"SELECT * FROM events_v1 EXCEPT SELECT * FROM events_v1 WHERE id IN default.events",
+	}
+	for _, query := range queries {
+		_, err := parser.Parse(context.Background(), query)
+		require.ErrorContains(t, err, "table-backed set expressions are not supported", query)
+	}
+}
+
+// TestParser_AllowsFilterableSetOperands guarantees ordinary literal sets and
+// subqueries remain supported while every subquery source receives validation.
+func TestParser_AllowsFilterableSetOperands(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	queries := []string{
+		"SELECT * FROM events_v1 WHERE id IN ('first', 'second')",
+		"SELECT * FROM events_v1 WHERE id NOT IN ['first', 'second']",
+		"SELECT * FROM events_v1 WHERE id IN (SELECT id FROM events_v1)",
+	}
+	for _, query := range queries {
+		_, err := parser.Parse(context.Background(), query)
+		require.NoError(t, err, query)
 	}
 }

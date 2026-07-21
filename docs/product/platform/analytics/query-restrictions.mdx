@@ -25,6 +25,8 @@ Only `SELECT` queries are permitted. All other SQL statement types return a `que
 
 Queries must reference analytics data through the public, versioned table aliases listed in the endpoint schema reference. Physical ClickHouse table names under `default.*` are unsupported, including when nested in a CTE or subquery. Attempts to use physical names or other tables such as `system.*` and `information_schema.*` return an `invalid_table` error.
 
+Set membership supports literal lists, array literals, and subqueries. Table-backed syntax such as `value IN default.table` is unsupported because it cannot receive row-level filters. Use `value IN (SELECT value FROM public_alias)` when the set must come from analytics data.
+
 ### Function Allow List
 
 Only explicitly approved functions are allowed. Any function not on this list will be rejected with an `invalid_function` error.

@@ -92,6 +92,10 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
+	if err := p.validateSetOperands(); err != nil {
+		return "", err
+	}
+
 	if err := p.rewriteTables(); err != nil {
 		return "", err
 	}
