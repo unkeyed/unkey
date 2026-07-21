@@ -87,10 +87,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	resultRowsMax := int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows)
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:       principal.WorkspaceID,
-		Limit:             resultRowsMax,
+		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
 		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
@@ -131,7 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
 	// Execute query using workspace connection
-	verifications, err := conn.QueryToMaps(ctx, parsedQuery, resultRowsMax)
+	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
 	if err != nil {
 		return err
 	}

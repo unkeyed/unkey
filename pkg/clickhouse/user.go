@@ -9,6 +9,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+const (
+	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
+	AnalyticsResultBytesMax = 4 << 20
+	// AnalyticsASTDepthMax is the maximum ClickHouse AST depth for customer analytics queries.
+	AnalyticsASTDepthMax = 100
+	// AnalyticsASTElementsMax is the maximum number of ClickHouse AST elements for customer analytics queries.
+	AnalyticsASTElementsMax = 2_000
+)
+
 var (
 	// validIdentifier matches safe ClickHouse identifiers (usernames, policy names, quota names, profile names)
 	// Allows alphanumeric characters and underscores only
