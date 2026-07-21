@@ -63,34 +63,9 @@ jobs:
         if: steps.preflight.outputs.required == 'true'
         run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/schemadiff
 
-      - name: Install web dependencies
-        if: steps.preflight.outputs.required == 'true'
-        run: mise exec -- pnpm --dir=web install --frozen-lockfile
-
-      - name: Ensure PlanetScale branch
-        if: steps.preflight.outputs.required == 'true'
-        # Re-runs on a PR reuse its branch. Probe with `branch show` to
-        # distinguish an existing branch from other creation errors.
-        run: |
-          set -euo pipefail
-          if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
-              --org "$PSCALE_ORG" --from "$PSCALE_PARENT" --wait; then
-            pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
-          fi
-
       - name: Apply proposed schema
         if: steps.preflight.outputs.required == 'true'
-        # Encode credentials before composing the DSN so reserved characters
-        # in any field can't change how the URL is parsed.
-        run: |
-          set -euo pipefail
-          PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
-                 --org "$PSCALE_ORG" --format json)
-          USER=$(echo "$PW" | jq -r '.username | @uri')
-          PASS=$(echo "$PW" | jq -r '.plain_text | @uri')
-          HOST=$(echo "$PW" | jq -r '.access_host_url | @uri')
-          export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
-          mise exec -- pnpm --dir=web/internal/db run migrate
+        run: BRANCH="$BRANCH" FROM="$PSCALE_PARENT" mise run pscale-branch
 
       - name: Ensure deploy request
         if: steps.preflight.outputs.required == 'true' && github.event_name == 'pull_request'
