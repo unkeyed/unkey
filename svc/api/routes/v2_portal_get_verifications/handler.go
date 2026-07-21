@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// ClickHouse connection, so an unbounded window (e.g. the unix epoch to a far
 	// future) would let an end user force an arbitrarily large scan and
 	// zero-filled series. We reuse LogsRetentionDays, the same quota the protected
-	// analytics.getVerifications enforces as QueryRangeDaysMax, so the portal can
+	// analytics.getVerifications enforces as MaxQueryRangeDays, so the portal can
 	// never query a wider range than the workspace itself.
 	quota, _, err := h.QuotaCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
 		return keysdb.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
