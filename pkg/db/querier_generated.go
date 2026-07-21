@@ -493,7 +493,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -1201,7 +1201,7 @@ type Querier interface {
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindQuotaByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
+	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
 	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
@@ -2368,6 +2368,58 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
+	//ListDeploymentDomains
+	//
+	//  SELECT r.fully_qualified_domain_name AS domain
+	//  FROM frontline_routes r
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id = ?
+	//  ORDER BY r.fully_qualified_domain_name
+	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error)
+	//ListDeploymentDomainsByIds
+	//
+	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
+	//  FROM frontline_routes r
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
+	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error)
+	//ListDeploymentEnvAndAppState
+	//
+	//  SELECT
+	//    d.id AS deployment_id,
+	//    p.slug AS project_slug,
+	//    a.slug AS app_slug,
+	//    e.slug AS environment_slug,
+	//    a.current_deployment_id AS app_current_deployment_id,
+	//    a.is_rolled_back AS app_is_rolled_back
+	//  FROM deployments d
+	//  JOIN projects p ON p.id = d.project_id
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.workspace_id = ?
+	//    AND d.id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
+	//ListDeploymentRegions
+	//
+	//  SELECT DISTINCT r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id = ?
+	//  ORDER BY r.name
+	ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error)
+	//ListDeploymentRegionsByIds
+	//
+	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY dt.deployment_id, r.name
+	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
@@ -2379,7 +2431,7 @@ type Querier interface {
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 	//    AND (
 	//      ? = ''
-	//      OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 	//    )
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?
@@ -2461,6 +2513,14 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	//ListFailedDeploymentStepsByIds
+	//
+	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	//    AND error IS NOT NULL AND error != ''
+	//  ORDER BY deployment_id, started_at ASC
+	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	//ListGithubRepoConnections
 	//
 	//  SELECT
@@ -2988,7 +3048,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.deploy_spend_suspended, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
 	//  WHERE w.id > ?
@@ -3695,7 +3755,8 @@ type Querier interface {
 	//      max_cpu_millicores_per_instance = ?,
 	//      max_memory_mib_per_instance = ?,
 	//      max_storage_mib_per_instance = ?,
-	//      max_concurrent_builds = ?
+	//      max_concurrent_builds = ?,
+	//      max_replicas_per_region = ?
 	//  WHERE workspace_id = ?
 	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit

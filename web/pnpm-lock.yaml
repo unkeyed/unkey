@@ -353,6 +353,9 @@ importers:
       '@hookform/resolvers':
         specifier: 5.2.2
         version: 5.2.2(react-hook-form@7.55.0(react@19.2.4))
+      '@tanstack/react-query':
+        specifier: 5.87.1
+        version: 5.87.1(react@19.2.4)
       '@tanstack/react-router':
         specifier: 1.170.4
         version: 1.170.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -363,8 +366,8 @@ importers:
         specifier: 8.21.3
         version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@unkey/api':
-        specifier: 2.3.4
-        version: 2.3.4
+        specifier: workspace:*
+        version: link:../../internal/api
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -1300,11 +1303,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -3729,6 +3732,11 @@ packages:
       react-native:
         optional: true
 
+  '@tanstack/react-query@5.87.1':
+    resolution: {integrity: sha512-YKauf8jfMowgAqcxj96AHs+Ux3m3bWT1oSVKamaRPXSnW2HqSznnTCEkAVqctF1e/W9R/mPcyzzINIgpOH94qg==}
+    peerDependencies:
+      react: ^18 || ^19
+
   '@tanstack/react-router@1.170.4':
     resolution: {integrity: sha512-cusL4YCTuGGJhjfsXEBm6/SmOAs/G8wRVNadeyN3ofu4OZwX69KAybBEf217buxYzI+FohdJVoigEpJV+tGzIw==}
     engines: {node: '>=20.19'}
@@ -4177,9 +4185,6 @@ packages:
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
-
-  '@unkey/api@2.3.4':
-    resolution: {integrity: sha512-irQCkLIlGedXU0cON4zbfNjGjxWaBr0XdW7JxHl9Hi4M0kAthQ8ZOLX+EYyKO4SS6kmFkfIlq96nDhaMziqtSw==}
 
   '@unkey/ratelimit@2.1.3':
     resolution: {integrity: sha512-wvEGQVVSm/31wma8IRyT0T4KcutdvzBYGBcU919q1ep8FOLkF9PUHZC34aylu6cblUPfniGjDaSMrx1IiqtH/A==}
@@ -10793,6 +10798,11 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.4(react@19.2.4)
 
+  '@tanstack/react-query@5.87.1(react@19.2.4)':
+    dependencies:
+      '@tanstack/query-core': 5.87.1
+      react: 19.2.4
+
   '@tanstack/react-router@1.170.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@tanstack/history': 1.162.0
@@ -11349,10 +11359,6 @@ snapshots:
   '@ungap/structured-clone@1.3.1': {}
 
   '@unkey/api@2.0.3':
-    dependencies:
-      zod: 4.3.5
-
-  '@unkey/api@2.3.4':
     dependencies:
       zod: 4.3.5
 

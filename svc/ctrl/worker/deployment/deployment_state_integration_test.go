@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -48,7 +50,7 @@ func TestChangeDesiredState_NoOpsWhenDeploymentDeleted(t *testing.T) {
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	client := hydrav1.NewDeploymentServiceIngressClient(h.Restate, dep.ID)

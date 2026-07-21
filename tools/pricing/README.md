@@ -22,6 +22,12 @@ price, transfers the `lookup_key` onto it, and archives the old one.
 - **API products**: the legacy licensed API tiers and add-ons, with quota
   metadata.
 - **Webhook endpoints**: per environment, declared in [`webhooks.go`](./webhooks.go).
+  A host behind Vercel deployment protection (the canary dashboard) needs the
+  project's "Protection Bypass for Automation" secret in
+  `VERCEL_PROTECTION_BYPASS_<ENV>` (via `.env`); the tool appends it to the
+  delivery URL as a query parameter, since Stripe cannot send headers. Endpoints
+  are matched by base URL ignoring the query string, and a URL update keeps the
+  existing signing secret.
 
 Identity is the `lookup_key` for prices, and `managed_by=unkey-pricing` plus a
 `pricing_key` for products. The tool never keys off the Stripe-generated id.

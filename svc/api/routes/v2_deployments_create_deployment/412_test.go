@@ -24,6 +24,7 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
 		Branch: ptr.P("main"),
@@ -51,6 +52,7 @@ func TestControlPlanePreconditionFailure(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{

@@ -192,9 +192,11 @@ function SuccessContent() {
           return;
         }
 
-        // Update customer with default payment method
+        // Pass sessionId: the workspace has no bound customer yet, so the server
+        // resolves and verifies it from the session.
         try {
           await updateCustomerFn({
+            sessionId,
             customerId: customer.id,
             paymentMethod: setupIntent.payment_method,
           });

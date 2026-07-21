@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -59,7 +61,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Make the deployment its app's current deployment so SUSPEND records it and
@@ -101,7 +103,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 			return false
 		}
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "compute should be suspended (current cleared, desired_state stopped)")
 
 	// The check persisted the suspension to the workspace's billing row.
@@ -132,7 +134,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 			return false
 		}
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateRunning
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 	}, 10*time.Second, 200*time.Millisecond, "compute should be resumed (current restored, desired_state running)")
 
 	// Resume cleared the billing row's flag.
@@ -151,7 +153,7 @@ func TestDeploySpendCheck_ResumeOnBudgetRemoved(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	}).Deployment
 
 	// Mark the workspace suspended, as a prior trip would have left it. The app
@@ -197,7 +199,7 @@ func TestDeploySpendCheck_ResumeOnStopDisabled(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	}).Deployment
 
 	err := h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{

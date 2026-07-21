@@ -51,6 +51,9 @@ async function main() {
     ],
     billing_cycle_anchor_config: {
       day_of_month: 1,
+      hour: 0,
+      minute: 0,
+      second: 0,
     },
     proration_behavior: "always_invoice",
   });

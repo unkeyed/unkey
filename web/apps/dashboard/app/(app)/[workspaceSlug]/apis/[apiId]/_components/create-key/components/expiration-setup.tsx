@@ -5,7 +5,7 @@ import { Clock } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
 import { useState } from "react";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 import type { ExpirationFormValues } from "../create-key.schema";
 
 const EXPIRATION_OPTIONS = [
@@ -45,7 +45,6 @@ export const ExpirationSetup = ({
   overrideEnabled?: boolean;
 }) => {
   const {
-    register,
     formState: { errors },
     control,
     setValue,
@@ -53,7 +52,10 @@ export const ExpirationSetup = ({
 
   const [selectedTitle, setSelectedTitle] = useState<string>("1 day");
 
-  const expirationEnabled = useWatch({
+  // Keep the discriminator registered independently of portal-mounted DOM refs.
+  const {
+    field: { value: expirationEnabled },
+  } = useController({
     control,
     name: "expiration.enabled",
   });
@@ -151,7 +153,6 @@ export const ExpirationSetup = ({
           icon={<Clock className="text-gray-12" iconSize="sm-regular" />}
           checked={expirationEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("expiration.enabled")}
         />
       )}
 

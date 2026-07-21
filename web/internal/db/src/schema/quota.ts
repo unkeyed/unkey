@@ -114,6 +114,15 @@ export const quotas = mysqlTable("quota", {
   })
     .notNull()
     .default(1),
+
+  // maxReplicasPerRegion caps how many instances (replicas) a single environment
+  // can autoscale to within one region. The runtime "Instances" slider tops out
+  // at this value.
+  maxReplicasPerRegion: int("max_replicas_per_region", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(4),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

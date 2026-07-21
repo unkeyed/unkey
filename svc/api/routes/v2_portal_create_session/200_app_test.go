@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -99,7 +101,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		EnvironmentID:                 environment.ID,
 		SentinelConfig:                sentinelConfig,
 		EncryptedEnvironmentVariables: []byte{},
-		Status:                        db.DeploymentsStatusReady,
+		Status:                        mysqltype.DeploymentsStatusReady,
 		CpuMillicores:                 100,
 		MemoryMib:                     128,
 		Port:                          8080,

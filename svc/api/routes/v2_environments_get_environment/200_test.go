@@ -89,7 +89,7 @@ func TestGetEnvironment(t *testing.T) {
 				runtime := *res.Body.Data.Runtime
 				require.Equal(t, 8080, runtime.Port)
 				require.Equal(t, 0.25, runtime.VCpus)
-				require.Equal(t, 128, runtime.MemoryMib)
+				require.Equal(t, 256, runtime.MemoryMib)
 				require.Equal(t, 0, runtime.StorageMib)
 				require.EqualValues(t, "SIGTERM", runtime.ShutdownSignal)
 				require.EqualValues(t, "http1", runtime.UpstreamProtocol)
