@@ -696,6 +696,12 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 	})
 	require.NoError(h.t, err)
+	err = db.Query.UpdateClickhouseWorkspaceSettingsProvisioningState(ctx, h.DB.RW(), db.UpdateClickhouseWorkspaceSettingsProvisioningStateParams{
+		WorkspaceID:       workspaceID,
+		ProvisioningState: "ready",
+		UpdatedAt:         sql.NullInt64{Valid: true, Int64: now},
+	})
+	require.NoError(h.t, err)
 }
 
 // Resources returns the baseline seed data created during harness initialization.

@@ -9,6 +9,7 @@ CREATE TABLE `clickhouse_workspace_settings` (
 	`max_query_execution_time` int NOT NULL DEFAULT 30,
 	`max_query_memory_bytes` bigint NOT NULL DEFAULT 1000000000,
 	`max_query_result_rows` int NOT NULL DEFAULT 10000,
+	`provisioning_state` varchar(32) NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL DEFAULT 0,
 	`updated_at` bigint,
 	CONSTRAINT `clickhouse_workspace_settings_pk` PRIMARY KEY(`pk`),

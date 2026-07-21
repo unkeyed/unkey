@@ -23,6 +23,9 @@ type Querier interface {
 	// This is idempotent and can be called multiple times to update configuration.
 	ConfigureUser(ctx context.Context, config UserConfig) error
 
+	// RevokeUserAccess removes direct grants before an existing user is reconfigured.
+	RevokeUserAccess(ctx context.Context, username string) error
+
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	// GetVerificationsByExternalID returns a zero-filled verification timeseries

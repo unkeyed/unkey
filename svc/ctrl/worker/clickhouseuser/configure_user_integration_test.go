@@ -30,6 +30,8 @@ func TestConfigureUser_Integration(t *testing.T) {
 		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.WorkspaceID)
 		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.Username)
 		require.NotEmpty(t, settings.ClickhouseWorkspaceSetting.PasswordEncrypted)
+		// Security guarantee: readiness is durable only after ClickHouse provisioning succeeds.
+		require.Equal(t, "ready", settings.ClickhouseWorkspaceSetting.ProvisioningState)
 
 		// Verify the user exists in ClickHouse
 		var userName string
@@ -79,6 +81,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 		updated, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
 		require.Equal(t, initialPassword, updated.ClickhouseWorkspaceSetting.PasswordEncrypted)
+		require.Equal(t, "ready", updated.ClickhouseWorkspaceSetting.ProvisioningState)
 
 		// Verify the new settings were applied
 		require.Equal(t, int32(2000), updated.ClickhouseWorkspaceSetting.MaxQueriesPerWindow)

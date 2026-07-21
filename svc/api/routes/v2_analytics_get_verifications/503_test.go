@@ -49,6 +49,12 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 	})
 	require.NoError(t, err)
+	err = db.Query.UpdateClickhouseWorkspaceSettingsProvisioningState(context.Background(), h.DB.RW(), db.UpdateClickhouseWorkspaceSettingsProvisioningStateParams{
+		WorkspaceID:       workspace.ID,
+		ProvisioningState: "ready",
+		UpdatedAt:         sql.NullInt64{Valid: true, Int64: now},
+	})
+	require.NoError(t, err)
 
 	route := &Handler{
 		DB:                         h.DB,

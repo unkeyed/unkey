@@ -128,6 +128,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
+	// Reacquire immediately before execution so quota reprovisioning cannot use
+	// readiness that was checked while the request was still being authorized.
+	conn, _, err = h.AnalyticsConnectionManager.GetConnection(ctx, principal.WorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
 	if err != nil {

@@ -277,7 +277,7 @@ type Querier interface {
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
-	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
+	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.provisioning_state, c.created_at, c.updated_at,
 	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
@@ -1790,9 +1790,18 @@ type Querier interface {
 	//      max_query_execution_time = ?,
 	//      max_query_memory_bytes = ?,
 	//      max_query_result_rows = ?,
+	//      provisioning_state = 'pending',
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateClickhouseWorkspaceSettingsProvisioningState
+	//
+	//  UPDATE `clickhouse_workspace_settings`
+	//  SET
+	//      provisioning_state = ?,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	UpdateClickhouseWorkspaceSettingsProvisioningState(ctx context.Context, arg UpdateClickhouseWorkspaceSettingsProvisioningStateParams) error
 	//UpdateCustomDomainCheckAttempt
 	//
 	//  UPDATE custom_domains

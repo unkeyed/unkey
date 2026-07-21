@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
+
+type userExec func(context.Context, string, ...any) error
 
 var (
 	// validIdentifier matches safe ClickHouse identifiers (usernames, policy names, quota names, profile names)
@@ -100,6 +103,21 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 // This is idempotent - it can be run multiple times to update settings.
 func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
+	return configureUserWithExec(ctx, config, c.Exec)
+}
+
+// RevokeUserAccess closes an existing user's direct grants before durable state changes.
+func (c *Client) RevokeUserAccess(ctx context.Context, username string) error {
+	if !validIdentifier.MatchString(username) {
+		return fmt.Errorf("invalid username: must contain only alphanumeric characters and underscores, got %q", username)
+	}
+	if err := c.Exec(ctx, fmt.Sprintf("REVOKE ALL ON *.* FROM %s", username)); err != nil {
+		return fmt.Errorf("failed to revoke permissions: %w", err)
+	}
+	return nil
+}
+
+func configureUserWithExec(ctx context.Context, config UserConfig, exec userExec) error {
 
 	// Validate all identifiers to prevent SQL injection
 	if err := validateIdentifiers(config); err != nil {
@@ -109,7 +127,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	// Create or alter ClickHouse user
 	logger.Info("creating/updating clickhouse user")
 	createUserSQL := fmt.Sprintf("CREATE USER IF NOT EXISTS %s IDENTIFIED WITH sha256_password BY {password:String}", config.Username)
-	err := c.Exec(ctx, createUserSQL, driver.Named("password", config.Password))
+	err := exec(ctx, createUserSQL, driver.Named("password", config.Password))
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -117,19 +135,9 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	// Revoke all permissions
 	logger.Info("revoking all permissions")
 	revokeSQL := fmt.Sprintf("REVOKE ALL ON *.* FROM %s", config.Username)
-	err = c.Exec(ctx, revokeSQL)
+	err = exec(ctx, revokeSQL)
 	if err != nil {
-		logger.Warn("failed to revoke permissions (user may be new)", "error", err)
-	}
-
-	// Grant SELECT on specified tables
-	for _, table := range config.AllowedTables {
-		logger.Debug("granting SELECT permission", "table", table)
-		grantSQL := fmt.Sprintf("GRANT SELECT ON %s TO %s", table, config.Username)
-		err = c.Exec(ctx, grantSQL)
-		if err != nil {
-			return fmt.Errorf("failed to grant SELECT on %s: %w", table, err)
-		}
+		return fmt.Errorf("failed to revoke permissions: %w", err)
 	}
 
 	// Create row-level security (RLS) policies
@@ -144,10 +152,33 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 			"CREATE ROW POLICY OR REPLACE %s ON %s FOR SELECT USING workspace_id = '%s' AND (%s) TO %s",
 			policyName, table, config.WorkspaceID, timeFilter, config.Username,
 		)
-		err = c.Exec(ctx, createPolicySQL)
+		err = exec(ctx, createPolicySQL)
 		if err != nil {
 			return fmt.Errorf("failed to create row policy on %s: %w", table, err)
 		}
+	}
+
+	// Create or replace settings profile
+	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
+	logger.Info("creating/updating settings profile", "name", profileName)
+
+	createOrReplaceProfileSQL := fmt.Sprintf(`
+		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
+			max_execution_time = %d CONST,
+			max_memory_usage = %d CONST,
+			max_result_rows = %d CONST,
+			readonly = 2 CONST
+		TO %s
+	`,
+		profileName,
+		config.MaxQueryExecutionTime,
+		config.MaxQueryMemoryBytes,
+		config.MaxQueryResultRows,
+		config.Username,
+	)
+	err = exec(ctx, createOrReplaceProfileSQL)
+	if err != nil {
+		return fmt.Errorf("failed to create/replace settings profile: %w", err)
 	}
 
 	// Create or replace quota
@@ -159,10 +190,6 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		FOR INTERVAL %d SECOND
 			MAX queries = %d,
 			MAX execution_time = %d
-			-- MAX result_rows is intentionally NOT set here
-			-- Per-window result row limits are too restrictive for analytics queries
-			-- which legitimately need to return large result sets.
-			-- Per-query limits are still enforced via the settings profile (max_result_rows).
 		TO %s
 	`,
 		quotaName,
@@ -171,32 +198,22 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		config.MaxExecutionTimePerWindow,
 		config.Username,
 	)
-	err = c.Exec(ctx, createOrReplaceQuotaSQL)
+	err = exec(ctx, createOrReplaceQuotaSQL)
 	if err != nil {
 		return fmt.Errorf("failed to create/replace quota: %w", err)
 	}
 
-	// Create or replace settings profile
-	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
-	logger.Info("creating/updating settings profile", "name", profileName)
-
-	createOrReplaceProfileSQL := fmt.Sprintf(`
-		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
-			max_execution_time = %d,
-			max_memory_usage = %d,
-			max_result_rows = %d,
-			readonly = 2
-		TO %s
-	`,
-		profileName,
-		config.MaxQueryExecutionTime,
-		config.MaxQueryMemoryBytes,
-		config.MaxQueryResultRows,
-		config.Username,
-	)
-	err = c.Exec(ctx, createOrReplaceProfileSQL)
-	if err != nil {
-		return fmt.Errorf("failed to create/replace settings profile: %w", err)
+	// A single final GRANT prevents any table from becoming readable while
+	// another table is still missing its policy or resource constraints.
+	if len(config.AllowedTables) > 0 {
+		grants := make([]string, 0, len(config.AllowedTables))
+		for _, table := range config.AllowedTables {
+			grants = append(grants, "SELECT ON "+table)
+		}
+		grantSQL := fmt.Sprintf("GRANT %s TO %s", strings.Join(grants, ", "), config.Username)
+		if err = exec(ctx, grantSQL); err != nil {
+			return fmt.Errorf("failed to grant SELECT: %w", err)
+		}
 	}
 
 	logger.Info("successfully configured clickhouse user",

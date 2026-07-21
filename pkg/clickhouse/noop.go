@@ -73,6 +73,11 @@ func (n *noop) ConfigureUser(ctx context.Context, config UserConfig) error {
 	return nil
 }
 
+// RevokeUserAccess implements the Querier interface but does nothing.
+func (n *noop) RevokeUserAccess(ctx context.Context, username string) error {
+	return nil
+}
+
 func (n *noop) Ping(ctx context.Context) error {
 	return nil
 }

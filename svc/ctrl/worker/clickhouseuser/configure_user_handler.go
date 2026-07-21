@@ -30,6 +30,8 @@ const (
 	defaultMaxQueryResultRows = 10000000
 	// passwordLength defines the generated ClickHouse password length.
 	passwordLength = 64
+	// provisioningStateReady is persisted only after every ClickHouse control is installed.
+	provisioningStateReady = "ready"
 )
 
 // existingUserResult wraps the DB lookup to avoid Restate error serialization issues
@@ -170,6 +172,15 @@ func (s *Service) ConfigureUser(
 		retentionDays = result.Row.Quotas.LogsRetentionDays
 		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
 
+		// Revoke before marking MySQL pending so connections acquired under the
+		// prior ready state cannot begin a query during reconciliation.
+		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+			return restate.Void{}, s.clickhouse.RevokeUserAccess(rc, result.Row.ClickhouseWorkspaceSetting.Username)
+		}, restate.WithName("revoke existing access"))
+		if err != nil {
+			return nil, fmt.Errorf("revoke existing access: %w", err)
+		}
+
 		now := time.Now().UnixMilli()
 		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, s.db.UpdateClickhouseWorkspaceSettingsLimits(rc, db.UpdateClickhouseWorkspaceSettingsLimitsParams{
@@ -214,6 +225,20 @@ func (s *Service) ConfigureUser(
 	}, restate.WithName("configure clickhouse"))
 	if err != nil {
 		return nil, fmt.Errorf("configure clickhouse: %w", err)
+	}
+
+	// Readiness is the commit point consumed by the API. If this write fails,
+	// acquisition remains denied and a retry safely reprovisions from REVOKE ALL.
+	now := time.Now().UnixMilli()
+	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, s.db.UpdateClickhouseWorkspaceSettingsProvisioningState(rc, db.UpdateClickhouseWorkspaceSettingsProvisioningStateParams{
+			WorkspaceID:       workspaceID,
+			ProvisioningState: provisioningStateReady,
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: now},
+		})
+	}, restate.WithName("mark ready"))
+	if err != nil {
+		return nil, fmt.Errorf("mark ready: %w", err)
 	}
 
 	logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)

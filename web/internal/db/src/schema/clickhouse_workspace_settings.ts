@@ -27,6 +27,9 @@ export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_sett
     .default(1_000_000_000), // 1GB
   maxQueryResultRows: int("max_query_result_rows").notNull().default(10_000),
 
+  // Fail closed until ClickHouse policies, constraints, quota, and grants exist.
+  provisioningState: varchar("provisioning_state", { length: 32 }).notNull().default("pending"),
+
   ...lifecycleDatesV2,
 });
 

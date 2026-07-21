@@ -7,7 +7,6 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
-	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -16,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+const provisioningStateReady = "ready"
 
 // connectionManager is the default implementation that manages per-workspace ClickHouse connections
 type connectionManager struct {
@@ -99,11 +100,11 @@ func (m *connectionManager) GetConnection(ctx context.Context, workspaceID strin
 	return conn, settings, nil
 }
 
-// getSettings retrieves the workspace settings from cache
+// getSettings retrieves workspace settings and verifies durable readiness.
 func (m *connectionManager) getSettings(ctx context.Context, workspaceID string) (db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
-	settings, hit, err := m.settingsCache.SWR(ctx, workspaceID, func(ctx context.Context) (db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
-		return db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(ctx, m.database.RO(), workspaceID)
-	}, caches.DefaultFindFirstOp)
+	// Read readiness from the primary on every acquisition. A replica or SWR
+	// cache can serve stale "ready" across reprovisioning and reopen access.
+	settings, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(ctx, m.database.RW(), workspaceID)
 	if err != nil && !db.IsNotFound(err) {
 		return db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
 			fault.Public("Failed to fetch workspace analytics configuration"),
@@ -111,15 +112,29 @@ func (m *connectionManager) getSettings(ctx context.Context, workspaceID string)
 		)
 	}
 
-	if hit == cache.Null || db.IsNotFound(err) {
+	if db.IsNotFound(err) {
 		return db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.New(
 			"workspace settings not found or null",
 			fault.Public("ClickHouse analytics is not configured for this workspace"),
 			fault.Code(codes.Data.Analytics.NotConfigured.URN()),
 		)
 	}
+	if err := ensureProvisioningReady(settings); err != nil {
+		return db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, err
+	}
 
 	return settings, nil
+}
+
+func ensureProvisioningReady(settings db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow) error {
+	if settings.ClickhouseWorkspaceSetting.ProvisioningState != provisioningStateReady {
+		return fault.New(
+			"workspace analytics provisioning is not ready",
+			fault.Public("ClickHouse analytics is not configured for this workspace"),
+			fault.Code(codes.Data.Analytics.NotConfigured.URN()),
+		)
+	}
+	return nil
 }
 
 // createConnection creates a new ClickHouse connection for a workspace

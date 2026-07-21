@@ -19,6 +19,7 @@ SET
     max_query_execution_time = ?,
     max_query_memory_bytes = ?,
     max_query_result_rows = ?,
+    provisioning_state = 'pending',
     updated_at = ?
 WHERE workspace_id = ?
 `
@@ -44,6 +45,7 @@ type UpdateClickhouseWorkspaceSettingsLimitsParams struct {
 //	    max_query_execution_time = ?,
 //	    max_query_memory_bytes = ?,
 //	    max_query_result_rows = ?,
+//	    provisioning_state = 'pending',
 //	    updated_at = ?
 //	WHERE workspace_id = ?
 func (q *Queries) UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error {
