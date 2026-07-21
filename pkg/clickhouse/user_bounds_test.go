@@ -14,8 +14,8 @@ type profileConnectionRecorder struct {
 	queries []string
 }
 
-func (c *profileConnectionRecorder) Exec(_ context.Context, query string, _ ...any) error {
-	c.queries = append(c.queries, query)
+func (connection *profileConnectionRecorder) Exec(_ context.Context, query string, _ ...any) error {
+	connection.queries = append(connection.queries, query)
 	return nil
 }
 

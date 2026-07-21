@@ -17,7 +17,7 @@ type Config struct {
 	AllowedTables       []string
 	SecurityFilters     []SecurityFilter // Row-level security filters (auto-injected)
 	Limit               int
-	MaxQueryRangeDays   int32 // Maximum historical data range user can query in days
+	QueryRangeDaysMax   int32 // Maximum historical data range user can query in days
 	QueryBytesMax       int
 	ProjectedColumnsMax int
 	ASTNodesMax         int

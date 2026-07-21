@@ -16,50 +16,50 @@ type queryResultConnectionFake struct {
 	ctxQuery context.Context
 }
 
-func (c *queryResultConnectionFake) Query(ctx context.Context, _ string, _ ...any) (driver.Rows, error) {
-	c.ctxQuery = ctx
-	if rows, ok := c.rows.(*queryResultRowsFake); ok {
+func (connection *queryResultConnectionFake) Query(ctx context.Context, _ string, _ ...any) (driver.Rows, error) {
+	connection.ctxQuery = ctx
+	if rows, ok := connection.rows.(*queryResultRowsFake); ok {
 		rows.ctxQuery = ctx
 	}
-	return c.rows, nil
+	return connection.rows, nil
 }
 
 type queryResultRowsFake struct {
-	columns         []string
-	rows            [][]any
-	index           int
-	closed          bool
-	errContextClose error
-	ctxQuery        context.Context
-	err             error
+	columns  []string
+	rows     [][]any
+	index    int
+	closed   bool
+	errClose error
+	ctxQuery context.Context
+	err      error
 }
 
-func (r *queryResultRowsFake) Next() bool {
-	return r.index < len(r.rows)
+func (rows *queryResultRowsFake) Next() bool {
+	return rows.index < len(rows.rows)
 }
 
-func (r *queryResultRowsFake) Scan(destinations ...any) error {
-	for i, value := range r.rows[r.index] {
+func (rows *queryResultRowsFake) Scan(destinations ...any) error {
+	for i, value := range rows.rows[rows.index] {
 		dynamic, ok := destinations[i].(*ch.Dynamic)
 		if !ok {
 			return errors.New("unexpected scan destination")
 		}
 		*dynamic = ch.NewDynamic(value)
 	}
-	r.index++
+	rows.index++
 	return nil
 }
 
-func (r *queryResultRowsFake) ScanStruct(any) error             { return errors.New("not implemented") }
-func (r *queryResultRowsFake) ColumnTypes() []driver.ColumnType { return nil }
-func (r *queryResultRowsFake) Totals(...any) error              { return nil }
-func (r *queryResultRowsFake) Columns() []string                { return r.columns }
-func (r *queryResultRowsFake) Close() error {
-	r.closed = true
-	r.errContextClose = r.ctxQuery.Err()
+func (rows *queryResultRowsFake) ScanStruct(any) error             { return errors.New("not implemented") }
+func (rows *queryResultRowsFake) ColumnTypes() []driver.ColumnType { return nil }
+func (rows *queryResultRowsFake) Totals(...any) error              { return nil }
+func (rows *queryResultRowsFake) Columns() []string                { return rows.columns }
+func (rows *queryResultRowsFake) Close() error {
+	rows.closed = true
+	rows.errClose = rows.ctxQuery.Err()
 	return nil
 }
-func (r *queryResultRowsFake) Err() error { return r.err }
+func (rows *queryResultRowsFake) Err() error { return rows.err }
 
 // Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
 func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
@@ -82,7 +82,7 @@ func TestQueryToMapsRejectsWideRows(t *testing.T) {
 }
 
 // Security guarantee: stopping response consumption closes ClickHouse rows and cancels further delivery.
-func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
+func TestQueryToMapsClosesRowsAtRowLimit(t *testing.T) {
 	rows := &queryResultRowsFake{columns: []string{"n"}, rows: [][]any{{1}, {2}}}
 	connection := &queryResultConnectionFake{rows: rows}
 	client := &Client{conn: connection}
@@ -91,7 +91,7 @@ func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
 	require.ErrorContains(t, err, "result row limit")
 	require.True(t, rows.closed)
 	require.ErrorIs(t, connection.ctxQuery.Err(), context.Canceled)
-	require.ErrorIs(t, rows.errContextClose, context.Canceled)
+	require.ErrorIs(t, rows.errClose, context.Canceled)
 }
 
 // Security guarantee: callers cannot accidentally execute an unbounded dynamic query.
@@ -110,7 +110,7 @@ func TestQueryToMapsUsesWorkspaceRowBound(t *testing.T) {
 }
 
 // Security guarantee: callers cannot weaken the global encoded-response bound.
-func TestQueryToMapsRejectsByteBoundAboveHardMaximum(t *testing.T) {
+func TestQueryToMapsRejectsResultBytesAboveMaximum(t *testing.T) {
 	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
 		RowsMax:  10_000_000,
 		BytesMax: AnalyticsResultBytesMax + 1,

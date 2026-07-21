@@ -21,7 +21,7 @@ func NewParser(config Config) *Parser {
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	if p.config.QueryBytesMax > 0 && len(query) > p.config.QueryBytesMax {
-		return "", invalidQueryLimitError("query exceeds maximum length", "Analytics query exceeds the maximum length")
+		return "", newQueryLimitError("query exceeds maximum length", "Analytics query exceeds the maximum length")
 	}
 
 	// Parse SQL
@@ -95,13 +95,13 @@ func (p *Parser) validateComplexity() error {
 		clickhouse.Walk(expression, func(node clickhouse.Expr) bool {
 			astNodesCount++
 			if p.config.ASTNodesMax > 0 && astNodesCount > p.config.ASTNodesMax {
-				errLimit = invalidQueryLimitError("query is too complex", "Analytics query is too complex")
+				errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
 				return false
 			}
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 				projectedColumnsCount += len(selectQuery.SelectItems)
 				if p.config.ProjectedColumnsMax > 0 && projectedColumnsCount > p.config.ProjectedColumnsMax {
-					errLimit = invalidQueryLimitError("too many projected columns", "Analytics query projects too many columns")
+					errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
 					return false
 				}
 				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
@@ -119,7 +119,7 @@ func (p *Parser) validateComplexity() error {
 	return nil
 }
 
-func invalidQueryLimitError(messageInternal, messagePublic string) error {
+func newQueryLimitError(messageInternal, messagePublic string) error {
 	return fault.New(messageInternal,
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 		fault.Public(messagePublic),
