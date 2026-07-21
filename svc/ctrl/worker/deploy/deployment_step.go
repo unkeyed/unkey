@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -19,20 +21,20 @@ func (w *Workflow) DeploymentStep(
 ) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := time.Now().UnixMilli()
-		deploymentStatus := db.DeploymentsStatusPending
+		deploymentStatus := mysqltype.DeploymentsStatusPending
 		switch step {
 		case db.DeploymentStepsStepQueued:
-			deploymentStatus = db.DeploymentsStatusPending
+			deploymentStatus = mysqltype.DeploymentsStatusPending
 		case db.DeploymentStepsStepStarting:
-			deploymentStatus = db.DeploymentsStatusStarting
+			deploymentStatus = mysqltype.DeploymentsStatusStarting
 		case db.DeploymentStepsStepBuilding:
-			deploymentStatus = db.DeploymentsStatusBuilding
+			deploymentStatus = mysqltype.DeploymentsStatusBuilding
 		case db.DeploymentStepsStepDeploying:
-			deploymentStatus = db.DeploymentsStatusDeploying
+			deploymentStatus = mysqltype.DeploymentsStatusDeploying
 		case db.DeploymentStepsStepNetwork:
-			deploymentStatus = db.DeploymentsStatusNetwork
+			deploymentStatus = mysqltype.DeploymentsStatusNetwork
 		case db.DeploymentStepsStepFinalizing:
-			deploymentStatus = db.DeploymentsStatusFinalizing
+			deploymentStatus = mysqltype.DeploymentsStatusFinalizing
 		default:
 			return fmt.Errorf("unexpected deployment step: %s", step)
 		}

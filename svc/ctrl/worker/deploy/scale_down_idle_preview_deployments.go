@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -51,7 +53,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 			deployments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Deployment, error) {
 				return w.db.ListDeploymentsByEnvironmentIdAndStatus(runCtx, db.ListDeploymentsByEnvironmentIdAndStatusParams{
 					EnvironmentID: environment.ID,
-					Status:        db.DeploymentsStatusReady,
+					Status:        mysqltype.DeploymentsStatusReady,
 					CreatedBefore: cutoff,
 					UpdatedBefore: sql.NullInt64{Valid: true, Int64: cutoff},
 				})

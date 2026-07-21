@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -34,7 +36,7 @@ func TestStopDeploymentNotRunning(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusStopped,
+		Status:        mysqltype.DeploymentsStatusStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -72,12 +74,12 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	err := db.Query.UpdateDeploymentDesiredState(t.Context(), h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
 		ID:           dep.ID,
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 	require.NoError(t, err)
 
@@ -105,7 +107,7 @@ func TestStopDeploymentProduction(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
@@ -146,7 +148,7 @@ func TestStopDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})

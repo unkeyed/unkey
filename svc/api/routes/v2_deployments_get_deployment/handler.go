@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -101,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	var steps []db.DeploymentStep
-	if dep.Status == db.DeploymentsStatusFailed {
+	if dep.Status == mysqltype.DeploymentsStatusFailed {
 		steps, err = db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
 			WorkspaceID:   principal.WorkspaceID,
 			DeploymentIds: []string{dep.ID},

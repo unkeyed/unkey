@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -120,7 +122,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"environment", env.Slug,
 			)
 			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
 				return err
 			}, restate.WithName("insert skipped deployment")); err != nil {
 				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
@@ -137,7 +139,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			)
 
 			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
 				return err
 			}, restate.WithName("insert skipped deployment")); err != nil {
 				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
@@ -157,9 +159,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		// Fork PRs run external code and must always be gated, even in dev.
 		needsApproval := s.requiresApproval(ctx, req, repo)
 
-		status := db.DeploymentsStatusPending
+		status := mysqltype.DeploymentsStatusPending
 		if needsApproval {
-			status = db.DeploymentsStatusAwaitingApproval
+			status = mysqltype.DeploymentsStatusAwaitingApproval
 		}
 
 		deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
@@ -292,7 +294,7 @@ func insertDeploymentRecord(
 	row db.ListRepoConnectionDeployContextsRow,
 	req *hydrav1.HandlePushRequest,
 	secretsBlob []byte,
-	status db.DeploymentsStatus,
+	status mysqltype.DeploymentsStatus,
 ) (string, error) {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()

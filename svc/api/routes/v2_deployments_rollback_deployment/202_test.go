@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -30,7 +31,7 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	live := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -38,7 +39,7 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	setCurrentDeployment(t, h, setup.App.ID, live.ID)
 

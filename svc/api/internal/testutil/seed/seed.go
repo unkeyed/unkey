@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -677,8 +679,8 @@ type CreateDeploymentRequest struct {
 	ProjectID              string
 	AppID                  string
 	EnvironmentID          string
-	Status                 db.DeploymentsStatus
-	DesiredState           db.DeploymentsDesiredState
+	Status                 mysqltype.DeploymentsStatus
+	DesiredState           mysqltype.DeploymentsDesiredState
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -697,7 +699,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 
 	status := req.Status
 	if status == "" {
-		status = db.DeploymentsStatusPending
+		status = mysqltype.DeploymentsStatusPending
 	}
 
 	createdAt := time.Now().UnixMilli()

@@ -7,7 +7,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -52,7 +51,7 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
-		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
+		DesiredState:    deployment.DesiredState,
 		EnvironmentSlug: environment.Slug,
 		SpendSuspended:  entitlement.SpendSuspended.Bool,
 	}); err != nil {
