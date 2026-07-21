@@ -1,0 +1,323 @@
+---
+title: "Raw analytics SQL security review"
+description: "Security findings and remediation tracking for customer-supplied ClickHouse queries"
+---
+
+Customer-supplied analytics SQL must preserve four invariants: callers can read
+only data authorized for their workspace and resource permissions, callers
+cannot write data, every query stays within its resource quotas, and result
+handling cannot exhaust the API service.
+
+This document tracks findings from the security review of commit `68235e712`,
+which exposes rate-limit analytics SQL. The review compared the branch with
+`origin/main` on July 21, 2026.
+
+## Track review status
+
+Use the following status values as remediation progresses:
+
+- `Open`: The issue is reproducible or supported by code-level evidence.
+- `In progress`: An implementation is under review.
+- `Verification`: The fix is merged and the security regression test is pending.
+- `Closed`: The fix and its regression tests pass in the production-equivalent
+  environment.
+- `Accepted risk`: Security and infrastructure owners documented and approved
+  the remaining exposure.
+
+| ID | Severity | Finding | Status | Owner | Release blocker |
+| --- | --- | --- | --- | --- | --- |
+| SQL-SEC-001 | Critical | Query `SETTINGS` can disable per-query limits | In progress | Unassigned | Yes |
+| SQL-SEC-002 | High | Table-backed `IN` bypasses table and resource filtering | Open | Unassigned | Yes |
+| SQL-SEC-003 | High | Result bytes and API memory are not bounded | Open | Unassigned | Yes |
+| SQL-SEC-004 | Medium | Verification authorization accepts unbounded key-space IDs | Open | Unassigned | No |
+| SQL-SEC-005 | Medium | Provisioning grants access before RLS and limits are complete | Open | Unassigned | Yes |
+
+Do not release customer-supplied rate-limit analytics SQL while any release
+blocker remains open.
+
+## SQL-SEC-001: Prevent query settings from disabling limits
+
+The SQL parser accepts a `SETTINGS` clause and serializes it into the query sent
+to ClickHouse. Workspace settings profiles assign limits as mutable values and
+set `readonly = 2`, which lets a user change settings other than `readonly`.
+
+**Affected code**
+
+- `pkg/clickhouse/query-parser/parser.go`
+- `pkg/clickhouse/user.go`
+- `github.com/AfterShip/clickhouse-sql-parser` version `v0.4.18`
+
+**Attack query**
+
+```sql
+SELECT groupArray(identifier)
+FROM ratelimits_v1
+WHERE namespace_id = 'rlns_owned'
+SETTINGS
+  max_execution_time = 0,
+  max_memory_usage = 0,
+  max_result_rows = 0,
+  max_threads = 1000
+```
+
+The injected row limit does not bound aggregate-state memory. Per-window query
+and execution-time quotas also cannot prevent one unlimited-memory query from
+destabilizing the cluster.
+
+### Complete remediation
+
+- [x] Reject `Settings != nil` on every nested `SelectQuery` before execution.
+- [x] Mark `max_execution_time` immutable or constrain it to the workspace
+      maximum in ClickHouse.
+- [x] Mark `max_memory_usage` immutable or constrain it to the workspace maximum
+      in ClickHouse.
+- [x] Mark `max_result_rows` immutable or constrain it to the workspace maximum
+      in ClickHouse.
+- [ ] Add and constrain `max_result_bytes` in ClickHouse.
+- [ ] Constrain `max_threads` and other settings that can amplify resource use.
+- [x] Use `readonly = 1`, unless a documented driver requirement needs
+      `readonly = 2` with an explicit settings allowlist.
+
+### Verify remediation
+
+- [x] Add parser tests for top-level and nested `SETTINGS` clauses.
+- [x] Add a live ClickHouse test that attempts to set every protected limit to
+      `0` or above its configured maximum.
+- [x] Verify the server rejects the query even if parser validation is bypassed.
+- [x] Verify ordinary read-only analytics queries still execute.
+
+## SQL-SEC-002: Reject table-backed set expressions
+
+ClickHouse supports `value IN database.table`, which reads the named table as a
+set. The parser validates `TableIdentifier` nodes and applies resource filters
+to table sources under `FROM`. The right side of table-backed `IN` uses a
+different AST shape, so it bypasses public aliases, route table allowlists, and
+injected `namespace_id` or `key_space_id` filters.
+
+Every workspace analytics user receives `SELECT` grants on both the verification
+and rate-limit table families. ClickHouse row policies still constrain a normal
+secondary read to the workspace, but they do not enforce API, key-space, or
+namespace permissions.
+
+**Affected code**
+
+- `pkg/clickhouse/query-parser/tables.go`
+- `pkg/clickhouse/query-parser/filter.go`
+- `pkg/clickhouse/query-parser/extract.go`
+- `pkg/clickhouse/user.go`
+
+**Attack shape**
+
+```sql
+SELECT
+  (
+    'request_guess',
+    1710000000000,
+    'ws_current',
+    'rlns_unauthorized',
+    'identifier_guess'
+  ) IN default.ratelimits_raw_v2 AS exists
+FROM ratelimits_v1
+WHERE namespace_id = 'rlns_owned'
+LIMIT 1
+```
+
+The exact tuple depends on the physical table schema. The bypass provides an
+unauthorized row-membership oracle and an uncontrolled secondary table scan.
+
+### Complete remediation
+
+- [ ] Inspect every `IN`, `NOT IN`, `GLOBAL IN`, and `GLOBAL NOT IN` expression.
+- [ ] Permit literal lists only by default.
+- [ ] If subqueries are supported, require a parenthesized `SELECT` and validate
+      and filter every source independently.
+- [ ] Reject identifier, path, table, placeholder, and parameter right-hand
+      operands.
+- [ ] Prevent each route from reaching the other route's physical table family.
+- [ ] Evaluate ClickHouse-side namespace and key-space enforcement so resource
+      isolation does not depend exclusively on SQL rewriting.
+
+### Verify remediation
+
+- [ ] Add parser tests for qualified and unqualified physical tables on the
+      right side of set operators.
+- [ ] Add tests for nested, CTE, and `UNION` variants.
+- [ ] Add a production-version ClickHouse test proving the attack is rejected
+      before execution.
+- [ ] Verify literal `IN ('first', 'second')` predicates still execute.
+
+## SQL-SEC-003: Bound result bytes and API memory
+
+The default workspace result limit is 10,000,000 rows, but neither ClickHouse
+nor the API applies a result-byte limit. The ClickHouse client stores every row
+in `[]map[string]any`, and the API then allocates a second complete buffer while
+serializing the response to JSON.
+
+A single aggregate can also return a large value in one row, which makes a row
+limit insufficient.
+
+**Affected code**
+
+- `svc/ctrl/worker/clickhouseuser/configure_user_handler.go`
+- `internal/services/analytics/executor.go`
+- `pkg/clickhouse/query-parser/limits.go`
+- `pkg/clickhouse/client.go`
+- `pkg/zen/session.go`
+
+**Attack queries**
+
+```sql
+SELECT *
+FROM ratelimits_v1
+WHERE namespace_id = 'rlns_owned'
+LIMIT 10000000
+```
+
+```sql
+SELECT groupArray(identifier)
+FROM ratelimits_v1
+WHERE namespace_id = 'rlns_owned'
+```
+
+### Complete remediation
+
+- [ ] Add an immutable ClickHouse `max_result_bytes` limit.
+- [ ] Apply a service-owned hard row cap with
+      `min(workspace_limit, api_hard_limit)`.
+- [ ] Reduce the default row limit to a value suitable for an HTTP JSON API.
+- [ ] Stream rows to JSON instead of constructing the entire result in memory.
+- [ ] Abort response generation when an application byte budget is reached.
+- [ ] Bound query length below the generic 10 MiB request-body limit.
+- [ ] Bound projected columns, AST elements, AST depth, and aggregate result
+      sizes where ClickHouse exposes applicable settings.
+
+### Verify remediation
+
+- [ ] Test a response that reaches the row limit.
+- [ ] Test a one-row aggregate that reaches the byte limit.
+- [ ] Test a wide projection with repeated string columns.
+- [ ] Measure peak API memory and confirm it remains within the documented
+      request budget.
+- [ ] Verify ClickHouse cancels work after the API stops consuming a response.
+
+## SQL-SEC-004: Bound key-space authorization work
+
+The rate-limit route accepts no more than 10 unique namespace IDs. The
+verification route has no corresponding key-space limit. It creates cache keys,
+queries MySQL, and builds RBAC expressions for every extracted value before
+ClickHouse quotas apply.
+
+**Affected code**
+
+- `svc/api/routes/v2_analytics_get_verifications/handler.go`
+- `pkg/clickhouse/query-parser/extract.go`
+
+**Attack query shape**
+
+```sql
+SELECT count()
+FROM key_verifications_v1
+WHERE key_space_id IN (
+  'ks_000001',
+  'ks_000002',
+  'ks_000003'
+  -- Continue until the request-body limit.
+)
+```
+
+### Complete remediation
+
+- [ ] Reject queries with more than 10 unique key-space IDs, unless a smaller
+      product limit is selected.
+- [ ] Check wildcard analytics permission before resolving individual key
+      spaces.
+- [ ] Skip key-space database and cache work for wildcard-authorized principals.
+- [ ] Apply query-length and AST-element limits before authorization lookups.
+
+### Verify remediation
+
+- [ ] Test zero, one, 10, and 11 unique key-space IDs.
+- [ ] Test duplicate IDs and confirm they count once.
+- [ ] Verify wildcard principals do not perform key-space lookup queries.
+- [ ] Verify mixed owned, foreign, missing, and unauthorized IDs fail closed.
+
+## SQL-SEC-005: Make ClickHouse provisioning fail closed
+
+The provisioning workflow stores workspace credentials in MySQL before the
+ClickHouse user is fully configured. The API treats the settings row as ready.
+Within ClickHouse, the workflow grants `SELECT` before creating row policies,
+quotas, and settings profiles.
+
+This ordering creates a window where a concurrent request can obtain a
+connection after grants exist but before server-side isolation and limits are
+complete. SQL-SEC-002 can turn this window into a cross-workspace membership
+oracle because the secondary table read does not receive application filters.
+
+**Affected code**
+
+- `svc/ctrl/worker/clickhouseuser/configure_user_handler.go`
+- `pkg/clickhouse/user.go`
+- `internal/services/analytics/service.go`
+
+### Complete remediation
+
+- [ ] Create row policies before granting table access.
+- [ ] Create immutable settings constraints before granting table access.
+- [ ] Create the workspace quota before granting table access.
+- [ ] Make `GRANT SELECT` the final ClickHouse provisioning step.
+- [ ] Store an explicit provisioning state in MySQL.
+- [ ] Make the API reject connection attempts unless the state is `ready`.
+- [ ] Define rollback or retry behavior for every partial provisioning state.
+
+### Verify remediation
+
+- [ ] Continuously query during first-time provisioning and confirm no read
+      succeeds before the workspace reaches `ready`.
+- [ ] Inject failures after each provisioning operation and confirm retries fail
+      closed.
+- [ ] Verify quota updates do not temporarily remove existing constraints.
+- [ ] Verify removed table grants stay revoked after retries.
+
+## Preserve existing controls
+
+Remediation must preserve the controls that already work:
+
+- Authentication derives the workspace from the principal rather than SQL.
+- Namespace and key-space ownership lookups include the workspace ID.
+- Foreign and unknown resource IDs are indistinguishable to callers.
+- Injected filters wrap caller predicates to prevent `OR` precedence bypasses.
+- Covered nested queries and `UNION` branches receive injected filters.
+- Ordinary `FROM` clauses require public table aliases.
+- Workspace users receive only `SELECT` grants.
+- ClickHouse row policies enforce workspace and retention boundaries.
+- The function allowlist and empty table-function allowlist block known file and
+  network access paths.
+
+## Complete release verification
+
+Close the review only after all release blockers meet these criteria:
+
+- [ ] Targeted parser and analytics service suites pass.
+- [ ] Handler tests cover both verification and rate-limit routes.
+- [ ] Security regression tests run against the production ClickHouse version.
+- [ ] A principal cannot read another workspace in ordinary, nested, set, CTE,
+      or `UNION` query shapes.
+- [ ] A scoped principal cannot read another namespace or key space.
+- [ ] DDL, DML, table functions, output-file operations, query settings, and
+      multiple statements are rejected.
+- [ ] Per-query and per-window quotas remain enforced when application parsing
+      fails or is bypassed.
+- [ ] Concurrent requests cannot exceed the documented per-workspace resource
+      envelope.
+- [ ] Response rows, response bytes, query size, AST complexity, execution time,
+      memory, and concurrency have explicit bounds.
+
+The baseline review ran the following targeted verification successfully:
+
+```bash
+mise exec -- rask ./pkg/clickhouse/query-parser \
+  ./internal/services/analytics
+```
+
+The command completed 224 tests with no failures. Those tests do not close any
+finding until the corresponding attack and acceptance cases above are covered.
