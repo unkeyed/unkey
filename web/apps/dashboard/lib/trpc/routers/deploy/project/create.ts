@@ -30,7 +30,7 @@ export const createProject = workspaceProcedure
     const ctrl = getCtrlClients();
 
     try {
-      const response = await ctrl.project.createProject({
+      const payload = {
         workspaceId,
         name: input.name,
         slug: input.slug,
@@ -40,7 +40,9 @@ export const createProject = workspaceProcedure
           remoteIp: ctx.audit.location,
           userAgent: ctx.audit.userAgent ?? "",
         },
-      });
+      }
+      console.warn(JSON.stringify({payload}))
+      const response = await ctrl.project.createProject(payload);
 
       return {
         id: response.id,
