@@ -136,3 +136,49 @@ func TestParser_OnlySelectAllowed(t *testing.T) {
 		})
 	}
 }
+
+// TestParser_RejectsSettingsClauses guarantees customer SQL cannot attach
+// query-level settings to the root query or any nested SELECT query.
+func TestParser_RejectsSettingsClauses(t *testing.T) {
+	p := NewParser(Config{
+		WorkspaceID:   "ws_123",
+		AllowedTables: []string{"default.keys_v2"},
+	})
+
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{
+			name:  "top level",
+			query: "SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+		},
+		{
+			name:  "scalar subquery",
+			query: "SELECT (SELECT count(*) FROM default.keys_v2 SETTINGS max_execution_time = 0) FROM default.keys_v2",
+		},
+		{
+			name:  "from subquery",
+			query: "SELECT * FROM (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0)",
+		},
+		{
+			name:  "common table expression",
+			query: "WITH cte AS (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0) SELECT * FROM cte",
+		},
+		{
+			name:  "union branch",
+			query: "SELECT * FROM default.keys_v2 UNION ALL SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+		},
+		{
+			name:  "deeply nested",
+			query: "SELECT * FROM (SELECT * FROM (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0))",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := p.Parse(context.Background(), tt.query)
+			require.ErrorContains(t, err, "SETTINGS clauses are not allowed")
+		})
+	}
+}
