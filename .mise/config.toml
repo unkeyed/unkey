@@ -28,7 +28,6 @@ go = "1.25.1"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"
-"github:planetscale/schemadiff" = "1.4"
 
 [tools."github:kubernetes/minikube"]
 version = "1.38.1"

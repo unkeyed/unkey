@@ -22,24 +22,34 @@ mise run generate-sql
 
 ## Apply a schema change
 
-The PR workflow creates a PlanetScale branch named `pr-<number>` from
-`staging`, applies the Drizzle schema, and opens a deploy request into
-`staging`. CI then compares the normalized schema on that PR branch with the
-schema on the production `main` branch.
+The schema gate creates a temporary PlanetScale branch from `main`, applies the
+Drizzle schema, and uses PlanetScale's native branch diff to compare it with
+production. The gate deletes this validation branch without creating a deploy
+request. A scheduled cleanup also deletes `schema-check-*` branches older than
+6 hours if a CI runner terminates before its cleanup runs.
 
 Complete these steps for a schema change:
 
 1. Update the Drizzle schema and run `mise run generate-sql`.
 2. Commit the Drizzle and generated SQL changes.
-3. Open a pull request and wait for the PlanetScale PR branch workflow.
-4. Review and deploy the `pr-<number>` deploy request into `staging`.
-5. Create, review, and deploy the `staging` deploy request into `main`.
-6. Rerun the PR checks and merge after the schemas match.
+3. Create a PlanetScale migration branch from `staging`:
+
+   ```bash
+   BRANCH=<name> FROM=staging mise run pscale-branch
+   ```
+
+4. Create, review, and deploy a request from the migration branch into
+   `staging`.
+5. Create, review, and deploy a request from `staging` into `main`.
+6. Open or update the code pull request, then merge after the schema gate
+   passes.
 
 The schema gate doesn't use deploy request state to decide whether schemas
-match. It fails whenever the normalized schemas differ and passes whenever
-they match. This catches undeployed changes and manual production drift when
-the gate runs, even if no deploy request exists.
+match. It fails whenever PlanetScale reports a branch diff and passes when the
+diff is empty. This catches undeployed changes and manual production drift when
+the gate runs, even if no deploy request exists. The gate waits through a short
+propagation window before accepting an empty diff because PlanetScale's schema
+API can lag a completed migration by a few seconds.
 
 ## Split incompatible changes
 
@@ -61,9 +71,9 @@ For an additive change, deploy the new table or column through `staging` and
 
 ## Troubleshoot the schema check
 
-The `Database schema gate` check prints the SQL required to transform the
-production schema into the pull request schema. Use that diff to identify the
-pending PlanetScale change.
+The `Database schema gate` check prints PlanetScale's schema diff. Use that
+output to identify the pending production change.
 
-If CI doesn't create a PlanetScale branch, confirm that the pull request changes
-a file under `web/internal/db/src/schema/`.
+If the gate doesn't run the comparison, confirm that the pull request changes a
+file under `web/internal/db/src/schema/`. Validation branches normally won't be
+visible after a check because CI deletes them before the job finishes.

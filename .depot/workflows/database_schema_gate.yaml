@@ -13,8 +13,8 @@ permissions:
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
-  PSCALE_PARENT: staging
-  BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.run_id, github.run_attempt) }}
+  PSCALE_BASE: main
+  BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
 jobs:
   gate:
     name: Compare production schema
@@ -61,96 +61,39 @@ jobs:
 
       - name: Install toolchain
         if: steps.preflight.outputs.required == 'true'
-        run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/schemadiff
+        run: mise install --locked --yes node github:pnpm/pnpm
 
-      - name: Apply proposed schema
-        if: steps.preflight.outputs.required == 'true'
-        run: BRANCH="$BRANCH" FROM="$PSCALE_PARENT" mise run pscale-branch
-
-      - name: Ensure deploy request
-        if: steps.preflight.outputs.required == 'true' && github.event_name == 'pull_request'
-        # Open a deploy request into staging when the branch still differs.
-        # PR_NUMBER and PR_TITLE are passed through env so title text can't be
-        # interpreted as shell.
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          set -euo pipefail
-          BRANCH_DIFF=$(pscale branch diff "$PSCALE_DB" "$BRANCH" \
-            --org "$PSCALE_ORG" --format json)
-          if ! jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
-            echo "::error::PlanetScale returned an invalid branch diff."
-            exit 1
-          fi
-          if jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
-            echo "The PlanetScale PR branch already matches staging."
-            exit 0
-          fi
-
-          EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
-                '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
-            | head -n1)
-          if [ -z "$EXISTING" ]; then
-            pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
-              --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
-              --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
-          else
-            echo "Reusing existing deploy request #$EXISTING"
-          fi
-
-      - name: Require production schema
+      - name: Compare proposed schema with production
         if: steps.preflight.outputs.required == 'true'
         run: |
           set -euo pipefail
-          TMP_DIR=$(mktemp -d)
-          trap 'rm -rf "$TMP_DIR"' EXIT
-
-          fetch_schema() {
-            local branch="$1"
-            local output="$2"
-            local response="$TMP_DIR/${branch}.json"
-
-            pscale branch schema "$PSCALE_DB" "$branch" \
-              --org "$PSCALE_ORG" --format json > "$response"
-            jq -er '
-              if type != "array" or length == 0 then
-                error("PlanetScale returned an empty or invalid schema")
-              else
-                map(
-                  if (.raw | type) != "string" then
-                    error("PlanetScale returned a schema without SQL")
-                  else
-                    .raw
-                  end
-                ) | join("\n")
-              end
-            ' "$response" > "$output"
+          cleanup() {
+            pscale branch delete "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --force || true
           }
+          trap cleanup EXIT
 
-          PRODUCTION_SCHEMA="$TMP_DIR/main.sql"
-          EXPECTED_SCHEMA="$TMP_DIR/expected.sql"
-          SCHEMA_DIFF="$TMP_DIR/schema.diff.sql"
-          fetch_schema main "$PRODUCTION_SCHEMA"
-          fetch_schema "$BRANCH" "$EXPECTED_SCHEMA"
+          BRANCH="$BRANCH" FROM="$PSCALE_BASE" mise run pscale-branch
 
-          if ! mise exec -- schemadiff diff \
-              --source "$PRODUCTION_SCHEMA" \
-              --target "$EXPECTED_SCHEMA" \
-              > "$SCHEMA_DIFF"; then
-            echo "::error::Could not compare the PlanetScale schemas."
-            exit 1
-          fi
+          # PlanetScale's schema API can lag a completed drizzle-kit push by a
+          # few seconds. Keep checking through a bounded propagation window so
+          # an initially empty response cannot produce a false pass.
+          for attempt in $(seq 1 7); do
+            BRANCH_DIFF=$(pscale branch diff "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --format json)
 
-          if [ -s "$SCHEMA_DIFF" ]; then
-            echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
-            cat "$SCHEMA_DIFF"
-            exit 1
-          fi
+            if ! jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
+              echo "::error::PlanetScale returned an invalid branch diff."
+              exit 1
+            fi
+            if ! jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
+              echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
+              jq -r '.[].raw' <<< "$BRANCH_DIFF"
+              exit 1
+            fi
+            if [ "$attempt" -lt 7 ]; then
+              sleep 5
+            fi
+          done
 
           echo "The production PlanetScale schema matches this change."
-
-      - name: Delete temporary branch
-        if: always() && steps.preflight.outputs.required == 'true' && github.event_name != 'pull_request'
-        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true
