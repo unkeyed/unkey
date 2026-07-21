@@ -12,7 +12,7 @@ type Querier interface {
 	Conn() ch.Conn
 
 	// QueryToMaps executes a dynamic query within mandatory row and encoded-byte bounds.
-	QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, args ...any) ([]map[string]any, error)
+	QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error)
 
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
 	Exec(ctx context.Context, sql string, args ...any) error

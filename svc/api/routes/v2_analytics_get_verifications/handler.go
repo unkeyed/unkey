@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	resultRowsMax := int(clickhouse.AnalyticsResultRowsMaxForWorkspace(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows))
+	resultRowsMax := int(clickhouse.AnalyticsWorkspaceResultRowsMax(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows))
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:         principal.WorkspaceID,
 		Limit:               resultRowsMax,
@@ -148,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	response, err := marshalAnalyticsResponse(Response{
+	responseBytes, err := marshalAnalyticsResponse(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
@@ -158,21 +158,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	s.AddHeader("Content-Type", "application/json")
-	return s.Send(http.StatusOK, response)
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 func marshalAnalyticsResponse(response Response) ([]byte, error) {
-	encoded, err := json.Marshal(response)
+	responseBytes, err := json.Marshal(response)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to encode query results"))
 	}
-	if len(encoded) > clickhouse.AnalyticsResultBytesMax {
+	if len(responseBytes) > clickhouse.AnalyticsResultBytesMax {
 		return nil, fault.New("analytics response byte limit exceeded",
 			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
 			fault.Public("Query result exceeds the maximum response size."),
 		)
 	}
-	return encoded, nil
+	return responseBytes, nil
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

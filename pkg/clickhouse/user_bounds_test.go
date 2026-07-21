@@ -9,27 +9,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type profileCaptureConn struct {
+type profileConnectionRecorder struct {
 	driver.Conn
 	queries []string
 }
 
-func (c *profileCaptureConn) Exec(_ context.Context, query string, _ ...any) error {
+func (c *profileConnectionRecorder) Exec(_ context.Context, query string, _ ...any) error {
 	c.queries = append(c.queries, query)
 	return nil
 }
 
-func TestAnalyticsResultRowsMaxForWorkspace(t *testing.T) {
+func TestAnalyticsWorkspaceResultRowsMax(t *testing.T) {
 	// Security guarantee: the ClickHouse profile uses the lower workspace limit without permitting zero or oversized defaults.
-	require.Equal(t, int32(37), AnalyticsResultRowsMaxForWorkspace(37))
-	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsResultRowsMaxForWorkspace(10_000_000))
-	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsResultRowsMaxForWorkspace(0))
+	require.Equal(t, int32(37), AnalyticsWorkspaceResultRowsMax(37))
+	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsWorkspaceResultRowsMax(10_000_000))
+	require.Equal(t, int32(AnalyticsResultRowsMax), AnalyticsWorkspaceResultRowsMax(0))
 }
 
 func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
 	// Security guarantee: ClickHouse applies row, byte, and AST caps before producing analytics results.
-	conn := &profileCaptureConn{}
-	client := &Client{conn: conn}
+	connection := &profileConnectionRecorder{}
+	client := &Client{conn: connection}
 
 	err := client.ConfigureUser(context.Background(), UserConfig{
 		WorkspaceID:               "ws_test",
@@ -46,7 +46,7 @@ func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	profileSQL := conn.queries[len(conn.queries)-1]
+	profileSQL := connection.queries[len(connection.queries)-1]
 	for _, setting := range []string{
 		"max_result_rows = 10000",
 		"max_result_bytes = 4194304",

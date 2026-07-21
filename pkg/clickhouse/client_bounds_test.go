@@ -10,61 +10,61 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type boundedTestConn struct {
+type queryResultConnectionFake struct {
 	driver.Conn
 	rows     driver.Rows
-	queryCtx context.Context
+	ctxQuery context.Context
 }
 
-func (c *boundedTestConn) Query(ctx context.Context, _ string, _ ...any) (driver.Rows, error) {
-	c.queryCtx = ctx
-	if rows, ok := c.rows.(*boundedTestRows); ok {
-		rows.queryCtx = ctx
+func (c *queryResultConnectionFake) Query(ctx context.Context, _ string, _ ...any) (driver.Rows, error) {
+	c.ctxQuery = ctx
+	if rows, ok := c.rows.(*queryResultRowsFake); ok {
+		rows.ctxQuery = ctx
 	}
 	return c.rows, nil
 }
 
-type boundedTestRows struct {
+type queryResultRowsFake struct {
 	columns         []string
 	rows            [][]any
 	index           int
 	closed          bool
-	closeContextErr error
-	queryCtx        context.Context
+	errContextClose error
+	ctxQuery        context.Context
 	err             error
 }
 
-func (r *boundedTestRows) Next() bool {
+func (r *queryResultRowsFake) Next() bool {
 	return r.index < len(r.rows)
 }
 
-func (r *boundedTestRows) Scan(dest ...any) error {
+func (r *queryResultRowsFake) Scan(destinations ...any) error {
 	for i, value := range r.rows[r.index] {
-		ptr, ok := dest[i].(*ch.Dynamic)
+		dynamic, ok := destinations[i].(*ch.Dynamic)
 		if !ok {
 			return errors.New("unexpected scan destination")
 		}
-		*ptr = ch.NewDynamic(value)
+		*dynamic = ch.NewDynamic(value)
 	}
 	r.index++
 	return nil
 }
 
-func (r *boundedTestRows) ScanStruct(any) error             { return errors.New("not implemented") }
-func (r *boundedTestRows) ColumnTypes() []driver.ColumnType { return nil }
-func (r *boundedTestRows) Totals(...any) error              { return nil }
-func (r *boundedTestRows) Columns() []string                { return r.columns }
-func (r *boundedTestRows) Close() error {
+func (r *queryResultRowsFake) ScanStruct(any) error             { return errors.New("not implemented") }
+func (r *queryResultRowsFake) ColumnTypes() []driver.ColumnType { return nil }
+func (r *queryResultRowsFake) Totals(...any) error              { return nil }
+func (r *queryResultRowsFake) Columns() []string                { return r.columns }
+func (r *queryResultRowsFake) Close() error {
 	r.closed = true
-	r.closeContextErr = r.queryCtx.Err()
+	r.errContextClose = r.ctxQuery.Err()
 	return nil
 }
-func (r *boundedTestRows) Err() error { return r.err }
+func (r *queryResultRowsFake) Err() error { return r.err }
 
 func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
 	// Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
-	rows := &boundedTestRows{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, 1024))}}}
-	client := &Client{conn: &boundedTestConn{rows: rows}}
+	rows := &queryResultRowsFake{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, 1024))}}}
+	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
 	_, err := client.QueryToMaps(context.Background(), "SELECT groupArray(payload)", QueryResultLimits{RowsMax: 10, BytesMax: 128})
 	require.ErrorContains(t, err, "result byte limit")
@@ -73,8 +73,8 @@ func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
 
 func TestQueryToMapsRejectsWideRows(t *testing.T) {
 	// Security guarantee: wide rows consume the same byte budget as many narrow rows.
-	rows := &boundedTestRows{columns: []string{"a", "b", "c"}, rows: [][]any{{string(make([]byte, 60)), string(make([]byte, 60)), string(make([]byte, 60))}}}
-	client := &Client{conn: &boundedTestConn{rows: rows}}
+	rows := &queryResultRowsFake{columns: []string{"a", "b", "c"}, rows: [][]any{{string(make([]byte, 60)), string(make([]byte, 60)), string(make([]byte, 60))}}}
+	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
 	_, err := client.QueryToMaps(context.Background(), "SELECT a, b, c", QueryResultLimits{RowsMax: 10, BytesMax: 128})
 	require.ErrorContains(t, err, "result byte limit")
@@ -83,15 +83,15 @@ func TestQueryToMapsRejectsWideRows(t *testing.T) {
 
 func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
 	// Security guarantee: stopping response consumption closes ClickHouse rows and cancels further delivery.
-	rows := &boundedTestRows{columns: []string{"n"}, rows: [][]any{{1}, {2}}}
-	conn := &boundedTestConn{rows: rows}
-	client := &Client{conn: conn}
+	rows := &queryResultRowsFake{columns: []string{"n"}, rows: [][]any{{1}, {2}}}
+	connection := &queryResultConnectionFake{rows: rows}
+	client := &Client{conn: connection}
 
 	_, err := client.QueryToMaps(context.Background(), "SELECT n", QueryResultLimits{RowsMax: 1, BytesMax: 1024})
 	require.ErrorContains(t, err, "result row limit")
 	require.True(t, rows.closed)
-	require.ErrorIs(t, conn.queryCtx.Err(), context.Canceled)
-	require.ErrorIs(t, rows.closeContextErr, context.Canceled)
+	require.ErrorIs(t, connection.ctxQuery.Err(), context.Canceled)
+	require.ErrorIs(t, rows.errContextClose, context.Canceled)
 }
 
 func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
@@ -119,10 +119,10 @@ func TestQueryToMapsRejectsBoundsAboveHardMaximums(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", tt.limits)
-			require.ErrorContains(t, err, tt.err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", test.limits)
+			require.ErrorContains(t, err, test.err)
 		})
 	}
 }

@@ -179,7 +179,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	// Create or replace settings profile
 	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
 	logger.Info("creating/updating settings profile", "name", profileName)
-	maxResultRows := AnalyticsResultRowsMaxForWorkspace(config.MaxQueryResultRows)
+	resultRowsMax := AnalyticsWorkspaceResultRowsMax(config.MaxQueryResultRows)
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
@@ -196,7 +196,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		profileName,
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
-		maxResultRows,
+		resultRowsMax,
 		AnalyticsResultBytesMax,
 		AnalyticsASTDepthMax,
 		AnalyticsASTElementsMax,
