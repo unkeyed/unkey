@@ -1,5 +1,9 @@
 import { getStripeClient } from "@/lib/stripe";
-import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
+import {
+  expandableId,
+  retrieveWorkspaceCheckoutSession,
+  throwMaskedStripeError,
+} from "@/lib/trpc/routers/utils/stripe";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -31,21 +35,23 @@ export const getSetupIntent = workspaceProcedure
     let allowedCustomerId: string | null = null;
 
     if (input.sessionId) {
-      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-      if (
-        !session ||
-        session.client_reference_id !== ctx.workspace.id ||
-        (typeof session.setup_intent === "string"
-          ? session.setup_intent
-          : session.setup_intent?.id) !== input.setupIntentId
-      ) {
+      const session = await retrieveWorkspaceCheckoutSession({
+        stripe,
+        sessionId: input.sessionId,
+        workspaceId: ctx.workspace.id,
+        notFoundMessage: "Setup intent not found",
+      });
+
+      // The session must also reference the requested setup intent, otherwise
+      // an owned session could be used to read an unrelated one.
+      if (expandableId(session.setup_intent) !== input.setupIntentId) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Setup intent not found",
         });
       }
-      allowedCustomerId =
-        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+
+      allowedCustomerId = expandableId(session.customer);
     } else if (ctx.workspace.stripeCustomerId) {
       allowedCustomerId = ctx.workspace.stripeCustomerId;
     }
@@ -60,36 +66,17 @@ export const getSetupIntent = workspaceProcedure
     try {
       const setupIntent = await stripe.setupIntents.retrieve(input.setupIntentId);
 
-      const setupIntentCustomerId =
-        typeof setupIntent.customer === "string"
-          ? setupIntent.customer
-          : (setupIntent.customer?.id ?? null);
-
-      if (setupIntentCustomerId !== allowedCustomerId) {
+      if (expandableId(setupIntent.customer) !== allowedCustomerId) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Setup intent not found",
         });
       }
 
-      // Extract payment method ID, handling both string and expanded object
-      let paymentMethodId: string | null = null;
-      if (setupIntent.payment_method) {
-        if (typeof setupIntent.payment_method === "string") {
-          paymentMethodId = setupIntent.payment_method;
-        } else if (
-          typeof setupIntent.payment_method === "object" &&
-          setupIntent.payment_method.id
-        ) {
-          // Expanded PaymentMethod object
-          paymentMethodId = setupIntent.payment_method.id;
-        }
-      }
-
       return {
         id: setupIntent.id,
         client_secret: setupIntent.client_secret,
-        payment_method: paymentMethodId,
+        payment_method: expandableId(setupIntent.payment_method),
         status: setupIntent.status,
         usage: setupIntent.usage,
       };
@@ -99,15 +86,17 @@ export const getSetupIntent = workspaceProcedure
         throw error;
       }
 
-      // Map Stripe errors to appropriate TRPC error codes
+      // A nonexistent setup intent must be indistinguishable from a foreign
+      // one, so a caller cannot probe which ids exist.
       if (error instanceof Stripe.errors.StripeError) {
-        handleStripeError(error);
+        throwMaskedStripeError(error, "Setup intent not found");
       }
 
       // Handle unknown errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to retrieve setup intent",
+        cause: error,
       });
     }
   });

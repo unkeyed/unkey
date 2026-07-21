@@ -46,14 +46,77 @@ export const mapProduct = (p: Stripe.Product) => {
   };
 };
 
+/**
+ * Extracts the id from a Stripe relation, which is either a bare id string
+ * or, when the field was expanded, the full object.
+ */
+export const expandableId = (value: string | { id: string } | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  return typeof value === "string" ? value : value.id;
+};
+
+/**
+ * Retrieves a Stripe checkout session and verifies it was created for this
+ * workspace (billing sessions carry the workspace id in
+ * `client_reference_id`). Session ids are attacker-supplied, so this check is
+ * what stands between a client-supplied id and another workspace's billing
+ * data. A nonexistent session and a foreign session throw the same NOT_FOUND,
+ * so the response cannot be used to probe which ids exist.
+ */
+export const retrieveWorkspaceCheckoutSession = async (args: {
+  stripe: Stripe;
+  sessionId: string;
+  workspaceId: string;
+  /** Shown to the caller on rejection. Must not confirm the session exists. */
+  notFoundMessage: string;
+}): Promise<Stripe.Checkout.Session> => {
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await args.stripe.checkout.sessions.retrieve(args.sessionId);
+  } catch (error) {
+    // Stripe throws (rather than returning null) for unknown ids.
+    if (error instanceof Stripe.errors.StripeError) {
+      throwMaskedStripeError(error, args.notFoundMessage);
+    }
+    // Non-Stripe errors must not reach the client verbatim — tRPC's default
+    // error formatter would forward the raw message.
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to retrieve checkout session",
+      cause: error,
+    });
+  }
+
+  if (session.client_reference_id !== args.workspaceId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: args.notFoundMessage,
+    });
+  }
+
+  return session;
+};
+
 // stripe-node v22 exports error classes as values only; derive the type.
 type StripeError = InstanceType<typeof Stripe.errors.StripeError>;
 
-export const handleStripeError = (error: StripeError) => {
-  const stripeError = error;
+/**
+ * A missing or deleted resource. Must be checked BEFORE `handleStripeError`,
+ * where resource_missing (a StripeInvalidRequestError) maps to BAD_REQUEST.
+ */
+export const isStripeNotFound = (error: StripeError): boolean => {
+  return error.statusCode === 404 || error.code === "resource_missing";
+};
+
+export const handleStripeError = (error: StripeError): never => {
   let code: TRPCError["code"];
 
-  // Map Stripe error types to TRPC error codes
+  // The class checks deliberately precede the not-found check:
+  // resource_missing also covers a missing sub-resource in request params
+  // (e.g. a bogus payment-method id), which must stay BAD_REQUEST, and a
+  // 404-shaped permission error must stay FORBIDDEN.
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
     code = "UNAUTHORIZED";
   } else if (error instanceof Stripe.errors.StripeRateLimitError) {
@@ -62,7 +125,7 @@ export const handleStripeError = (error: StripeError) => {
     code = "BAD_REQUEST";
   } else if (error instanceof Stripe.errors.StripePermissionError) {
     code = "FORBIDDEN";
-  } else if (stripeError.statusCode === 404 || stripeError.code === "resource_missing") {
+  } else if (isStripeNotFound(error)) {
     code = "NOT_FOUND";
   } else if (error instanceof Stripe.errors.StripeAPIError) {
     code = "INTERNAL_SERVER_ERROR";
@@ -75,6 +138,26 @@ export const handleStripeError = (error: StripeError) => {
 
   throw new TRPCError({
     code,
-    message: `Stripe error: ${stripeError.message}`,
+    message: `Stripe error: ${error.message}`,
   });
+};
+
+/**
+ * Maps a Stripe error for an endpoint that must not reveal whether a probed
+ * id exists: not-found shaped errors throw NOT_FOUND with the caller's masked
+ * message (never Stripe's "No such ..." text), everything else goes through
+ * `handleStripeError`. Permission errors are exempt from the mask even when
+ * 404-shaped: they fire identically for every id (revealing nothing to an id
+ * prober), and masking them would misreport a restricted-key
+ * misconfiguration as missing billing data.
+ */
+export const throwMaskedStripeError = (error: StripeError, notFoundMessage: string): never => {
+  if (!(error instanceof Stripe.errors.StripePermissionError) && isStripeNotFound(error)) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: notFoundMessage,
+    });
+  }
+  // `return` proves to the compiler that this function cannot fall through.
+  return handleStripeError(error);
 };

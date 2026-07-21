@@ -1,5 +1,9 @@
 import { getStripeClient } from "@/lib/stripe";
-import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
+import {
+  expandableId,
+  handleStripeError,
+  retrieveWorkspaceCheckoutSession,
+} from "@/lib/trpc/routers/utils/stripe";
 import {
   ratelimit,
   requireWorkspaceAdmin,
@@ -11,9 +15,8 @@ import Stripe from "stripe";
 import { z } from "zod";
 
 const updateCustomerInputSchema = z.object({
-  // Optional sessionId path: needed for the post-checkout flow where the
-  // workspace doesn't yet have a stripeCustomerId. The session must belong to
-  // this workspace. The customer id is never taken from the client.
+  // The customer id is never taken from the client: it is resolved from the
+  // verified session, or from the workspace when no sessionId is given.
   sessionId: z.string().optional(),
   paymentMethod: z.string(),
 });
@@ -30,24 +33,27 @@ export const updateCustomer = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
-    let customerId: string | null = ctx.workspace.stripeCustomerId;
+    // The session's customer is authoritative: setup-mode checkout always
+    // creates a new customer and attaches the payment method to it, so
+    // targeting the previously bound customer would fail.
+    let customerId: string | null;
 
-    if (!customerId && input.sessionId) {
-      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-      if (!session || session.client_reference_id !== ctx.workspace.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Checkout session does not belong to this workspace",
-        });
-      }
-      customerId =
-        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+    if (input.sessionId) {
+      const session = await retrieveWorkspaceCheckoutSession({
+        stripe,
+        sessionId: input.sessionId,
+        workspaceId: ctx.workspace.id,
+        notFoundMessage: "Customer not found",
+      });
+      customerId = expandableId(session.customer);
+    } else {
+      customerId = ctx.workspace.stripeCustomerId;
     }
 
     if (!customerId) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Customer not found or has been deleted",
+        message: "Customer not found",
       });
     }
 
@@ -83,6 +89,7 @@ export const updateCustomer = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to update customer",
+        cause: error,
       });
     }
   });

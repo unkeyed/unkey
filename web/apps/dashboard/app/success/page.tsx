@@ -158,21 +158,8 @@ function SuccessContent() {
           return;
         }
 
-        // Get customer details. We pass sessionId so the server can verify
-        // that the session (and therefore the customer) belongs to this
-        // workspace via session.client_reference_id, rather than trusting a
-        // client-supplied customer id.
-        const customer = await trpcUtils.stripe.getCustomer.fetch({
-          sessionId,
-        });
-
-        if (!isMounted) {
-          return;
-        }
-
-        // Get setup intent details. Pass sessionId so the server can verify
-        // the setup intent belongs to a session bound to this workspace,
-        // before the workspace has a stripeCustomerId of its own.
+        // Pass sessionId so the server can verify the setup intent belongs to
+        // a session bound to this workspace.
         const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
           setupIntentId: sessionResponse.setup_intent,
           sessionId,
@@ -182,8 +169,8 @@ function SuccessContent() {
           return;
         }
 
-        if (!customer || !setupIntent?.payment_method) {
-          console.warn("Customer or payment method not found");
+        if (!setupIntent?.payment_method) {
+          console.warn("Payment method not found");
           if (!isMounted) {
             return;
           }
@@ -194,9 +181,8 @@ function SuccessContent() {
 
         // Update customer with default payment method
         try {
-          // Pass sessionId rather than a client-supplied customer id: the
-          // server resolves the customer from the workspace, falling back to
-          // the session it verifies belongs to this workspace.
+          // The server resolves the customer from the verified session rather
+          // than trusting a client-supplied customer id.
           await updateCustomerFn({
             sessionId,
             paymentMethod: setupIntent.payment_method,
@@ -209,7 +195,6 @@ function SuccessContent() {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update customer with payment method:", {
             error: errorMessage,
-            customerId: "redacted", // Don't log PII
             hasPaymentMethod: !!setupIntent.payment_method,
           });
           if (!isMounted) {

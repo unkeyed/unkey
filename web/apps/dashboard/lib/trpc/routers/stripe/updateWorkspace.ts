@@ -4,6 +4,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
+import { expandableId, retrieveWorkspaceCheckoutSession } from "../utils/stripe";
 
 export const updateWorkspaceStripeCustomer = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -19,22 +20,14 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
     // the session was created for this workspace. This prevents an attacker
     // from tricking a logged-in user into binding the attacker's Stripe
     // customer to the victim's workspace via a /success?session_id=... link.
-    const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-    if (!session) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Checkout session not found",
-      });
-    }
-    if (session.client_reference_id !== ctx.workspace.id) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Checkout session does not belong to this workspace",
-      });
-    }
+    const session = await retrieveWorkspaceCheckoutSession({
+      stripe,
+      sessionId: input.sessionId,
+      workspaceId: ctx.workspace.id,
+      notFoundMessage: "Checkout session not found for this workspace",
+    });
 
-    const stripeCustomerId =
-      typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+    const stripeCustomerId = expandableId(session.customer);
     if (!stripeCustomerId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -74,11 +67,12 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
           },
         });
       })
-      .catch((_err) => {
+      .catch((err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
             "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.com",
+          cause: err,
         });
       });
 
