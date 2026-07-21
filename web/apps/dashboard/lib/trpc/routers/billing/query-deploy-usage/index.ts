@@ -1,8 +1,18 @@
-import { microCentsToCents, priceDeployUsageMicroCents } from "@/lib/billing/deployPricing";
+import {
+  microCentsToCents,
+  priceDeployUsageMicroCents,
+  projectDeployUsage,
+} from "@/lib/billing/deployPricing";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+/**
+ * Window whose average run-rate we extrapolate to the period end. Recent enough
+ * that it reflects what is currently deployed, long enough to smooth spikes.
+ */
+const TRAILING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const queryDeployUsageResponse = z.object({
   cpuSeconds: z.number(),
@@ -12,6 +22,12 @@ export const queryDeployUsageResponse = z.object({
   activeKeys: z.number(),
   /** Month-to-date gross usage priced locally (cents), same math as the spend-cap worker. */
   grossCents: z.number(),
+  /**
+   * Gross usage projected to the end of the calendar month (cents): month-to-date
+   * plus the trailing-window run-rate over the remaining days. A forecast for
+   * display, not a billed figure.
+   */
+  projectedGrossCents: z.number(),
 });
 
 export type DeployUsageResponse = z.infer<typeof queryDeployUsageResponse>;
@@ -26,14 +42,17 @@ export const queryDeployUsage = workspaceProcedure
   .output(queryDeployUsageResponse)
   .query(async ({ ctx }) => {
     const now = new Date();
+    const nowMs = now.getTime();
     const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    // First instant of next month; the exclusive end of the current one.
+    const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
 
     try {
-      const [meters, keys] = await Promise.all([
+      const [meters, keys, trailing] = await Promise.all([
         clickhouse.billing.deployMeterUsage({
           workspaceId: ctx.workspace.id,
           start: monthStart,
-          end: now.getTime(),
+          end: nowMs,
         }),
         clickhouse.billing.activeKeysUsage({
           workspaceId: ctx.workspace.id,
@@ -41,20 +60,38 @@ export const queryDeployUsage = workspaceProcedure
           // getUTCMonth is 0-based; the query takes a calendar month.
           month: now.getUTCMonth() + 1,
         }),
+        // Trailing window for the projection's run-rate; may reach into last
+        // month early in the period, which is fine, it's just a rate estimate.
+        clickhouse.billing.deployMeterUsage({
+          workspaceId: ctx.workspace.id,
+          start: nowMs - TRAILING_WINDOW_MS,
+          end: nowMs,
+        }),
       ]);
 
-      const grossMicroCents = priceDeployUsageMicroCents({
+      const monthToDate = {
         cpuSeconds: meters.cpuSeconds,
         memoryGiBHours: meters.memoryGiBHours,
         diskGiBHours: meters.diskGiBHours,
         egressGiB: meters.egressGiB,
         activeKeys: keys.activeKeys,
-      });
+      };
+
+      const grossMicroCents = priceDeployUsageMicroCents(monthToDate);
+
+      const projected = projectDeployUsage(
+        monthToDate,
+        trailing,
+        TRAILING_WINDOW_MS,
+        monthEnd - nowMs,
+      );
+      const projectedMicroCents = priceDeployUsageMicroCents(projected);
 
       return {
         ...meters,
         activeKeys: keys.activeKeys,
         grossCents: microCentsToCents(grossMicroCents),
+        projectedGrossCents: microCentsToCents(projectedMicroCents),
       };
     } catch (err) {
       console.error("Failed to query deploy usage", err);
