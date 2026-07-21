@@ -42,6 +42,7 @@ func Test404_KeySpaceNotFound(t *testing.T) {
 	require.Equal(t, 404, res.Status) // Key space not found
 }
 
+// Test404_MixedKeySpacesFailClosed guarantees mixed invalid IDs fail closed and foreign IDs remain indistinguishable from missing IDs.
 func Test404_MixedKeySpacesFailClosed(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
@@ -58,7 +59,6 @@ func Test404_MixedKeySpacesFailClosed(t *testing.T) {
 		"Content-Type":  []string{"application/json"},
 	}
 
-	// Security guarantee: one foreign, missing, or unauthorized ID makes the complete request fail closed.
 	query := fmt.Sprintf(
 		"SELECT COUNT(*) FROM key_verifications_v1 AS v WHERE v.key_space_id IN ('%s', '%s', '%s', '%s')",
 		owned.KeyAuthID.String,
@@ -69,7 +69,6 @@ func Test404_MixedKeySpacesFailClosed(t *testing.T) {
 	res := testutil.CallRoute[Request, openapi.NotFoundErrorResponse](h, route, headers, Request{Query: query})
 	require.Equal(t, http.StatusNotFound, res.Status)
 
-	// Security guarantee: a foreign key space is externally indistinguishable from a missing one.
 	foreignRes := testutil.CallRoute[Request, openapi.NotFoundErrorResponse](h, route, headers, Request{Query: fmt.Sprintf(
 		"SELECT COUNT(*) FROM key_verifications_v1 WHERE key_space_id = '%s'", foreign.KeyAuthID.String,
 	)})

@@ -41,6 +41,7 @@ func (c *countingCache[K, V]) SWRMany(
 	return c.Cache.SWRMany(ctx, keys, refreshFromOrigin, op)
 }
 
+// Test400_KeySpaceLimitPrecedesAuthorizationLookups guarantees the eleventh unique ID is rejected before cache or database fan-out.
 func Test400_KeySpaceLimitPrecedesAuthorizationLookups(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
@@ -60,7 +61,6 @@ func Test400_KeySpaceLimitPrecedesAuthorizationLookups(t *testing.T) {
 	for i := range ids {
 		ids[i] = fmt.Sprintf("'ks_%d' = v.key_space_id", i)
 	}
-	// Security guarantee: the eleventh unique ID is rejected before authorization cache or database fan-out.
 	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},
@@ -72,6 +72,7 @@ func Test400_KeySpaceLimitPrecedesAuthorizationLookups(t *testing.T) {
 	require.Zero(t, keySpaceLookups.swrManyCalls)
 }
 
+// Test400_QueryWorkBoundsPrecedeAuthorizationLookups guarantees invalid query work is bounded before cache or database lookups.
 func Test400_QueryWorkBoundsPrecedeAuthorizationLookups(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -103,7 +104,6 @@ func Test400_QueryWorkBoundsPrecedeAuthorizationLookups(t *testing.T) {
 			route := &Handler{DB: h.DB, AnalyticsConnectionManager: connectionLookups, Caches: routeCaches}
 			h.Register(route)
 
-			// Security guarantee: invalid query work is bounded before any key-space cache or database lookup.
 			res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, http.Header{
 				"Authorization": []string{"Bearer " + rootKey},
 				"Content-Type":  []string{"application/json"},

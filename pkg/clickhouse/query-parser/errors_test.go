@@ -87,8 +87,8 @@ func TestParser_ErrorCodes(t *testing.T) {
 	}
 }
 
+// TestParser_RejectsOversizedQuery guarantees oversized input is rejected before authorization lookups.
 func TestParser_RejectsOversizedQuery(t *testing.T) {
-	// Security guarantee: oversized input is rejected before callers perform authorization lookups.
 	parser := NewParser(Config{})
 	query := "SELECT 1 " + strings.Repeat(" ", 16*1024)
 
@@ -98,8 +98,8 @@ func TestParser_RejectsOversizedQuery(t *testing.T) {
 	require.Contains(t, fault.UserFacingMessage(err), "too long")
 }
 
+// TestParser_RejectsComplexAST guarantees cheap input cannot trigger unbounded downstream work.
 func TestParser_RejectsComplexAST(t *testing.T) {
-	// Security guarantee: bounded AST work prevents cheap input from triggering unbounded downstream work.
 	parser := NewParser(Config{})
 	query := "SELECT " + strings.Repeat("1,", 600) + "1"
 

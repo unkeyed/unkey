@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
+// TestKeySpaceAuthorizationWorkLimit guarantees authorization fan-out is capped by unique key-space IDs.
 func TestKeySpaceAuthorizationWorkLimit(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -26,7 +27,6 @@ func TestKeySpaceAuthorizationWorkLimit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Security guarantee: authorization fan-out is capped by unique key-space IDs.
 			err := validateKeySpaceAuthorizationWork(tt.ids)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -105,6 +105,7 @@ func Test403_WrongApiPermission(t *testing.T) {
 	require.Equal(t, 403, res.Status)
 }
 
+// Test403_ScopedPermissionRequiresInjectedSecurityFilter guarantees scoped access fails closed when RLS cannot be injected.
 func Test403_ScopedPermissionRequiresInjectedSecurityFilter(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
@@ -114,7 +115,6 @@ func Test403_ScopedPermissionRequiresInjectedSecurityFilter(t *testing.T) {
 	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: h.Caches}
 	h.Register(route)
 
-	// Security guarantee: scoped access fails closed when the query shape prevents RLS injection.
 	res := testutil.CallRoute[Request, Response](h, route, http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},

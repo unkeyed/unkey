@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
+// Test200_WildcardPermissionSkipsKeySpaceLookups guarantees wildcard authorization never fans out into key-space lookups.
 func Test200_WildcardPermissionSkipsKeySpaceLookups(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
@@ -29,7 +30,6 @@ func Test200_WildcardPermissionSkipsKeySpaceLookups(t *testing.T) {
 	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: routeCaches}
 	h.Register(route)
 
-	// Security guarantee: wildcard authorization never fans out into attacker-controlled key-space lookups.
 	res := testutil.CallRoute[Request, Response](h, route, http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},
