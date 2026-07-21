@@ -1,8 +1,8 @@
 // Package quotacheck implements the CronService.RunQuotaCheck handler.
-// The handler queries workspace usage from ClickHouse and sends Slack
-// notifications for newly exceeded quotas. Keyed by billing period
-// (e.g. "2026-01"); state tracks notified workspaces so a daily
-// re-trigger doesn't spam.
+// The handler queries workspace usage from ClickHouse, sends internal Slack
+// notifications, and emails Free-tier workspace admins on the first two
+// notifications. Keyed by billing period (e.g. "2026-01"); state tracks
+// notified workspaces so a daily re-trigger doesn't spam.
 package quotacheck
 
 import (
@@ -16,11 +16,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
@@ -29,6 +31,12 @@ import (
 // stateKeyNotifiedWorkspaces tracks per-workspace last-notified
 // timestamps within a billing period (VO state).
 const stateKeyNotifiedWorkspaces = "notified_workspaces"
+
+// stateKeyCustomerEmailCounts tracks how many customer emails each workspace
+// received in this billing period. It is separate from the legacy notification
+// timestamp state so deploying customer email does not invalidate existing VO
+// state.
+const stateKeyCustomerEmailCounts = "customer_email_counts"
 
 // minUsageThreshold is the minimum usage to consider for quota checks.
 // Workspaces below this threshold are skipped since the minimum paid
@@ -45,6 +53,13 @@ const followUpInterval = 6*24*time.Hour + 20*time.Hour
 // batchSize is the number of workspace IDs to fetch from the database
 // in a single query.
 const batchSize = 100
+
+// slackNotifyMaxAttempts bounds retries on the internal Slack notification so
+// a persistently failing webhook eventually yields a terminal error instead of
+// retrying forever. The Slack alert is best-effort: on failure the check logs
+// and continues to the customer email and remaining workspaces rather than
+// aborting the whole run.
+const slackNotifyMaxAttempts uint = 5
 
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
@@ -66,14 +81,33 @@ type Config struct {
 	// SlackWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
 	SlackWebhookURL string
+	// Admins resolves the workspace org's admin email addresses. Must not be
+	// nil; use workos.NewNoop() when recipient lookup is disabled.
+	Admins workos.Resolver
+	// Email sends customer notifications. Must not be nil; use email.NewNoop()
+	// when delivery is disabled.
+	Email email.Sender
+	// CustomerEmailEnabled distinguishes real delivery from the noop sender so
+	// disabled checks do not consume the first and second customer email slots.
+	CustomerEmailEnabled bool
+	// BillingBaseURL is the dashboard origin used for customer action links.
+	BillingBaseURL string
+	// FollowUpInterval overrides the default weekly reminder cadence when set.
+	// This is used by integration tests to exercise the notification sequence.
+	FollowUpInterval *time.Duration
 }
 
 // Handler executes RunQuotaCheck.
 type Handler struct {
-	db              db.Database
-	clickhouse      clickhouse.ClickHouse
-	heartbeat       healthcheck.Heartbeat
-	slackWebhookURL string
+	db                   db.Database
+	clickhouse           clickhouse.ClickHouse
+	heartbeat            healthcheck.Heartbeat
+	slackWebhookURL      string
+	admins               workos.Resolver
+	email                email.Sender
+	customerEmailEnabled bool
+	billingBaseURL       string
+	followUp             time.Duration
 }
 
 // New constructs a Handler.
@@ -82,19 +116,30 @@ func New(cfg Config) (*Handler, error) {
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
 		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Admins, "Admins must not be nil; use workos.NewNoop()"),
+		assert.NotNil(cfg.Email, "Email must not be nil; use email.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
+	reminderInterval := followUpInterval
+	if cfg.FollowUpInterval != nil {
+		reminderInterval = *cfg.FollowUpInterval
+	}
 	return &Handler{
-		db:              cfg.DB,
-		clickhouse:      cfg.Clickhouse,
-		heartbeat:       cfg.Heartbeat,
-		slackWebhookURL: cfg.SlackWebhookURL,
+		db:                   cfg.DB,
+		clickhouse:           cfg.Clickhouse,
+		heartbeat:            cfg.Heartbeat,
+		slackWebhookURL:      cfg.SlackWebhookURL,
+		admins:               cfg.Admins,
+		email:                cfg.Email,
+		customerEmailEnabled: cfg.CustomerEmailEnabled,
+		billingBaseURL:       cfg.BillingBaseURL,
+		followUp:             reminderInterval,
 	}, nil
 }
 
-// Handle queries all workspace usage and sends Slack notifications for
-// newly exceeded quotas.
+// Handle queries all workspace usage and sends internal and customer
+// notifications for newly exceeded quotas.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunQuotaCheckRequest,
@@ -113,6 +158,13 @@ func (h *Handler) Handle(
 	}
 	if notifiedAt == nil {
 		notifiedAt = make(map[string]int64)
+	}
+	emailCounts, err := restate.Get[map[string]int64](ctx, stateKeyCustomerEmailCounts)
+	if err != nil {
+		return nil, fmt.Errorf("get customer email state: %w", err)
+	}
+	if emailCounts == nil {
+		emailCounts = make(map[string]int64)
 	}
 
 	nowTime, err := restateutil.Now(ctx)
@@ -142,6 +194,7 @@ func (h *Handler) Handle(
 
 	var exceeded []exceededWorkspace
 	var newlyNotified []string
+	emailCountsChanged := false
 	workspacesChecked := 0
 
 	for i := 0; i < len(workspaceIDs); i += batchSize {
@@ -176,7 +229,7 @@ func (h *Handler) Handle(
 			isFollowUp := lastNotified > 0
 			if isFollowUp {
 				timeSinceLastNotification := time.Duration(now-lastNotified) * time.Second
-				if timeSinceLastNotification < followUpInterval {
+				if timeSinceLastNotification < h.followUp {
 					continue
 				}
 			}
@@ -190,10 +243,28 @@ func (h *Handler) Handle(
 			if h.slackWebhookURL != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 					return restate.Void{}, sendSlackNotification(rc, h.slackWebhookURL, e)
-				}, restate.WithName("notify "+ws.ID))
+				}, restate.WithName("notify "+ws.ID), restate.WithMaxRetryAttempts(slackNotifyMaxAttempts))
 				if notifyErr != nil {
-					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
+					// Best-effort: a failing Slack webhook must not abort the
+					// run and starve later workspaces of their customer emails.
+					logger.Error("failed to send quota slack notification",
+						"error", notifyErr,
+						"org_id", ws.OrgID,
+						"workspace_id", ws.ID,
+					)
 				}
+			}
+
+			emailSent, emailErr := h.sendCustomerEmail(ctx, billingPeriod, p.Year, emailCounts[ws.ID], e)
+			if emailErr != nil {
+				logger.Error("failed to send quota customer email",
+					"error", emailErr,
+					"org_id", ws.OrgID,
+					"workspace_id", ws.ID,
+				)
+			} else if emailSent {
+				emailCounts[ws.ID]++
+				emailCountsChanged = true
 			}
 
 			exceeded = append(exceeded, e)
@@ -204,6 +275,9 @@ func (h *Handler) Handle(
 
 	if len(newlyNotified) > 0 {
 		restate.Set(ctx, stateKeyNotifiedWorkspaces, notifiedAt)
+	}
+	if emailCountsChanged {
+		restate.Set(ctx, stateKeyCustomerEmailCounts, emailCounts)
 	}
 
 	logger.Info("quota check complete",

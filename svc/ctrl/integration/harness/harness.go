@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -35,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
@@ -102,6 +104,10 @@ type harnessOpts struct {
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
+
+	quotaAdmins           workos.Resolver
+	quotaEmail            email.Sender
+	quotaFollowUpInterval *time.Duration
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -134,6 +140,17 @@ func WithDeployBilling(
 		o.billingUsageReader = reader
 		o.billingPusher = pusher
 		o.billingCloser = closer
+	}
+}
+
+// WithQuotaAlerts injects the quota check's recipient resolver, email sender,
+// and reminder cadence. A zero interval makes every invocation eligible for a
+// follow-up, which lets integration tests exercise the first/second sequence.
+func WithQuotaAlerts(admins workos.Resolver, sender email.Sender, followUpInterval time.Duration) Option {
+	return func(o *harnessOpts) {
+		o.quotaAdmins = admins
+		o.quotaEmail = sender
+		o.quotaFollowUpInterval = &followUpInterval
 	}
 }
 
@@ -242,11 +259,14 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BillingPusher:      o.billingPusher,
 		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
-		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
-		// means the check resolves no recipients and logs instead of emailing.
-		WorkOSAPIKey:   "",
-		ResendAPIKey:   "",
-		BillingBaseURL: "",
+		// Customer-alert dependencies are empty in tests unless an option injects
+		// fakes, so checks resolve no recipients and log instead of emailing.
+		WorkOSAPIKey:               "",
+		ResendAPIKey:               "",
+		BillingBaseURL:             "https://app.unkey.com",
+		QuotaCheckAdmins:           o.quotaAdmins,
+		QuotaCheckEmail:            o.quotaEmail,
+		QuotaCheckFollowUpInterval: o.quotaFollowUpInterval,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),

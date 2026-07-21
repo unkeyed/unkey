@@ -497,6 +497,11 @@ func Run(ctx context.Context, cfg Config) error {
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
 		BillingBaseURL: cfg.DashboardURL,
+		// cron.New derives production WorkOS/Resend dependencies from the keys;
+		// these overrides exist only for integration tests.
+		QuotaCheckAdmins:           nil,
+		QuotaCheckEmail:            nil,
+		QuotaCheckFollowUpInterval: nil,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),

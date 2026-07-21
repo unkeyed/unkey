@@ -16,6 +16,7 @@ SELECT
    w.id,
    w.org_id,
    w.name,
+   w.slug,
    b.stripe_customer_id,
    b.tier,
    w.enabled,
@@ -30,6 +31,7 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 	ID               string         `db:"id"`
 	OrgID            string         `db:"org_id"`
 	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
 	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
 	Tier             sql.NullString `db:"tier"`
 	Enabled          bool           `db:"enabled"`
@@ -42,6 +44,7 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
+//	   w.slug,
 //	   b.stripe_customer_id,
 //	   b.tier,
 //	   w.enabled,
@@ -73,6 +76,7 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 			&i.ID,
 			&i.OrgID,
 			&i.Name,
+			&i.Slug,
 			&i.StripeCustomerID,
 			&i.Tier,
 			&i.Enabled,
@@ -96,6 +100,7 @@ SELECT
    w.id,
    w.org_id,
    w.name,
+   w.slug,
    b.stripe_customer_id,
    b.tier,
    w.enabled,
@@ -112,6 +117,7 @@ type ListWorkspacesForQuotaCheckRow struct {
 	ID               string         `db:"id"`
 	OrgID            string         `db:"org_id"`
 	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
 	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
 	Tier             sql.NullString `db:"tier"`
 	Enabled          bool           `db:"enabled"`
@@ -124,6 +130,7 @@ type ListWorkspacesForQuotaCheckRow struct {
 //	   w.id,
 //	   w.org_id,
 //	   w.name,
+//	   w.slug,
 //	   b.stripe_customer_id,
 //	   b.tier,
 //	   w.enabled,
@@ -147,6 +154,7 @@ func (q *Queries) ListWorkspacesForQuotaCheck(ctx context.Context, cursor string
 			&i.ID,
 			&i.OrgID,
 			&i.Name,
+			&i.Slug,
 			&i.StripeCustomerID,
 			&i.Tier,
 			&i.Enabled,

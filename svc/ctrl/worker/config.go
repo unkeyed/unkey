@@ -223,10 +223,10 @@ type SlackConfig struct {
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
 }
 
-// EmailConfig holds transactional email (Resend) configuration. Used by the
-// spend-cap check to send budget alerts. Disabled (logs instead of sending)
-// unless ResendAPIKey is set. Sender and subject come from the published
-// template, so there is no From to configure here.
+// EmailConfig holds transactional email (Resend) configuration. Used by quota
+// and spend-cap checks to send customer alerts. Disabled (logs instead of
+// sending) unless ResendAPIKey is set. Sender and subject come from published
+// templates, so there is no From to configure here.
 type EmailConfig struct {
 	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
 	ResendAPIKey string `toml:"resend_api_key"`
@@ -307,12 +307,11 @@ type Config struct {
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
 
-	// Email configures transactional email (Resend) for budget alerts.
+	// Email configures transactional email (Resend) for customer alerts.
 	Email EmailConfig `toml:"email"`
 
-	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
-	// emails (budget-alert recipients). Empty resolves no recipients, so the
-	// check logs crossings but sends no email.
+	// WorkOSAPIKey authenticates org-admin recipient lookup for customer alerts.
+	// Empty resolves no recipients, so checks log crossings but send no email.
 	WorkOSAPIKey string `toml:"workos_api_key"`
 
 	// Clock provides time operations for testing and scheduling.

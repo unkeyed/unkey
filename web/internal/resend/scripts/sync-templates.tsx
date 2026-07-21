@@ -11,70 +11,8 @@
 // A draft version is invisible to sends: the Go side keeps sending the last
 // published version until --publish (or the Resend dashboard) publishes it.
 import { render } from "@react-email/render";
-import type React from "react";
 import { Resend } from "resend";
-import ComputeBudgetAlert from "../emails/compute_budget_alert";
-import ComputeBudgetStopped from "../emails/compute_budget_stopped";
-
-type TemplateSync = {
-  // alias is how svc/ctrl refers to the template; it must not change once a
-  // deployed control plane sends with it.
-  alias: string;
-  name: string;
-  subject: string;
-  from: string;
-  element: React.ReactElement;
-  variables: { key: string; fallbackValue: string }[];
-};
-
-const templates: TemplateSync[] = [
-  {
-    alias: "compute-budget-alert",
-    name: "Compute budget alert",
-    subject: "You've used {{{PERCENT}}}% of your spend budget",
-    from: "James | Unkey <james@updates.unkey.com>",
-    element: (
-      <ComputeBudgetAlert
-        workspaceName="{{{WORKSPACE_NAME}}}"
-        usage="{{{USAGE}}}"
-        budget="{{{BUDGET}}}"
-        percent="{{{PERCENT}}}"
-        billingUrl="{{{BILLING_URL}}}"
-        year="{{{YEAR}}}"
-      />
-    ),
-    variables: [
-      { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
-      { key: "USAGE", fallbackValue: "$0" },
-      { key: "BUDGET", fallbackValue: "$0" },
-      { key: "PERCENT", fallbackValue: "50" },
-      { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
-      { key: "YEAR", fallbackValue: "2026" },
-    ],
-  },
-  {
-    alias: "compute-budget-stopped",
-    name: "Compute workloads stopped",
-    subject: "Compute workloads stopped: budget reached",
-    from: "James | Unkey <james@updates.unkey.com>",
-    element: (
-      <ComputeBudgetStopped
-        workspaceName="{{{WORKSPACE_NAME}}}"
-        usage="{{{USAGE}}}"
-        budget="{{{BUDGET}}}"
-        billingUrl="{{{BILLING_URL}}}"
-        year="{{{YEAR}}}"
-      />
-    ),
-    variables: [
-      { key: "WORKSPACE_NAME", fallbackValue: "Your workspace" },
-      { key: "USAGE", fallbackValue: "$0" },
-      { key: "BUDGET", fallbackValue: "$0" },
-      { key: "BILLING_URL", fallbackValue: "https://app.unkey.com" },
-      { key: "YEAR", fallbackValue: "2026" },
-    ],
-  },
-];
+import { templates } from "../src/template-manifest";
 
 async function main(): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
