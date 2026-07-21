@@ -36,31 +36,18 @@ jobs:
               - 'web/internal/db/drizzle.config.ts'
               - 'web/internal/db/package.json'
 
-      - name: Check whether validation is required
-        id: preflight
-        env:
-          DB_SCHEMA_CHANGED: ${{ steps.changes.outputs.db_schema }}
-        run: |
-          set -euo pipefail
-          if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
-            echo "The database schema did not change."
-            echo "required=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "required=true" >> "$GITHUB_OUTPUT"
-
       - name: Install mise
-        if: steps.preflight.outputs.required == 'true'
+        if: steps.changes.outputs.db_schema == 'true'
         run: |
           ./dev/install-mise
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install toolchain
-        if: steps.preflight.outputs.required == 'true'
+        if: steps.changes.outputs.db_schema == 'true'
         run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
 
       - name: Compare proposed schema with production
-        if: steps.preflight.outputs.required == 'true'
+        if: steps.changes.outputs.db_schema == 'true'
         run: |
           set -euo pipefail
           BRANCH="$BRANCH" FROM="$PSCALE_BASE" mise run pscale-branch
@@ -89,7 +76,7 @@ jobs:
           echo "The production PlanetScale schema matches this change."
 
       - name: Delete schema check branch
-        if: always() && steps.preflight.outputs.required == 'true'
+        if: always() && steps.changes.outputs.db_schema == 'true'
         run: |
           # Preserve the comparison result if immediate cleanup fails. The
           # scheduled cleanup job removes any branch left behind.
