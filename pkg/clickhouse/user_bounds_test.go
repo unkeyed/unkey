@@ -19,8 +19,8 @@ func (c *profileConnectionRecorder) Exec(_ context.Context, query string, _ ...a
 	return nil
 }
 
+// Security guarantee: ClickHouse applies the workspace row quota plus byte and AST caps before producing analytics results.
 func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
-	// Security guarantee: ClickHouse applies the workspace row quota plus byte and AST caps before producing analytics results.
 	connection := &profileConnectionRecorder{}
 	client := &Client{conn: connection}
 
@@ -51,8 +51,8 @@ func TestConfigureUserIncludesResultAndComplexityBounds(t *testing.T) {
 	}
 }
 
+// Security guarantee: an invalid workspace quota cannot disable the ClickHouse result row bound.
 func TestConfigureUserRejectsDisabledResultRowBound(t *testing.T) {
-	// Security guarantee: an invalid workspace quota cannot disable the ClickHouse result row bound.
 	connection := &profileConnectionRecorder{}
 	client := &Client{conn: connection}
 

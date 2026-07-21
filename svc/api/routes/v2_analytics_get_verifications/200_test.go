@@ -68,8 +68,8 @@ func Test200_Success(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 }
 
+// Security guarantee: JSON framing and a one-row aggregate count toward the final response budget.
 func TestMarshalAnalyticsResponseEnforcesExactJSONBudget(t *testing.T) {
-	// Security guarantee: JSON framing and a one-row aggregate count toward the final response budget.
 	_, err := marshalAnalyticsResponse(Response{
 		Data: ResponseData{{"aggregate": string(make([]byte, clickhouse.AnalyticsResultBytesMax))}},
 	})

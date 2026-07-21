@@ -72,8 +72,8 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should show syntax error message")
 }
 
+// Security guarantee: API callers cannot make parser cost grow beyond the fixed SQL byte limit.
 func Test400_QueryLengthIsBoundedBeforeParsing(t *testing.T) {
-	// Security guarantee: API callers cannot make parser cost grow beyond the fixed SQL byte limit.
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID)

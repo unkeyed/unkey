@@ -61,8 +61,8 @@ func (r *queryResultRowsFake) Close() error {
 }
 func (r *queryResultRowsFake) Err() error { return r.err }
 
+// Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
 func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
-	// Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
 	rows := &queryResultRowsFake{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, 1024))}}}
 	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
@@ -71,8 +71,8 @@ func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
 	require.True(t, rows.closed)
 }
 
+// Security guarantee: wide rows consume the same byte budget as many narrow rows.
 func TestQueryToMapsRejectsWideRows(t *testing.T) {
-	// Security guarantee: wide rows consume the same byte budget as many narrow rows.
 	rows := &queryResultRowsFake{columns: []string{"a", "b", "c"}, rows: [][]any{{string(make([]byte, 60)), string(make([]byte, 60)), string(make([]byte, 60))}}}
 	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
@@ -81,8 +81,8 @@ func TestQueryToMapsRejectsWideRows(t *testing.T) {
 	require.True(t, rows.closed)
 }
 
+// Security guarantee: stopping response consumption closes ClickHouse rows and cancels further delivery.
 func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
-	// Security guarantee: stopping response consumption closes ClickHouse rows and cancels further delivery.
 	rows := &queryResultRowsFake{columns: []string{"n"}, rows: [][]any{{1}, {2}}}
 	connection := &queryResultConnectionFake{rows: rows}
 	client := &Client{conn: connection}
@@ -94,14 +94,14 @@ func TestQueryToMapsClosesRowsAtHardRowCap(t *testing.T) {
 	require.ErrorIs(t, rows.errContextClose, context.Canceled)
 }
 
+// Security guarantee: callers cannot accidentally execute an unbounded dynamic query.
 func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
-	// Security guarantee: callers cannot accidentally execute an unbounded dynamic query.
 	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{RowsMax: 0, BytesMax: 0})
 	require.ErrorContains(t, err, "query result row limit must be positive")
 }
 
+// Security guarantee: the API enforces the positive workspace quota without silently replacing it with a separate row policy.
 func TestQueryToMapsUsesWorkspaceRowBound(t *testing.T) {
-	// Security guarantee: the API enforces the positive workspace quota without silently replacing it with a separate row policy.
 	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
 		RowsMax:  10_000_000,
 		BytesMax: AnalyticsResultBytesMax,
@@ -109,8 +109,8 @@ func TestQueryToMapsUsesWorkspaceRowBound(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Security guarantee: callers cannot weaken the global encoded-response bound.
 func TestQueryToMapsRejectsByteBoundAboveHardMaximum(t *testing.T) {
-	// Security guarantee: callers cannot weaken the global encoded-response bound.
 	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
 		RowsMax:  10_000_000,
 		BytesMax: AnalyticsResultBytesMax + 1,

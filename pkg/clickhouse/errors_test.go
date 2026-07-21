@@ -42,6 +42,7 @@ func TestExtractUserFriendlyError(t *testing.T) {
 	}
 }
 
+// Security guarantee: ClickHouse result limits map to stable resource errors rather than timeout or 500 responses.
 func TestWrapClickHouseError_ResultLimits(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -72,7 +73,6 @@ func TestWrapClickHouseError_ResultLimits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Security guarantee: ClickHouse result limits map to stable resource errors rather than timeout or 500 responses.
 			err := WrapClickHouseError(tt.exception)
 			code, ok := fault.GetCode(err)
 			require.True(t, ok)
