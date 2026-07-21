@@ -13,7 +13,7 @@ permissions:
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
-  PSCALE_BASE: main
+  FROM: main
   BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
 jobs:
   gate:
@@ -50,7 +50,7 @@ jobs:
         if: steps.changes.outputs.db_schema == 'true'
         run: |
           set -euo pipefail
-          BRANCH="$BRANCH" FROM="$PSCALE_BASE" mise run pscale-branch
+          mise run pscale-branch
 
           # PlanetScale's schema API can lag a completed drizzle-kit push by a
           # few seconds. Keep checking through a bounded propagation window so
