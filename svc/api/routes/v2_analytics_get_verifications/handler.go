@@ -90,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Action:       rbac.ReadAnalytics,
 	})
 	wildcardAuthorized := slices.Contains(principal.Permissions, "api.*.read_analytics")
-	apiIDsAllowed := extractAllowedAPIIds(principal.Permissions)
+	apiIDsAllowed := extractAPIIDsAllowed(principal.Permissions)
 	if !wildcardAuthorized && len(keySpaceIDs) == 0 && len(apiIDsAllowed) == 0 {
 		return principal.Authorize(wildcardPermission)
 	}
@@ -101,10 +101,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	securityFilters, err := h.buildSecurityFilters(ctx, principal)
+	if err != nil {
+		return err
+	}
+
 	parserConfig := chquery.Config{
 		WorkspaceID:       principal.WorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
-		SecurityFilters:   nil,
+		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
 		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
@@ -119,26 +124,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return principal.Authorize(wildcardPermission)
 	}
 
-	if !wildcardAuthorized {
-		securityFilters, filterErr := h.buildSecurityFilters(ctx, principal)
-		if filterErr != nil {
-			return filterErr
+	if !wildcardAuthorized && len(keySpaceIDs) > 0 {
+		apiPermissions, permissionErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIDs)
+		if permissionErr != nil {
+			return permissionErr
 		}
-		parserConfig.SecurityFilters = securityFilters
-		parser = chquery.NewParser(parserConfig)
-		parsedQuery, err = parser.Parse(ctx, req.Query)
-		if err != nil {
+		if err := principal.Authorize(rbac.And(apiPermissions...)); err != nil {
 			return err
-		}
-
-		if len(keySpaceIDs) > 0 {
-			apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIDs)
-			if permErr != nil {
-				return permErr
-			}
-			if err := principal.Authorize(rbac.And(apiPermissions...)); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -176,33 +168,33 @@ func validateKeySpaceAuthorizationWork(keySpaceIDs []string) error {
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.
 // Returns filters that restrict queries to only the key_space_ids the user has access to.
 func (h *Handler) buildSecurityFilters(ctx context.Context, principal *authprincipal.Principal) ([]chquery.SecurityFilter, error) {
-	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
-	if len(allowedAPIIds) == 0 {
-		return []chquery.SecurityFilter{}, nil
+	apiIDsAllowed := extractAPIIDsAllowed(principal.Permissions)
+	if len(apiIDsAllowed) == 0 {
+		return nil, nil
 	}
 
 	// Fetch key auths for the allowed API IDs
-	apis, err := h.fetchKeyAuthsByAPIIds(ctx, principal.WorkspaceID, allowedAPIIds)
+	apis, err := h.fetchKeyAuthsByAPIIDs(ctx, principal.WorkspaceID, apiIDsAllowed)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract key space IDs from the fetched APIs
-	keySpaceIds := make([]string, 0, len(apis))
+	keySpaceIDs := make([]string, 0, len(apis))
 	for _, api := range apis {
-		keySpaceIds = append(keySpaceIds, api.KeyAuthID)
+		keySpaceIDs = append(keySpaceIDs, api.KeyAuthID)
 	}
 
 	return []chquery.SecurityFilter{
 		{
 			Column:        "key_space_id",
-			AllowedValues: keySpaceIds,
+			AllowedValues: keySpaceIDs,
 		},
 	}, nil
 }
 
-// fetchKeyAuthsByAPIIds fetches key auth rows for the given API IDs using the cache.
-func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+// fetchKeyAuthsByAPIIDs fetches key auth rows for the given API IDs using the cache.
+func (h *Handler) fetchKeyAuthsByAPIIDs(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
 	cacheKeys := array.Map(apiIDs, func(apiID string) cache.ScopedKey {
 		return cache.ScopedKey{
 			WorkspaceID: workspaceID,
@@ -239,8 +231,8 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 
 // buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
 // Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
-	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
+func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIDs []string) ([]rbac.PermissionQuery, error) {
+	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIDs(ctx, principal.WorkspaceID, keySpaceIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -265,8 +257,8 @@ func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principa
 	return apiPermissions, nil
 }
 
-// fetchKeyAuthsByKeyAuthIds fetches key auth rows for the given key auth IDs using the cache.
-func (h *Handler) fetchKeyAuthsByKeyAuthIds(ctx context.Context, workspaceID string, keyAuthIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, map[cache.ScopedKey]cache.CacheHit, error) {
+// fetchKeyAuthsByKeyAuthIDs fetches key auth rows for the given key auth IDs using the cache.
+func (h *Handler) fetchKeyAuthsByKeyAuthIDs(ctx context.Context, workspaceID string, keyAuthIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, map[cache.ScopedKey]cache.CacheHit, error) {
 	cacheKeys := array.Map(keyAuthIDs, func(keyAuthID string) cache.ScopedKey {
 		return cache.ScopedKey{
 			WorkspaceID: workspaceID,
@@ -301,10 +293,10 @@ func (h *Handler) fetchKeyAuthsByKeyAuthIds(ctx context.Context, workspaceID str
 	)
 }
 
-// extractAllowedAPIIds extracts API IDs from permissions
+// extractAPIIDsAllowed extracts API IDs from permissions
 // Returns empty slice if user has wildcard access (api.*.read_analytics)
 // Returns specific API IDs if user has limited access (api.api_123.read_analytics, etc.)
-func extractAllowedAPIIds(permissions []string) []string {
+func extractAPIIDsAllowed(permissions []string) []string {
 	if slices.Contains(permissions, "api.*.read_analytics") {
 		return nil
 	}
