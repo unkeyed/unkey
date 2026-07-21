@@ -9,6 +9,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+const (
+	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
+	AnalyticsResultBytesMax = 4 << 20
+	// AnalyticsASTDepthMax is the maximum ClickHouse AST depth for customer analytics queries.
+	AnalyticsASTDepthMax = 100
+	// AnalyticsASTElementsMax is the maximum number of ClickHouse AST elements for customer analytics queries.
+	AnalyticsASTElementsMax = 2_000
+)
+
 var (
 	// validIdentifier matches safe ClickHouse identifiers (usernames, policy names, quota names, profile names)
 	// Allows alphanumeric characters and underscores only
@@ -101,6 +110,10 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
 
+	if config.MaxQueryResultRows <= 0 {
+		return fmt.Errorf("query result row limit must be positive")
+	}
+
 	// Validate all identifiers to prevent SQL injection
 	if err := validateIdentifiers(config); err != nil {
 		return fmt.Errorf("identifier validation failed: %w", err)
@@ -185,6 +198,10 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 			max_execution_time = %d READONLY,
 			max_memory_usage = %d READONLY,
 			max_result_rows = %d READONLY,
+			max_result_bytes = %d READONLY,
+			result_overflow_mode = 'throw' READONLY,
+			max_ast_depth = %d READONLY,
+			max_ast_elements = %d READONLY,
 			readonly = 1 READONLY
 		TO %s
 	`,
@@ -192,6 +209,9 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
 		config.MaxQueryResultRows,
+		AnalyticsResultBytesMax,
+		AnalyticsASTDepthMax,
+		AnalyticsASTElementsMax,
 		config.Username,
 	)
 	err = c.Exec(ctx, createOrReplaceProfileSQL)

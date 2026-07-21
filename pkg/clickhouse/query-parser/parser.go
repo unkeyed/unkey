@@ -9,6 +9,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
+const (
+	queryBytesMax       = 16 << 10
+	projectedColumnsMax = 64
+	astNodesMax         = 2_000
+)
+
 // NewParser creates a new parser
 func NewParser(config Config) *Parser {
 	return &Parser{
@@ -20,6 +26,10 @@ func NewParser(config Config) *Parser {
 
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
+	if len(query) > queryBytesMax {
+		return "", newQueryLimitError("query exceeds maximum length", "Analytics query exceeds the maximum length")
+	}
+
 	// Parse SQL
 	parser := clickhouse.NewParser(query)
 	stmts, err := parser.ParseStmts()
@@ -51,6 +61,10 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", err
 	}
 
+	if err := p.validateComplexity(); err != nil {
+		return "", err
+	}
+
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
 
@@ -73,4 +87,47 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	}
 
 	return p.stmt.String(), nil
+}
+
+func (p *Parser) validateComplexity() error {
+	astNodesCount := 0
+	projectedColumnsCount := 0
+	expressionsPending := []clickhouse.Expr{p.stmt}
+	for len(expressionsPending) > 0 {
+		expressionsPendingIndexLast := len(expressionsPending) - 1
+		expression := expressionsPending[expressionsPendingIndexLast]
+		expressionsPending = expressionsPending[:expressionsPendingIndexLast]
+		var errLimit error
+		clickhouse.Walk(expression, func(node clickhouse.Expr) bool {
+			astNodesCount++
+			if astNodesCount > astNodesMax {
+				errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
+				return false
+			}
+			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
+				projectedColumnsCount += len(selectQuery.SelectItems)
+				if projectedColumnsCount > projectedColumnsMax {
+					errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
+					return false
+				}
+				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
+				if selectQuery.Except != nil {
+					expressionsPending = append(expressionsPending, selectQuery.Except)
+				}
+			}
+			return true
+		})
+		if errLimit != nil {
+			return errLimit
+		}
+	}
+
+	return nil
+}
+
+func newQueryLimitError(messageInternal, messagePublic string) error {
+	return fault.New(messageInternal,
+		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+		fault.Public(messagePublic),
+	)
 }
