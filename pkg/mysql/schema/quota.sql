@@ -15,7 +15,6 @@ CREATE TABLE `quota` (
 	`max_storage_mib_per_instance` int unsigned NOT NULL DEFAULT 10240,
 	`max_concurrent_builds` int unsigned NOT NULL DEFAULT 1,
 	`max_replicas_per_region` int unsigned NOT NULL DEFAULT 4,
-	`schema_gate_test` int,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );

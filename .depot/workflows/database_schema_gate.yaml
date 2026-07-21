@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 permissions:
   contents: read
+  pull-requests: read
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
@@ -53,9 +54,6 @@ jobs:
           fi
           echo "required=true" >> "$GITHUB_OUTPUT"
 
-      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
-        if: steps.preflight.outputs.required == 'true'
-
       - name: Install mise
         if: steps.preflight.outputs.required == 'true'
         run: |
@@ -64,7 +62,7 @@ jobs:
 
       - name: Install toolchain
         if: steps.preflight.outputs.required == 'true'
-        run: mise install --locked --yes node github:pnpm/pnpm
+        run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
 
       - name: Compare proposed schema with production
         if: steps.preflight.outputs.required == 'true'
@@ -76,16 +74,16 @@ jobs:
           # few seconds. Keep checking through a bounded propagation window so
           # an initially empty response cannot produce a false pass.
           for attempt in $(seq 1 7); do
-            BRANCH_DIFF=$(pscale branch diff "$PSCALE_DB" "$BRANCH" \
+            BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --format json)
 
-            if ! jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
+            if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCH_DIFF" >/dev/null; then
               echo "::error::PlanetScale returned an invalid branch diff."
               exit 1
             fi
-            if ! jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
+            if ! mise exec -- jq -e 'length == 0' <<< "$BRANCH_DIFF" >/dev/null; then
               echo "::error::The production PlanetScale schema does not match this pull request. Deploy the schema changes through staging and main, then rerun this check."
-              jq -r '.[].raw' <<< "$BRANCH_DIFF"
+              mise exec -- jq -r '.[].raw' <<< "$BRANCH_DIFF"
               exit 1
             fi
             if [ "$attempt" -lt 7 ]; then
@@ -98,7 +96,9 @@ jobs:
       - name: Delete schema check branch
         if: always() && steps.preflight.outputs.required == 'true'
         run: |
-          pscale branch delete "$PSCALE_DB" "$BRANCH" \
+          # Preserve the comparison result if immediate cleanup fails. The
+          # scheduled cleanup job removes any branch left behind.
+          mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" \
             --org "$PSCALE_ORG" --force || true
 
   cleanup:
@@ -110,14 +110,22 @@ jobs:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
-      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
 
       - name: Delete branches older than six hours
         run: |
           set -euo pipefail
           CUTOFF=$(date -u -d '6 hours ago' +%s)
-          pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | jq -r --argjson cutoff "$CUTOFF" '
+          mise exec -- pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | mise exec -- jq -r --argjson cutoff "$CUTOFF" '
                 .[]
                 | select(.name | startswith("schema-check-"))
                 | select(
@@ -127,6 +135,6 @@ jobs:
                 | .name
               ' \
             | while read -r branch; do
-                pscale branch delete "$PSCALE_DB" "$branch" \
+                mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \
                   --org "$PSCALE_ORG" --force
               done

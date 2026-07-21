@@ -3,9 +3,10 @@ title: "PlanetScale schema changes"
 description: "Apply MySQL schema changes before merging application code"
 ---
 
-The MySQL schema in a pull request must match the production PlanetScale
-schema before the pull request can merge. This ordering prevents application
-code from querying tables or columns that don't exist in production.
+When a pull request changes the MySQL schema, its proposed schema must match the
+production PlanetScale schema before the pull request can merge. This ordering
+prevents application code from querying tables or columns that don't exist in
+production.
 
 ## Schema sources
 
@@ -72,9 +73,11 @@ For an additive change, deploy the new table or column through `staging` and
 
 ## Troubleshoot the schema check
 
-The `Database schema gate` check prints PlanetScale's schema diff. Use that
-output to identify the pending production change.
+The required `Database Schema Gate / Compare production schema` check prints
+PlanetScale's schema diff. Use that output to identify the pending production
+change.
 
-If the gate doesn't run the comparison, confirm that the pull request changes a
-file under `web/internal/db/src/schema/`. Validation branches normally won't be
-visible after a check because CI deletes them before the job finishes.
+If the gate doesn't run the comparison, confirm that the pull request changes
+`web/internal/db/src/schema/`, `web/internal/db/drizzle.config.ts`, or
+`web/internal/db/package.json`. Validation branches normally won't be visible
+after a check because CI deletes them before the job finishes.

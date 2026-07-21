@@ -224,7 +224,7 @@
             "group": "Runbooks",
             "pages": ["infra/runbooks/key-migration"]
           },
-         {
+          {
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
