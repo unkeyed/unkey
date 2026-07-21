@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -147,7 +149,7 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 			ctx,
 			v.db,
 			deploymentID,
-			db.DeploymentsDesiredStateRunning,
+			mysqltype.DeploymentsDesiredStateRunning,
 			db.DeploymentTopologyDesiredStatusRunning,
 		); err != nil {
 			return nil, fmt.Errorf("resume deployment %s to running: %w", deploymentID, err)

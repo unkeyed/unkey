@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
@@ -48,12 +50,12 @@ func TestClassifyFailure(t *testing.T) {
 
 func TestDeriveFailure(t *testing.T) {
 	t.Run("non-failed status returns nil", func(t *testing.T) {
-		require.Nil(t, deriveError(db.DeploymentsStatusReady, nil))
-		require.Nil(t, deriveError(db.DeploymentsStatusBuilding, nil))
+		require.Nil(t, deriveError(mysqltype.DeploymentsStatusReady, nil))
+		require.Nil(t, deriveError(mysqltype.DeploymentsStatusBuilding, nil))
 	})
 
 	t.Run("failed with no recorded error falls back to unknown", func(t *testing.T) {
-		f := deriveError(db.DeploymentsStatusFailed, nil)
+		f := deriveError(mysqltype.DeploymentsStatusFailed, nil)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeUnknown, f.Code)
 		require.NotEmpty(t, f.Message)
@@ -63,7 +65,7 @@ func TestDeriveFailure(t *testing.T) {
 		steps := []db.DeploymentStep{
 			{Step: db.DeploymentStepsStepBuilding, Error: sql.NullString{Valid: true, String: "opaque depot build output"}},
 		}
-		f := deriveError(db.DeploymentsStatusFailed, steps)
+		f := deriveError(mysqltype.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeBuildFailed, f.Code)
 		require.Equal(t, "building", f.Step)
@@ -73,7 +75,7 @@ func TestDeriveFailure(t *testing.T) {
 		steps := []db.DeploymentStep{
 			{Step: db.DeploymentStepsStepDeploying, Error: sql.NullString{Valid: true, String: deployfail.MsgNoSchedulableRegions}},
 		}
-		f := deriveError(db.DeploymentsStatusFailed, steps)
+		f := deriveError(mysqltype.DeploymentsStatusFailed, steps)
 		require.NotNil(t, f)
 		require.Equal(t, openapi.DeploymentErrorCodeNoSchedulableRegions, f.Code)
 		require.Equal(t, "deploying", f.Step)

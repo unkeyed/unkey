@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listDeploymentsByEnvironmentIdAndStatus = `-- name: ListDeploymentsByEnvironmentIdAndStatus :many
@@ -19,10 +21,10 @@ WHERE environment_id = ?
 `
 
 type ListDeploymentsByEnvironmentIdAndStatusParams struct {
-	EnvironmentID string            `db:"environment_id"`
-	Status        DeploymentsStatus `db:"status"`
-	CreatedBefore int64             `db:"created_before"`
-	UpdatedBefore sql.NullInt64     `db:"updated_before"`
+	EnvironmentID string                      `db:"environment_id"`
+	Status        mysqltype.DeploymentsStatus `db:"status"`
+	CreatedBefore int64                       `db:"created_before"`
+	UpdatedBefore sql.NullInt64               `db:"updated_before"`
 }
 
 // ListDeploymentsByEnvironmentIdAndStatus

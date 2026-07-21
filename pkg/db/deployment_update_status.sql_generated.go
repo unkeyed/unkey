@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const updateDeploymentStatus = `-- name: UpdateDeploymentStatus :exec
@@ -17,9 +19,9 @@ WHERE id = ?
 `
 
 type UpdateDeploymentStatusParams struct {
-	Status    DeploymentsStatus `db:"status"`
-	UpdatedAt sql.NullInt64     `db:"updated_at"`
-	ID        string            `db:"id"`
+	Status    mysqltype.DeploymentsStatus `db:"status"`
+	UpdatedAt sql.NullInt64               `db:"updated_at"`
+	ID        string                      `db:"id"`
 }
 
 // UpdateDeploymentStatus

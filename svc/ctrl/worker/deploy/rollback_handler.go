@@ -6,7 +6,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -100,8 +99,8 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}
 
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
-		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		Status:              targetDeployment.Status,
+		DesiredState:        targetDeployment.DesiredState,
 		EnvironmentSlug:     environment.Slug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,

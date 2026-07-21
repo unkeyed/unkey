@@ -7,7 +7,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -41,8 +40,8 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	}
 
 	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
-		Status:              pkgdb.DeploymentsStatus(deployment.Status),
-		DesiredState:        pkgdb.DeploymentsDesiredState(deployment.DesiredState),
+		Status:              deployment.Status,
+		DesiredState:        deployment.DesiredState,
 		EnvironmentSlug:     deployment.EnvironmentSlug,
 		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
 		DeploymentID:        deployment.ID,

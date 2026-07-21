@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -27,7 +29,7 @@ func TestDeploySpendGate_BlocksCreateAndRebuild(t *testing.T) {
 	// Scaffolding: a project/app/env plus a source deployment to rebuild from.
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Suspend the workspace as the spend check would when the budget is hit.

@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listProgressingDeploymentsByEnvironmentId = `-- name: ListProgressingDeploymentsByEnvironmentId :many
@@ -19,8 +21,8 @@ WHERE environment_id = ?
 `
 
 type ListProgressingDeploymentsByEnvironmentIdParams struct {
-	EnvironmentID       string              `db:"environment_id"`
-	ProgressingStatuses []DeploymentsStatus `db:"progressing_statuses"`
+	EnvironmentID       string                        `db:"environment_id"`
+	ProgressingStatuses []mysqltype.DeploymentsStatus `db:"progressing_statuses"`
 }
 
 type ListProgressingDeploymentsByEnvironmentIdRow struct {

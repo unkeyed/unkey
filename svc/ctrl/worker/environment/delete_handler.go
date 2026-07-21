@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -149,7 +151,7 @@ func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID 
 	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
 		return s.db.ListProgressingDeploymentsByEnvironmentId(runCtx, db.ListProgressingDeploymentsByEnvironmentIdParams{
 			EnvironmentID:       envID,
-			ProgressingStatuses: db.ProgressingDeploymentStatuses,
+			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
 	}, restate.WithName("list progressing deployments"))
 	if err != nil {
@@ -208,7 +210,7 @@ func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		return s.db.UpdateDeploymentStatusBatch(runCtx, db.UpdateDeploymentStatusBatchParams{
-			Status:    db.DeploymentsStatusCancelled,
+			Status:    mysqltype.DeploymentsStatusCancelled,
 			UpdatedAt: now,
 			Ids:       deploymentIDs,
 		})

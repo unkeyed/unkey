@@ -5,7 +5,6 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
@@ -41,8 +40,8 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	}
 
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
-		Status:          pkgdb.DeploymentsStatus(deployment.Status),
-		DesiredState:    pkgdb.DeploymentsDesiredState(deployment.DesiredState),
+		Status:          deployment.Status,
+		DesiredState:    deployment.DesiredState,
 		EnvironmentSlug: environment.Slug,
 	}); err != nil {
 		return nil, gatefault.Terminal(err)
