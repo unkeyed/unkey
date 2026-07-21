@@ -7,11 +7,38 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
+
+func Test200_WildcardPermissionSkipsKeySpaceLookups(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	workspace := h.CreateWorkspace()
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+
+	apiLookups := &countingCache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{Cache: h.Caches.ApiToKeyAuthRow}
+	keySpaceLookups := &countingCache[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{Cache: h.Caches.KeyAuthToApiRow}
+	routeCaches := h.Caches
+	routeCaches.ApiToKeyAuthRow = apiLookups
+	routeCaches.KeyAuthToApiRow = keySpaceLookups
+	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: routeCaches}
+	h.Register(route)
+
+	// Security guarantee: wildcard authorization never fans out into attacker-controlled key-space lookups.
+	res := testutil.CallRoute[Request, Response](h, route, http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}, Request{Query: "SELECT COUNT(*) AS count FROM key_verifications_v1 WHERE key_space_id = 'ks_not_looked_up'"})
+
+	require.Equal(t, http.StatusOK, res.Status)
+	require.Zero(t, apiLookups.swrManyCalls)
+	require.Zero(t, keySpaceLookups.swrManyCalls)
+}
 
 func Test200_Success(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})

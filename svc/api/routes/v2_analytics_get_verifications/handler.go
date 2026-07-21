@@ -45,6 +45,8 @@ var (
 	}
 )
 
+const maxKeySpaceAuthorizationIDs = 10
+
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
 	DB                         db.Database
@@ -74,56 +76,70 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	keySpaceIds, err := chquery.ExtractColumnValues(req.Query, "key_space_id")
+	if err != nil {
+		return err
+	}
+	if err := validateKeySpaceAuthorizationWork(keySpaceIds); err != nil {
+		return err
+	}
+
+	wildcardPermission := rbac.T(rbac.Tuple{
+		ResourceType: rbac.Api,
+		ResourceID:   "*",
+		Action:       rbac.ReadAnalytics,
+	})
+	wildcardAuthorized := slices.Contains(principal.Permissions, "api.*.read_analytics")
+	allowedAPIIDs := extractAllowedAPIIds(principal.Permissions)
+	if !wildcardAuthorized && len(keySpaceIds) == 0 && len(allowedAPIIDs) == 0 {
+		return principal.Authorize(wildcardPermission)
+	}
+
 	// Get workspace-specific ClickHouse connection and settings first
 	conn, settings, err := h.AnalyticsConnectionManager.GetConnection(ctx, principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
-	// Build a list of keySpaceIds that the root key has permissions for.
-	securityFilters, err := h.buildSecurityFilters(ctx, principal)
-	if err != nil {
-		return err
-	}
-
-	parser := chquery.NewParser(chquery.Config{
+	parserConfig := chquery.Config{
 		WorkspaceID:       principal.WorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
-		SecurityFilters:   securityFilters,
+		SecurityFilters:   nil,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
 		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
-	})
+	}
 
+	parser := chquery.NewParser(parserConfig)
 	parsedQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
 		return err
 	}
-
-	// Now we build permission checks based on the key_space_id(s) one specified in the query itself
-	// If none are specified, we will just check if there is wildcard read_analytics permission set
-	permissionChecks := []rbac.PermissionQuery{
-		// Wildcard API analytics access
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.ReadAnalytics,
-		}),
+	if !wildcardAuthorized && parser.HasFromSubquery() {
+		return principal.Authorize(wildcardPermission)
 	}
 
-	keySpaceIds := parser.ExtractColumn("key_space_id")
-	if len(keySpaceIds) > 0 {
-		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIds)
-		if permErr != nil {
-			return permErr
+	if !wildcardAuthorized {
+		securityFilters, filterErr := h.buildSecurityFilters(ctx, principal)
+		if filterErr != nil {
+			return filterErr
 		}
-		permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
-	}
+		parserConfig.SecurityFilters = securityFilters
+		parser = chquery.NewParser(parserConfig)
+		parsedQuery, err = parser.Parse(ctx, req.Query)
+		if err != nil {
+			return err
+		}
 
-	// Verify user has at least one of: api.*.read_analytics OR (api.<api_id1>.read_analytics AND api.<api_id2>.read_analytics)
-	err = principal.Authorize(rbac.Or(permissionChecks...))
-	if err != nil {
-		return err
+		if len(keySpaceIds) > 0 {
+			apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIds)
+			if permErr != nil {
+				return permErr
+			}
+			if err := principal.Authorize(rbac.And(apiPermissions...)); err != nil {
+				return err
+			}
+		}
 	}
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
@@ -140,6 +156,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: verifications,
 	})
+}
+
+func validateKeySpaceAuthorizationWork(keySpaceIDs []string) error {
+	uniqueIDs := make(map[string]struct{}, len(keySpaceIDs))
+	for _, keySpaceID := range keySpaceIDs {
+		uniqueIDs[keySpaceID] = struct{}{}
+		if len(uniqueIDs) > maxKeySpaceAuthorizationIDs {
+			return fault.New("too many key spaces in analytics query",
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+				fault.Public(fmt.Sprintf("Analytics query references too many key spaces; maximum is %d", maxKeySpaceAuthorizationIDs)),
+			)
+		}
+	}
+
+	return nil
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

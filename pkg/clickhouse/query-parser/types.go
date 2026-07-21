@@ -22,7 +22,9 @@ type Config struct {
 
 // Parser rewrites ClickHouse queries
 type Parser struct {
-	config   Config
-	stmt     *clickhouse.SelectQuery
-	cteNames map[string]bool // Tracks CTE names defined in WITH clause
+	config           Config
+	stmt             *clickhouse.SelectQuery
+	cteNames         map[string]bool // Tracks CTE names defined in WITH clause
+	extractedColumns map[string]map[string]struct{}
+	hasFromSubquery  bool
 }

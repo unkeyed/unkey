@@ -82,6 +82,42 @@ func TestExtractColumnValues(t *testing.T) {
 			expected:   []string{"ks_1234"},
 		},
 		{
+			name:       "qualified column",
+			query:      "SELECT COUNT(*) FROM key_verifications AS v WHERE v.key_space_id IN ('ks_owned', 'ks_missing')",
+			columnName: "key_space_id",
+			expected:   []string{"ks_owned", "ks_missing"},
+		},
+		{
+			name:       "reversed equality",
+			query:      "SELECT COUNT(*) FROM key_verifications AS v WHERE 'ks_missing' = v.key_space_id",
+			columnName: "key_space_id",
+			expected:   []string{"ks_missing"},
+		},
+		{
+			name:       "double equality",
+			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id == 'ks_missing'",
+			columnName: "key_space_id",
+			expected:   []string{"ks_missing"},
+		},
+		{
+			name:       "global IN",
+			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id GLOBAL IN ('ks_owned', 'ks_missing')",
+			columnName: "key_space_id",
+			expected:   []string{"ks_owned", "ks_missing"},
+		},
+		{
+			name:       "nested CTE predicate",
+			query:      "WITH filtered AS (SELECT * FROM key_verifications WHERE key_space_id IN ('ks_owned', 'ks_missing')) SELECT COUNT(*) FROM filtered",
+			columnName: "key_space_id",
+			expected:   []string{"ks_owned", "ks_missing"},
+		},
+		{
+			name:       "join predicate",
+			query:      "SELECT COUNT(*) FROM key_verifications AS a INNER JOIN key_verifications AS b ON b.key_space_id = 'ks_missing'",
+			columnName: "key_space_id",
+			expected:   []string{"ks_missing"},
+		},
+		{
 			name:       "negative operator != ignored",
 			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id != 'ks_bad'",
 			columnName: "key_space_id",

@@ -2,6 +2,7 @@ package queryparser
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -84,4 +85,26 @@ func TestParser_ErrorCodes(t *testing.T) {
 			require.Contains(t, publicMsg, tt.expectedError)
 		})
 	}
+}
+
+func TestParser_RejectsOversizedQuery(t *testing.T) {
+	// Security guarantee: oversized input is rejected before callers perform authorization lookups.
+	parser := NewParser(Config{})
+	query := "SELECT 1 " + strings.Repeat(" ", 16*1024)
+
+	_, err := parser.Parse(context.Background(), query)
+
+	require.Error(t, err)
+	require.Contains(t, fault.UserFacingMessage(err), "too long")
+}
+
+func TestParser_RejectsComplexAST(t *testing.T) {
+	// Security guarantee: bounded AST work prevents cheap input from triggering unbounded downstream work.
+	parser := NewParser(Config{})
+	query := "SELECT " + strings.Repeat("1,", 600) + "1"
+
+	_, err := parser.Parse(context.Background(), query)
+
+	require.Error(t, err)
+	require.Contains(t, fault.UserFacingMessage(err), "too complex")
 }
