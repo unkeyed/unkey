@@ -52,6 +52,8 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint8(1), readonly)
 
+	// readonly=1 must prevent settings overrides without disabling ordinary
+	// read queries for the workspace user.
 	var result uint8
 	err = workspaceConn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	require.NoError(t, err)
