@@ -10,18 +10,18 @@ import (
 
 // ExtractColumnValues parses bounded query input and extracts its original column assertions.
 func ExtractColumnValues(query string, columnName string) ([]string, error) {
-	stmts, err := parseBoundedStatements(query)
+	statements, err := parseStatementsBounded(query)
 	if err != nil {
 		return nil, err
 	}
-	if len(stmts) == 0 {
+	if len(statements) == 0 {
 		return nil, fault.New("no statements found",
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 			fault.Public("No SQL statements found"),
 		)
 	}
 
-	stmt, ok := stmts[0].(*clickhouse.SelectQuery)
+	stmt, ok := statements[0].(*clickhouse.SelectQuery)
 	if !ok {
 		return nil, fault.New("only SELECT queries allowed",
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQueryType.URN()),
@@ -38,7 +38,7 @@ func ExtractColumnValues(query string, columnName string) ([]string, error) {
 		MaxQueryRangeDays: 0,
 	})
 	parser.stmt = stmt
-	parser.collectExtractedColumns()
+	parser.collectColumnValues()
 	return parser.ExtractColumn(columnName), nil
 }
 
@@ -47,23 +47,23 @@ func ExtractColumnValues(query string, columnName string) ([]string, error) {
 // Returns a deduplicated slice of values found for the column. Returns empty slice if no values found.
 // Must be called after Parse().
 func (p *Parser) ExtractColumn(columnName string) []string {
-	uniqueValues := p.extractedColumns[strings.ToLower(columnName)]
+	columnValuesUnique := p.columnValues[strings.ToLower(columnName)]
 
-	if len(uniqueValues) == 0 {
+	if len(columnValuesUnique) == 0 {
 		return []string{}
 	}
 
 	// Convert map to slice
-	result := make([]string, 0, len(uniqueValues))
-	for value := range uniqueValues {
-		result = append(result, value)
+	columnValues := make([]string, 0, len(columnValuesUnique))
+	for value := range columnValuesUnique {
+		columnValues = append(columnValues, value)
 	}
 
-	return result
+	return columnValues
 }
 
-func (p *Parser) collectExtractedColumns() {
-	p.extractedColumns = make(map[string]map[string]struct{})
+func (p *Parser) collectColumnValues() {
+	p.columnValues = make(map[string]map[string]struct{})
 	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		binOp, ok := node.(*clickhouse.BinaryOperation)
 		if !ok {
@@ -88,10 +88,10 @@ func (p *Parser) collectBinaryOperation(columnExpr clickhouse.Expr, valueExpr cl
 	}
 
 	columnName = strings.ToLower(columnName)
-	values, ok := p.extractedColumns[columnName]
+	values, ok := p.columnValues[columnName]
 	if !ok {
 		values = make(map[string]struct{})
-		p.extractedColumns[columnName] = values
+		p.columnValues[columnName] = values
 	}
 	extractValues(valueExpr, values)
 	return true

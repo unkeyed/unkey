@@ -45,7 +45,7 @@ var (
 	}
 )
 
-const maxKeySpaceAuthorizationIDs = 10
+const keySpaceAuthorizationIDsMax = 10
 
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
@@ -76,11 +76,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	keySpaceIds, err := chquery.ExtractColumnValues(req.Query, "key_space_id")
+	keySpaceIDs, err := chquery.ExtractColumnValues(req.Query, "key_space_id")
 	if err != nil {
 		return err
 	}
-	if err := validateKeySpaceAuthorizationWork(keySpaceIds); err != nil {
+	if err := validateKeySpaceAuthorizationWork(keySpaceIDs); err != nil {
 		return err
 	}
 
@@ -90,8 +90,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Action:       rbac.ReadAnalytics,
 	})
 	wildcardAuthorized := slices.Contains(principal.Permissions, "api.*.read_analytics")
-	allowedAPIIDs := extractAllowedAPIIds(principal.Permissions)
-	if !wildcardAuthorized && len(keySpaceIds) == 0 && len(allowedAPIIDs) == 0 {
+	apiIDsAllowed := extractAllowedAPIIds(principal.Permissions)
+	if !wildcardAuthorized && len(keySpaceIDs) == 0 && len(apiIDsAllowed) == 0 {
 		return principal.Authorize(wildcardPermission)
 	}
 
@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if !wildcardAuthorized && parser.HasFromSubquery() {
+	if !wildcardAuthorized && parser.FromSubqueryPresent() {
 		return principal.Authorize(wildcardPermission)
 	}
 
@@ -131,8 +131,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if len(keySpaceIds) > 0 {
-			apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIds)
+		if len(keySpaceIDs) > 0 {
+			apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIDs)
 			if permErr != nil {
 				return permErr
 			}
@@ -159,13 +159,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 func validateKeySpaceAuthorizationWork(keySpaceIDs []string) error {
-	uniqueIDs := make(map[string]struct{}, len(keySpaceIDs))
+	keySpaceIDsUnique := make(map[string]struct{}, len(keySpaceIDs))
 	for _, keySpaceID := range keySpaceIDs {
-		uniqueIDs[keySpaceID] = struct{}{}
-		if len(uniqueIDs) > maxKeySpaceAuthorizationIDs {
+		keySpaceIDsUnique[keySpaceID] = struct{}{}
+		if len(keySpaceIDsUnique) > keySpaceAuthorizationIDsMax {
 			return fault.New("too many key spaces in analytics query",
 				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
-				fault.Public(fmt.Sprintf("Analytics query references too many key spaces; maximum is %d", maxKeySpaceAuthorizationIDs)),
+				fault.Public(fmt.Sprintf("Analytics query references too many key spaces; maximum is %d", keySpaceAuthorizationIDsMax)),
 			)
 		}
 	}
