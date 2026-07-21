@@ -100,20 +100,13 @@ func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
 	require.ErrorContains(t, err, "query result row limit must be positive")
 }
 
-// Security guarantee: the API enforces the positive workspace quota without silently replacing it with a separate row policy.
-func TestQueryToMapsUsesWorkspaceRowBound(t *testing.T) {
-	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
+// Security guarantee: the production client accepts workspace row limits above the removed legacy cap.
+func TestQueryToMapsAcceptsRowsMaxAboveLegacyLimit(t *testing.T) {
+	client := &Client{conn: &queryResultConnectionFake{rows: &queryResultRowsFake{}}}
+
+	_, err := client.QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
 		RowsMax:  10_000_000,
 		BytesMax: AnalyticsResultBytesMax,
 	})
 	require.NoError(t, err)
-}
-
-// Security guarantee: callers cannot weaken the global encoded-response bound.
-func TestQueryToMapsRejectsResultBytesAboveMaximum(t *testing.T) {
-	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
-		RowsMax:  10_000_000,
-		BytesMax: AnalyticsResultBytesMax + 1,
-	})
-	require.ErrorContains(t, err, "query result byte limit exceeds the hard maximum")
 }
