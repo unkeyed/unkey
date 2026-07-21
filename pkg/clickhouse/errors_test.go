@@ -69,6 +69,16 @@ func TestWrapClickHouseError_ResultLimits(t *testing.T) {
 			exception: &ch.Exception{Code: 394, Name: "DB::Exception", Message: "Query was cancelled"},
 			expected:  codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		},
+		{
+			name:      "result rows by exception name",
+			exception: &ch.Exception{Code: 999, Name: "TOO_MANY_ROWS", Message: "Result limit exceeded"},
+			expected:  codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		},
+		{
+			name:      "query cancelled by exception name",
+			exception: &ch.Exception{Code: 999, Name: "QUERY_WAS_CANCELLED", Message: "Query stopped"},
+			expected:  codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
+		},
 	}
 
 	for _, tt := range tests {

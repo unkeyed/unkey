@@ -156,6 +156,14 @@ type errorResponse struct {
 
 // resourceLimitPatterns maps error message patterns to error responses
 var resourceLimitPatterns = map[string]errorResponse{
+	"max bytes": {
+		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
+		message: "Query result exceeds the maximum response size.",
+	},
+	"max rows": {
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		message: "Query result exceeds the maximum row count.",
+	},
 	"timeout": {
 		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
@@ -188,6 +196,10 @@ var resourceLimitPatterns = map[string]errorResponse{
 
 // resourceLimitCodes maps ClickHouse exception codes to error responses
 var resourceLimitCodes = map[int32]errorResponse{
+	158: { // TOO_MANY_ROWS_OR_BYTES in older ClickHouse versions.
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		message: "Query result exceeds the maximum row count.",
+	},
 	159: { // TIMEOUT_EXCEEDED
 		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query execution time limit exceeded. Try simplifying your query or reducing the time range.",
@@ -204,6 +216,22 @@ var resourceLimitCodes = map[int32]errorResponse{
 		code:    codes.User.TooManyRequests.QueryQuotaExceeded.URN(),
 		message: "Query quota exceeded for the current time window. Please try again later.",
 	},
+	394: { // QUERY_WAS_CANCELLED
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
+		message: "Query was cancelled due to resource limits.",
+	},
+}
+
+// resourceLimitNames maps unambiguous ClickHouse exception names to error responses.
+var resourceLimitNames = map[string]errorResponse{
+	"TOO_MANY_ROWS": {
+		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
+		message: "Query result exceeds the maximum row count.",
+	},
+	"QUERY_WAS_CANCELLED": {
+		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
+		message: "Query was cancelled due to resource limits.",
+	},
 }
 
 // WrapClickHouseError wraps a ClickHouse error with appropriate error codes and user-friendly messages.
@@ -214,56 +242,6 @@ func WrapClickHouseError(err error) error {
 	}
 
 	errMsg := strings.ToLower(err.Error())
-
-	var chErr *ch.Exception
-	if errors.As(err, &chErr) {
-		switch chErr.Code {
-		case 158:
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum row count."),
-			)
-		case 394:
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryExecutionTimeout.URN()),
-				fault.Public("Query was cancelled due to resource limits."),
-			)
-		case 396:
-			if strings.Contains(strings.ToLower(chErr.Message), "max rows") {
-				return fault.Wrap(err,
-					fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
-					fault.Public("Query result exceeds the maximum row count."),
-				)
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum response size."),
-			)
-		}
-		switch chErr.Name {
-		case "TOO_MANY_ROWS":
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum row count."),
-			)
-		case "QUERY_WAS_CANCELLED":
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryExecutionTimeout.URN()),
-				fault.Public("Query was cancelled due to resource limits."),
-			)
-		case "TOO_MANY_ROWS_OR_BYTES":
-			if strings.Contains(strings.ToLower(chErr.Message), "max bytes") {
-				return fault.Wrap(err,
-					fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
-					fault.Public("Query result exceeds the maximum response size."),
-				)
-			}
-			return fault.Wrap(err,
-				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
-				fault.Public("Query result exceeds the maximum row count."),
-			)
-		}
-	}
 
 	// Check for resource limit violations via message patterns
 	for pattern, response := range resourceLimitPatterns {
@@ -276,11 +254,32 @@ func WrapClickHouseError(err error) error {
 	}
 
 	// Check ClickHouse exception codes for resource errors
+	var chErr *ch.Exception
 	if errors.As(err, &chErr) {
 		if response, ok := resourceLimitCodes[chErr.Code]; ok {
 			return fault.Wrap(err,
 				fault.Code(response.code),
 				fault.Public(response.message),
+			)
+		}
+		if response, ok := resourceLimitNames[chErr.Name]; ok {
+			return fault.Wrap(err,
+				fault.Code(response.code),
+				fault.Public(response.message),
+			)
+		}
+		// ClickHouse uses one exception for row and byte result overflow, so standard
+		// messages are classified above before these version-specific fallbacks.
+		if chErr.Code == 396 {
+			return fault.Wrap(err,
+				fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+				fault.Public("Query result exceeds the maximum response size."),
+			)
+		}
+		if chErr.Name == "TOO_MANY_ROWS_OR_BYTES" {
+			return fault.Wrap(err,
+				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
+				fault.Public("Query result exceeds the maximum row count."),
 			)
 		}
 	}
