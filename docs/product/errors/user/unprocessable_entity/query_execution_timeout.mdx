@@ -35,14 +35,14 @@ The most common fix is to reduce the time range:
 
 ```sql Too Long
 SELECT COUNT(*)
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 YEAR
 GROUP BY toStartOfDay(time)
 ```
 
 ```sql Better
 SELECT COUNT(*)
-FROM key_verifications
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 GROUP BY toStartOfDay(time)
 ```
@@ -56,17 +56,17 @@ Filter your data to reduce the amount of work the query needs to do:
 <CodeGroup>
 
 ```sql Slow
-SELECT api_id, COUNT(*) as total
-FROM key_verifications
-GROUP BY api_id
+SELECT key_space_id, COUNT(*) as total
+FROM key_verifications_v1
+GROUP BY key_space_id
 ```
 
 ```sql Faster
-SELECT api_id, COUNT(*) as total
-FROM key_verifications
+SELECT key_space_id, COUNT(*) as total
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
   AND outcome = 'VALID'
-GROUP BY api_id
+GROUP BY key_space_id
 ```
 
 </CodeGroup>
@@ -81,7 +81,7 @@ For historical data, use pre-aggregated tables instead of raw events:
 SELECT
   toStartOfHour(time) as hour,
   COUNT(*) as total
-FROM key_verifications_raw_v2
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY hour
 ```
@@ -102,10 +102,10 @@ GROUP BY hour
 Add a LIMIT clause to stop processing once you have enough data:
 
 ```sql
-SELECT api_id, COUNT(*) as total
-FROM key_verifications
+SELECT key_space_id, COUNT(*) as total
+FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
-GROUP BY api_id
+GROUP BY key_space_id
 ORDER BY total DESC
 LIMIT 100
 ```

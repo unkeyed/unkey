@@ -32,6 +32,7 @@ func TestVerificationParserConfigRequiresPublicAliases(t *testing.T) {
 	}
 
 	for name, query := range map[string]string{
+		"unversioned table name": "SELECT * FROM key_verifications",
 		"direct physical source": "SELECT * FROM default.key_verifications_raw_v2",
 		"physical source in CTE": "WITH hidden AS (SELECT * FROM default.key_verifications_raw_v2) SELECT * FROM hidden",
 	} {
