@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -99,7 +100,10 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunQuotaCheckRequest,
 ) (*hydrav1.RunQuotaCheckResponse, error) {
-	billingPeriod := restate.Key(ctx)
+	// Task-prefixed VO key ("quota-check-YYYY-MM") keeps this off the other
+	// period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare key,
+	// so old in-flight invocations still parse during a rolling deploy.
+	billingPeriod := strings.TrimPrefix(restate.Key(ctx), "quota-check-")
 	logger.Info("running quota check", "billing_period", billingPeriod)
 
 	p, err := billingperiod.Parse(billingPeriod)

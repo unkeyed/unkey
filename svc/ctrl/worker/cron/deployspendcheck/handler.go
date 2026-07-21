@@ -3,6 +3,8 @@ package deployspendcheck
 import (
 	"fmt"
 	"sort"
+	"strings"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -76,12 +78,39 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeploySpendCheckRequest,
 ) (*hydrav1.RunDeploySpendCheckResponse, error) {
-	period := restate.Key(ctx)
+	// Task-prefixed VO key ("deploy-spend-check-YYYY-MM") keeps this off the
+	// other period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare
+	// key, so old in-flight invocations still parse during a rolling deploy.
+	period := strings.TrimPrefix(restate.Key(ctx), "deploy-spend-check-")
 	logger.Info("running deploy spend check", "billing_period", period)
 
 	if h.usage == nil {
 		logger.Info("deploy spend check disabled (no usage reader configured)",
 			"billing_period", period,
+		)
+		return &hydrav1.RunDeploySpendCheckResponse{}, nil
+	}
+
+	// A stale-period orchestrator (delayed across the month roll) must not fan
+	// out: its checks would enforce old spend against the new month, racing the
+	// live VO. Journaled Now() so replays agree; heartbeat still pings.
+	p, err := billingperiod.Parse(period)
+	if err != nil {
+		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+	}
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get current time: %w", err)
+	}
+	if p != billingperiod.From(now) {
+		if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+			return h.heartbeat.Ping(rc)
+		}, restate.WithName("send heartbeat")); err != nil {
+			return nil, fmt.Errorf("send heartbeat: %w", err)
+		}
+		logger.Info("deploy spend check: skipping stale period",
+			"billing_period", period,
+			"current_period", billingperiod.From(now).Key(),
 		)
 		return &hydrav1.RunDeploySpendCheckResponse{}, nil
 	}
@@ -119,7 +148,7 @@ func (h *Handler) Handle(
 	for _, ws := range budgeted {
 		budgetedIDs = append(budgetedIDs, ws.ID)
 	}
-	values, err := h.priceUsage(ctx, period, budgetedIDs)
+	values, err := h.priceUsage(ctx, p, now, budgetedIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +166,11 @@ func (h *Handler) Handle(
 		// never is quiet.
 		suspended := ws.SpendSuspended.Bool
 
-		if !ws.SpendBudgetCents.Valid && !suspended {
-			continue // query filters these out; guard against a future query change
+		// Skip non-suspended workspaces without a positive budget: a zero budget
+		// reads as 100% crossed and would dispatch a no-op every tick forever.
+		// Suspended workspaces always dispatch so the check can resume them.
+		if !suspended && (!ws.SpendBudgetCents.Valid || ws.SpendBudgetCents.Int64 <= 0) {
+			continue
 		}
 
 		// All spend math is integer micro-cents: the pricing quantized once in
@@ -227,18 +259,10 @@ func (h *Handler) Handle(
 // into this period's decisions.
 func (h *Handler) priceUsage(
 	ctx restate.ObjectContext,
-	period string,
+	p billingperiod.Period,
+	now time.Time,
 	workspaceIDs []string,
 ) (map[string]billingmeter.MeterValues, error) {
-	p, err := billingperiod.Parse(period)
-	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
-	}
-	now, err := restateutil.Now(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get current time: %w", err)
-	}
-
 	endMillis := now.UnixMilli()
 	if periodEndMillis := p.End().UnixMilli(); endMillis > periodEndMillis {
 		endMillis = periodEndMillis

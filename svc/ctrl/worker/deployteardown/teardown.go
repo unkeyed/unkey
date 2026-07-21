@@ -115,7 +115,24 @@ func (v *VirtualObject) Teardown(
 	switch req.GetMode() {
 	case hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND:
 		if len(appCurrent) > 0 {
-			restate.Set(ctx, suspensionKey, &suspension{AppCurrent: appCurrent})
+			// Merge into any existing suspension record: a re-enforcing teardown
+			// only sees deployments running now, and replacing would drop the apps
+			// the first teardown stopped from the restore map, so Resume would
+			// never bring them back. New entries win on collision.
+			existing, err := restate.Get[*suspension](ctx, suspensionKey)
+			if err != nil {
+				return nil, fmt.Errorf("read suspension record: %w", err)
+			}
+			merged := make(map[string]string, len(appCurrent))
+			if existing != nil {
+				for appID, deploymentID := range existing.AppCurrent {
+					merged[appID] = deploymentID
+				}
+			}
+			for appID, deploymentID := range appCurrent {
+				merged[appID] = deploymentID
+			}
+			restate.Set(ctx, suspensionKey, &suspension{AppCurrent: merged})
 		}
 	case hydrav1.TeardownMode_TEARDOWN_MODE_ARCHIVE:
 		restate.Clear(ctx, suspensionKey)
