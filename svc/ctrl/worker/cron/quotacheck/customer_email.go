@@ -63,6 +63,7 @@ func (h *Handler) sendCustomerEmail(
 		"YEAR":           strconv.Itoa(year),
 	}
 
+	//The email sender has the from and subject itself, so we send empty string. This is documented in the go pkg as well. 
 	err = restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		return h.email.Send(rc, email.Email{
 			To:             recipients,
