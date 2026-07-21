@@ -86,21 +86,23 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 func (p *Parser) validateComplexity() error {
 	astNodes := 0
 	projectedColumns := 0
-	var countAST func(clickhouse.Expr)
-	countAST = func(root clickhouse.Expr) {
+	pending := []clickhouse.Expr{p.stmt}
+	for len(pending) > 0 {
+		last := len(pending) - 1
+		root := pending[last]
+		pending = pending[:last]
 		clickhouse.Walk(root, func(node clickhouse.Expr) bool {
 			astNodes++
 			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 				projectedColumns += len(selectQuery.SelectItems)
 				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
 				if selectQuery.Except != nil {
-					countAST(selectQuery.Except)
+					pending = append(pending, selectQuery.Except)
 				}
 			}
 			return true
 		})
 	}
-	countAST(p.stmt)
 
 	if p.config.MaxProjectedColumns > 0 && projectedColumns > p.config.MaxProjectedColumns {
 		return invalidQueryLimitError("too many projected columns", "Analytics query projects too many columns")
