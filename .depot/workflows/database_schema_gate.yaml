@@ -52,8 +52,8 @@ jobs:
           set -euo pipefail
           mise run pscale-branch
 
-          # PlanetScale may take a few seconds to show schema changes. Retry so
-          # an early empty diff does not pass incorrectly.
+          # PlanetScale may take a few seconds to show schema changes. We're retrying
+          # to ensure it's stable and no changes are detected for 30s
           for attempt in $(seq 1 7); do
             BRANCH_DIFF=$(mise exec -- pscale branch diff "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --format json)
