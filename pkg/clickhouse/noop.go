@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
@@ -59,8 +60,8 @@ func (n *noop) Conn() ch.Conn {
 }
 
 // QueryToMaps implements the Querier interface but always returns an empty slice.
-func (n *noop) QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error) {
-	if err := limits.validate(); err != nil {
+func (n *noop) QueryToMaps(ctx context.Context, query string, rowsMax int, arguments ...any) ([]map[string]any, error) {
+	if err := assert.Greater(rowsMax, 0, "query result row limit must be positive"); err != nil {
 		return nil, err
 	}
 	return []map[string]any{}, nil

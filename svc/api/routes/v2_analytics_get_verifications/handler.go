@@ -28,12 +28,6 @@ type Request = openapi.V2AnalyticsGetVerificationsRequestBody
 type Response = openapi.V2AnalyticsGetVerificationsResponseBody
 type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
-const (
-	analyticsResponseOverheadBytes = 1 << 10
-	analyticsQueryBytesMax         = 16 << 10
-	analyticsProjectedColumnsMax   = 64
-)
-
 var (
 	tableAliases = map[string]string{
 		"key_verifications_v1":            "default.key_verifications_raw_v2",
@@ -95,15 +89,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	resultRowsMax := int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows)
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:         principal.WorkspaceID,
-		Limit:               resultRowsMax,
-		SecurityFilters:     securityFilters,
-		TableAliases:        tableAliases,
-		AllowedTables:       allowedTables,
-		QueryRangeDaysMax:   settings.Quotas.LogsRetentionDays,
-		QueryBytesMax:       analyticsQueryBytesMax,
-		ProjectedColumnsMax: analyticsProjectedColumnsMax,
-		ASTNodesMax:         clickhouse.AnalyticsASTElementsMax,
+		WorkspaceID:       principal.WorkspaceID,
+		Limit:             resultRowsMax,
+		SecurityFilters:   securityFilters,
+		TableAliases:      tableAliases,
+		AllowedTables:     allowedTables,
+		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -140,10 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
 	// Execute query using workspace connection
-	verifications, err := conn.QueryToMaps(ctx, parsedQuery, clickhouse.QueryResultLimits{
-		RowsMax:  resultRowsMax,
-		BytesMax: clickhouse.AnalyticsResultBytesMax - analyticsResponseOverheadBytes,
-	})
+	verifications, err := conn.QueryToMaps(ctx, parsedQuery, resultRowsMax)
 	if err != nil {
 		return err
 	}

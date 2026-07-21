@@ -100,32 +100,32 @@ func TestParser_LimitBypassAttempts(t *testing.T) {
 
 // Security guarantee: parser work is bounded before attacker-controlled SQL reaches the lexer.
 func TestParser_RejectsQueriesOverByteLimit(t *testing.T) {
-	p := NewParser(Config{QueryBytesMax: 32})
+	p := NewParser(Config{})
 
-	_, err := p.Parse(context.Background(), "SELECT "+strings.Repeat("1 + ", 20)+"1")
+	_, err := p.Parse(context.Background(), "SELECT "+strings.Repeat("1 + ", queryBytesMax)+"1")
 	require.ErrorContains(t, err, "query exceeds maximum length")
 }
 
 // Security guarantee: one row cannot bypass row caps with an unbounded number of projected values.
 func TestParser_RejectsWideProjections(t *testing.T) {
-	p := NewParser(Config{ProjectedColumnsMax: 3})
+	p := NewParser(Config{})
 
-	_, err := p.Parse(context.Background(), "SELECT 1, 2, 3, 4")
+	_, err := p.Parse(context.Background(), "SELECT "+strings.Repeat("1,", projectedColumnsMax)+"1")
 	require.ErrorContains(t, err, "too many projected columns")
 }
 
 // Security guarantee: projection limits include EXCEPT branches omitted by the dependency walker.
 func TestParser_RejectsWideExceptProjection(t *testing.T) {
-	p := NewParser(Config{ProjectedColumnsMax: 3})
+	p := NewParser(Config{})
 
-	_, err := p.Parse(context.Background(), "SELECT 1 EXCEPT (SELECT 1, 2, 3, 4)")
+	_, err := p.Parse(context.Background(), "SELECT 1 EXCEPT (SELECT "+strings.Repeat("1,", projectedColumnsMax)+"1)")
 	require.ErrorContains(t, err, "too many projected columns")
 }
 
 // Security guarantee: short but deeply composed SQL cannot consume unbounded parser or rewrite CPU.
 func TestParser_RejectsComplexAST(t *testing.T) {
-	p := NewParser(Config{ASTNodesMax: 10})
+	p := NewParser(Config{})
 
-	_, err := p.Parse(context.Background(), "SELECT 1 + 2 + 3 + 4 + 5 + 6")
+	_, err := p.Parse(context.Background(), "SELECT "+strings.Repeat("1 + ", astNodesMax)+"1")
 	require.ErrorContains(t, err, "query is too complex")
 }

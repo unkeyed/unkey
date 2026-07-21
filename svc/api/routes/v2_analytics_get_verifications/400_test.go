@@ -84,7 +84,7 @@ func Test400_QueryLengthIsBoundedBeforeParsing(t *testing.T) {
 	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, http.Header{
 		"Authorization": []string{"Bearer " + rootKey},
 		"Content-Type":  []string{"application/json"},
-	}, Request{Query: "SELECT " + strings.Repeat("1 + ", analyticsQueryBytesMax) + "1"})
+	}, Request{Query: "SELECT " + strings.Repeat("1 + ", 16<<10) + "1"})
 
 	require.Equal(t, http.StatusBadRequest, res.Status)
 	require.Contains(t, res.Body.Error.Detail, "maximum length")

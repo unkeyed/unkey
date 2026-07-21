@@ -13,9 +13,9 @@ type Querier interface {
 
 	// QueryToMaps executes a query and scans all rows into a slice of maps.
 	// Each map represents a row with column names as keys.
-	// The configured limits cap the number of rows and their encoded size.
 	// This is useful for dynamic queries where the schema is not known at compile time.
-	QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error)
+	// The workspace row limit caps row count; the client caps encoded result size.
+	QueryToMaps(ctx context.Context, query string, rowsMax int, arguments ...any) ([]map[string]any, error)
 
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
 	Exec(ctx context.Context, sql string, args ...any) error

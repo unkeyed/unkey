@@ -63,20 +63,21 @@ func (rows *queryResultRowsFake) Err() error { return rows.err }
 
 // Security guarantee: a single aggregate row is subject to the byte budget, not only the row cap.
 func TestQueryToMapsRejectsOneHugeAggregate(t *testing.T) {
-	rows := &queryResultRowsFake{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, 1024))}}}
+	rows := &queryResultRowsFake{columns: []string{"groupArray(payload)"}, rows: [][]any{{string(make([]byte, AnalyticsResultBytesMax))}}}
 	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
-	_, err := client.QueryToMaps(context.Background(), "SELECT groupArray(payload)", QueryResultLimits{RowsMax: 10, BytesMax: 128})
+	_, err := client.QueryToMaps(context.Background(), "SELECT groupArray(payload)", 10)
 	require.ErrorContains(t, err, "result byte limit")
 	require.True(t, rows.closed)
 }
 
 // Security guarantee: wide rows consume the same byte budget as many narrow rows.
 func TestQueryToMapsRejectsWideRows(t *testing.T) {
-	rows := &queryResultRowsFake{columns: []string{"a", "b", "c"}, rows: [][]any{{string(make([]byte, 60)), string(make([]byte, 60)), string(make([]byte, 60))}}}
+	value := string(make([]byte, AnalyticsResultBytesMax/3))
+	rows := &queryResultRowsFake{columns: []string{"a", "b", "c"}, rows: [][]any{{value, value, value}}}
 	client := &Client{conn: &queryResultConnectionFake{rows: rows}}
 
-	_, err := client.QueryToMaps(context.Background(), "SELECT a, b, c", QueryResultLimits{RowsMax: 10, BytesMax: 128})
+	_, err := client.QueryToMaps(context.Background(), "SELECT a, b, c", 10)
 	require.ErrorContains(t, err, "result byte limit")
 	require.True(t, rows.closed)
 }
@@ -87,7 +88,7 @@ func TestQueryToMapsClosesRowsAtRowLimit(t *testing.T) {
 	connection := &queryResultConnectionFake{rows: rows}
 	client := &Client{conn: connection}
 
-	_, err := client.QueryToMaps(context.Background(), "SELECT n", QueryResultLimits{RowsMax: 1, BytesMax: 1024})
+	_, err := client.QueryToMaps(context.Background(), "SELECT n", 1)
 	require.ErrorContains(t, err, "result row limit")
 	require.True(t, rows.closed)
 	require.ErrorIs(t, connection.ctxQuery.Err(), context.Canceled)
@@ -96,7 +97,7 @@ func TestQueryToMapsClosesRowsAtRowLimit(t *testing.T) {
 
 // Security guarantee: callers cannot accidentally execute an unbounded dynamic query.
 func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
-	_, err := NewNoop().QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{RowsMax: 0, BytesMax: 0})
+	_, err := (&Client{}).QueryToMaps(context.Background(), "SELECT 1", 0)
 	require.ErrorContains(t, err, "query result row limit must be positive")
 }
 
@@ -104,9 +105,6 @@ func TestQueryToMapsRejectsDisabledBounds(t *testing.T) {
 func TestQueryToMapsAcceptsRowsMaxAboveLegacyLimit(t *testing.T) {
 	client := &Client{conn: &queryResultConnectionFake{rows: &queryResultRowsFake{}}}
 
-	_, err := client.QueryToMaps(context.Background(), "SELECT 1", QueryResultLimits{
-		RowsMax:  10_000_000,
-		BytesMax: AnalyticsResultBytesMax,
-	})
+	_, err := client.QueryToMaps(context.Background(), "SELECT 1", 10_000_000)
 	require.NoError(t, err)
 }

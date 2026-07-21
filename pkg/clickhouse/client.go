@@ -146,13 +146,6 @@ func (c *Client) Conn() ch.Conn {
 	return c.conn
 }
 
-// QueryResultLimits bounds dynamic query results while scanning them into memory.
-// Both values must be positive. BytesMax cannot exceed the analytics hard maximum.
-type QueryResultLimits struct {
-	RowsMax  int
-	BytesMax int
-}
-
 const (
 	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
 	AnalyticsResultBytesMax = 4 << 20
@@ -162,21 +155,12 @@ const (
 	AnalyticsASTElementsMax = 2_000
 )
 
-// validate rejects programmer errors that would disable a mandatory result bound.
-func (limits QueryResultLimits) validate() error {
-	return assert.All(
-		assert.Greater(limits.RowsMax, 0, "query result row limit must be positive"),
-		assert.Greater(limits.BytesMax, 0, "query result byte limit must be positive"),
-		assert.LessOrEqual(limits.BytesMax, AnalyticsResultBytesMax, "query result byte limit exceeds the hard maximum"),
-	)
-}
-
 // QueryToMaps executes a query and scans all rows into a slice of maps.
 // Each map represents a row with column names as keys and values as ch.Dynamic.
-// The configured limits cap the number of rows and their encoded size. When a
-// limit is exceeded, QueryToMaps cancels the query before closing unread rows.
-func (c *Client) QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error) {
-	if err := limits.validate(); err != nil {
+// The workspace row limit caps row count; the client caps encoded result size.
+// When either is exceeded, QueryToMaps cancels the query before closing unread rows.
+func (c *Client) QueryToMaps(ctx context.Context, query string, rowsMax int, arguments ...any) ([]map[string]any, error) {
+	if err := assert.Greater(rowsMax, 0, "query result row limit must be positive"); err != nil {
 		return nil, err
 	}
 
@@ -187,7 +171,7 @@ func (c *Client) QueryToMaps(ctx context.Context, query string, limits QueryResu
 		return nil, WrapClickHouseError(err)
 	}
 
-	results, errScan := queryToMapsScanRows(rows, limits)
+	results, errScan := queryToMapsScanRows(rows, rowsMax)
 	if errScan != nil {
 		cancel()
 	}
@@ -202,13 +186,13 @@ func (c *Client) QueryToMaps(ctx context.Context, query string, limits QueryResu
 }
 
 // QueryToMaps scans dynamic rows while accounting for their JSON encoding.
-func queryToMapsScanRows(rows driver.Rows, limits QueryResultLimits) ([]map[string]any, error) {
+func queryToMapsScanRows(rows driver.Rows, rowsMax int) ([]map[string]any, error) {
 	columns := rows.Columns()
 	results := make([]map[string]any, 0)
 	resultSizeBytes := 2 // JSON array brackets.
 
 	for rows.Next() {
-		if len(results) >= limits.RowsMax {
+		if len(results) >= rowsMax {
 			return nil, fault.New("result row limit exceeded",
 				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
 				fault.Public("Query result exceeds the maximum row count."),
@@ -238,7 +222,7 @@ func queryToMapsScanRows(rows driver.Rows, limits QueryResultLimits) ([]map[stri
 		if len(results) > 0 {
 			resultSizeBytes++
 		}
-		if resultSizeBytes > limits.BytesMax {
+		if resultSizeBytes > AnalyticsResultBytesMax {
 			return nil, fault.New("result byte limit exceeded",
 				fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
 				fault.Public("Query result exceeds the maximum response size."),
