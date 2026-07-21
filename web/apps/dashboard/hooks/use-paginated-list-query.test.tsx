@@ -31,6 +31,7 @@ vi.mock("nuqs", async (importOriginal) => {
 });
 
 import {
+  computeFallbackTotalPages,
   normalizePageSize,
   paginationFilterKey,
   paginationSortKey,
@@ -576,6 +577,68 @@ describe("normalizePageSize", () => {
     expect(normalizePageSize(Number.POSITIVE_INFINITY, 50, 200)).toBe(50);
     expect(normalizePageSize(0, 50, 200)).toBe(50);
     expect(normalizePageSize(-10, 50, 200)).toBe(50);
+  });
+});
+
+// computeFallbackTotalPages drives the clamp when the server cannot return a
+// total count. The guarantees: Next reaches exactly one page past proven data,
+// an overshoot snaps back to the last real page (page 1 for a stale deep
+// link), and an in-flight fetch never re-triggers the collapse under
+// keepPreviousData, which would cascade the clamp toward page 1.
+describe("computeFallbackTotalPages", () => {
+  const base = { isFetching: false, hasData: true, limit: 50, lastNonEmptyPage: 1 };
+
+  it("advertises one page ahead only while the current page is full", () => {
+    expect(computeFallbackTotalPages({ ...base, pageRowCount: 50, queryPage: 2 })).toBe(3);
+    expect(computeFallbackTotalPages({ ...base, pageRowCount: 20, queryPage: 2 })).toBe(2);
+  });
+
+  it("snaps a settled empty page back to the last page seen with rows", () => {
+    // Boundary-aligned data: pages 1-3 full, Next reached the empty page 4.
+    expect(
+      computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 4, lastNonEmptyPage: 3 }),
+    ).toBe(3);
+  });
+
+  it("never reports a total at or above the current empty page", () => {
+    // A racy lastNonEmptyPage must not leave the user stranded on the empty page.
+    expect(
+      computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 4, lastNonEmptyPage: 9 }),
+    ).toBe(3);
+  });
+
+  it("snaps a stale deep link that never saw data back to page 1", () => {
+    expect(computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 999 })).toBe(1);
+  });
+
+  it("holds the current page while its fetch is in flight", () => {
+    // keepPreviousData shows the previous page's empty result during the
+    // fetch; collapsing here would cascade the clamp 4 -> 3 -> 2 -> 1.
+    expect(
+      computeFallbackTotalPages({
+        ...base,
+        isFetching: true,
+        pageRowCount: 0,
+        queryPage: 3,
+        lastNonEmptyPage: 3,
+      }),
+    ).toBe(3);
+  });
+
+  it("keeps a pre-data render at the current page so the clamp stays quiet", () => {
+    expect(
+      computeFallbackTotalPages({
+        ...base,
+        isFetching: true,
+        hasData: false,
+        pageRowCount: 0,
+        queryPage: 5,
+      }),
+    ).toBe(5);
+  });
+
+  it("treats an empty first page as a single page", () => {
+    expect(computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 1 })).toBe(1);
   });
 });
 

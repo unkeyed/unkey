@@ -155,6 +155,33 @@ export function computeTotalPages(totalCount: number, pageSize: number) {
   return Math.max(1, Math.ceil(totalCount / pageSize));
 }
 
+// Derive totalPages when the server could not return a total count (e.g. a
+// failed ClickHouse count query). While the current page has rows, advertise
+// one page ahead only if it is full, so Next stays available exactly as far as
+// data has been proven to exist. An out-of-range page is only detectable once
+// it comes back empty; reporting the last page seen with rows as the total
+// then lets the caller's clamp snap back to the last real page, or to page 1
+// for a stale deep link that never saw data (lastNonEmptyPage stays 1 until a
+// settled response has rows). The isFetching gate matters under
+// keepPreviousData: without it, fetching the clamp target while the previous
+// empty result is still displayed would re-trigger the collapse and cascade
+// the clamp toward page 1.
+export function computeFallbackTotalPages(args: {
+  isFetching: boolean;
+  hasData: boolean;
+  pageRowCount: number;
+  queryPage: number;
+  limit: number;
+  lastNonEmptyPage: number;
+}) {
+  const { isFetching, hasData, pageRowCount, queryPage, limit, lastNonEmptyPage } = args;
+  const isEmptyPageBeyondFirst = !isFetching && hasData && pageRowCount === 0 && queryPage > 1;
+  if (isEmptyPageBeyondFirst) {
+    return Math.min(lastNonEmptyPage, queryPage - 1);
+  }
+  return queryPage + (pageRowCount >= limit ? 1 : 0);
+}
+
 // Clamp a caller-supplied page size into [1, maxPageSize], falling back to the
 // default for non-finite or non-positive input.
 export function normalizePageSize(pageSize: number, defaultPageSize: number, maxPageSize: number) {
