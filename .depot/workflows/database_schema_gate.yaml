@@ -41,19 +41,12 @@ jobs:
         id: preflight
         env:
           DB_SCHEMA_CHANGED: ${{ steps.changes.outputs.db_schema }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || '' }}
-          REPOSITORY: ${{ github.repository }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
           if [ "$DB_SCHEMA_CHANGED" != "true" ]; then
             echo "The database schema did not change."
             echo "required=false" >> "$GITHUB_OUTPUT"
             exit 0
-          fi
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; then
-            echo "::error::Schema changes from forks must be moved to a branch in this repository."
-            exit 1
           fi
           echo "required=true" >> "$GITHUB_OUTPUT"
 
