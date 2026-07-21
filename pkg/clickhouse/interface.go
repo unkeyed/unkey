@@ -11,7 +11,9 @@ type Querier interface {
 	// Conn returns a connection to the ClickHouse database.
 	Conn() ch.Conn
 
-	// QueryToMaps executes a dynamic query within mandatory row and encoded-byte bounds.
+	// QueryToMaps executes a query and scans all rows into a slice of maps.
+	// Each map represents a row with column names as keys.
+	// The configured limits cap the number of rows and their encoded size.
 	QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error)
 
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)

@@ -171,8 +171,10 @@ func (limits QueryResultLimits) validate() error {
 	)
 }
 
-// QueryToMaps executes a dynamic query and scans results within mandatory row
-// and encoded-byte bounds. It cancels the query before closing partially read rows.
+// QueryToMaps executes a query and scans all rows into a slice of maps.
+// Each map represents a row with column names as keys and values as ch.Dynamic.
+// The configured limits cap the number of rows and their encoded size. When a
+// limit is exceeded, QueryToMaps cancels the query before closing unread rows.
 func (c *Client) QueryToMaps(ctx context.Context, query string, limits QueryResultLimits, arguments ...any) ([]map[string]any, error) {
 	if err := limits.validate(); err != nil {
 		return nil, err
