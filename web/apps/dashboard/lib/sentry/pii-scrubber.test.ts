@@ -30,29 +30,21 @@ describe("scrubUrl", () => {
   it("redacts token-like values even under unknown param names", () => {
     const out = scrubUrl(`/x?ref=${ROOT_KEY}`);
     expect(out).not.toContain(ROOT_KEY);
-    // Query param values are URL-encoded, so the marker appears as %5BREDACTED%5D.
     expect(out).toContain("REDACTED");
   });
 
   it("redacts digit-free 20+ char values under unknown param names", () => {
-    // Query values are not route names, so the broad net applies: passphrase-style
-    // letters-only secrets must not reach Sentry just because they lack a digit.
     const out = scrubUrl("/verify?ref=abcdefghijklmnopqrstuvwx");
     expect(out).not.toContain("abcdefghijklmnopqrstuvwx");
   });
 
   it("preserves repeated query params while scrubbing", () => {
-    // `URLSearchParams.set` during iteration collapses duplicates, which would
-    // silently corrupt multi-value filters in the captured URL.
     expect(scrubUrl("/keys?status=active&status=trialing&key=secret123")).toBe(
       "/keys?status=active&status=trialing&key=%5BREDACTED%5D",
     );
   });
 
   it("redacts opaque-path scheme payloads wholesale", () => {
-    // The WHATWG pathname setter is a no-op on opaque paths, so mailto:/tel:/
-    // blob: payloads would otherwise pass through the path machinery
-    // untouched — and their payload is inherently identifying.
     expect(scrubUrl("mailto:jane.doe@example.com")).toBe("mailto:[REDACTED]");
     expect(scrubUrl("tel:+15551234567")).toBe("tel:[REDACTED]");
     expect(scrubUrl("blob:https://app.unkey.com/1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d")).toBe(
@@ -61,11 +53,7 @@ describe("scrubUrl", () => {
   });
 
   it("leaves non-opaque colon-prefixed strings unredacted (only known opaque schemes redact)", () => {
-    // The opaque-scheme allowlist must not blanket-redact arbitrary `word:`
-    // prefixes into `word:[REDACTED]`; unknown schemes fall through to parsing.
     expect(scrubUrl("git://github.com/unkeyed/unkey.git")).not.toContain("[REDACTED]");
-    // Opaque-path schemes outside the wholesale allowlist keep their scheme and
-    // get path-level token redaction rather than being dropped to the bare path.
     expect(scrubUrl("custom:hello/world")).toBe("custom:hello/world");
     expect(scrubUrl("custom:token12345678901234567890")).toBe("custom:[REDACTED]");
   });
@@ -75,9 +63,6 @@ describe("scrubUrl", () => {
   });
 
   it("redacts ClickHouse param_ query bindings regardless of the bound name", () => {
-    // @clickhouse/client sends bound query params as `param_<name>`; bindings
-    // are data values (external ids are often emails) whose short runs evade
-    // the token net, so the name prefix alone must trigger redaction.
     const out = scrubUrl(
       "https://ch.unkey.com/?param_externalId=jane.doe%40acme.com&database=unkey",
     );
@@ -126,8 +111,6 @@ describe("scrubUrl", () => {
   });
 
   it("still redacts token-like segments under /_next/data (only static assets are exempt)", () => {
-    // `/_next/data/` payload URLs embed dynamic route params, which can be
-    // bearer-style ids — the exemption must not cover them.
     const out = scrubUrl(`/_next/data/build-id/${ROOT_KEY}.json`);
     expect(out).not.toContain(ROOT_KEY);
   });
@@ -140,8 +123,6 @@ describe("scrubUrl", () => {
   it("never throws on malformed input and still redacts tokens in it", () => {
     expect(() => scrubUrl("http://[::1::bad")).not.toThrow();
     expect(scrubUrl("")).toBe("");
-    // The parse-failure fallback must stay fail-closed: token-like runs are
-    // blanket-redacted even when the URL has no parseable structure.
     expect(scrubUrl(`http://[::1::bad/${ROOT_KEY}`)).not.toContain(ROOT_KEY);
   });
 });
@@ -172,7 +153,6 @@ describe("scrubEventPii", () => {
     expect(JSON.stringify(event.request?.query_string)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(event.breadcrumbs)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(event.breadcrumbs)).not.toContain(JWT);
-    // Non-sensitive breadcrumb data is preserved.
     expect(JSON.stringify(event.breadcrumbs)).toContain("/dashboard");
   });
 
@@ -182,8 +162,6 @@ describe("scrubEventPii", () => {
   });
 
   it("scrubs tRPC input even when breadcrumb scrubbing throws", () => {
-    // Each pass is isolated, so a throw in one leaves the others' work intact
-    // — the credential surface stays redacted even when URL scrubbing breaks.
     const event: ErrorEvent = {
       type: undefined,
       breadcrumbs: [
@@ -202,16 +180,10 @@ describe("scrubEventPii", () => {
 
     expect(() => scrubEventPii(event)).not.toThrow();
     expect(event.contexts?.trpc?.input).toEqual({ secret: "[REDACTED]" });
-    // The frozen breadcrumb really did make URL scrubbing throw (fail-open:
-    // that field ships as-is) — otherwise this test would not be exercising
-    // the isolation guarantee at all.
     expect(event.breadcrumbs?.[0]?.data?.from).toContain(ROOT_KEY);
   });
 
   it("keeps scrubbing later surfaces when an earlier pass throws", () => {
-    // Regression guard: the passes used to share one try/catch, so a throw in
-    // message scrubbing skipped `scrubRequest`/`scrubBreadcrumbs` entirely and
-    // shipped the raw URLs those passes exist to redact.
     const event: ErrorEvent = {
       type: undefined,
       exception: {
@@ -223,9 +195,7 @@ describe("scrubEventPii", () => {
 
     scrubEventPii(event);
 
-    // The frozen exception makes `scrubExceptions` throw...
     expect(event.exception?.values?.[0]?.value).toContain(ROOT_KEY);
-    // ...but the request and breadcrumb passes still ran.
     expect(event.request?.url).not.toContain(ROOT_KEY);
     expect(JSON.stringify(event.breadcrumbs)).not.toContain(JWT);
   });
@@ -246,9 +216,6 @@ describe("scrubEventPii", () => {
   });
 
   it("preserves _next/static chunk names in messages", () => {
-    // `scrubUrl` exempts hashed chunk names on purpose; a blanket token pass
-    // layered over its output used to undo that, collapsing every
-    // ChunkLoadError in Sentry onto one indistinguishable group.
     const chunk = "https://app.unkey.com/_next/static/chunks/app/layout-8f1a2b3c4d5e6f7a.js";
     const event: ErrorEvent = {
       type: undefined,
@@ -261,9 +228,6 @@ describe("scrubEventPii", () => {
   });
 
   it("scrubs string logentry params without destroying non-string ones", () => {
-    // `logentry` is the one surface the SDK does not normalize, so params
-    // arrive live. Rebuilding them from `Object.entries` flattened a Date to
-    // `{}`; recursing into a cyclic param threw and skipped the URL passes.
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
     const date = new Date(0);
@@ -279,12 +243,8 @@ describe("scrubEventPii", () => {
     scrubEventPii(event);
 
     expect(event.logentry?.params?.[0]).toBe("bare [REDACTED]");
-    // The Date survives intact rather than being flattened to `{}`.
     expect(event.logentry?.params?.[1]).toBe(date);
-    // A `%s` template is developer-authored source with no runtime secret;
-    // scrubbing it would re-encode the placeholder to `%25s`.
     expect(event.logentry?.message).toBe("request to /search?q=%s failed");
-    // The cyclic param did not take down the later passes.
     expect(event.request?.url).not.toContain(ROOT_KEY);
   });
 
@@ -300,9 +260,6 @@ describe("scrubEventPii", () => {
   });
 
   it("redacts by key inside a form-encoded string body", () => {
-    // The SDK attaches real bodies (`RequestData` includes `data` and does not
-    // gate it on `sendDefaultPii`), and a form body has field names the token
-    // net cannot use — `hunter2` is far too short for it to see.
     const event: ErrorEvent = {
       type: undefined,
       request: { data: "email=a%40b.com&password=hunter2&page=2" },
@@ -316,8 +273,6 @@ describe("scrubEventPii", () => {
   });
 
   it("survives a cyclic object request body instead of dropping it", () => {
-    // A non-string body reaches the walker un-normalized; a reference cycle
-    // must not throw and delete the whole body.
     const body: Record<string, unknown> = { password: "hunter2", keep: "ok" };
     body.self = body;
     const event: ErrorEvent = { type: undefined, request: { data: body } };
@@ -331,8 +286,6 @@ describe("scrubEventPii", () => {
   });
 
   it("leaves a plain-text body unmangled", () => {
-    // `URLSearchParams` parses anything, so without the form-encoded shape
-    // check prose would be rewritten into `Something+went+wrong=`.
     const event: ErrorEvent = { type: undefined, request: { data: "Something went wrong" } };
 
     scrubEventPii(event);
@@ -341,9 +294,6 @@ describe("scrubEventPii", () => {
   });
 
   it("redacts the parsed request cookies, not just the cookie header", () => {
-    // `RequestData` parses the cookie header into `request.cookies` and does
-    // not gate it on `sendDefaultPii`, so redacting only the header would
-    // leave the live session token one field over.
     const event: ErrorEvent = {
       type: undefined,
       request: {
@@ -356,15 +306,10 @@ describe("scrubEventPii", () => {
 
     expect(JSON.stringify(event.request?.cookies)).not.toContain(JWT);
     expect(event.request?.cookies?.__session).toBe("[REDACTED]");
-    // Names are kept — knowing which cookies were present aids debugging and
-    // is not the secret.
     expect(Object.keys(event.request?.cookies ?? {})).toEqual(["__session", "theme"]);
   });
 
   it("still redacts credential headers when url scrubbing throws", () => {
-    // Regression guard: `scrubRequest` used to run its surfaces in one
-    // un-isolated sequence, so a throw on the URL skipped the cookie and
-    // authorization redaction below it.
     const event: ErrorEvent = {
       type: undefined,
       request: {
@@ -382,9 +327,6 @@ describe("scrubEventPii", () => {
   });
 
   it("keeps scrubbing later breadcrumbs when one throws", () => {
-    // Regression guard at breadcrumb granularity: the message scrub runs
-    // inside the loop, so a frozen breadcrumb used to abort iteration and
-    // leave every later breadcrumb's URL raw.
     const event: ErrorEvent = {
       type: undefined,
       breadcrumbs: [
@@ -399,8 +341,6 @@ describe("scrubEventPii", () => {
   });
 
   it("leaves ui.click selector paths intact", () => {
-    // `ui.click` messages are DOM selector paths, not prose; the digit-bearing
-    // net would shred hashed class names and destroy the click trail.
     const selector = "div > button.Button_root__1a2b3c4d5e6f7g8h > span";
     const event: ErrorEvent = {
       type: undefined,
@@ -413,8 +353,6 @@ describe("scrubEventPii", () => {
   });
 
   it("redacts an email carried inside a URL query in prose", () => {
-    // `scrubUrl` percent-encodes `@` to `%40`, so the email matcher has to run
-    // before the URL treatment or it finds no `@` at all.
     const event: ErrorEvent = {
       type: undefined,
       exception: {
@@ -430,8 +368,6 @@ describe("scrubEventPii", () => {
   });
 
   it("scrubs a repeated param reference instead of treating it as a cycle", () => {
-    // Only an object that contains *itself* is a cycle. A permanent seen-set
-    // flagged the second occurrence of a shared reference and destroyed it.
     const shared = { token: ROOT_KEY, keep: "visible" };
     const event: ErrorEvent = {
       type: undefined,
@@ -442,14 +378,10 @@ describe("scrubEventPii", () => {
 
     const param = event.logentry?.params?.[0] as { a: unknown; b: unknown };
     expect(param.a).toEqual({ token: "[REDACTED]", keep: "visible" });
-    // Previously `[REDACTED]` — the whole object destroyed for being repeated.
     expect(param.b).toEqual({ token: "[REDACTED]", keep: "visible" });
   });
 
   it("drops the whole tRPC input when scrubbing it throws", () => {
-    // Fail-closed guarantee for the credential-bearing surface: a scrub
-    // failure must never forward the raw input (nor take down the error
-    // report, as an unguarded throw in `beforeSend` previously would).
     const event: ErrorEvent = {
       type: undefined,
       contexts: {
@@ -491,17 +423,11 @@ describe("scrubEventPii", () => {
 
     expect(JSON.stringify(event)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(event)).not.toContain(JWT);
-    // The exception type is a code-level identifier and stays intact, as does
-    // the human-readable prose around the secret — redacting a message down to
-    // nothing would merge unrelated issues in Sentry.
     expect(event.exception?.values?.[0]?.type).toBe("TRPCError");
     expect(event.exception?.values?.[0]?.value).toContain("Failed to verify key");
   });
 
   it("keeps identifiers in messages that carry no secret", () => {
-    // The digit-bearing requirement exists so long human-written identifiers
-    // survive; without it every message like this would collapse to
-    // [REDACTED] and distinct issues would group together.
     const event: ErrorEvent = {
       type: undefined,
       exception: {
@@ -531,16 +457,11 @@ describe("scrubEventPii", () => {
 
     expect(JSON.stringify(event)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(event)).not.toContain(JWT);
-    // Short secrets survive the token heuristic, so `extra` leans on the key
-    // list — unlike messages, no grouping depends on these values.
     expect(event.extra?.password).toBe("[REDACTED]");
     expect(event.extra?.keep).toBe("plain text");
   });
 
   it("drops extra wholesale when scrubbing it throws", () => {
-    // Fail-closed: `extra` is developer-attached and may hold plaintext
-    // secrets, so a scrub failure must not forward it raw. It is also scrubbed
-    // before the fail-open URL pass, so a later throw cannot skip it.
     const event: ErrorEvent = {
       type: undefined,
       extra: {
@@ -558,10 +479,6 @@ describe("scrubEventPii", () => {
   });
 });
 
-/**
- * Builds a minimal but fully typed span, so span fixtures stay checked against
- * the real Sentry span shape instead of being cast into it.
- */
 function makeSpan(overrides: Partial<SpanJson>): SpanJson {
   return {
     span_id: "aaaaaaaaaaaaaaaa",
@@ -647,10 +564,8 @@ describe("scrubTransactionPii", () => {
     expect(serialized).not.toContain(ROOT_KEY);
     expect(serialized).not.toContain(JWT);
     expect(serialized).not.toContain("ss_abc123");
-    // Non-URL attributes and the URL structure itself survive.
     expect(event.spans?.[0]?.data["http.method"]).toBe("GET");
     expect(event.spans?.[0]?.data["http.url"]).toContain("https://api.unkey.com/v1/keys");
-    // Query strings keep their leading `?` so the attribute format is stable.
     expect(event.spans?.[0]?.data["http.query"]).toMatch(/^\?key=/);
     expect(event.spans?.[1]?.description).toMatch(/^GET \/api\/internal\?token=/);
   });
@@ -689,17 +604,11 @@ describe("scrubTransactionPii", () => {
 
     expect(event.transaction).not.toContain(ROOT_KEY);
     expect(event.transaction).toContain("GET\t/auth/callback");
-    // Exact output: the `fetch(...)` wrapper keeps its balanced paren instead
-    // of the `)` being percent-encoded into the last query value.
     expect(event.spans?.[0]?.description).toBe("fetch(/api/keys?key=%5BREDACTED%5D)");
     expect(event.spans?.[1]?.description).toBe("redirect url=/login?token=%5BREDACTED%5D");
   });
 
   it("leaves SQLCommenter blocks in db span descriptions untouched", () => {
-    // The dashboard attaches `/*service='...',route='...'*/` comments to SQL via
-    // createCommentedPool; the comment token starts with a slash but is not a
-    // URL, and rewriting it would corrupt Query Insights tags and merge
-    // distinct queries in Sentry Performance.
     const description =
       "SELECT * FROM `keys` WHERE id = ? /*service='dashboard',route='trpc/queryRatelimitLatency2Timeseries'*/";
     const event: TransactionEvent = {
@@ -730,10 +639,6 @@ describe("scrubTransactionPii", () => {
   });
 
   it("scrubs the Referer carried as an http.request.header trace attribute", () => {
-    // Sentry's Node HTTP instrumentation writes request headers onto the trace
-    // context under `http.request.header.<name>`. It does not treat Referer as
-    // sensitive, so an OAuth code in the Referer of a 100%-sampled
-    // /auth/callback transaction reaches Sentry verbatim unless scrubbed here.
     const event: TransactionEvent = {
       type: "transaction",
       contexts: {
@@ -753,7 +658,6 @@ describe("scrubTransactionPii", () => {
     const data = event.contexts?.trace?.data;
     expect(JSON.stringify(data)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(data)).not.toContain(JWT);
-    // Route structure survives so transactions still group by path.
     expect(data?.["http.request.header.referer"]).toContain("/auth/callback");
   });
 
@@ -778,9 +682,6 @@ describe("scrubTransactionPii", () => {
   });
 
   it("masks SQL literals in transaction names when a db span is the trace root", () => {
-    // A query running outside any request span becomes its own transaction,
-    // named with the raw interpolated statement — URL scrubbing alone would
-    // leave the literals intact.
     const statement = "SELECT * FROM `keys` WHERE owner_email = 'jo@acme.com'";
     const event: TransactionEvent = {
       type: "transaction",
@@ -802,10 +703,6 @@ describe("scrubTransactionPii", () => {
   });
 
   it("scrubs sensitive fields from tRPC input attached to transaction contexts", () => {
-    // `attachRpcInput: true` writes raw procedure input to the scope, and
-    // scope contexts merge into transaction events too — without this,
-    // 100%-sampled tRPC transactions would carry what `beforeSend` redacts on
-    // error events.
     const event: TransactionEvent = {
       type: "transaction",
       transaction: "trpc/key.create",
@@ -823,8 +720,6 @@ describe("scrubTransactionPii", () => {
   });
 
   it("fully redacts credential-procedure input on transactions", () => {
-    // A *successful* share.reveal samples at 100% as a tRPC transaction; its
-    // input id is the one-time bearer credential and must never reach Sentry.
     const shareId = "still_valid_one_time_share_id";
     const event: TransactionEvent = {
       type: "transaction",
@@ -868,15 +763,11 @@ describe("scrubSpanPii", () => {
     const returned = scrubSpanPii(span);
 
     expect(JSON.stringify(returned.data)).not.toContain(ROOT_KEY);
-    // Non-URL text like the interaction target selector is untouched.
     expect(returned.description).toBe("body > div#root > button.submit");
     expect(returned.data["sentry.exclusive_time"]).toBe(120);
   });
 
   it("masks SQL literal values in db statement attributes while keeping query shape", () => {
-    // The mysql2 auto-instrumentation interpolates bound values into
-    // `db.query.text`; literals must be masked, but identifiers and the
-    // SQLCommenter tags must survive for query grouping and Query Insights.
     const span = makeSpan({
       op: "db",
       data: {
@@ -893,9 +784,6 @@ describe("scrubSpanPii", () => {
   });
 
   it("masks SQL literals in db span descriptions too (Sentry copies db.statement there)", () => {
-    // Sentry's OpenTelemetry layer sets a db span's description to the raw
-    // `db.statement` verbatim — masking only the attribute would leave the
-    // displayed field leaking the same literals.
     const statement = "SELECT * FROM `keys` WHERE owner_email = 'jo@acme.com' AND id = 42";
     const span = makeSpan({
       op: "db",
@@ -923,9 +811,6 @@ describe("scrubSpanPii", () => {
   });
 
   it("masks literals even when a value contains a comment opener", () => {
-    // A `/*` inside a user-supplied string must not fake a comment opener and
-    // smuggle the surrounding literals through unmasked up to the SQLCommenter
-    // trailer.
     const span = makeSpan({
       op: "db",
       description:
@@ -940,8 +825,6 @@ describe("scrubSpanPii", () => {
   });
 
   it("scrubs read-only spans by copying instead of forwarding them unscrubbed", () => {
-    // `beforeSendSpan` has no drop path, so a span that cannot be mutated in
-    // place must still come back scrubbed — via a copy, not as-is.
     const span = makeSpan({ data: { transaction: `/share/${ROOT_KEY}` } });
     Object.freeze(span.data);
     Object.freeze(span);
@@ -954,10 +837,6 @@ describe("scrubSpanPii", () => {
 
 describe("scrubLog", () => {
   it("scrubs the raw error message the error filter routes into logs", () => {
-    // `createErrorFilter` drops expected tRPC errors from the event pipeline
-    // and hands them to `logTRPCError`, which attaches the pre-scrub
-    // `error.message`. Logs bypass `beforeSend`, so this hook is the only
-    // thing standing between that message and the ingest.
     const log: SentryLog = {
       level: "error",
       message: "tRPC operation completed with expected error",
@@ -972,7 +851,6 @@ describe("scrubLog", () => {
 
     expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
-    // Non-sensitive diagnostics survive.
     expect(scrubbed?.attributes?.trpc_code).toBe("INTERNAL_SERVER_ERROR");
   });
 
@@ -987,15 +865,12 @@ describe("scrubLog", () => {
       },
     };
 
-    // Fail closed: a lost diagnostic log costs less than a leaked credential.
     expect(scrubLog(log)).toBeNull();
   });
 });
 
 describe("scrubReplayFrame", () => {
   it("scrubs console frames, including the raw arguments alongside the message", () => {
-    // Replay records console breadcrumbs into its own envelope, which never
-    // passes through `beforeSend`, and carries the payload twice.
     const frame = {
       type: 5,
       timestamp: 0,
@@ -1017,9 +892,6 @@ describe("scrubReplayFrame", () => {
   });
 
   it("keeps console message and arguments consistent under one policy", () => {
-    // A diagnostic constant must not survive in one field and be redacted in
-    // the other. Both use the digit-net policy, so `INTERNAL_SERVER_ERROR`
-    // stays in message AND arguments.
     const frame = {
       type: 5,
       timestamp: 0,
@@ -1044,8 +916,6 @@ describe("scrubReplayFrame", () => {
   });
 
   it("survives a cyclic console argument instead of dropping the frame", () => {
-    // Console args reach replay un-normalized, so a self-referential object
-    // (a React fiber, a DOM node) must not blow the stack and null the frame.
     const cyclic: Record<string, unknown> = { token: ROOT_KEY };
     cyclic.self = cyclic;
     const frame = {
@@ -1070,9 +940,6 @@ describe("scrubReplayFrame", () => {
   });
 
   it("scrubs the URL a navigation/resource span carries in its description", () => {
-    // Span recording frames bypass `beforeSend` like every replay frame, and
-    // the resource/navigation URL — query string and all — rides in
-    // `description`.
     const frame = {
       type: 5,
       timestamp: 0,
@@ -1136,11 +1003,6 @@ describe("scrubReplayFrame", () => {
 
 describe("event-path parity with the transaction and replay paths", () => {
   it("scrubs console breadcrumb data.arguments, not just the formatted message", () => {
-    // The console integration attaches the raw arguments alongside the joined
-    // message, and `safeJoin` renders an object argument as `[object Object]`
-    // — so for an object argument the message pass sees nothing and `data.
-    // arguments` is the only carrier. `structured-logger.ts` does exactly this
-    // with the PRE-scrub tRPC error message.
     const event: ErrorEvent = {
       type: undefined,
       breadcrumbs: [
@@ -1161,7 +1023,6 @@ describe("event-path parity with the transaction and replay paths", () => {
     scrubEventPii(event);
 
     expect(JSON.stringify(event.breadcrumbs)).not.toContain(ROOT_KEY);
-    // The diagnostic shape survives; only the secret goes.
     expect(JSON.stringify(event.breadcrumbs)).toContain("trpc_error_message");
   });
 
@@ -1176,12 +1037,10 @@ describe("event-path parity with the transaction and replay paths", () => {
 
     expect(event.transaction).not.toContain(ROOT_KEY);
     expect(event.request?.url).not.toContain(ROOT_KEY);
-    // The route shape survives so Sentry can still group on it.
     expect(event.transaction).toContain("/settings");
   });
 
   it("scrubs contexts.trace.data on error events, as the transaction path does", () => {
-    // Errors captured inside a span carry the root span's attributes.
     const event: ErrorEvent = {
       type: undefined,
       contexts: {
@@ -1201,15 +1060,12 @@ describe("event-path parity with the transaction and replay paths", () => {
     const traceData = event.contexts?.trace?.data;
     expect(JSON.stringify(traceData)).not.toContain(JWT);
     expect(JSON.stringify(traceData)).not.toContain("jane@acme.com");
-    // SQL keeps its shape for grouping.
     expect(traceData?.["db.query.text"]).toContain("SELECT * FROM keys WHERE email =");
   });
 });
 
 describe("redaction-net coverage gaps", () => {
   it("redacts emails in URL path segments", () => {
-    // `TOKEN_LIKE` stops at `.` and `@`, so no run in an address reaches 20
-    // chars and the digit-bearing net alone cannot see it.
     const out = scrubUrl("/api/users/jane.doe@acme.com/keys");
 
     expect(out).not.toContain("jane.doe@acme.com");
@@ -1218,9 +1074,6 @@ describe("redaction-net coverage gaps", () => {
   });
 
   it("scrubs bracketed (nested) form-encoded bodies by key", () => {
-    // Bracketed keys are a real form encoding; excluding them from the shape
-    // check dropped the body to the blind token net, which cannot tell that a
-    // 7-char value under a `password` key is a secret.
     const event: ErrorEvent = {
       type: undefined,
       request: { data: "user[password]=hunter2&user[email]=jane@acme.com&user[name]=Jane" },
@@ -1231,7 +1084,6 @@ describe("redaction-net coverage gaps", () => {
     const data = String(event.request?.data);
     expect(data).not.toContain("hunter2");
     expect(data).not.toContain("jane@acme.com");
-    // A non-sensitive field under the same nesting survives.
     expect(data).toContain("Jane");
   });
 
@@ -1253,7 +1105,6 @@ describe("redaction-net coverage gaps", () => {
 
     const headers = event.request?.headers ?? {};
     expect(headers["x-unkey-key"]).toBe("[REDACTED]");
-    // Name-based matching is what catches a SHORT credential the token net misses.
     expect(headers["x-csrf-token"]).toBe("[REDACTED]");
     expect(headers["x-clerk-session"]).toBe("[REDACTED]");
     // Benign headers survive intact.
@@ -1262,9 +1113,6 @@ describe("redaction-net coverage gaps", () => {
   });
 
   it("scrubs Errors and Maps reaching un-normalized log surfaces", () => {
-    // `logentry.params` and `log.attributes` skip the SDK's normalization, so
-    // an Error arrives live. Passing exotic objects through untouched shipped
-    // the very message `scrubExceptions` strips out of the event.
     const log: SentryLog = {
       level: "error",
       message: "operation failed",
@@ -1278,16 +1126,12 @@ describe("redaction-net coverage gaps", () => {
 
     expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
     expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
-    // The Error is flattened rather than dropped, so it stays diagnosable.
     expect(JSON.stringify(scrubbed)).toContain("Error");
   });
 });
 
 describe("scrubLog correlation identifiers", () => {
   it("preserves the ids structured logging exists to provide", () => {
-    // These are opaque, self-generated, and all match the digit-bearing token
-    // shape. Redacting them severs the link between a Sentry issue and its
-    // tRPC log line, its user, and its deploy, while protecting nothing.
     const log: SentryLog = {
       level: "error",
       message: "tRPC operation completed with expected error",
@@ -1312,15 +1156,10 @@ describe("scrubLog correlation identifiers", () => {
     expect(attributes.version).toBe("a1b2c3d4e5f67890a1b2c3d4e5f67890");
     expect(attributes.trpc_procedure).toBe("key.create");
     expect(attributes.trpc_error_code).toBe("INTERNAL_SERVER_ERROR");
-    // The exemption is narrow: the message attribute is still scrubbed.
     expect(String(attributes.trpc_error_message)).not.toContain(ROOT_KEY);
   });
 
   it("scrubs a templated (fmt) message, which is a String object at runtime", () => {
-    // `fmt`/`parameterize` build the message with `new String(...)`, so a
-    // `typeof === "string"` check skips it entirely. The SDK extracts the
-    // template and its values into attributes BEFORE `beforeSendLog` runs —
-    // this models the exact shape `_INTERNAL_captureLog` hands the hook.
     const templated = new String(
       `fetch failed for /api/keys?keyId=${ROOT_KEY}`,
     ) as unknown as SentryLog["message"];
@@ -1334,13 +1173,8 @@ describe("scrubLog correlation identifiers", () => {
       },
     });
 
-    // The interpolated body is scrubbed...
     expect(String(scrubbed?.message)).not.toContain(ROOT_KEY);
-    // ...and so is the parameter attribute, the copy Sentry actually ships.
     expect(String(scrubbed?.attributes?.["sentry.message.parameter.0"])).not.toContain(ROOT_KEY);
-    // The template attribute is developer-authored source: it must survive
-    // VERBATIM — `scrubUrl` would re-encode `%s` to `%25s`, breaking
-    // interpolation and splitting grouping.
     expect(scrubbed?.attributes?.["sentry.message.template"]).toBe(
       "fetch failed for /api/keys?keyId=%s",
     );
@@ -1349,9 +1183,6 @@ describe("scrubLog correlation identifiers", () => {
 
 describe("over-redaction and encoded-form regressions", () => {
   it("scrubs caller-supplied PII arriving under correlation attribute names", () => {
-    // `logUserAction`/`logOperation` spread caller attributes over the base
-    // record, so allowlisted names can carry caller data. The exemption must
-    // be by name AND value shape.
     const log: SentryLog = {
       level: "info",
       message: "user action: invite.send",
@@ -1365,13 +1196,10 @@ describe("over-redaction and encoded-form regressions", () => {
     const scrubbed = scrubLog(log);
 
     expect(JSON.stringify(scrubbed)).not.toContain("jane@acme.com");
-    // The genuinely id-shaped value keeps its exemption.
     expect(scrubbed?.attributes?.request_id).toBe("req_1763648000000_k3j9xq2mz");
   });
 
   it("redacts Map values by key instead of flattening keys away", () => {
-    // Flattening a Map to an entries array hides its keys from the key-based
-    // policy — `password: hunter2` is invisible to every string net.
     const log: SentryLog = {
       level: "error",
       message: "x",
@@ -1385,8 +1213,6 @@ describe("over-redaction and encoded-form regressions", () => {
   });
 
   it("redacts percent-encoded emails in URL path segments", () => {
-    // `encodeURIComponent` is the normal way an address reaches a path, and
-    // the encoded form has no literal `@` for the email net.
     const out = scrubUrl("https://app.unkey.com/api/users/jane%40acme.com/keys");
 
     expect(out).not.toContain("jane%40acme.com");
@@ -1411,12 +1237,10 @@ describe("over-redaction and encoded-form regressions", () => {
     scrubEventPii(event);
 
     const headers = event.request?.headers ?? {};
-    // The values an on-call engineer joins Sentry issues to logs/traces with.
     expect(headers[":authority"]).toBe("app.unkey.com");
     expect(headers["x-request-id"]).toBe("123e4567-e89b-12d3-a456-426614174000");
     expect(headers.traceparent).toBe("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
     expect(headers["sentry-trace"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1");
-    // Credential-named headers still go.
     expect(headers["x-unkey-key"]).toBe("[REDACTED]");
   });
 
@@ -1425,17 +1249,13 @@ describe("over-redaction and encoded-form regressions", () => {
       "https://app.unkey.com/logs?filters[state]=open&sort[key]=name&user[password]=hunter2&user[email]=j@a.co",
     );
 
-    // `state`/`key` are OAuth-sensitive as WHOLE names but benign as leaves.
     expect(out).toContain("open");
     expect(out).toContain("name");
-    // Unambiguous credential leaves are still redacted.
     expect(out).not.toContain("hunter2");
     expect(out).not.toContain("j%40a.co");
   });
 
   it("redacts array params named for credentials (token[])", () => {
-    // `token[]=a&token[]=b` is a single param NAME with brackets; the leaf is
-    // the only segment and must still match the credential list.
     const out = scrubUrl("https://app.unkey.com/verify?token[]=abc123&token[]=def456");
 
     expect(out).not.toContain("abc123");
@@ -1453,11 +1273,8 @@ describe("over-redaction and encoded-form regressions", () => {
       cause?: { message?: string };
     };
 
-    // `cause` is installed non-enumerably by V8; Object.entries misses it.
     expect(flat.cause?.message).toBeDefined();
     expect(JSON.stringify(scrubbed)).not.toContain(ROOT_KEY);
-    // Frame lines are code locations, not data: the digit-bearing net must
-    // not eat directory or chunk-hash segments out of them.
     const frames = (flat.stack ?? "").split("\n").filter((line) => /^\s+at\s/.test(line));
     expect(frames.length).toBeGreaterThan(0);
     for (const frame of frames) {
@@ -1484,7 +1301,6 @@ describe("over-redaction and encoded-form regressions", () => {
 
     const message = (scrubbed?.data as { payload: { message: string } }).payload.message;
     expect(message).not.toContain("jane@acme.com");
-    // The selector path itself survives for the click trail.
     expect(message).toContain("div > button");
   });
 });
