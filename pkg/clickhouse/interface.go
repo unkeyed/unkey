@@ -16,6 +16,10 @@ type Querier interface {
 	// This is useful for dynamic queries where the schema is not known at compile time.
 	QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error)
 
+	// QueryToMapsBounded applies immutable server-side result limits and stops
+	// scanning if the encoded application result crosses either bound.
+	QueryToMapsBounded(ctx context.Context, query string, limits ResultLimits, args ...any) ([]map[string]any, error)
+
 	// Exec executes a DDL or DML statement (CREATE, ALTER, DROP, etc.)
 	Exec(ctx context.Context, sql string, args ...any) error
 

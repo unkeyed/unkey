@@ -179,19 +179,27 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	// Create or replace settings profile
 	profileName := fmt.Sprintf("workspace_%s_profile", config.WorkspaceID)
 	logger.Info("creating/updating settings profile", "name", profileName)
+	maxResultRows := effectiveAnalyticsResultRows(config.MaxQueryResultRows)
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
 			max_execution_time = %d READONLY,
 			max_memory_usage = %d READONLY,
 			max_result_rows = %d READONLY,
+			max_result_bytes = %d READONLY,
+			result_overflow_mode = 'throw' READONLY,
+			max_ast_depth = %d READONLY,
+			max_ast_elements = %d READONLY,
 			readonly = 1 READONLY
 		TO %s
 	`,
 		profileName,
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
-		config.MaxQueryResultRows,
+		maxResultRows,
+		AnalyticsMaxResultBytes,
+		AnalyticsMaxASTDepth,
+		AnalyticsMaxASTElements,
 		config.Username,
 	)
 	err = c.Exec(ctx, createOrReplaceProfileSQL)
@@ -206,6 +214,13 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	)
 
 	return nil
+}
+
+func effectiveAnalyticsResultRows(workspaceLimit int32) int32 {
+	if workspaceLimit > 0 && workspaceLimit < int32(AnalyticsMaxResultRows) {
+		return workspaceLimit
+	}
+	return int32(AnalyticsMaxResultRows)
 }
 
 // DefaultAllowedTables returns the default list of tables for analytics access

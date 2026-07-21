@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/retry"
@@ -147,6 +149,30 @@ func (c *Client) Conn() ch.Conn {
 // Returns fault-wrapped errors with appropriate codes for resource limits,
 // user query errors, and system errors.
 func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	return c.queryToMaps(ctx, query, ResultLimits{MaxRows: 0, MaxBytes: 0}, func() {}, args...)
+}
+
+// ResultLimits bounds dynamic analytics results both at ClickHouse and while
+// scanning into application memory. Zero values disable the corresponding cap.
+type ResultLimits struct {
+	MaxRows  int
+	MaxBytes int
+}
+
+const (
+	AnalyticsMaxResultRows  = 10_000
+	AnalyticsMaxResultBytes = 4 << 20
+	AnalyticsMaxASTDepth    = 100
+	AnalyticsMaxASTElements = 2_000
+)
+
+func (c *Client) QueryToMapsBounded(ctx context.Context, query string, limits ResultLimits, args ...any) ([]map[string]any, error) {
+	queryCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	return c.queryToMaps(queryCtx, query, limits, cancel, args...)
+}
+
+func (c *Client) queryToMaps(ctx context.Context, query string, limits ResultLimits, cancel context.CancelFunc, args ...any) ([]map[string]any, error) {
 	rows, err := c.conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, WrapClickHouseError(err)
@@ -154,9 +180,22 @@ func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]
 	defer func() { _ = rows.Close() }()
 
 	columns := rows.Columns()
-	results := make([]map[string]any, 0)
+	capacity := limits.MaxRows
+	if capacity <= 0 {
+		capacity = 0
+	}
+	results := make([]map[string]any, 0, capacity)
+	encodedBytes := 2 // JSON array brackets
 
 	for rows.Next() {
+		if limits.MaxRows > 0 && len(results) >= limits.MaxRows {
+			cancel()
+			return nil, fault.New("result row limit exceeded",
+				fault.Code(codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN()),
+				fault.Public("Query result exceeds the maximum row count."),
+			)
+		}
+
 		// Create slice of ch.Dynamic to scan into
 		values := make([]ch.Dynamic, len(columns))
 		valuePtrs := make([]any, len(columns))
@@ -165,12 +204,31 @@ func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
+			cancel()
 			return nil, fault.Wrap(err, fault.Public("Failed to read query results"))
 		}
 
 		row := make(map[string]any)
 		for i, col := range columns {
 			row[col] = values[i]
+		}
+		if limits.MaxBytes > 0 {
+			encodedRow, marshalErr := json.Marshal(row)
+			if marshalErr != nil {
+				cancel()
+				return nil, fault.Wrap(marshalErr, fault.Public("Failed to encode query results"))
+			}
+			encodedBytes += len(encodedRow)
+			if len(results) > 0 {
+				encodedBytes++
+			}
+			if encodedBytes > limits.MaxBytes {
+				cancel()
+				return nil, fault.New("result byte limit exceeded",
+					fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+					fault.Public("Query result exceeds the maximum response size."),
+				)
+			}
 		}
 
 		results = append(results, row)

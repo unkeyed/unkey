@@ -196,11 +196,15 @@ var resourceLimitCodes = map[int32]errorResponse{
 		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
 		message: "Query memory limit exceeded. Try simplifying your query or reducing the result set size.",
 	},
-	396: { // QUERY_WAS_CANCELLED
+	394: { // QUERY_WAS_CANCELLED
 		code:    codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(),
 		message: "Query was cancelled due to resource limits.",
 	},
-	158: { // TOO_MANY_ROWS_OR_BYTES
+	396: { // TOO_MANY_ROWS_OR_BYTES
+		code:    codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(),
+		message: "Query result exceeds the maximum response size.",
+	},
+	158: { // TOO_MANY_ROWS
 		code:    codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(),
 		message: "Query attempted to read too many rows. Try adding more filters or reducing the time range.",
 	},
@@ -223,6 +227,32 @@ func WrapClickHouseError(err error) error {
 
 	errMsg := strings.ToLower(err.Error())
 
+	var chErr *ch.Exception
+	if errors.As(err, &chErr) {
+		switch chErr.Code {
+		case 158:
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(), "Query result exceeds the maximum row count.")
+		case 394:
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(), "Query was cancelled due to resource limits.")
+		case 396:
+			if strings.Contains(strings.ToLower(chErr.Message), "max rows") {
+				return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(), "Query result exceeds the maximum row count.")
+			}
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(), "Query result exceeds the maximum response size.")
+		}
+		switch chErr.Name {
+		case "TOO_MANY_ROWS":
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(), "Query result exceeds the maximum row count.")
+		case "QUERY_WAS_CANCELLED":
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(), "Query was cancelled due to resource limits.")
+		case "TOO_MANY_ROWS_OR_BYTES":
+			if strings.Contains(strings.ToLower(chErr.Message), "max bytes") {
+				return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(), "Query result exceeds the maximum response size.")
+			}
+			return wrapResourceLimitError(err, codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN(), "Query result exceeds the maximum row count.")
+		}
+	}
+
 	// Check for resource limit violations via message patterns
 	for pattern, response := range resourceLimitPatterns {
 		if strings.Contains(errMsg, pattern) {
@@ -234,7 +264,6 @@ func WrapClickHouseError(err error) error {
 	}
 
 	// Check ClickHouse exception codes for resource errors
-	var chErr *ch.Exception
 	if errors.As(err, &chErr) {
 		if response, ok := resourceLimitCodes[chErr.Code]; ok {
 			return fault.Wrap(err,
@@ -250,4 +279,8 @@ func WrapClickHouseError(err error) error {
 		fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 		fault.Public(ExtractUserFriendlyError(err)),
 	)
+}
+
+func wrapResourceLimitError(err error, code codes.URN, message string) error {
+	return fault.Wrap(err, fault.Code(code), fault.Public(message))
 }

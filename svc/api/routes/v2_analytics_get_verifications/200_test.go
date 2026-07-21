@@ -67,6 +67,20 @@ func Test200_Success(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 }
 
+func TestEffectiveResultRowLimit(t *testing.T) {
+	// Security guarantee: a permissive workspace setting cannot exceed the API's process-memory cap.
+	require.Equal(t, maxAnalyticsResultRows, effectiveResultRowLimit(10_000_000))
+	require.Equal(t, 37, effectiveResultRowLimit(37))
+}
+
+func TestMarshalAnalyticsResponseEnforcesExactJSONBudget(t *testing.T) {
+	// Security guarantee: JSON framing and a one-row aggregate count toward the final response budget.
+	_, err := marshalAnalyticsResponse(Response{
+		Data: ResponseData{{"aggregate": string(make([]byte, maxAnalyticsResponseBytes))}},
+	})
+	require.ErrorContains(t, err, "response byte limit")
+}
+
 func Test200_PermissionFiltersByApiId(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 

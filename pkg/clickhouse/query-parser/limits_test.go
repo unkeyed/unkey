@@ -2,6 +2,7 @@ package queryparser
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -95,4 +96,36 @@ func TestParser_LimitBypassAttempts(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestParser_RejectsQueriesOverByteLimit(t *testing.T) {
+	// Security guarantee: parser work is bounded before attacker-controlled SQL reaches the lexer.
+	p := NewParser(Config{MaxQueryBytes: 32})
+
+	_, err := p.Parse(context.Background(), "SELECT "+strings.Repeat("1 + ", 20)+"1")
+	require.ErrorContains(t, err, "query exceeds maximum length")
+}
+
+func TestParser_RejectsWideProjections(t *testing.T) {
+	// Security guarantee: one row cannot bypass row caps with an unbounded number of projected values.
+	p := NewParser(Config{MaxProjectedColumns: 3})
+
+	_, err := p.Parse(context.Background(), "SELECT 1, 2, 3, 4")
+	require.ErrorContains(t, err, "too many projected columns")
+}
+
+func TestParser_RejectsWideExceptProjection(t *testing.T) {
+	// Security guarantee: projection limits include EXCEPT branches omitted by the dependency walker.
+	p := NewParser(Config{MaxProjectedColumns: 3})
+
+	_, err := p.Parse(context.Background(), "SELECT 1 EXCEPT (SELECT 1, 2, 3, 4)")
+	require.ErrorContains(t, err, "too many projected columns")
+}
+
+func TestParser_RejectsComplexAST(t *testing.T) {
+	// Security guarantee: short but deeply composed SQL cannot consume unbounded parser or rewrite CPU.
+	p := NewParser(Config{MaxASTNodes: 10})
+
+	_, err := p.Parse(context.Background(), "SELECT 1 + 2 + 3 + 4 + 5 + 6")
+	require.ErrorContains(t, err, "query is too complex")
 }

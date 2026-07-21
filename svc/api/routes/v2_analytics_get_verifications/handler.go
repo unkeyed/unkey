@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -26,6 +27,15 @@ import (
 type Request = openapi.V2AnalyticsGetVerificationsRequestBody
 type Response = openapi.V2AnalyticsGetVerificationsResponseBody
 type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
+
+const (
+	maxAnalyticsResultRows       = clickhouse.AnalyticsMaxResultRows
+	maxAnalyticsResponseBytes    = clickhouse.AnalyticsMaxResultBytes
+	analyticsResponseOverhead    = 1 << 10
+	maxAnalyticsQueryBytes       = 16 << 10
+	maxAnalyticsProjectedColumns = 64
+	maxAnalyticsASTNodes         = clickhouse.AnalyticsMaxASTElements
+)
 
 var (
 	tableAliases = map[string]string{
@@ -87,12 +97,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:       principal.WorkspaceID,
-		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
-		SecurityFilters:   securityFilters,
-		TableAliases:      tableAliases,
-		AllowedTables:     allowedTables,
-		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		WorkspaceID:         principal.WorkspaceID,
+		Limit:               effectiveResultRowLimit(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
+		SecurityFilters:     securityFilters,
+		TableAliases:        tableAliases,
+		AllowedTables:       allowedTables,
+		MaxQueryRangeDays:   settings.Quotas.LogsRetentionDays,
+		MaxQueryBytes:       maxAnalyticsQueryBytes,
+		MaxProjectedColumns: maxAnalyticsProjectedColumns,
+		MaxASTNodes:         maxAnalyticsASTNodes,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -129,17 +142,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
 	// Execute query using workspace connection
-	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
+	verifications, err := conn.QueryToMapsBounded(ctx, parsedQuery, clickhouse.ResultLimits{
+		MaxRows:  effectiveResultRowLimit(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
+		MaxBytes: maxAnalyticsResponseBytes - analyticsResponseOverhead,
+	})
 	if err != nil {
-		return clickhouse.WrapClickHouseError(err)
+		return err
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	response, err := marshalAnalyticsResponse(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: verifications,
 	})
+	if err != nil {
+		return err
+	}
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, response)
+}
+
+func effectiveResultRowLimit(workspaceLimit int32) int {
+	if workspaceLimit > 0 && workspaceLimit < maxAnalyticsResultRows {
+		return int(workspaceLimit)
+	}
+	return maxAnalyticsResultRows
+}
+
+func marshalAnalyticsResponse(response Response) ([]byte, error) {
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to encode query results"))
+	}
+	if len(encoded) > maxAnalyticsResponseBytes {
+		return nil, fault.New("analytics response byte limit exceeded",
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size."),
+		)
+	}
+	return encoded, nil
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

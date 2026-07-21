@@ -63,6 +63,10 @@ func (n *noop) QueryToMaps(ctx context.Context, query string, args ...any) ([]ma
 	return []map[string]any{}, nil
 }
 
+func (n *noop) QueryToMapsBounded(ctx context.Context, query string, limits ResultLimits, args ...any) ([]map[string]any, error) {
+	return []map[string]any{}, nil
+}
+
 // Exec implements the Querier interface but does nothing.
 func (n *noop) Exec(ctx context.Context, sql string, args ...any) error {
 	return nil
