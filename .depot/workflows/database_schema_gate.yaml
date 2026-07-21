@@ -17,7 +17,7 @@ env:
   BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.run_id, github.run_attempt) }}
 jobs:
   gate:
-    name: Database schema gate
+    name: Compare production schema
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     env:
