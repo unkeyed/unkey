@@ -1,6 +1,6 @@
 ---
 title: "query_memory_limit_exceeded"
-description: "Your analytics query consumed more memory than Unkey allows. Reduce the result set size by narrowing filters, limiting rows, or simplifying joins."
+description: "Your analytics query exceeded its memory quota or produced more than 4 MiB of encoded results. Reduce the data processed or returned by the query."
 ---
 
 <Danger>`err:user:unprocessable_entity:query_memory_limit_exceeded`</Danger>
@@ -11,7 +11,7 @@ description: "Your analytics query consumed more memory than Unkey allows. Reduc
     "requestId": "req_4dgzrNP3Je5mU1tD"
   },
   "error": {
-    "detail": "Query exceeded the maximum memory limit of 2GB",
+    "detail": "Query result exceeds the maximum response size.",
     "status": 422,
     "title": "Unprocessable Entity",
     "type": "https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded"
@@ -19,15 +19,19 @@ description: "Your analytics query consumed more memory than Unkey allows. Reduc
 }
 ```
 
-## What Happened?
+## What happened?
 
-Your query tried to use more than 2GB of memory! We limit memory usage to keep the analytics service stable and fast for everyone.
+Your query exceeded its workspace memory quota or produced an encoded response larger than 4 MiB. Unkey limits both values to prevent one analytics query from exhausting shared resources.
 
-This typically happens when you're selecting too many rows, using large GROUP BY operations, or performing complex JOINs without enough filtering.
+The response limit applies to the encoded JSON size, not only the number of rows. A query can exceed it with one large aggregate value, many projected columns, or many rows.
 
-## How to Fix It
+## How to fix it
 
-### 1. Use Aggregations Instead of Raw Data
+### 1. Return fewer columns and values
+
+Select only the columns you need. Avoid aggregates such as `groupArray` that can place an unbounded amount of data into one result value.
+
+### 2. Use aggregations instead of raw data
 
 Instead of fetching all rows, aggregate the data:
 
@@ -52,7 +56,7 @@ GROUP BY hour, api_id
 
 </CodeGroup>
 
-### 2. Add More Filters
+### 3. Add more filters
 
 Reduce the amount of data the query needs to process:
 
@@ -74,9 +78,9 @@ WHERE time >= now() - INTERVAL 1 DAY
 
 </CodeGroup>
 
-### 3. Limit Result Size
+### 4. Limit result size
 
-Add a LIMIT to cap the number of rows:
+Add a `LIMIT` to cap the number of returned rows. If the response still exceeds 4 MiB, lower the limit or select fewer columns.
 
 ```sql
 SELECT api_id, key_id, outcome, time
@@ -86,7 +90,7 @@ ORDER BY time DESC
 LIMIT 10000
 ```
 
-### 4. Avoid Large GROUP BY Cardinality
+### 5. Avoid large GROUP BY cardinality
 
 GROUP BY on high-cardinality columns (like `key_id`) uses a lot of memory. Instead, group by lower-cardinality columns:
 
@@ -108,17 +112,17 @@ GROUP BY api_id
 
 </CodeGroup>
 
-## Need More Memory?
+## Need a higher memory quota?
 
 <Note>
-**Have a legitimate need for higher memory limits?** Contact our support team!
+Contact support if your query has a legitimate need for a higher workspace memory quota. The 4 MiB encoded-response limit is fixed, so larger result sets must be split into multiple queries.
 
 [Reach out to support](mailto:support@unkey.com) and tell us:
 
 - What you're trying to analyze
-- Why the query needs more than 2GB of memory
+- Why the query needs a higher memory quota
 - An example of the query you're running
 
-We'll review your use case and see if we can accommodate your needs.
+Unkey support can review your use case and determine whether a higher workspace memory quota is appropriate.
 
 </Note>
