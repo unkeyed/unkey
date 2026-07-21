@@ -33,6 +33,7 @@ vi.mock("nuqs", async (importOriginal) => {
 import {
   normalizePageSize,
   paginationFilterKey,
+  paginationSortKey,
   usePaginatedListQuery,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -210,6 +211,38 @@ describe("usePaginatedListQuery", () => {
       const { result } = render();
 
       expect(result.current.sorting).toEqual([{ id: "created", desc: true }]);
+    });
+
+    it("keeps every valid URL sort entry in sorting state, dropping unknown columns", () => {
+      // A multi-sort deep link (produced by the pre-consolidation bespoke
+      // hooks) must keep all its header indicators; only the first entry
+      // drives the server query.
+      queryResult = { data: { total: 100 }, isLoading: false, isFetching: false };
+      urlStore.sort = [
+        { column: "createdAt", direction: "asc" },
+        { column: "updatedAt", direction: "desc" },
+        { column: "createdAt", direction: "desc" },
+      ];
+      const { result } = renderHook(() =>
+        usePaginatedListQuery({
+          ...makeConfig(),
+          columnIdToSortField: { created: "createdAt", updated: "updatedAt" } as Record<
+            string,
+            "createdAt" | "updatedAt"
+          >,
+          sortFieldToColumnId: { createdAt: "created", updatedAt: "updated" } as Record<
+            "createdAt" | "updatedAt",
+            string
+          >,
+          defaultSortField: "createdAt" as const,
+        }),
+      );
+
+      expect(result.current.sorting).toEqual([
+        { id: "created", desc: false },
+        { id: "updated", desc: true },
+        { id: "created", desc: true },
+      ]);
     });
 
     it("resets to page 1 when the sort changes", () => {
@@ -601,5 +634,36 @@ describe("paginationFilterKey", () => {
 
   it("returns a stable key for no filters", () => {
     expect(paginationFilterKey([])).toBe(paginationFilterKey([]));
+  });
+});
+
+// paginationSortKey carries the same guarantee as paginationFilterKey for the
+// multi-column `useSort` surface: equal sort content yields equal keys, and
+// any difference in order, column, or direction yields a different key.
+describe("paginationSortKey", () => {
+  it("produces the same key for equal content in a fresh array", () => {
+    const a = paginationSortKey([{ column: "time", direction: "desc" }]);
+    const b = paginationSortKey([{ column: "time", direction: "desc" }]);
+    expect(a).toBe(b);
+  });
+
+  it("produces a different key when order, column, or direction changes", () => {
+    const base = paginationSortKey([
+      { column: "time", direction: "desc" },
+      { column: "name", direction: "asc" },
+    ]);
+    expect(
+      paginationSortKey([
+        { column: "name", direction: "asc" },
+        { column: "time", direction: "desc" },
+      ]),
+    ).not.toBe(base);
+    expect(paginationSortKey([{ column: "time", direction: "asc" }])).not.toBe(
+      paginationSortKey([{ column: "time", direction: "desc" }]),
+    );
+  });
+
+  it("returns a stable key for no sorts", () => {
+    expect(paginationSortKey([])).toBe(paginationSortKey([]));
   });
 });

@@ -6,6 +6,7 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
+  paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -45,8 +46,7 @@ export function useSentinelLogsQuery({
   // untriggered on an app switch, firing a query for the stale page against the
   // new app until a later render corrected it.
   const resetKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|app:${appId ?? ""}|r:${refreshNonce}`,
+    () => `${paginationFilterKey(filters)}|app:${appId ?? ""}|r:${refreshNonce}`,
     [filters, appId, refreshNonce],
   );
 

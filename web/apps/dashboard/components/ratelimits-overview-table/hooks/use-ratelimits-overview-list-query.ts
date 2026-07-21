@@ -10,6 +10,7 @@ import {
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   paginationFilterKey,
+  paginationSortKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -39,8 +40,7 @@ export function useRatelimitsOverviewListPaginated({
   // Reset to page 1 when filters, sort, or query time change — the current
   // OFFSET is only meaningful relative to the current ordering.
   const filtersKey = useMemo(
-    () =>
-      `${paginationFilterKey(filters)}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    () => `${paginationFilterKey(filters)}|t:${timestamp}|s:${paginationSortKey(sorts)}`,
     [filters, timestamp, sorts],
   );
 

@@ -7,6 +7,7 @@ import {
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   paginationFilterKey,
+  paginationSortKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -34,8 +35,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   // OFFSET is only meaningful relative to the current ordering, so changing
   // any of these invalidates it.
   const filtersKey = useMemo(
-    () =>
-      `${paginationFilterKey(filters)}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    () => `${paginationFilterKey(filters)}|t:${timestamp}|s:${paginationSortKey(sorts)}`,
     [filters, timestamp, sorts],
   );
 

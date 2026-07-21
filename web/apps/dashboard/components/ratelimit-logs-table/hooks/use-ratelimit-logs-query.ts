@@ -119,6 +119,7 @@ export function useRatelimitLogsQuery({
   );
   const enrichmentMapRef = useRef(new Map<string, RatelimitLogEnrichment>());
   const [enrichmentVersion, setEnrichmentVersion] = useState(0);
+  const lastNonEmptyPageRef = useRef(1);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -259,6 +260,7 @@ export function useRatelimitLogsQuery({
       setRealtimeLogsMap(new Map());
       enrichmentMapRef.current.clear();
       setEnrichmentVersion(0);
+      lastNonEmptyPageRef.current = 1;
     }
   }, [filtersKey]);
 
@@ -346,17 +348,23 @@ export function useRatelimitLogsQuery({
   const knownTotal = logData?.total ?? null;
   const totalCount =
     knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
-  // Without a count, an out-of-range page is only detectable once it comes back
-  // empty. Report totalPages = 1 then, so the clamp in usePaginatedNavigation
-  // snaps a stale deep link (?page=999) back instead of stranding the user on an
-  // empty page: deriving totalPages from queryPage alone keeps it >= queryPage,
-  // and the clamp can never fire.
+  // Without a count, an out-of-range page is only detectable once it comes
+  // back empty. Reporting the last page seen with rows as the total lets the
+  // clamp snap back to the last real page (or to 1 for a stale deep link that
+  // never saw data) instead of stranding the user on an empty page. The
+  // isFetching gate keeps keepPreviousData from crediting the previous page's
+  // rows to the page still being fetched.
+  useEffect(() => {
+    if (!isFetching && pageRowCount > 0) {
+      lastNonEmptyPageRef.current = queryPage;
+    }
+  }, [isFetching, pageRowCount, queryPage]);
   const isEmptyPageBeyondFirst = logData != null && pageRowCount === 0 && queryPage > 1;
   const totalPages =
     knownTotal !== null
       ? computeTotalPages(totalCount, limit)
       : isEmptyPageBeyondFirst
-        ? 1
+        ? Math.min(lastNonEmptyPageRef.current, queryPage - 1)
         : queryPage + (pageRowCount >= limit ? 1 : 0);
 
   const { onPageChange } = usePaginatedNavigation({
@@ -367,6 +375,7 @@ export function useRatelimitLogsQuery({
     queryParams,
     prefetch: (params) =>
       queryClient.ratelimit.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    enabled: !startPolling,
   });
 
   // Fetch enrichment whenever new historical data arrives

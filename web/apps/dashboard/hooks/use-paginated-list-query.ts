@@ -63,8 +63,8 @@ export function usePaginatedPage(resetKey: string) {
   return { page: queryPage, setPage };
 }
 
-type UsePaginatedNavigationParams<TData, TParams extends { page: number }> = {
-  data: TData | undefined | null;
+type UsePaginatedNavigationParams<TParams extends { page: number }> = {
+  data: unknown;
   page: number;
   totalPages: number;
   setPage: (page: number) => void;
@@ -90,7 +90,7 @@ type UsePaginatedNavigationParams<TData, TParams extends { page: number }> = {
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
 // separate from `usePaginatedPage` so a caller can compute `data`/`totalPages`
 // from its own query (and run any other hooks it needs) in between.
-export function usePaginatedNavigation<TData, TParams extends { page: number }>({
+export function usePaginatedNavigation<TParams extends { page: number }>({
   data,
   page,
   totalPages,
@@ -99,7 +99,7 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   prefetch,
   prefetchKey,
   enabled = true,
-}: UsePaginatedNavigationParams<TData, TParams>) {
+}: UsePaginatedNavigationParams<TParams>) {
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
   // totalCount is still 0 and totalPages collapses to 1 (ENG-2930).
@@ -181,6 +181,12 @@ export function paginationFilterKey(
   return JSON.stringify(filters.map((f) => [f.field, f.operator, f.value]));
 }
 
+// Companion to paginationFilterKey for sort arrays, with the same
+// unambiguous-encoding guarantee.
+export function paginationSortKey(sorts: ReadonlyArray<{ column: string; direction: string }>) {
+  return JSON.stringify(sorts.map((s) => [s.column, s.direction]));
+}
+
 // ---------------------------------------------------------------------------
 // usePaginatedListQuery — the full shared hook for the common shape:
 // URL `page` + URL `sort`, string-bucket filters via a filter hook, a single
@@ -223,7 +229,7 @@ export type PaginatedListConfig<
   columnIdToSortField: Record<string, TSortField>;
   sortFieldToColumnId: Record<TSortField, string>;
   useFilters: () => { filters: TFilter[] };
-  filterFieldNames: readonly string[];
+  filterFieldNames: readonly (keyof TFilterParams & string)[];
   filterFieldConfig: Record<string, FilterFieldConfig>;
   useListQuery: (params: TFilterParams & PageSortQueryParams<TSortField>) => {
     data: TResponse | undefined;
@@ -301,17 +307,15 @@ export function usePaginatedListQuery<
     }
   }, [sortParams, setSortParams, defaultSortParams, syncDefaultSortToUrl]);
 
-  // Keep only the first URL-derived sort entry whose column is an own key of
-  // the caller's allowed set, falling back to defaults otherwise. The server
-  // honors a single sortBy/sortOrder, so collapsing to one entry keeps the
-  // table UI state and the tRPC query in sync. hasOwnProperty.call avoids
-  // treating inherited Object.prototype methods (toString, hasOwnProperty…)
-  // as valid columns when a crafted URL references them.
+  // The server honors a single sortBy/sortOrder — the first entry — but the
+  // rest stay in `sorting` so a multi-sort deep link keeps its header
+  // indicators. hasOwnProperty.call avoids treating inherited Object.prototype
+  // methods as valid columns when a crafted URL references them.
   const validSortParams = useMemo<SortUrlValue<TSortField>[]>(() => {
-    const firstValid = effectiveSortParams.find((s) =>
+    const valid = effectiveSortParams.filter((s) =>
       Object.prototype.hasOwnProperty.call(sortFieldToColumnId, s.column),
     );
-    return firstValid ? [firstValid] : defaultSortParams;
+    return valid.length > 0 ? valid : defaultSortParams;
   }, [effectiveSortParams, sortFieldToColumnId, defaultSortParams]);
 
   const sorting: SortingState = useMemo(() => {
@@ -350,11 +354,13 @@ export function usePaginatedListQuery<
   );
 
   const filterParams = useMemo<TFilterParams>(() => {
+    // TS mandates the `unknown` step when casting to a generic type parameter;
+    // the keyof constraint on filterFieldNames keeps the key set honest.
     const params = Object.fromEntries(
       filterFieldNames.map((name) => [name, []]),
     ) as unknown as TFilterParams;
     for (const filter of filters) {
-      if (!filterFieldNames.includes(filter.field)) {
+      if (!filterFieldNames.some((name) => name === filter.field)) {
         continue;
       }
       const bucket = params[filter.field];
