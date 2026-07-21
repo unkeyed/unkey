@@ -2,11 +2,8 @@ name: Database Schema Gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  merge_group:
-    branches: [main]
   schedule:
     - cron: "17 * * * *"
-  workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
@@ -20,7 +17,7 @@ env:
   BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
 jobs:
   gate:
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'pull_request'
     name: Compare production schema
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
@@ -33,8 +30,6 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
-          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
-          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || '' }}
           filters: |
             db_schema:
               - 'web/internal/db/src/schema/**'
