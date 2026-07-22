@@ -1076,7 +1076,9 @@ describe("redaction-net coverage gaps", () => {
   it("scrubs bracketed (nested) form-encoded bodies by key", () => {
     const event: ErrorEvent = {
       type: undefined,
-      request: { data: "user[password]=hunter2&user[email]=jane@acme.com&user[name]=Jane" },
+      request: {
+        data: "user[password]=hunter2&user[email]=jane@acme.com&user[session]=sess_abc&oauth[code]=1234&filters[state]=open&user[name]=Jane",
+      },
     };
 
     scrubEventPii(event);
@@ -1084,6 +1086,9 @@ describe("redaction-net coverage gaps", () => {
     const data = String(event.request?.data);
     expect(data).not.toContain("hunter2");
     expect(data).not.toContain("jane@acme.com");
+    expect(data).not.toContain("sess_abc");
+    expect(data).not.toContain("1234");
+    expect(data).not.toContain("open");
     expect(data).toContain("Jane");
   });
 
@@ -1229,6 +1234,7 @@ describe("over-redaction and encoded-form regressions", () => {
           "x-request-id": "123e4567-e89b-12d3-a456-426614174000",
           traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
           "sentry-trace": "4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1",
+          baggage: "user_email=jane%40example.com,credential=short-secret",
           "x-unkey-key": ROOT_KEY,
         },
       },
@@ -1241,6 +1247,7 @@ describe("over-redaction and encoded-form regressions", () => {
     expect(headers["x-request-id"]).toBe("123e4567-e89b-12d3-a456-426614174000");
     expect(headers.traceparent).toBe("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
     expect(headers["sentry-trace"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1");
+    expect(headers.baggage).toBe("[REDACTED]");
     expect(headers["x-unkey-key"]).toBe("[REDACTED]");
   });
 
@@ -1253,6 +1260,16 @@ describe("over-redaction and encoded-form regressions", () => {
     expect(out).toContain("name");
     expect(out).not.toContain("hunter2");
     expect(out).not.toContain("j%40a.co");
+  });
+
+  it("redacts ambiguous credential leaves outside known UI-state params", () => {
+    const out = scrubUrl(
+      "https://app.unkey.com/logs?user[session]=sess_abc&oauth[code]=1234&context[state]=open",
+    );
+
+    expect(out).not.toContain("sess_abc");
+    expect(out).not.toContain("1234");
+    expect(out).not.toContain("open");
   });
 
   it("redacts array params named for credentials (token[])", () => {

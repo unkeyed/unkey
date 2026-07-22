@@ -66,7 +66,7 @@ function scrubUrlPath(path: string): string {
   return redactDigitBearingTokens(emailSafe);
 }
 
-const AMBIGUOUS_BRACKET_LEAVES = new Set(["key", "state", "code", "auth", "session"]);
+const UI_STATE_PARAM_KEYS = new Set(["filters[state]", "sort[key]"]);
 
 function bracketLeafSegment(name: string): string | null {
   if (!name.includes("[")) {
@@ -76,7 +76,7 @@ function bracketLeafSegment(name: string): string | null {
   return segments[segments.length - 1] ?? null;
 }
 
-function isSensitiveParamKey(name: string): boolean {
+function isSensitiveParamKey(name: string, allowUiStateParams: boolean): boolean {
   const lower = name.toLowerCase();
   if (lower.startsWith("param_")) {
     return true;
@@ -84,24 +84,27 @@ function isSensitiveParamKey(name: string): boolean {
   if (isSensitiveKey(lower) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower)) {
     return true;
   }
+  if (allowUiStateParams && UI_STATE_PARAM_KEYS.has(lower)) {
+    return false;
+  }
   const leaf = bracketLeafSegment(lower);
-  return leaf !== null && isSensitiveKey(leaf) && !AMBIGUOUS_BRACKET_LEAVES.has(leaf);
+  return leaf !== null && isSensitiveKey(leaf);
 }
 
-function scrubParamValue(name: string, value: string): string {
-  if (isSensitiveParamKey(name)) {
+function scrubParamValue(name: string, value: string, allowUiStateParams: boolean): string {
+  if (isSensitiveParamKey(name, allowUiStateParams)) {
     return REDACTED;
   }
   return redactTokenLike(value);
 }
 
-function scrubSearchParams(params: URLSearchParams): void {
+function scrubSearchParams(params: URLSearchParams, allowUiStateParams: boolean): void {
   const entries = [...params.entries()];
   for (const [name] of entries) {
     params.delete(name);
   }
   for (const [name, value] of entries) {
-    params.append(name, scrubParamValue(name, value));
+    params.append(name, scrubParamValue(name, value, allowUiStateParams));
   }
 }
 
@@ -121,7 +124,7 @@ export function scrubUrl(url: string): string {
 
     parsed.username = "";
     parsed.password = "";
-    scrubSearchParams(parsed.searchParams);
+    scrubSearchParams(parsed.searchParams, true);
     const hadScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
     if (hadScheme && parsed.host === "" && !url.startsWith("//")) {
       const scrubbedPath = scrubUrlPath(parsed.pathname);
@@ -148,9 +151,9 @@ export function scrubUrl(url: string): string {
   }
 }
 
-function scrubQueryParamsString(queryString: string): string {
+function scrubQueryParamsString(queryString: string, allowUiStateParams: boolean): string {
   const params = new URLSearchParams(queryString);
-  scrubSearchParams(params);
+  scrubSearchParams(params, allowUiStateParams);
   return params.toString();
 }
 
@@ -158,20 +161,20 @@ function scrubQueryString(
   queryString: NonNullable<NonNullable<ErrorEvent["request"]>["query_string"]>,
 ): NonNullable<NonNullable<ErrorEvent["request"]>["query_string"]> {
   if (typeof queryString === "string") {
-    return scrubQueryParamsString(queryString);
+    return scrubQueryParamsString(queryString, true);
   }
 
   if (Array.isArray(queryString)) {
     return queryString.map(([name, value]): [string, string] => [
       name,
-      scrubParamValue(name, value),
+      scrubParamValue(name, value, true),
     ]);
   }
 
   if (queryString && typeof queryString === "object") {
     const result: Record<string, string> = {};
     for (const [name, value] of Object.entries(queryString)) {
-      result[name] = scrubParamValue(name, value);
+      result[name] = scrubParamValue(name, value, true);
     }
     return result;
   }
@@ -272,7 +275,7 @@ function scrubRequestData(data: unknown): unknown {
     return JSON.stringify(redactSensitiveValues(parsed));
   }
   if (FORM_ENCODED.test(data)) {
-    return scrubQueryParamsString(data);
+    return scrubQueryParamsString(data, false);
   }
   return redactTokenLike(data);
 }
@@ -292,7 +295,6 @@ const HEADER_SCRUB_EXEMPT = new Set([
   "traceparent",
   "tracestate",
   "sentry-trace",
-  "baggage",
   "etag",
   "if-none-match",
   "if-match",
@@ -304,6 +306,7 @@ const SENSITIVE_HEADERS = new Set([
   "cookie",
   "set-cookie",
   "x-api-key",
+  "baggage",
 ]);
 
 const SENSITIVE_HEADER_PATTERNS = ["auth", "token", "secret", "session", "credential", "key"];
@@ -567,7 +570,7 @@ function scrubSpanAttributes(attributes: Record<string, unknown> | undefined): v
   for (const key of QUERY_ATTRIBUTE_KEYS) {
     const value = attributes[key];
     if (typeof value === "string") {
-      const scrubbed = scrubQueryParamsString(value);
+      const scrubbed = scrubQueryParamsString(value, true);
       attributes[key] = value.startsWith("?") ? `?${scrubbed}` : scrubbed;
     }
   }
