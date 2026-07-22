@@ -18,6 +18,7 @@ SELECT
    w.name,
    w.slug,
    b.stripe_customer_id,
+   b.stripe_subscription_id,
    b.tier,
    w.enabled,
    q.requests_per_month
@@ -28,14 +29,15 @@ WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
 type GetWorkspacesForQuotaCheckByIDsRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
+	ID                   string         `db:"id"`
+	OrgID                string         `db:"org_id"`
+	Name                 string         `db:"name"`
+	Slug                 string         `db:"slug"`
+	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	Tier                 sql.NullString `db:"tier"`
+	Enabled              bool           `db:"enabled"`
+	RequestsPerMonth     sql.NullInt64  `db:"requests_per_month"`
 }
 
 // GetWorkspacesForQuotaCheckByIDs
@@ -46,6 +48,7 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.name,
 //	   w.slug,
 //	   b.stripe_customer_id,
+//	   b.stripe_subscription_id,
 //	   b.tier,
 //	   w.enabled,
 //	   q.requests_per_month
@@ -78,6 +81,7 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, 
 			&i.Name,
 			&i.Slug,
 			&i.StripeCustomerID,
+			&i.StripeSubscriptionID,
 			&i.Tier,
 			&i.Enabled,
 			&i.RequestsPerMonth,
@@ -102,6 +106,7 @@ SELECT
    w.name,
    w.slug,
    b.stripe_customer_id,
+   b.stripe_subscription_id,
    b.tier,
    w.enabled,
    q.requests_per_month
@@ -114,14 +119,15 @@ LIMIT 100
 `
 
 type ListWorkspacesForQuotaCheckRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
+	ID                   string         `db:"id"`
+	OrgID                string         `db:"org_id"`
+	Name                 string         `db:"name"`
+	Slug                 string         `db:"slug"`
+	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	Tier                 sql.NullString `db:"tier"`
+	Enabled              bool           `db:"enabled"`
+	RequestsPerMonth     sql.NullInt64  `db:"requests_per_month"`
 }
 
 // ListWorkspacesForQuotaCheck
@@ -132,6 +138,7 @@ type ListWorkspacesForQuotaCheckRow struct {
 //	   w.name,
 //	   w.slug,
 //	   b.stripe_customer_id,
+//	   b.stripe_subscription_id,
 //	   b.tier,
 //	   w.enabled,
 //	   q.requests_per_month
@@ -156,6 +163,7 @@ func (q *Queries) ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, curs
 			&i.Name,
 			&i.Slug,
 			&i.StripeCustomerID,
+			&i.StripeSubscriptionID,
 			&i.Tier,
 			&i.Enabled,
 			&i.RequestsPerMonth,

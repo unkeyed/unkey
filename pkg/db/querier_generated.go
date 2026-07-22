@@ -1404,6 +1404,7 @@ type Querier interface {
 	//     w.name,
 	//     w.slug,
 	//     b.stripe_customer_id,
+	//     b.stripe_subscription_id,
 	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
@@ -3079,6 +3080,7 @@ type Querier interface {
 	//     w.name,
 	//     w.slug,
 	//     b.stripe_customer_id,
+	//     b.stripe_subscription_id,
 	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month

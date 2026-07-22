@@ -30,7 +30,13 @@ func (h *Handler) sendCustomerEmail(
 		return false, nil
 	}
 
-	templateID, ok := customerEmailTemplate(e.Workspace.Tier.String, attempt)
+	// Free tier is defined by the absence of a Stripe subscription rather than
+	// the legacy tier string. Any subscription (API or compute) means a paying
+	// customer, and compute requires one, so the absence of a subscription id
+	// is a reliable free-tier signal: such a workspace is on the Free plan and
+	// eligible for these alerts.
+	isFreeTier := !e.Workspace.StripeSubscriptionID.Valid
+	templateID, ok := customerEmailTemplate(isFreeTier, attempt)
 	if !ok {
 		return false, nil
 	}
@@ -83,8 +89,8 @@ func (h *Handler) sendCustomerEmail(
 	return true, nil
 }
 
-func customerEmailTemplate(tier string, attempt int64) (string, bool) {
-	if tier != "Free" {
+func customerEmailTemplate(isFreeTier bool, attempt int64) (string, bool) {
+	if !isFreeTier {
 		return "", false
 	}
 	switch attempt {

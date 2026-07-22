@@ -10,22 +10,21 @@ import (
 
 func TestCustomerEmailTemplate(t *testing.T) {
 	tests := []struct {
-		name     string
-		tier     string
-		attempt  int64
-		template string
-		ok       bool
+		name       string
+		isFreeTier bool
+		attempt    int64
+		template   string
+		ok         bool
 	}{
-		{name: "first free-tier email", tier: "Free", attempt: 0, template: usageExceededTemplate, ok: true},
-		{name: "second free-tier email", tier: "Free", attempt: 1, template: usageRatelimitFollowUpTemplate, ok: true},
-		{name: "no third email", tier: "Free", attempt: 2, template: "", ok: false},
-		{name: "paid tier skipped", tier: "Pro", attempt: 0, template: "", ok: false},
-		{name: "missing tier skipped", tier: "", attempt: 0, template: "", ok: false},
+		{name: "first free-tier email", isFreeTier: true, attempt: 0, template: usageExceededTemplate, ok: true},
+		{name: "second free-tier email", isFreeTier: true, attempt: 1, template: usageRatelimitFollowUpTemplate, ok: true},
+		{name: "no third email", isFreeTier: true, attempt: 2, template: "", ok: false},
+		{name: "paid tier skipped", isFreeTier: false, attempt: 0, template: "", ok: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			template, ok := customerEmailTemplate(tt.tier, tt.attempt)
+			template, ok := customerEmailTemplate(tt.isFreeTier, tt.attempt)
 			require.Equal(t, tt.template, template)
 			require.Equal(t, tt.ok, ok)
 		})
@@ -39,7 +38,7 @@ func TestCustomerEmailIdempotencyKey(t *testing.T) {
 func TestSendCustomerEmail_DisabledDoesNotConsumeAttempt(t *testing.T) {
 	h := &Handler{customerEmailEnabled: false}
 	exceeded := exceededWorkspace{Workspace: db.GetWorkspacesForQuotaCheckByIDsRow{
-		Tier: sql.NullString{String: "Free", Valid: true},
+		StripeSubscriptionID: sql.NullString{Valid: false}, // no subscription -> Free tier
 	}}
 
 	for range 2 {
@@ -48,7 +47,7 @@ func TestSendCustomerEmail_DisabledDoesNotConsumeAttempt(t *testing.T) {
 		require.False(t, sent)
 	}
 
-	template, ok := customerEmailTemplate("Free", 0)
+	template, ok := customerEmailTemplate(true, 0)
 	require.True(t, ok)
 	require.Equal(t, usageExceededTemplate, template)
 }
