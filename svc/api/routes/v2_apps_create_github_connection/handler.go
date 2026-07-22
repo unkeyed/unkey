@@ -138,19 +138,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	expiresAtMs := time.Now().Add(stateTTL).UnixMilli()
 
-	// The state carries resolved ids (not the caller's slugs) because the
-	// dashboard callback keys off them. source="api" tells the callback to skip
-	// the dashboard-user binding while keeping the workspace binding and the
-	// OAuth ownership proof.
 	state, err := newSigner(h.GitHubPrivateKeyPEM).sign(payload{
 		ProjectID:   app.ProjectID,
 		AppID:       app.ID,
 		WorkspaceID: principal.WorkspaceID,
 		Nonce:       base64.RawURLEncoding.EncodeToString(nonceBytes),
 		ExpMs:       expiresAtMs,
-		ReturnTo:    "",
-		Repository:  repository,
-		Source:      "api",
+		// Without this callback from GH ends up in project creation wizard
+		ReturnTo:   "settings",
+		Repository: repository,
+		// This helps us identify where the request originated from.
+		Source: "api",
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -218,7 +216,6 @@ func normalizeRepository(repository *string) (string, bool) {
 		}
 		path = u.Path
 	case strings.Contains(lower, "://"):
-		// A URL for some other host.
 		return "", false
 	default:
 		path = raw
