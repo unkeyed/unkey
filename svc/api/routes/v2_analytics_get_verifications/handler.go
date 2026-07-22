@@ -26,7 +26,7 @@ type Response = openapi.V2AnalyticsGetVerificationsResponseBody
 type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
 var (
-	verificationTableAliases = map[string]string{
+	tableAliases = map[string]string{
 		"key_verifications_v1":            "default.key_verifications_raw_v2",
 		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v3",
 		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v3",
@@ -34,7 +34,7 @@ var (
 		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v3",
 	}
 
-	verificationAllowedTables = []string{
+	allowedTables = []string{
 		"default.key_verifications_raw_v2",
 		"default.key_verifications_per_minute_v3",
 		"default.key_verifications_per_hour_v3",
@@ -95,8 +95,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query:           req.Query,
 		WorkspaceID:     principal.WorkspaceID,
-		TableAliases:    verificationTableAliases,
-		AllowedTables:   verificationAllowedTables,
+		TableAliases:    tableAliases,
+		AllowedTables:   allowedTables,
 		SecurityFilters: securityFilters,
 	})
 	if err != nil {

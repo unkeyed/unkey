@@ -21,7 +21,7 @@ type Request = openapi.V2AnalyticsGetRatelimitsRequestBody
 type Response = openapi.V2AnalyticsGetRatelimitsResponseBody
 
 var (
-	ratelimitTableAliases = map[string]string{
+	tableAliases = map[string]string{
 		"ratelimits_v1":            "default.ratelimits_raw_v2",
 		"ratelimits_per_minute_v1": "default.ratelimits_per_minute_v2",
 		"ratelimits_per_hour_v1":   "default.ratelimits_per_hour_v2",
@@ -29,7 +29,7 @@ var (
 		"ratelimits_per_month_v1":  "default.ratelimits_per_month_v2",
 	}
 
-	ratelimitAllowedTables = []string{
+	allowedTables = []string{
 		"default.ratelimits_raw_v2",
 		"default.ratelimits_per_minute_v2",
 		"default.ratelimits_per_hour_v2",
@@ -67,8 +67,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query:           req.Query,
 		WorkspaceID:     p.WorkspaceID,
-		TableAliases:    ratelimitTableAliases,
-		AllowedTables:   ratelimitAllowedTables,
+		TableAliases:    tableAliases,
+		AllowedTables:   allowedTables,
 		SecurityFilters: securityFilters,
 	})
 	if err != nil {

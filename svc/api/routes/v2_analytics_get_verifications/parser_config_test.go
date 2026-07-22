@@ -15,14 +15,14 @@ import (
 func TestVerificationParserConfigRequiresPublicAliases(t *testing.T) {
 	parser := queryparser.NewParser(queryparser.Config{
 		WorkspaceID:       "ws_test",
-		TableAliases:      verificationTableAliases,
-		AllowedTables:     verificationAllowedTables,
+		TableAliases:      tableAliases,
+		AllowedTables:     allowedTables,
 		SecurityFilters:   nil,
 		Limit:             0,
 		QueryRangeDaysMax: 0,
 	})
 
-	for publicAlias := range verificationTableAliases {
+	for publicAlias := range tableAliases {
 		t.Run(publicAlias, func(t *testing.T) {
 			_, err := parser.Parse(context.Background(), "SELECT * FROM "+publicAlias)
 			require.NoError(t, err)
