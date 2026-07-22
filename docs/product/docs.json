@@ -372,7 +372,9 @@
               {
                 "group": "auth",
                 "pages": [
-                  "cli/auth/login"
+                  "cli/auth/login",
+                  "cli/auth/logout",
+                  "cli/auth/whoami"
                 ]
               },
               {

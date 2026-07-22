@@ -88,3 +88,28 @@ WorkOS-specific behavior belongs in `pkg/auth/workos`:
 
 API configuration uses the WorkOS wrapper only for JWKS-backed WorkOS access
 tokens. HMAC JWT auth continues to use the generic JWT resolver directly.
+
+## CLI device flow
+
+The Unkey CLI (`unkey auth login`) obtains a WorkOS access token through the
+OAuth device authorization flow and sends it to the API as a bearer token. Those
+tokens flow through exactly the same pipeline described above, so no CLI-specific
+API code is required. For a CLI token to authorize requests, the WorkOS
+environment must be configured so the token carries the expected claims:
+
+- A public OAuth client with the device authorization grant enabled. Its client
+  ID is baked into the CLI (overridable with `UNKEY_WORKOS_CLIENT_ID`). Public
+  clients hold no secret.
+- The permission slug catalog synced into WorkOS from the source of truth in
+  `pkg/auth/workos/permissions.go` (run
+  [`tools/upsert-workos-permissions`](https://github.com/unkeyed/unkey/blob/main/tools/upsert-workos-permissions)).
+- Roles that bundle those slugs, assigned to users through their organization
+  memberships, so the access token's `permissions` claim is non-empty.
+- The environment JWT template that emits nested `org.id`, the `permissions`
+  claim, and `aud = api.unkey.com`. The same template already serves the
+  dashboard.
+
+If roles or slug assignment are incomplete, a CLI token authenticates cleanly
+but every RBAC-gated call returns 403, because unknown or absent slugs are
+dropped during translation. Decode a token (or run `unkey auth whoami`) to
+inspect the resolved organization and permissions when debugging.
