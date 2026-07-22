@@ -26,6 +26,14 @@ Compose project per worktree, so tests only start the services they need.
 `mise run test` removes the shared containers for that worktree after the test
 suite exits.
 
+All registrations against the shared Restate container must go through
+`containers.Restate`. Restate service registration changes routing for the whole
+server, so the helper leases the supplied service names across test processes.
+Tests with disjoint service sets can run concurrently. Tests with overlapping
+service names wait for the current owner to drain its invocations and remove its
+deployment. The helper also clears persisted state before handing a service to
+the next test.
+
 For full-suite runs, use `mise run test`. Direct `rask` does not run the
 cleanup trap from the mise task.
 

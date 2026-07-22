@@ -1,9 +1,9 @@
 // Package containers provides Docker Compose-backed containers for integration tests.
 //
-// This package manages shared Docker services for integration tests.
 // Containers are reused through one Docker Compose project per worktree, so
 // separate Go test processes share backing services without colliding with
-// other worktrees.
+// other worktrees. Restate service registrations are leased and cleaned by
+// service name because registration changes routing for the whole server.
 //
 // # Requirements
 //
@@ -27,10 +27,12 @@
 //
 // # Design
 //
-// Containers are created on demand by pkg/testutil/docker-compose.test.yaml and
-// reused by later test requests in the same worktree. Compose assigns random
+// Containers are created on demand by pkg/testutil/docker-compose.test.yaml
+// and reused by later test requests in the same worktree. Compose assigns random
 // host ports to avoid conflicts and waits for container healthchecks before the
-// helpers return connection information.
+// helpers return connection information. [Restate] additionally serializes
+// overlapping service registrations across test processes and resets their
+// invocations, state, and deployments between registrations.
 //
 // # Available Services
 //
