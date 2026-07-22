@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canReadKeys, deriveVisibleTabs } from "./permissions";
+import { canReadAnalytics, canReadKeys, deriveVisibleTabs } from "./permissions";
 
 describe("deriveVisibleTabs", () => {
   it("shows Keys and Docs tabs for a keys capability", () => {
@@ -73,5 +73,23 @@ describe("canReadKeys", () => {
 
   it("is false for empty permissions", () => {
     expect(canReadKeys([])).toBe(false);
+  });
+});
+
+describe("canReadAnalytics", () => {
+  it("is true when analytics:read is present", () => {
+    expect(canReadAnalytics(["analytics:read"])).toBe(true);
+  });
+
+  it("is true alongside other capabilities", () => {
+    expect(canReadAnalytics(["keys:read", "analytics:read"])).toBe(true);
+  });
+
+  it("is false for unrelated capabilities", () => {
+    expect(canReadAnalytics(["keys:read", "keys:reroll"])).toBe(false);
+  });
+
+  it("is false for empty permissions", () => {
+    expect(canReadAnalytics([])).toBe(false);
   });
 });

@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import type { Unkey } from "@unkey/api";
+import { mapVerificationsResponse } from "~/components/analytics/analytics-transform";
+import {
+  type VerificationsTimeseries,
+  getVerificationsQuerySchema,
+} from "~/components/analytics/schema/analytics.schema";
 import {
   type KeysPage,
   type RerollKeyResult,
@@ -36,6 +41,20 @@ export const SESSION_EXPIRED_MESSAGE =
   "Your session has expired. Please return to the application.";
 
 /**
+ * Message for a verifications query whose window the API won't serve (it caps
+ * the window at the workspace's data retention). Like {@link SESSION_EXPIRED_MESSAGE},
+ * this doubles as the cross-boundary discriminant (only `message` survives the
+ * server-fn boundary), so the UI keys off it via {@link isRetentionExceededError}.
+ *
+ * Deliberately plan-neutral: the portal audience is the customer's own end user,
+ * who has no visibility into (and no say over) the customer's Unkey plan or
+ * retention quota, so the copy names neither. The analytics page gates period
+ * options to what's available, so this is only a safety net for the rare race
+ * (e.g. retention lowered mid-session).
+ */
+export const RETENTION_EXCEEDED_MESSAGE = "That time range isn't available. Try a shorter range.";
+
+/**
  * Thrown when a portal API call fails. Carries only a human-readable `message`,
  * because that is all that crosses the server-fn boundary intact. Unauthorized
  * failures use {@link SESSION_EXPIRED_MESSAGE} so the client can detect them.
@@ -53,6 +72,14 @@ export class PortalApiError extends Error {
  */
 export function isUnauthorizedError(error: unknown): boolean {
   return error instanceof Error && error.message === SESSION_EXPIRED_MESSAGE;
+}
+
+/**
+ * Whether an error (as seen on the client, after the server-fn boundary has
+ * flattened it to a plain `Error`) is a "window exceeds retention" failure.
+ */
+export function isRetentionExceededError(error: unknown): boolean {
+  return error instanceof Error && error.message === RETENTION_EXCEEDED_MESSAGE;
 }
 
 /**
@@ -97,6 +124,15 @@ async function toPortalApiError(err: unknown): Promise<PortalApiError> {
     if (err.statusCode === 401 || err.statusCode === 403) {
       return new PortalApiError(SESSION_EXPIRED_MESSAGE);
     }
+    // The window-too-large 400 is the only 400 the analytics query can provoke.
+    // Match the API's public detail so the UI can show a retention-specific
+    // message instead of the generic one. `detail` lives on the 400 error body.
+    if (err.statusCode === 400) {
+      const detail = (err as { error?: { detail?: unknown } }).error?.detail;
+      if (typeof detail === "string" && /time window is too large/i.test(detail)) {
+        return new PortalApiError(RETENTION_EXCEEDED_MESSAGE);
+      }
+    }
     return new PortalApiError("Something went wrong. Please try again.");
   }
 
@@ -140,6 +176,30 @@ export const listKeys = createServerFn({ method: "GET" })
           cursor: pagination.cursor ?? null,
           hasMore: pagination.hasMore,
         };
+      }),
+  );
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Fetch the session end user's verification analytics for a time window. The
+ * window is derived server-side from the requested day count (so the client
+ * sends only `days`, keeping the react-query key stable across renders); the API
+ * scopes results to the session identity, enforces its own retention cap, and
+ * picks bucket granularity from the window size.
+ */
+export const getVerifications = createServerFn({ method: "GET" })
+  .inputValidator((query: unknown) => getVerificationsQuerySchema.parse(query))
+  .handler(
+    ({ data }): Promise<VerificationsTimeseries> =>
+      withPortalClient(async (client, token) => {
+        const endTime = Date.now();
+        const startTime = endTime - data.days * MS_PER_DAY;
+        const res = await client.portal.getVerifications(
+          { portalSession: token },
+          { startTime, endTime },
+        );
+        return { days: data.days, buckets: mapVerificationsResponse(res.data) };
       }),
   );
 
