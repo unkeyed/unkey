@@ -9,7 +9,11 @@ export const Route = createFileRoute("/_portal")({
     if (!result) {
       throw redirect({ to: "/" });
     }
-    return { session: result.session, portalConfig: result.config };
+    return {
+      session: result.session,
+      portalConfig: result.config,
+      logsRetentionDays: result.logsRetentionDays,
+    };
   },
   component: PortalLayout,
 });
