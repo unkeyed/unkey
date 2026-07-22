@@ -38,9 +38,8 @@ curl --request POST \
 
 Queries follow the shared SQL and resource limits described in [Query
 restrictions](/platform/analytics/query-restrictions). CTEs, subqueries, UNION,
-EXCEPT, and joins are supported. The query must contain a positive literal filter
-in one of these forms. You can optionally qualify `namespace_id` with a table
-alias:
+and EXCEPT are supported. The query must contain a positive literal filter in one
+of these forms. You can optionally qualify `namespace_id` with a table alias:
 
 ```sql
 WHERE namespace_id = 'rlns_1234'

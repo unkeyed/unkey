@@ -7,7 +7,7 @@ post:
   operationId: analytics.getVerifications
   summary: Query key verification data
   description: |
-    Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, EXCEPT, and joins are supported.
+    Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, and EXCEPT are supported.
     Queries must use one of the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
     For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
   requestBody:

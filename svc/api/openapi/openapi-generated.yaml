@@ -40,7 +40,7 @@ components:
                     type: string
                     description: |
                         SQL query to execute against your rate limit analytics data.
-                        Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, EXCEPT, and joins are supported.
+                        Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
                         Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
                         Workspace retention and query limits apply.
                     example: "SELECT namespace_id, COUNT(*) AS total FROM ratelimits_v1 WHERE namespace_id = 'rlns_123' GROUP BY namespace_id"
@@ -214,7 +214,7 @@ components:
                     description: |
                         SQL query to execute against your analytics data.
                         Queries may reference only the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
-                        Only SELECT queries are allowed. CTEs, subqueries, UNION, EXCEPT, and joins are supported.
+                        Only SELECT queries are allowed. CTEs, subqueries, UNION, and EXCEPT are supported.
                     example: "SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
         V2AnalyticsGetVerificationsResponseBody:
             type: object
@@ -6265,7 +6265,7 @@ paths:
     /v2/analytics.getRatelimits:
         post:
             description: |
-                Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, UNION, EXCEPT, and joins are supported.
+                Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, UNION, and EXCEPT are supported.
                 Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
                 Workspace retention and query limits apply.
             operationId: analytics.getRatelimits
@@ -6345,7 +6345,7 @@ paths:
     /v2/analytics.getVerifications:
         post:
             description: |
-                Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, EXCEPT, and joins are supported.
+                Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, and EXCEPT are supported.
                 Queries must use one of the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
                 For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
             operationId: analytics.getVerifications
