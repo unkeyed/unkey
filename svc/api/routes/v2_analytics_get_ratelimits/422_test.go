@@ -36,7 +36,7 @@ func Test422_ClickHouseResourceLimit(t *testing.T) {
 	workspace := h.CreateWorkspace()
 	id := createNamespace(t, h, workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "ratelimit.*.read_analytics")
-	route := &Handler{DB: h.DB, AnalyticsConnectionManager: resourceLimitManager{}}
+	route := &Handler{AnalyticsConnectionManager: resourceLimitManager{}}
 	h.Register(route)
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT identifier, passed, count(*) FROM ratelimits_v1 WHERE namespace_id = '%s' GROUP BY identifier, passed", id)})

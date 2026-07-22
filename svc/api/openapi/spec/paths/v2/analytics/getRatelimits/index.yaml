@@ -8,7 +8,7 @@ post:
   summary: Query rate limit data
   description: |
     Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, UNION, and EXCEPT are supported.
-    Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
+    Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
     Workspace retention and query limits apply.
   requestBody:
     required: true
@@ -41,12 +41,6 @@ post:
           schema:
             $ref: "../../../../error/ForbiddenErrorResponse.yaml"
       description: Insufficient permissions
-    "404":
-      content:
-        application/json:
-          schema:
-            $ref: "../../../../error/NotFoundErrorResponse.yaml"
-      description: Referenced namespace not found
     "412":
       content:
         application/json:

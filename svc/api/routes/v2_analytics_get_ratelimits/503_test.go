@@ -25,7 +25,7 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 		MaxQueriesPerWindow: 1000, MaxExecutionTimePerWindow: 1800, MaxQueryExecutionTime: 30, MaxQueryMemoryBytes: 1_000_000_000,
 		MaxQueryResultRows: 10_000_000, CreatedAt: now, UpdatedAt: sql.NullInt64{Int64: now, Valid: true},
 	}))
-	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager}
+	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT count(*) FROM ratelimits_v1 WHERE namespace_id = '%s'", id)})
 	require.Equal(t, 503, res.Status)

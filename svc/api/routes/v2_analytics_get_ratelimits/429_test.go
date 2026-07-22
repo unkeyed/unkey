@@ -16,7 +16,7 @@ func Test429_WorkspaceQueryQuota(t *testing.T) {
 	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueriesPerWindow(1))
 	id := createNamespace(t, h, workspace.ID)
 	rootKey := h.CreateRootKey(workspace.ID, "ratelimit.*.read_analytics")
-	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager}
+	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 	req := Request{Query: fmt.Sprintf("SELECT count(*) FROM ratelimits_v1 WHERE namespace_id = '%s'", id)}
 	require.Equal(t, 200, testutil.CallRoute[Request, Response](h, route, auth(rootKey), req).Status)

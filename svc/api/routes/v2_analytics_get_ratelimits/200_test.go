@@ -127,3 +127,18 @@ func Test200_SoftDeletedNamespace(t *testing.T) {
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT count(*) FROM ratelimits_v1 WHERE namespace_id = '%s'", id)})
 	require.Equal(t, 200, res.Status)
 }
+
+// Test200_WildcardUnknownAndForeignNamespaces guarantees wildcard queries use
+// normal workspace-scoped query behavior without namespace metadata lookups.
+func Test200_WildcardUnknownAndForeignNamespaces(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	foreignWorkspace := h.CreateWorkspace()
+	foreign := createNamespace(t, h, foreignWorkspace.ID)
+	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
+
+	for _, namespaceID := range []string{uid.New(uid.RatelimitNamespacePrefix), foreign} {
+		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT * FROM ratelimits_v1 WHERE namespace_id = '%s'", namespaceID)})
+		require.Equal(t, 200, res.Status)
+		require.Empty(t, res.Body.Data)
+	}
+}

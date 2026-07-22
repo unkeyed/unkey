@@ -1275,7 +1275,7 @@ type UpdateKeyCreditsRefillInterval string
 type V2AnalyticsGetRatelimitsRequestBody struct {
 	// Query SQL query to execute against your rate limit analytics data.
 	// Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
-	// Every query must include a positive literal `[alias.]namespace_id = '...'` or `[alias.]namespace_id IN (...)` filter containing 1 to 10 unique namespace IDs.
+	// Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
 	// Workspace retention and query limits apply.
 	Query string `json:"query"`
 }
