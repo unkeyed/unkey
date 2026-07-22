@@ -422,20 +422,21 @@ export const githubRouter = t.router({
         });
       }
 
-      // Fetch the repo to auto-connect BEFORE the transaction — it's a GitHub
-      // API call and must not hold a DB tx open. The installation token only
-      // sees granted repos, so a repo the user didn't grant during install 404s
-      // here: the installation still binds with no connection, and the user
-      // lands on app settings to pick one.
-      let repoToConnect: Awaited<ReturnType<typeof getRepository>> | null = null;
+      // Resolve the repo to auto-connect BEFORE the transaction (GitHub API call;
+      // must not hold a DB tx open). Match against the installation's GRANTED
+      // repositories, not getRepository: getRepository returns metadata for a
+      // public repo even when it wasn't selected during install, which would
+      // create a non-functional connection to a repo the installation can't
+      // actually access. Not granted -> stays null -> user picks one on return.
+      let repoToConnect: Awaited<ReturnType<typeof getInstallationRepositories>>[number] | null =
+        null;
       if (parsedState.repository) {
-        const [owner, repo] = parsedState.repository.split("/");
-        if (owner && repo) {
-          try {
-            repoToConnect = await getRepository(input.installationId, owner, repo);
-          } catch (err) {
-            console.error(err);
-          }
+        try {
+          const granted = await getInstallationRepositories(input.installationId);
+          const wanted = parsedState.repository.toLowerCase();
+          repoToConnect = granted.find((r) => r.full_name.toLowerCase() === wanted) ?? null;
+        } catch (err) {
+          console.error(err);
         }
       }
 
@@ -537,6 +538,7 @@ export const githubRouter = t.router({
         appId: parsedState.appId,
         returnTo: parsedState.returnTo ?? null,
         repositoryConnected,
+        requestedRepository: parsedState.repository ?? null,
       };
     }),
 
