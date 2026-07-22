@@ -5,7 +5,7 @@
 SELECT d.id
 FROM deployments d
 WHERE d.id IN (sqlc.slice('ids'))
-  AND d.status IN (sqlc.slice('statuses'))
+  AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
   AND COALESCE(d.updated_at, d.created_at) < sqlc.arg('cutoff')
   AND NOT EXISTS (
     SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id

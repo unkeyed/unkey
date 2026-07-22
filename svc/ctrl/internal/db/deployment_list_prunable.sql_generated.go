@@ -8,15 +8,12 @@ package db
 import (
 	"context"
 	"database/sql"
-	"strings"
-
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listPrunableDeployments = `-- name: ListPrunableDeployments :many
 SELECT d.id
 FROM deployments d
-WHERE d.status IN (/*SLICE:statuses*/?)
+WHERE d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
   AND COALESCE(d.updated_at, d.created_at) < ?
   AND NOT EXISTS (
     SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
@@ -26,15 +23,13 @@ LIMIT ?
 `
 
 type ListPrunableDeploymentsParams struct {
-	Statuses []mysqltype.DeploymentsStatus `db:"statuses"`
-	Cutoff   sql.NullInt64                 `db:"cutoff"`
-	Limit    int32                         `db:"limit"`
+	Cutoff sql.NullInt64 `db:"cutoff"`
+	Limit  int32         `db:"limit"`
 }
 
 // ListPrunableDeployments returns a bounded batch of deployments that are
 // safe to hard-delete: they reached a terminal status that can never serve
-// traffic again (the caller passes the status set) and last changed before
-// the retention cutoff.
+// traffic again and last changed before the retention cutoff.
 //
 // COALESCE falls back to created_at so rows whose updated_at was never
 // stamped still age out instead of surviving forever.
@@ -48,7 +43,7 @@ type ListPrunableDeploymentsParams struct {
 //
 //	SELECT d.id
 //	FROM deployments d
-//	WHERE d.status IN (/*SLICE:statuses*/?)
+//	WHERE d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
 //	  AND COALESCE(d.updated_at, d.created_at) < ?
 //	  AND NOT EXISTS (
 //	    SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
@@ -56,19 +51,7 @@ type ListPrunableDeploymentsParams struct {
 //	ORDER BY d.pk
 //	LIMIT ?
 func (q *Queries) ListPrunableDeployments(ctx context.Context, arg ListPrunableDeploymentsParams) ([]string, error) {
-	query := listPrunableDeployments
-	var queryParams []interface{}
-	if len(arg.Statuses) > 0 {
-		for _, v := range arg.Statuses {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:statuses*/?", strings.Repeat(",?", len(arg.Statuses))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:statuses*/?", "NULL", 1)
-	}
-	queryParams = append(queryParams, arg.Cutoff)
-	queryParams = append(queryParams, arg.Limit)
-	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	rows, err := q.db.QueryContext(ctx, listPrunableDeployments, arg.Cutoff, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

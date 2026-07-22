@@ -9,15 +9,13 @@ import (
 	"context"
 	"database/sql"
 	"strings"
-
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const filterPrunableDeploymentIds = `-- name: FilterPrunableDeploymentIds :many
 SELECT d.id
 FROM deployments d
 WHERE d.id IN (/*SLICE:ids*/?)
-  AND d.status IN (/*SLICE:statuses*/?)
+  AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
   AND COALESCE(d.updated_at, d.created_at) < ?
   AND NOT EXISTS (
     SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
@@ -26,9 +24,8 @@ FOR UPDATE
 `
 
 type FilterPrunableDeploymentIdsParams struct {
-	Ids      []string                      `db:"ids"`
-	Statuses []mysqltype.DeploymentsStatus `db:"statuses"`
-	Cutoff   sql.NullInt64                 `db:"cutoff"`
+	Ids    []string      `db:"ids"`
+	Cutoff sql.NullInt64 `db:"cutoff"`
 }
 
 // FilterPrunableDeploymentIds revalidates cleanup candidates while locking
@@ -38,7 +35,7 @@ type FilterPrunableDeploymentIdsParams struct {
 //	SELECT d.id
 //	FROM deployments d
 //	WHERE d.id IN (/*SLICE:ids*/?)
-//	  AND d.status IN (/*SLICE:statuses*/?)
+//	  AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
 //	  AND COALESCE(d.updated_at, d.created_at) < ?
 //	  AND NOT EXISTS (
 //	    SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
@@ -54,14 +51,6 @@ func (q *Queries) FilterPrunableDeploymentIds(ctx context.Context, arg FilterPru
 		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
-	}
-	if len(arg.Statuses) > 0 {
-		for _, v := range arg.Statuses {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:statuses*/?", strings.Repeat(",?", len(arg.Statuses))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:statuses*/?", "NULL", 1)
 	}
 	queryParams = append(queryParams, arg.Cutoff)
 	rows, err := q.db.QueryContext(ctx, query, queryParams...)

@@ -249,7 +249,7 @@ type Querier interface {
 	//  SELECT d.id
 	//  FROM deployments d
 	//  WHERE d.id IN (/*SLICE:ids*/?)
-	//    AND d.status IN (/*SLICE:statuses*/?)
+	//    AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
 	//    AND COALESCE(d.updated_at, d.created_at) < ?
 	//    AND NOT EXISTS (
 	//      SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
@@ -1547,8 +1547,7 @@ type Querier interface {
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
 	// ListPrunableDeployments returns a bounded batch of deployments that are
 	// safe to hard-delete: they reached a terminal status that can never serve
-	// traffic again (the caller passes the status set) and last changed before
-	// the retention cutoff.
+	// traffic again and last changed before the retention cutoff.
 	//
 	// COALESCE falls back to created_at so rows whose updated_at was never
 	// stamped still age out instead of surviving forever.
@@ -1562,7 +1561,7 @@ type Querier interface {
 	//
 	//  SELECT d.id
 	//  FROM deployments d
-	//  WHERE d.status IN (/*SLICE:statuses*/?)
+	//  WHERE d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
 	//    AND COALESCE(d.updated_at, d.created_at) < ?
 	//    AND NOT EXISTS (
 	//      SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
