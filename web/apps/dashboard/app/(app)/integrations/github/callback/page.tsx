@@ -2,9 +2,10 @@
 import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Empty, toast } from "@unkey/ui";
+import { Github } from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function Page() {
   const router = useRouter();
@@ -24,10 +25,30 @@ export default function Page() {
     return Number.isNaN(parsed) ? null : parsed;
   }, [installationId]);
 
+  // Captured from onSuccess. The not-granted branch doesn't navigate, and
+  // reading mutation.data at render didn't reliably reflect the result here, so
+  // we drive the recovery screen from state set in the callback.
+  const [notGranted, setNotGranted] = useState<{
+    repository: string;
+    workspaceSlug: string;
+    projectId: string;
+    appId: string;
+  } | null>(null);
+
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      // When the API flow already auto-connected the repository, skip the picker
-      // and go straight to the app settings where the connection is shown.
+      // Requested repo that wasn't granted during install: show the recovery
+      // screen instead of navigating.
+      if (data.requestedRepository && !data.repositoryConnected) {
+        setNotGranted({
+          repository: data.requestedRepository,
+          workspaceSlug: data.workspaceSlug,
+          projectId: data.projectId,
+          appId: data.appId,
+        });
+        return;
+      }
+
       if (data.returnTo === "settings" || data.repositoryConnected) {
         router.replace(
           routes.projects.apps.settings({
@@ -46,9 +67,6 @@ export default function Page() {
           }),
         );
       }
-    },
-    onError: (error) => {
-      toast.error(error.message);
     },
   });
 
@@ -99,6 +117,55 @@ export default function Page() {
         <Empty>
           <Empty.Title>Installation failed</Empty.Title>
           <Empty.Description>{mutation.error.message}</Empty.Description>
+        </Empty>
+      </div>
+    );
+  }
+
+  if (notGranted) {
+    return (
+      <div className="w-full min-h-[60vh] flex justify-center items-center">
+        <Empty>
+          <Empty.Icon>
+            <Github />
+          </Empty.Icon>
+          <div className="space-y-2.5">
+            <Empty.Title>Repository not connected</Empty.Title>
+            <Empty.Description className="max-w-150">
+              <span className="text-gray-12 font-medium">{notGranted.repository}</span> isn't among the
+              repositories you granted the app access to. Grant it on GitHub to finish connecting, or
+              set it up later from the app's settings.
+            </Empty.Description>
+            <Empty.Actions>
+              <Button
+                className="px-3"
+                variant="primary"
+                onClick={() => {
+                  // Reuse the current signed state so GitHub returns to this
+                  // callback and the connection completes once the repo is granted.
+                  window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+                }}
+              >
+                <Github className="size-4.5!" />
+                Grant access on GitHub
+              </Button>
+              <Button
+                className="px-3"
+                variant="outline"
+                onClick={() =>
+                  router.replace(
+                    routes.projects.apps.settings({
+                      workspaceSlug: notGranted.workspaceSlug,
+                      projectId: notGranted.projectId,
+                      appId: notGranted.appId,
+                    }),
+                  )
+                }
+              >
+                Go to settings
+              </Button>
+            </Empty.Actions>
+          </div>
         </Empty>
       </div>
     );
