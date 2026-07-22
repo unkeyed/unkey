@@ -1,30 +1,45 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"testing"
-	"time"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
+
+type resourceLimitConnection struct {
+	clickhouse.ClickHouse
+}
+
+func (resourceLimitConnection) QueryToMaps(context.Context, string, ...any) ([]map[string]any, error) {
+	return nil, &ch.Exception{Code: 241, Name: "MEMORY_LIMIT_EXCEEDED", Message: "memory limit exceeded"}
+}
+
+type resourceLimitManager struct{}
+
+func (resourceLimitManager) GetConnection(context.Context, string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
+	return resourceLimitConnection{}, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{
+		ClickhouseWorkspaceSetting: db.ClickhouseWorkspaceSetting{MaxQueryResultRows: 100},
+		Quotas:                     db.Quotas{LogsRetentionDays: 30},
+	}, nil
+}
 
 // Test422_ClickHouseResourceLimit guarantees a per-query ClickHouse resource
 // limit maps to the public unprocessable-query response.
 func Test422_ClickHouseResourceLimit(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	h := testutil.NewHarness(t)
 	workspace := h.CreateWorkspace()
-	h.SetupAnalytics(workspace.ID, testutil.WithMaxQueryMemoryBytes(10_000))
 	id := createNamespace(t, h, workspace.ID)
-	for i := range 50_000 {
-		h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: workspace.ID, NamespaceID: id, Identifier: uid.New("user"), Passed: i%2 == 0, Limit: 100})
-	}
 	rootKey := h.CreateRootKey(workspace.ID, "ratelimit.*.read_analytics")
-	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager}
+	route := &Handler{DB: h.DB, AnalyticsConnectionManager: resourceLimitManager{}}
 	h.Register(route)
-	time.Sleep(10 * time.Second)
+
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT identifier, passed, count(*) FROM ratelimits_v1 WHERE namespace_id = '%s' GROUP BY identifier, passed", id)})
 	require.Equal(t, 422, res.Status)
+	require.Contains(t, res.RawBody, "query_memory_limit_exceeded")
 }
