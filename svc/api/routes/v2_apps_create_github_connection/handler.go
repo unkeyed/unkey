@@ -81,8 +81,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Workspace-scoped: an app in another workspace returns not-found, so a
-	// caller can't probe for apps they don't own. One indexed read, no N+1.
+	// Scoped to the caller's workspace so an app in another workspace reads as
+	// not-found instead of leaking that it exists.
 	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
@@ -176,17 +176,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// repoFullNamePattern is the legal shape of a GitHub "owner/name" (same charset
-// the dashboard's resolve-deploy-ref uses). Anchoring it keeps path traversal,
-// whitespace, and query/fragment characters out of the signed state.
+// repoFullNamePattern anchors the final "owner/name" so nothing that survives
+// normalization can carry path traversal, whitespace, or query/fragment
+// characters into the signed state.
 var repoFullNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
 
-// normalizeRepository reduces a user-supplied repository reference to
-// "owner/name". It accepts "owner/name", an http(s) GitHub URL (any scheme
-// case, optional "www."), or an SSH remote, ignoring a ".git" suffix and any
-// trailing path, query, or fragment. It returns (repo, true) on success,
-// ("", true) when no repository was supplied, and ("", false) when a non-empty
-// value cannot be reduced to a valid owner/name.
+// normalizeRepository reduces any of these accepted forms to "owner/name":
+//
+//	owner/name
+//	https://github.com/owner/name        (any scheme case, optional www., .git, trailing path)
+//	git@github.com:owner/name.git
+//
+// It returns (repo, true) on success, ("", true) when nothing was supplied, and
+// ("", false) when a non-empty value is not one of the forms above.
 func normalizeRepository(repository *string) (string, bool) {
 	if repository == nil {
 		return "", true
