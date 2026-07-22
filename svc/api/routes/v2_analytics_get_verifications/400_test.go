@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -69,6 +70,24 @@ func Test400_InvalidSQLSyntax(t *testing.T) {
 	require.Contains(t, res.Body.Error.Type, "invalid_analytics_query",
 		"Error type should be invalid_analytics_query")
 	require.NotEmpty(t, res.Body.Error.Detail, "Error should show syntax error message")
+}
+
+// Security guarantee: API callers cannot make parser cost grow beyond the fixed SQL byte limit.
+func Test400_QueryLengthIsBoundedBeforeParsing(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	workspace := h.CreateWorkspace()
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	route := &Handler{DB: h.DB, AnalyticsConnectionManager: h.AnalyticsConnectionManager, Caches: h.Caches}
+	h.Register(route)
+
+	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}, Request{Query: "SELECT " + strings.Repeat("1 + ", 16<<10) + "1"})
+
+	require.Equal(t, http.StatusBadRequest, res.Status)
+	require.Contains(t, res.Body.Error.Detail, "maximum length")
 }
 
 func Test400_UnknownColumn(t *testing.T) {

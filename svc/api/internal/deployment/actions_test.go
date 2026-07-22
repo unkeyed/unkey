@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -11,19 +13,19 @@ import (
 
 func TestAvailableActions(t *testing.T) {
 	const (
-		ready    = db.DeploymentsStatusReady
-		building = db.DeploymentsStatusBuilding
-		stopped  = db.DeploymentsStatusStopped
-		running  = db.DeploymentsDesiredStateRunning
-		drained  = db.DeploymentsDesiredStateStopped
+		ready    = mysqltype.DeploymentsStatusReady
+		building = mysqltype.DeploymentsStatusBuilding
+		stopped  = mysqltype.DeploymentsStatusStopped
+		running  = mysqltype.DeploymentsDesiredStateRunning
+		drained  = mysqltype.DeploymentsDesiredStateStopped
 	)
 	const self = "d_self"
 	const other = "d_other"
 
 	cases := []struct {
 		name         string
-		status       db.DeploymentsStatus
-		desiredState db.DeploymentsDesiredState
+		status       mysqltype.DeploymentsStatus
+		desiredState mysqltype.DeploymentsDesiredState
 		envSlug      string
 		current      string // app's current_deployment_id
 		rolledBack   bool

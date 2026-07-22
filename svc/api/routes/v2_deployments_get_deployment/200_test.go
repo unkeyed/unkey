@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
@@ -117,7 +119,7 @@ func TestGetDeploymentFailure(t *testing.T) {
 			ProjectID:     setup.Project.ID,
 			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
-			Status:        db.DeploymentsStatusFailed,
+			Status:        mysqltype.DeploymentsStatusFailed,
 		}).ID
 	}
 
@@ -170,7 +172,7 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	var wantRegions []string

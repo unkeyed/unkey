@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const insertPermission = `-- name: InsertPermission :exec
@@ -31,12 +31,12 @@ VALUES (
 `
 
 type InsertPermissionParams struct {
-	PermissionID string            `db:"permission_id"`
-	WorkspaceID  string            `db:"workspace_id"`
-	Name         string            `db:"name"`
-	Slug         string            `db:"slug"`
-	Description  dbtype.NullString `db:"description"`
-	CreatedAtM   int64             `db:"created_at_m"`
+	PermissionID string               `db:"permission_id"`
+	WorkspaceID  string               `db:"workspace_id"`
+	Name         string               `db:"name"`
+	Slug         string               `db:"slug"`
+	Description  mysqltype.NullString `db:"description"`
+	CreatedAtM   int64                `db:"created_at_m"`
 }
 
 // InsertPermission

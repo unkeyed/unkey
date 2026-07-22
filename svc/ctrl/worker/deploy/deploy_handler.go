@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -109,9 +111,9 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// completion (ready). Only transitions from active statuses to failed.
 		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 			ID:               req.GetDeploymentId(),
-			Status:           db.DeploymentsStatusFailed,
+			Status:           mysqltype.DeploymentsStatusFailed,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			TerminalStatuses: db.TerminalDeploymentStatuses,
+			TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
 		})
 	})
 
@@ -317,7 +319,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
-				Status:    db.DeploymentsStatusReady,
+				Status:    mysqltype.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))

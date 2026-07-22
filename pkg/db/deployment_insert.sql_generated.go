@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -95,7 +96,7 @@ type InsertDeploymentParams struct {
 	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
 	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice          `db:"command"`
-	Status                        DeploymentsStatus           `db:"status"`
+	Status                        mysqltype.DeploymentsStatus `db:"status"`
 	CpuMillicores                 int32                       `db:"cpu_millicores"`
 	MemoryMib                     int32                       `db:"memory_mib"`
 	StorageMib                    uint32                      `db:"storage_mib"`

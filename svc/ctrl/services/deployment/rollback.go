@@ -8,7 +8,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -56,8 +55,8 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	}
 
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
-		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		Status:              targetDeployment.Status,
+		DesiredState:        targetDeployment.DesiredState,
 		EnvironmentSlug:     targetDeployment.EnvironmentSlug,
 		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
