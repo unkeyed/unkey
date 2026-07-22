@@ -8,7 +8,7 @@ export const updateMemory = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      memoryMib: z.number().int().min(1),
+      memoryMib: z.number().int().min(256),
     }),
   )
   .mutation(async ({ ctx, input }) => {

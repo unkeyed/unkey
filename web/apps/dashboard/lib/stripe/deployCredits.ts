@@ -121,16 +121,21 @@ export async function grantDeployCreditsForInvoice(
   }
   const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id;
 
-  // The webhook payload carries the first page of lines. Our subscriptions
-  // have well under a page of items, so more pages means something unexpected;
-  // log it rather than silently miscounting the fee.
+  // The payload carries only the first page of lines; a fee line split
+  // onto page 2 would under-count the grant, so fetch every line.
+  let lines = invoice.lines.data;
   if (invoice.lines.has_more) {
-    console.warn("Invoice has more lines than the webhook payload carries", {
+    console.warn("Invoice has more lines than the webhook payload carries; paginating", {
       invoiceId: invoice.id,
     });
+    const allLines: Stripe.InvoiceLineItem[] = [];
+    for await (const line of stripe.invoices.listLineItems(invoice.id, { limit: 100 })) {
+      allLines.push(line);
+    }
+    lines = allLines;
   }
 
-  const fee = netDeployFee(config, invoice.lines.data);
+  const fee = netDeployFee(config, lines);
   if (!fee) {
     return { granted: false, reason: "no deploy plan-fee lines" };
   }

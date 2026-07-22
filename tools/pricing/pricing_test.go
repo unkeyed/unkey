@@ -142,6 +142,43 @@ func TestAPIProductRates(t *testing.T) {
 	}
 }
 
+// TestWebhookDeliveryURL pins the Vercel bypass behavior: protected endpoints
+// require a secret and get it appended query-escaped; everything else delivers
+// to the bare URL. Production hosts are public, so nothing there may be marked
+// protected without a deliberate catalog change.
+func TestWebhookDeliveryURL(t *testing.T) {
+	for _, w := range Webhooks(EnvProduction) {
+		if w.VercelProtected {
+			t.Errorf("production webhook %q marked VercelProtected", w.Key)
+		}
+	}
+
+	for _, w := range Webhooks(EnvCanary) {
+		if w.Key != "dashboard" {
+			got, err := w.DeliveryURL("ignored")
+			if err != nil || got != w.URL {
+				t.Errorf("webhook %q delivery = %q, %v; want bare URL", w.Key, got, err)
+			}
+			continue
+		}
+
+		if !w.VercelProtected {
+			t.Fatal("canary dashboard webhook must be VercelProtected")
+		}
+		if _, err := w.DeliveryURL(""); err == nil {
+			t.Error("protected endpoint without a secret must error, not fall back to the bare URL")
+		}
+		got, err := w.DeliveryURL("s3cret/+value")
+		if err != nil {
+			t.Fatalf("DeliveryURL: %v", err)
+		}
+		want := w.URL + "?x-vercel-protection-bypass=s3cret%2F%2Bvalue"
+		if got != want {
+			t.Errorf("delivery URL = %q, want %q", got, want)
+		}
+	}
+}
+
 func TestNoDuplicateKeys(t *testing.T) {
 	c := Desired()
 	seen := map[string]bool{}

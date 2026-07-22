@@ -7,10 +7,11 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -38,17 +39,15 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	// A demoted deployment keeps status ready while it drains toward standby, so
-	// status alone would let traffic swap onto one shutting down. Promoting the
-	// current live deployment is a no-op unless it is confirming a rollback.
-	if err := assert.All(
-		assert.Equal(deployment.Status, db.DeploymentsStatusReady, "deployment is not ready"),
-		assert.Equal(deployment.DesiredState, db.DeploymentsDesiredStateRunning, "deployment is shutting down"),
-		assert.Equal(deployment.EnvironmentSlug, "production", "only production deployments can be promoted"),
-		assert.True(deployment.CurrentDeploymentID.Valid, "app has no live deployment"),
-		assert.False(deployment.CurrentDeploymentID.String == deployment.ID && !deployment.IsRolledBack, "deployment is already live"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              deployment.Status,
+		DesiredState:        deployment.DesiredState,
+		EnvironmentSlug:     deployment.EnvironmentSlug,
+		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
+		DeploymentID:        deployment.ID,
+		IsRolledBack:        deployment.IsRolledBack,
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("initiating promotion via Restate",

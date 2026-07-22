@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const upsertAppBuildSettings = `-- name: UpsertAppBuildSettings :exec
@@ -46,16 +46,16 @@ ON DUPLICATE KEY UPDATE
 `
 
 type UpsertAppBuildSettingsParams struct {
-	WorkspaceID   string             `db:"workspace_id"`
-	AppID         string             `db:"app_id"`
-	EnvironmentID string             `db:"environment_id"`
-	Dockerfile    sql.NullString     `db:"dockerfile"`
-	DockerContext string             `db:"docker_context"`
-	BuildCommand  sql.NullString     `db:"build_command"`
-	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
-	AutoDeploy    bool               `db:"auto_deploy"`
-	CreatedAt     int64              `db:"created_at"`
-	UpdatedAt     sql.NullInt64      `db:"updated_at"`
+	WorkspaceID   string                `db:"workspace_id"`
+	AppID         string                `db:"app_id"`
+	EnvironmentID string                `db:"environment_id"`
+	Dockerfile    sql.NullString        `db:"dockerfile"`
+	DockerContext string                `db:"docker_context"`
+	BuildCommand  sql.NullString        `db:"build_command"`
+	WatchPaths    mysqltype.StringSlice `db:"watch_paths"`
+	AutoDeploy    bool                  `db:"auto_deploy"`
+	CreatedAt     int64                 `db:"created_at"`
+	UpdatedAt     sql.NullInt64         `db:"updated_at"`
 }
 
 // UpsertAppBuildSettings

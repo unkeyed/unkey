@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -34,12 +36,13 @@ func TestPromoteDeploymentNotReady(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusFailed,
+		Status:        mysqltype.DeploymentsStatusFailed,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "is not ready")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for a non-ready deployment")
 }
 
@@ -62,18 +65,19 @@ func TestPromoteDeploymentShuttingDown(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	err := db.Query.UpdateDeploymentDesiredState(t.Context(), h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
 		ID:           dep.ID,
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "shutting down")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_ready")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for a deployment that is shutting down")
 }
 
@@ -104,12 +108,13 @@ func TestPromoteDeploymentNonProduction(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "Only production deployments can be promoted.")
+	require.Contains(t, res.Body.Error.Detail, "Only production deployments")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_production")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called for non-production deployments")
 }
 
@@ -130,12 +135,13 @@ func TestPromoteDeploymentNoLiveDeployment(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "no live deployment")
+	require.Contains(t, res.Body.Error.Detail, "no current deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_no_current")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called when the app has no live deployment")
 }
 
@@ -157,13 +163,14 @@ func TestPromoteDeploymentAlreadyLive(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	setCurrentDeployment(t, h, setup.App.ID, live.ID)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: live.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "already live")
+	require.Contains(t, res.Body.Error.Detail, "already the current deployment")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
 	require.Empty(t, mock.PromoteCalls, "ctrl must not be called when the deployment is already live")
 }
 
@@ -189,7 +196,7 @@ func TestPromoteDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	setCurrentDeployment(t, h, setup.App.ID, live.ID)
 
@@ -199,7 +206,7 @@ func TestPromoteDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: target.ID})

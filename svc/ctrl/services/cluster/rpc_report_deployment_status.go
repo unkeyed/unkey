@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -19,12 +21,12 @@ import (
 // handler may be parked on the instances-ready awakeable. If the deployment
 // is outside this set (ready, failed, cancelled, superseded, skipped,
 // stopped, awaiting_approval), there's nothing to notify.
-var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
-	db.DeploymentsStatusStarting:   true,
-	db.DeploymentsStatusBuilding:   true,
-	db.DeploymentsStatusDeploying:  true,
-	db.DeploymentsStatusNetwork:    true,
-	db.DeploymentsStatusFinalizing: true,
+var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
+	mysqltype.DeploymentsStatusStarting:   true,
+	mysqltype.DeploymentsStatusBuilding:   true,
+	mysqltype.DeploymentsStatusDeploying:  true,
+	mysqltype.DeploymentsStatusNetwork:    true,
+	mysqltype.DeploymentsStatusFinalizing: true,
 }
 
 // ReportDeploymentStatus reconciles the observed deployment state reported by a krane agent.
@@ -142,7 +144,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					return err
 				}
 
-				if deployment.DesiredState == db.DeploymentsDesiredStateStopped {
+				if deployment.DesiredState == mysqltype.DeploymentsDesiredStateStopped {
 					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(ctx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

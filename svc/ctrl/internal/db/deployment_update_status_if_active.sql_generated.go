@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const updateDeploymentStatusIfActive = `-- name: UpdateDeploymentStatusIfActive :exec
@@ -19,10 +21,10 @@ WHERE id = ?
 `
 
 type UpdateDeploymentStatusIfActiveParams struct {
-	Status           DeploymentsStatus   `db:"status"`
-	UpdatedAt        sql.NullInt64       `db:"updated_at"`
-	ID               string              `db:"id"`
-	TerminalStatuses []DeploymentsStatus `db:"terminal_statuses"`
+	Status           mysqltype.DeploymentsStatus   `db:"status"`
+	UpdatedAt        sql.NullInt64                 `db:"updated_at"`
+	ID               string                        `db:"id"`
+	TerminalStatuses []mysqltype.DeploymentsStatus `db:"terminal_statuses"`
 }
 
 // Transition a deployment's status only when its current status is still

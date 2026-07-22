@@ -103,6 +103,24 @@ var allowedTableFunctions = map[string]bool{
 	// "numbers": true, // generates sequence of numbers
 }
 
+func (p *Parser) validateSettings() error {
+	var validationErr error
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+		selectQuery, ok := node.(*clickhouse.SelectQuery)
+		if !ok || selectQuery.Settings == nil {
+			return true
+		}
+
+		validationErr = fault.New("SETTINGS clauses are not allowed",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("SETTINGS clauses are not allowed"),
+		)
+		return false
+	})
+
+	return validationErr
+}
+
 func (p *Parser) validateFunctions() error {
 	var validateErr error
 

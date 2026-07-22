@@ -59,11 +59,19 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 	// Tear down before clearing deploy_plan: the idempotency guard above keys on
 	// deploy_plan, so clearing first then crashing would skip teardown on retry.
 	// The Send is keyed and idempotent, so a re-dispatch is harmless.
+	//
+	// The key carries the subscription id and updated_at, not just the workspace
+	// id: a constant key let a cancel/resubscribe/deploy/cancel cycle dedupe the
+	// second teardown against the first inside Restate's retention window,
+	// leaving resubscribed compute running unbilled. A retry of the same call
+	// (row unchanged) still dedupes.
+	idempotencyKey := fmt.Sprintf("deploy-teardown-archive-%s-%s-%d",
+		workspaceID, billing.StripeSubscriptionID.String, billing.UpdatedAtM.Int64)
 	_, err = hydrav1.NewDeployTeardownServiceIngressClient(s.restate, workspaceID).
 		Teardown().
 		Send(ctx, &hydrav1.TeardownRequest{
 			Mode: hydrav1.TeardownMode_TEARDOWN_MODE_ARCHIVE,
-		}, restate.WithIdempotencyKey("deploy-teardown-archive-"+workspaceID))
+		}, restate.WithIdempotencyKey(idempotencyKey))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to dispatch teardown: %w", err))
 	}
@@ -72,6 +80,11 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 	// later resubscribe starts blocked. Runs before the deploy_plan clear because
 	// the idempotency guard keys on deploy_plan; a crash after the clear would
 	// strand the suspension with no retry path.
+	//
+	// Accepted race: a spend-check child dispatched from a pre-cancel snapshot
+	// can re-suspend after this clear. A complete fix needs deploy_plan plumbed
+	// into CheckWorkspaceSpendRequest (proto change, deferred); the window is a
+	// single tick and support can clear the flag.
 	if err := s.db.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
 		Suspended: false,
 		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
