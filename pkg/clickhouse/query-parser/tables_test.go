@@ -39,6 +39,51 @@ func TestParser_TableAliases(t *testing.T) {
 	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE keys_v2.workspace_id = 'ws_123'", output)
 }
 
+// TestParser_RejectsCTEsThatShadowPublicAliases guarantees a CTE reference
+// cannot be silently replaced with the physical table behind a public alias.
+func TestParser_RejectsCTEsThatShadowPublicAliases(t *testing.T) {
+	tests := []struct {
+		name          string
+		publicAlias   string
+		physicalTable string
+		query         string
+	}{
+		{
+			name:          "verification alias",
+			publicAlias:   "key_verifications_v1",
+			physicalTable: "default.key_verifications_raw_v2",
+			query:         "WITH key_verifications_v1 AS (SELECT 1 AS total) SELECT count() FROM key_verifications_v1",
+		},
+		{
+			name:          "rate limit alias",
+			publicAlias:   "ratelimits_v1",
+			physicalTable: "default.ratelimits_raw_v2",
+			query:         "WITH ratelimits_v1 AS (SELECT 'rlns_123' AS namespace_id) SELECT count() FROM ratelimits_v1",
+		},
+		{
+			name:          "nested verification alias",
+			publicAlias:   "key_verifications_v1",
+			physicalTable: "default.key_verifications_raw_v2",
+			query:         "SELECT * FROM (WITH key_verifications_v1 AS (SELECT 1 AS total) SELECT total FROM key_verifications_v1)",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parser := NewParser(Config{
+				WorkspaceID: "ws_123",
+				TableAliases: map[string]string{
+					test.publicAlias: test.physicalTable,
+				},
+				AllowedTables: []string{test.physicalTable},
+			})
+
+			_, err := parser.Parse(context.Background(), test.query)
+			require.Error(t, err)
+		})
+	}
+}
+
 // TestParser_RequiresPublicTableAliases guarantees every physical source,
 // including nested and UNION sources, is introduced through a configured alias.
 func TestParser_RequiresPublicTableAliases(t *testing.T) {

@@ -137,6 +137,54 @@ func TestParser_OnlySelectAllowed(t *testing.T) {
 	}
 }
 
+// TestParser_RejectsMultipleStatements guarantees validation covers the full
+// input instead of executing a valid first statement and ignoring the rest.
+func TestParser_RejectsMultipleStatements(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	output, err := parser.Parse(context.Background(), "SELECT count() FROM events_v1;")
+	require.NoError(t, err)
+	require.NotEmpty(t, output)
+
+	queries := []struct {
+		name  string
+		query string
+	}{
+		{name: "second select", query: "SELECT count() FROM events_v1; SELECT count() FROM system.tables"},
+		{name: "second non-select", query: "SELECT count() FROM events_v1; DROP TABLE default.events"},
+		{name: "physical table in second statement", query: "SELECT count() FROM events_v1; SELECT count() FROM default.events"},
+	}
+	for _, test := range queries {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := parser.Parse(context.Background(), test.query)
+			require.Error(t, err)
+		})
+	}
+}
+
+// TestParser_EmitsClickHouseCompatibleAllowedFunctionNames guarantees an
+// allowlisted function cannot pass validation and then fail only due to casing.
+func TestParser_EmitsClickHouseCompatibleAllowedFunctionNames(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	output, err := parser.Parse(context.Background(), "SELECT COUNTIF(id = 'evt_123') FROM events_v1")
+	require.NoError(t, err)
+	require.Contains(t, output, "countIf(")
+	require.NotContains(t, output, "COUNTIF(")
+}
+
 // TestParser_RejectsSettingsClauses guarantees customer SQL cannot attach
 // query-level settings to the root query or any nested SELECT query.
 func TestParser_RejectsSettingsClauses(t *testing.T) {

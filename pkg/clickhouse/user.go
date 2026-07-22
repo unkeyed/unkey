@@ -163,6 +163,22 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		}
 	}
 
+	// ClickHouse exposes metadata for every table a user can SELECT through
+	// system.tables and system.columns, even without explicit system-table
+	// grants. Empty row policies keep physical schema details behind the API's
+	// public table aliases.
+	metadataPolicyName := fmt.Sprintf("workspace_%s_metadata_rls", config.WorkspaceID)
+	for _, table := range []string{"system.tables", "system.columns"} {
+		createPolicySQL := fmt.Sprintf(
+			"CREATE ROW POLICY OR REPLACE %s ON %s AS RESTRICTIVE FOR SELECT USING 0 TO %s",
+			metadataPolicyName, table, config.Username,
+		)
+		err = c.Exec(ctx, createPolicySQL)
+		if err != nil {
+			return fmt.Errorf("failed to hide metadata from %s: %w", table, err)
+		}
+	}
+
 	// Create or replace quota
 	quotaName := fmt.Sprintf("workspace_%s_quota", config.WorkspaceID)
 	logger.Info("creating/updating quota", "name", quotaName)
@@ -195,7 +211,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 
 	createOrReplaceProfileSQL := fmt.Sprintf(`
 		CREATE SETTINGS PROFILE OR REPLACE %s SETTINGS
-			max_execution_time = %d READONLY,
+			max_execution_time = %d MIN 1 MAX %d CHANGEABLE_IN_READONLY,
 			max_memory_usage = %d READONLY,
 			max_result_rows = %d READONLY,
 			max_result_bytes = %d READONLY,
@@ -206,6 +222,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		TO %s
 	`,
 		profileName,
+		config.MaxQueryExecutionTime,
 		config.MaxQueryExecutionTime,
 		config.MaxQueryMemoryBytes,
 		config.MaxQueryResultRows,

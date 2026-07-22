@@ -70,6 +70,12 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 			fault.Public("No SQL statements found"),
 		)
 	}
+	if len(stmts) != 1 {
+		return "", fault.New("multiple statements are not allowed",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("Analytics queries must contain exactly one statement"),
+		)
+	}
 
 	// Only allow SELECT
 	stmt, ok := stmts[0].(*clickhouse.SelectQuery)
@@ -91,6 +97,9 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
+	if err := p.validateCTEAliases(); err != nil {
+		return "", err
+	}
 
 	if err := p.validateSetOperands(); err != nil {
 		return "", err

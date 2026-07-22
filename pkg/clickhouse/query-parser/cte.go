@@ -1,9 +1,12 @@
 package queryparser
 
 import (
+	"fmt"
 	"strings"
 
 	clickhouse "github.com/AfterShip/clickhouse-sql-parser/parser"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 // buildCTERegistry scans the WITH clause and registers all CTE (Common Table Expression) names.
@@ -27,6 +30,7 @@ import (
 //
 // Here, "filtered_data" is not a real table, but it's valid because it's a CTE.
 func (p *Parser) buildCTERegistry() {
+	clear(p.cteNames)
 	if p.stmt.With == nil || len(p.stmt.With.CTEs) == 0 {
 		return
 	}
@@ -45,4 +49,40 @@ func (p *Parser) buildCTERegistry() {
 // isCTE checks if a table name is a CTE
 func (p *Parser) isCTE(tableName string) bool {
 	return p.cteNames[strings.ToLower(tableName)]
+}
+
+// validateCTEAliases rejects ambiguous names before public aliases are
+// rewritten to physical tables.
+func (p *Parser) validateCTEAliases() error {
+	publicAliases := make(map[string]string, len(p.config.TableAliases))
+	for publicAlias := range p.config.TableAliases {
+		publicAliases[strings.ToLower(publicAlias)] = publicAlias
+	}
+
+	var conflictingAlias string
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		query, ok := node.(*clickhouse.SelectQuery)
+		if !ok || query.With == nil {
+			return true
+		}
+		for _, cte := range query.With.CTEs {
+			ident, isIdent := cte.Expr.(*clickhouse.Ident)
+			if !isIdent {
+				continue
+			}
+			if publicAlias, conflicts := publicAliases[strings.ToLower(ident.Name)]; conflicts {
+				conflictingAlias = publicAlias
+				return false
+			}
+		}
+		return true
+	})
+
+	if conflictingAlias != "" {
+		return fault.New(fmt.Sprintf("CTE name conflicts with public table alias '%s'", conflictingAlias),
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsTable.URN()),
+			fault.Public(fmt.Sprintf("CTE name '%s' conflicts with a public table name", conflictingAlias)),
+		)
+	}
+	return nil
 }

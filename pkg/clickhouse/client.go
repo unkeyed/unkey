@@ -24,6 +24,18 @@ type Client struct {
 	retry          *retry.Retry
 }
 
+// contextWithoutDeadline preserves cancellation while hiding the parent
+// deadline from clickhouse-go. The HTTP transport otherwise converts that
+// deadline into a max_execution_time override, which conflicts with readonly
+// workspace profiles that already enforce the server-side execution limit.
+type contextWithoutDeadline struct {
+	context.Context
+}
+
+func (contextWithoutDeadline) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
 var (
 	_ Querier    = (*Client)(nil)
 	_ ClickHouse = (*Client)(nil)
@@ -147,7 +159,7 @@ func (c *Client) Conn() ch.Conn {
 // Returns fault-wrapped errors with appropriate codes for resource limits,
 // user query errors, and system errors.
 func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
-	rows, err := c.conn.Query(ctx, query, args...)
+	rows, err := c.conn.Query(contextWithoutDeadline{Context: ctx}, query, args...)
 	if err != nil {
 		return nil, WrapClickHouseError(err)
 	}

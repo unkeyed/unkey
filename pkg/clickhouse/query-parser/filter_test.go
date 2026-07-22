@@ -361,6 +361,8 @@ func TestParser_WorkspaceFilterInjection(t *testing.T) {
 	}
 }
 
+// TestParser_SQLInjectionWithFilters guarantees SQL-looking filter values stay
+// inside the rewritten predicate and additional statements are rejected.
 func TestParser_SQLInjectionWithFilters(t *testing.T) {
 	p := newParserWithIdentityAliases(chquery.Config{
 		WorkspaceID: "ws_123",
@@ -390,11 +392,6 @@ func TestParser_SQLInjectionWithFilters(t *testing.T) {
 			query:    "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id = '/* comment */'",
 			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (key_id = '/* comment */') LIMIT 1000",
 		},
-		{
-			name:     "injection with semicolon",
-			query:    "SELECT * FROM default.key_verifications_raw_v2; DROP TABLE users",
-			expected: "SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' LIMIT 1000",
-		},
 	}
 
 	for _, tt := range tests {
@@ -404,6 +401,9 @@ func TestParser_SQLInjectionWithFilters(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+
+	_, err := p.Parse(context.Background(), "SELECT * FROM default.key_verifications_raw_v2; DROP TABLE users")
+	require.Error(t, err)
 }
 
 func TestParser_SpecialCharactersInFilters(t *testing.T) {
