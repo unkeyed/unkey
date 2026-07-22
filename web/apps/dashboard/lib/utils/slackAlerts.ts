@@ -271,23 +271,38 @@ export async function alertPaymentRecovered(
 }
 
 /**
- * High-severity ops alert for a paid Compute checkout whose subscription could
- * not be linked to its workspace and cannot be reconciled automatically — most
- * importantly a `subscription_conflict`, where a race created a second live,
- * charged subscription while the workspace is already served by another. The
- * subscription keeps billing until an operator cancels/refunds it, so this must
- * page a human rather than sit in logs.
+ * High-severity ops alert for a live Stripe subscription that could not be
+ * linked to (or resolved from) a workspace and cannot be reconciled
+ * automatically. Covers a `subscription_conflict` (a race created a second
+ * live, charged subscription while the workspace is already served by
+ * another), a checkout whose workspace or `client_reference_id` is missing,
+ * and a subscription.updated/deleted event whose subscription no workspace row
+ * points at. Such a subscription keeps billing until an operator
+ * cancels/refunds it, so this must page a human rather than sit in logs.
+ *
+ * workspaceId and sessionId are optional because the event-driven callers
+ * (updated/deleted with no matching workspace, or a checkout missing its
+ * client_reference_id) do not have both.
  */
 export async function alertOrphanedDeploySubscription(details: {
-  workspaceId: string;
+  workspaceId?: string;
   subscriptionId: string;
-  sessionId: string;
+  sessionId?: string;
+  eventId?: string;
   reason: string;
 }): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
     return;
   }
+
+  // Include only the fields provided so the message never shows undefined.
+  const detailLines = [
+    details.workspaceId ? `Workspace: \`${details.workspaceId}\`` : null,
+    `Subscription: \`${details.subscriptionId}\``,
+    details.sessionId ? `Checkout session: \`${details.sessionId}\`` : null,
+    details.eventId ? `Event: \`${details.eventId}\`` : null,
+  ].filter((line): line is string => line !== null);
 
   try {
     const response = await fetch(url, {
@@ -306,7 +321,7 @@ export async function alertOrphanedDeploySubscription(details: {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `A paid Compute checkout could not be linked to its workspace. The subscription is billing but unlinked — cancel/refund it manually.\nWorkspace: \`${details.workspaceId}\`\nSubscription: \`${details.subscriptionId}\`\nCheckout session: \`${details.sessionId}\``,
+              text: `A live subscription could not be linked to its workspace. The subscription is billing but unlinked — cancel/refund it manually.\n${detailLines.join("\n")}`,
             },
           },
         ],
@@ -322,6 +337,62 @@ export async function alertOrphanedDeploySubscription(details: {
     }
   } catch (err: unknown) {
     console.error("Error sending orphaned-subscription alert:", {
+      error: err instanceof Error ? { message: err.message, name: err.name } : err,
+      ...details,
+    });
+  }
+}
+
+/**
+ * Ops alert for a subscription.updated whose product carries invalid or
+ * missing quota metadata. The handler cannot derive the tier/quota values, so
+ * it skips the sync and the workspace silently stays on its old tier while
+ * Stripe bills the new plan. Page a human so the product metadata gets fixed.
+ */
+export async function alertInvalidProductQuotaMetadata(details: {
+  productId: string;
+  productName: string;
+  subscriptionId: string;
+  eventId: string;
+}): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
+  if (!url) {
+    return;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: ":rotating_light: Product has invalid quota metadata; tier sync skipped",
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `A subscription.updated could not sync the workspace tier because the product's quota metadata is invalid or missing. Fix the product metadata in Stripe.\nProduct: \`${details.productName}\` (\`${details.productId}\`)\nSubscription: \`${details.subscriptionId}\`\nEvent: \`${details.eventId}\``,
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Failed to send invalid-quota-metadata alert to Slack:", {
+        status: response.status,
+        statusText: response.statusText,
+        ...details,
+      });
+    }
+  } catch (err: unknown) {
+    console.error("Error sending invalid-quota-metadata alert:", {
       error: err instanceof Error ? { message: err.message, name: err.name } : err,
       ...details,
     });

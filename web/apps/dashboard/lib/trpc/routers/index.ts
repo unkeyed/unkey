@@ -131,16 +131,8 @@ import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
 import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
-import { createIdentity } from "./identity/create";
-import { deleteIdentity } from "./identity/delete";
-import { getIdentityById } from "./identity/getById";
-import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
-import { searchIdentities } from "./identity/search";
-import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
-import { updateIdentityMetadata } from "./identity/updateMetadata";
-import { updateIdentityRatelimit } from "./identity/updateRatelimit";
 import { createRootKey } from "./key/createRootKey";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
@@ -434,19 +426,9 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
-    searchWithRelations: searchIdentitiesWithRelations,
-    create: createIdentity,
-    delete: deleteIdentity,
-    query: queryIdentities,
-    search: searchIdentities,
-    getById: getIdentityById,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
-    }),
-    update: t.router({
-      metadata: updateIdentityMetadata,
-      ratelimit: updateIdentityRatelimit,
     }),
   }),
   deploy: t.router({

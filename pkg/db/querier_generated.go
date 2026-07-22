@@ -2368,6 +2368,58 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
+	//ListDeploymentDomains
+	//
+	//  SELECT r.fully_qualified_domain_name AS domain
+	//  FROM frontline_routes r
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id = ?
+	//  ORDER BY r.fully_qualified_domain_name
+	ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error)
+	//ListDeploymentDomainsByIds
+	//
+	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
+	//  FROM frontline_routes r
+	//  JOIN deployments d ON d.id = r.deployment_id
+	//  WHERE d.workspace_id = ?
+	//    AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
+	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error)
+	//ListDeploymentEnvAndAppState
+	//
+	//  SELECT
+	//    d.id AS deployment_id,
+	//    p.slug AS project_slug,
+	//    a.slug AS app_slug,
+	//    e.slug AS environment_slug,
+	//    a.current_deployment_id AS app_current_deployment_id,
+	//    a.is_rolled_back AS app_is_rolled_back
+	//  FROM deployments d
+	//  JOIN projects p ON p.id = d.project_id
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.workspace_id = ?
+	//    AND d.id IN (/*SLICE:deployment_ids*/?)
+	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
+	//ListDeploymentRegions
+	//
+	//  SELECT DISTINCT r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id = ?
+	//  ORDER BY r.name
+	ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDeploymentRegionsParams) ([]string, error)
+	//ListDeploymentRegionsByIds
+	//
+	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
+	//  FROM deployment_topology dt
+	//  JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.workspace_id = ?
+	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//  ORDER BY dt.deployment_id, r.name
+	ListDeploymentRegionsByIds(ctx context.Context, db DBTX, arg ListDeploymentRegionsByIdsParams) ([]ListDeploymentRegionsByIdsRow, error)
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
@@ -2379,7 +2431,7 @@ type Querier interface {
 	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 	//    AND (
 	//      ? = ''
-	//      OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//      OR d.pk <= (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 	//    )
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?
@@ -2461,6 +2513,14 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	//ListFailedDeploymentStepsByIds
+	//
+	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
+	//    AND error IS NOT NULL AND error != ''
+	//  ORDER BY deployment_id, started_at ASC
+	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
 	//ListGithubRepoConnections
 	//
 	//  SELECT

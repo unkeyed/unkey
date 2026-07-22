@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listDesiredDeploymentTopology = `-- name: ListDesiredDeploymentTopology :many
@@ -27,10 +29,10 @@ LIMIT ?
 `
 
 type ListDesiredDeploymentTopologyParams struct {
-	Region           string                  `db:"region"`
-	DesiredState     DeploymentsDesiredState `db:"desired_state"`
-	PaginationCursor string                  `db:"pagination_cursor"`
-	Limit            int32                   `db:"limit"`
+	Region           string                            `db:"region"`
+	DesiredState     mysqltype.DeploymentsDesiredState `db:"desired_state"`
+	PaginationCursor string                            `db:"pagination_cursor"`
+	Limit            int32                             `db:"limit"`
 }
 
 type ListDesiredDeploymentTopologyRow struct {

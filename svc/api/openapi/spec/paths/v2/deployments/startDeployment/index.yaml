@@ -74,8 +74,9 @@ post:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "412":
       description: |
-        Precondition failed - The deployment is not stopped, or it belongs to a
-        production environment.
+        Precondition failed - The deployment is not stopped, it belongs to a
+        production environment, or the workspace is suspended by its Compute
+        spend cap.
       content:
         application/json:
           schema:

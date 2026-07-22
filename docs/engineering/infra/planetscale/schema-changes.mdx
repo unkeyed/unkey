@@ -1,0 +1,84 @@
+---
+title: "PlanetScale schema changes"
+description: "Apply MySQL schema changes before merging application code"
+---
+
+When a pull request changes the MySQL schema, its proposed schema must match the
+production PlanetScale schema before the pull request can merge. This ordering
+prevents application code from querying tables or columns that don't exist in
+production.
+
+## Schema sources
+
+Drizzle definitions in `web/internal/db/src/schema/` are the source of truth.
+The `mise run generate-sql` task converts those definitions into SQL files in
+`pkg/mysql/schema/` for Go tooling and code generation.
+
+Commit the Drizzle definitions and generated SQL in the same pull request.
+Run the generator after every schema edit:
+
+```bash
+mise run generate-sql
+```
+
+## Apply a schema change
+
+The schema gate creates a temporary PlanetScale branch from `main`, applies the
+Drizzle schema, and uses PlanetScale's native branch diff to compare it with
+production. The gate deletes this validation branch without creating a deploy
+request. A scheduled cleanup job in the same workflow also deletes
+leftover `schema-check-*` branches if a CI runner terminates before its cleanup
+runs. Global workflow concurrency prevents cleanup from overlapping a schema
+check.
+
+Complete these steps for a schema change:
+
+1. Update the Drizzle schema and run `mise run generate-sql`.
+2. Commit the Drizzle and generated SQL changes.
+3. Create a PlanetScale migration branch from `staging`:
+
+   ```bash
+   BRANCH=<name> FROM=staging mise run pscale-branch
+   ```
+
+4. Create, review, and deploy a request from the migration branch into
+   `staging`.
+5. Create, review, and deploy a request from `staging` into `main`.
+6. Open or update the code pull request, then merge after the schema gate
+   passes.
+
+The schema gate doesn't use deploy request state to decide whether schemas
+match. It fails whenever PlanetScale reports a branch diff and passes when the
+diff is empty. This catches undeployed changes and manual production drift when
+the gate runs, even if no deploy request exists. The gate waits through a short
+propagation window before accepting an empty diff because PlanetScale's schema
+API can lag a completed migration by a few seconds.
+
+## Split incompatible changes
+
+Use separate pull requests when application and schema changes require a
+specific deployment order. Each pull request must leave the repository schema
+equal to the production schema before it merges.
+
+To remove a column safely:
+
+1. Remove all application reads and writes for the column without changing the
+   Drizzle schema.
+2. Merge and deploy the application change.
+3. Deploy the column removal through `staging` and `main` in PlanetScale.
+4. Remove the column from the Drizzle schema and generated SQL in a second pull
+   request.
+
+For an additive change, deploy the new table or column through `staging` and
+`main` before merging code that uses it.
+
+## Troubleshoot the schema check
+
+The required `Database Schema Gate / Compare production schema` check prints
+PlanetScale's schema diff. Use that output to identify the pending production
+change.
+
+If the gate doesn't run the comparison, confirm that the pull request changes
+`web/internal/db/src/schema/`, `web/internal/db/drizzle.config.ts`, or
+`web/internal/db/package.json`. Validation branches normally won't be visible
+after a check because CI deletes them before the job finishes.

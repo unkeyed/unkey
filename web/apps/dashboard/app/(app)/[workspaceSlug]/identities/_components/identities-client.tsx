@@ -1,15 +1,14 @@
 "use client";
 
-import { IdentitiesListControlCloud } from "./control-cloud";
+import { ResourceList } from "@unkey/ui";
 import { IdentitiesListControls } from "./controls";
 import { IdentitiesList } from "./table/identities-list";
 
 export const IdentitiesClient = () => {
   return (
-    <div className="flex flex-col">
+    <ResourceList>
       <IdentitiesListControls />
-      <IdentitiesListControlCloud />
       <IdentitiesList />
-    </div>
+    </ResourceList>
   );
 };

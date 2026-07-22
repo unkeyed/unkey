@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -92,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
-		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -131,15 +132,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
 	if err != nil {
-		return clickhouse.WrapClickHouseError(err)
+		return err
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	responseBytes, err := json.Marshal(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: verifications,
 	})
+	if err != nil {
+		return fault.Wrap(err, fault.Public("Failed to encode query results"))
+	}
+	if len(responseBytes) > clickhouse.AnalyticsResultBytesMax {
+		return fault.New("analytics response byte limit exceeded",
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size."),
+		)
+	}
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

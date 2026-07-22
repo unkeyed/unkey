@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -70,7 +72,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Make the deployment its app's current deployment so we exercise the
@@ -122,7 +124,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	// VO, so poll for it. ARCHIVE maps to desired_state 'stopped'.
 	require.Eventually(t, func() bool {
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
 }
 
@@ -142,13 +144,13 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Model a deployment that never produced instances.
 	_, err := h.DB.RW().ExecContext(ctx,
 		"UPDATE deployments SET status = ? WHERE id = ?",
-		db.DeploymentsStatusAwaitingApproval, dep.ID)
+		mysqltype.DeploymentsStatusAwaitingApproval, dep.ID)
 	require.NoError(t, err)
 
 	client := hydrav1.NewDeployTeardownServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
@@ -175,7 +177,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Make the deployment its app's current deployment so SUSPEND records it.
@@ -202,7 +204,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	// SUSPEND maps to desired_state 'stopped', applied asynchronously.
 	require.Eventually(t, func() bool {
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
 
 	resumeResp, err := client.Resume().Request(ctx, &hydrav1.ResumeRequest{})
@@ -218,6 +220,6 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	// The deployment is back to desired_state 'running'.
 	require.Eventually(t, func() bool {
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateRunning
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 	}, 10*time.Second, 200*time.Millisecond, "desired_state should become running again")
 }

@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const insertDeployment = `-- name: InsertDeployment :exec
@@ -94,15 +94,15 @@ type InsertDeploymentParams struct {
 	GitCommitAuthorAvatarUrl      sql.NullString              `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
 	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice          `db:"command"`
-	Status                        DeploymentsStatus           `db:"status"`
+	Command                       mysqltype.StringSlice       `db:"command"`
+	Status                        mysqltype.DeploymentsStatus `db:"status"`
 	CpuMillicores                 int32                       `db:"cpu_millicores"`
 	MemoryMib                     int32                       `db:"memory_mib"`
 	StorageMib                    uint32                      `db:"storage_mib"`
 	Port                          int32                       `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
-	Healthcheck                   dbtype.NullHealthcheck      `db:"healthcheck"`
+	Healthcheck                   mysqltype.NullHealthcheck   `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	DeploymentTrigger             DeploymentsTrigger          `db:"deployment_trigger"`

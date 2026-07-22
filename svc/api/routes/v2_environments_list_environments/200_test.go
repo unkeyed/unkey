@@ -95,7 +95,7 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 			// CreateEnvironment seeds default runtime and build settings.
 			require.NotNil(t, e.Runtime)
 			require.Equal(t, 0.25, e.Runtime.VCpus)
-			require.Equal(t, 128, e.Runtime.MemoryMib)
+			require.Equal(t, 256, e.Runtime.MemoryMib)
 			require.NotNil(t, e.Build)
 			require.Equal(t, ".", e.Build.RootDirectory)
 			require.True(t, e.Build.AutoDeploy)

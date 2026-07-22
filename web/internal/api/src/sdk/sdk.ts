@@ -8,6 +8,7 @@ import { Apis } from "./apis.js";
 import { Apps } from "./apps.js";
 import { Deployments } from "./deployments.js";
 import { Environments } from "./environments.js";
+import { Gateway } from "./gateway.js";
 import { Identities } from "./identities.js";
 import { Internal } from "./internal.js";
 import { Keys } from "./keys.js";
@@ -45,6 +46,11 @@ export class Unkey extends ClientSDK {
   private _environments?: Environments;
   get environments(): Environments {
     return (this._environments ??= new Environments(this._options));
+  }
+
+  private _gateway?: Gateway;
+  get gateway(): Gateway {
+    return (this._gateway ??= new Gateway(this._options));
   }
 
   private _identities?: Identities;
