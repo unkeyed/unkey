@@ -7,22 +7,22 @@ import (
 	"time"
 )
 
-// ChecklyHeartbeat sends heartbeats to Checkly monitoring service.
-type ChecklyHeartbeat struct {
+// HTTPHeartbeat sends heartbeats to an HTTP endpoint.
+type HTTPHeartbeat struct {
 	url    string
 	client *http.Client
 }
 
-// NewChecklyHeartbeat creates a new Checkly heartbeat client.
-func NewChecklyHeartbeat(url string) *ChecklyHeartbeat {
-	return &ChecklyHeartbeat{
+// NewHTTPHeartbeat creates a heartbeat client for an HTTP endpoint.
+func NewHTTPHeartbeat(url string) *HTTPHeartbeat {
+	return &HTTPHeartbeat{
 		url:    url,
 		client: &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
-// Ping sends a heartbeat to Checkly.
-func (c *ChecklyHeartbeat) Ping(ctx context.Context) (err error) {
+// Ping sends a heartbeat to the configured endpoint.
+func (c *HTTPHeartbeat) Ping(ctx context.Context) (err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)

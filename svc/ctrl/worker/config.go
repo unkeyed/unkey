@@ -156,48 +156,48 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
-// HeartbeatConfig holds Checkly heartbeat URLs for health monitoring.
+// HeartbeatConfig holds heartbeat URLs for health monitoring.
 type HeartbeatConfig struct {
-	// CertRenewalURL is the Checkly heartbeat URL for certificate renewal.
+	// CertRenewalURL is the heartbeat URL for certificate renewal.
 	// When set, a heartbeat is sent after successful certificate renewal runs.
 	// Optional - if empty, no heartbeat is sent.
 	CertRenewalURL string `toml:"cert_renewal_url"`
 
-	// QuotaCheckURL is the Checkly heartbeat URL for quota checks.
+	// QuotaCheckURL is the heartbeat URL for quota checks.
 	// When set, a heartbeat is sent after successful quota check runs.
 	// Optional - if empty, no heartbeat is sent.
 	QuotaCheckURL string `toml:"quota_check_url"`
 
-	// KeyRefillURL is the Checkly heartbeat URL for key refill runs.
+	// KeyRefillURL is the heartbeat URL for key refill runs.
 	// When set, a heartbeat is sent after successful key refill runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyRefillURL string `toml:"key_refill_url"`
 
-	// KeyLastUsedSyncURL is the Checkly heartbeat URL for key last-used sync runs.
+	// KeyLastUsedSyncURL is the heartbeat URL for key last-used sync runs.
 	// When set, a heartbeat is sent after successful sync runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
 
-	// AuditLogExportURL is the Checkly heartbeat URL for audit log export runs.
+	// AuditLogExportURL is the heartbeat URL for audit log export runs.
 	// When set, a heartbeat is sent after successful drains of the MySQL outbox
 	// into ClickHouse. Optional - if empty, no heartbeat is sent.
 	AuditLogExportURL string `toml:"audit_log_export_url"`
 
-	// AuditLogOutboxCleanupURL is the Checkly heartbeat URL for the daily sweep
+	// AuditLogOutboxCleanupURL is the heartbeat URL for the daily sweep
 	// that hard-deletes exported clickhouse_outbox rows past the retention
 	// window. When set, a heartbeat is sent after a successful sweep.
 	// Optional - if empty, no heartbeat is sent.
 	AuditLogOutboxCleanupURL string `toml:"audit_log_outbox_cleanup_url"`
 
-	// DeployBillingPushURL is the Checkly heartbeat URL for the hourly Deploy
+	// DeployBillingPushURL is the heartbeat URL for the hourly Deploy
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
 	DeployBillingPushURL string `toml:"deploy_billing_push_url"`
-	// DeployBillingCloseURL is the Checkly heartbeat URL for the month-end
+	// DeployBillingCloseURL is the heartbeat URL for the month-end
 	// Deploy billing close. Optional.
 	DeployBillingCloseURL string `toml:"deploy_billing_close_url"`
 
-	// DeploySpendCheckURL is the Checkly heartbeat URL for the Compute spend-cap
+	// DeploySpendCheckURL is the heartbeat URL for the Compute spend-cap
 	// check orchestrator. When set, a heartbeat is sent after a successful run.
 	// Optional - if empty, no heartbeat is sent.
 	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
@@ -298,7 +298,7 @@ type Config struct {
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub *GitHubConfig `toml:"github"`
 
-	// Heartbeat configures Checkly heartbeat URLs for health monitoring.
+	// Heartbeat configures heartbeat URLs for health monitoring.
 	Heartbeat HeartbeatConfig `toml:"heartbeat"`
 
 	// Slack configures Slack webhook URLs for notifications.

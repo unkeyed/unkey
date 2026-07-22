@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChecklyHeartbeat_Ping(t *testing.T) {
+func TestHTTPHeartbeat_Ping(t *testing.T) {
 	tests := []struct {
 		name       string
 		statusCode int
@@ -45,7 +45,7 @@ func TestChecklyHeartbeat_Ping(t *testing.T) {
 			}))
 			defer server.Close()
 
-			hb := NewChecklyHeartbeat(server.URL)
+			hb := NewHTTPHeartbeat(server.URL)
 			err := hb.Ping(context.Background())
 
 			if tt.wantErr {
@@ -57,8 +57,8 @@ func TestChecklyHeartbeat_Ping(t *testing.T) {
 	}
 }
 
-func TestChecklyHeartbeat_EmptyURL(t *testing.T) {
-	hb := NewChecklyHeartbeat("")
+func TestHTTPHeartbeat_EmptyURL(t *testing.T) {
+	hb := NewHTTPHeartbeat("")
 	err := hb.Ping(context.Background())
 	require.Error(t, err)
 }
@@ -70,6 +70,6 @@ func TestNoop_Ping(t *testing.T) {
 }
 
 func TestImplementsHeartbeat(t *testing.T) {
-	var _ Heartbeat = (*ChecklyHeartbeat)(nil)
+	var _ Heartbeat = (*HTTPHeartbeat)(nil)
 	var _ Heartbeat = (*Noop)(nil)
 }
