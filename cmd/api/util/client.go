@@ -97,9 +97,14 @@ func refreshAndStore(cmd *cli.Command, cfg cli.UserConfig) (string, error) {
 	if tok.Email != "" {
 		cfg.UserEmail = tok.Email
 	}
-	// Persist before use so a rotated refresh token is never lost. A save failure
-	// is non-fatal: the new access token is still usable for this invocation.
-	_ = cli.SaveUserConfig(cfg)
+	// Persist the rotated tokens to the same file the session was loaded from
+	// before returning. WorkOS rotates the refresh token on every exchange, so a
+	// failed save leaves the on-disk refresh token stale: treat it as a refresh
+	// failure rather than returning an access token whose companion refresh token
+	// is already lost.
+	if err := cli.SaveUserConfigTo(cmd.String("config"), cfg); err != nil {
+		return "", fmt.Errorf("failed to persist refreshed credentials: %w\n\nRun `unkey auth login` to re-authenticate", err)
+	}
 
 	return tok.AccessToken, nil
 }

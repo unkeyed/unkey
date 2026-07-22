@@ -101,3 +101,13 @@ func SaveUserConfig(cfg UserConfig) error {
 	}
 	return config.Save(path, cfg)
 }
+
+// SaveUserConfigTo writes the config to path, so a session loaded from a custom
+// --config location is persisted back to the same file. An empty path falls back
+// to the default ~/.unkey/config.toml location.
+func SaveUserConfigTo(path string, cfg UserConfig) error {
+	if path == "" {
+		return SaveUserConfig(cfg)
+	}
+	return config.Save(path, cfg)
+}

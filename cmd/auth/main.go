@@ -235,7 +235,7 @@ type identity struct {
 	Email     string `json:"email,omitempty"`
 	OrgID     string `json:"orgId,omitempty"`
 	ExpiresAt string `json:"expiresAt,omitempty"`
-	Valid     bool   `json:"valid,omitempty"`
+	Valid     bool   `json:"valid"`
 }
 
 func writeIdentityJSON(out io.Writer, info identity) error {
