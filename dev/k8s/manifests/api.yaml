@@ -45,6 +45,12 @@ data:
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
 
+    # Populated from the github-credentials secret (created by `dev github setup`).
+    # Empty when GitHub is not set up locally, which disables apps.createGithubConnection.
+    [github]
+    app_name = "${NEXT_PUBLIC_GITHUB_APP_NAME}"
+    private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
+
     [observability.tracing]
     sample_rate = 1.0
 
@@ -78,6 +84,21 @@ spec:
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector:4318"
+            # GitHub App slug + private key for apps.createGithubConnection. From
+            # the github-credentials secret; optional so api still boots without
+            # `dev github setup` having run.
+            - name: NEXT_PUBLIC_GITHUB_APP_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: NEXT_PUBLIC_GITHUB_APP_NAME
+                  optional: true
+            - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_GITHUB_PRIVATE_KEY_PEM
+                  optional: true
           ports:
             - containerPort: 7070
           volumeMounts:
