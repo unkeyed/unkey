@@ -199,6 +199,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				api.RootKeyAuthConfig{Enabled: nil},
 			},
 			PortalBaseURL: "https://portal.test.local",
+			GitHub: api.GitHubConfig{
+				AppName:       "unkey-test",
+				PrivateKeyPEM: "test-private-key-pem",
+			},
 		}
 
 		// Start API server in goroutine
