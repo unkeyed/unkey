@@ -27,16 +27,23 @@ type Request = openapi.V2AnalyticsGetVerificationsRequestBody
 type Response = openapi.V2AnalyticsGetVerificationsResponseBody
 type ResponseData = openapi.V2AnalyticsGetVerificationsResponseData
 
-var verificationTables = [...]struct {
-	alias string
-	name  string
-}{
-	{alias: "key_verifications_v1", name: "default.key_verifications_raw_v2"},
-	{alias: "key_verifications_per_minute_v1", name: "default.key_verifications_per_minute_v3"},
-	{alias: "key_verifications_per_hour_v1", name: "default.key_verifications_per_hour_v3"},
-	{alias: "key_verifications_per_day_v1", name: "default.key_verifications_per_day_v3"},
-	{alias: "key_verifications_per_month_v1", name: "default.key_verifications_per_month_v3"},
-}
+var (
+	verificationTableAliases = map[string]string{
+		"key_verifications_v1":            "default.key_verifications_raw_v2",
+		"key_verifications_per_minute_v1": "default.key_verifications_per_minute_v3",
+		"key_verifications_per_hour_v1":   "default.key_verifications_per_hour_v3",
+		"key_verifications_per_day_v1":    "default.key_verifications_per_day_v3",
+		"key_verifications_per_month_v1":  "default.key_verifications_per_month_v3",
+	}
+
+	verificationAllowedTables = []string{
+		"default.key_verifications_raw_v2",
+		"default.key_verifications_per_minute_v3",
+		"default.key_verifications_per_hour_v3",
+		"default.key_verifications_per_day_v3",
+		"default.key_verifications_per_month_v3",
+	}
+)
 
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
@@ -67,14 +74,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Build a list of keySpaceIds that the root key has permissions for.
+	securityFilters, err := h.buildSecurityFilters(ctx, principal)
+	if err != nil {
+		return err
+	}
+
 	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query: req.Query,
-		// The executor supplies workspace-specific limits and security fields.
-		ParserConfig: verificationParserConfig(principal.WorkspaceID),
-		FilterBuilder: func() ([]chquery.SecurityFilter, error) {
-			return h.buildSecurityFilters(ctx, principal)
+		Config: analytics.QueryConfig{
+			WorkspaceID:   principal.WorkspaceID,
+			TableAliases:  verificationTableAliases,
+			AllowedTables: verificationAllowedTables,
 		},
+		InitialSecurityFilters: securityFilters,
 		Policy: func(parser *chquery.Parser) ([]chquery.SecurityFilter, error) {
 			permissionChecks := []rbac.PermissionQuery{rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})}
 			keySpaceIds := parser.ExtractColumn("key_space_id")
@@ -108,20 +120,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	s.AddHeader("Content-Type", "application/json")
 	return s.Send(http.StatusOK, responseBytes)
-}
-
-// verificationParserConfig defines the verification route's query policy.
-func verificationParserConfig(workspaceID string) chquery.Config {
-	config := chquery.Config{ //nolint:exhaustruct
-		WorkspaceID:   workspaceID,
-		TableAliases:  make(map[string]string, len(verificationTables)),
-		AllowedTables: make([]string, 0, len(verificationTables)),
-	}
-	for _, table := range verificationTables {
-		config.TableAliases[table.alias] = table.name
-		config.AllowedTables = append(config.AllowedTables, table.name)
-	}
-	return config
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

@@ -13,10 +13,16 @@ import (
 // TestVerificationParserConfigRequiresPublicAliases locks the public table
 // contract and rejects stale aliases and internal physical table names.
 func TestVerificationParserConfigRequiresPublicAliases(t *testing.T) {
-	parser := queryparser.NewParser(verificationParserConfig("ws_test"))
+	parser := queryparser.NewParser(queryparser.Config{
+		WorkspaceID:       "ws_test",
+		TableAliases:      verificationTableAliases,
+		AllowedTables:     verificationAllowedTables,
+		SecurityFilters:   nil,
+		Limit:             0,
+		QueryRangeDaysMax: 0,
+	})
 
-	for _, table := range verificationTables {
-		publicAlias := table.alias
+	for publicAlias := range verificationTableAliases {
 		t.Run(publicAlias, func(t *testing.T) {
 			_, err := parser.Parse(context.Background(), "SELECT * FROM "+publicAlias)
 			require.NoError(t, err)

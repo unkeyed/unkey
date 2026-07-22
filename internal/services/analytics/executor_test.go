@@ -42,14 +42,12 @@ func TestExecuteAppliesFiltersFromBothPhases(t *testing.T) {
 	manager := &fakeManager{connection: connection}
 	rows, err := Execute(context.Background(), manager, ExecuteRequest{
 		Query: "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
-		ParserConfig: queryparser.Config{
+		Config: QueryConfig{
 			WorkspaceID:   "ws_test",
 			TableAliases:  map[string]string{"events": "default.events"},
 			AllowedTables: []string{"default.events"},
 		},
-		FilterBuilder: func() ([]queryparser.SecurityFilter, error) {
-			return []queryparser.SecurityFilter{{Column: "environment", AllowedValues: []string{"prod"}}}, nil
-		},
+		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "environment", AllowedValues: []string{"prod"}}},
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			require.Equal(t, []string{"requested"}, parser.ExtractColumn("namespace_id"))
 			return []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"allowed"}}}, nil
@@ -69,14 +67,12 @@ func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
 	connection := &fakeConnection{}
 	_, err := Execute(context.Background(), &fakeManager{connection: connection}, ExecuteRequest{
 		Query: "SELECT count(*) FROM events",
-		ParserConfig: queryparser.Config{
+		Config: QueryConfig{
 			WorkspaceID:   "ws_test",
 			TableAliases:  map[string]string{"events": "default.events"},
 			AllowedTables: []string{"default.events"},
 		},
-		FilterBuilder: func() ([]queryparser.SecurityFilter, error) {
-			return []queryparser.SecurityFilter{{Column: "key_space_id", AllowedValues: []string{"ks_scoped"}}}, nil
-		},
+		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "key_space_id", AllowedValues: []string{"ks_scoped"}}},
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			require.Equal(t, []string{"ks_scoped"}, parser.ExtractColumn("key_space_id"))
 			return nil, nil
@@ -88,9 +84,15 @@ func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
 // TestExecuteRequiresParserWorkspaceID guarantees callers cannot open an
 // unscoped analytics connection or inject an empty workspace predicate.
 func TestExecuteRequiresParserWorkspaceID(t *testing.T) {
-	_, err := Execute(context.Background(), &fakeManager{}, ExecuteRequest{ //nolint:exhaustruct
-		Query:        "SELECT count(*) FROM events",
-		ParserConfig: queryparser.Config{}, //nolint:exhaustruct
+	_, err := Execute(context.Background(), &fakeManager{}, ExecuteRequest{
+		Query: "SELECT count(*) FROM events",
+		Config: QueryConfig{
+			WorkspaceID:   "",
+			TableAliases:  nil,
+			AllowedTables: nil,
+		},
+		InitialSecurityFilters: nil,
+		Policy:                 nil,
 	})
 	require.ErrorContains(t, err, "analytics parser workspace ID is required")
 }

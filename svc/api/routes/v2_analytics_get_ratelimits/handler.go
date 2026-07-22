@@ -21,6 +21,24 @@ import (
 type Request = openapi.V2AnalyticsGetRatelimitsRequestBody
 type Response = openapi.V2AnalyticsGetRatelimitsResponseBody
 
+var (
+	ratelimitTableAliases = map[string]string{
+		"ratelimits_v1":            "default.ratelimits_raw_v2",
+		"ratelimits_per_minute_v1": "default.ratelimits_per_minute_v2",
+		"ratelimits_per_hour_v1":   "default.ratelimits_per_hour_v2",
+		"ratelimits_per_day_v1":    "default.ratelimits_per_day_v2",
+		"ratelimits_per_month_v1":  "default.ratelimits_per_month_v2",
+	}
+
+	ratelimitAllowedTables = []string{
+		"default.ratelimits_raw_v2",
+		"default.ratelimits_per_minute_v2",
+		"default.ratelimits_per_hour_v2",
+		"default.ratelimits_per_day_v2",
+		"default.ratelimits_per_month_v2",
+	}
+)
+
 type Handler struct {
 	DB                         db.Database
 	AnalyticsConnectionManager analytics.ConnectionManager
@@ -38,10 +56,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	// FilterBuilder is optional because namespace policy supplies filters after parsing.
-	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{ //nolint:exhaustruct
-		Query:        req.Query,
-		ParserConfig: rateLimitParserConfig(p.WorkspaceID),
+	queryConfig := analytics.QueryConfig{
+		WorkspaceID:   p.WorkspaceID,
+		TableAliases:  ratelimitTableAliases,
+		AllowedTables: ratelimitAllowedTables,
+	}
+	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
+		Query:                  req.Query,
+		Config:                 queryConfig,
+		InitialSecurityFilters: nil,
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			return h.authorize(ctx, p, parser.ExtractColumn("namespace_id"))
 		},
@@ -61,32 +84,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	s.AddHeader("Content-Type", "application/json")
 	return s.Send(http.StatusOK, responseBytes)
-}
-
-// rateLimitParserConfig builds aliases and allowed tables from one stable list.
-// Returning fresh collections prevents one request from mutating another's policy.
-func rateLimitParserConfig(workspaceID string) queryparser.Config {
-	tables := [...]struct {
-		alias string
-		name  string
-	}{
-		{alias: "ratelimits_v1", name: "default.ratelimits_raw_v2"},
-		{alias: "ratelimits_per_minute_v1", name: "default.ratelimits_per_minute_v2"},
-		{alias: "ratelimits_per_hour_v1", name: "default.ratelimits_per_hour_v2"},
-		{alias: "ratelimits_per_day_v1", name: "default.ratelimits_per_day_v2"},
-		{alias: "ratelimits_per_month_v1", name: "default.ratelimits_per_month_v2"},
-	}
-	// The executor supplies workspace-specific limits and security fields.
-	config := queryparser.Config{ //nolint:exhaustruct
-		WorkspaceID:   workspaceID,
-		TableAliases:  make(map[string]string, len(tables)),
-		AllowedTables: make([]string, 0, len(tables)),
-	}
-	for _, table := range tables {
-		config.TableAliases[table.alias] = table.name
-		config.AllowedTables = append(config.AllowedTables, table.name)
-	}
-	return config
 }
 
 func (h *Handler) authorize(ctx context.Context, p *principal.Principal, namespaceIDs []string) ([]queryparser.SecurityFilter, error) {

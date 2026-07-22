@@ -13,40 +13,42 @@ import (
 // The executor reparses the original query with those filters before execution.
 type QueryPolicy func(*queryparser.Parser) ([]queryparser.SecurityFilter, error)
 
-// FilterBuilder returns row filters after the workspace connection is resolved
-// and before the query is parsed.
-type FilterBuilder func() ([]queryparser.SecurityFilter, error)
+// QueryConfig describes the stable route policy for one analytics query.
+type QueryConfig struct {
+	WorkspaceID   string
+	TableAliases  map[string]string
+	AllowedTables []string
+}
 
 // ExecuteRequest describes one constrained analytics query execution.
 type ExecuteRequest struct {
-	Query         string
-	ParserConfig  queryparser.Config
-	FilterBuilder FilterBuilder
-	Policy        QueryPolicy
+	Query                  string
+	Config                 QueryConfig
+	InitialSecurityFilters []queryparser.SecurityFilter
+	Policy                 QueryPolicy
 }
 
 // Execute resolves the connection first, then parses, applies route policy and
 // executes. Returned policy filters are applied by reparsing before execution.
 func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest) ([]map[string]any, error) {
-	if err := assert.NotEmpty(req.ParserConfig.WorkspaceID, "analytics parser workspace ID is required"); err != nil {
+	if err := assert.NotEmpty(req.Config.WorkspaceID, "analytics parser workspace ID is required"); err != nil {
 		return nil, err
 	}
 
-	conn, settings, err := manager.GetConnection(ctx, req.ParserConfig.WorkspaceID)
+	conn, settings, err := manager.GetConnection(ctx, req.Config.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
-	req.ParserConfig.Limit = int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows)
-	req.ParserConfig.QueryRangeDaysMax = settings.Quotas.LogsRetentionDays
-	if req.FilterBuilder != nil {
-		filters, filterErr := req.FilterBuilder()
-		if filterErr != nil {
-			return nil, filterErr
-		}
-		req.ParserConfig.SecurityFilters = append(req.ParserConfig.SecurityFilters, filters...)
+	parserConfig := queryparser.Config{
+		WorkspaceID:       req.Config.WorkspaceID,
+		TableAliases:      req.Config.TableAliases,
+		AllowedTables:     req.Config.AllowedTables,
+		SecurityFilters:   append([]queryparser.SecurityFilter(nil), req.InitialSecurityFilters...),
+		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
+		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
 	}
 
-	parser := queryparser.NewParser(req.ParserConfig)
+	parser := queryparser.NewParser(parserConfig)
 	parsedQuery, err := parser.Parse(ctx, req.Query)
 	if err != nil {
 		return nil, err
@@ -57,8 +59,8 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 			return nil, policyErr
 		}
 		if len(filters) > 0 {
-			req.ParserConfig.SecurityFilters = append(req.ParserConfig.SecurityFilters, filters...)
-			parsedQuery, err = queryparser.NewParser(req.ParserConfig).Parse(ctx, req.Query)
+			parserConfig.SecurityFilters = append(parserConfig.SecurityFilters, filters...)
+			parsedQuery, err = queryparser.NewParser(parserConfig).Parse(ctx, req.Query)
 			if err != nil {
 				return nil, err
 			}
