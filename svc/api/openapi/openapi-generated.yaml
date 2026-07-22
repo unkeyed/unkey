@@ -209,23 +209,6 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
-        NotFoundErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource cannot be found. This occurs when:
-                - The specified resource ID doesn't exist in your workspace
-                - The resource has been deleted or moved
-                - The resource exists but is not accessible with current permissions
-
-                To resolve this error, verify the resource ID is correct and that you have access to it.
         V2ApisCreateApiRequestBody:
             type: object
             required:
@@ -280,6 +263,23 @@ components:
                 data:
                     $ref: "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        NotFoundErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource cannot be found. This occurs when:
+                - The specified resource ID doesn't exist in your workspace
+                - The resource has been deleted or moved
+                - The resource exists but is not accessible with current permissions
+
+                To resolve this error, verify the resource ID is correct and that you have access to it.
         V2ApisGetApiRequestBody:
             type: object
             required:
@@ -6341,6 +6341,7 @@ paths:
             description: |
                 Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, and EXCEPT are supported.
                 Queries must use one of the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
+                Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every API in that workspace; API-scoped permissions automatically restrict results to the permitted APIs.
                 For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
             operationId: analytics.getVerifications
             requestBody:
@@ -6374,12 +6375,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Insufficient permissions
-                "404":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/NotFoundErrorResponse'
-                    description: Referenced API or identity not found
                 "422":
                     content:
                         application/json:

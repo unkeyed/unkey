@@ -35,58 +35,47 @@ func (f *fakeManager) GetConnection(_ context.Context, workspaceID string) (clic
 	}, nil
 }
 
-// TestExecuteAppliesFiltersFromBothPhases guarantees that filters known before
-// parsing and filters returned by parsed-query policy both reach ClickHouse.
-func TestExecuteAppliesFiltersFromBothPhases(t *testing.T) {
+// TestExecuteAppliesSecurityFilters guarantees route and workspace filters
+// reach ClickHouse.
+func TestExecuteAppliesSecurityFilters(t *testing.T) {
 	connection := &fakeConnection{}
 	manager := &fakeManager{connection: connection}
 	rows, err := Execute(context.Background(), manager, ExecuteRequest{
-		Query:                  "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
-		WorkspaceID:            "ws_test",
-		TableAliases:           map[string]string{"events": "default.events"},
-		AllowedTables:          []string{"default.events"},
-		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "environment", AllowedValues: []string{"prod"}}},
-		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
-			require.Equal(t, []string{"requested"}, parser.ExtractColumn("namespace_id"))
-			return []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"allowed"}}}, nil
-		},
+		Query:           "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
+		WorkspaceID:     "ws_test",
+		TableAliases:    map[string]string{"events": "default.events"},
+		AllowedTables:   []string{"default.events"},
+		SecurityFilters: []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: []string{"allowed"}}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "ws_test", manager.workspace)
 	require.Equal(t, []map[string]any{{"ok": true}}, rows)
-	require.Contains(t, connection.query, "events.environment IN ('prod')")
 	require.Contains(t, connection.query, "events.namespace_id IN ('allowed')")
 	require.Contains(t, connection.query, "events.workspace_id = 'ws_test'")
 }
 
-// TestExecuteMakesInitialFiltersVisibleToPolicy preserves verification
-// authorization semantics after injected predicates became table-qualified.
-func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
+func TestExecuteEmptySecurityFilterFailsClosed(t *testing.T) {
 	connection := &fakeConnection{}
 	_, err := Execute(context.Background(), &fakeManager{connection: connection}, ExecuteRequest{
-		Query:                  "SELECT count(*) FROM events",
-		WorkspaceID:            "ws_test",
-		TableAliases:           map[string]string{"events": "default.events"},
-		AllowedTables:          []string{"default.events"},
-		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "key_space_id", AllowedValues: []string{"ks_scoped"}}},
-		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
-			require.Equal(t, []string{"ks_scoped"}, parser.ExtractColumn("key_space_id"))
-			return nil, nil
-		},
+		Query:           "SELECT * FROM events",
+		WorkspaceID:     "ws_test",
+		TableAliases:    map[string]string{"events": "default.events"},
+		AllowedTables:   []string{"default.events"},
+		SecurityFilters: []queryparser.SecurityFilter{{Column: "namespace_id"}},
 	})
 	require.NoError(t, err)
+	require.Contains(t, connection.query, "AND (0)")
 }
 
 // TestExecuteRequiresParserWorkspaceID guarantees callers cannot open an
 // unscoped analytics connection or inject an empty workspace predicate.
 func TestExecuteRequiresParserWorkspaceID(t *testing.T) {
 	_, err := Execute(context.Background(), &fakeManager{}, ExecuteRequest{
-		Query:                  "SELECT count(*) FROM events",
-		WorkspaceID:            "",
-		TableAliases:           nil,
-		AllowedTables:          nil,
-		InitialSecurityFilters: nil,
-		Policy:                 nil,
+		Query:           "SELECT count(*) FROM events",
+		WorkspaceID:     "",
+		TableAliases:    nil,
+		AllowedTables:   nil,
+		SecurityFilters: nil,
 	})
 	require.ErrorContains(t, err, "analytics parser workspace ID is required")
 }

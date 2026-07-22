@@ -65,25 +65,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		securityFilters = append(securityFilters, queryparser.SecurityFilter{Column: "namespace_id", AllowedValues: allowedNamespaceIDs})
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
-		Query:                  req.Query,
-		WorkspaceID:            p.WorkspaceID,
-		TableAliases:           ratelimitTableAliases,
-		AllowedTables:          ratelimitAllowedTables,
-		InitialSecurityFilters: securityFilters,
-		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
-			if hasWildcard {
-				return nil, nil
-			}
-			namespaceIDs := parser.ExtractColumn("namespace_id")
-			if len(namespaceIDs) == 0 {
-				return nil, p.Authorize(wildcard)
-			}
-			checks := make([]rbac.PermissionQuery, 0, len(namespaceIDs))
-			for _, namespaceID := range namespaceIDs {
-				checks = append(checks, rbac.T(rbac.Tuple{ResourceType: rbac.Ratelimit, ResourceID: namespaceID, Action: rbac.ReadAnalytics}))
-			}
-			return nil, p.Authorize(rbac.And(checks...))
-		},
+		Query:           req.Query,
+		WorkspaceID:     p.WorkspaceID,
+		TableAliases:    ratelimitTableAliases,
+		AllowedTables:   ratelimitAllowedTables,
+		SecurityFilters: securityFilters,
 	})
 	if err != nil {
 		return err

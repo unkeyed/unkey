@@ -33,6 +33,7 @@ export class Analytics extends ClientSDK {
    *
    * @remarks
    * Execute custom SQL queries against your key verification analytics.
+   * Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every API in that workspace; API-scoped permissions automatically restrict results to the permitted APIs.
    * For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
    */
   async getVerifications(

@@ -104,6 +104,12 @@ func Test200_ScopedPermissionInjectsNamespaceFilter(t *testing.T) {
 		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT namespace_id FROM ratelimits_v1"})
 		require.Equal(c, 200, res.Status)
 		require.Equal(c, []map[string]any{{"namespace_id": allowed}}, res.Body.Data)
+
+		for _, namespaceID := range []string{other, uid.New(uid.RatelimitNamespacePrefix)} {
+			res = testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT namespace_id FROM ratelimits_v1 WHERE namespace_id = '%s'", namespaceID)})
+			require.Equal(c, 200, res.Status)
+			require.Empty(c, res.Body.Data)
+		}
 	}, 30*time.Second, time.Second)
 }
 
@@ -134,7 +140,16 @@ func Test200_WildcardUnknownAndForeignNamespaces(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	foreignWorkspace := h.CreateWorkspace()
 	foreign := createNamespace(t, h, foreignWorkspace.ID)
+	h.SetupAnalytics(foreignWorkspace.ID)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
+	foreignRootKey := h.CreateRootKey(foreignWorkspace.ID, "ratelimit.*.read_analytics")
+	h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: foreignWorkspace.ID, NamespaceID: foreign, Identifier: "foreign", Passed: true, Limit: 10})
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, auth(foreignRootKey), Request{Query: fmt.Sprintf("SELECT namespace_id FROM ratelimits_v1 WHERE namespace_id = '%s'", foreign)})
+		require.Equal(c, 200, res.Status)
+		require.Len(c, res.Body.Data, 1)
+	}, 30*time.Second, time.Second)
 
 	for _, namespaceID := range []string{uid.New(uid.RatelimitNamespacePrefix), foreign} {
 		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT * FROM ratelimits_v1 WHERE namespace_id = '%s'", namespaceID)})
