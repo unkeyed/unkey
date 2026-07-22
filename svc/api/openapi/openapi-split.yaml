@@ -252,6 +252,8 @@ paths:
   # App Endpoints
   /v2/apps.createApp:
     $ref: "./spec/paths/v2/apps/createApp/index.yaml"
+  /v2/apps.createGithubConnection:
+    $ref: "./spec/paths/v2/apps/createGithubConnection/index.yaml"
   /v2/apps.getApp:
     $ref: "./spec/paths/v2/apps/getApp/index.yaml"
   /v2/apps.listApps:
