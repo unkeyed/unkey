@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
@@ -310,11 +311,11 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        // API-minted states (source "api") are bound to the workspace only; the
-        // OAuth-code ownership proof below is the real access control. Every
-        // other origin (dashboard, or legacy states with no source) must match
-        // the initiating user.
-        (parsedState.source !== "api" && parsedState.userId !== ctx.user.id)
+        // A state carrying a userId is dashboard-initiated and bound to that
+        // user, so it must match the caller. API-minted states carry none and
+        // are workspace-scoped (the OAuth-code ownership proof below is the real
+        // access control).
+        (parsedState.userId !== undefined && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -421,18 +422,106 @@ export const githubRouter = t.router({
         });
       }
 
+      // Fetch the repo to auto-connect BEFORE the transaction — it's a GitHub
+      // API call and must not hold a DB tx open. The installation token only
+      // sees granted repos, so a repo the user didn't grant during install 404s
+      // here: the installation still binds with no connection, and the user
+      // lands on app settings to pick one.
+      let repoToConnect: Awaited<ReturnType<typeof getRepository>> | null = null;
+      if (parsedState.repository) {
+        const [owner, repo] = parsedState.repository.split("/");
+        if (owner && repo) {
+          try {
+            repoToConnect = await getRepository(input.installationId, owner, repo);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+
+      const origin = parsedState.source ?? "dashboard";
+      let repositoryConnected = false;
+
+      // Bind the installation, connect the repo, and record both audit events
+      // atomically so an audit entry can never orphan or go missing.
       await db
-        .insert(schema.githubAppInstallations)
-        .values({
-          workspaceId: ctx.workspace.id,
-          installationId: input.installationId,
-          createdAt: Date.now(),
-          updatedAt: null,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            updatedAt: Date.now(),
-          },
+        .transaction(async (tx) => {
+          const auditLogs: UnkeyAuditLog[] = [];
+
+          await tx
+            .insert(schema.githubAppInstallations)
+            .values({
+              workspaceId: ctx.workspace.id,
+              installationId: input.installationId,
+              createdAt: Date.now(),
+              updatedAt: null,
+            })
+            .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } });
+          auditLogs.push({
+            workspaceId: ctx.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "githubInstallation.create",
+            description: `Bound GitHub installation ${input.installationId}`,
+            resources: [
+              {
+                type: "app",
+                id: parsedState.appId,
+                meta: { source: origin, installationId: input.installationId },
+              },
+            ],
+            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          });
+
+          if (repoToConnect) {
+            await tx
+              .insert(schema.githubRepoConnections)
+              .values({
+                workspaceId: ctx.workspace.id,
+                projectId,
+                appId: parsedState.appId,
+                installationId: input.installationId,
+                repositoryId: repoToConnect.id,
+                repositoryFullName: repoToConnect.full_name,
+                createdAt: Date.now(),
+                updatedAt: null,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  installationId: input.installationId,
+                  repositoryId: repoToConnect.id,
+                  repositoryFullName: repoToConnect.full_name,
+                  updatedAt: Date.now(),
+                },
+              });
+            if (repoToConnect.default_branch) {
+              await tx
+                .update(schema.apps)
+                .set({ defaultBranch: repoToConnect.default_branch, updatedAt: Date.now() })
+                .where(eq(schema.apps.id, parsedState.appId));
+            }
+            repositoryConnected = true;
+            auditLogs.push({
+              workspaceId: ctx.workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "app.connect_github",
+              description: `Connected ${repoToConnect.full_name}`,
+              resources: [
+                {
+                  type: "app",
+                  id: parsedState.appId,
+                  name: repoToConnect.full_name,
+                  meta: {
+                    source: origin,
+                    installationId: input.installationId,
+                    repositoryFullName: repoToConnect.full_name,
+                  },
+                },
+              ],
+              context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+            });
+          }
+
+          await insertAuditLogs(tx, auditLogs);
         })
         .catch((err) => {
           console.error(err);
@@ -441,49 +530,6 @@ export const githubRouter = t.router({
             message: "Failed to save GitHub installation",
           });
         });
-
-      // API-minted states may carry a repository to auto-connect so the caller
-      // skips the picker. Best-effort: if the repo wasn't granted during install
-      // (or anything fails) we fall back to the picker; the installation itself
-      // already succeeded.
-      let repositoryConnected = false;
-      if (parsedState.repository) {
-        const [owner, repo] = parsedState.repository.split("/");
-        if (owner && repo) {
-          try {
-            const ghRepo = await getRepository(input.installationId, owner, repo);
-            await db
-              .insert(schema.githubRepoConnections)
-              .values({
-                workspaceId: ctx.workspace.id,
-                projectId,
-                appId: parsedState.appId,
-                installationId: input.installationId,
-                repositoryId: ghRepo.id,
-                repositoryFullName: ghRepo.full_name,
-                createdAt: Date.now(),
-                updatedAt: null,
-              })
-              .onDuplicateKeyUpdate({
-                set: {
-                  installationId: input.installationId,
-                  repositoryId: ghRepo.id,
-                  repositoryFullName: ghRepo.full_name,
-                  updatedAt: Date.now(),
-                },
-              });
-            if (ghRepo.default_branch) {
-              await db
-                .update(schema.apps)
-                .set({ defaultBranch: ghRepo.default_branch, updatedAt: Date.now() })
-                .where(eq(schema.apps.id, parsedState.appId));
-            }
-            repositoryConnected = true;
-          } catch (err) {
-            console.error(err);
-          }
-        }
-      }
 
       return {
         workspaceSlug: ctx.workspace.slug,
