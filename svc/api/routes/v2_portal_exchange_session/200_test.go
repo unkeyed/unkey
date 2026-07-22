@@ -1,10 +1,12 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -108,5 +110,60 @@ func TestExchangeSessionSuccess(t *testing.T) {
 		// Second exchange must fail.
 		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 401, res2.Status)
+	})
+
+	t.Run("concurrent single-use enforcement", func(t *testing.T) {
+		tokenID := uid.New(uid.PortalSessionTokenPrefix)
+		externalID := "user_concurrent_single_use"
+		perms, err := json.Marshal([]string{"api.*.read_key"})
+		require.NoError(t, err)
+
+		err = db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
+			ID:             tokenID,
+			WorkspaceID:    workspaceID,
+			PortalConfigID: portalConfigID,
+			ExternalID:     externalID,
+			Permissions:    perms,
+			ExpiresAt:      now + int64(15*time.Minute/time.Millisecond),
+			CreatedAt:      now,
+		})
+		require.NoError(t, err)
+
+		requestBody, err := json.Marshal(handler.Request{SessionId: tokenID})
+		require.NoError(t, err)
+
+		ready := make(chan struct{}, 2)
+		start := make(chan struct{})
+		statuses := make(chan int, 2)
+
+		for range 2 {
+			go func() {
+				ready <- struct{}{}
+				<-start
+
+				recorder := httptest.NewRecorder()
+				request := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(requestBody))
+				request.Header = headers.Clone()
+				h.Mux().ServeHTTP(recorder, request)
+				statuses <- recorder.Code
+			}()
+		}
+
+		<-ready
+		<-ready
+		close(start)
+
+		// A portal token is a one-time credential: concurrent replay must authenticate once
+		// and persist exactly one browser session.
+		require.ElementsMatch(t, []int{http.StatusOK, http.StatusUnauthorized}, []int{<-statuses, <-statuses})
+
+		var sessionCount int
+		err = h.DB.RW().QueryRowContext(ctx, `
+			SELECT COUNT(*)
+			FROM portal_sessions
+			WHERE workspace_id = ? AND portal_config_id = ? AND external_id = ?
+		`, workspaceID, portalConfigID, externalID).Scan(&sessionCount)
+		require.NoError(t, err)
+		require.Equal(t, 1, sessionCount)
 	})
 }
