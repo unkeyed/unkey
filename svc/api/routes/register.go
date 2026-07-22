@@ -73,6 +73,7 @@ import (
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
+	v2AppsCreateGithubConnection "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_github_connection"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
@@ -795,6 +796,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsCreateApp.Handler{
 			DB:         svc.Database,
 			CtrlClient: svc.CtrlAppClient,
+		},
+	)
+
+	// v2/apps.createGithubConnection
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AppsCreateGithubConnection.Handler{
+			DB:                  svc.Database,
+			GitHubAppName:       svc.GitHubAppName,
+			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
 		},
 	)
 
