@@ -489,6 +489,8 @@ func Run(ctx context.Context, cfg Config) error {
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 		PortalBaseURL:              cfg.PortalBaseURL,
+		GitHubAppName:              cfg.GitHub.AppName,
+		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

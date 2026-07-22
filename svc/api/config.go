@@ -28,6 +28,23 @@ type ClickHouseConfig struct {
 	AnalyticsURL string `toml:"analytics_url"`
 }
 
+// GitHubConfig holds the settings the API needs to start a GitHub App
+// connection: the App slug used to build the install URL and the App private
+// key used to derive the HMAC key that signs the install `state`. Both empty
+// disables apps.createGithubConnection (returns a "not configured" error).
+type GitHubConfig struct {
+	// AppName is the GitHub App slug used in the install URL
+	// (https://github.com/apps/<app_name>/installations/new). Matches the
+	// dashboard's NEXT_PUBLIC_GITHUB_APP_NAME.
+	AppName string `toml:"app_name"`
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format. Used only to
+	// derive the install-state signing key (never to sign RSA JWTs here), and
+	// must be the same key the dashboard uses so its callback can verify the
+	// state. See [github.com/unkeyed/unkey/pkg/githubinstallstate].
+	PrivateKeyPEM string `toml:"private_key_pem"`
+}
+
 const (
 	authTypeJWT           = "jwt"
 	authTypePortalSession = "portal_session"
@@ -339,6 +356,11 @@ type Config struct {
 
 	// Auth configures the ordered authentication resolver chain.
 	Auth AuthConfigs `toml:"auth"`
+
+	// GitHub configures the GitHub App connection flow. See [GitHubConfig].
+	// When unset, apps.createGithubConnection reports the feature as
+	// unconfigured.
+	GitHub GitHubConfig `toml:"github"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.

@@ -108,4 +108,11 @@ type Services struct {
 	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
 	// URLs when no custom domain is configured for the portal's app.
 	PortalBaseURL string
+
+	// GitHubAppName is the GitHub App slug used to build the install URL in
+	// apps.createGithubConnection. GitHubPrivateKeyPEM is the App private key
+	// used to derive the install-state signing key. Either empty disables the
+	// endpoint.
+	GitHubAppName       string
+	GitHubPrivateKeyPEM string
 }
