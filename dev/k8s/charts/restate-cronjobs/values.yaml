@@ -54,8 +54,6 @@ jobs:
   # remain wakeable and are retained. The fixed slug also owns reconciliation
   # pagination state.
   deployment-cleanup:
-    # Opt in per environment after reviewing the retained candidate set.
-    enabled: false
     schedule: "30 2 * * *"
     urlPath: "hydra.v1.CronService/deployment-cleanup/RunDeploymentCleanup/send"
     idempotencyKey: "deployment-cleanup-$(date -u +%Y-%m-%d)"

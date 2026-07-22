@@ -236,12 +236,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		SlackQuotaCheckWebhookURL: "",
 		// Deploy billing push disabled in tests: nil reader + empty Stripe key
 		// make the handler a no-op.
-		BillingUsageReader:       nil,
-		StripeSecretKey:          "",
-		DeploymentCleanupEnabled: true,
-		RegistrySweepDepot:       depotAPI,
-		RegistryRepository:       "registry.depot.dev/testrepo",
-		DepotProjectPrefix:       "builds-test",
+		BillingUsageReader: nil,
+		StripeSecretKey:    "",
+		RegistrySweepDepot: depotAPI,
+		RegistryRepository: "registry.depot.dev/testrepo",
+		DepotProjectPrefix: "builds-test",
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:        healthcheck.NewNoop(),
 			KeyRefill:         healthcheck.NewNoop(),

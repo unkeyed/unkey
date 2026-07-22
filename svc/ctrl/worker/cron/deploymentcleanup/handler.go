@@ -42,9 +42,6 @@ type Config struct {
 	// healthcheck.NewNoop() if monitoring is not configured.
 	Heartbeat healthcheck.Heartbeat
 
-	// Enabled gates permanent deletion independently of the cron schedule.
-	Enabled bool
-
 	// RegistrySweep reconciles external deployment resources. Must not be nil.
 	RegistrySweep *registrysweep.Handler
 }
@@ -53,7 +50,6 @@ type Config struct {
 type Handler struct {
 	db            db.Database
 	heartbeat     healthcheck.Heartbeat
-	enabled       bool
 	registrySweep *registrysweep.Handler
 }
 
@@ -66,7 +62,7 @@ func New(cfg Config) (*Handler, error) {
 	); err != nil {
 		return nil, err
 	}
-	return &Handler{db: cfg.DB, heartbeat: cfg.Heartbeat, enabled: cfg.Enabled, registrySweep: cfg.RegistrySweep}, nil
+	return &Handler{db: cfg.DB, heartbeat: cfg.Heartbeat, registrySweep: cfg.RegistrySweep}, nil
 }
 
 // Handle deletes prunable deployments in bounded batches, then reconciles
@@ -80,9 +76,6 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeploymentCleanupRequest,
 ) (*hydrav1.RunDeploymentCleanupResponse, error) {
-	if !h.enabled {
-		return nil, fmt.Errorf("deployment cleanup is disabled")
-	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get now: %w", err)

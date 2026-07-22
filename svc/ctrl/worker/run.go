@@ -512,7 +512,6 @@ func Run(ctx context.Context, cfg Config) error {
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
-		DeploymentCleanupEnabled:  cfg.Cleanup.DeploymentEnabled,
 		RegistrySweepDepot:        depotAPI,
 		RegistryRepository:        registryRepository,
 		DepotProjectPrefix:        depotProjectPrefix,

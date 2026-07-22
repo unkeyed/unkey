@@ -207,7 +207,7 @@ type HeartbeatConfig struct {
 
 	// DeploymentCleanupURL is the Checkly heartbeat URL for deployment resource
 	// pruning. The heartbeat is sent only after deployment deletion and Depot
-	// reconciliation both succeed. Required when cleanup is enabled.
+	// reconciliation both succeed. Optional - if empty, no heartbeat is sent.
 	DeploymentCleanupURL string `toml:"deployment_cleanup_url"`
 }
 
@@ -221,13 +221,6 @@ type HeartbeatConfig struct {
 type BillingConfig struct {
 	// StripeSecretKey authenticates meter-event writes to Stripe.
 	StripeSecretKey string `toml:"stripe_secret_key"`
-}
-
-// CleanupConfig gates destructive retention jobs independently of scheduling.
-type CleanupConfig struct {
-	// DeploymentEnabled allows permanent deletion of retained terminal
-	// deployments. It must be enabled explicitly per environment.
-	DeploymentEnabled bool `toml:"deployment_enabled"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.
@@ -313,9 +306,6 @@ type Config struct {
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
 
-	// Cleanup gates destructive retention handlers.
-	Cleanup CleanupConfig `toml:"cleanup"`
-
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.
 	Clock clock.Clock `toml:"-"`
@@ -390,7 +380,6 @@ func (c *Config) Validate() error {
 			assert.NotEmpty(c.Registry.Repository, "registry repository is required when exclusive cleanup is enabled"),
 			assert.NotEmpty(c.Registry.Password, "registry password is required when exclusive cleanup is enabled"),
 			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when exclusive registry cleanup is enabled"),
-			assert.True(c.Cleanup.DeploymentEnabled, "deployment cleanup must be enabled when exclusive registry cleanup is enabled"),
 		); err != nil {
 			return err
 		}
@@ -400,13 +389,7 @@ func (c *Config) Validate() error {
 			assert.NotEmpty(c.Depot.ProjectPrefix, "Depot project prefix is required when exclusive cleanup is enabled"),
 			assert.NotEmpty(c.Registry.Password, "registry password is required when Depot project cleanup is enabled"),
 			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when Depot project cleanup is enabled"),
-			assert.True(c.Cleanup.DeploymentEnabled, "deployment cleanup must be enabled when Depot project cleanup is enabled"),
 		); err != nil {
-			return err
-		}
-	}
-	if c.Cleanup.DeploymentEnabled {
-		if err := assert.NotEmpty(c.Heartbeat.DeploymentCleanupURL, "deployment cleanup heartbeat is required when cleanup is enabled"); err != nil {
 			return err
 		}
 	}

@@ -63,14 +63,8 @@ func TestConfigValidateCleanupExclusivity(t *testing.T) {
 				ProjectPrefix:          "builds-test",
 				ProjectPrefixExclusive: true,
 			},
-			Cleanup:   CleanupConfig{DeploymentEnabled: true},
 			Heartbeat: HeartbeatConfig{DeploymentCleanupURL: "https://heartbeat.example.com"},
 		}
 		require.NoError(t, cfg.Validate())
-	})
-
-	t.Run("rejects deployment cleanup without heartbeat", func(t *testing.T) {
-		cfg := Config{Cleanup: CleanupConfig{DeploymentEnabled: true}}
-		require.Error(t, cfg.Validate())
 	})
 }

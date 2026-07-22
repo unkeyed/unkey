@@ -94,9 +94,6 @@ type Config struct {
 	// disables the push.
 	StripeSecretKey string
 
-	// DeploymentCleanupEnabled gates permanent deployment deletion.
-	DeploymentCleanupEnabled bool
-
 	// RegistrySweepDepot is the Depot API for the reverse reconciliation
 	// sweep. Must not be nil — pass depotclient.NewNoop() where Depot is
 	// not configured.
@@ -192,7 +189,6 @@ func New(cfg Config) (*Service, error) {
 	deploymentCleanupH, err := deploymentcleanup.New(deploymentcleanup.Config{
 		DB:            cfg.DB,
 		Heartbeat:     cfg.Heartbeats.DeploymentCleanup,
-		Enabled:       cfg.DeploymentCleanupEnabled,
 		RegistrySweep: registrySweepH,
 	})
 	if err != nil {
