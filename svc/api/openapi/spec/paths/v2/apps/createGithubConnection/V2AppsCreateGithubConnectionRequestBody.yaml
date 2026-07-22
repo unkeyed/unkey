@@ -1,0 +1,35 @@
+type: object
+required:
+  - project
+  - app
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  repository:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      Optional repository to connect once the GitHub App is installed, as
+      `owner/name` or a full GitHub URL (e.g. `https://github.com/owner/name`).
+      When provided and the repository is granted during installation, it is
+      wired to the app automatically so you skip the repository picker. Omit it
+      to pick the repository after installing.
+    example: unkeyed/unkey
+additionalProperties: false
+examples:
+  byAppSlug:
+    summary: Start a connection for an app by slug
+    description: Mint an install URL for an app, locating project and app by slug
+    value:
+      project: payments
+      app: payments-api
+  withRepository:
+    summary: Start a connection and pre-select a repository
+    description: Auto-connect the named repository after installation
+    value:
+      project: payments
+      app: payments-api
+      repository: unkeyed/unkey

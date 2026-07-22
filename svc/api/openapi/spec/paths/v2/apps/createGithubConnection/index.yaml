@@ -1,0 +1,103 @@
+post:
+  tags:
+    - apps
+  summary: Create GitHub connection
+  description: |
+    Start connecting an app to a GitHub repository. Returns a GitHub App install
+    URL: open it in a browser to install the app and grant repository access.
+    After installation GitHub returns to Unkey, which finishes the connection and
+    lands you in the dashboard.
+
+    You only pass ids you already have (`project` and `app`). Optionally pass a
+    `repository` (`owner/name` or a GitHub URL) to auto-connect it after
+    installation and skip the repository picker.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `app.*.connect_github` (to connect any app in this workspace)
+    - `app.<app_id>.connect_github` (to connect a specific app)
+  operationId: apps.createGithubConnection
+  x-speakeasy-name-override: createGithubConnection
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AppsCreateGithubConnectionRequestBody.yaml"
+        examples:
+          basic:
+            summary: Start a GitHub connection
+            description: Mint an install URL for an app
+            value:
+              project: payments
+              app: payments-api
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AppsCreateGithubConnectionResponseBody.yaml"
+          examples:
+            success:
+              summary: Install URL created
+              description: Open the returned url to install the GitHub App
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  url: https://github.com/apps/unkey/installations/new?state=eyJ...
+                  expiresAt: 1700000900000
+      description: |
+        Install URL created. Open the returned url to install the GitHub App and
+        finish the connection.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `app.*.connect_github`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested project or app does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            appNotFound:
+              summary: App not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested app does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
