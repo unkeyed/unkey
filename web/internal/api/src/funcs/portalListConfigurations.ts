@@ -3,11 +3,9 @@
  */
 
 import { UnkeyCore } from "../core.js";
-import { encodeJSON } from "../lib/encodings.js";
 import { matchStatusCode } from "../lib/http.js";
 import * as M from "../lib/matchers.js";
 import { compactMap } from "../lib/primitives.js";
-import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
 import { extractSecurity, resolveGlobalSecurity } from "../lib/security.js";
 import { pathToFunc } from "../lib/url.js";
@@ -27,43 +25,29 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Promote deployment
+ * List portal configurations
  *
  * @remarks
- * Promote a deployment to become the current deployment for its environment.
- * All sticky domains are reassigned from the current deployment to the
- * promoted one, and the previous deployment is scheduled for standby.
+ * List all Customer Portal configurations in your workspace, each with its
+ * branding.
  *
- * The deployment must be ready, not already shutting down, belong to the
- * production environment, and its app must already have a current deployment.
- * Promoting the deployment that is already current fails, unless the app is in
- * a rolled-back state, in which case promoting the current deployment
- * confirms the rollback and re-enables automatic promotion of future
- * deployments.
+ * **Authentication**
  *
- * Promotion runs as a durable workflow: this endpoint returns once the
- * promotion is accepted. Poll `getDeployment` or `listDeployments` to observe
- * the result.
- *
- * **Required Permissions**
- *
- * Your root key must have one of the following permissions:
- * - `environment.*.promote_deployment` (to promote deployments in any environment)
- * - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+ * Requires a root key. Only configurations in the root key's workspace are
+ * returned.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function deploymentsPromoteDeployment(
+export function portalListConfigurations(
   client: UnkeyCore,
-  request: components.V2DeploymentsPromoteDeploymentRequestBody,
+  _request: components.V2PortalListConfigurationsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2DeploymentsPromoteDeploymentResponseBody,
+    components.V2PortalListConfigurationsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.NotFoundErrorResponse
-    | errors.PreconditionFailedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -78,23 +62,22 @@ export function deploymentsPromoteDeployment(
 > {
   return new APIPromise($do(
     client,
-    request,
+    _request,
     options,
   ));
 }
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DeploymentsPromoteDeploymentRequestBody,
+  _request: components.V2PortalListConfigurationsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2DeploymentsPromoteDeploymentResponseBody,
+      components.V2PortalListConfigurationsResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
-      | errors.NotFoundErrorResponse
-      | errors.PreconditionFailedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -109,21 +92,7 @@ async function $do(
     APICall,
   ]
 > {
-  const parsed = safeParse(
-    request,
-    (value) =>
-      components.V2DeploymentsPromoteDeploymentRequestBody$outboundSchema.parse(
-        value,
-      ),
-    "Input validation failed",
-  );
-  if (!parsed.ok) {
-    return [parsed, { status: "invalid" }];
-  }
-  const payload = parsed.value;
-  const body = encodeJSON("body", payload, { explode: true });
-
-  const path = pathToFunc("/v2/deployments.promoteDeployment")();
+  const path = pathToFunc("/v2/portal.listConfigurations")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -137,7 +106,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "deployments.promoteDeployment",
+    operationID: "portal.listConfigurations",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -165,7 +134,6 @@ async function $do(
     baseURL: options?.serverURL,
     path: path,
     headers: headers,
-    body: body,
     userAgent: client._options.userAgent,
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || -1,
   }, options);
@@ -191,11 +159,10 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2DeploymentsPromoteDeploymentResponseBody,
+    components.V2PortalListConfigurationsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.NotFoundErrorResponse
-    | errors.PreconditionFailedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -208,13 +175,12 @@ async function $do(
     | SDKValidationError
   >(
     M.json(
-      202,
-      components.V2DeploymentsPromoteDeploymentResponseBody$inboundSchema,
+      200,
+      components.V2PortalListConfigurationsResponseBody$inboundSchema,
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
-    M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

@@ -23,60 +23,52 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
-import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
-import {
-  createPageIterator,
-  haltIterator,
-  PageIterator,
-  Paginator,
-} from "../types/operations.js";
 
 /**
- * List deployments
+ * Update portal configuration
  *
  * @remarks
- * Retrieve a paginated list of deployments within a workspace, newest first.
+ * Update a Customer Portal configuration. This replaces the configuration's
+ * mutable state: slug, enabled, return URL, keyspace/app mapping, and branding.
  *
- * Filter by project, app, environment, and lifecycle status. All filters are
- * optional; with none set, every deployment in the workspace is returned.
- * Filters nest: `app` requires `project`, and `environment` requires both
- * `project` and `app`. Results are paginated; when `hasMore` is true, pass the
- * returned `cursor` to fetch the next page.
+ * A configuration maps to exactly one keyspace (`keyspaceId`) or one app
+ * (`appId`) - provide exactly one. Changing it remaps the configuration.
  *
- * **Required Permissions**
+ * **Important**: The slug must remain unique within your workspace, and the
+ * mapped keyspace or app must not already be used by another configuration. A
+ * collision returns a 409 conflict.
  *
- * Your root key must have the `environment.*.read_deployment` permission.
- * Listing spans environments, so a grant on a single environment is not
- * sufficient.
+ * **Authentication**
+ *
+ * Requires a root key. Only configurations in the root key's workspace can be
+ * updated.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function deploymentsListDeployments(
+export function portalUpdateConfiguration(
   client: UnkeyCore,
-  request: components.V2DeploymentsListDeploymentsRequestBody,
+  request: components.V2PortalUpdateConfigurationRequestBody,
   options?: RequestOptions,
 ): APIPromise<
-  PageIterator<
-    Result<
-      operations.DeploymentsListDeploymentsResponse,
-      | errors.BadRequestErrorResponse
-      | errors.UnauthorizedErrorResponse
-      | errors.ForbiddenErrorResponse
-      | errors.NotFoundErrorResponse
-      | errors.TooManyRequestsErrorResponse
-      | errors.InternalServerErrorResponse
-      | UnkeyError
-      | ResponseValidationError
-      | ConnectionError
-      | RequestAbortedError
-      | RequestTimeoutError
-      | InvalidRequestError
-      | UnexpectedClientError
-      | SDKValidationError
-    >,
-    { cursor: string }
+  Result<
+    components.V2PortalUpdateConfigurationResponseBody,
+    | errors.BadRequestErrorResponse
+    | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
+    | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
+    | errors.TooManyRequestsErrorResponse
+    | errors.InternalServerErrorResponse
+    | UnkeyError
+    | ResponseValidationError
+    | ConnectionError
+    | RequestAbortedError
+    | RequestTimeoutError
+    | InvalidRequestError
+    | UnexpectedClientError
+    | SDKValidationError
   >
 > {
   return new APIPromise($do(
@@ -88,29 +80,27 @@ export function deploymentsListDeployments(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DeploymentsListDeploymentsRequestBody,
+  request: components.V2PortalUpdateConfigurationRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
-    PageIterator<
-      Result<
-        operations.DeploymentsListDeploymentsResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >,
-      { cursor: string }
+    Result<
+      components.V2PortalUpdateConfigurationResponseBody,
+      | errors.BadRequestErrorResponse
+      | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
+      | errors.NotFoundErrorResponse
+      | errors.ConflictErrorResponse
+      | errors.TooManyRequestsErrorResponse
+      | errors.InternalServerErrorResponse
+      | UnkeyError
+      | ResponseValidationError
+      | ConnectionError
+      | RequestAbortedError
+      | RequestTimeoutError
+      | InvalidRequestError
+      | UnexpectedClientError
+      | SDKValidationError
     >,
     APICall,
   ]
@@ -118,18 +108,18 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DeploymentsListDeploymentsRequestBody$outboundSchema.parse(
+      components.V2PortalUpdateConfigurationRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
   );
   if (!parsed.ok) {
-    return [haltIterator(parsed), { status: "invalid" }];
+    return [parsed, { status: "invalid" }];
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/deployments.listDeployments")();
+  const path = pathToFunc("/v2/portal.updateConfiguration")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -143,7 +133,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "deployments.listDeployments",
+    operationID: "portal.updateConfiguration",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -176,7 +166,7 @@ async function $do(
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || -1,
   }, options);
   if (!requestRes.ok) {
-    return [haltIterator(requestRes), { status: "invalid" }];
+    return [requestRes, { status: "invalid" }];
   }
   const req = requestRes.value;
 
@@ -188,7 +178,7 @@ async function $do(
     retryCodes: context.retryCodes,
   });
   if (!doResult.ok) {
-    return [haltIterator(doResult), { status: "request-error", request: req }];
+    return [doResult, { status: "request-error", request: req }];
   }
   const response = doResult.value;
 
@@ -196,12 +186,13 @@ async function $do(
     HttpMeta: { Response: response, Request: req },
   };
 
-  const [result, raw] = await M.match<
-    operations.DeploymentsListDeploymentsResponse,
+  const [result] = await M.match<
+    components.V2PortalUpdateConfigurationResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -213,13 +204,15 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.DeploymentsListDeploymentsResponse$inboundSchema, {
-      key: "Result",
-    }),
+    M.json(
+      200,
+      components.V2PortalUpdateConfigurationResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),
@@ -228,63 +221,8 @@ async function $do(
     M.fail("5XX"),
   )(response, req, { extraFields: responseFields });
   if (!result.ok) {
-    return [haltIterator(result), {
-      status: "complete",
-      request: req,
-      response,
-    }];
+    return [result, { status: "complete", request: req, response }];
   }
 
-  const nextFunc = (
-    responseData: unknown,
-  ): {
-    next: Paginator<
-      Result<
-        operations.DeploymentsListDeploymentsResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >
-    >;
-    "~next"?: { cursor: string };
-  } => {
-    const nextCursor =
-      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
-    if (typeof nextCursor !== "string") {
-      return { next: () => null };
-    }
-    if (nextCursor.trim() === "") {
-      return { next: () => null };
-    }
-
-    const nextVal = () =>
-      deploymentsListDeployments(
-        client,
-        {
-          ...request,
-          cursor: nextCursor,
-        },
-        options,
-      );
-
-    return { next: nextVal, "~next": { cursor: nextCursor } };
-  };
-
-  const page = { ...result, ...nextFunc(raw) };
-  return [{ ...page, ...createPageIterator(page, (v) => !v.ok) }, {
-    status: "complete",
-    request: req,
-    response,
-  }];
+  return [result, { status: "complete", request: req, response }];
 }
