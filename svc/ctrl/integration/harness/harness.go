@@ -250,7 +250,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 			AuditLogCleanup:   healthcheck.NewNoop(),
 			DeployBillingPush: healthcheck.NewNoop(),
 			DeploymentCleanup: healthcheck.NewNoop(),
-			RegistrySweep:     healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)
@@ -309,8 +308,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
-		ConfigureHandler("RunDeploymentCleanup", cleanupRetry).
-		ConfigureHandler("RunRegistrySweep", cleanupRetry))
+		ConfigureHandler("RunDeploymentCleanup", cleanupRetry))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))

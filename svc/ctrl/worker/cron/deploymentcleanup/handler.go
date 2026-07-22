@@ -1,5 +1,6 @@
 // Package deploymentcleanup implements the CronService.RunDeploymentCleanup
-// handler. The handler hard-deletes deployments that reached a
+// handler. The handler prunes deployment rows and external Depot resources.
+// It first hard-deletes deployments that reached a
 // non-recoverable terminal status (failed, cancelled, superseded, skipped)
 // more than the retention window ago. Image tags are reconciled separately:
 // a deployment row does not prove exclusive ownership because user-supplied
@@ -18,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/registrysweep"
 )
 
 // retention is how long a non-recoverable deployment is kept before this
@@ -42,13 +44,17 @@ type Config struct {
 
 	// Enabled gates permanent deletion independently of the cron schedule.
 	Enabled bool
+
+	// RegistrySweep reconciles external deployment resources. Must not be nil.
+	RegistrySweep *registrysweep.Handler
 }
 
 // Handler executes RunDeploymentCleanup.
 type Handler struct {
-	db        db.Database
-	heartbeat healthcheck.Heartbeat
-	enabled   bool
+	db            db.Database
+	heartbeat     healthcheck.Heartbeat
+	enabled       bool
+	registrySweep *registrysweep.Handler
 }
 
 // New constructs a Handler.
@@ -56,18 +62,20 @@ func New(cfg Config) (*Handler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.RegistrySweep, "RegistrySweep must not be nil"),
 	); err != nil {
 		return nil, err
 	}
-	return &Handler{db: cfg.DB, heartbeat: cfg.Heartbeat, enabled: cfg.Enabled}, nil
+	return &Handler{db: cfg.DB, heartbeat: cfg.Heartbeat, enabled: cfg.Enabled, registrySweep: cfg.RegistrySweep}, nil
 }
 
-// Handle deletes prunable deployments in bounded batches. Each batch is
-// revalidated and deleted in one MySQL transaction so a status or live-pointer
-// change between listing and deletion cannot remove a newly active deployment.
+// Handle deletes prunable deployments in bounded batches, then reconciles
+// external deployment resources. Each database batch is revalidated and
+// deleted in one MySQL transaction so a status or live-pointer change between
+// listing and deletion cannot remove a newly active deployment.
 //
-// Stateless — the VO key is fixed at "deployment-cleanup" so a
-// paused/wedged invocation cannot block other cron handlers.
+// The VO key is fixed at "deployment-cleanup" and owns the external
+// reconciliation phase's pagination state.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeploymentCleanupRequest,
@@ -115,15 +123,28 @@ func (h *Handler) Handle(
 		}
 	}
 
+	registryResult, err := h.registrySweep.Sweep(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("reconcile deployment resources: %w", err)
+	}
+
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		return h.heartbeat.Ping(rc)
 	}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(5)); err != nil {
 		return nil, fmt.Errorf("send heartbeat: %w", err)
 	}
-	logger.Info("deployment cleanup completed", "deployments_deleted", deploymentsDeleted)
+	logger.Info("deployment resource pruning completed",
+		"deployments_deleted", deploymentsDeleted,
+		"tags_deleted", registryResult.TagsDeleted,
+		"tags_skipped", registryResult.TagsSkipped,
+		"depot_projects_deleted", registryResult.DepotProjectsDeleted,
+	)
 
 	return &hydrav1.RunDeploymentCleanupResponse{
-		DeploymentsDeleted: deploymentsDeleted,
+		DeploymentsDeleted:   deploymentsDeleted,
+		TagsDeleted:          registryResult.TagsDeleted,
+		TagsSkipped:          registryResult.TagsSkipped,
+		DepotProjectsDeleted: registryResult.DepotProjectsDeleted,
 	}, nil
 }
 

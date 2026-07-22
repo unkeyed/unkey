@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/depotclient"
 )
 
-func TestRunRegistrySweep_Integration(t *testing.T) {
+func TestRunDeploymentCleanup_ReconcilesDepotResources_Integration(t *testing.T) {
 	h := harness.New(t)
 	h.DepotAPI.SetDepotPageSize(2)
 
@@ -106,8 +106,8 @@ func TestRunRegistrySweep_Integration(t *testing.T) {
 	// Different environment's prefix -> never touched.
 	h.DepotAPI.SeedProject(depotclient.Project{ID: "dp_foreign", Name: "builds-prod-proj_gone123", CreatedAt: oldEnough})
 
-	client := hydrav1.NewCronServiceIngressClient(h.Restate, "registry-sweep")
-	resp, err := client.RunRegistrySweep().Request(h.Ctx, &hydrav1.RunRegistrySweepRequest{})
+	client := hydrav1.NewCronServiceIngressClient(h.Restate, "deployment-cleanup")
+	resp, err := client.RunDeploymentCleanup().Request(h.Ctx, &hydrav1.RunDeploymentCleanupRequest{})
 	require.NoError(t, err)
 
 	require.Equal(t, int64(1), resp.GetTagsDeleted(), "only the old orphaned tag is deleted")

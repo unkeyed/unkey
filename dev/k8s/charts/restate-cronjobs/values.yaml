@@ -48,27 +48,17 @@ jobs:
     urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
     idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
 
-  # Daily sweep of deployments that reached a non-recoverable terminal
-  # status (failed, cancelled, superseded, skipped) more than 30 days ago.
-  # Stopped deployments remain wakeable and are retained. The fixed slug key
-  # keeps a paused/wedged run from
-  # blocking the every-minute handlers.
+  # Prunes expired deployment resources: first terminal deployment rows older
+  # than 30 days, then orphaned Depot registry tags and projects from namespaces
+  # explicitly configured as exclusive to this database. Stopped deployments
+  # remain wakeable and are retained. The fixed slug also owns reconciliation
+  # pagination state.
   deployment-cleanup:
     # Opt in per environment after reviewing the retained candidate set.
     enabled: false
     schedule: "30 2 * * *"
     urlPath: "hydra.v1.CronService/deployment-cleanup/RunDeploymentCleanup/send"
     idempotencyKey: "deployment-cleanup-$(date -u +%Y-%m-%d)"
-
-  # Weekly reverse reconciliation: enumerates Depot projects and, only when the
-  # registry is explicitly marked exclusive to this database, registry tags.
-  # Deletes resources with no backing MySQL row.
-  registry-sweep:
-    # Requires matching exclusive namespace flags in the worker config.
-    enabled: false
-    schedule: "0 4 * * 0"
-    urlPath: "hydra.v1.CronService/registry-sweep/RunRegistrySweep/send"
-    idempotencyKey: "registry-sweep-$(date -u +%Y-%m-%d)"
 
   idle-preview-deployments:
     schedule: "* * * * *"

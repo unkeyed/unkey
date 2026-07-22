@@ -72,25 +72,15 @@ service CronService {
   // scan is singleton-keyed without sharing a queue with other cron handlers.
   rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
 
-  // RunDeploymentCleanup hard-deletes deployments that reached a
+  // RunDeploymentCleanup prunes expired deployment resources. It first
+  // hard-deletes deployments that reached a
   // non-recoverable terminal status (failed, cancelled, superseded, skipped)
-  // more than the retention window ago. Image tags are reconciled
-  // separately because multiple deployments may reference one tag. Stateless;
-  // key is the fixed slug "deployment-cleanup" so a paused/wedged invocation
-  // cannot block other handlers. Intended for a daily opt-in schedule.
+  // more than the retention window ago, then reconciles Depot registry tags
+  // and projects against MySQL. External resources are deleted only from a
+  // repository or project-name prefix explicitly configured as exclusive to
+  // this database. The fixed "deployment-cleanup" key also stores registry
+  // pagination progress. Intended for an opt-in schedule.
   rpc RunDeploymentCleanup(RunDeploymentCleanupRequest) returns (RunDeploymentCleanupResponse) {}
-
-  // RunRegistrySweep reconciles Depot against MySQL, in the direction the
-  // forward cleanup cannot: it enumerates Depot registry tags and Depot
-  // projects and deletes those whose deployment/project no longer exists in
-  // MySQL. This catches images and projects orphaned by delete flows that
-  // never called Depot. Everything not created by this control plane
-  // (unrecognized tag shape, foreign project-name prefix) is skipped.
-  // Image deletion is enabled only for a repository explicitly configured as
-  // exclusive to this database and unavailable as a prebuilt image source.
-  // The fixed "registry-sweep" key stores pagination progress. Intended for a
-  // weekly opt-in schedule.
-  rpc RunRegistrySweep(RunRegistrySweepRequest) returns (RunRegistrySweepResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -141,15 +131,11 @@ message RunDeploymentCleanupRequest {}
 message RunDeploymentCleanupResponse {
   // Number of deployment rows deleted.
   int64 deployments_deleted = 1;
-}
-
-message RunRegistrySweepRequest {}
-message RunRegistrySweepResponse {
   // Number of orphaned image tags deleted from the registry.
-  int64 tags_deleted = 1;
+  int64 tags_deleted = 2;
   // Number of tags skipped because they don't match the control plane's
   // "{projectID}-{deploymentID}" tag shape.
-  int64 tags_skipped = 2;
+  int64 tags_skipped = 3;
   // Number of orphaned Depot projects deleted.
-  int64 depot_projects_deleted = 3;
+  int64 depot_projects_deleted = 4;
 }

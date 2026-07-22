@@ -1,5 +1,5 @@
-// Package registrysweep implements the CronService.RunRegistrySweep
-// handler: the reverse of deploymentcleanup. Instead of walking MySQL and
+// Package registrysweep implements the external reconciliation phase of
+// deployment resource pruning. Instead of walking MySQL and
 // deleting from Depot, it enumerates Depot (registry image tags and build
 // projects) and deletes whatever no longer has a backing row in MySQL.
 // This is the safety net for every path that drops rows without calling
@@ -21,9 +21,7 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -77,20 +75,15 @@ type Config struct {
 	// "{prefix}-{unkeyProjectID}" are considered; empty skips the project
 	// sweep. The caller must pass only a prefix exclusive to this database.
 	DepotProjectPrefix string
-
-	// Heartbeat is pinged after a successful sweep. Must not be nil; use
-	// healthcheck.NewNoop() if monitoring is not configured.
-	Heartbeat healthcheck.Heartbeat
 }
 
-// Handler executes RunRegistrySweep.
+// Handler executes the Depot reconciliation phase of deployment cleanup.
 type Handler struct {
 	db                 db.Database
 	depot              DepotAPI
 	imageRepository    string
 	repository         string
 	depotProjectPrefix string
-	heartbeat          healthcheck.Heartbeat
 }
 
 // New constructs a Handler.
@@ -98,7 +91,6 @@ func New(cfg Config) (*Handler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Depot, "Depot must not be nil; use depotclient.NewNoop()"),
-		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -116,47 +108,37 @@ func New(cfg Config) (*Handler, error) {
 		imageRepository:    cfg.Repository,
 		repository:         repository,
 		depotProjectPrefix: cfg.DepotProjectPrefix,
-		heartbeat:          cfg.Heartbeat,
 	}, nil
 }
 
-// Handle sweeps registry tags, then Depot projects. Enumeration completes
+// Result contains counters from one reconciliation phase.
+type Result struct {
+	TagsDeleted          int64
+	TagsSkipped          int64
+	DepotProjectsDeleted int64
+}
+
+// Sweep reconciles registry tags, then Depot projects. Enumeration completes
 // before deletion within each run, and pagination state advances only after
 // all deletes succeed. Every external call is journaled for deterministic
 // replay.
-func (h *Handler) Handle(
-	ctx restate.ObjectContext,
-	_ *hydrav1.RunRegistrySweepRequest,
-) (*hydrav1.RunRegistrySweepResponse, error) {
+func (h *Handler) Sweep(ctx restate.ObjectContext) (result Result, err error) {
 	if h.repository == "" && h.depotProjectPrefix == "" {
-		return nil, fmt.Errorf("registry sweep is disabled: no exclusive repository or Depot project prefix configured")
+		return result, nil
 	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get now: %w", err)
+		return result, fmt.Errorf("get now: %w", err)
 	}
 	orphanCutoff := now.Add(-minOrphanAge)
 
-	resp := &hydrav1.RunRegistrySweepResponse{
-		TagsDeleted:          0,
-		TagsSkipped:          0,
-		DepotProjectsDeleted: 0,
+	if err := h.sweepImages(ctx, orphanCutoff, &result); err != nil {
+		return result, err
 	}
-
-	if err := h.sweepImages(ctx, orphanCutoff, resp); err != nil {
-		return nil, err
+	if err := h.sweepDepotProjects(ctx, orphanCutoff, &result); err != nil {
+		return result, err
 	}
-	if err := h.sweepDepotProjects(ctx, orphanCutoff, resp); err != nil {
-		return nil, err
-	}
-
-	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-		return h.heartbeat.Ping(rc)
-	}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(5)); err != nil {
-		return nil, fmt.Errorf("send heartbeat: %w", err)
-	}
-
-	return resp, nil
+	return result, nil
 }
 
 // candidateTag is one registry tag that parses as ours, paired with the
@@ -168,7 +150,7 @@ type candidateTag struct {
 }
 
 // sweepImages reconciles one bounded page range and persists where the next run starts.
-func (h *Handler) sweepImages(ctx restate.ObjectContext, orphanCutoff time.Time, resp *hydrav1.RunRegistrySweepResponse) error {
+func (h *Handler) sweepImages(ctx restate.ObjectContext, orphanCutoff time.Time, result *Result) error {
 	if h.repository == "" {
 		return nil
 	}
@@ -202,7 +184,7 @@ func (h *Handler) sweepImages(ctx restate.ObjectContext, orphanCutoff time.Time,
 			for _, tag := range img.Tags {
 				deploymentID, ok := deploymentIDFromTag(tag)
 				if !ok {
-					resp.TagsSkipped++
+					result.TagsSkipped++
 					continue
 				}
 				// A fresh image may belong to a deployment whose row
@@ -245,7 +227,7 @@ func (h *Handler) sweepImages(ctx restate.ObjectContext, orphanCutoff time.Time,
 		}, restate.WithName("delete orphaned tag "+tag), restate.WithMaxRetryAttempts(5)); err != nil {
 			return fmt.Errorf("delete orphaned tag %q: %w", tag, err)
 		}
-		resp.TagsDeleted++
+		result.TagsDeleted++
 	}
 	if len(orphans) > 0 {
 		// Offset pagination shifts after deletion. Restarting guarantees shifted
@@ -256,8 +238,8 @@ func (h *Handler) sweepImages(ctx restate.ObjectContext, orphanCutoff time.Time,
 
 	logger.Info("registry sweep deleted orphaned image tags",
 		"repository", h.repository,
-		"tags_deleted", resp.TagsDeleted,
-		"tags_skipped", resp.TagsSkipped,
+		"tags_deleted", result.TagsDeleted,
+		"tags_skipped", result.TagsSkipped,
 	)
 	return nil
 }
@@ -277,7 +259,7 @@ type candidateProject struct {
 }
 
 // sweepDepotProjects reconciles one bounded token range and persists the next token.
-func (h *Handler) sweepDepotProjects(ctx restate.ObjectContext, orphanCutoff time.Time, resp *hydrav1.RunRegistrySweepResponse) error {
+func (h *Handler) sweepDepotProjects(ctx restate.ObjectContext, orphanCutoff time.Time, result *Result) error {
 	if h.depotProjectPrefix == "" {
 		return nil
 	}
@@ -348,7 +330,7 @@ func (h *Handler) sweepDepotProjects(ctx restate.ObjectContext, orphanCutoff tim
 		}, restate.WithName("delete orphaned depot project "+depotProjectID), restate.WithMaxRetryAttempts(5)); err != nil {
 			return fmt.Errorf("delete orphaned depot project %q (%s): %w", depotProjectID, orphan.Name, err)
 		}
-		resp.DepotProjectsDeleted++
+		result.DepotProjectsDeleted++
 	}
 	if len(orphans) > 0 {
 		pageToken = ""
@@ -356,7 +338,7 @@ func (h *Handler) sweepDepotProjects(ctx restate.ObjectContext, orphanCutoff tim
 	restate.Set(ctx, stateKeyProjectPageToken, pageToken)
 
 	logger.Info("registry sweep deleted orphaned depot projects",
-		"depot_projects_deleted", resp.DepotProjectsDeleted,
+		"depot_projects_deleted", result.DepotProjectsDeleted,
 	)
 	return nil
 }

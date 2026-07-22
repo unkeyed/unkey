@@ -524,7 +524,6 @@ func Run(ctx context.Context, cfg Config) error {
 			AuditLogCleanup:   cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeploymentCleanup: cronHeartbeat(cfg.Heartbeat.DeploymentCleanupURL),
-			RegistrySweep:     cronHeartbeat(cfg.Heartbeat.RegistrySweepURL),
 		},
 	})
 	if err != nil {
@@ -572,7 +571,7 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.PauseOnMaxAttempts(),
 	)
-	// DeploymentCleanup and RegistrySweep are idempotent periodic sweeps. Kill
+	// DeploymentCleanup is an idempotent periodic resource-pruning operation. Kill
 	// exhausted invocations so one bad Depot resource cannot permanently block
 	// later ticks on the fixed virtual-object key.
 	cronDeploymentCleanupRetry := restate.WithInvocationRetryPolicy(
@@ -593,7 +592,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		ConfigureHandler("RunDeploymentCleanup", cronDeploymentCleanupRetry).
-		ConfigureHandler("RunRegistrySweep", cronDeploymentCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)))
 	logger.Info("CronService enabled")
 

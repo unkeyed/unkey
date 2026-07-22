@@ -12,6 +12,7 @@ go_library(
         "//pkg/logger",
         "//pkg/restate/restateutil",
         "//svc/ctrl/internal/db",
+        "//svc/ctrl/worker/cron/registrysweep",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

@@ -51,7 +51,6 @@ type Service struct {
 	keyRefill         *keyrefill.Handler
 	quotaCheck        *quotacheck.Handler
 	ratelimitCleanup  *ratelimitcleanup.Handler
-	registrySweep     *registrysweep.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -68,7 +67,6 @@ type Heartbeats struct {
 	AuditLogCleanup   healthcheck.Heartbeat
 	DeployBillingPush healthcheck.Heartbeat
 	DeploymentCleanup healthcheck.Heartbeat
-	RegistrySweep     healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -130,7 +128,6 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploymentCleanup, "Heartbeats.DeploymentCleanup must not be nil; use healthcheck.NewNoop()"),
-		assert.NotNil(cfg.Heartbeats.RegistrySweep, "Heartbeats.RegistrySweep must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.RegistrySweepDepot, "RegistrySweepDepot must not be nil; use depotclient.NewNoop()"),
 	); err != nil {
 		return nil, err
@@ -183,20 +180,20 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	deploymentCleanupH, err := deploymentcleanup.New(deploymentcleanup.Config{
-		DB:        cfg.DB,
-		Heartbeat: cfg.Heartbeats.DeploymentCleanup,
-		Enabled:   cfg.DeploymentCleanupEnabled,
-	})
-	if err != nil {
-		return nil, err
-	}
 	registrySweepH, err := registrysweep.New(registrysweep.Config{
 		DB:                 cfg.DB,
 		Depot:              cfg.RegistrySweepDepot,
 		Repository:         cfg.RegistryRepository,
 		DepotProjectPrefix: cfg.DepotProjectPrefix,
-		Heartbeat:          cfg.Heartbeats.RegistrySweep,
+	})
+	if err != nil {
+		return nil, err
+	}
+	deploymentCleanupH, err := deploymentcleanup.New(deploymentcleanup.Config{
+		DB:            cfg.DB,
+		Heartbeat:     cfg.Heartbeats.DeploymentCleanup,
+		Enabled:       cfg.DeploymentCleanupEnabled,
+		RegistrySweep: registrySweepH,
 	})
 	if err != nil {
 		return nil, err
@@ -237,7 +234,6 @@ func New(cfg Config) (*Service, error) {
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,
 		ratelimitCleanup:               ratelimitCleanupH,
-		registrySweep:                  registrySweepH,
 	}, nil
 }
 
@@ -295,13 +291,6 @@ func (s *Service) RunDeploymentCleanup(
 	req *hydrav1.RunDeploymentCleanupRequest,
 ) (*hydrav1.RunDeploymentCleanupResponse, error) {
 	return s.deploymentCleanup.Handle(ctx, req)
-}
-
-func (s *Service) RunRegistrySweep(
-	ctx restate.ObjectContext,
-	req *hydrav1.RunRegistrySweepRequest,
-) (*hydrav1.RunRegistrySweepResponse, error) {
-	return s.registrySweep.Handle(ctx, req)
 }
 
 func (s *Service) RunScaleDownIdlePreviewDeployments(
