@@ -1,0 +1,60 @@
+post:
+  tags:
+    - portal
+  summary: List portal configurations
+  description: |
+    List all Customer Portal configurations in your workspace, each with its
+    branding.
+
+    **Authentication**
+
+    Requires a root key. Only configurations in the root key's workspace are
+    returned.
+  operationId: portal.listConfigurations
+  x-speakeasy-name-override: listConfigurations
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalListConfigurationsRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalListConfigurationsResponseBody.yaml"
+      description: |
+        Portal configurations listed successfully.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

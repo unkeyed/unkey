@@ -1,0 +1,78 @@
+post:
+  tags:
+    - portal
+  summary: Create portal configuration
+  description: |
+    Create a Customer Portal configuration for your workspace.
+
+    A configuration maps to exactly one keyspace (`keyspaceId`) or one app
+    (`appId`) - provide exactly one. Optionally attach branding (logo, color).
+
+    **Important**: The slug must be unique within your workspace, and the mapped
+    keyspace or app must not already be used by another configuration. A
+    collision returns a 409 conflict.
+
+    **Authentication**
+
+    Requires a root key. The configuration is created in the root key's
+    workspace.
+  operationId: portal.createConfiguration
+  x-speakeasy-name-override: createConfiguration
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalCreateConfigurationRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalCreateConfigurationResponseBody.yaml"
+      description: |
+        Portal configuration created successfully.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: Conflict - a configuration with this slug, keyspace, or app already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

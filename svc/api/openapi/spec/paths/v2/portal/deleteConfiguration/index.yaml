@@ -1,0 +1,66 @@
+post:
+  tags:
+    - portal
+  summary: Delete portal configuration
+  description: |
+    Delete a Customer Portal configuration and its branding. This does not
+    invalidate sessions already issued against the configuration.
+
+    **Authentication**
+
+    Requires a root key. Only configurations in the root key's workspace can be
+    deleted.
+  operationId: portal.deleteConfiguration
+  x-speakeasy-name-override: deleteConfiguration
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalDeleteConfigurationRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalDeleteConfigurationResponseBody.yaml"
+      description: |
+        Portal configuration deleted successfully.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - no configuration with this id in the workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

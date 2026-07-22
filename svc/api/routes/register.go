@@ -65,11 +65,15 @@ import (
 
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreateConfiguration "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_configuration"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
+	v2PortalDeleteConfiguration "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_configuration"
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
+	v2PortalListConfigurations "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_configurations"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
+	v2PortalUpdateConfiguration "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_configuration"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
@@ -735,6 +739,45 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			ClickHouse: svc.ClickHouse,
 			DB:         svc.Database,
 			QuotaCache: svc.Caches.WorkspaceQuota,
+		},
+	)
+
+	// Portal configuration management routes. These are operator actions
+	// (root-key auth, scoped to the owning workspace), so they run behind
+	// protectedMiddlewares, not the end-user portalMiddlewares.
+
+	// v2/portal.createConfiguration
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalCreateConfiguration.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/portal.listConfigurations
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalListConfigurations.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/portal.updateConfiguration
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalUpdateConfiguration.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/portal.deleteConfiguration
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PortalDeleteConfiguration.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 

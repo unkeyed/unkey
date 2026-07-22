@@ -124,6 +124,10 @@ type dataAuditLog struct {
 type dataPortalConfig struct {
 	// NotFound indicates the requested portal configuration was not found.
 	NotFound Code
+
+	// Duplicate indicates a portal configuration with the same slug, app, or
+	// keyspace already exists in the workspace.
+	Duplicate Code
 }
 
 // dataAnalytics defines errors related to analytics operations.
@@ -239,7 +243,8 @@ var Data = UnkeyDataErrors{
 	},
 
 	PortalConfig: dataPortalConfig{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "portal_config_already_exists"},
 	},
 
 	Analytics: dataAnalytics{

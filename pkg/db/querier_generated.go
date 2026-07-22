@@ -283,6 +283,18 @@ type Querier interface {
 	//  DELETE FROM permissions
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
+	// Deletes a portal configuration's branding row. Called alongside
+	// DeletePortalConfig since the schema has no cascading delete.
+	//
+	//  DELETE FROM portal_branding WHERE portal_config_id = ?
+	DeletePortalBranding(ctx context.Context, db DBTX, portalConfigID string) error
+	// Deletes a portal configuration, scoped to the workspace. Branding must be
+	// deleted separately (see DeletePortalBranding): the schema has no cascading
+	// delete.
+	//
+	//  DELETE FROM portal_configurations
+	//  WHERE id = ? AND workspace_id = ?
+	DeletePortalConfig(ctx context.Context, db DBTX, arg DeletePortalConfigParams) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -1159,6 +1171,13 @@ type Querier interface {
 	//
 	//  SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
 	FindPortalBrandingByConfigID(ctx context.Context, db DBTX, portalConfigID string) (PortalBranding, error)
+	// Looks up a portal configuration by id, scoped to the workspace. Used by
+	// update/delete to verify the caller owns the config before mutating it, so a
+	// config can never be read or mutated across workspace boundaries.
+	//
+	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+	//  WHERE id = ? AND workspace_id = ?
+	FindPortalConfigByID(ctx context.Context, db DBTX, arg FindPortalConfigByIDParams) (PortalConfiguration, error)
 	//FindPortalConfigByWorkspaceAndSlug
 	//
 	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
@@ -2879,6 +2898,19 @@ type Querier interface {
 	//  WHERE rp.role_id = ?
 	//  ORDER BY p.slug
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
+	// Lists every portal configuration in a workspace, left-joining its 1:1
+	// branding row. Branding columns are null when a config has no branding. The
+	// WHERE clause scopes the listing to the caller's workspace.
+	//
+	//  SELECT
+	//      pc.pk, pc.id, pc.workspace_id, pc.slug, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
+	//      b.logo_url AS logo_url,
+	//      b.primary_color AS primary_color
+	//  FROM portal_configurations pc
+	//  LEFT JOIN portal_branding b ON b.portal_config_id = pc.id
+	//  WHERE pc.workspace_id = ?
+	//  ORDER BY pc.created_at DESC
+	ListPortalConfigsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListPortalConfigsByWorkspaceRow, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
@@ -3708,6 +3740,25 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
+	// Updates a portal configuration's mutable fields, scoped to the workspace so
+	// one workspace can never mutate another's config. A dedicated scoped UPDATE
+	// (rather than an upsert) is used because portal_configurations has four unique
+	// keys (id, workspace_id+slug, app_id, key_auth_id): ON DUPLICATE KEY UPDATE
+	// across multiple unique indexes has undefined row selection and could silently
+	// mutate the wrong row on a collision. Here a slug/app/keyspace collision with a
+	// different row surfaces the unique-constraint error, which the handler maps to
+	// a 409.
+	//
+	//  UPDATE portal_configurations
+	//  SET
+	//      slug = ?,
+	//      app_id = ?,
+	//      key_auth_id = ?,
+	//      enabled = ?,
+	//      return_url = ?,
+	//      updated_at = ?
+	//  WHERE id = ? AND workspace_id = ?
+	UpdatePortalConfig(ctx context.Context, db DBTX, arg UpdatePortalConfigParams) error
 	//UpdateProject
 	//
 	//  UPDATE projects p

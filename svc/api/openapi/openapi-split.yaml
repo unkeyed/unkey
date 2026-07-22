@@ -234,6 +234,14 @@ paths:
     $ref: "./spec/paths/v2/portal/rerollKey/index.yaml"
   /v2/portal.getVerifications:
     $ref: "./spec/paths/v2/portal/getVerifications/index.yaml"
+  /v2/portal.createConfiguration:
+    $ref: "./spec/paths/v2/portal/createConfiguration/index.yaml"
+  /v2/portal.listConfigurations:
+    $ref: "./spec/paths/v2/portal/listConfigurations/index.yaml"
+  /v2/portal.updateConfiguration:
+    $ref: "./spec/paths/v2/portal/updateConfiguration/index.yaml"
+  /v2/portal.deleteConfiguration:
+    $ref: "./spec/paths/v2/portal/deleteConfiguration/index.yaml"
 
   # Project Endpoints
   /v2/projects.createProject:

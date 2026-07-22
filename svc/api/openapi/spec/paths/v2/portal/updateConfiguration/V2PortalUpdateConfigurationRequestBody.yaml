@@ -1,0 +1,61 @@
+type: object
+required:
+  - configId
+  - slug
+properties:
+  configId:
+    type: string
+    maxLength: 64
+    description: |
+      The identifier of the portal configuration to update. Always begins with
+      'pc_'.
+    example: pc_1234abcd
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    description: |
+      Human-readable slug, unique within the workspace. Must be 3-64 characters,
+      lowercase alphanumeric and hyphens only, must not start or end with a
+      hyphen, and must not contain consecutive hyphens.
+    example: my-portal
+  keyspaceId:
+    type: string
+    maxLength: 64
+    description: |
+      The keyspace the configuration maps to. Provide exactly one of
+      `keyspaceId` or `appId`. Updating this remaps the configuration.
+    example: ks_1234abcd
+  appId:
+    type: string
+    maxLength: 64
+    description: |
+      The app the configuration maps to. Provide exactly one of `keyspaceId` or
+      `appId`. Updating this remaps the configuration.
+    example: app_1234abcd
+  enabled:
+    type: boolean
+    default: true
+    description: |
+      Whether the configuration is enabled. Disabled configurations reject new
+      session creation.
+  returnUrl:
+    type: string
+    format: uri
+    maxLength: 500
+    description: |
+      URL the end user is returned to when they exit the portal. Omit to clear.
+    example: "https://app.example.com/dashboard"
+  branding:
+    "$ref": "../../../../common/PortalBranding.yaml"
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename and enable a configuration
+    description: Update a configuration's slug and enabled state
+    value:
+      configId: pc_1234abcd
+      slug: renamed-portal
+      keyspaceId: ks_1234abcd
+      enabled: true

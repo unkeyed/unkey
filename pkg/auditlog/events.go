@@ -64,6 +64,9 @@ const (
 	// Portal events
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
+	PortalConfigCreateEvent    AuditLogEvent = "portal.config.create"
+	PortalConfigUpdateEvent    AuditLogEvent = "portal.config.update"
+	PortalConfigDeleteEvent    AuditLogEvent = "portal.config.delete"
 
 	// Deployment events
 	DeploymentCreateEvent  AuditLogEvent = "deployment.create"

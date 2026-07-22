@@ -2682,6 +2682,62 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2PortalCreateConfigurationRequestBody:
+            type: object
+            required:
+                - slug
+            properties:
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+                    description: |
+                        Human-readable slug for the configuration, unique within the workspace.
+                        Must be 3-64 characters, lowercase alphanumeric and hyphens only, must not
+                        start or end with a hyphen, and must not contain consecutive hyphens.
+                    example: my-portal
+                keyspaceId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The keyspace the configuration maps to. Provide exactly one of
+                        `keyspaceId` or `appId`.
+                    example: ks_1234abcd
+                appId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The app the configuration maps to. Provide exactly one of `keyspaceId` or
+                        `appId`.
+                    example: app_1234abcd
+                enabled:
+                    type: boolean
+                    default: true
+                    description: |
+                        Whether the configuration is enabled. Disabled configurations reject new
+                        session creation.
+                returnUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        URL the end user is returned to when they exit the portal.
+                    example: "https://app.example.com/dashboard"
+                branding:
+                    "$ref": "#/components/schemas/PortalBranding"
+            additionalProperties: false
+        V2PortalCreateConfigurationResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/PortalConfiguration"
+            additionalProperties: false
         V2PortalCreateSessionRequestBody:
             type: object
             required:
@@ -2747,6 +2803,30 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
+            additionalProperties: false
+        V2PortalDeleteConfigurationRequestBody:
+            type: object
+            required:
+                - configId
+            properties:
+                configId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The identifier of the portal configuration to delete. Always begins with
+                        'pc_'.
+                    example: pc_1234abcd
+            additionalProperties: false
+        V2PortalDeleteConfigurationResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2PortalExchangeSessionRequestBody:
             type: object
@@ -2817,6 +2897,26 @@ components:
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false
+        V2PortalListConfigurationsRequestBody:
+            type: object
+            description: |
+                Lists all portal configurations in the authenticated workspace. Takes no
+                parameters; the workspace is derived from the root key.
+            additionalProperties: false
+        V2PortalListConfigurationsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/PortalConfiguration"
+                    description: Array of portal configurations in the workspace, newest first.
+            additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
             properties:
@@ -2848,6 +2948,70 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
+        V2PortalUpdateConfigurationRequestBody:
+            type: object
+            required:
+                - configId
+                - slug
+            properties:
+                configId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The identifier of the portal configuration to update. Always begins with
+                        'pc_'.
+                    example: pc_1234abcd
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+                    description: |
+                        Human-readable slug, unique within the workspace. Must be 3-64 characters,
+                        lowercase alphanumeric and hyphens only, must not start or end with a
+                        hyphen, and must not contain consecutive hyphens.
+                    example: my-portal
+                keyspaceId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The keyspace the configuration maps to. Provide exactly one of
+                        `keyspaceId` or `appId`. Updating this remaps the configuration.
+                    example: ks_1234abcd
+                appId:
+                    type: string
+                    maxLength: 64
+                    description: |
+                        The app the configuration maps to. Provide exactly one of `keyspaceId` or
+                        `appId`. Updating this remaps the configuration.
+                    example: app_1234abcd
+                enabled:
+                    type: boolean
+                    default: true
+                    description: |
+                        Whether the configuration is enabled. Disabled configurations reject new
+                        session creation.
+                returnUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        URL the end user is returned to when they exit the portal. Omit to clear.
+                    example: "https://app.example.com/dashboard"
+                branding:
+                    "$ref": "#/components/schemas/PortalBranding"
+            additionalProperties: false
+        V2PortalUpdateConfigurationResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/PortalConfiguration"
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -5773,6 +5937,108 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        PortalBranding:
+            type: object
+            description: |
+                Optional branding applied to the Customer Portal for a configuration.
+            properties:
+                logoUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        URL of the logo displayed in the portal header.
+                    example: "https://cdn.example.com/logo.png"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                primaryColor:
+                    type: string
+                    pattern: "^#[0-9a-fA-F]{6}$"
+                    description: |
+                        Primary accent color for the portal, as a 6-digit hex color.
+                    example: "#4f46e5"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        PortalConfiguration:
+            type: object
+            description: |
+                A Customer Portal configuration. Maps to exactly one keyspace or one app and
+                scopes the portal experience for a workspace's end users.
+            required:
+                - id
+                - slug
+                - enabled
+                - createdAt
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the portal configuration, generated by Unkey.
+                        Always begins with 'pc_'.
+                    example: pc_1234abcd
+                slug:
+                    type: string
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+                    description: |
+                        Human-readable slug, unique within the workspace. Used by
+                        `portal.createSession` to select the configuration.
+                    example: my-portal
+                keyspaceId:
+                    type: string
+                    description: |
+                        The keyspace this configuration maps to. Present when the configuration is
+                        keyspace-mapped; omitted when it is app-mapped.
+                    example: ks_1234abcd
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                appId:
+                    type: string
+                    description: |
+                        The app this configuration maps to. Present when the configuration is
+                        app-mapped; omitted when it is keyspace-mapped.
+                    example: app_1234abcd
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                enabled:
+                    type: boolean
+                    description: |
+                        Whether the portal configuration is enabled. Disabled configurations reject
+                        new session creation.
+                    example: true
+                returnUrl:
+                    type: string
+                    format: uri
+                    maxLength: 500
+                    description: |
+                        URL the end user is returned to when they exit the portal.
+                    example: "https://app.example.com/dashboard"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                branding:
+                    "$ref": "#/components/schemas/PortalBranding"
+                createdAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the configuration was created.
+                    example: 1704067200000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the configuration was last updated.
+                        Omitted if the configuration has never been updated.
+                    example: 1704153600000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
         V2PortalCreateSessionResponseData:
             type: object
             required:
@@ -11478,6 +11744,85 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/portal.createConfiguration:
+        post:
+            description: |
+                Create a Customer Portal configuration for your workspace.
+
+                A configuration maps to exactly one keyspace (`keyspaceId`) or one app
+                (`appId`) - provide exactly one. Optionally attach branding (logo, color).
+
+                **Important**: The slug must be unique within your workspace, and the mapped
+                keyspace or app must not already be used by another configuration. A
+                collision returns a 409 conflict.
+
+                **Authentication**
+
+                Requires a root key. The configuration is created in the root key's
+                workspace.
+            operationId: portal.createConfiguration
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalCreateConfigurationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalCreateConfigurationResponseBody'
+                    description: |
+                        Portal configuration created successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - a configuration with this slug, keyspace, or app already exists
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create portal configuration
+            tags:
+                - portal
+            x-speakeasy-name-override: createConfiguration
     /v2/portal.createSession:
         post:
             description: |
@@ -11560,6 +11905,73 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: createSession
+    /v2/portal.deleteConfiguration:
+        post:
+            description: |
+                Delete a Customer Portal configuration and its branding. This does not
+                invalidate sessions already issued against the configuration.
+
+                **Authentication**
+
+                Requires a root key. Only configurations in the root key's workspace can be
+                deleted.
+            operationId: portal.deleteConfiguration
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalDeleteConfigurationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalDeleteConfigurationResponseBody'
+                    description: |
+                        Portal configuration deleted successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - no configuration with this id in the workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete portal configuration
+            tags:
+                - portal
+            x-speakeasy-name-override: deleteConfiguration
     /v2/portal.exchangeSession:
         post:
             description: |
@@ -11695,6 +12107,67 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getVerifications
+    /v2/portal.listConfigurations:
+        post:
+            description: |
+                List all Customer Portal configurations in your workspace, each with its
+                branding.
+
+                **Authentication**
+
+                Requires a root key. Only configurations in the root key's workspace are
+                returned.
+            operationId: portal.listConfigurations
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalListConfigurationsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalListConfigurationsResponseBody'
+                    description: |
+                        Portal configurations listed successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List portal configurations
+            tags:
+                - portal
+            x-speakeasy-name-override: listConfigurations
     /v2/portal.listKeys:
         post:
             description: |
@@ -11837,6 +12310,86 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: rerollKey
+    /v2/portal.updateConfiguration:
+        post:
+            description: |
+                Update a Customer Portal configuration. This replaces the configuration's
+                mutable state: slug, enabled, return URL, keyspace/app mapping, and branding.
+
+                A configuration maps to exactly one keyspace (`keyspaceId`) or one app
+                (`appId`) - provide exactly one. Changing it remaps the configuration.
+
+                **Important**: The slug must remain unique within your workspace, and the
+                mapped keyspace or app must not already be used by another configuration. A
+                collision returns a 409 conflict.
+
+                **Authentication**
+
+                Requires a root key. Only configurations in the root key's workspace can be
+                updated.
+            operationId: portal.updateConfiguration
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalUpdateConfigurationRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalUpdateConfigurationResponseBody'
+                    description: |
+                        Portal configuration updated successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - no configuration with this id in the workspace
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - a configuration with this slug, keyspace, or app already exists
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Update portal configuration
+            tags:
+                - portal
+            x-speakeasy-name-override: updateConfiguration
     /v2/projects.createProject:
         post:
             description: |
