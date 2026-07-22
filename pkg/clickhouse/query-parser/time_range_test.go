@@ -203,7 +203,7 @@ func TestParser_ValidateTimeRange_WithRetention(t *testing.T) {
 				AllowedTables: []string{
 					"default.key_verifications_per_hour_v2",
 				},
-				MaxQueryRangeDays: tt.retentionDays,
+				QueryRangeDaysMax: tt.retentionDays,
 			})
 
 			_, err := parser.Parse(context.Background(), tt.query)
@@ -229,7 +229,7 @@ func TestParser_ValidateTimeRange_NoRetentionLimit(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 0, // No limit
+		QueryRangeDaysMax: 0, // No limit
 	})
 
 	tests := []struct {
@@ -296,7 +296,7 @@ func TestParser_ValidateTimeRange_DifferentOperators(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	for _, tt := range tests {
@@ -363,7 +363,7 @@ func TestParser_ValidateTimeRange_IntervalUnits(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	for _, tt := range tests {
@@ -388,7 +388,7 @@ func TestParser_InjectDefaultTimeFilter(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	tests := []struct {
@@ -466,7 +466,7 @@ func TestParser_ValidateTimeRange_EdgeCases(t *testing.T) {
 				AllowedTables: []string{
 					"default.key_verifications_per_hour_v2",
 				},
-				MaxQueryRangeDays: tt.retention,
+				QueryRangeDaysMax: tt.retention,
 			})
 
 			_, err := parser.Parse(context.Background(), tt.query)
@@ -512,7 +512,7 @@ func TestParser_ValidateTimeRange_NumericTimestamps(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	for _, tt := range tests {
@@ -587,7 +587,7 @@ func TestParser_ValidateTimeRange_ReversedComparisons(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	for _, tt := range tests {
@@ -612,7 +612,7 @@ func TestParser_ValidateTimeRange_UpperBoundOnly(t *testing.T) {
 		AllowedTables: []string{
 			"default.key_verifications_per_hour_v2",
 		},
-		MaxQueryRangeDays: 7,
+		QueryRangeDaysMax: 7,
 	})
 
 	tests := []struct {

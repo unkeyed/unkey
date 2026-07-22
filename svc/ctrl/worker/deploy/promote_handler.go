@@ -6,7 +6,6 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -80,8 +79,8 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	}
 
 	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
-		Status:              pkgdb.DeploymentsStatus(targetDeployment.Status),
-		DesiredState:        pkgdb.DeploymentsDesiredState(targetDeployment.DesiredState),
+		Status:              targetDeployment.Status,
+		DesiredState:        targetDeployment.DesiredState,
 		EnvironmentSlug:     environment.Slug,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,

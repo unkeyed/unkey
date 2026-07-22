@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
@@ -18,8 +20,8 @@ import (
 func TestToResponseError(t *testing.T) {
 	failedDep := db.Deployment{
 		ID:            uid.New(uid.DeploymentPrefix),
-		Status:        db.DeploymentsStatusFailed,
-		DesiredState:  db.DeploymentsDesiredStateRunning,
+		Status:        mysqltype.DeploymentsStatusFailed,
+		DesiredState:  mysqltype.DeploymentsDesiredStateRunning,
 		EnvironmentID: uid.New(uid.EnvironmentPrefix),
 		AppID:         uid.New(uid.AppPrefix),
 		ProjectID:     uid.New(uid.ProjectPrefix),
@@ -38,7 +40,7 @@ func TestToResponseError(t *testing.T) {
 
 	t.Run("non-failed deployment has no error", func(t *testing.T) {
 		readyDep := failedDep
-		readyDep.Status = db.DeploymentsStatusReady
+		readyDep.Status = mysqltype.DeploymentsStatusReady
 		got := ToResponse(Input{Deployment: readyDep})
 		require.Nil(t, got.Error)
 	})
@@ -53,7 +55,7 @@ func TestToResponseError(t *testing.T) {
 // TestToResponseRegions guards the required regions field: it must marshal as a
 // present slice (never nil) and pass through the configured region names.
 func TestToResponseRegions(t *testing.T) {
-	dep := db.Deployment{ID: uid.New(uid.DeploymentPrefix), Status: db.DeploymentsStatusReady}
+	dep := db.Deployment{ID: uid.New(uid.DeploymentPrefix), Status: mysqltype.DeploymentsStatusReady}
 
 	t.Run("populated regions pass through", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: dep, Regions: []string{"us-east-1", "eu-west-1"}})
@@ -106,8 +108,8 @@ func TestToResponseSource(t *testing.T) {
 func TestToResponseIsCurrent(t *testing.T) {
 	dep := db.Deployment{
 		ID:           uid.New(uid.DeploymentPrefix),
-		Status:       db.DeploymentsStatusReady,
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		Status:       mysqltype.DeploymentsStatusReady,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}
 
 	current := func(id string) db.ListDeploymentEnvAndAppStateRow {

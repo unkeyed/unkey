@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -123,11 +125,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	var statuses []db.DeploymentsStatus
+	var statuses []mysqltype.DeploymentsStatus
 	if req.Status != nil {
-		statuses = make([]db.DeploymentsStatus, len(*req.Status))
+		statuses = make([]mysqltype.DeploymentsStatus, len(*req.Status))
 		for i, st := range *req.Status {
-			statuses[i] = db.DeploymentsStatus(st)
+			statuses[i] = mysqltype.DeploymentsStatus(st)
 		}
 	}
 

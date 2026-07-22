@@ -12,15 +12,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// validateTimeRange ensures the query doesn't access data older than MaxQueryRangeDays
+// validateTimeRange ensures the query doesn't access data older than QueryRangeDaysMax.
 func (p *Parser) validateTimeRange() error {
-	if p.config.MaxQueryRangeDays <= 0 {
+	if p.config.QueryRangeDaysMax <= 0 {
 		// No restriction configured
 		return nil
 	}
 
 	// Calculate the earliest allowed timestamp
-	earliestAllowed := time.Now().AddDate(0, 0, -int(p.config.MaxQueryRangeDays))
+	earliestAllowed := time.Now().AddDate(0, 0, -int(p.config.QueryRangeDaysMax))
 
 	// Walk the query to find time-based WHERE conditions
 	hasTimeFilter := false
@@ -230,10 +230,10 @@ func (p *Parser) validateBetweenClause(between *clickhouse.BetweenClause, earlie
 // retentionExceededError creates a standardized error for when a query exceeds retention
 func (p *Parser) retentionExceededError(queriedTime, earliestAllowed time.Time) error {
 	return fault.New(
-		fmt.Sprintf("query time range exceeds retention period of %d days", p.config.MaxQueryRangeDays),
+		fmt.Sprintf("query time range exceeds retention period of %d days", p.config.QueryRangeDaysMax),
 		fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
 		fault.Public(fmt.Sprintf("Cannot query data older than %d days. Your query attempts to access data from %s, but only data from %s onwards is available.",
-			p.config.MaxQueryRangeDays,
+			p.config.QueryRangeDaysMax,
 			queriedTime.Format("2006-01-02"),
 			earliestAllowed.Format("2006-01-02"),
 		)),
@@ -474,7 +474,7 @@ func (p *Parser) injectDefaultTimeFilter() error {
 			RightExpr: &clickhouse.IntervalExpr{
 				IntervalPos: 1, // Non-zero value required for String() to output "INTERVAL"
 				Expr: &clickhouse.NumberLiteral{
-					Literal: fmt.Sprintf("%d", p.config.MaxQueryRangeDays),
+					Literal: fmt.Sprintf("%d", p.config.QueryRangeDaysMax),
 				},
 				Unit: &clickhouse.Ident{Name: "DAY"},
 			},

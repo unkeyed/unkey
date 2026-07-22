@@ -4,32 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 
-	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 // RoleInfo  types mirror the database models and support JSON serialization and deserialization.
 // They are used to unmarshal aggregated results (e.g., JSON arrays) returned by database queries.
 type RoleInfo struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description dbtype.NullString `json:"description"`
+	ID          string               `json:"id"`
+	Name        string               `json:"name"`
+	Description mysqltype.NullString `json:"description"`
 }
 
 type PermissionInfo struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Slug        string            `json:"slug"`
-	Description dbtype.NullString `json:"description"`
+	ID          string               `json:"id"`
+	Name        string               `json:"name"`
+	Slug        string               `json:"slug"`
+	Description mysqltype.NullString `json:"description"`
 }
 
 type RatelimitInfo struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	KeyID      dbtype.NullString `json:"key_id"`
-	IdentityID dbtype.NullString `json:"identity_id"`
-	Limit      uint64            `json:"limit"`
-	Duration   uint64            `json:"duration"`
-	AutoApply  bool              `json:"auto_apply"`
+	ID         string               `json:"id"`
+	Name       string               `json:"name"`
+	KeyID      mysqltype.NullString `json:"key_id"`
+	IdentityID mysqltype.NullString `json:"identity_id"`
+	Limit      uint64               `json:"limit"`
+	Duration   uint64               `json:"duration"`
+	AutoApply  bool                 `json:"auto_apply"`
 }
 
 type EnvVarInfo struct {
