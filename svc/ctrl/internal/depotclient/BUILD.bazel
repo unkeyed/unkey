@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "depotclient",
+    srcs = ["client.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/depotclient",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//pkg/assert",
+        "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",
+        "@build_buf_gen_go_depot_api_connectrpc_go//depot/registry/v1beta1/registryv1beta1connect",
+        "@build_buf_gen_go_depot_api_protocolbuffers_go//depot/core/v1:core",
+        "@build_buf_gen_go_depot_api_protocolbuffers_go//depot/registry/v1beta1",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
+
+go_test(
+    name = "depotclient_test",
+    size = "small",
+    srcs = ["client_test.go"],
+    embed = [":depotclient"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

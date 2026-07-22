@@ -23,11 +23,13 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/ratelimitcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/registrysweep"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -40,14 +42,16 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup  *auditlogcleanup.Handler
-	auditLogExport   *auditlogexport.Handler
-	deployBilling    *deploybilling.Handler
-	idlePreview      *idlepreview.Handler
-	keyLastUsedSync  *keylastusedsync.Handler
-	keyRefill        *keyrefill.Handler
-	quotaCheck       *quotacheck.Handler
-	ratelimitCleanup *ratelimitcleanup.Handler
+	auditLogCleanup   *auditlogcleanup.Handler
+	auditLogExport    *auditlogexport.Handler
+	deployBilling     *deploybilling.Handler
+	deploymentCleanup *deploymentcleanup.Handler
+	idlePreview       *idlepreview.Handler
+	keyLastUsedSync   *keylastusedsync.Handler
+	keyRefill         *keyrefill.Handler
+	quotaCheck        *quotacheck.Handler
+	ratelimitCleanup  *ratelimitcleanup.Handler
+	registrySweep     *registrysweep.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -63,6 +67,8 @@ type Heartbeats struct {
 	AuditLogExport    healthcheck.Heartbeat
 	AuditLogCleanup   healthcheck.Heartbeat
 	DeployBillingPush healthcheck.Heartbeat
+	DeploymentCleanup healthcheck.Heartbeat
+	RegistrySweep     healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -90,6 +96,22 @@ type Config struct {
 	// disables the push.
 	StripeSecretKey string
 
+	// DeploymentCleanupEnabled gates permanent deployment deletion.
+	DeploymentCleanupEnabled bool
+
+	// RegistrySweepDepot is the Depot API for the reverse reconciliation
+	// sweep. Must not be nil — pass depotclient.NewNoop() where Depot is
+	// not configured.
+	RegistrySweepDepot registrysweep.DepotAPI
+	// RegistryRepository is the registry repository, including its host. The
+	// caller must pass it only after asserting the repository is exclusive to
+	// this database; empty skips the image sweep.
+	RegistryRepository string
+	// DepotProjectPrefix is this environment's Depot project name prefix.
+	// The caller must pass it only after asserting the prefix is exclusive to
+	// this database; empty skips the Depot project sweep.
+	DepotProjectPrefix string
+
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -107,6 +129,9 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeploymentCleanup, "Heartbeats.DeploymentCleanup must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.RegistrySweep, "Heartbeats.RegistrySweep must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.RegistrySweepDepot, "RegistrySweepDepot must not be nil; use depotclient.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -158,6 +183,24 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	deploymentCleanupH, err := deploymentcleanup.New(deploymentcleanup.Config{
+		DB:        cfg.DB,
+		Heartbeat: cfg.Heartbeats.DeploymentCleanup,
+		Enabled:   cfg.DeploymentCleanupEnabled,
+	})
+	if err != nil {
+		return nil, err
+	}
+	registrySweepH, err := registrysweep.New(registrysweep.Config{
+		DB:                 cfg.DB,
+		Depot:              cfg.RegistrySweepDepot,
+		Repository:         cfg.RegistryRepository,
+		DepotProjectPrefix: cfg.DepotProjectPrefix,
+		Heartbeat:          cfg.Heartbeats.RegistrySweep,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	// The push is enabled only when ClickHouse (usage source) and Stripe
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
@@ -188,11 +231,13 @@ func New(cfg Config) (*Service, error) {
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
+		deploymentCleanup:              deploymentCleanupH,
 		idlePreview:                    idlePreviewH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,
 		ratelimitCleanup:               ratelimitCleanupH,
+		registrySweep:                  registrySweepH,
 	}, nil
 }
 
@@ -243,6 +288,20 @@ func (s *Service) RunDeployBillingPush(
 	req *hydrav1.RunDeployBillingPushRequest,
 ) (*hydrav1.RunDeployBillingPushResponse, error) {
 	return s.deployBilling.Handle(ctx, req)
+}
+
+func (s *Service) RunDeploymentCleanup(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeploymentCleanupRequest,
+) (*hydrav1.RunDeploymentCleanupResponse, error) {
+	return s.deploymentCleanup.Handle(ctx, req)
+}
+
+func (s *Service) RunRegistrySweep(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunRegistrySweepRequest,
+) (*hydrav1.RunRegistrySweepResponse, error) {
+	return s.registrySweep.Handle(ctx, req)
 }
 
 func (s *Service) RunScaleDownIdlePreviewDeployments(

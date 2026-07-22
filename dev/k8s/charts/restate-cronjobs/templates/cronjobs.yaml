@@ -1,5 +1,6 @@
 {{- $url := .Values.restateIngressUrl }}
 {{- range $name, $job := .Values.jobs }}
+{{- if or (not (hasKey $job "enabled")) $job.enabled }}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -37,4 +38,5 @@ spec:
                     -H "Content-Type: application/json" \
                     -H "idempotency-key: {{ $job.idempotencyKey }}" \
                     -d '{}'
+{{- end }}
 {{- end }}

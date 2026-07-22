@@ -41,6 +41,16 @@ var TerminalDeploymentStatuses = []DeploymentsStatus{
 	DeploymentsStatusCancelled,
 }
 
+// PrunableDeploymentStatuses enumerates non-recoverable terminal states.
+// Ready deployments may serve traffic, and stopped deployments remain
+// user-wakeable, so neither is safe to hard-delete.
+var PrunableDeploymentStatuses = []DeploymentsStatus{
+	DeploymentsStatusFailed,
+	DeploymentsStatusSkipped,
+	DeploymentsStatusSuperseded,
+	DeploymentsStatusCancelled,
+}
+
 // ProgressingDeploymentStatuses enumerates every status that represents
 // an in-flight deployment. Single source of truth for SQL queries that
 // cancel in-progress work (ListProgressingDeploymentsByEnvironmentId).

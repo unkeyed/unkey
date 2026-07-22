@@ -71,6 +71,24 @@ type CronServiceClient interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
+	// RunDeploymentCleanup hard-deletes deployments that reached a
+	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
+	// more than the retention window ago. Image tags are reconciled
+	// separately because multiple deployments may reference one tag. Stateless;
+	// key is the fixed slug "deployment-cleanup" so a paused/wedged invocation
+	// cannot block other handlers. Intended for a daily opt-in schedule.
+	RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
+	// RunRegistrySweep reconciles Depot against MySQL, in the direction the
+	// forward cleanup cannot: it enumerates Depot registry tags and Depot
+	// projects and deletes those whose deployment/project no longer exists in
+	// MySQL. This catches images and projects orphaned by delete flows that
+	// never called Depot. Everything not created by this control plane
+	// (unrecognized tag shape, foreign project-name prefix) is skipped.
+	// Image deletion is enabled only for a repository explicitly configured as
+	// exclusive to this database and unavailable as a prebuilt image source.
+	// The fixed "registry-sweep" key stores pagination progress. Intended for a
+	// weekly opt-in schedule.
+	RunRegistrySweep(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRegistrySweepRequest, *RunRegistrySweepResponse]
 }
 
 type cronServiceClient struct {
@@ -151,6 +169,22 @@ func (c *cronServiceClient) RunScaleDownIdlePreviewDeployments(opts ...sdk_go.Cl
 	return sdk_go.WithRequestType[*RunScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*RunScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.CronService", c.key, "RunScaleDownIdlePreviewDeployments", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeploymentCleanupRequest](sdk_go.Object[*RunDeploymentCleanupResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploymentCleanup", cOpts...))
+}
+
+func (c *cronServiceClient) RunRegistrySweep(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRegistrySweepRequest, *RunRegistrySweepResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunRegistrySweepRequest](sdk_go.Object[*RunRegistrySweepResponse](c.ctx, "hydra.v1.CronService", c.key, "RunRegistrySweep", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -194,6 +228,24 @@ type CronServiceIngressClient interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments() ingress.Requester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
+	// RunDeploymentCleanup hard-deletes deployments that reached a
+	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
+	// more than the retention window ago. Image tags are reconciled
+	// separately because multiple deployments may reference one tag. Stateless;
+	// key is the fixed slug "deployment-cleanup" so a paused/wedged invocation
+	// cannot block other handlers. Intended for a daily opt-in schedule.
+	RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
+	// RunRegistrySweep reconciles Depot against MySQL, in the direction the
+	// forward cleanup cannot: it enumerates Depot registry tags and Depot
+	// projects and deletes those whose deployment/project no longer exists in
+	// MySQL. This catches images and projects orphaned by delete flows that
+	// never called Depot. Everything not created by this control plane
+	// (unrecognized tag shape, foreign project-name prefix) is skipped.
+	// Image deletion is enabled only for a repository explicitly configured as
+	// exclusive to this database and unavailable as a prebuilt image source.
+	// The fixed "registry-sweep" key stores pagination progress. Intended for a
+	// weekly opt-in schedule.
+	RunRegistrySweep() ingress.Requester[*RunRegistrySweepRequest, *RunRegistrySweepResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -248,6 +300,16 @@ func (c *cronServiceIngressClient) RunDeployBillingPush() ingress.Requester[*Run
 func (c *cronServiceIngressClient) RunScaleDownIdlePreviewDeployments() ingress.Requester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "RunScaleDownIdlePreviewDeployments", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse](c.client, c.serviceName, "RunDeploymentCleanup", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunRegistrySweep() ingress.Requester[*RunRegistrySweepRequest, *RunRegistrySweepResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunRegistrySweepRequest, *RunRegistrySweepResponse](c.client, c.serviceName, "RunRegistrySweep", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -310,6 +372,24 @@ type CronServiceServer interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error)
+	// RunDeploymentCleanup hard-deletes deployments that reached a
+	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
+	// more than the retention window ago. Image tags are reconciled
+	// separately because multiple deployments may reference one tag. Stateless;
+	// key is the fixed slug "deployment-cleanup" so a paused/wedged invocation
+	// cannot block other handlers. Intended for a daily opt-in schedule.
+	RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error)
+	// RunRegistrySweep reconciles Depot against MySQL, in the direction the
+	// forward cleanup cannot: it enumerates Depot registry tags and Depot
+	// projects and deletes those whose deployment/project no longer exists in
+	// MySQL. This catches images and projects orphaned by delete flows that
+	// never called Depot. Everything not created by this control plane
+	// (unrecognized tag shape, foreign project-name prefix) is skipped.
+	// Image deletion is enabled only for a repository explicitly configured as
+	// exclusive to this database and unavailable as a prebuilt image source.
+	// The fixed "registry-sweep" key stores pagination progress. Intended for a
+	// weekly opt-in schedule.
+	RunRegistrySweep(ctx sdk_go.ObjectContext, req *RunRegistrySweepRequest) (*RunRegistrySweepResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -343,6 +423,12 @@ func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectCont
 func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploymentCleanup not implemented"), 501)
+}
+func (UnimplementedCronServiceServer) RunRegistrySweep(ctx sdk_go.ObjectContext, req *RunRegistrySweepRequest) (*RunRegistrySweepResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunRegistrySweep not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -370,5 +456,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunAuditLogOutboxCleanup", sdk_go.NewObjectHandler(srv.RunAuditLogOutboxCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
+	router = router.Handler("RunDeploymentCleanup", sdk_go.NewObjectHandler(srv.RunDeploymentCleanup))
+	router = router.Handler("RunRegistrySweep", sdk_go.NewObjectHandler(srv.RunRegistrySweep))
 	return router
 }

@@ -96,6 +96,11 @@ type DepotConfig struct {
 	// not customer environments. It keeps Depot projects from different Unkey
 	// deployments isolated from each other.
 	ProjectPrefix string `toml:"project_prefix" config:"default=builds-local"`
+
+	// ProjectPrefixExclusive reserves the entire "{prefix}-proj_*" namespace
+	// for this control-plane database, including against manual project names.
+	// Orphan project deletion stays disabled unless this is true.
+	ProjectPrefixExclusive bool `toml:"project_prefix_exclusive"`
 }
 
 // RegistryConfig holds container registry authentication configuration.
@@ -114,6 +119,12 @@ type RegistryConfig struct {
 	// Password is the registry password or authentication token.
 	// Should be stored securely and rotated regularly.
 	Password string `toml:"password"`
+
+	// Exclusive asserts that this repository is written only by deployments in
+	// this worker's database and cannot be selected as a prebuilt image source.
+	// Registry reconciliation stays disabled unless this is true because shared
+	// or externally referenced repositories cannot be swept safely by reference.
+	Exclusive bool `toml:"exclusive"`
 }
 
 // ClickHouseConfig holds ClickHouse connection configuration.
@@ -193,6 +204,18 @@ type HeartbeatConfig struct {
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
 	DeployBillingPushURL string `toml:"deploy_billing_push_url"`
+
+	// DeploymentCleanupURL is the Checkly heartbeat URL for the daily sweep
+	// that deletes terminal deployments past the retention window. When set, a
+	// heartbeat is sent after a successful sweep. Required when deployment
+	// cleanup is enabled.
+	DeploymentCleanupURL string `toml:"deployment_cleanup_url"`
+
+	// RegistrySweepURL is the Checkly heartbeat URL for the weekly reverse
+	// reconciliation that deletes orphaned Depot projects and, for exclusive
+	// repositories, registry tags. When set, a heartbeat is sent after a
+	// successful sweep. Required when either reconciliation namespace is enabled.
+	RegistrySweepURL string `toml:"registry_sweep_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -205,6 +228,13 @@ type HeartbeatConfig struct {
 type BillingConfig struct {
 	// StripeSecretKey authenticates meter-event writes to Stripe.
 	StripeSecretKey string `toml:"stripe_secret_key"`
+}
+
+// CleanupConfig gates destructive retention jobs independently of scheduling.
+type CleanupConfig struct {
+	// DeploymentEnabled allows permanent deletion of retained terminal
+	// deployments. It must be enabled explicitly per environment.
+	DeploymentEnabled bool `toml:"deployment_enabled"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.
@@ -290,6 +320,9 @@ type Config struct {
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
 
+	// Cleanup gates destructive retention handlers.
+	Cleanup CleanupConfig `toml:"cleanup"`
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.
 	Clock clock.Clock `toml:"-"`
@@ -331,28 +364,6 @@ func (c Config) GetBuildPlatform() (BuildPlatform, error) {
 	return parseBuildPlatform(c.BuildPlatformStr)
 }
 
-// GetRegistryConfig returns the registry configuration.
-//
-// This method returns the RegistryConfig from the main Config struct.
-// Should only be called after Validate() succeeds to ensure all required
-// fields are present.
-//
-// Returns RegistryConfig with repository, username, and password for container registry access.
-func (c Config) GetRegistryConfig() RegistryConfig {
-	return c.Registry
-}
-
-// GetDepotConfig returns the depot configuration.
-//
-// This method returns the DepotConfig from the main Config struct.
-// Should only be called after Validate() succeeds to ensure
-// depot configuration is complete and valid.
-//
-// Returns the DepotConfig containing API URL and project region.
-func (c Config) GetDepotConfig() DepotConfig {
-	return c.Depot
-}
-
 // Validate checks the configuration for required fields and logical consistency.
 //
 // This method performs comprehensive validation of all configuration sections
@@ -377,6 +388,32 @@ func (c *Config) Validate() error {
 	// Validate build platform format (only if configured)
 	if c.BuildPlatformStr != "" {
 		if _, err := parseBuildPlatform(c.BuildPlatformStr); err != nil {
+			return err
+		}
+	}
+
+	if c.Registry.Exclusive {
+		if err := assert.All(
+			assert.NotEmpty(c.Registry.Repository, "registry repository is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Registry.Password, "registry password is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when exclusive registry cleanup is enabled"),
+			assert.NotEmpty(c.Heartbeat.RegistrySweepURL, "registry sweep heartbeat is required when exclusive cleanup is enabled"),
+		); err != nil {
+			return err
+		}
+	}
+	if c.Depot.ProjectPrefixExclusive {
+		if err := assert.All(
+			assert.NotEmpty(c.Depot.ProjectPrefix, "Depot project prefix is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Registry.Password, "registry password is required when Depot project cleanup is enabled"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when Depot project cleanup is enabled"),
+			assert.NotEmpty(c.Heartbeat.RegistrySweepURL, "registry sweep heartbeat is required when Depot project cleanup is enabled"),
+		); err != nil {
+			return err
+		}
+	}
+	if c.Cleanup.DeploymentEnabled {
+		if err := assert.NotEmpty(c.Heartbeat.DeploymentCleanupURL, "deployment cleanup heartbeat is required when cleanup is enabled"); err != nil {
 			return err
 		}
 	}

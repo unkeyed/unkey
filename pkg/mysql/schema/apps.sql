@@ -18,3 +18,5 @@ CREATE TABLE `apps` (
 
 CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
 
+CREATE INDEX `apps_current_deployment_idx` ON `apps` (`current_deployment_id`);
+

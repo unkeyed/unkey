@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "registrysweep",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/registrysweep",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "//pkg/restate/restateutil",
+        "//svc/ctrl/internal/db",
+        "//svc/ctrl/internal/depotclient",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "registrysweep_test",
+    size = "small",
+    srcs = ["handler_test.go"],
+    embed = [":registrysweep"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

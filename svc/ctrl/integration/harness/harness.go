@@ -17,6 +17,7 @@ import (
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -38,6 +40,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -86,6 +89,11 @@ type Harness struct {
 	// to clock.New() (real time); tests that need to drive cutoffs can
 	// pass a *clock.TestClock via WithClock and assert against it here.
 	Clock clock.Clock
+
+	// DepotAPI is the fake Depot API wired into the registry sweep cron;
+	// seed images/projects and assert against DeletedTags() /
+	// DeletedProjects().
+	DepotAPI *FakeDepotAPI
 }
 
 // Option configures the test harness.
@@ -218,6 +226,8 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Unified cron service: every scheduled task runs as a handler on
 	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
 	// webhook is empty so quota-check skips notification calls.
+	depotAPI := NewFakeDepotAPI()
+
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
 		Clickhouse:                chClient,
@@ -226,8 +236,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		SlackQuotaCheckWebhookURL: "",
 		// Deploy billing push disabled in tests: nil reader + empty Stripe key
 		// make the handler a no-op.
-		BillingUsageReader: nil,
-		StripeSecretKey:    "",
+		BillingUsageReader:       nil,
+		StripeSecretKey:          "",
+		DeploymentCleanupEnabled: true,
+		RegistrySweepDepot:       depotAPI,
+		RegistryRepository:       "registry.depot.dev/testrepo",
+		DepotProjectPrefix:       "builds-test",
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:        healthcheck.NewNoop(),
 			KeyRefill:         healthcheck.NewNoop(),
@@ -235,6 +249,8 @@ func New(t *testing.T, opts ...Option) *Harness {
 			AuditLogExport:    healthcheck.NewNoop(),
 			AuditLogCleanup:   healthcheck.NewNoop(),
 			DeployBillingPush: healthcheck.NewNoop(),
+			DeploymentCleanup: healthcheck.NewNoop(),
+			RegistrySweep:     healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)
@@ -274,16 +290,33 @@ func New(t *testing.T, opts ...Option) *Harness {
 	buildSlotSvc := buildslot.New(buildslot.Config{
 		DB: database,
 	})
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	projectSvc, err := workerproject.New(workerproject.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+		Depot:     depotAPI,
+	})
+	require.NoError(t, err)
 
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
-	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc))
+	cleanupRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(10*time.Millisecond),
+		restate.WithMaxInterval(10*time.Millisecond),
+		restate.WithMaxAttempts(2),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
+		ConfigureHandler("RunDeploymentCleanup", cleanupRetry).
+		ConfigureHandler("RunRegistrySweep", cleanupRetry))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildSlotSvc))
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectSvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)
@@ -324,6 +357,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RestateIngress: restateCfg.IngressURL,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
+		DepotAPI:       depotAPI,
 	}
 }
 
