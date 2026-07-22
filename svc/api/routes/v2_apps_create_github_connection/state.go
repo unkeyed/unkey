@@ -25,17 +25,17 @@ import (
 // private key. Must match the TS `unkey-github-install-state:` prefix.
 const installStateKeyPrefix = "unkey-github-install-state:"
 
-// signer holds only the derived HMAC key, never the raw private key.
 type signer struct {
 	key []byte
 }
 
 // newSigner derives the HMAC key from the GitHub App private key PEM, matching
-// the dashboard: SHA256(prefix + PEM). The dashboard un-escapes literal "\n"
-// into real newlines before hashing (lib/env.ts), so we normalize the same way;
-// a PEM that already carries real newlines is unaffected.
+// the dashboard: SHA256(prefix + PEM). We normalize the PEM the same way the
+// dashboard does before hashing so the derived key is identical on both sides:
+//   - un-escape literal "\n" into real newlines (the dashboard's lib/env.ts),
+//   - trim surrounding whitespace
 func newSigner(privateKeyPEM string) *signer {
-	normalized := strings.ReplaceAll(privateKeyPEM, `\n`, "\n")
+	normalized := strings.TrimSpace(strings.ReplaceAll(privateKeyPEM, `\n`, "\n"))
 	sum := sha256.Sum256([]byte(installStateKeyPrefix + normalized))
 	return &signer{key: sum[:]}
 }
@@ -48,9 +48,7 @@ type payload struct {
 	WorkspaceID string
 	Nonce       string
 	ExpMs       int64
-	// ReturnTo routes the dashboard callback ("settings" or empty for the
-	// default select-repo step).
-	ReturnTo string
+	ReturnTo    string
 	// Repository ("owner/name"), when set, tells the callback to auto-connect
 	// the repo instead of showing the picker.
 	Repository string
@@ -60,8 +58,6 @@ type payload struct {
 	Source string
 }
 
-// sign returns the JSON state string to place in the GitHub install URL's
-// `state` query parameter.
 func (s *signer) sign(p payload) (string, error) {
 	fields := p.fields()
 
@@ -83,7 +79,6 @@ func (s *signer) sign(p payload) (string, error) {
 	return out, nil
 }
 
-// fields builds the signed claim map with only the defined fields present.
 func (p payload) fields() map[string]any {
 	fields := map[string]any{
 		"projectId":   p.ProjectID,

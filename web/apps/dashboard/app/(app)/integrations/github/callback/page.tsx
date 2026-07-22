@@ -4,7 +4,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 export default function Page() {
   const router = useRouter();
@@ -52,21 +52,23 @@ export default function Page() {
     },
   });
 
+  // OAuth code is single-use; fire once. A ref, not mutation.isIdle (which the
+  // strict-mode remount reads before the first mutate flips it), blocks a re-submit.
+  const submittedRef = useRef(false);
   useEffect(() => {
-    if (!state || installationIdNumber === null) {
+    if (!state || installationIdNumber === null || submittedRef.current) {
       return;
     }
+    submittedRef.current = true;
 
-    if (mutation.isIdle) {
-      // `code` is absent when an existing user returns from editing an
-      // already-authorized installation. The server only requires it when
-      // binding an installation the workspace does not already own.
-      mutation.mutate({
-        state,
-        installationId: installationIdNumber,
-        code: code ?? undefined,
-      });
-    }
+    // `code` is absent when an existing user returns from editing an
+    // already-authorized installation. The server only requires it when
+    // binding an installation the workspace does not already own.
+    mutation.mutate({
+      state,
+      installationId: installationIdNumber,
+      code: code ?? undefined,
+    });
   }, [mutation, state, installationIdNumber, code]);
 
   if (!state) {

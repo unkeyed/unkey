@@ -58,7 +58,7 @@ const stateSigningKey = (): Buffer | null => {
   // leaves the server and rotates with the GitHub App credentials.
   return crypto
     .createHash("sha256")
-    .update(`unkey-github-install-state:${env.UNKEY_GITHUB_PRIVATE_KEY_PEM}`)
+    .update(`unkey-github-install-state:${env.UNKEY_GITHUB_PRIVATE_KEY_PEM.trim()}`)
     .digest();
 };
 
@@ -167,11 +167,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
     defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
-          pk: app.githubRepoConnection.pk,
-          repositoryId: app.githubRepoConnection.repositoryId,
-          repositoryFullName: app.githubRepoConnection.repositoryFullName,
-          installationId: app.githubRepoConnection.installationId,
-        }
+        pk: app.githubRepoConnection.pk,
+        repositoryId: app.githubRepoConnection.repositoryId,
+        repositoryFullName: app.githubRepoConnection.repositoryFullName,
+        installationId: app.githubRepoConnection.installationId,
+      }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };

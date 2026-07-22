@@ -96,6 +96,7 @@ func TestCreateGithubConnectionSuccessfully(t *testing.T) {
 			require.Equal(t, project.ID, state["projectId"])
 			require.Equal(t, workspace.ID, state["workspaceId"])
 			require.Equal(t, "api", state["source"])
+			require.Equal(t, "settings", state["returnTo"])
 			require.NotEmpty(t, state["sig"])
 			require.NotEmpty(t, state["nonce"])
 			// No repository was requested, so it must be absent from the state.
