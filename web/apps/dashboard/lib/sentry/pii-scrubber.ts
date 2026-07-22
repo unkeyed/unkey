@@ -56,8 +56,7 @@ function scrubUrlPath(path: string): string {
       let decoded = segment;
       try {
         decoded = decodeURIComponent(segment);
-      } catch {
-      }
+      } catch {}
       if (decoded.replace(EMAIL_LIKE, REDACTED) !== decoded) {
         return REDACTED;
       }
@@ -248,8 +247,7 @@ type StepRunner = (step: () => void) => void;
 function isolate(step: () => void): void {
   try {
     step();
-  } catch {
-  }
+  } catch {}
 }
 
 function propagate(step: () => void): void {
@@ -268,8 +266,7 @@ function scrubRequestData(data: unknown): unknown {
   try {
     parsed = JSON.parse(data);
     isJson = true;
-  } catch {
-  }
+  } catch {}
 
   if (isJson && parsed && typeof parsed === "object") {
     return JSON.stringify(redactSensitiveValues(parsed));
