@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -56,15 +58,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	queryConfig := analytics.QueryConfig{
-		WorkspaceID:   p.WorkspaceID,
-		TableAliases:  ratelimitTableAliases,
-		AllowedTables: ratelimitAllowedTables,
+	securityFilters, err := h.buildSecurityFilters(ctx, p)
+	if err != nil {
+		return err
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query:                  req.Query,
-		Config:                 queryConfig,
-		InitialSecurityFilters: nil,
+		WorkspaceID:            p.WorkspaceID,
+		TableAliases:           ratelimitTableAliases,
+		AllowedTables:          ratelimitAllowedTables,
+		InitialSecurityFilters: securityFilters,
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			return h.authorize(ctx, p, parser.ExtractColumn("namespace_id"))
 		},
@@ -86,10 +89,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.Send(http.StatusOK, responseBytes)
 }
 
+func (h *Handler) buildSecurityFilters(ctx context.Context, p *principal.Principal) ([]queryparser.SecurityFilter, error) {
+	allowedNamespaceIDs := extractAllowedNamespaceIDs(p.Permissions)
+	if len(allowedNamespaceIDs) == 0 {
+		return []queryparser.SecurityFilter{}, nil
+	}
+	namespaceIDsFound, err := db.Query.FindRatelimitNamespacesByIDs(ctx, h.DB.RO(), db.FindRatelimitNamespacesByIDsParams{
+		WorkspaceID:  p.WorkspaceID,
+		NamespaceIds: allowedNamespaceIDs,
+	})
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to resolve ratelimit namespaces"))
+	}
+	if len(namespaceIDsFound) == 0 {
+		return []queryparser.SecurityFilter{}, nil
+	}
+	return []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: namespaceIDsFound}}, nil
+}
+
 func (h *Handler) authorize(ctx context.Context, p *principal.Principal, namespaceIDs []string) ([]queryparser.SecurityFilter, error) {
-	if len(namespaceIDs) == 0 || len(namespaceIDs) > 10 {
-		return nil, fault.New("rate limit analytics requires between one and ten namespace ids",
-			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()), fault.Public("Invalid analytics query"))
+	if len(namespaceIDs) == 0 {
+		wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Ratelimit, ResourceID: "*", Action: rbac.ReadAnalytics})
+		return nil, p.Authorize(wildcard)
 	}
 	namespaceIDsFound, err := db.Query.FindRatelimitNamespacesByIDs(ctx, h.DB.RO(), db.FindRatelimitNamespacesByIDsParams{
 		WorkspaceID:  p.WorkspaceID,
@@ -113,12 +134,30 @@ func (h *Handler) authorize(ctx context.Context, p *principal.Principal, namespa
 	if err := p.Authorize(rbac.Or(wildcard, rbac.And(checks...))); err != nil {
 		return nil, err
 	}
-	// Parenthesized injection guarantees an OR in caller SQL cannot escape this scope.
-	return []queryparser.SecurityFilter{{Column: "namespace_id", AllowedValues: namespaceIDs}}, nil
+	return nil, nil
 }
 
 func namespaceNotFound(namespaceID string) error {
 	return fault.New("ratelimit namespace not found",
 		fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
 		fault.Public(fmt.Sprintf("Namespace '%s' was not found.", namespaceID)))
+}
+
+func extractAllowedNamespaceIDs(permissions []string) []string {
+	if slices.Contains(permissions, "ratelimit.*.read_analytics") {
+		return nil
+	}
+
+	namespaceIDs := make([]string, 0)
+	for _, perm := range permissions {
+		pattern := strings.Split(perm, ".")
+		if len(pattern) != 3 {
+			continue
+		}
+		if pattern[0] != "ratelimit" || pattern[2] != "read_analytics" {
+			continue
+		}
+		namespaceIDs = append(namespaceIDs, pattern[1])
+	}
+	return namespaceIDs
 }

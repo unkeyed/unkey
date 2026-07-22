@@ -41,12 +41,10 @@ func TestExecuteAppliesFiltersFromBothPhases(t *testing.T) {
 	connection := &fakeConnection{}
 	manager := &fakeManager{connection: connection}
 	rows, err := Execute(context.Background(), manager, ExecuteRequest{
-		Query: "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
-		Config: QueryConfig{
-			WorkspaceID:   "ws_test",
-			TableAliases:  map[string]string{"events": "default.events"},
-			AllowedTables: []string{"default.events"},
-		},
+		Query:                  "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
+		WorkspaceID:            "ws_test",
+		TableAliases:           map[string]string{"events": "default.events"},
+		AllowedTables:          []string{"default.events"},
 		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "environment", AllowedValues: []string{"prod"}}},
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			require.Equal(t, []string{"requested"}, parser.ExtractColumn("namespace_id"))
@@ -66,12 +64,10 @@ func TestExecuteAppliesFiltersFromBothPhases(t *testing.T) {
 func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
 	connection := &fakeConnection{}
 	_, err := Execute(context.Background(), &fakeManager{connection: connection}, ExecuteRequest{
-		Query: "SELECT count(*) FROM events",
-		Config: QueryConfig{
-			WorkspaceID:   "ws_test",
-			TableAliases:  map[string]string{"events": "default.events"},
-			AllowedTables: []string{"default.events"},
-		},
+		Query:                  "SELECT count(*) FROM events",
+		WorkspaceID:            "ws_test",
+		TableAliases:           map[string]string{"events": "default.events"},
+		AllowedTables:          []string{"default.events"},
 		InitialSecurityFilters: []queryparser.SecurityFilter{{Column: "key_space_id", AllowedValues: []string{"ks_scoped"}}},
 		Policy: func(parser *queryparser.Parser) ([]queryparser.SecurityFilter, error) {
 			require.Equal(t, []string{"ks_scoped"}, parser.ExtractColumn("key_space_id"))
@@ -85,12 +81,10 @@ func TestExecuteMakesInitialFiltersVisibleToPolicy(t *testing.T) {
 // unscoped analytics connection or inject an empty workspace predicate.
 func TestExecuteRequiresParserWorkspaceID(t *testing.T) {
 	_, err := Execute(context.Background(), &fakeManager{}, ExecuteRequest{
-		Query: "SELECT count(*) FROM events",
-		Config: QueryConfig{
-			WorkspaceID:   "",
-			TableAliases:  nil,
-			AllowedTables: nil,
-		},
+		Query:                  "SELECT count(*) FROM events",
+		WorkspaceID:            "",
+		TableAliases:           nil,
+		AllowedTables:          nil,
 		InitialSecurityFilters: nil,
 		Policy:                 nil,
 	})

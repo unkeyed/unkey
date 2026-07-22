@@ -13,17 +13,12 @@ import (
 // The executor reparses the original query with those filters before execution.
 type QueryPolicy func(*queryparser.Parser) ([]queryparser.SecurityFilter, error)
 
-// QueryConfig describes the stable route policy for one analytics query.
-type QueryConfig struct {
-	WorkspaceID   string
-	TableAliases  map[string]string
-	AllowedTables []string
-}
-
 // ExecuteRequest describes one constrained analytics query execution.
 type ExecuteRequest struct {
 	Query                  string
-	Config                 QueryConfig
+	WorkspaceID            string
+	TableAliases           map[string]string
+	AllowedTables          []string
 	InitialSecurityFilters []queryparser.SecurityFilter
 	Policy                 QueryPolicy
 }
@@ -31,18 +26,18 @@ type ExecuteRequest struct {
 // Execute resolves the connection first, then parses, applies route policy and
 // executes. Returned policy filters are applied by reparsing before execution.
 func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest) ([]map[string]any, error) {
-	if err := assert.NotEmpty(req.Config.WorkspaceID, "analytics parser workspace ID is required"); err != nil {
+	if err := assert.NotEmpty(req.WorkspaceID, "analytics parser workspace ID is required"); err != nil {
 		return nil, err
 	}
 
-	conn, settings, err := manager.GetConnection(ctx, req.Config.WorkspaceID)
+	conn, settings, err := manager.GetConnection(ctx, req.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
 	parserConfig := queryparser.Config{
-		WorkspaceID:       req.Config.WorkspaceID,
-		TableAliases:      req.Config.TableAliases,
-		AllowedTables:     req.Config.AllowedTables,
+		WorkspaceID:       req.WorkspaceID,
+		TableAliases:      req.TableAliases,
+		AllowedTables:     req.AllowedTables,
 		SecurityFilters:   append([]queryparser.SecurityFilter(nil), req.InitialSecurityFilters...),
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
 		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,

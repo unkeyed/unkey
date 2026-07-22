@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -23,19 +22,14 @@ func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 	require.Equal(t, 400, res.Status)
 }
 
-// Test400_InvalidQueriesAndNamespaceRequirements guarantees malformed SQL,
-// missing positive namespace filters, excess IDs, and physical tables fail.
-func Test400_InvalidQueriesAndNamespaceRequirements(t *testing.T) {
+// Test400_InvalidQueries guarantees malformed SQL, unsupported namespace
+// predicates, and physical tables fail.
+func Test400_InvalidQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
 	id := createNamespace(t, h, workspaceID)
-	eleven := make([]string, 11)
-	for i := range eleven {
-		eleven[i] = fmt.Sprintf("'%s'", uid.New(uid.RatelimitNamespacePrefix))
-	}
 	tests := []string{
-		"", "SELECT FROM", "SELECT * FROM ratelimits_v1", fmt.Sprintf("SELECT * FROM ratelimits_v1 WHERE namespace_id != '%s'", id),
-		"SELECT * FROM ratelimits_v1 WHERE namespace_id IN (" + strings.Join(eleven, ",") + ")",
+		"", "SELECT FROM", fmt.Sprintf("SELECT * FROM ratelimits_v1 WHERE namespace_id != '%s'", id),
 		fmt.Sprintf("SELECT * FROM default.ratelimits_raw_v2 WHERE namespace_id = '%s'", id),
 	}
 	for _, query := range tests {
@@ -44,11 +38,11 @@ func Test400_InvalidQueriesAndNamespaceRequirements(t *testing.T) {
 	}
 }
 
-// TestAuthorizeAllowsExactlyTenUniqueNamespaces locks the inclusive upper
-// bound for namespace authorization.
-func TestAuthorizeAllowsExactlyTenUniqueNamespaces(t *testing.T) {
+// TestAuthorizeAllowsManyUniqueNamespaces guarantees namespace authorization no
+// longer has a route-specific upper bound.
+func TestAuthorizeAllowsManyUniqueNamespaces(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	ids := make([]string, 10)
+	ids := make([]string, 11)
 	for i := range ids {
 		ids[i] = createNamespace(t, h, workspaceID)
 	}

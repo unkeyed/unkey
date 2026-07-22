@@ -41,9 +41,23 @@ func Test200_QualifiedNamespacePredicate(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 }
 
-// Test200_WildcardUnionCannotEscapeNamedNamespace guarantees the authorized
-// namespace filter is injected into every UNION branch.
-func Test200_WildcardUnionCannotEscapeNamedNamespace(t *testing.T) {
+// Test200_WildcardCanReadWorkspaceWithoutNamespacePredicate guarantees
+// wildcard analytics permission matches verification analytics semantics.
+func Test200_WildcardCanReadWorkspaceWithoutNamespacePredicate(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	namespaceID := createNamespace(t, h, workspaceID)
+	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
+	h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: workspaceID, NamespaceID: namespaceID, Identifier: "user", Passed: true, Limit: 10})
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT namespace_id FROM ratelimits_v1"})
+		require.Equal(c, 200, res.Status)
+		require.Equal(c, []map[string]any{{"namespace_id": namespaceID}}, res.Body.Data)
+	}, 30*time.Second, time.Second)
+}
+
+// Test200_WildcardUnionReadsWorkspaceBranch guarantees wildcard analytics
+// permission can read an unscoped UNION branch within the caller workspace.
+func Test200_WildcardUnionReadsWorkspaceBranch(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowed, other := createNamespace(t, h, workspaceID), createNamespace(t, h, workspaceID)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
@@ -55,9 +69,7 @@ func Test200_WildcardUnionCannotEscapeNamedNamespace(t *testing.T) {
 		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: query})
 		require.Equal(c, 200, res.Status)
 		require.NotEmpty(c, res.Body.Data)
-		for _, row := range res.Body.Data {
-			require.Equal(c, allowed, row["namespace_id"])
-		}
+		require.Contains(c, res.Body.Data, map[string]any{"namespace_id": other})
 	}, 30*time.Second, time.Second)
 }
 
@@ -73,6 +85,23 @@ func Test200_ScopedPermissionCannotEscapeWithOr(t *testing.T) {
 	}
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT namespace_id FROM ratelimits_v1 WHERE namespace_id = '%s' OR 1=1", allowed)})
+		require.Equal(c, 200, res.Status)
+		require.Equal(c, []map[string]any{{"namespace_id": allowed}}, res.Body.Data)
+	}, 30*time.Second, time.Second)
+}
+
+// Test200_ScopedPermissionInjectsNamespaceFilter guarantees scoped ratelimit
+// analytics permission constrains a query without a caller namespace predicate.
+func Test200_ScopedPermissionInjectsNamespaceFilter(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	allowed := createNamespace(t, h, workspaceID)
+	other := createNamespace(t, h, workspaceID)
+	rootKey := h.CreateRootKey(workspaceID, "ratelimit."+allowed+".read_analytics")
+	for _, id := range []string{allowed, other} {
+		h.RatelimitEvents.Buffer(schema.Ratelimit{RequestID: uid.New(uid.RequestPrefix), Time: time.Now().UnixMilli(), WorkspaceID: workspaceID, NamespaceID: id, Identifier: id, Passed: true, Limit: 10})
+	}
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT namespace_id FROM ratelimits_v1"})
 		require.Equal(c, 200, res.Status)
 		require.Equal(c, []map[string]any{{"namespace_id": allowed}}, res.Body.Data)
 	}, 30*time.Second, time.Second)

@@ -80,12 +80,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
-		Query: req.Query,
-		Config: analytics.QueryConfig{
-			WorkspaceID:   principal.WorkspaceID,
-			TableAliases:  verificationTableAliases,
-			AllowedTables: verificationAllowedTables,
-		},
+		Query:                  req.Query,
+		WorkspaceID:            principal.WorkspaceID,
+		TableAliases:           verificationTableAliases,
+		AllowedTables:          verificationAllowedTables,
 		InitialSecurityFilters: securityFilters,
 		Policy: func(parser *chquery.Parser) ([]chquery.SecurityFilter, error) {
 			permissionChecks := []rbac.PermissionQuery{rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})}
