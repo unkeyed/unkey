@@ -96,7 +96,7 @@ func TestExportBatch_ClickHouseFailureLeavesOutboxRowPending(t *testing.T) {
 		event.EventID,
 	).Scan(&deletedAt)
 	require.NoError(t, err)
-	require.True(t, deletedAt.Valid, "the pending row must be exportable on retry")
+	require.True(t, deletedAt.Valid, "the event must be exported and marked for deletion")
 }
 
 func TestBuildCHRows(t *testing.T) {
