@@ -63,7 +63,7 @@ jobs:
   # remain wakeable and are retained. The fixed slug also owns reconciliation
   # pagination state.
   deployment-cleanup:
-    schedule: "30 2 * * *"
+    schedule: "0 14 * * *"
     urlPath: "hydra.v1.CronService/deployment-cleanup/RunDeploymentCleanup/send"
     idempotencyKey: "deployment-cleanup-$(date -u +%Y-%m-%d)"
 
