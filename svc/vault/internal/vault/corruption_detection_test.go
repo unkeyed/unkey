@@ -12,12 +12,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// TestCorruption_SingleBitFlip verifies that flipping any single bit in the
-// ciphertext is detected.
-//
-// AES-GCM authentication should detect any modification to the ciphertext.
-// This test systematically flips each bit position to verify comprehensive
-// coverage.
+// TestCorruption_SingleBitFlip verifies that AES-GCM never releases plaintext
+// when any authenticated ciphertext bit has changed.
 func TestCorruption_SingleBitFlip(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
@@ -77,11 +73,9 @@ func TestCorruption_SingleBitFlip(t *testing.T) {
 				})
 				decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-				res, err := service.Decrypt(ctx, decReq)
-				if err == nil {
-					require.NotEqual(t, data, res.Msg.GetPlaintext(),
-						"single bit flip at byte %d bit %d was not detected", byteIdx, bitIdx)
-				}
+				_, err = service.Decrypt(ctx, decReq)
+				require.Error(t, err, "single bit flip at byte %d bit %d must fail decryption", byteIdx, bitIdx)
+				require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 			})
 		}
 	}
@@ -90,8 +84,7 @@ func TestCorruption_SingleBitFlip(t *testing.T) {
 // TestCorruption_TruncationAtVariousLengths verifies that truncation at any
 // point is detected.
 //
-// Tests truncating the ciphertext at various positions to ensure all truncation
-// attacks are detected.
+// A truncated encrypted envelope must never release plaintext.
 func TestCorruption_TruncationAtVariousLengths(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
@@ -126,11 +119,9 @@ func TestCorruption_TruncationAtVariousLengths(t *testing.T) {
 			})
 			decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-			res, err := service.Decrypt(ctx, decReq)
-			if err == nil {
-				require.NotEqual(t, data, res.Msg.GetPlaintext(),
-					"truncation by %d bytes was not detected", truncateBy)
-			}
+			_, err = service.Decrypt(ctx, decReq)
+			require.Error(t, err, "truncation by %d bytes must fail decryption", truncateBy)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}
 }
@@ -203,10 +194,8 @@ func TestCorruption_AppendedBytes(t *testing.T) {
 	}
 }
 
-// TestCorruption_NonceModification verifies that modifying the nonce is detected.
-//
-// The nonce is critical for AES-GCM security. Any modification should cause
-// decryption to fail gracefully with an error, not panic.
+// TestCorruption_NonceModification verifies that AES-GCM never releases
+// plaintext when the nonce paired with authenticated ciphertext has changed.
 func TestCorruption_NonceModification(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
@@ -272,12 +261,9 @@ func TestCorruption_NonceModification(t *testing.T) {
 			})
 			decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-			// This should return an error, not panic
-			res, err := service.Decrypt(ctx, decReq)
-			if err == nil {
-				require.NotEqual(t, data, res.Msg.GetPlaintext(),
-					"nonce modification (%s) was not detected", tc.name)
-			}
+			_, err = service.Decrypt(ctx, decReq)
+			require.Error(t, err, "nonce modification (%s) must fail decryption", tc.name)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}
 }
@@ -285,8 +271,8 @@ func TestCorruption_NonceModification(t *testing.T) {
 // TestCorruption_CiphertextSwap verifies that swapping ciphertext between
 // encryptions is detected.
 //
-// An attacker might try to swap the ciphertext component between two different
-// encrypted messages. This should be detected.
+// AES-GCM authentication binds the ciphertext to its nonce and key, so combining
+// components from different messages must not release plaintext.
 func TestCorruption_CiphertextSwap(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
@@ -343,11 +329,9 @@ func TestCorruption_CiphertextSwap(t *testing.T) {
 	})
 	decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	res, err := service.Decrypt(ctx, decReq)
-	if err == nil {
-		require.NotEqual(t, dataA, res.Msg.GetPlaintext(), "swapped ciphertext should not decrypt to A")
-		require.NotEqual(t, dataB, res.Msg.GetPlaintext(), "swapped ciphertext should not decrypt to B")
-	}
+	_, err = service.Decrypt(ctx, decReq)
+	require.Error(t, err, "swapped ciphertext must fail decryption")
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 // TestCorruption_EmptyCiphertext verifies that empty ciphertext is rejected.
@@ -385,11 +369,9 @@ func TestCorruption_EmptyCiphertext(t *testing.T) {
 	})
 	decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	res, err := service.Decrypt(ctx, decReq)
-	if err == nil {
-		require.NotEqual(t, data, res.Msg.GetPlaintext(),
-			"empty ciphertext should not decrypt to original data")
-	}
+	_, err = service.Decrypt(ctx, decReq)
+	require.Error(t, err, "empty ciphertext must fail decryption")
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 // TestCorruption_WrongEncryptionKeyID verifies that changing the key ID
@@ -446,11 +428,9 @@ func TestCorruption_WrongEncryptionKeyID(t *testing.T) {
 			})
 			decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-			res, err := service.Decrypt(ctx, decReq)
-			if err == nil {
-				require.NotEqual(t, data, res.Msg.GetPlaintext(),
-					"wrong key ID (%q) should not decrypt to original data", fakeID)
-			}
+			_, err = service.Decrypt(ctx, decReq)
+			require.Error(t, err, "wrong key ID (%q) must fail decryption", fakeID)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})
 	}
 }
