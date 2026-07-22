@@ -22,10 +22,11 @@ export const getSetupIntent = workspaceProcedure
   .input(
     z.object({
       setupIntentId: z.string(),
-      // Optional sessionId path: needed for the post-checkout flow where the
-      // workspace doesn't yet have a stripeCustomerId. The session must
-      // belong to this workspace and reference the same setup intent.
-      sessionId: z.string().optional(),
+      // Needed post-checkout, before the workspace has a stripeCustomerId.
+      // The session must be the workspace's and name this setup intent.
+      // Empty is rejected rather than falling back to the workspace customer,
+      // which would silently skip that check.
+      sessionId: z.string().min(1, "Stripe checkout session ID is required").optional(),
     }),
   )
   .output(setupIntentSchema)

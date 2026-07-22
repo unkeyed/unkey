@@ -21,7 +21,7 @@ export const getCheckoutSession = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
-      sessionId: z.string(),
+      sessionId: z.string().min(1, "Stripe checkout session ID is required"),
     }),
   )
   .output(checkoutSessionSchema)

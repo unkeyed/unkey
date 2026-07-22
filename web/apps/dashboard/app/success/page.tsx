@@ -200,7 +200,9 @@ function SuccessContent() {
           if (!isMounted) {
             return;
           }
-          setError(`Failed to set up payment method: ${errorMessage}`);
+          // The server message is already redacted and user-facing. Wrapping
+          // it here would stutter.
+          setError(error instanceof Error ? error.message : "Failed to set up the payment method");
           setLoading(false);
           return;
         }

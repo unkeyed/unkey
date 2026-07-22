@@ -4,7 +4,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
-import { expandableId, retrieveWorkspaceCheckoutSession } from "../utils/stripe";
+import { expandableId, retrieveCompletedWorkspaceCheckoutSession } from "../utils/stripe";
 
 export const updateWorkspaceStripeCustomer = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -20,7 +20,7 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
     // the session was created for this workspace. This prevents an attacker
     // from tricking a logged-in user into binding the attacker's Stripe
     // customer to the victim's workspace via a /success?session_id=... link.
-    const session = await retrieveWorkspaceCheckoutSession({
+    const session = await retrieveCompletedWorkspaceCheckoutSession({
       stripe,
       sessionId: input.sessionId,
       workspaceId: ctx.workspace.id,
