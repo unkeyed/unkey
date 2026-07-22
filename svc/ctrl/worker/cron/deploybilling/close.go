@@ -189,6 +189,7 @@ func (h *Handler) finalizeDrafts(
 			}
 		},
 	)
+
 	// Each failed step defers just its own workspace; the rest still finalize.
 	for _, stepErr := range stepErrs {
 		logger.Error("deploy billing close step failed; deferring workspace", "error", stepErr)

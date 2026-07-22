@@ -766,7 +766,7 @@
     {
       "destination": "/platform/apis/features/authorization/introduction",
       "source": "/security/roles"
-    }
+    } 
   ],
   "styling": {
     "codeblocks": {
