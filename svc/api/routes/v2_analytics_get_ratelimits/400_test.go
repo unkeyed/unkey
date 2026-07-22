@@ -22,14 +22,13 @@ func Test400_NoAuthHeaderFailsValidation(t *testing.T) {
 	require.Equal(t, 400, res.Status)
 }
 
-// Test400_InvalidQueries guarantees malformed SQL, unsupported namespace
-// predicates, and physical tables fail.
+// Test400_InvalidQueries guarantees malformed SQL and physical tables fail.
 func Test400_InvalidQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "ratelimit.*.read_analytics")
 	id := createNamespace(t, h, workspaceID)
 	tests := []string{
-		"", "SELECT FROM", fmt.Sprintf("SELECT * FROM ratelimits_v1 WHERE namespace_id != '%s'", id),
+		"", "SELECT FROM",
 		fmt.Sprintf("SELECT * FROM default.ratelimits_raw_v2 WHERE namespace_id = '%s'", id),
 	}
 	for _, query := range tests {

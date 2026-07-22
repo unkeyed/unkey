@@ -110,6 +110,10 @@ func Test200_ScopedPermissionInjectsNamespaceFilter(t *testing.T) {
 			require.Equal(c, 200, res.Status)
 			require.Empty(c, res.Body.Data)
 		}
+
+		res = testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: fmt.Sprintf("SELECT namespace_id FROM ratelimits_v1 WHERE namespace_id != '%s'", allowed)})
+		require.Equal(c, 200, res.Status)
+		require.Empty(c, res.Body.Data)
 	}, 30*time.Second, time.Second)
 }
 
