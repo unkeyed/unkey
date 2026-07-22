@@ -109,6 +109,21 @@ const (
 	// NotFound indicates the requested app does not exist.
 	UnkeyDataErrorsAppNotFound URN = "err:unkey:data:app_not_found"
 
+	// Environment
+
+	// NotFound indicates the requested environment does not exist.
+	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
+
+	// Deployment
+
+	// NotFound indicates the requested deployment does not exist.
+	UnkeyDataErrorsDeploymentNotFound URN = "err:unkey:data:deployment_not_found"
+
+	// Policy
+
+	// NotFound indicates the requested policy does not exist.
+	UnkeyDataErrorsPolicyNotFound URN = "err:unkey:data:policy_not_found"
+
 	// Migration
 
 	// NotFound indicates the requested migration was not found.
@@ -191,6 +206,10 @@ const (
 	UnkeyAppErrorsValidationInvalidInput URN = "err:unkey:application:invalid_input"
 	// AssertionFailed indicates a runtime assertion or invariant check failed.
 	UnkeyAppErrorsValidationAssertionFailed URN = "err:unkey:application:assertion_failed"
+	// InvalidEnvironmentSettings indicates the environment's runtime or regional
+	// settings would fail the deploy pipeline, so the deployment is rejected at
+	// create time instead of failing mid-build.
+	UnkeyAppErrorsValidationInvalidEnvironmentSettings URN = "err:unkey:application:invalid_environment_settings"
 
 	// Protection
 
@@ -201,6 +220,27 @@ const (
 
 	// PreconditionFailed indicates a precondition check failed.
 	UnkeyAppErrorsPreconditionPreconditionFailed URN = "err:unkey:application:precondition_failed"
+	// DeploymentNotReady indicates the target deployment is not usable: either it
+	// never reached ready status or it is shutting down and cannot serve traffic.
+	UnkeyAppErrorsPreconditionDeploymentNotReady URN = "err:unkey:application:deployment_not_ready"
+	// DeploymentNotProduction indicates the action is only allowed on production
+	// deployments.
+	UnkeyAppErrorsPreconditionDeploymentNotProduction URN = "err:unkey:application:deployment_not_production"
+	// DeploymentNoCurrent indicates the app has no current deployment to act over.
+	UnkeyAppErrorsPreconditionDeploymentNoCurrent URN = "err:unkey:application:deployment_no_current"
+	// DeploymentIsCurrent indicates the target deployment is already the current
+	// deployment.
+	UnkeyAppErrorsPreconditionDeploymentIsCurrent URN = "err:unkey:application:deployment_is_current"
+	// DeploymentNotRunning indicates the target deployment is not running.
+	UnkeyAppErrorsPreconditionDeploymentNotRunning URN = "err:unkey:application:deployment_not_running"
+	// DeploymentIsStopping indicates a stop is already in flight for the target
+	// deployment.
+	UnkeyAppErrorsPreconditionDeploymentIsStopping URN = "err:unkey:application:deployment_is_stopping"
+	// DeploymentNotStopped indicates the target deployment is not stopped.
+	UnkeyAppErrorsPreconditionDeploymentNotStopped URN = "err:unkey:application:deployment_not_stopped"
+	// DeploymentIsProduction indicates the action does not apply to production
+	// deployments, which cannot be stopped or started directly.
+	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
 
 	// ----------------
 	// UnkeyFrontlineErrors
@@ -227,6 +267,14 @@ const (
 	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:frontline:platform:deployment_selection_failed"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
 	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:frontline:capacity:no_running_instances"
+	// DeploymentOffline represents a 503 error - the deployment was stopped or the
+	// project was cancelled, so it is intentionally offline. Distinct from the
+	// transient NoRunningInstances seen mid-deploy or mid-scale.
+	UnkeyFrontlineErrorsRoutingDeploymentOffline URN = "err:frontline:capacity:deployment_offline"
+	// SpendLimitReached represents a 402 error - the workspace reached its Compute
+	// spend limit and its deployments were paused. Resumes when the budget is
+	// raised or removed, so it is a billing gate rather than an outage.
+	UnkeyFrontlineErrorsRoutingSpendLimitReached URN = "err:frontline:capacity:spend_limit_reached"
 
 	// Internal
 

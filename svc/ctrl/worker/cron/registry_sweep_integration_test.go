@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -58,7 +59,7 @@ func TestRunDeploymentCleanup_ReconcilesDepotResources_Integration(t *testing.T)
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldEnough.UnixMilli(),
 		UpdatedAt:     sql.NullInt64{Int64: oldEnough.UnixMilli(), Valid: true},
 	})
@@ -74,7 +75,7 @@ func TestRunDeploymentCleanup_ReconcilesDepotResources_Integration(t *testing.T)
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 		CreatedAt:     oldEnough.UnixMilli(),
 		UpdatedAt:     sql.NullInt64{Int64: oldEnough.UnixMilli(), Valid: true},
 	})

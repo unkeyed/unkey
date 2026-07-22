@@ -2,63 +2,204 @@ package deploybilling
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	restate "github.com/restatedev/sdk-go"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// pushConcurrency bounds how many workspaces we push to the provider at once.
-// Pushing one by one is slow for large tenant counts; pushing all at once risks
-// the provider's rate limits, so we fan out in batches of this size.
-const pushConcurrency = 16
+// Handle computes month-to-date Deploy usage for the billing period (the VO
+// key, "YYYY-MM") and fans out one push invocation per billable workspace,
+// then awaits each child so a failed push withholds the orchestrator heartbeat.
+// Each push runs, retries, and fails on its own; the pushed quantity is
+// absolute, so re-runs and overlapping ticks converge.
+func (h *Handler) Handle(
+	ctx restate.ObjectContext,
+	_ *hydrav1.RunDeployBillingPushRequest,
+) (*hydrav1.RunDeployBillingPushResponse, error) {
+	// Task-prefixed VO key ("deploy-billing-push-YYYY-MM") keeps this off the
+	// other period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare
+	// key, so old in-flight invocations still parse during a rolling deploy.
+	period := strings.TrimPrefix(restate.Key(ctx), "deploy-billing-push-")
+	logger.Info("running deploy billing push", "billing_period", period)
+
+	if h.usage == nil {
+		logger.Info("deploy billing push disabled (no usage reader configured)")
+		return &hydrav1.RunDeployBillingPushResponse{}, nil
+	}
+
+	p, err := billingperiod.Parse(period)
+	if err != nil {
+		return nil, fmt.Errorf("invalid billing period %q: %w", period, err)
+	}
+
+	nowTime, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get current time: %w", err)
+	}
+	// The ClickHouse usage query is bounded in milliseconds; the Stripe meter
+	// event timestamp is unix seconds. Both come from the one journaled "now"
+	// so the window and the event agree.
+	nowMillis := nowTime.UnixMilli()
+	nowUnixSeconds := nowTime.Unix()
+
+	tasks, workspacesWithUsage, err := h.resolvePushTasks(ctx, period, p, nowMillis, nowUnixSeconds)
+	if err != nil {
+		return nil, err
+	}
+
+	// Dispatch each workspace's push, then await outcomes so a failed child
+	// withholds the orchestrator heartbeat. Each push still runs in its own VO
+	// with independent retries; awaiting only surfaces success/failure here.
+	type pushFuture = restate.ResponseFuture[*hydrav1.PushWorkspaceUsageResponse]
+	pushFutures := make([]pushFuture, len(tasks))
+	for i, task := range tasks {
+		pushFutures[i] = hydrav1.NewDeployBillingPushServiceClient(ctx, task.workspaceID).
+			PushWorkspaceUsage().RequestFuture(task.pushRequest())
+	}
+	pushFailed := 0
+	for i, fut := range pushFutures {
+		if _, err := fut.Response(); err != nil {
+			pushFailed++
+			logger.Error("deploy billing push child failed",
+				"billing_period", period,
+				"workspace_id", tasks[i].workspaceID,
+				"error", err,
+			)
+		}
+	}
+
+	logger.Info("deploy billing push complete",
+		"billing_period", period,
+		"workspaces_with_usage", workspacesWithUsage,
+		"workspaces_dispatched", len(tasks),
+		"workspaces_push_failed", pushFailed,
+	)
+
+	if pushFailed == 0 {
+		if err := h.pingHeartbeat(ctx); err != nil {
+			return nil, err
+		}
+	} else {
+		logger.Error("deploy billing push withheld heartbeat after child failures",
+			"billing_period", period,
+			"workspaces_push_failed", pushFailed,
+		)
+	}
+	return &hydrav1.RunDeployBillingPushResponse{}, nil
+}
+
+// pingHeartbeat reports a successful run to the monitoring heartbeat.
+func (h *Handler) pingHeartbeat(ctx restate.ObjectContext) error {
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
+		return fmt.Errorf("send heartbeat: %w", err)
+	}
+	return nil
+}
 
 // pushTask is one eligible workspace push, resolved after filtering so the
-// fan-out loop only deals with work that should actually happen.
+// fan-out only deals with work that should actually happen.
 type pushTask struct {
 	workspaceID string
 	req         billingmeter.PushRequest
 }
 
-// pushAll fans the per-workspace pushes out in batches of pushConcurrency,
-// awaiting each batch before starting the next. Returns the number of
-// workspaces and meter events pushed.
-func (h *Handler) pushAll(ctx restate.ObjectContext, tasks []pushTask) (workspacesPushed, metersPushed int, err error) {
-	for start := 0; start < len(tasks); start += pushConcurrency {
-		end := min(start+pushConcurrency, len(tasks))
-		batch := tasks[start:end]
-
-		futures := make([]restate.RunAsyncFuture[int], len(batch))
-		for i, task := range batch {
-			futures[i] = restate.RunAsync(ctx, func(rc restate.RunContext) (int, error) {
-				n, err := h.pusher.Push(rc, task.req)
-				if err != nil {
-					return 0, err
-				}
-				// Shadow numbers, logged even when the noop pusher sent nothing.
-				logger.Info("deploy billing push",
-					"workspace_id", task.workspaceID,
-					"stripe_customer_id", task.req.StripeCustomerID,
-					"cpu_seconds", task.req.Values.CPUSeconds,
-					"memory_gib_seconds", task.req.Values.MemoryGiBSeconds,
-					"egress_gib", task.req.Values.EgressGiB,
-					"disk_gib_seconds", task.req.Values.DiskGiBSeconds,
-					"meters_pushed", n,
-				)
-				return n, nil
-			}, restate.WithName("push "+task.workspaceID))
-		}
-
-		for i, fut := range futures {
-			n, pushErr := fut.Result()
-			if pushErr != nil {
-				return 0, 0, fmt.Errorf("push usage for workspace %s: %w", batch[i].workspaceID, pushErr)
-			}
-			if n > 0 {
-				workspacesPushed++
-				metersPushed += n
-			}
-		}
+// pushRequest builds the protobuf request for a per-workspace push invocation.
+func (t pushTask) pushRequest() *hydrav1.PushWorkspaceUsageRequest {
+	return &hydrav1.PushWorkspaceUsageRequest{
+		StripeCustomerId: t.req.StripeCustomerID,
+		CpuSeconds:       t.req.Values.CPUSeconds,
+		MemoryGibSeconds: t.req.Values.MemoryGiBSeconds,
+		EgressGib:        t.req.Values.EgressGiB,
+		DiskGibSeconds:   t.req.Values.DiskGiBSeconds,
+		ActiveKeys:       t.req.Values.ActiveKeys,
+		EventTimestamp:   t.req.Timestamp,
 	}
-	return workspacesPushed, metersPushed, nil
+}
+
+// resolvePushTasks computes billable usage for [p.Start(), endMillis) and
+// returns one task per workspace that should be pushed, stamping the meter
+// events with eventTimestamp. Shared by the hourly push (end = timestamp =
+// now) and the month-end close (end = period end, timestamp just inside the
+// closed period so the "last"-formula meters bill the final total).
+//
+// It does not push: the caller fans out the tasks to the per-workspace push
+// service and awaits the outcomes.
+func (h *Handler) resolvePushTasks(
+	ctx restate.ObjectContext,
+	period string,
+	p billingperiod.Period,
+	endMillis int64,
+	eventTimestamp int64,
+) (tasks []pushTask, workspacesWithUsage int, err error) {
+	// Whole fleet (no id scoping): billable workspaces are filtered below.
+	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(valuesByWorkspace) == 0 {
+		logger.Info("no deploy usage this period", "billing_period", period)
+		return nil, 0, nil
+	}
+
+	// Stable order so the journaled fan-out steps replay identically.
+	workspaceIDs := make([]string, 0, len(valuesByWorkspace))
+	for id := range valuesByWorkspace {
+		workspaceIDs = append(workspaceIDs, id)
+	}
+	sort.Strings(workspaceIDs)
+
+	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForDeployBillingByIDsRow, error) {
+		return h.db.ListWorkspacesForDeployBillingByIDs(rc, workspaceIDs)
+	}, restate.WithName("fetch workspace billing identities"))
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch workspace billing identities: %w", err)
+	}
+
+	workspacesByID := make(map[string]db.ListWorkspacesForDeployBillingByIDsRow, len(workspaces))
+	for _, w := range workspaces {
+		workspacesByID[w.ID] = w
+	}
+
+	tasks = make([]pushTask, 0, len(workspaceIDs))
+	for _, id := range workspaceIDs {
+		values := valuesByWorkspace[id]
+		if !values.Positive() {
+			continue
+		}
+
+		w, ok := workspacesByID[id]
+		if !ok {
+			continue
+		}
+		// A disabled workspace is still billed: usage already incurred is owed
+		// regardless of the workspace's current state. The only blocker is a
+		// missing Stripe customer, since there is nothing to map the usage onto.
+		if !w.StripeCustomerID.Valid || w.StripeCustomerID.String == "" {
+			logger.Info("workspace has deploy usage but no stripe customer; skipping",
+				"workspace_id", id,
+				"billing_period", period,
+			)
+			continue
+		}
+
+		tasks = append(tasks, pushTask{
+			workspaceID: id,
+			req: billingmeter.PushRequest{
+				StripeCustomerID: w.StripeCustomerID.String,
+				Values:           values,
+				Timestamp:        eventTimestamp,
+			},
+		})
+	}
+
+	return tasks, len(valuesByWorkspace), nil
 }

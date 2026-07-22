@@ -8,7 +8,6 @@ import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
-import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
@@ -34,6 +33,7 @@ import { queryRolesPermissions } from "./authorization/roles/permissions/query-p
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
+import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryUsage } from "./billing/query-usage";
 import { createApp } from "./deploy/app/create";
@@ -120,6 +120,8 @@ import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 import { updateProject } from "./deploy/project/update";
+import { createSharedSecret } from "./share/create";
+import { revealSharedSecret } from "./share/reveal";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -127,20 +129,11 @@ import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
+import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
-import { createIdentity } from "./identity/create";
-import { deleteIdentity } from "./identity/delete";
-import { getIdentityById } from "./identity/getById";
-import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
-import { searchIdentities } from "./identity/search";
-import { searchIdentitiesWithRelations } from "./identity/searchWithRelations";
-import { updateIdentityMetadata } from "./identity/updateMetadata";
-import { updateIdentityRatelimit } from "./identity/updateRatelimit";
-import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
-import { deleteKeys } from "./key/delete";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
@@ -149,15 +142,7 @@ import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
 import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
-import { updateKeyRbac } from "./key/rbac/update-rbac";
-import { rerollKey, rerollRootKey } from "./key/reroll";
-import { updateKeysEnabled } from "./key/updateEnabled";
-import { updateKeyExpiration } from "./key/updateExpiration";
-import { updateKeyMetadata } from "./key/updateMetadata";
-import { updateKeyName } from "./key/updateName";
-import { updateKeyOwner } from "./key/updateOwnerId";
-import { updateKeyRatelimit } from "./key/updateRatelimit";
-import { updateKeyRemaining } from "./key/updateRemaining";
+import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
@@ -194,7 +179,6 @@ import { connectRoleToKey } from "./rbac/connectRoleToKey";
 import { createPermission } from "./rbac/createPermission";
 import { createRole } from "./rbac/createRole";
 import { deletePermission } from "./rbac/deletePermission";
-import { deleteRole } from "./rbac/deleteRole";
 import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
 import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { updatePermission } from "./rbac/updatePermission";
@@ -215,6 +199,8 @@ import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
+import { linkDeploySubscription } from "./stripe/linkDeploySubscription";
+import { seedTestCustomer } from "./stripe/seedTestCustomer";
 import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
@@ -237,25 +223,18 @@ import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
+  share: t.router({
+    create: createSharedSecret,
+    reveal: revealSharedSecret,
+  }),
   key: t.router({
-    create: createKey,
-    delete: deleteKeys,
-    reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     update: t.router({
-      enabled: updateKeysEnabled,
-      expiration: updateKeyExpiration,
-      metadata: updateKeyMetadata,
-      name: updateKeyName,
-      ownerId: updateKeyOwner,
-      ratelimit: updateKeyRatelimit,
-      remaining: updateKeyRemaining,
       rbac: t.router({
-        update: updateKeyRbac,
         roles: t.router({
           search: searchKeysRoles,
           query: queryKeysRoles,
@@ -301,7 +280,6 @@ export const router = t.router({
       llmSearch: keysLlmSearch,
       list: queryKeysList,
       listLlmSearch: apiKeysLlmSearch,
-      enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
     }),
     overview: t.router({
@@ -331,8 +309,10 @@ export const router = t.router({
     getSetupIntent,
     updateWorkspaceStripeCustomer,
     subscribeDeploy,
+    linkDeploySubscription,
     changeDeployPlan,
     cancelDeploy,
+    seedTestCustomer,
     getDeploySubscription,
     getDeployPlans,
     getDeployEntitlement,
@@ -373,7 +353,6 @@ export const router = t.router({
     createPermission: createPermission,
     createRole: createRole,
     deletePermission: deletePermission,
-    deleteRole: deleteRole,
     disconnectPermissionFromRole: disconnectPermissionFromRole,
     disconnectRoleFromKey: disconnectRoleFromKey,
     updatePermission: updatePermission,
@@ -417,6 +396,8 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
     queryDeployUsage,
+    getDeployBudget,
+    setDeployBudget,
   }),
   audit: t.router({
     logs: fetchAuditLog,
@@ -447,19 +428,9 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
-    searchWithRelations: searchIdentitiesWithRelations,
-    create: createIdentity,
-    delete: deleteIdentity,
-    query: queryIdentities,
-    search: searchIdentities,
-    getById: getIdentityById,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
-    }),
-    update: t.router({
-      metadata: updateIdentityMetadata,
-      ratelimit: updateIdentityRatelimit,
     }),
   }),
   deploy: t.router({
@@ -532,6 +503,7 @@ export const router = t.router({
     }),
     environment: t.router({
       list: listEnvironments,
+      listAll: listAllEnvironments,
     }),
     envVar: t.router({
       list: listEnvVars,

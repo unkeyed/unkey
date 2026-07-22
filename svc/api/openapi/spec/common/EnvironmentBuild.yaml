@@ -1,0 +1,39 @@
+type: object
+description: |
+  Build settings that control how the app is built.
+  Omitted until the environment has build settings.
+required:
+  - rootDirectory
+  - watchPaths
+  - autoDeploy
+properties:
+  dockerfile:
+    type: string
+    description: |
+      Path to the Dockerfile used to build the app, if any.
+    example: Dockerfile
+  rootDirectory:
+    type: string
+    description: |
+      The directory the app is built from. "." for the repository root.
+    example: .
+  buildCommand:
+    type: string
+    description: |
+      Overrides the build command auto-detected by Railpack, so monorepos can
+      scope the build to a single app. Omitted when left to auto-detection or
+      for Dockerfile builds.
+    example: pnpm --filter api build
+  watchPaths:
+    type: array
+    items:
+      type: string
+    description: |
+      Paths that trigger a rebuild when changed.
+    example: ["src/**"]
+  autoDeploy:
+    type: boolean
+    description: |
+      Whether pushes automatically trigger a deployment.
+    example: true
+additionalProperties: false

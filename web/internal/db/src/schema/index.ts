@@ -6,9 +6,11 @@ export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
 export * from "./quota";
+export * from "./workspace_billing";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
+export * from "./shared_secrets";
 
 // Deployment platform tables
 export * from "./projects";

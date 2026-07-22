@@ -98,8 +98,7 @@ type DepotConfig struct {
 	ProjectPrefix string `toml:"project_prefix" config:"default=builds-local"`
 
 	// ProjectPrefixExclusive reserves the entire "{prefix}-proj_*" namespace
-	// for this control-plane database, including against manual project names.
-	// Orphan project deletion stays disabled unless this is true.
+	// for this control-plane database. Orphan project deletion requires this.
 	ProjectPrefixExclusive bool `toml:"project_prefix_exclusive"`
 }
 
@@ -122,8 +121,6 @@ type RegistryConfig struct {
 
 	// Exclusive asserts that this repository is written only by deployments in
 	// this worker's database and cannot be selected as a prebuilt image source.
-	// Registry reconciliation stays disabled unless this is true because shared
-	// or externally referenced repositories cannot be swept safely by reference.
 	Exclusive bool `toml:"exclusive"`
 }
 
@@ -204,10 +201,17 @@ type HeartbeatConfig struct {
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
 	DeployBillingPushURL string `toml:"deploy_billing_push_url"`
+	// DeployBillingCloseURL is the Checkly heartbeat URL for the month-end
+	// Deploy billing close. Optional.
+	DeployBillingCloseURL string `toml:"deploy_billing_close_url"`
 
-	// DeploymentCleanupURL is the Checkly heartbeat URL for deployment resource
-	// pruning. The heartbeat is sent only after deployment deletion and Depot
-	// reconciliation both succeed. Optional - if empty, no heartbeat is sent.
+	// DeploySpendCheckURL is the Checkly heartbeat URL for the Compute spend-cap
+	// check orchestrator. When set, a heartbeat is sent after a successful run.
+	// Optional - if empty, no heartbeat is sent.
+	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
+
+	// DeploymentCleanupURL receives one heartbeat after database pruning and
+	// external reconciliation both succeed. Optional.
 	DeploymentCleanupURL string `toml:"deployment_cleanup_url"`
 }
 
@@ -229,6 +233,15 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+}
+
+// EmailConfig holds transactional email (Resend) configuration. Used by the
+// spend-cap check to send budget alerts. Disabled (logs instead of sending)
+// unless ResendAPIKey is set. Sender and subject come from the published
+// template, so there is no From to configure here.
+type EmailConfig struct {
+	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
+	ResendAPIKey string `toml:"resend_api_key"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -306,6 +319,14 @@ type Config struct {
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
 
+	// Email configures transactional email (Resend) for budget alerts.
+	Email EmailConfig `toml:"email"`
+
+	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
+	// emails (budget-alert recipients). Empty resolves no recipients, so the
+	// check logs crossings but sends no email.
+	WorkOSAPIKey string `toml:"workos_api_key"`
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.
 	Clock clock.Clock `toml:"-"`
@@ -345,6 +366,28 @@ func parseBuildPlatform(buildPlatform string) (BuildPlatform, error) {
 // or an error if the platform string is invalid.
 func (c Config) GetBuildPlatform() (BuildPlatform, error) {
 	return parseBuildPlatform(c.BuildPlatformStr)
+}
+
+// GetRegistryConfig returns the registry configuration.
+//
+// This method returns the RegistryConfig from the main Config struct.
+// Should only be called after Validate() succeeds to ensure all required
+// fields are present.
+//
+// Returns RegistryConfig with repository, username, and password for container registry access.
+func (c Config) GetRegistryConfig() RegistryConfig {
+	return c.Registry
+}
+
+// GetDepotConfig returns the depot configuration.
+//
+// This method returns the DepotConfig from the main Config struct.
+// Should only be called after Validate() succeeds to ensure
+// depot configuration is complete and valid.
+//
+// Returns the DepotConfig containing API URL and project region.
+func (c Config) GetDepotConfig() DepotConfig {
+	return c.Depot
 }
 
 // Validate checks the configuration for required fields and logical consistency.

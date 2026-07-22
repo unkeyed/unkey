@@ -16,9 +16,15 @@ jobs:
     urlPath: "hydra.v1.CronService/$(date -u +%Y-%m-%d)/RunKeyRefill/send"
     idempotencyKey: "key-refill-$(date -u +%Y-%m-%d)"
 
+  # VO key is prefixed with the task slug so the monthly quota check does not
+  # share a serialization queue with the hourly billing push and the per-minute
+  # spend check, which are also keyed by billing period. A bare "YYYY-MM" key
+  # made all three serialize on one virtual object. The handler strips the
+  # prefix back to "YYYY-MM"; it also still accepts a bare key, so an in-flight
+  # invocation keyed the old way during a deploy keeps parsing.
   quota-check:
     schedule: "0 15 * * *"
-    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunQuotaCheck/send"
+    urlPath: "hydra.v1.CronService/quota-check-$(date -u +%Y-%m)/RunQuotaCheck/send"
     idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"
 
   audit-log-export:
@@ -39,13 +45,16 @@ jobs:
     urlPath: "hydra.v1.CronService/audit-log-outbox-cleanup/RunAuditLogOutboxCleanup/send"
     idempotencyKey: "audit-log-outbox-cleanup-$(date -u +%Y-%m-%d)"
 
-  # Hourly month-to-date Deploy usage push to Stripe. Keyed by billing period
-  # (YYYY-MM) so ticks for the same month serialize; the pushed quantity is the
+  # Hourly month-to-date Deploy usage push to Stripe. VO key is the billing
+  # period behind a task-slug prefix ("deploy-billing-push-YYYY-MM") so ticks
+  # for the same month serialize with each other but not with the quota check or
+  # the spend check, which are also period-keyed. The pushed quantity is the
   # absolute month-to-date total (Stripe meters aggregate with formula "last"),
-  # so retries and overlapping ticks are harmless.
+  # so retries and overlapping ticks are harmless. The handler strips the prefix
+  # and still accepts a bare key for backward compatibility during a deploy.
   deploy-billing-push:
     schedule: "0 * * * *"
-    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
+    urlPath: "hydra.v1.CronService/deploy-billing-push-$(date -u +%Y-%m)/RunDeployBillingPush/send"
     idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
 
   # Prunes expired deployment resources: first terminal deployment rows older
@@ -62,3 +71,36 @@ jobs:
     schedule: "* * * * *"
     urlPath: "hydra.v1.CronService/idle-preview-deployments/RunScaleDownIdlePreviewDeployments/send"
     idempotencyKey: "idle-preview-deployments-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Month-end Deploy billing close, backup for the invoice.created webhook that
+  # normally runs it at the period roll. Keyed by the CLOSED period (yesterday's
+  # month, hence the epoch math). The idempotency key carries the run timestamp
+  # so this is a fresh retry, not a replay of the webhook's invocation. Runs at
+  # 00:30 UTC to beat Stripe's ~1h draft auto-finalize.
+  #
+  # NOTE: local/test schedule; the production cron lives in the infra repo too.
+  deploy-billing-close:
+    schedule: "30 0 1 * *"
+    urlPath: "hydra.v1.CronService/$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)/RunDeployBillingClose/send"
+    idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)-backup-$(date -u +%Y-%m-%dT%H%M)"
+
+  # Deploy spend-cap check: prices each budgeted workspace's month-to-date
+  # usage, emails budget alerts (50/75/100%), and stops compute at 100% when
+  # the workspace opted in. VO key is the CURRENT billing period behind a
+  # task-slug prefix ("deploy-spend-check-YYYY-MM") so the per-workspace checks
+  # serialize on one orchestrator VO for the month without sharing that VO with
+  # the quota check or the billing push (both also period-keyed); a bare
+  # "YYYY-MM" key made all three collide on one virtual object. The handler
+  # strips the prefix and still accepts a bare key for backward compatibility
+  # during a deploy. The idempotency key is distinct PER TICK (down to the
+  # minute), not per period: a per-period key
+  # would dedupe every run in the month onto one invocation, so the check would
+  # fire once a month instead of every cadence.
+  #
+  # NOTE: local/test schedule runs every 3 minutes so spend-cap behavior is
+  # observable in dev without hammering the cluster every minute. Production
+  # cadence (every minute) lives in the infra repo.
+  deploy-spend-check:
+    schedule: "*/3 * * * *"
+    urlPath: "hydra.v1.CronService/deploy-spend-check-$(date -u +%Y-%m)/RunDeploySpendCheck/send"
+    idempotencyKey: "deploy-spend-check-$(date -u +%Y-%m-%dT%H:%M)"

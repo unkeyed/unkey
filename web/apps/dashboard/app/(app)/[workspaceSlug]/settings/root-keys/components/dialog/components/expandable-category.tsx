@@ -2,8 +2,8 @@
 
 import { CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { CheckedState } from "@radix-ui/react-checkbox";
 import { CaretRight } from "@unkey/icons";
+import type { CheckedState } from "@unkey/ui";
 import { Checkbox } from "@unkey/ui";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 
@@ -13,7 +13,7 @@ export type ExpandableCategoryProps = {
   checked: CheckedState | undefined;
   setChecked: (checked: CheckedState) => void;
   count: number;
-} & Omit<ComponentPropsWithoutRef<typeof CollapsibleTrigger>, "children" | "asChild">;
+} & Omit<ComponentPropsWithoutRef<typeof CollapsibleTrigger>, "children" | "render">;
 
 const ExpandableCategory = forwardRef<
   ElementRef<typeof CollapsibleTrigger>,
@@ -36,7 +36,7 @@ const ExpandableCategory = forwardRef<
         ref={ref}
         {...props}
         className={cn(
-          "flex items-center justify-start gap-3 pl-2 pr-2.5 [&[data-state=open]>svg]:rotate-90 w-full",
+          "flex items-center justify-start gap-3 pl-2 pr-2.5 [&[data-panel-open]>svg]:rotate-90 w-full",
           props.className,
         )}
       >

@@ -43,7 +43,45 @@ func Parse(key string) (Period, error) {
 	return Period{Year: year, Month: time.Month(month)}, nil
 }
 
+// From returns the Period that a given instant falls in (its calendar month in
+// UTC). Callers derive "the current period" from a journaled Now() so a stale
+// invocation can tell it is running outside the month it was keyed for.
+func From(t time.Time) Period {
+	u := t.UTC()
+	return Period{Year: u.Year(), Month: u.Month()}
+}
+
+// Key renders the Period back to its "YYYY-MM" string form, the inverse of
+// Parse. Used to address period-scoped virtual-object state keys.
+func (p Period) Key() string {
+	return fmt.Sprintf("%04d-%02d", p.Year, int(p.Month))
+}
+
+// Prev returns the calendar month before p. Used to reclaim the previous
+// period's period-scoped state keys once a new period begins.
+func (p Period) Prev() Period {
+	return From(p.Start().AddDate(0, -1, 0))
+}
+
 // Start is midnight UTC on the first day of the month.
 func (p Period) Start() time.Time {
 	return time.Date(p.Year, p.Month, 1, 0, 0, 0, 0, time.UTC)
+}
+
+// End is midnight UTC on the first day of the following month: the exclusive
+// upper bound of the period. Deploy billing close assumes every subscription
+// is anchored at midnight UTC on the 1st; the dashboard sets that anchor at
+// checkout, and Deploy billing has no pre-existing subscriptions without it.
+func (p Period) End() time.Time {
+	return p.Start().AddDate(0, 1, 0)
+}
+
+// CloseAllowed reports whether month-end close may run. Wall clock past p.End()
+// is enough. Otherwise stripePeriodEnd from invoice.created proves Stripe
+// rolled the period (test clocks can be ahead of wall clock).
+func (p Period) CloseAllowed(now time.Time, stripePeriodEndUnix int64) bool {
+	if !now.Before(p.End()) {
+		return true
+	}
+	return stripePeriodEndUnix >= p.End().Unix()
 }

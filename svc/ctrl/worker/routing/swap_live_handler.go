@@ -9,6 +9,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -39,7 +40,7 @@ func (s *Service) SwapLiveDeployment(
 			if findErr != nil {
 				return sql.NullString{}, fmt.Errorf("find target deployment: %w", findErr)
 			}
-			if deployment.Status != db.DeploymentsStatusReady || deployment.DesiredState != db.DeploymentsDesiredStateRunning {
+			if deployment.Status != mysqltype.DeploymentsStatusReady || deployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning {
 				return sql.NullString{}, restate.TerminalError(fmt.Errorf(
 					"target deployment must be ready and running, got status=%s desired_state=%s",
 					deployment.Status,

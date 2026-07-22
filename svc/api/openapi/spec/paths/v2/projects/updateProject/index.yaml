@@ -15,7 +15,7 @@ post:
   operationId: projects.updateProject
   x-speakeasy-name-override: updateProject
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

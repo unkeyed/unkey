@@ -30,6 +30,7 @@
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "delete_me",
+          "omit_unused_structs": true,
           "rename": {
             "quotum": "Quotas"
           },
@@ -115,6 +116,22 @@
                 "type": "ContainerStatus",
                 "package": "dbtype",
                 "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
+              "column": "deployments.status",
+              "go_type": {
+                "type": "DeploymentsStatus",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
+              "column": "deployments.desired_state",
+              "go_type": {
+                "type": "DeploymentsDesiredState",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
             }
           ]

@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listPrunableDeployments = `-- name: ListPrunableDeployments :many
@@ -24,9 +26,9 @@ LIMIT ?
 `
 
 type ListPrunableDeploymentsParams struct {
-	Statuses []DeploymentsStatus `db:"statuses"`
-	Cutoff   sql.NullInt64       `db:"cutoff"`
-	Limit    int32               `db:"limit"`
+	Statuses []mysqltype.DeploymentsStatus `db:"statuses"`
+	Cutoff   sql.NullInt64                 `db:"cutoff"`
+	Limit    int32                         `db:"limit"`
 }
 
 // ListPrunableDeployments returns a bounded batch of deployments that are

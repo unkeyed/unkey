@@ -1,8 +1,13 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
-import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
+import { deployBillingConfig, findDeployItems, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import {
+  createApiCancelSchedule,
+  getApiCancelSchedule,
+  isPendingSchedule,
+} from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -65,18 +70,51 @@ export const changeDeployPlan = workspaceProcedure
       return;
     }
 
-    const newPriceId = config.planFeePriceIds[input.plan];
-    try {
-      // DEPLOY_PLANS is ordered lowest to highest, so plan order doubles as
-      // the upgrade/downgrade direction.
-      const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
+    // A pending API-plan cancellation is a schedule whose next phase snapshots
+    // the CURRENT Compute items — left in place, it would revert the plan
+    // change at the period boundary. Release it, apply the change, then
+    // recreate it from the updated items so the pending cancellation survives.
+    const apiCancelSchedule = await getApiCancelSchedule(stripe, sub);
+    const pendingApiCancel = apiCancelSchedule !== null && isPendingSchedule(apiCancelSchedule);
+    if (pendingApiCancel && apiCancelSchedule) {
+      await stripe.subscriptionSchedules.release(apiCancelSchedule.id);
+    }
 
+    const restoreApiCancel = async () => {
+      const updated = await stripe.subscriptions.retrieve(sub.id);
+      const deployItemIds = new Set(
+        findDeployItems(config, updated.items.data).map((item) => item.id),
+      );
+      await createApiCancelSchedule(
+        stripe,
+        sub.id,
+        updated.items.data.filter((item) => deployItemIds.has(item.id)),
+      );
+    };
+
+    const newPriceId = config.planFeePriceIds[input.plan];
+    const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
+
+    try {
       await stripe.subscriptionItems.update(planFeeItem.id, {
         price: newPriceId,
         proration_behavior: isDowngrade ? "none" : "always_invoice",
         payment_behavior: "error_if_incomplete",
       });
     } catch (err) {
+      if (pendingApiCancel) {
+        // The item is unchanged (the update failed), so put the pending
+        // cancellation back. Best-effort: losing it means the API plan keeps
+        // billing until the user cancels again, not a wrong charge.
+        try {
+          await restoreApiCancel();
+        } catch (restoreErr) {
+          console.error("Failed to restore pending API cancellation after plan-change error", {
+            subscriptionId: sub.id,
+            error: restoreErr instanceof Error ? restoreErr.message : restoreErr,
+          });
+        }
+      }
       if (
         err instanceof Stripe.errors.StripeCardError ||
         err instanceof Stripe.errors.StripeError
@@ -91,14 +129,30 @@ export const changeDeployPlan = workspaceProcedure
       throw err;
     }
 
+    if (pendingApiCancel) {
+      // The plan change already went through, so a throw here would skip the
+      // DB write below and a same-plan retry would short-circuit before ever
+      // recreating the schedule. Best-effort instead: losing the pending
+      // cancellation means the API plan keeps billing until the user cancels
+      // again, not a wrong charge.
+      try {
+        await restoreApiCancel();
+      } catch (restoreErr) {
+        console.error("Failed to restore pending API cancellation after plan change", {
+          subscriptionId: sub.id,
+          error: restoreErr instanceof Error ? restoreErr.message : restoreErr,
+        });
+      }
+    }
+
     // One transaction so the plan write and its audit log commit together; a
     // failure in either rolls back the other. Written optimistically; the
     // subscription.updated webhook reconciles deploy_plan to the same value.
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
-        .set({ deployPlan: input.plan })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .update(schema.workspaceBilling)
+        .set({ plan: input.plan })
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },

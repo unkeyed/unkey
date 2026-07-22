@@ -1,5 +1,9 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
+import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { SortingState } from "@tanstack/react-table";
@@ -84,7 +88,6 @@ function enrichLogs(
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
 
 // The enrichment row (from api_requests_raw_v2) for a ratelimit event is the
 // request record, whose `time` is slightly later than the ratelimit-decision
@@ -128,7 +131,7 @@ export function useRatelimitLogsQuery({
   // either changes we reset pagination and clear the realtime/enrichment
   // buffers, since cached rows no longer belong to the new result set.
   const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    () => `${serializeFilters(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
@@ -374,31 +377,20 @@ export function useRatelimitLogsQuery({
       ? Math.max(1, Math.ceil(totalCount / limit))
       : queryPage + (pageRowCount >= limit ? 1 : 0);
 
-  // Clamp page to valid range once data has loaded. The logData guard keeps a
-  // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
-  // totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!logData) {
-      return;
-    }
-    if (queryPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [logData, queryPage, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    data: logData,
+    setPage,
+  });
 
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      queryClient.ratelimit.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, queryClient.ratelimit.logs.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      queryClient.ratelimit.logs.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
   // Fetch enrichment whenever new historical data arrives
   useEffect(() => {
@@ -531,15 +523,7 @@ export function useRatelimitLogsQuery({
     }
   }, [startPolling, setPage]);
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   const isInitialLoading = isLoading && !logData;
   const isNavigating = isFetching && !isInitialLoading;

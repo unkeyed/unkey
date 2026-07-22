@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/tui"
 )
 
@@ -35,7 +36,11 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 	workspaceID := cmd.RequireString("workspace")
 	out := tui.New(os.Stdout)
 
-	database, err := db.New(db.Config{PrimaryDSN: cmd.RequireString("database-primary"), ReadOnlyDSN: ""})
+	database, err := db.New(db.Config{
+		PrimaryDSN:  cmd.RequireString("database-primary"),
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
+	})
 	if err != nil {
 		return fmt.Errorf("connect to MySQL: %w", err)
 	}
@@ -43,17 +48,17 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		_ = database.Close()
 	}()
 
-	ws, err := db.Query.FindWorkspaceByID(ctx, database.RW(), workspaceID)
-	if err != nil {
-		return fmt.Errorf("find workspace %s: %w", workspaceID, err)
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fmt.Errorf("find workspace billing %s: %w", workspaceID, err)
 	}
 
-	if !cmd.Bool("keep-stripe") && ws.StripeCustomerID.Valid && ws.StripeCustomerID.String != "" {
+	if !cmd.Bool("keep-stripe") && billing.StripeCustomerID.Valid && billing.StripeCustomerID.String != "" {
 		sc, err := newClient(cmd)
 		if err != nil {
 			return err
 		}
-		customerID := ws.StripeCustomerID.String
+		customerID := billing.StripeCustomerID.String
 		customer, err := sc.V1Customers.Retrieve(ctx, customerID, nil)
 		switch {
 		case err != nil && isResourceMissing(err):
@@ -102,6 +107,7 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		MaxMemoryMibPerInstance:     4_096,
 		MaxStorageMibPerInstance:    10_240,
 		MaxConcurrentBuilds:         1,
+		MaxReplicasPerRegion:        4,
 		WorkspaceID:                 workspaceID,
 	}); err != nil {
 		return fmt.Errorf("reset quota row: %w", err)

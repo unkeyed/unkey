@@ -35,7 +35,7 @@ func newSession(t *testing.T, method, path string) (*zen.Session, *httptest.Resp
 	return sess, w
 }
 
-func TestErrorMiddleware_500_LogsRichContext(t *testing.T) {
+func TestErrorMiddleware_500_LogsRichContextAndHidesInternalDetails(t *testing.T) {
 	h := loggertest.Install(t)
 
 	sess, rec := newSession(t, http.MethodPost, "/v2/keys.verifyKey?debug=1")
@@ -61,6 +61,9 @@ func TestErrorMiddleware_500_LogsRichContext(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code,
 		"unmapped fault errors must produce a 500")
+	require.Contains(t, rec.Body.String(), "Something went wrong.")
+	require.NotContains(t, rec.Body.String(), "db connection refused")
+	require.NotContains(t, rec.Body.String(), "could not look up key")
 
 	r := h.Find(t, "api error")
 	attrs := loggertest.FlatAttrs(r)

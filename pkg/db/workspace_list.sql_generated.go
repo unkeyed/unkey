@@ -11,8 +11,8 @@ import (
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT
-   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.deploy_spend_suspended, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
 WHERE w.id > ?
@@ -28,8 +28,8 @@ type ListWorkspacesRow struct {
 // ListWorkspaces
 //
 //	SELECT
-//	   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-//	   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+//	   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.deploy_spend_suspended, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+//	   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
 //	WHERE w.id > ?
@@ -56,6 +56,9 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Workspace.StripeSubscriptionID,
 			&i.Workspace.DeployPlan,
 			&i.Workspace.DeployPlanOverride,
+			&i.Workspace.DeploySpendBudgetCents,
+			&i.Workspace.DeploySpendBudgetStop,
+			&i.Workspace.DeploySpendSuspended,
 			&i.Workspace.BetaFeatures,
 			&i.Workspace.Subscriptions,
 			&i.Workspace.Enabled,
@@ -78,6 +81,7 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Quotas.MaxMemoryMibPerInstance,
 			&i.Quotas.MaxStorageMibPerInstance,
 			&i.Quotas.MaxConcurrentBuilds,
+			&i.Quotas.MaxReplicasPerRegion,
 		); err != nil {
 			return nil, err
 		}

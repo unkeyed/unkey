@@ -11,12 +11,14 @@ type Service struct {
 	db             db.Database
 	domainCache    cache.Cache[string, db.CustomDomain]
 	challengeCache cache.Cache[string, db.AcmeChallenge]
+	bearer         string
 }
 
 type Config struct {
 	DB             db.Database
 	DomainCache    cache.Cache[string, db.CustomDomain]
 	ChallengeCache cache.Cache[string, db.AcmeChallenge]
+	Bearer         string
 }
 
 func New(cfg Config) *Service {
@@ -25,5 +27,6 @@ func New(cfg Config) *Service {
 		db:                              cfg.DB,
 		domainCache:                     cfg.DomainCache,
 		challengeCache:                  cfg.ChallengeCache,
+		bearer:                          cfg.Bearer,
 	}
 }

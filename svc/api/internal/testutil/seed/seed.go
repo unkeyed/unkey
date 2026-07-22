@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -268,8 +270,8 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		EnvironmentID:    req.ID,
 		Port:             8080,
-		CpuMillicores:    100,
-		MemoryMib:        128,
+		CpuMillicores:    250,
+		MemoryMib:        256,
 		StorageMib:       0,
 		Command:          nil,
 		Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
@@ -672,12 +674,20 @@ type CreatePermissionRequest struct {
 
 // CreateDeploymentRequest configures the deployment to create.
 type CreateDeploymentRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	AppID         string
-	EnvironmentID string
-	GitBranch     string
+	ID                     string
+	WorkspaceID            string
+	ProjectID              string
+	AppID                  string
+	EnvironmentID          string
+	Status                 mysqltype.DeploymentsStatus
+	DesiredState           mysqltype.DeploymentsDesiredState
+	GitBranch              string
+	GitCommitSha           string
+	GitCommitMessage       string
+	GitCommitAuthorHandle  string
+	GitCommitAuthorAvatar  string
+	GitCommitTimestamp     int64
+	ForkRepositoryFullName string
 }
 
 // CreateDeployment creates a deployment within a project and environment.
@@ -687,6 +697,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	require.NoError(s.t, assert.NotEmpty(req.ProjectID, "Deployment ProjectID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "Deployment EnvironmentID must be set"))
 
+	status := req.Status
+	if status == "" {
+		status = mysqltype.DeploymentsStatusPending
+	}
+
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
 		ID:                            req.ID,
@@ -695,25 +710,25 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		GitCommitSha:                  sql.NullString{Valid: false},
+		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{Valid: false},
-		GitCommitAuthorHandle:         sql.NullString{Valid: false},
-		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
-		GitCommitTimestamp:            sql.NullInt64{Valid: false},
+		GitCommitMessage:              sql.NullString{String: req.GitCommitMessage, Valid: req.GitCommitMessage != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: req.GitCommitAuthorHandle, Valid: req.GitCommitAuthorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: req.GitCommitAuthorAvatar, Valid: req.GitCommitAuthorAvatar != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: req.GitCommitTimestamp, Valid: req.GitCommitTimestamp != 0},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
-		Status:                        db.DeploymentsStatusPending,
-		CpuMillicores:                 100,
-		MemoryMib:                     128,
+		Status:                        status,
+		CpuMillicores:                 250,
+		MemoryMib:                     256,
 		StorageMib:                    0,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},
@@ -721,6 +736,13 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+
+	// InsertDeployment does not take desired_state (it defaults to running), so a
+	// test that needs a stopped deployment sets it here.
+	if req.DesiredState != "" {
+		_, err = s.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, req.ID)
+		require.NoError(s.t, err)
+	}
 
 	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)

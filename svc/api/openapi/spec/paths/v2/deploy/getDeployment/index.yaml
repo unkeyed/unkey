@@ -1,4 +1,5 @@
 post:
+  deprecated: true
   tags:
     - deploy
   summary: Get deployment
@@ -13,7 +14,7 @@ post:
   x-speakeasy-name-override: getDeployment
   x-speakeasy-group: internal
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

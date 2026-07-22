@@ -104,6 +104,41 @@ func TestGetKeyByKey(t *testing.T) {
 
 }
 
+func TestWhoamiWithURNPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+
+	readKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#read_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	rootKey := h.CreateRootKey(workspace.ID, readKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Key: key.Key,
+	})
+	require.Equal(t, 200, res.Status, "Expected status code 200, got %s", res.RawBody)
+	require.NotNil(t, res.Body)
+	require.Equal(t, key.KeyID, res.Body.Data.KeyId)
+}
+
 func TestGetKey_AdditionalScenarios(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{

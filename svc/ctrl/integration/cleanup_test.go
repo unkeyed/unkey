@@ -9,8 +9,11 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -34,11 +37,25 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
 
+	// The environment delete handler only calls Admin to cancel a deployment's
+	// in-flight Restate invocation, and seeded deployments have no invocation id,
+	// so Admin is never exercised here. It just has to be non-nil.
+	envSvc, err := workerenvironment.New(workerenvironment.Config{
+		DB:    h.DB,
+		Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+	})
+	require.NoError(t, err)
+
+	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB})
+	require.NoError(t, err)
+	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB})
+	require.NoError(t, err)
+
 	// Start Restate with all three deletion VOs bound.
 	tEnv := restatetest.Start(t,
-		hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{DB: h.DB})),
-		hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{DB: h.DB})),
-		hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{DB: h.DB})),
+		hydrav1.NewProjectServiceServer(projSvc),
+		hydrav1.NewAppServiceServer(appSvc),
+		hydrav1.NewEnvironmentServiceServer(envSvc),
 	)
 
 	workspaceID := h.Seed.Resources.UserWorkspace.ID
@@ -78,12 +95,12 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		ProjectID:     project.ID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	// Region (needed for topology and cilium policies)
 	regionID := uid.New(uid.RegionPrefix)
-	err := h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
+	err = h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
 		Name:     "test-cleanup",
 		Platform: "test",
@@ -106,7 +123,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
 		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
 		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-		Version:                    1,
 		CreatedAt:                  now,
 	})
 	require.NoError(t, err)
@@ -123,7 +139,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		K8sNamespace:  "test-ns",
 		RegionID:      region.ID,
 		Policy:        json.RawMessage(`{"apiVersion":"cilium.io/v2"}`),
-		Version:       1,
 		CreatedAt:     now,
 	})
 	require.NoError(t, err)

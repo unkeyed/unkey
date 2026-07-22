@@ -18,6 +18,7 @@
 //	db, err := db.New(db.Config{
 //	    PrimaryDSN:  "mysql://user:pass@primary:3306/dbname?parseTime=true",
 //	    ReadOnlyDSN: "mysql://user:pass@replica:3306/dbname?parseTime=true",
+//	    Tags:        sqlcomment.ForService("api", "us-east-1"),
 //	})
 //	if err != nil {
 //	    return fmt.Errorf("database initialization failed: %w", err)

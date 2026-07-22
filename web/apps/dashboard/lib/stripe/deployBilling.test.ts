@@ -8,6 +8,7 @@ import { getStripeClient } from "@/lib/stripe";
 import {
   type DeployBillingConfig,
   deployBillingConfig,
+  deployCheckoutLineItems,
   deploySubscriptionItems,
   findDeployItems,
   findPlanFeeItem,
@@ -28,6 +29,7 @@ const ID: Record<string, string> = {
   lk_memory: "price_memory",
   lk_egress: "price_egress",
   lk_disk: "price_disk",
+  lk_active_keys: "price_active_keys",
 };
 
 function envWith(overrides: Partial<StripeEnv> = {}): StripeEnv {
@@ -43,6 +45,7 @@ function envWith(overrides: Partial<StripeEnv> = {}): StripeEnv {
     STRIPE_LOOKUP_DEPLOY_METER_MEMORY: "lk_memory",
     STRIPE_LOOKUP_DEPLOY_METER_EGRESS: "lk_egress",
     STRIPE_LOOKUP_DEPLOY_METER_DISK: "lk_disk",
+    STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS: "lk_active_keys",
     ...overrides,
   };
 }
@@ -61,7 +64,7 @@ function stubStripe() {
 
 const CONFIG: DeployBillingConfig = {
   planFeePriceIds: { starter: "price_starter", pro: "price_pro", business: "price_business" },
-  meteredPriceIds: ["price_cpu", "price_memory", "price_egress", "price_disk"],
+  meteredPriceIds: ["price_cpu", "price_memory", "price_egress", "price_disk", "price_active_keys"],
   allDeployPriceIds: new Set([
     "price_starter",
     "price_pro",
@@ -70,6 +73,7 @@ const CONFIG: DeployBillingConfig = {
     "price_memory",
     "price_egress",
     "price_disk",
+    "price_active_keys",
   ]),
 };
 
@@ -92,8 +96,14 @@ describe("deployBillingConfig", () => {
       pro: "price_pro",
       business: "price_business",
     });
-    expect(c?.meteredPriceIds).toEqual(["price_cpu", "price_memory", "price_egress", "price_disk"]);
-    expect(c?.allDeployPriceIds.size).toBe(7);
+    expect(c?.meteredPriceIds).toEqual([
+      "price_cpu",
+      "price_memory",
+      "price_egress",
+      "price_disk",
+      "price_active_keys",
+    ]);
+    expect(c?.allDeployPriceIds.size).toBe(8);
   });
 
   it("returns null when Stripe is not configured", async () => {
@@ -129,7 +139,32 @@ describe("deploySubscriptionItems", () => {
       { price: "price_memory" },
       { price: "price_egress" },
       { price: "price_disk" },
+      { price: "price_active_keys" },
     ]);
+  });
+});
+
+describe("deployCheckoutLineItems", () => {
+  it("gives the plan-fee quantity 1 and omits quantity on metered items", () => {
+    const items = deployCheckoutLineItems(CONFIG, "pro");
+    expect(items[0]).toEqual({ price: "price_pro", quantity: 1 });
+    // Metered prices must not carry a quantity — Stripe Checkout rejects it.
+    for (const item of items.slice(1)) {
+      expect(item).not.toHaveProperty("quantity");
+    }
+  });
+
+  it("puts the plan-fee first, followed by exactly the metered prices", () => {
+    const items = deployCheckoutLineItems(CONFIG, "starter");
+    expect(items.map((i) => i.price)).toEqual(["price_starter", ...CONFIG.meteredPriceIds]);
+  });
+
+  it("changes only the plan-fee price id when the plan changes", () => {
+    const starter = deployCheckoutLineItems(CONFIG, "starter");
+    const business = deployCheckoutLineItems(CONFIG, "business");
+    expect(starter[0].price).toBe("price_starter");
+    expect(business[0].price).toBe("price_business");
+    expect(starter.slice(1)).toEqual(business.slice(1));
   });
 });
 

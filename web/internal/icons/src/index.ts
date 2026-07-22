@@ -169,4 +169,5 @@ export * from "./icons/unlink";
 export * from "./icons/user-search";
 export * from "./icons/user";
 export * from "./icons/user-plus";
+export * from "./icons/window-layout";
 export * from "./icons/xmark";

@@ -1,0 +1,20 @@
+type: object
+required:
+  - code
+  - step
+  - message
+properties:
+  code:
+    "$ref": "./DeploymentErrorCode.yaml"
+  step:
+    type: string
+    description: |
+      The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+    example: deploying
+  message:
+    type: string
+    description: |
+      Human-readable description of why the deployment failed. For programmatic
+      handling, use `code`.
+    example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
+additionalProperties: false

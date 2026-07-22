@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/registrysweep"
@@ -32,6 +33,13 @@ const batchLimit int32 = 100
 // maxBatchesPerRun caps a single invocation so its Restate journal stays
 // bounded. A larger backlog drains across daily runs.
 const maxBatchesPerRun = 50
+
+var prunableDeploymentStatuses = []mysqltype.DeploymentsStatus{
+	mysqltype.DeploymentsStatusFailed,
+	mysqltype.DeploymentsStatusCancelled,
+	mysqltype.DeploymentsStatusSuperseded,
+	mysqltype.DeploymentsStatusSkipped,
+}
 
 // Config holds the handler's dependencies.
 type Config struct {
@@ -93,7 +101,7 @@ func (h *Handler) Handle(
 
 		ids, err := restate.Run(ctx, func(rc restate.RunContext) ([]string, error) {
 			return h.db.ListPrunableDeployments(rc, db.ListPrunableDeploymentsParams{
-				Statuses: db.PrunableDeploymentStatuses,
+				Statuses: prunableDeploymentStatuses,
 				Cutoff:   sql.NullInt64{Int64: cutoff, Valid: true},
 				Limit:    batchLimit,
 			})
@@ -160,7 +168,7 @@ func (h *Handler) deleteRows(ctx restate.ObjectContext, batchNum int, ids []stri
 		queries := db.NewQueries(tx)
 		eligible, filterErr := queries.FilterPrunableDeploymentIds(rc, db.FilterPrunableDeploymentIdsParams{
 			Ids:      ids,
-			Statuses: db.PrunableDeploymentStatuses,
+			Statuses: prunableDeploymentStatuses,
 			Cutoff:   sql.NullInt64{Int64: cutoff, Valid: true},
 		})
 		if filterErr != nil {

@@ -4,17 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -91,6 +97,34 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	if err := s.ensureEnvironmentDeployable(ctx, ctxLoad); err != nil {
+		return nil, err
+	}
+
+	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
+	// but leaves the projects behind, so without this a cancelled (or never
+	// entitled) workspace could keep starting new compute through an existing
+	// project — teardown only stops what it snapshotted. Observe mode (the
+	// default) logs would-block instead of failing.
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, ctxLoad.workspaceID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to load workspace entitlement: %w", err))
+	}
+	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
+		if s.enforceDeployGate {
+			return nil, connect.NewError(
+				connect.CodeFailedPrecondition,
+				fmt.Errorf("workspace %q has no Compute plan", ctxLoad.workspaceID),
+			)
+		}
+		logger.Warn("deploy gate would block deployment creation",
+			"event", "deploy_gate.would_block",
+			"workspaceId", ctxLoad.workspaceID,
+			"projectId", req.Msg.GetProjectId(),
+		)
+	}
+
 	keyspaceID := req.Msg.GetKeyspaceId()
 	var keyAuthID *string
 	if keyspaceID != "" {
@@ -98,23 +132,105 @@ func (s *Service) CreateDeployment(
 	}
 
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
-		context:       ctxLoad,
-		dockerImage:   req.Msg.GetDockerImage(),
-		gitCommit:     req.Msg.GetGitCommit(),
-		keyAuthID:     keyAuthID,
-		command:       req.Msg.GetCommand(),
-		trigger:       triggerFromProto(req.Msg.GetTrigger()),
-		triggeredBy:   req.Msg.GetTriggeredBy(),
-		triggerReason: req.Msg.GetTriggerReason(),
+		context:        ctxLoad,
+		dockerImage:    req.Msg.GetDockerImage(),
+		gitCommit:      req.Msg.GetGitCommit(),
+		keyAuthID:      keyAuthID,
+		command:        req.Msg.GetCommand(),
+		trigger:        triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:    req.Msg.GetTriggeredBy(),
+		triggerReason:  req.Msg.GetTriggerReason(),
+		spendSuspended: entitlement.SpendSuspended.Bool,
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if auditErr := s.recordCreateAudit(ctx, ctxLoad, deploymentID, req.Msg.GetActor()); auditErr != nil {
+		logger.Error(
+			"failed to write deployment.create audit log",
+			"deployment_id", deploymentID,
+			"error", auditErr,
+		)
 	}
 
 	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// ensureEnvironmentDeployable rejects an environment whose runtime or regional
+// settings would fail the deploy pipeline, before the workflow is enqueued. This
+// is the RPC-level enforcement point every caller (v2 API, deprecated deploy API,
+// CLI, future internal callers) passes through, so an undeployable deployment
+// never gets enqueued; the worker keeps the same checks as a backstop. Runtime
+// bounds share deployfail.RuntimeViolations with the worker and the API pre-flight.
+func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deploymentContext) error {
+	messages := make([]string, 0)
+	for _, v := range deployfail.RuntimeViolations(
+		dctx.appRuntimeSettings.Port,
+		dctx.appRuntimeSettings.CpuMillicores,
+		dctx.appRuntimeSettings.MemoryMib,
+	) {
+		messages = append(messages, v.Message)
+	}
+
+	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
+		AppID:         dctx.app.ID,
+		EnvironmentID: dctx.env.Environment.ID,
+	})
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
+	}
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
+		messages = append(messages, deployfail.MsgNoSchedulableRegions)
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+	return connect.NewError(connect.CodeFailedPrecondition,
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
+}
+
+// recordCreateAudit writes a deployment.create audit log attributed to the
+// actor supplied on the request. Every surface routes through this RPC, so this
+// is the single place deployments get audited. A nil actor (callers not yet
+// passing one) falls back to the system actor via actor.AuditType.
+func (s *Service) recordCreateAudit(
+	ctx context.Context,
+	dctx deploymentContext,
+	deploymentID string,
+	a *ctrlv1.ActorInfo,
+) error {
+	return s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
+		{
+			Event:         auditlog.DeploymentCreateEvent,
+			WorkspaceID:   dctx.workspaceID,
+			Display:       fmt.Sprintf("Created deployment %s", deploymentID),
+			ActorID:       a.GetId(),
+			ActorType:     actor.AuditType(a.GetType()),
+			ActorName:     a.GetName(),
+			ActorMeta:     actor.Meta(a.GetMeta()),
+			RemoteIP:      a.GetRemoteIp(),
+			UserAgent:     a.GetUserAgent(),
+			CorrelationID: "",
+			Resources: []auditlog.AuditLogResource{
+				{
+					Type:        auditlog.DeploymentResourceType,
+					ID:          deploymentID,
+					Name:        "",
+					DisplayName: deploymentID,
+					Meta: map[string]any{
+						"projectId":   dctx.project.ID,
+						"appId":       dctx.app.ID,
+						"environment": dctx.env.Environment.Slug,
+					},
+				},
+			},
+		},
+	})
 }
 
 // deploymentContext bundles the resolved project/app/env context needed to
@@ -243,6 +359,12 @@ type createParams struct {
 	trigger       db.DeploymentsTrigger
 	triggeredBy   string
 	triggerReason string
+
+	// spendSuspended blocks starting compute when the workspace hit its
+	// Compute spend cap. Gated here rather than at each RPC because both
+	// CreateDeployment and the ops Rebuild path start compute through
+	// createAndDeploy, and Rebuild must not resurrect suspended compute.
+	spendSuspended bool
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
@@ -254,6 +376,17 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	now := time.Now().UnixMilli()
 
 	c := p.context
+
+	// Spend-cap gate, unconditional (no observe mode): the workspace opted
+	// into stopping at its budget and the spend check tore its compute down.
+	// Starting compute now would restart what the suspension deliberately
+	// stopped and keep accruing spend past the cap.
+	if p.spendSuspended {
+		return "", connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", c.workspaceID),
+		)
+	}
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with
@@ -332,8 +465,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
 			s.allowUnauthenticatedDeployments,
 		); err != nil {
+			// This error may carry the raw GitHub response body, which can reach
+			// API callers. Log the detail, return a generic reason.
+			logger.Error("failed to resolve git commit metadata",
+				"app_id", c.app.ID,
+				"repository", repoConn.RepositoryFullName,
+				"error", err.Error())
 			return "", connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("failed to resolve git commit metadata: %w", err))
+				fmt.Errorf("failed to resolve git commit metadata for the requested branch or commit"))
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -394,7 +533,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        mysqltype.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
@@ -421,7 +560,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		return "", connect.NewError(connect.CodeInternal, err)
 	}
 
-	logger.Info("starting deployment workflow",
+	logger.Info(
+		"starting deployment workflow",
 		"deployment_id", deploymentID,
 		"workspace_id", c.workspaceID,
 		"project_id", c.project.ID,
@@ -440,7 +580,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusFailed,
+			Status:    mysqltype.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {
@@ -456,14 +596,16 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		InvocationID: sql.NullString{Valid: true, String: invocationID},
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	}); updateErr != nil {
-		logger.Error("failed to persist invocation id",
+		logger.Error(
+			"failed to persist invocation id",
 			"deployment_id", deploymentID,
 			"invocation_id", invocationID,
 			"error", updateErr,
 		)
 	}
 
-	logger.Info("deployment workflow started",
+	logger.Info(
+		"deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocationID,
 	)
@@ -475,7 +617,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		GitBranch:     commit.Branch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
-		logger.Error("failed to cancel superseded siblings",
+		logger.Error(
+			"failed to cancel superseded siblings",
 			"deployment_id", deploymentID,
 			"error", cancelErr,
 		)

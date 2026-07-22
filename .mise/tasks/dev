@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Start dev environment"
-#MISE depends=["install-web", "oci-load"]
+#MISE depends=["install-web"]
 #MISE raw=true
 set -euo pipefail
 

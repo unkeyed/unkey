@@ -3,7 +3,7 @@
 import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { Button, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -34,35 +34,61 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
     staleTime: 30_000,
   });
 
+  // Dev-only: one-click seed a Stripe test customer + 4242 card so local runs
+  // skip the checkout round-trip and re-entering sandbox card data. The mutation
+  // is gated on STRIPE_DEV_TEST_CLOCK server-side; the button only renders in dev.
+  const trpcUtils = trpc.useUtils();
+  const seedStripe = trpc.stripe.seedTestCustomer.useMutation({
+    onSuccess: async () => {
+      toast.success("Seeded a Stripe test customer with the 4242 card");
+      await trpcUtils.invalidate();
+      router.refresh();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   if (!hasPaymentMethod) {
     return (
-      <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+      <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
         <div>
           <p className="font-medium text-gray-12 text-sm">No payment method</p>
           <p className="text-[13px] text-gray-10">
             One payment method covers Compute and API plans on a single invoice.
           </p>
         </div>
-        <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-          <span>
+        <div className="flex items-center gap-2">
+          {process.env.NODE_ENV === "development" ? (
             <Button
-              variant="primary"
+              variant="outline"
               size="md"
-              disabled={!isAdmin}
-              onClick={() =>
-                router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "payment" }))
-              }
+              disabled={!isAdmin || seedStripe.isLoading}
+              onClick={() => seedStripe.mutate()}
+              title="Dev only: create a Stripe test customer with your email and the 4242 test card"
             >
-              Add payment method
+              {seedStripe.isLoading ? "Seeding..." : "Seed test card"}
             </Button>
-          </span>
-        </InfoTooltip>
+          ) : null}
+          <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+            <span>
+              <Button
+                variant="primary"
+                size="md"
+                disabled={!isAdmin}
+                onClick={() =>
+                  router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "payment" }))
+                }
+              >
+                Add payment method
+              </Button>
+            </span>
+          </InfoTooltip>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+    <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
       {/* Both columns share one type ramp and start at the top, so the two
           labels and the two values each sit on a common baseline. */}
       <div className="flex items-start gap-10">

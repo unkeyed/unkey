@@ -15,19 +15,17 @@ export const LogsQueries = () => {
       formatFilterValues={formatFilterValues}
       getFilterFieldIcon={getFilterFieldIcon}
     >
-      <div className="group">
-        <Button
-          variant="ghost"
-          size="md"
-          className={cn("group-data-[state=open]:bg-gray-4 px-2 rounded-lg")}
-          aria-label="Ratelimit log queries"
-          aria-haspopup="true"
-          title="Press 'Q' to toggle queries"
-        >
-          <ChartBarAxisY iconSize="md-medium" className="mt-1 ml-[3px] text-gray-9" />
-          <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="md"
+        className={cn("data-popup-open:bg-gray-4 px-2 rounded-lg")}
+        aria-label="Ratelimit log queries"
+        aria-haspopup="true"
+        title="Press 'Q' to toggle queries"
+      >
+        <ChartBarAxisY iconSize="md-medium" className="mt-1 ml-[3px] text-gray-9" />
+        <span className="text-gray-12 font-medium text-[13px] leading-4">Queries</span>
+      </Button>
     </QueriesPopover>
   );
 };

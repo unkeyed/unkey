@@ -66,6 +66,7 @@ const (
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 
 	// Deployment events
+	DeploymentCreateEvent  AuditLogEvent = "deployment.create"
 	DeploymentRebuildEvent AuditLogEvent = "deployment.rebuild"
 
 	// Project events
@@ -79,5 +80,6 @@ const (
 	AppDeleteEvent AuditLogEvent = "app.delete"
 
 	// Environment events
+	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
 )

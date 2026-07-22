@@ -1,0 +1,65 @@
+post:
+  tags:
+    - portal
+  summary: Reroll portal key
+  description: |
+    Reroll an API key owned by the authenticated portal session's end user,
+    issuing a new key while preserving its configuration.
+
+    This is the portal-scoped variant of `keys.rerollKey`. It authenticates only
+    with a portal session cookie and may only reroll keys owned by the session's
+    external identity; any other key returns 404.
+  operationId: portal.rerollKey
+  x-speakeasy-name-override: rerollKey
+  security:
+    - portalSession: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "../../keys/rerollKey/V2KeysRerollKeyRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "../../keys/rerollKey/V2KeysRerollKeyResponseBody.yaml"
+      description: |
+        Key rerolled successfully. The new plaintext key is returned exactly once.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

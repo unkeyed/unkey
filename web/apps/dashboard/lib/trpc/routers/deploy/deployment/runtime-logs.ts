@@ -14,7 +14,7 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
-      limit: z.number().int().default(50),
+      limit: z.number().int().min(1).max(100).default(50),
     }),
   )
   .output(

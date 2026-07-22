@@ -44,6 +44,7 @@ export function deployBillingConfigured(): boolean {
     e.STRIPE_LOOKUP_DEPLOY_METER_MEMORY,
     e.STRIPE_LOOKUP_DEPLOY_METER_EGRESS,
     e.STRIPE_LOOKUP_DEPLOY_METER_DISK,
+    e.STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS,
   ].every(Boolean);
 }
 
@@ -72,6 +73,7 @@ export async function deployBillingConfig(): Promise<DeployBillingConfig | null>
     e.STRIPE_LOOKUP_DEPLOY_METER_MEMORY,
     e.STRIPE_LOOKUP_DEPLOY_METER_EGRESS,
     e.STRIPE_LOOKUP_DEPLOY_METER_DISK,
+    e.STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS,
   ];
 
   // All-or-nothing: a partially configured set would attach an incomplete
@@ -139,6 +141,23 @@ export function deploySubscriptionItems(
 ): Array<{ price: string }> {
   return [
     { price: config.planFeePriceIds[plan] },
+    ...config.meteredPriceIds.map((price) => ({ price })),
+  ];
+}
+
+/**
+ * The Checkout `line_items` for a Deploy plan, in the shape Stripe Checkout
+ * requires. Unlike `deploySubscriptionItems` (for `subscriptions.create`, which
+ * defaults licensed quantity to 1), Checkout demands an explicit `quantity` on
+ * the licensed plan-fee item and rejects `quantity` on metered prices. So the
+ * plan-fee carries `quantity: 1` and the metered items omit it entirely.
+ */
+export function deployCheckoutLineItems(
+  config: DeployBillingConfig,
+  plan: DeployPlan,
+): Array<{ price: string; quantity?: number }> {
+  return [
+    { price: config.planFeePriceIds[plan], quantity: 1 },
     ...config.meteredPriceIds.map((price) => ({ price })),
   ];
 }

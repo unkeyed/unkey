@@ -71,17 +71,16 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
         </PageHeaderTitle>
       </PageHeaderContent>
       <PageHeaderActions>
-        <Button variant="outline" asChild>
-          <Link href={routes.projects.logs(deploymentScope)}>
-            <Layers3 iconSize="sm-medium" />
-            Logs
-          </Link>
+        <Button variant="outline" render={<Link href={routes.projects.logs(deploymentScope)} />}>
+          <Layers3 iconSize="sm-medium" />
+          Logs
         </Button>
-        <Button variant="outline" asChild>
-          <Link href={routes.projects.requests(deploymentScope)}>
-            <ArrowOppositeDirectionY iconSize="sm-medium" />
-            Requests
-          </Link>
+        <Button
+          variant="outline"
+          render={<Link href={routes.projects.requests(deploymentScope)} />}
+        >
+          <ArrowOppositeDirectionY iconSize="sm-medium" />
+          Requests
         </Button>
         {(canCancel || canRedeploy) && (
           <div aria-hidden className="w-px bg-border h-4 shrink-0 mx-1" />

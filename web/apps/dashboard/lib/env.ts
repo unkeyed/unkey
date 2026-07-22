@@ -10,6 +10,11 @@ export const env = () =>
       VERCEL_URL: z.string().optional(), // Always *.vercel.app — not the custom domain
       VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
       VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(), // Custom production domain (e.g. app.unkey.com)
+      // Overrides getBaseUrl() entirely. Vercel has no env var for a custom
+      // domain assigned to a preview branch, so branch-scoped deployments with
+      // their own domain (e.g. app.unkey-canary.com on `canary`) set this to
+      // keep redirects on the custom host. No trailing slash.
+      DASHBOARD_BASE_URL: z.url().optional(),
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
@@ -123,6 +128,7 @@ const stripeSchema = z.object({
   STRIPE_LOOKUP_DEPLOY_METER_MEMORY: z.string().optional(),
   STRIPE_LOOKUP_DEPLOY_METER_EGRESS: z.string().optional(),
   STRIPE_LOOKUP_DEPLOY_METER_DISK: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS: z.string().optional(),
   // Dev/test only: create Stripe customers under a test clock so the billing
   // lifecycle can be time-traveled (advance the clock, invoices finalize for
   // real, PDFs exist). Requires a test-mode key; see

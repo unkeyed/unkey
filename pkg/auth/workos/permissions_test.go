@@ -21,7 +21,15 @@ func TestTranslatePermissions(t *testing.T) {
 		"keys:create",
 		"keys:create",
 		" keys:create ",
+		"keys:read",
+		"keys:update",
+		"keys:verify",
 		"keys:encrypt",
+		"keys:delete",
+		"identities:create",
+		"identities:read",
+		"identities:update",
+		"identities:delete",
 		"admin:*",
 		"unknown:permission",
 		"malformed",
@@ -30,7 +38,16 @@ func TestTranslatePermissions(t *testing.T) {
 	require.Equal(t, []string{
 		"unkey:v1:ws_123:keyspaces/*#create_key",
 		"unkey:v1:ws_123:keyspaces/*#create_key",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
+		"unkey:v1:ws_123:keyspaces/*#read_keyspace",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		"unkey:v1:ws_123:projects/*/identities/*#create_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#read_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#update_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#delete_identity",
 		"unkey:v1:ws_123:**#*",
 	}, result)
 }
@@ -56,9 +73,49 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
 		},
 		{
+			name: "key read",
+			in:   "keys:read",
+			want: "unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
+		},
+		{
+			name: "key update",
+			in:   "keys:update",
+			want: "unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
+		},
+		{
+			name: "key verify",
+			in:   "keys:verify",
+			want: "unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
+		},
+		{
 			name: "key decrypt",
 			in:   "keys:decrypt",
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#decrypt_key",
+		},
+		{
+			name: "key delete",
+			in:   "keys:delete",
+			want: "unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		},
+		{
+			name: "identity create",
+			in:   "identities:create",
+			want: "unkey:v1:ws_123:projects/*/identities/*#create_identity",
+		},
+		{
+			name: "identity read",
+			in:   "identities:read",
+			want: "unkey:v1:ws_123:projects/*/identities/*#read_identity",
+		},
+		{
+			name: "identity update",
+			in:   "identities:update",
+			want: "unkey:v1:ws_123:projects/*/identities/*#update_identity",
+		},
+		{
+			name: "identity delete",
+			in:   "identities:delete",
+			want: "unkey:v1:ws_123:projects/*/identities/*#delete_identity",
 		},
 		{
 			name: "admin",
@@ -72,7 +129,7 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			t.Parallel()
 
 			result := translatePermissions("ws_123", []string{tt.in})
-			require.Equal(t, []string{tt.want}, result)
+			require.Contains(t, result, tt.want)
 		})
 	}
 }

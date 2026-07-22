@@ -123,18 +123,20 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
         )}
       >
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              disabled={disabled}
-              aria-label="Select country calling code"
-              className="flex items-center gap-1 h-full pl-3 pr-2 text-sm text-white/80 rounded-l-lg hover:bg-white/5 disabled:cursor-not-allowed cursor-pointer shrink-0"
-            >
-              <span className="text-base leading-none">{flagEmoji(country)}</span>
-              <span className="tabular-nums">+{getCountryCallingCode(country)}</span>
-              <ChevronDown className="w-3 h-3 text-white/40" />
-            </button>
-          </PopoverTrigger>
+          <PopoverTrigger
+            render={
+              <button
+                type="button"
+                disabled={disabled}
+                aria-label="Select country calling code"
+                className="flex items-center gap-1 h-full pl-3 pr-2 text-sm text-white/80 rounded-l-lg hover:bg-white/5 disabled:cursor-not-allowed cursor-pointer shrink-0"
+              >
+                <span className="text-base leading-none">{flagEmoji(country)}</span>
+                <span className="tabular-nums">+{getCountryCallingCode(country)}</span>
+                <ChevronDown className="w-3 h-3 text-white/40" />
+              </button>
+            }
+          />
           {/* The popover renders in a portal, and the auth pages theme
               themselves with explicit colors rather than a .dark class, so
               the shared gray tokens don't resolve to dark values here. Style

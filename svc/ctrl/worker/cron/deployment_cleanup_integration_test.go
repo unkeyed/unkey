@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -28,7 +29,7 @@ func TestRunDeploymentCleanup_Integration(t *testing.T) {
 
 	scope := seedDeploymentCleanupScope(t, h)
 
-	seedDeployment := func(status db.DeploymentsStatus, updatedAt int64) db.Deployment {
+	seedDeployment := func(status mysqltype.DeploymentsStatus, updatedAt int64) db.Deployment {
 		return h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 			ID:            "",
 			WorkspaceID:   scope.workspaceID,
@@ -41,17 +42,17 @@ func TestRunDeploymentCleanup_Integration(t *testing.T) {
 		})
 	}
 
-	staleStopped := seedDeployment(db.DeploymentsStatusStopped, staleAt)
-	staleFailed := seedDeployment(db.DeploymentsStatusFailed, staleAt)
+	staleStopped := seedDeployment(mysqltype.DeploymentsStatusStopped, staleAt)
+	staleFailed := seedDeployment(mysqltype.DeploymentsStatusFailed, staleAt)
 	seedDeploymentDependents(t, h, staleFailed, staleAt)
-	staleCancelled := seedDeployment(db.DeploymentsStatusCancelled, staleAt)
+	staleCancelled := seedDeployment(mysqltype.DeploymentsStatusCancelled, staleAt)
 	// recently stopped -> inside the retention window, must survive.
-	recentStopped := seedDeployment(db.DeploymentsStatusStopped, recentAt)
+	recentStopped := seedDeployment(mysqltype.DeploymentsStatusStopped, recentAt)
 	// stale but ready -> could still serve traffic, must survive.
-	staleReady := seedDeployment(db.DeploymentsStatusReady, staleAt)
+	staleReady := seedDeployment(mysqltype.DeploymentsStatusReady, staleAt)
 	// A stale failed deployment referenced as current must survive even though
 	// the status would otherwise be prunable.
-	staleCurrent := seedDeployment(db.DeploymentsStatusFailed, staleAt)
+	staleCurrent := seedDeployment(mysqltype.DeploymentsStatusFailed, staleAt)
 	err := h.DB.UpdateAppDeployments(h.Ctx, db.UpdateAppDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{String: staleCurrent.ID, Valid: true},
 		IsRolledBack:        false,
@@ -87,7 +88,7 @@ func TestRunDeploymentCleanup_RollsBackBatchOnDeleteFailure(t *testing.T) {
 		ProjectID:     scope.projectID,
 		AppID:         scope.appID,
 		EnvironmentID: scope.environmentID,
-		Status:        db.DeploymentsStatusFailed,
+		Status:        mysqltype.DeploymentsStatusFailed,
 		CreatedAt:     staleAt,
 		UpdatedAt:     sql.NullInt64{Int64: staleAt, Valid: true},
 	})

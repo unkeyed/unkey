@@ -15,8 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -70,6 +73,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.UpdateIdentity,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+			permissions.UpdateIdentity{},
+		),
 	))
 	if err != nil {
 		return err
@@ -102,12 +109,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		sizeInMB := float64(len(metaBytes)) / 1024 / 1024
-		if sizeInMB > maxMetaLengthMB {
-			return fault.New("metadata is too large",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", maxMetaLengthMB, sizeInMB)),
-			)
+		if err := apierrors.MaxByteSize("Metadata", len(metaBytes), maxMetaLengthMB*1024*1024); err != nil {
+			return err
 		}
 	}
 

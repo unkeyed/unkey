@@ -81,6 +81,9 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsWorkspaceNotFound,
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,
+				codes.UnkeyDataErrorsEnvironmentNotFound,
+				codes.UnkeyDataErrorsDeploymentNotFound,
+				codes.UnkeyDataErrorsPolicyNotFound,
 				codes.UnkeyDataErrorsMigrationNotFound,
 				codes.UnkeyDataErrorsKeySpaceNotFound,
 				codes.UnkeyDataErrorsPermissionNotFound,
@@ -106,6 +109,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyAppErrorsValidationInvalidEnvironmentSettings,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
@@ -310,7 +314,15 @@ func WithErrorHandling() zen.Middleware {
 
 			// Precondition Failed
 			case codes.UnkeyDataErrorsAnalyticsNotConfigured,
-				codes.UnkeyAppErrorsPreconditionPreconditionFailed:
+				codes.UnkeyAppErrorsPreconditionPreconditionFailed,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotReady,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotProduction,
+				codes.UnkeyAppErrorsPreconditionDeploymentNoCurrent,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsCurrent,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotRunning,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsStopping,
+				codes.UnkeyAppErrorsPreconditionDeploymentNotStopped,
+				codes.UnkeyAppErrorsPreconditionDeploymentIsProduction:
 				return s.ProblemJSON(http.StatusPreconditionFailed, openapi.PreconditionFailedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

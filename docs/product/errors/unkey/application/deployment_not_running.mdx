@@ -1,0 +1,51 @@
+---
+title: "deployment_not_running"
+description: "The deployment cannot be stopped because it is not currently running (it never reached ready status)."
+---
+
+<Danger>`err:unkey:application:deployment_not_running`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is not running.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_not_running"
+  }
+}
+```
+
+## What Happened?
+
+You called `stopDeployment` on a deployment that is not running. Only a deployment in `ready` status has running instances that can be stopped. A deployment that is still building, failed, was skipped, superseded, or already stopped has nothing to stop.
+
+`getDeployment` reports the current `status`, and `availableActions` omits `stop` when the deployment is not running.
+
+## How To Fix
+
+1. Fetch the deployment with `getDeployment` and check `status`.
+2. Only call `stop` when the deployment is `ready`.
+3. If the deployment is already stopped, no action is needed.
+
+```bash
+# Confirm the deployment is running before stopping it
+curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Stopping a building deployment**: Calling `stop` before the deployment reaches `ready`.
+- **Stopping twice**: Calling `stop` on a deployment that is already stopped or stopping.
+
+## Related Errors
+
+- [err:unkey:application:deployment_is_stopping](./deployment_is_stopping) - When a stop is already in flight
+- [err:unkey:application:deployment_is_production](./deployment_is_production) - When the deployment is in production
+- [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When starting a deployment that is not stopped

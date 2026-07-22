@@ -61,8 +61,16 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
         <div className="w-fit">
           <Select
             value={role}
+            items={[
+              { value: "admin", label: "Admin" },
+              { value: "basic_member", label: "Member" },
+            ]}
             disabled={isCurrentUser || updateMember.isLoading}
-            onValueChange={handleRoleUpdate}
+            onValueChange={(newRole) => {
+              if (newRole !== null) {
+                handleRoleUpdate(newRole);
+              }
+            }}
           >
             <SelectTrigger className="w-[180px] max-sm:w-36">
               {updateMember.isLoading ? <Loading /> : <SelectValue />}

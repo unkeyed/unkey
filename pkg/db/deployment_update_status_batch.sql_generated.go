@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const updateDeploymentStatusBatch = `-- name: UpdateDeploymentStatusBatch :exec
@@ -18,9 +20,9 @@ WHERE id IN (/*SLICE:ids*/?)
 `
 
 type UpdateDeploymentStatusBatchParams struct {
-	Status    DeploymentsStatus `db:"status"`
-	UpdatedAt sql.NullInt64     `db:"updated_at"`
-	Ids       []string          `db:"ids"`
+	Status    mysqltype.DeploymentsStatus `db:"status"`
+	UpdatedAt sql.NullInt64               `db:"updated_at"`
+	Ids       []string                    `db:"ids"`
 }
 
 // UpdateDeploymentStatusBatch

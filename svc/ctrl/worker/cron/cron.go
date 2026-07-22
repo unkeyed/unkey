@@ -14,16 +14,23 @@
 package cron
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
@@ -42,31 +49,50 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup   *auditlogcleanup.Handler
-	auditLogExport    *auditlogexport.Handler
-	deployBilling     *deploybilling.Handler
-	deploymentCleanup *deploymentcleanup.Handler
-	idlePreview       *idlepreview.Handler
-	keyLastUsedSync   *keylastusedsync.Handler
-	keyRefill         *keyrefill.Handler
-	quotaCheck        *quotacheck.Handler
-	ratelimitCleanup  *ratelimitcleanup.Handler
+	auditLogCleanup      *auditlogcleanup.Handler
+	auditLogExport       *auditlogexport.Handler
+	deployBilling        *deploybilling.Handler
+	deployBillingPush    *deploybilling.PushHandler
+	deploymentCleanup    *deploymentcleanup.Handler
+	deploySpendCheck     *deployspendcheck.Handler
+	deploySpendCheckWork *deployspendcheck.CheckHandler
+	idlePreview          *idlepreview.Handler
+	keyLastUsedSync      *keylastusedsync.Handler
+	keyRefill            *keyrefill.Handler
+	quotaCheck           *quotacheck.Handler
+	ratelimitCleanup     *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
+
+// DeployBillingPushServer returns the DeployBillingPushService implementation,
+// fanned out to by the deploy billing orchestrator. Bound as its own restate
+// service alongside the CronService.
+func (s *Service) DeployBillingPushServer() hydrav1.DeployBillingPushServiceServer {
+	return s.deployBillingPush
+}
+
+// DeploySpendCheckServer returns the DeploySpendCheckService implementation,
+// fanned out to by the spend-check orchestrator. Bound as its own restate
+// service alongside the CronService.
+func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer {
+	return s.deploySpendCheckWork
+}
 
 // Heartbeats groups the per-task healthcheck pingers. Every field must
 // be non-nil — use healthcheck.NewNoop() for tasks where monitoring is
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
-	QuotaCheck        healthcheck.Heartbeat
-	KeyRefill         healthcheck.Heartbeat
-	KeyLastUsedSync   healthcheck.Heartbeat
-	AuditLogExport    healthcheck.Heartbeat
-	AuditLogCleanup   healthcheck.Heartbeat
-	DeployBillingPush healthcheck.Heartbeat
-	DeploymentCleanup healthcheck.Heartbeat
+	QuotaCheck         healthcheck.Heartbeat
+	KeyRefill          healthcheck.Heartbeat
+	KeyLastUsedSync    healthcheck.Heartbeat
+	AuditLogExport     healthcheck.Heartbeat
+	AuditLogCleanup    healthcheck.Heartbeat
+	DeployBillingPush  healthcheck.Heartbeat
+	DeployBillingClose healthcheck.Heartbeat
+	DeploySpendCheck   healthcheck.Heartbeat
+	DeploymentCleanup  healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -94,19 +120,30 @@ type Config struct {
 	// disables the push.
 	StripeSecretKey string
 
-	// RegistrySweepDepot is the Depot API for the reverse reconciliation
-	// sweep. Must not be nil — pass depotclient.NewNoop() where Depot is
-	// not configured.
-	RegistrySweepDepot registrysweep.DepotAPI
-	// RegistryRepository is the registry repository, including its host. The
-	// caller must pass it only after asserting the repository is exclusive to
-	// this database; empty skips the image sweep.
-	RegistryRepository string
-	// DepotProjectPrefix is this environment's Depot project name prefix.
-	// The caller must pass it only after asserting the prefix is exclusive to
-	// this database; empty skips the Depot project sweep.
-	DepotProjectPrefix string
+	// BillingPusher overrides the Deploy billing meter sink. Optional: when nil
+	// it is derived from StripeSecretKey (Stripe when set, no-op otherwise).
+	// Integration tests inject a fake to assert what would be pushed without a
+	// real Stripe call.
+	BillingPusher billingmeter.Pusher
+	// BillingCloser overrides the Deploy invoice closer used by the month-end
+	// close. Optional: when nil it is derived from StripeSecretKey. Integration
+	// tests inject a fake to record finalize calls.
+	BillingCloser invoicecloser.Closer
 
+	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
+	// emails (the budget-alert recipients). Empty resolves no recipients, so
+	// the check logs crossings but sends no email.
+	WorkOSAPIKey string
+	// ResendAPIKey authenticates the budget-alert email send. Empty uses a noop
+	// sender that logs instead of sending.
+	ResendAPIKey string
+	// BillingBaseURL is the dashboard origin used to build the alert's billing
+	// link, e.g. "https://app.unkey.com".
+	BillingBaseURL string
+
+	RegistrySweepDepot registrysweep.DepotAPI
+	RegistryRepository string
+	DepotProjectPrefix string
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -124,6 +161,8 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploymentCleanup, "Heartbeats.DeploymentCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.RegistrySweepDepot, "RegistrySweepDepot must not be nil; use depotclient.NewNoop()"),
 	); err != nil {
@@ -199,14 +238,38 @@ func New(cfg Config) (*Service, error) {
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
 	// binding and schedule stay uniform across environments.
 	var billingPusher billingmeter.Pusher = billingmeter.NewNoop()
+	var billingCloser invoicecloser.Closer = invoicecloser.NewNoop()
 	if cfg.StripeSecretKey != "" {
 		billingPusher = billingmeter.NewStripe(cfg.StripeSecretKey)
+		billingCloser = invoicecloser.NewStripe(cfg.StripeSecretKey)
+	} else {
+		// Deliberately loud: in an environment that is supposed to bill, a
+		// missing Stripe key means usage is silently never pushed and
+		// invoices never close. Error level so it pages via log alerting
+		// instead of hiding in Info noise.
+		logger.Error("deploy billing pusher and invoice closer are DISABLED: no stripe secret key configured")
+	}
+	// Explicit overrides win over the Stripe-key derivation, so integration
+	// tests can drive the push and close against fakes.
+	if cfg.BillingPusher != nil {
+		billingPusher = cfg.BillingPusher
+	}
+	if cfg.BillingCloser != nil {
+		billingCloser = cfg.BillingCloser
+	}
+	// The aggregation wait only applies when the close talks to real Stripe;
+	// fake closers in tests and the noop have nothing to wait for.
+	var billingFinalizeDelay time.Duration
+	if cfg.StripeSecretKey != "" {
+		billingFinalizeDelay = deploybilling.DefaultFinalizeDelay
 	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
-		UsageReader: cfg.BillingUsageReader,
-		Pusher:      billingPusher,
-		DB:          cfg.DB,
-		Heartbeat:   cfg.Heartbeats.DeployBillingPush,
+		UsageReader:    cfg.BillingUsageReader,
+		DB:             cfg.DB,
+		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
+		Closer:         billingCloser,
+		CloseHeartbeat: cfg.Heartbeats.DeployBillingClose,
+		FinalizeDelay:  billingFinalizeDelay,
 	})
 	if err != nil {
 		return nil, err
@@ -219,12 +282,63 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	deployBillingPushH, err := deploybilling.NewPushHandler(billingPusher)
+	if err != nil {
+		return nil, err
+	}
+
+	// Spend check reuses the billing usage reader (same ClickHouse meter query);
+	// a nil reader makes the orchestrator a no-op, matching the push. The
+	// orchestrator prices every workspace from one scan and passes the gross to
+	// the per-workspace checks, which read no usage themselves.
+	deploySpendCheckH, err := deployspendcheck.New(deployspendcheck.Config{
+		DB:        cfg.DB,
+		Usage:     cfg.BillingUsageReader,
+		Heartbeat: cfg.Heartbeats.DeploySpendCheck,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// The alert email uses a real Resend sender only when a key is configured;
+	// otherwise it logs. Likewise WorkOS resolves recipients only with a key.
+	// Budget alerts use the published template's own sender and subject, so the
+	// send leaves From empty; no default From to pass.
+	var alertSender email.Sender = email.NewNoop()
+	if cfg.ResendAPIKey != "" {
+		alertSender = email.NewResend(cfg.ResendAPIKey, "")
+	} else {
+		// Deliberately loud, same as the billing pusher above: without a
+		// Resend key every budget alert and suspension notice is silently
+		// dropped, so customers hit their spend cap with no warning.
+		logger.Error("deploy spend-cap alert emails are DISABLED: no resend api key configured")
+	}
+	// Same real-or-noop wiring as the pusher, closer, and email sender above:
+	// this is where the implementation is decided, not inside the package.
+	var admins workos.Resolver = workos.NewNoop()
+	if cfg.WorkOSAPIKey != "" {
+		admins = workos.New(cfg.WorkOSAPIKey)
+	} else {
+		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
+	}
+	deploySpendCheckWorkH, err := deployspendcheck.NewCheckHandler(deployspendcheck.CheckConfig{
+		DB:             cfg.DB,
+		Admins:         admins,
+		Email:          alertSender,
+		BillingBaseURL: cfg.BillingBaseURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
+		deployBillingPush:              deployBillingPushH,
 		deploymentCleanup:              deploymentCleanupH,
+		deploySpendCheck:               deploySpendCheckH,
+		deploySpendCheckWork:           deploySpendCheckWorkH,
 		idlePreview:                    idlePreviewH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
@@ -282,6 +396,13 @@ func (s *Service) RunDeployBillingPush(
 	return s.deployBilling.Handle(ctx, req)
 }
 
+func (s *Service) RunScaleDownIdlePreviewDeployments(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
+) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
+	return s.idlePreview.Handle(ctx, req)
+}
+
 func (s *Service) RunDeploymentCleanup(
 	ctx restate.ObjectContext,
 	req *hydrav1.RunDeploymentCleanupRequest,
@@ -289,9 +410,22 @@ func (s *Service) RunDeploymentCleanup(
 	return s.deploymentCleanup.Handle(ctx, req)
 }
 
-func (s *Service) RunScaleDownIdlePreviewDeployments(
+func (s *Service) RunDeployBillingClose(
 	ctx restate.ObjectContext,
-	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
-) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
-	return s.idlePreview.Handle(ctx, req)
+	req *hydrav1.RunDeployBillingCloseRequest,
+) (*hydrav1.RunDeployBillingCloseResponse, error) {
+	return s.deployBilling.HandleClose(ctx, req)
+}
+func (s *Service) CloseDeployBillingWorkspace(
+	ctx restate.ObjectContext,
+	req *hydrav1.CloseDeployBillingWorkspaceRequest,
+) (*hydrav1.CloseDeployBillingWorkspaceResponse, error) {
+	return s.deployBilling.HandleCloseWorkspace(ctx, req)
+}
+
+func (s *Service) RunDeploySpendCheck(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeploySpendCheckRequest,
+) (*hydrav1.RunDeploySpendCheckResponse, error) {
+	return s.deploySpendCheck.Handle(ctx, req)
 }

@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type * as React from "react";
 import { type ComponentType, type ReactNode, useState } from "react";
 
 export type CrumbPopoverItem = {
@@ -64,7 +65,7 @@ export function CrumbPopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverTrigger render={children as React.ReactElement} />
       <PopoverContent align="start" className="w-64 p-0" sideOffset={8}>
         <Command
           filter={(value, search) => {

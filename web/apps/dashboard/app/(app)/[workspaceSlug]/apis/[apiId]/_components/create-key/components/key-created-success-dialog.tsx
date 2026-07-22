@@ -1,9 +1,9 @@
 "use client";
 
 import { Check, Key2 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
 import { type FC, useEffect, useRef, useState } from "react";
-import { KeySecretSection } from "./key-secret-section";
+import { KeyPayloadTabs } from "./key-payload-tabs";
 
 type ResourceLabel = "key" | "root key";
 
@@ -99,10 +99,8 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
       >
-        <VisuallyHidden asChild>
-          <DialogTitle>{copy.title}</DialogTitle>
-        </VisuallyHidden>
-        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+        <DialogTitle className="sr-only">{copy.title}</DialogTitle>
+        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full min-w-0 px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
               <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
@@ -135,7 +133,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
           <div className="p-1 w-full my-8">
             <div className="h-px bg-grayA-3 w-full" />
           </div>
-          <KeySecretSection keyValue={keyData.key} className="w-full" />
+          <KeyPayloadTabs keyValue={keyData.key} />
         </div>
         <ConfirmPopover
           isOpen={isConfirmOpen}
@@ -152,7 +150,6 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             align: "end",
             sideOffset: 5,
             alignOffset: 30,
-            onOpenAutoFocus: (e) => e.preventDefault(),
           }}
         />
       </DialogContent>

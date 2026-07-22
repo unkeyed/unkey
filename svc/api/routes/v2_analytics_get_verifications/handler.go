@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -10,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -62,7 +63,7 @@ func (h *Handler) Path() string {
 	return "/v2/analytics.getVerifications"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -92,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
 		AllowedTables:     allowedTables,
-		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
+		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
 	})
 
 	parsedQuery, err := parser.Parse(ctx, req.Query)
@@ -131,20 +132,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Execute query using workspace connection
 	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
 	if err != nil {
-		return clickhouse.WrapClickHouseError(err)
+		return err
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	responseBytes, err := json.Marshal(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: verifications,
 	})
+	if err != nil {
+		return fault.Wrap(err, fault.Public("Failed to encode query results"))
+	}
+	if len(responseBytes) > clickhouse.AnalyticsResultBytesMax {
+		return fault.New("analytics response byte limit exceeded",
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size."),
+		)
+	}
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.
 // Returns filters that restrict queries to only the key_space_ids the user has access to.
-func (h *Handler) buildSecurityFilters(ctx context.Context, principal *principal.Principal) ([]chquery.SecurityFilter, error) {
+func (h *Handler) buildSecurityFilters(ctx context.Context, principal *authprincipal.Principal) ([]chquery.SecurityFilter, error) {
 	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
 	if len(allowedAPIIds) == 0 {
 		return []chquery.SecurityFilter{}, nil
@@ -208,7 +220,7 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 
 // buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
 // Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *principal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
+func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
 	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
 	if err != nil {
 		return nil, err

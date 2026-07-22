@@ -1,0 +1,123 @@
+post:
+  tags:
+    - gateway
+  summary: Set policies
+  description: |
+    Replace an environment's gateway policies in a single atomic request.
+    Policies run at the edge before requests reach your app: verify API keys,
+    rate limit, block requests outright, or validate them against your
+    OpenAPI spec.
+
+    Policies are an ordered list: the gateway evaluates them top to bottom
+    and the first rejection short-circuits the request.
+
+    Each policy sets exactly one of `keyauth`, `ratelimit`, `firewall` or
+    `openapi`, plus optional `match` expressions restricting which requests
+    it applies to.
+
+    Every call is a full replace: the environment's policies become exactly
+    the request list in the given order, and the server generates a fresh id
+    for each one. An empty list removes all policies. The operation is
+    atomic: if any policy is invalid, nothing is written.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.set_policies` (for any environment)
+    - `environment.<environment_id>.set_policies` (for a specific environment)
+  operationId: gateway.setPolicies
+  x-speakeasy-name-override: setPolicies
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2GatewaySetPoliciesRequestBody.yaml"
+        examples:
+          set:
+            summary: Replace the environment's policies
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policies:
+                - name: Require API key
+                  enabled: true
+                  keyauth:
+                    keyspaces:
+                      - ks_1234abcd
+                - name: Global IP limit
+                  enabled: true
+                  ratelimit:
+                    limit: 100
+                    windowMs: 60000
+                    identifier:
+                      remoteIp: {}
+          matchers:
+            summary: Block a path prefix with a firewall policy
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policies:
+                - name: Block internal paths
+                  enabled: true
+                  match:
+                    - path:
+                        path:
+                          prefix: /internal/
+                  firewall:
+                    action: ACTION_DENY
+          reset:
+            summary: Remove all policies
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policies: []
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully set the policies.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2GatewaySetPoliciesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The environment or a referenced keyspace does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

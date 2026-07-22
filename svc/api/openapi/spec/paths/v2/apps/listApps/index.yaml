@@ -14,7 +14,7 @@ post:
   operationId: apps.listApps
   x-speakeasy-name-override: listApps
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
@@ -44,9 +44,8 @@ post:
                   - id: app_1234abcd
                     name: Payments API
                     slug: payments-api
-                    projectId: proj_1234abcd
                     defaultBranch: main
-                    currentDeploymentId: dep_1234abcd
+                    currentDeploymentId: d_1234abcd
                     isRolledBack: false
                     deleteProtection: false
                     createdAt: 1704067200000
@@ -54,7 +53,6 @@ post:
                   - id: app_5678efgh
                     name: Billing API
                     slug: billing-api
-                    projectId: proj_1234abcd
                     defaultBranch: main
                     isRolledBack: false
                     deleteProtection: false

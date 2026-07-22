@@ -16,6 +16,7 @@ Unkey deploys your application to one or more geographic regions. Traffic routes
 | `us-east-1`     | N. Virginia, US       | AWS      |
 | `us-west-2`     | Oregon, US            | AWS      |
 | `eu-central-1`  | Frankfurt, Germany    | AWS      |
+| `ap-southeast-1`| Singapore             | AWS      |
 
 <Tip>
   Need a region that isn't listed? Reach out on [Discord](https://unkey.com/discord) or email [support@unkey.com](mailto:support@unkey.com) to request it.
@@ -34,11 +35,11 @@ Production and preview environments can use different region configurations. For
 
 ## Instances per region
 
-Each region runs one or more instances of your app. Configure the autoscaling range in **Settings > Runtime settings > Instances** as a minimum and maximum replica count. The default is one instance per region (`1 – 1`).
+Each region runs one or more instances of your app. Configure the autoscaling range in **Settings > Runtime settings > Instances** as a minimum and maximum instance count. The default is one instance per region (`1 – 1`).
 
 When the minimum and maximum differ, Unkey scales each region between those bounds based on CPU load. Setting both values to the same number pins the instance count and disables autoscaling.
 
-Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances.
+Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances. For high availability, use at least 2 instances per region. See [Instances](/platform/instances/overview#high-availability) for the full availability model.
 
 <Note>
   During the beta, the maximum is four instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.

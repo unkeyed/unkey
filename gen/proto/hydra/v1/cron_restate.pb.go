@@ -60,25 +60,46 @@ type CronServiceClient interface {
 	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a meter event. The meters aggregate with
-	// formula "last", so the newest event in the period is the billed value
-	// and earlier ones are superseded. Key = billing period "YYYY-MM"; the
-	// pushed quantity is the absolute month-to-date total, so retries and
-	// overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse, fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, and awaits the outcomes, withholding the heartbeat when any
+	// child failed. The meters aggregate with formula "last", so
+	// each push sets (not increments) the period quantity and the latest hourly
+	// value supersedes the prior one. Key = billing period "YYYY-MM"; the pushed
+	// quantity is the absolute month-to-date total, so retries and overlapping
+	// ticks are harmless. Hourly schedule.
 	RunDeployBillingPush(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
 	// RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
-	// RunDeploymentCleanup prunes expired deployment resources. It first
-	// hard-deletes deployments that reached a
-	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
-	// more than the retention window ago, then reconciles Depot registry tags
-	// and projects against MySQL. External resources are deleted only from a
-	// repository or project-name prefix explicitly configured as exclusive to
-	// this database. The fixed "deployment-cleanup" key also stores registry
-	// pagination progress. Intended for an opt-in schedule.
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
+	// The 00:30 UTC backup cron invokes this; the invoice.created webhook fans
+	// out to CloseDeployBillingWorkspace per invoice instead. Idempotent: pushes
+	// converge by construction and an already-finalized invoice counts as done.
+	RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
 	RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
 }
 
@@ -160,6 +181,30 @@ func (c *cronServiceClient) RunScaleDownIdlePreviewDeployments(opts ...sdk_go.Cl
 	return sdk_go.WithRequestType[*RunScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*RunScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.CronService", c.key, "RunScaleDownIdlePreviewDeployments", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeployBillingCloseRequest](sdk_go.Object[*RunDeployBillingCloseResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingClose", cOpts...))
+}
+
+func (c *cronServiceClient) CloseDeployBillingWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*CloseDeployBillingWorkspaceRequest](sdk_go.Object[*CloseDeployBillingWorkspaceResponse](c.ctx, "hydra.v1.CronService", c.key, "CloseDeployBillingWorkspace", cOpts...))
+}
+
+func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
+}
+
 func (c *cronServiceClient) RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -200,25 +245,46 @@ type CronServiceIngressClient interface {
 	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a meter event. The meters aggregate with
-	// formula "last", so the newest event in the period is the billed value
-	// and earlier ones are superseded. Key = billing period "YYYY-MM"; the
-	// pushed quantity is the absolute month-to-date total, so retries and
-	// overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse, fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, and awaits the outcomes, withholding the heartbeat when any
+	// child failed. The meters aggregate with formula "last", so
+	// each push sets (not increments) the period quantity and the latest hourly
+	// value supersedes the prior one. Key = billing period "YYYY-MM"; the pushed
+	// quantity is the absolute month-to-date total, so retries and overlapping
+	// ticks are harmless. Hourly schedule.
 	RunDeployBillingPush() ingress.Requester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
 	// RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments() ingress.Requester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
-	// RunDeploymentCleanup prunes expired deployment resources. It first
-	// hard-deletes deployments that reached a
-	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
-	// more than the retention window ago, then reconciles Depot registry tags
-	// and projects against MySQL. External resources are deleted only from a
-	// repository or project-name prefix explicitly configured as exclusive to
-	// this database. The fixed "deployment-cleanup" key also stores registry
-	// pagination progress. Intended for an opt-in schedule.
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
+	// The 00:30 UTC backup cron invokes this; the invoice.created webhook fans
+	// out to CloseDeployBillingWorkspace per invoice instead. Idempotent: pushes
+	// converge by construction and an already-finalized invoice counts as done.
+	RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
 	RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
 }
 
@@ -276,6 +342,21 @@ func (c *cronServiceIngressClient) RunScaleDownIdlePreviewDeployments() ingress.
 	return ingress.NewRequester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "RunScaleDownIdlePreviewDeployments", &c.key, &codec)
 }
 
+func (c *cronServiceIngressClient) RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse](c.client, c.serviceName, "RunDeployBillingClose", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse](c.client, c.serviceName, "CloseDeployBillingWorkspace", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
+}
+
 func (c *cronServiceIngressClient) RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse](c.client, c.serviceName, "RunDeploymentCleanup", &c.key, &codec)
@@ -330,25 +411,46 @@ type CronServiceServer interface {
 	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a meter event. The meters aggregate with
-	// formula "last", so the newest event in the period is the billed value
-	// and earlier ones are superseded. Key = billing period "YYYY-MM"; the
-	// pushed quantity is the absolute month-to-date total, so retries and
-	// overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse, fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, and awaits the outcomes, withholding the heartbeat when any
+	// child failed. The meters aggregate with formula "last", so
+	// each push sets (not increments) the period quantity and the latest hourly
+	// value supersedes the prior one. Key = billing period "YYYY-MM"; the pushed
+	// quantity is the absolute month-to-date total, so retries and overlapping
+	// ticks are harmless. Hourly schedule.
 	RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error)
 	// RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error)
-	// RunDeploymentCleanup prunes expired deployment resources. It first
-	// hard-deletes deployments that reached a
-	// non-recoverable terminal status (failed, cancelled, superseded, skipped)
-	// more than the retention window ago, then reconciles Depot registry tags
-	// and projects against MySQL. External resources are deleted only from a
-	// repository or project-name prefix explicitly configured as exclusive to
-	// this database. The fixed "deployment-cleanup" key also stores registry
-	// pagination progress. Intended for an opt-in schedule.
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
+	// The 00:30 UTC backup cron invokes this; the invoice.created webhook fans
+	// out to CloseDeployBillingWorkspace per invoice instead. Idempotent: pushes
+	// converge by construction and an already-finalized invoice counts as done.
+	RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error)
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error)
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
 	RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error)
 }
 
@@ -383,6 +485,15 @@ func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectCont
 func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
+}
+func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), 501)
+}
+func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploymentCleanup not implemented"), 501)
 }
@@ -413,6 +524,9 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunAuditLogOutboxCleanup", sdk_go.NewObjectHandler(srv.RunAuditLogOutboxCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
+	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
+	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
+	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
 	router = router.Handler("RunDeploymentCleanup", sdk_go.NewObjectHandler(srv.RunDeploymentCleanup))
 	return router
 }

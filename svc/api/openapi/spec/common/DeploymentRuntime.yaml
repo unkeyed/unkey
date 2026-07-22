@@ -1,0 +1,47 @@
+type: object
+required:
+  - vCpus
+  - memoryMib
+  - storageMib
+  - port
+  - command
+  - shutdownSignal
+  - upstreamProtocol
+properties:
+  vCpus:
+    type: number
+    format: double
+    description: |
+      CPU allocation in vCPUs (1 = one vCPU, 0.5 = half a vCPU).
+    example: 0.25
+  memoryMib:
+    type: integer
+    description: |
+      Memory allocation in mebibytes.
+    example: 256
+  storageMib:
+    type: integer
+    description: |
+      Ephemeral storage allocation in mebibytes.
+    example: 0
+  port:
+    type: integer
+    description: |
+      Port the container listens on.
+    example: 8080
+  command:
+    type: array
+    items:
+      type: string
+    description: |
+      Container entrypoint command override. Empty when none is set.
+    example: ["node", "server.js"]
+  shutdownSignal:
+    "$ref": "./EnvironmentShutdownSignal.yaml"
+  upstreamProtocol:
+    "$ref": "./EnvironmentUpstreamProtocol.yaml"
+  healthcheck:
+    "$ref": "./EnvironmentHealthcheck.yaml"
+    description: |
+      HTTP health probe configuration. Omitted when no healthcheck is configured.
+additionalProperties: false

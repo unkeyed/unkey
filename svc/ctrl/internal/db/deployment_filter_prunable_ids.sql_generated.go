@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const filterPrunableDeploymentIds = `-- name: FilterPrunableDeploymentIds :many
@@ -24,9 +26,9 @@ FOR UPDATE
 `
 
 type FilterPrunableDeploymentIdsParams struct {
-	Ids      []string            `db:"ids"`
-	Statuses []DeploymentsStatus `db:"statuses"`
-	Cutoff   sql.NullInt64       `db:"cutoff"`
+	Ids      []string                      `db:"ids"`
+	Statuses []mysqltype.DeploymentsStatus `db:"statuses"`
+	Cutoff   sql.NullInt64                 `db:"cutoff"`
 }
 
 // FilterPrunableDeploymentIds revalidates cleanup candidates while locking

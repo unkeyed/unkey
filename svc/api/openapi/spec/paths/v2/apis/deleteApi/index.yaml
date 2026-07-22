@@ -19,7 +19,7 @@ post:
   operationId: apis.deleteApi
   x-speakeasy-name-override: deleteApi
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

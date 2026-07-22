@@ -12,7 +12,7 @@ post:
   operationId: identities.getIdentity
   x-speakeasy-name-override: getIdentity
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

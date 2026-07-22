@@ -7,8 +7,11 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -20,11 +23,38 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, err
 	}
 
+	deploymentID := req.Msg.GetTargetDeploymentId()
+	if deploymentID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("target_deployment_id is required"))
+	}
+
+	// Validate here so callers get precise connect codes instead of
+	// CodeInternal. The workflow re-checks everything except the environment
+	// and desired_state gates, which exist only at this layer.
+	deployment, err := s.db.FindDeploymentWithEnvironmentAndApp(ctx, deploymentID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
+	}
+
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              deployment.Status,
+		DesiredState:        deployment.DesiredState,
+		EnvironmentSlug:     deployment.EnvironmentSlug,
+		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
+		DeploymentID:        deployment.ID,
+		IsRolledBack:        deployment.IsRolledBack,
+	}); err != nil {
+		return nil, gatefault.Connect(err)
+	}
+
 	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	_, err := s.deploymentClient(req.Msg.GetTargetDeploymentId()).
+	_, err = s.deploymentClient(req.Msg.GetTargetDeploymentId()).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),

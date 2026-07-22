@@ -63,7 +63,7 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
   });
 
   return (
-    <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-lg w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       <Link
         href={projectPath}
         className="absolute inset-0 z-0"
@@ -127,19 +127,23 @@ function AppIconStack({
         </InfoTooltip>
       ))}
       {overflow > 0 ? (
-        <HoverCard openDelay={0} closeDelay={100}>
-          <HoverCardTrigger asChild>
-            <Link
-              href={routes.projects.detail({
-                workspaceSlug: workspace.slug,
-                projectId,
-              })}
-              aria-label={`View all ${appCount} apps`}
-              className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
-            >
-              +{overflow}
-            </Link>
-          </HoverCardTrigger>
+        <HoverCard>
+          <HoverCardTrigger
+            delay={0}
+            closeDelay={100}
+            render={
+              <Link
+                href={routes.projects.detail({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                })}
+                aria-label={`View all ${appCount} apps`}
+                className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
+              >
+                +{overflow}
+              </Link>
+            }
+          />
           <HoverCardContent align="start" className="w-56 p-1">
             <div className="flex flex-col max-h-64 overflow-y-auto">
               {apps.map((app) => (

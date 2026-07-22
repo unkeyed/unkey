@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -32,7 +33,7 @@ func New(t *testing.T) *Harness {
 	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
-	database, err := db.New(mysqlHostDSN)
+	database, err := db.New(mysqlHostDSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 
 	h := &Harness{
@@ -69,7 +70,7 @@ func (h *Harness) Now() int64 {
 // CreateDeploymentRequest contains parameters for creating a test deployment.
 type CreateDeploymentRequest struct {
 	Region       string
-	DesiredState db.DeploymentsDesiredState
+	DesiredState dbtype.DeploymentsDesiredState
 }
 
 // CreateDeploymentResult contains the created deployment and topology.
@@ -129,9 +130,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Valid: false},
 		EncryptedEnvironmentVariables: []byte(""),
-		Status:                        db.DeploymentsStatusReady,
-		CpuMillicores:                 100,
-		MemoryMib:                     128,
+		Status:                        dbtype.DeploymentsStatusReady,
+		CpuMillicores:                 250,
+		MemoryMib:                     256,
 		StorageMib:                    0,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
@@ -149,7 +150,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	require.NoError(h.t, err)
 
 	// Update desired_state (insert doesn't set it, but it defaults to running)
-	if req.DesiredState != "" && req.DesiredState != db.DeploymentsDesiredStateRunning {
+	if req.DesiredState != "" && req.DesiredState != dbtype.DeploymentsDesiredStateRunning {
 		_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, deploymentID)
 		require.NoError(h.t, err)
 	}

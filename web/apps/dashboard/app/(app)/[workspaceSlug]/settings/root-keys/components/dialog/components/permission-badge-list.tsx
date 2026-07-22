@@ -120,7 +120,7 @@ const CollapsibleList = ({
       <CollapsibleTrigger
         {...props}
         className={cn(
-          "flex flex-row gap-3 transition-all [&[data-state=open]>svg]:rotate-90 w-full",
+          "flex flex-row gap-3 transition-all [&[data-panel-open]>svg]:rotate-90 w-full",
           className,
         )}
       >

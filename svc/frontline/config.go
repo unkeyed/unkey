@@ -75,8 +75,8 @@ type Config struct {
 	// the request. Prevents infinite routing loops.
 	MaxHops int `toml:"max_hops" config:"default=10"`
 
-	// CtrlAddr is the address of the control plane service.
-	CtrlAddr string `toml:"ctrl_addr" config:"default=localhost:8080"`
+	// Control configures the upstream control plane. See [config.ControlConfig].
+	Control config.ControlConfig `toml:"control"`
 
 	// PrometheusPort starts a Prometheus /metrics HTTP endpoint on the
 	// specified port. Set to 0 to disable.

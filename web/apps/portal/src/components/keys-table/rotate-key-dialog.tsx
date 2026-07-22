@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
+import type { Key, RerollKeyResult } from "~/components/keys-table/schema/keys.schema";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Field, FieldDescription, FieldLabel } from "~/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -19,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { newPlaintext } from "~/lib/random-key";
-import type { Key } from "~/routes/dave-initial-design/-seed";
 import { DiscardSecretConfirm, SecretRevealCard, useSecretCloseGate } from "./secret-reveal-card";
 
 const GRACE_PERIODS = [
@@ -34,34 +33,39 @@ const GRACE_PERIODS = [
 
 const DEFAULT_GRACE = "60000";
 
-export type RotateResult = {
-  start: string;
-};
+/** Performs the reroll and resolves with the one-time secret. */
+export type RerollFn = (input: { keyId: string; expiration: number }) => Promise<RerollKeyResult>;
 
 type RotateKeyDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   keyToRotate: Key | null;
-  onRotate: (id: string, result: RotateResult) => void;
+  onReroll: RerollFn;
+  onRerolled?: (result: RerollKeyResult) => void;
 };
 
 export function RotateKeyDialog({
   open,
   onOpenChange,
   keyToRotate,
-  onRotate,
+  onReroll,
+  onRerolled,
 }: RotateKeyDialogProps) {
   const [grace, setGrace] = useState<string>(DEFAULT_GRACE);
-  const [rotated, setRotated] = useState<{ plaintext: string; start: string } | null>(null);
+  const [rotated, setRotated] = useState<RerollKeyResult | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [isRerolling, setIsRerolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const close = () => {
-    if (rotated && keyToRotate) {
-      onRotate(keyToRotate.id, { start: rotated.start });
+    if (rotated) {
+      onRerolled?.(rotated);
     }
     setGrace(DEFAULT_GRACE);
     setRotated(null);
     setHasCopied(false);
+    setIsRerolling(false);
+    setError(null);
     onOpenChange(false);
   };
 
@@ -71,38 +75,52 @@ export function RotateKeyDialog({
     onClose: close,
   });
 
-  const handleRotate = () => {
-    setRotated(newPlaintext());
+  const handleRotate = async () => {
+    if (!keyToRotate || isRerolling) {
+      return;
+    }
+    setError(null);
+    setIsRerolling(true);
+    try {
+      const result = await onReroll({ keyId: keyToRotate.id, expiration: Number(grace) });
+      setRotated(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rotate key. Please try again.");
+    } finally {
+      setIsRerolling(false);
+    }
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
-        {keyToRotate ? (
-          <DialogContent>
-            {rotated === null ? (
-              <ConfigureCard
-                grace={grace}
-                onGraceChange={setGrace}
-                onCancel={tryClose}
-                onRotate={handleRotate}
-              />
-            ) : (
-              <SecretRevealCard
-                title="Key rotated"
-                description="A new secret has been generated. Copy it before closing."
-                secretLabel="New secret"
-                plaintext={rotated.plaintext}
-                onCopied={() => setHasCopied(true)}
-                onDone={tryClose}
-              />
-            )}
-          </DialogContent>
-        ) : null}
-      </Dialog>
-
-      <DiscardSecretConfirm {...discardConfirm} />
-    </>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
+      {keyToRotate ? (
+        <DialogContent>
+          {rotated === null ? (
+            <ConfigureCard
+              grace={grace}
+              onGraceChange={setGrace}
+              onCancel={tryClose}
+              onRotate={handleRotate}
+              isRerolling={isRerolling}
+              error={error}
+            />
+          ) : (
+            <SecretRevealCard
+              title="Key rotated"
+              description="A new secret has been generated. Copy it before closing."
+              secretLabel="New secret"
+              plaintext={rotated.plaintext}
+              onCopied={() => setHasCopied(true)}
+              onDone={tryClose}
+            />
+          )}
+          {/* Rendered inside the parent dialog's popup so Base UI treats it
+              as a nested dialog: Escape closes only the confirmation and the
+              two open states don't race. */}
+          <DiscardSecretConfirm {...discardConfirm} />
+        </DialogContent>
+      ) : null}
+    </Dialog>
   );
 }
 
@@ -111,9 +129,18 @@ type ConfigureCardProps = {
   onGraceChange: (value: string) => void;
   onCancel: () => void;
   onRotate: () => void;
+  isRerolling: boolean;
+  error: string | null;
 };
 
-function ConfigureCard({ grace, onGraceChange, onCancel, onRotate }: ConfigureCardProps) {
+function ConfigureCard({
+  grace,
+  onGraceChange,
+  onCancel,
+  onRotate,
+  isRerolling,
+  error,
+}: ConfigureCardProps) {
   return (
     <>
       <DialogHeader className="border-b-0 pb-2">
@@ -124,9 +151,14 @@ function ConfigureCard({ grace, onGraceChange, onCancel, onRotate }: ConfigureCa
       </DialogHeader>
 
       <DialogBody className="px-5 pt-2 pb-5">
-        <Field>
+        <Field data-invalid={!!error}>
           <FieldLabel htmlFor="rotate-key-grace">Grace period</FieldLabel>
-          <Select value={grace} onValueChange={onGraceChange}>
+          <Select
+            items={GRACE_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+            value={grace}
+            onValueChange={(value) => value !== null && onGraceChange(value)}
+            disabled={isRerolling}
+          >
             <SelectTrigger id="rotate-key-grace">
               <SelectValue placeholder="Select a grace period" />
             </SelectTrigger>
@@ -140,17 +172,23 @@ function ConfigureCard({ grace, onGraceChange, onCancel, onRotate }: ConfigureCa
               </SelectGroup>
             </SelectContent>
           </Select>
-          <FieldDescription>How long the current key stays valid after rotation.</FieldDescription>
+          {error ? (
+            <FieldError>{error}</FieldError>
+          ) : (
+            <FieldDescription>
+              How long the current key stays valid after rotation.
+            </FieldDescription>
+          )}
         </Field>
       </DialogBody>
 
       <DialogFooter>
-        <Button type="button" variant="ghost" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={isRerolling}>
           Cancel
         </Button>
-        <Button type="button" onClick={onRotate}>
-          <RefreshCw />
-          Rotate key
+        <Button type="button" onClick={onRotate} disabled={isRerolling}>
+          <RefreshCw className={isRerolling ? "animate-spin" : undefined} />
+          {isRerolling ? "Rotating…" : "Rotate key"}
         </Button>
       </DialogFooter>
     </>

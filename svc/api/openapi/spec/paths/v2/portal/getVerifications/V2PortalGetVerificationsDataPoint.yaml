@@ -1,0 +1,50 @@
+type: object
+required:
+  - time
+  - total
+  - valid
+  - rateLimited
+  - insufficientPermissions
+  - forbidden
+  - disabled
+  - expired
+  - usageExceeded
+properties:
+  time:
+    type: integer
+    format: int64
+    description: Bucket start as a unix timestamp in milliseconds.
+    example: 1704067200000
+  total:
+    type: integer
+    format: int64
+    description: Total verifications in this bucket, across all outcomes.
+  valid:
+    type: integer
+    format: int64
+    description: Verifications with a VALID outcome.
+  rateLimited:
+    type: integer
+    format: int64
+    description: Verifications rejected because a rate limit was exceeded.
+  insufficientPermissions:
+    type: integer
+    format: int64
+    description: Verifications rejected for insufficient permissions.
+  forbidden:
+    type: integer
+    format: int64
+    description: Verifications rejected as forbidden.
+  disabled:
+    type: integer
+    format: int64
+    description: Verifications rejected because the key was disabled.
+  expired:
+    type: integer
+    format: int64
+    description: Verifications rejected because the key was expired.
+  usageExceeded:
+    type: integer
+    format: int64
+    description: Verifications rejected because remaining usage was exhausted.
+additionalProperties: false
