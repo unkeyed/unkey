@@ -222,6 +222,10 @@ export const workspacePermissions = {
       description: "Delete apps in any project in this workspace",
       permission: "app.*.delete_app",
     },
+    connect_github: {
+      description: "Connect any app in this workspace to a GitHub repository",
+      permission: "app.*.connect_github",
+    },
   },
   Environments: {
     read_environment: {
@@ -371,6 +375,10 @@ export function appPermissions(appId: string): {
       delete_app: {
         description: "Delete apps in this project.",
         permission: `app.${appId}.delete_app`,
+      },
+      connect_github: {
+        description: "Connect this app to a GitHub repository.",
+        permission: `app.${appId}.connect_github`,
       },
     },
   };

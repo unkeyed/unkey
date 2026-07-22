@@ -26,7 +26,9 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      if (data.returnTo === "settings") {
+      // When the API flow already auto-connected the repository, skip the picker
+      // and go straight to the app settings where the connection is shown.
+      if (data.returnTo === "settings" || data.repositoryConnected) {
         router.replace(
           routes.projects.apps.settings({
             workspaceSlug: data.workspaceSlug,

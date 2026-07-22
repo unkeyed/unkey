@@ -29,9 +29,19 @@ const signedStatePayload = z.object({
   appId: z.string().min(1),
   returnTo: z.enum(["settings"]).optional(),
   workspaceId: z.string().min(1),
-  userId: z.string().min(1),
+  // Present for dashboard-initiated installs (binds the state to the initiating
+  // user). Absent for API-minted states (apps.createGithubConnection), which a
+  // root key authorizes at the workspace level with no user identity.
+  userId: z.string().min(1).optional(),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
+  // Set by the API flow to auto-connect a repository ("owner/name") after
+  // install, skipping the picker.
+  repository: z.string().min(1).optional(),
+  // Marks the flow origin explicitly. "dashboard" states are bound to the
+  // initiating user; "api" states skip the user binding (see userId above).
+  // Optional so states minted before this field existed still verify.
+  source: z.enum(["api", "dashboard"]).optional(),
 });
 
 const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
@@ -259,6 +269,7 @@ export const githubRouter = t.router({
           returnTo: input.returnTo,
           workspaceId: ctx.workspace.id,
           userId: ctx.user.id,
+          source: "dashboard",
           nonce: crypto.randomBytes(16).toString("base64url"),
           exp: Date.now() + STATE_TTL_MS,
         }),
@@ -299,7 +310,11 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        parsedState.userId !== ctx.user.id
+        // API-minted states (source "api") are bound to the workspace only; the
+        // OAuth-code ownership proof below is the real access control. Every
+        // other origin (dashboard, or legacy states with no source) must match
+        // the initiating user.
+        (parsedState.source !== "api" && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -427,11 +442,55 @@ export const githubRouter = t.router({
           });
         });
 
+      // API-minted states may carry a repository to auto-connect so the caller
+      // skips the picker. Best-effort: if the repo wasn't granted during install
+      // (or anything fails) we fall back to the picker; the installation itself
+      // already succeeded.
+      let repositoryConnected = false;
+      if (parsedState.repository) {
+        const [owner, repo] = parsedState.repository.split("/");
+        if (owner && repo) {
+          try {
+            const ghRepo = await getRepository(input.installationId, owner, repo);
+            await db
+              .insert(schema.githubRepoConnections)
+              .values({
+                workspaceId: ctx.workspace.id,
+                projectId,
+                appId: parsedState.appId,
+                installationId: input.installationId,
+                repositoryId: ghRepo.id,
+                repositoryFullName: ghRepo.full_name,
+                createdAt: Date.now(),
+                updatedAt: null,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  installationId: input.installationId,
+                  repositoryId: ghRepo.id,
+                  repositoryFullName: ghRepo.full_name,
+                  updatedAt: Date.now(),
+                },
+              });
+            if (ghRepo.default_branch) {
+              await db
+                .update(schema.apps)
+                .set({ defaultBranch: ghRepo.default_branch, updatedAt: Date.now() })
+                .where(eq(schema.apps.id, parsedState.appId));
+            }
+            repositoryConnected = true;
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
         appId: parsedState.appId,
         returnTo: parsedState.returnTo ?? null,
+        repositoryConnected,
       };
     }),
 
