@@ -465,9 +465,9 @@ export const githubRouter = t.router({
             description: `Bound GitHub installation ${input.installationId}`,
             resources: [
               {
-                type: "app",
-                id: parsedState.appId,
-                meta: { source: origin, installationId: input.installationId },
+                type: "githubInstallation",
+                id: String(input.installationId),
+                meta: { source: origin, appId: parsedState.appId },
               },
             ],
             context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
