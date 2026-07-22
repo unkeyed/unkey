@@ -24,10 +24,12 @@ type Client struct {
 	retry          *retry.Retry
 }
 
-// contextWithoutDeadline preserves cancellation while hiding the parent
-// deadline from clickhouse-go. The HTTP transport otherwise converts that
-// deadline into a max_execution_time override, which conflicts with readonly
-// workspace profiles that already enforce the server-side execution limit.
+// contextWithoutDeadline separates the HTTP request timeout from the database
+// execution limit. clickhouse-go converts context deadlines into a
+// max_execution_time query setting, but workspace users cannot override the
+// execution limit enforced by their readonly server profile. Hiding only the
+// deadline prevents that conflicting setting while preserving cancellation, so
+// a client disconnect or expired HTTP request still stops the query.
 type contextWithoutDeadline struct {
 	context.Context
 }
