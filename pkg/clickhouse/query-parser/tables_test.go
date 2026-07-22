@@ -7,21 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newParserWithIdentityAliases lets legacy parser tests focus on validation
-// other than the public alias boundary. Production callers provide distinct
-// public aliases instead of mapping physical names to themselves.
-func newParserWithIdentityAliases(config Config) *Parser {
-	if config.TableAliases == nil {
-		config.TableAliases = make(map[string]string, len(config.AllowedTables))
-	}
-	for _, table := range config.AllowedTables {
-		if _, exists := config.TableAliases[table]; !exists {
-			config.TableAliases[table] = table
-		}
-	}
-	return NewParser(config)
-}
-
 func TestParser_TableAliases(t *testing.T) {
 	p := NewParser(Config{
 		WorkspaceID: "ws_123",
@@ -220,9 +205,12 @@ func TestParser_BlockInformationSchema(t *testing.T) {
 }
 
 func TestParser_UNIONWithTables(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
 		Limit:       1000,
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -235,22 +223,22 @@ func TestParser_UNIONWithTables(t *testing.T) {
 	}{
 		{
 			name:        "UNION DISTINCT to system tables",
-			query:       "SELECT key_id FROM default.key_verifications_raw_v2 UNION DISTINCT SELECT name FROM system.tables",
+			query:       "SELECT key_id FROM key_verifications_v1 UNION DISTINCT SELECT name FROM system.tables",
 			shouldBlock: true,
 		},
 		{
 			name:        "UNION ALL to bypass deduplication",
-			query:       "SELECT key_id FROM default.key_verifications_raw_v2 UNION ALL SELECT name FROM system.databases",
+			query:       "SELECT key_id FROM key_verifications_v1 UNION ALL SELECT name FROM system.databases",
 			shouldBlock: true,
 		},
 		{
 			name:        "UNION DISTINCT with unauthorized table",
-			query:       "SELECT key_id FROM default.key_verifications_raw_v2 UNION DISTINCT SELECT id FROM default.secrets",
+			query:       "SELECT key_id FROM key_verifications_v1 UNION DISTINCT SELECT id FROM default.secrets",
 			shouldBlock: true,
 		},
 		{
 			name:        "UNION ALL with another allowed table",
-			query:       "SELECT key_id FROM default.key_verifications_raw_v2 UNION ALL SELECT key_id FROM default.key_verifications_raw_v2",
+			query:       "SELECT key_id FROM key_verifications_v1 UNION ALL SELECT key_id FROM key_verifications_v1",
 			shouldBlock: false,
 		},
 	}
@@ -270,8 +258,11 @@ func TestParser_UNIONWithTables(t *testing.T) {
 }
 
 func TestParser_JOINWithTables(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -284,32 +275,32 @@ func TestParser_JOINWithTables(t *testing.T) {
 	}{
 		{
 			name:        "INNER JOIN to system table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 INNER JOIN system.tables ON 1=1",
+			query:       "SELECT * FROM key_verifications_v1 INNER JOIN system.tables ON 1=1",
 			shouldBlock: true,
 		},
 		{
 			name:        "LEFT JOIN to unauthorized table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 LEFT JOIN default.secrets ON key_id = id",
+			query:       "SELECT * FROM key_verifications_v1 LEFT JOIN default.secrets ON key_id = id",
 			shouldBlock: true,
 		},
 		{
 			name:        "RIGHT JOIN to system table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 RIGHT JOIN system.databases ON 1=1",
+			query:       "SELECT * FROM key_verifications_v1 RIGHT JOIN system.databases ON 1=1",
 			shouldBlock: true,
 		},
 		{
 			name:        "CROSS JOIN to system table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 CROSS JOIN system.users",
+			query:       "SELECT * FROM key_verifications_v1 CROSS JOIN system.users",
 			shouldBlock: true,
 		},
 		{
 			name:        "Multiple JOINs with one unauthorized",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 t1 JOIN default.key_verifications_raw_v2 t2 ON t1.key_id = t2.key_id JOIN system.tables t3 ON 1=1",
+			query:       "SELECT * FROM key_verifications_v1 t1 JOIN key_verifications_v1 t2 ON t1.key_id = t2.key_id JOIN system.tables t3 ON 1=1",
 			shouldBlock: true,
 		},
 		{
 			name:        "JOIN with allowed tables",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 t1 INNER JOIN default.key_verifications_raw_v2 t2 ON t1.key_id = t2.key_id",
+			query:       "SELECT * FROM key_verifications_v1 t1 INNER JOIN key_verifications_v1 t2 ON t1.key_id = t2.key_id",
 			shouldBlock: false,
 		},
 	}
@@ -329,9 +320,12 @@ func TestParser_JOINWithTables(t *testing.T) {
 }
 
 func TestParser_SubqueryWithTables(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
 		Limit:       10,
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -345,24 +339,24 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 	}{
 		{
 			name:        "subquery in FROM with allowed table",
-			query:       "SELECT * FROM (SELECT * FROM default.key_verifications_raw_v2 LIMIT 10000) LIMIT 5",
+			query:       "SELECT * FROM (SELECT * FROM key_verifications_v1 LIMIT 10000) LIMIT 5",
 			expected:    "SELECT * FROM (SELECT * FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' LIMIT 10) LIMIT 5",
 			shouldBlock: false,
 		},
 		{
 			name:        "subquery with aggregation not selecting workspace_id",
-			query:       "SELECT date, verifications FROM (SELECT time as date, SUM(count) as verifications FROM default.key_verifications_raw_v2 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date) ORDER BY date",
+			query:       "SELECT date, verifications FROM (SELECT time as date, SUM(count) as verifications FROM key_verifications_v1 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date) ORDER BY date",
 			expected:    "SELECT date, verifications FROM (SELECT time AS date, SUM(count) AS verifications FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = 'ws_123' AND (time >= now() - INTERVAL 60 DAY) GROUP BY date LIMIT 10) ORDER BY date LIMIT 10",
 			shouldBlock: false,
 		},
 		{
 			name:        "subquery in WHERE with system table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id IN (SELECT key_id FROM system.tables)",
+			query:       "SELECT * FROM key_verifications_v1 WHERE key_id IN (SELECT key_id FROM system.tables)",
 			shouldBlock: true,
 		},
 		{
 			name:        "subquery with unauthorized table",
-			query:       "SELECT * FROM default.key_verifications_raw_v2 WHERE key_id IN (SELECT id FROM default.secrets)",
+			query:       "SELECT * FROM key_verifications_v1 WHERE key_id IN (SELECT id FROM default.secrets)",
 			shouldBlock: true,
 		},
 		{
@@ -388,8 +382,11 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 }
 
 func TestParser_CTEWithTables(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -412,27 +409,27 @@ func TestParser_CTEWithTables(t *testing.T) {
 		},
 		{
 			name:        "Multiple CTEs with one unauthorized",
-			query:       "WITH t1 AS (SELECT * FROM default.key_verifications_raw_v2), t2 AS (SELECT * FROM system.tables) SELECT * FROM t1 JOIN t2 ON 1=1",
+			query:       "WITH t1 AS (SELECT * FROM key_verifications_v1), t2 AS (SELECT * FROM system.tables) SELECT * FROM t1 JOIN t2 ON 1=1",
 			shouldBlock: true,
 		},
 		{
 			name:        "Nested CTEs with system table",
-			query:       "WITH t1 AS (SELECT * FROM default.key_verifications_raw_v2), t2 AS (SELECT * FROM t1), t3 AS (SELECT * FROM system.tables) SELECT * FROM t2",
+			query:       "WITH t1 AS (SELECT * FROM key_verifications_v1), t2 AS (SELECT * FROM t1), t3 AS (SELECT * FROM system.tables) SELECT * FROM t2",
 			shouldBlock: true,
 		},
 		{
 			name:        "CTE with allowed table should work",
-			query:       "WITH t AS (SELECT * FROM default.key_verifications_raw_v2) SELECT * FROM t",
+			query:       "WITH t AS (SELECT * FROM key_verifications_v1) SELECT * FROM t",
 			shouldBlock: false,
 		},
 		{
 			name:        "Multiple CTEs with allowed tables",
-			query:       "WITH t1 AS (SELECT * FROM default.key_verifications_raw_v2), t2 AS (SELECT * FROM t1) SELECT * FROM t2",
+			query:       "WITH t1 AS (SELECT * FROM key_verifications_v1), t2 AS (SELECT * FROM t1) SELECT * FROM t2",
 			shouldBlock: false,
 		},
 		{
 			name:        "CTE JOIN with allowed table",
-			query:       "WITH t AS (SELECT * FROM default.key_verifications_raw_v2) SELECT * FROM t JOIN default.key_verifications_raw_v2 v ON t.key_id = v.key_id",
+			query:       "WITH t AS (SELECT * FROM key_verifications_v1) SELECT * FROM t JOIN key_verifications_v1 v ON t.key_id = v.key_id",
 			shouldBlock: false,
 		},
 	}
@@ -452,8 +449,11 @@ func TestParser_CTEWithTables(t *testing.T) {
 }
 
 func TestParser_ScalarSubqueryWithTables(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -466,17 +466,17 @@ func TestParser_ScalarSubqueryWithTables(t *testing.T) {
 	}{
 		{
 			name:        "scalar subquery with system table",
-			query:       "SELECT key_id, (SELECT COUNT(*) FROM system.tables) AS cnt FROM default.key_verifications_raw_v2",
+			query:       "SELECT key_id, (SELECT COUNT(*) FROM system.tables) AS cnt FROM key_verifications_v1",
 			shouldBlock: true,
 		},
 		{
 			name:        "scalar subquery with unauthorized table",
-			query:       "SELECT key_id, (SELECT secret FROM default.secrets LIMIT 1) AS s FROM default.key_verifications_raw_v2",
+			query:       "SELECT key_id, (SELECT secret FROM default.secrets LIMIT 1) AS s FROM key_verifications_v1",
 			shouldBlock: true,
 		},
 		{
 			name:        "scalar subquery with allowed table",
-			query:       "SELECT key_id, (SELECT COUNT(*) FROM default.key_verifications_raw_v2) AS cnt FROM default.key_verifications_raw_v2",
+			query:       "SELECT key_id, (SELECT COUNT(*) FROM key_verifications_v1) AS cnt FROM key_verifications_v1",
 			shouldBlock: false,
 		},
 	}

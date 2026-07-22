@@ -8,8 +8,11 @@ import (
 )
 
 func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"key_verifications_v1": "default.key_verifications_raw_v2",
+		},
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
 		},
@@ -22,32 +25,32 @@ func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 	}{
 		{
 			name:       "file function",
-			query:      "SELECT file('/etc/passwd') FROM default.key_verifications_raw_v2",
+			query:      "SELECT file('/etc/passwd') FROM key_verifications_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "url function",
-			query:      "SELECT url('http://evil.com/data') FROM default.key_verifications_raw_v2",
+			query:      "SELECT url('http://evil.com/data') FROM key_verifications_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "system function",
-			query:      "SELECT system('rm -rf /') FROM default.key_verifications_raw_v2",
+			query:      "SELECT system('rm -rf /') FROM key_verifications_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "executable function",
-			query:      "SELECT executable('/bin/bash') FROM default.key_verifications_raw_v2",
+			query:      "SELECT executable('/bin/bash') FROM key_verifications_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "dict_get to access dictionaries",
-			query:      "SELECT dictGet('dict', 'attr', key_id) FROM default.key_verifications_raw_v2",
+			query:      "SELECT dictGet('dict', 'attr', key_id) FROM key_verifications_v1",
 			shouldFail: true,
 		},
 		{
 			name:       "nested safe functions should work",
-			query:      "SELECT count(DISTINCT key_id) FROM default.key_verifications_raw_v2",
+			query:      "SELECT count(DISTINCT key_id) FROM key_verifications_v1",
 			shouldFail: false,
 		},
 	}
@@ -67,8 +70,11 @@ func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 }
 
 func TestParser_AllowSafeFunctions(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"keys_v1": "default.keys_v2",
+		},
 		AllowedTables: []string{
 			"default.keys_v2",
 		},
@@ -77,14 +83,14 @@ func TestParser_AllowSafeFunctions(t *testing.T) {
 	safeFuncs := []string{"count", "sum", "avg", "max", "min", "now", "toDate"}
 
 	for _, fn := range safeFuncs {
-		query := "SELECT " + fn + "(*) FROM default.keys_v2"
+		query := "SELECT " + fn + "(*) FROM keys_v1"
 		_, err := p.Parse(context.Background(), query)
 		require.NoError(t, err, "Function %s should be allowed", fn)
 	}
 }
 
 func TestParser_OnlySelectAllowed(t *testing.T) {
-	p := newParserWithIdentityAliases(Config{
+	p := NewParser(Config{
 		WorkspaceID: "ws_123",
 		AllowedTables: []string{
 			"default.key_verifications_raw_v2",
@@ -189,7 +195,10 @@ func TestParser_EmitsClickHouseCompatibleAllowedFunctionNames(t *testing.T) {
 // query-level settings to the root query or any nested SELECT query.
 func TestParser_RejectsSettingsClauses(t *testing.T) {
 	p := NewParser(Config{
-		WorkspaceID:   "ws_123",
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"keys_v1": "default.keys_v2",
+		},
 		AllowedTables: []string{"default.keys_v2"},
 	})
 
@@ -199,31 +208,31 @@ func TestParser_RejectsSettingsClauses(t *testing.T) {
 	}{
 		{
 			name:  "top level",
-			query: "SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+			query: "SELECT * FROM keys_v1 SETTINGS max_execution_time = 0",
 		},
 		{
 			name:  "scalar subquery",
-			query: "SELECT (SELECT count(*) FROM default.keys_v2 SETTINGS max_execution_time = 0) FROM default.keys_v2",
+			query: "SELECT (SELECT count(*) FROM keys_v1 SETTINGS max_execution_time = 0) FROM keys_v1",
 		},
 		{
 			name:  "from subquery",
-			query: "SELECT * FROM (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0)",
+			query: "SELECT * FROM (SELECT * FROM keys_v1 SETTINGS max_execution_time = 0)",
 		},
 		{
 			name:  "common table expression",
-			query: "WITH cte AS (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0) SELECT * FROM cte",
+			query: "WITH cte AS (SELECT * FROM keys_v1 SETTINGS max_execution_time = 0) SELECT * FROM cte",
 		},
 		{
 			name:  "union branch",
-			query: "SELECT * FROM default.keys_v2 UNION ALL SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+			query: "SELECT * FROM keys_v1 UNION ALL SELECT * FROM keys_v1 SETTINGS max_execution_time = 0",
 		},
 		{
 			name:  "except branch",
-			query: "SELECT * FROM default.keys_v2 EXCEPT SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0",
+			query: "SELECT * FROM keys_v1 EXCEPT SELECT * FROM keys_v1 SETTINGS max_execution_time = 0",
 		},
 		{
 			name:  "deeply nested",
-			query: "SELECT * FROM (SELECT * FROM (SELECT * FROM default.keys_v2 SETTINGS max_execution_time = 0))",
+			query: "SELECT * FROM (SELECT * FROM (SELECT * FROM keys_v1 SETTINGS max_execution_time = 0))",
 		},
 	}
 
