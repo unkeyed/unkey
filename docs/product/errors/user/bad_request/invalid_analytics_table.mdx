@@ -23,28 +23,6 @@ description: "Your analytics query references a table that does not exist or is 
 
 Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
 
-For security, each analytics endpoint accepts only its own public, versioned
-table aliases.
-
-`analytics.getVerifications` accepts:
-
-- `key_verifications_v1` - Raw key verification events
-- `key_verifications_per_minute_v1` - Minute-level aggregates
-- `key_verifications_per_hour_v1` - Hour-level aggregates
-- `key_verifications_per_day_v1` - Day-level aggregates
-- `key_verifications_per_month_v1` - Month-level aggregates
-
-`analytics.getRatelimits` accepts:
-
-- `ratelimits_v1` - Raw rate limit events
-- `ratelimits_per_minute_v1` - Minute-level aggregates
-- `ratelimits_per_hour_v1` - Hour-level aggregates
-- `ratelimits_per_day_v1` - Day-level aggregates
-- `ratelimits_per_month_v1` - Month-level aggregates
-
-Physical `default.*` table names, system tables such as `system.*`, and other
-database tables are blocked.
-
 ## How to Fix It
 
 ### 1. Use the Correct Table Name
