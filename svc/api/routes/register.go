@@ -63,6 +63,7 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 
+	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
@@ -682,6 +683,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
+		},
+	)
+
+	// v2/analytics.getRatelimits
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetRatelimits.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
 	)
 

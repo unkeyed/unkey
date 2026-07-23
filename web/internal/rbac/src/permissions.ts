@@ -19,7 +19,7 @@ export function buildIdSchema(prefix: string) {
   });
 }
 const apiId = buildIdSchema("api");
-const ratelimitNamespaceId = buildIdSchema("rl");
+const ratelimitNamespaceId = buildIdSchema("rlns");
 const rbacId = buildIdSchema("rbac");
 const identityEnvId = z.string();
 const projectId = buildIdSchema("proj");
@@ -41,6 +41,7 @@ export const apiActions = z.enum([
 ]);
 export const ratelimitActions = z.enum([
   "limit",
+  "read_analytics",
   "create_namespace",
   "read_namespace",
   "update_namespace",

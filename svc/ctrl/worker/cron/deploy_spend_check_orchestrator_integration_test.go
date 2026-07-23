@@ -61,7 +61,7 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 
 	period := time.Now().UTC().Format("2006-01")
 	run := func() (*hydrav1.RunDeploySpendCheckResponse, error) {
-		return hydrav1.NewCronServiceIngressClient(h.Restate, period).
+		return hydrav1.NewCronServiceIngressClient(h.Restate, "deploy-spend-check-"+period).
 			RunDeploySpendCheck().
 			Request(h.Ctx, &hydrav1.RunDeploySpendCheckRequest{})
 	}
