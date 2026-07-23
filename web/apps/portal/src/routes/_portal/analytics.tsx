@@ -24,17 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { canReadAnalytics } from "~/lib/permissions";
 import { isRetentionExceededError, isUnauthorizedError } from "~/lib/portal-api";
 
 export const Route = createFileRoute("/_portal/analytics")({
-  beforeLoad: ({ context }) => {
-    // The page queries verification analytics via portal.getVerifications
-    // (authorized with analytics:read), so it must only render for sessions
-    // that carry that capability.
-    if (!canReadAnalytics(context.session.permissions)) {
-      throw redirect({ to: "/" });
-    }
+  beforeLoad: () => {
+    // Analytics is deferred to v2. The route is kept for reuse but blocked at
+    // the route layer: it must not render even for a session that carries
+    // analytics:read, and direct navigation is redirected away.
+    throw redirect({ to: "/keys" });
   },
   component: AnalyticsPage,
 });

@@ -37,7 +37,6 @@ function PortalLayout() {
     <div style={brandingStyle} className="flex min-h-screen flex-col bg-background">
       {session.preview && <PreviewBanner />}
       <PortalHeader
-        permissions={session.permissions}
         logoUrl={portalConfig?.branding?.logoUrl ?? undefined}
         returnUrl={portalConfig?.returnUrl ?? undefined}
         appName={portalConfig?.slug ?? undefined}
