@@ -124,6 +124,6 @@ func waitForRatelimitCount(t *testing.T, ctx context.Context, conn ch.Conn, work
 }
 
 func callRunQuotaCheck(h *harness.Harness, billingPeriod string) (*hydrav1.RunQuotaCheckResponse, error) {
-	client := hydrav1.NewCronServiceIngressClient(h.Restate, billingPeriod)
+	client := hydrav1.NewCronServiceIngressClient(h.Restate, "quota-check-"+billingPeriod)
 	return client.RunQuotaCheck().Request(h.Ctx, &hydrav1.RunQuotaCheckRequest{})
 }

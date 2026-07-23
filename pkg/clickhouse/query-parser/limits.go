@@ -14,7 +14,7 @@ func (p *Parser) enforceLimit() {
 	}
 
 	// Walk the AST to enforce limits on all SELECT statements including subqueries
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		// Check if this is a SELECT query
 		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 			p.enforceLimitOnSelect(selectQuery)
