@@ -16,36 +16,24 @@ const TAB_CONFIGS: ReadonlyArray<TabConfig> = [
 ] as const;
 
 /**
- * RBAC actions that grant visibility to the Keys tab.
+ * Analytics capability that grants visibility to the Analytics tab.
  */
-const KEY_ACTIONS = new Set(["read_key", "create_key", "update_key", "delete_key"]);
+const ANALYTICS_READ = "analytics:read";
 
 /**
- * RBAC actions that grant visibility to the Analytics tab.
- */
-const ANALYTICS_ACTIONS = new Set(["read_analytics"]);
-
-/**
- * Derive visible portal tabs from a session's RBAC tuple permissions.
+ * Derive visible portal tabs from a session's capabilities.
  *
- * Each permission is expected in the format `{resourceType}.{resourceId}.{action}`.
- * The action segment (third dot-separated segment) determines tab visibility:
- * - Keys tab: action ∈ {read_key, create_key, update_key, delete_key}
- * - Analytics tab: action = read_analytics
- * - Docs tab: visible when any permission is present (regardless of action)
- *
- * Permissions with fewer than 3 segments are silently ignored (defensive fallback).
+ * Capabilities use the portal's colon vocabulary, issued by
+ * `portal.createSession` and persisted on the session
+ * (e.g. `keys:read`, `keys:reroll`, `analytics:read`). Per the RFC:
+ * - Keys tab: `keys:read` (matches the keys page's access guard, so the tab is
+ *   never shown to a session the page would redirect away; see {@link canReadKeys})
+ * - Analytics tab: `analytics:read`
+ * - Docs tab: visible when any capability is present
  */
 export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyArray<TabConfig> {
-  const actions = permissions
-    .map((p) => {
-      const parts = p.split(".");
-      return parts.length === 3 ? parts[2] : null;
-    })
-    .filter((a): a is string => a !== null);
-
-  const hasKeys = actions.some((a) => KEY_ACTIONS.has(a));
-  const hasAnalytics = actions.some((a) => ANALYTICS_ACTIONS.has(a));
+  const hasKeys = canReadKeys(permissions);
+  const hasAnalytics = canReadAnalytics(permissions);
   const hasDocs = permissions.length > 0;
 
   return TAB_CONFIGS.filter((tab) => {
@@ -58,6 +46,24 @@ export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyA
         return hasDocs;
     }
   });
+}
+
+/**
+ * Whether a session may read keys. The portal keys page lists keys via
+ * `portal.listKeys`, which the API authorizes with `read_key`, so the page must
+ * only render for sessions granted the `keys:read` capability.
+ */
+export function canReadKeys(permissions: ReadonlyArray<string>): boolean {
+  return permissions.includes("keys:read");
+}
+
+/**
+ * Whether a session may read analytics. The portal analytics page queries
+ * verification analytics via `portal.getVerifications`, so the page must only
+ * render for sessions granted the `analytics:read` capability.
+ */
+export function canReadAnalytics(permissions: ReadonlyArray<string>): boolean {
+  return permissions.includes(ANALYTICS_READ);
 }
 
 /**

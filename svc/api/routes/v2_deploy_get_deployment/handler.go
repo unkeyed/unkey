@@ -2,14 +2,16 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type (
@@ -109,33 +111,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymentResponseDataStatus {
+func dbStatusToOpenAPI(status mysqltype.DeploymentsStatus) openapi.V2DeployGetDeploymentResponseDataStatus {
 	switch status {
-	case db.DeploymentsStatusPending:
+	case mysqltype.DeploymentsStatusPending:
 		return openapi.PENDING
-	case db.DeploymentsStatusStarting:
+	case mysqltype.DeploymentsStatusStarting:
 		return openapi.STARTING
-	case db.DeploymentsStatusBuilding:
+	case mysqltype.DeploymentsStatusBuilding:
 		return openapi.BUILDING
-	case db.DeploymentsStatusDeploying:
+	case mysqltype.DeploymentsStatusDeploying:
 		return openapi.DEPLOYING
-	case db.DeploymentsStatusNetwork:
+	case mysqltype.DeploymentsStatusNetwork:
 		return openapi.NETWORK
-	case db.DeploymentsStatusFinalizing:
+	case mysqltype.DeploymentsStatusFinalizing:
 		return openapi.FINALIZING
-	case db.DeploymentsStatusReady:
+	case mysqltype.DeploymentsStatusReady:
 		return openapi.READY
-	case db.DeploymentsStatusFailed:
+	case mysqltype.DeploymentsStatusFailed:
 		return openapi.FAILED
-	case db.DeploymentsStatusSkipped:
+	case mysqltype.DeploymentsStatusSkipped:
 		return openapi.SKIPPED
-	case db.DeploymentsStatusAwaitingApproval:
+	case mysqltype.DeploymentsStatusAwaitingApproval:
 		return openapi.AWAITINGAPPROVAL
-	case db.DeploymentsStatusStopped:
+	case mysqltype.DeploymentsStatusStopped:
 		return openapi.STOPPED
-	case db.DeploymentsStatusSuperseded:
+	case mysqltype.DeploymentsStatusSuperseded:
 		return openapi.SUPERSEDED
-	case db.DeploymentsStatusCancelled:
+	case mysqltype.DeploymentsStatusCancelled:
 		return openapi.CANCELLED
 	default:
 		return openapi.UNSPECIFIED

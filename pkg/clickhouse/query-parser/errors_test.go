@@ -45,11 +45,14 @@ func TestParser_ErrorCodes(t *testing.T) {
 			name: "invalid function",
 			config: Config{
 				WorkspaceID: "ws_123",
+				TableAliases: map[string]string{
+					"keys_v1": "default.keys_v2",
+				},
 				AllowedTables: []string{
 					"default.keys_v2",
 				},
 			},
-			query:         "SELECT file('test') FROM default.keys_v2",
+			query:         "SELECT file('test') FROM keys_v1",
 			expectedCode:  codes.User.BadRequest.InvalidAnalyticsFunction.URN(),
 			expectedError: "Function 'file' is not allowed",
 		},

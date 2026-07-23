@@ -7,7 +7,10 @@
     "light": "#F5E6BE",
     "dark": "#A68509"
   },
-  "favicon": "/unkey.png",
+  "favicon": {
+    "light": "/favicon-light.svg",
+    "dark": "/favicon-dark.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -211,13 +214,17 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index", "infra/planetscale/query-insights-tags"]
+            "pages": [
+              "infra/index",
+              "infra/planetscale/query-insights-tags",
+              "infra/planetscale/schema-changes"
+            ]
           },
           {
             "group": "Runbooks",
             "pages": ["infra/runbooks/key-migration"]
           },
-         {
+          {
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
@@ -261,8 +268,8 @@
     "decoration": "gradient"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "navbar": {
     "links": [

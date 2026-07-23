@@ -1,0 +1,13 @@
+type: object
+required:
+  - commitSha
+properties:
+  commitSha:
+    type: string
+    description: The git commit SHA this deployment was built from.
+    example: 9f2c1a7d3b
+  branch:
+    type: string
+    description: The git branch this deployment was built from. Omitted when unknown.
+    example: main
+additionalProperties: false

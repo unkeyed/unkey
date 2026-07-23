@@ -16,6 +16,7 @@ import (
 
 const (
 	clickhousePort     = 9000
+	clickhouseHTTPPort = 8123
 	clickhouseUser     = "default"
 	clickhousePassword = "password"
 )
@@ -24,6 +25,8 @@ const (
 type ClickHouseConfig struct {
 	// DSN is the connection string for connecting from the test runner.
 	DSN string
+	// HTTPDSN exercises the same transport used by the local API deployment.
+	HTTPDSN string
 }
 
 // ClickHouse starts the shared Docker Compose ClickHouse service and returns connection info.
@@ -35,6 +38,8 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 	c := startService(t, "clickhouse")
 	dsn := fmt.Sprintf("clickhouse://%s:%s@%s:%d?secure=false&skip_verify=true&dial_timeout=10s",
 		clickhouseUser, clickhousePassword, "localhost", c.Port(t, clickhousePort))
+	httpDSN := fmt.Sprintf("http://%s:%s@%s:%d/default?dial_timeout=10s",
+		clickhouseUser, clickhousePassword, "localhost", c.Port(t, clickhouseHTTPPort))
 
 	// Connect and apply schema
 	clickhouseOpts, err := ch.ParseDSN(dsn)
@@ -53,7 +58,8 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 	applyClickHouseSchema(t, ctx, conn)
 
 	return ClickHouseConfig{
-		DSN: dsn,
+		DSN:     dsn,
+		HTTPDSN: httpDSN,
 	}
 }
 

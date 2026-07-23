@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -273,7 +275,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		EnvironmentID:    req.ID,
 		Port:             8080,
 		CpuMillicores:    250,
-		MemoryMib:        128,
+		MemoryMib:        256,
 		StorageMib:       0,
 		Command:          nil,
 		Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
@@ -686,7 +688,8 @@ type CreateDeploymentRequest struct {
 	ProjectID              string
 	AppID                  string
 	EnvironmentID          string
-	Status                 db.DeploymentsStatus
+	Status                 mysqltype.DeploymentsStatus
+	DesiredState           mysqltype.DeploymentsDesiredState
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -705,7 +708,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 
 	status := req.Status
 	if status == "" {
-		status = db.DeploymentsStatusPending
+		status = mysqltype.DeploymentsStatusPending
 	}
 
 	createdAt := time.Now().UnixMilli()
@@ -727,7 +730,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Command:                       nil,
 		Status:                        status,
 		CpuMillicores:                 250,
-		MemoryMib:                     128,
+		MemoryMib:                     256,
 		StorageMib:                    0,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
@@ -742,6 +745,13 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+
+	// InsertDeployment does not take desired_state (it defaults to running), so a
+	// test that needs a stopped deployment sets it here.
+	if req.DesiredState != "" {
+		_, err = s.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, req.ID)
+		require.NoError(s.t, err)
+	}
 
 	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)

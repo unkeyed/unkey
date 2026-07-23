@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 /// <reference types="vite/client" />
 import type { ReactNode } from "react";
+import { ReactQueryProvider } from "~/providers/react-query-provider";
 import "~/styles/tailwind.css";
 
 export const Route = createRootRoute({
@@ -24,7 +25,9 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <Outlet />
+      <ReactQueryProvider>
+        <Outlet />
+      </ReactQueryProvider>
     </RootDocument>
   );
 }

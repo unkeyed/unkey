@@ -107,6 +107,7 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		MaxMemoryMibPerInstance:     4_096,
 		MaxStorageMibPerInstance:    10_240,
 		MaxConcurrentBuilds:         1,
+		MaxReplicasPerRegion:        4,
 		WorkspaceID:                 workspaceID,
 	}); err != nil {
 		return fmt.Errorf("reset quota row: %w", err)

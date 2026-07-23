@@ -23,6 +23,7 @@ func TestImageSource(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
@@ -49,6 +50,7 @@ func TestImageSourceCliTrigger(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 
 	headers := authHeaders(setup.RootKey)
 	headers.Set("X-Unkey-Client", "unkey-cli/1.2.3")
@@ -70,6 +72,7 @@ func TestGitSource(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
@@ -97,6 +100,7 @@ func TestGitSourceWithFork(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
@@ -121,6 +125,7 @@ func TestRedeployGitApp(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -151,6 +156,7 @@ func TestRedeployImageReuse(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	// No repo connection: redeploy reuses the recorded image rather than rebuilding.
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -181,6 +187,7 @@ func TestRedeployForkDeployment(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -226,6 +233,7 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	// Image-origin deployment: no git commit, but a built image on record.
@@ -259,6 +267,7 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
+	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -283,6 +292,7 @@ func TestSpecificEnvironmentPermission(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
+	seedDeployableRegion(t, h, setup)
 	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".create_deployment")
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
