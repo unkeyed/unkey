@@ -9,9 +9,6 @@ import (
 )
 
 func TestGetVerifications(t *testing.T) {
-	// Note: the shared test harness splits args with strings.Fields, so query
-	// values must not contain spaces.  This is fine because we are testing
-	// flag-to-request mapping, not SQL validity.
 	tests := []struct {
 		name string
 		args string

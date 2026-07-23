@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -30,12 +29,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			`unkey api ratelimit delete-override --namespace=api.requests --identifier="premium_*"`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("namespace", "The id or name of the namespace containing the override.", cli.Required()),
-			cli.String("identifier", "The exact identifier pattern of the override to delete.", cli.Required()),
+			cli.String("namespace", "The id or name of the namespace containing the override.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("identifier", "The exact identifier pattern of the override to delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -43,7 +43,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Ratelimit.DeleteOverride, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2RatelimitDeleteOverrideResponseBody)
+			}
+
 			res, err := client.Ratelimit.DeleteOverride(ctx, components.V2RatelimitDeleteOverrideRequestBody{
 				Namespace:  cmd.String("namespace"),
 				Identifier: cmd.String("identifier"),
@@ -51,7 +59,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2RatelimitDeleteOverrideResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2RatelimitDeleteOverrideResponseBody)
 		},
 	}
 }

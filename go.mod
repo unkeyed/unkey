@@ -1,8 +1,6 @@
 module github.com/unkeyed/unkey
 
-go 1.25.0
-
-toolchain go1.25.1
+go 1.25.10
 
 // Yaml parsing errors
 replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960
@@ -67,7 +65,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v86 v86.1.1
 	github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f
-	github.com/unkeyed/sdks/api/go/v2 v2.6.1
+	github.com/unkeyed/sdks/api/go/v2 v2.7.1
 	github.com/vishvananda/netlink v1.3.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.64.0

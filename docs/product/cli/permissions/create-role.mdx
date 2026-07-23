@@ -38,6 +38,7 @@ Provides comprehensive documentation of what this role encompasses and what acce
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -58,10 +59,10 @@ ROLE_ID=$(unkey api permissions create-role --name=support.readonly --output=jso
 
 ## Output
 
-Default output shows the request ID with latency, followed by the created role:
+Default output shows the request ID, followed by the created role:
 
 ```text
-req_2c9a0jf23l4k567 (took 45ms)
+req_2c9a0jf23l4k567
 
 {
   "roleId": "role_5678efgh9012wxyz"

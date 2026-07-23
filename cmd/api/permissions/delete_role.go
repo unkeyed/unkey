@@ -3,7 +3,6 @@ package permissions
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -27,11 +26,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			"unkey api permissions delete-role --role=admin",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("role", "The role ID or name to permanently delete.", cli.Required()),
+			cli.String("role", "The role ID or name to permanently delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -39,14 +39,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Permissions.DeleteRole, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2PermissionsDeleteRoleResponseBody)
+			}
+
 			res, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{
 				Role: cmd.String("role"),
 			})
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2PermissionsDeleteRoleResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2PermissionsDeleteRoleResponseBody)
 		},
 	}
 }
