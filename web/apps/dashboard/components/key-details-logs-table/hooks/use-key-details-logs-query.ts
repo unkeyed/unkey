@@ -54,10 +54,9 @@ export function useKeyDetailsLogsQuery({
   const { page, setPage } = usePaginatedPage(filtersKey);
 
   // Clear the buffer in-render on a filters/time transition, not in an effect:
-  // the page stays 1 across the transition and `activeRealtimeLogsMap` below is
-  // gated on the page, so an effect would paint one frame of the old filters'
-  // rows against the new ones. The previous key is state, not a ref, so that if
-  // React discards this render the paired buffer clear rolls back with it.
+  // the page stays 1 and `activeRealtimeLogsMap` below is gated on page, so an
+  // effect would paint one frame of the old filters' rows against the new ones.
+  // State, not a ref, so a discarded render rolls the paired clear back with it.
   const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
   if (prevFiltersKey !== filtersKey) {
     setPrevFiltersKey(filtersKey);

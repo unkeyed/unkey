@@ -23,26 +23,22 @@ export const PAGINATED_LIST_PREFETCH_OPTIONS = {
 // ---------------------------------------------------------------------------
 // Primitives
 //
-// Shared machinery for every server-paginated list view. Two stateful hooks:
-// `usePaginatedPage` (URL-synced `page` plus reset-to-page-1 when the query
-// inputs change) and `usePaginatedNavigation` (deep-link clamp guard,
-// adjacent-page prefetch, bounds-checked `onPageChange`). Plus the count
-// helpers (`computeTotalPages`, `computeFallbackTotalPages`,
+// Shared machinery for every server-paginated list view. Two stateful hooks —
+// `usePaginatedPage` (URL `page` + reset-to-page-1) and `usePaginatedNavigation`
+// (clamp guard, adjacent-page prefetch, bounds-checked `onPageChange`) — plus
+// the count helpers (`computeTotalPages`, `computeFallbackTotalPages`,
 // `useFallbackTotalPages`, `normalizePageSize`) and reset-key builders
 // (`paginationFilterKey`, `paginationSortKey`). Hooks with the common
-// sort/filter shape use `usePaginatedListQuery` below; hooks with a bespoke
-// sort surface, time window, or polling compose these primitives directly.
+// sort/filter shape use `usePaginatedListQuery` below; hooks with a bespoke sort
+// surface, time window, or polling compose these primitives directly.
 // ---------------------------------------------------------------------------
 
-// Owns the URL `page` param and the reset-to-page-1 transition. `resetKey` is a
-// stable string derived from every input the current OFFSET depends on (filter
-// content, search, sort, query time…). When it changes, the page resets to 1.
-//
-// The returned `page` is already 1 on the render that first observes a
-// resetKey change, before the effect below commits setPage(1). Without that,
-// the same render would fire one stale request for the previous page against
-// the new inputs. The null guard keeps a first-mount URL-persisted page intact;
-// we only override on a real transition.
+// Owns the URL `page` param and reset-to-page-1. `resetKey` is a stable string
+// of every input the current OFFSET depends on (filters, search, sort, query
+// time…). The returned `page` is 1 on the same render that first sees resetKey
+// change, before the effect commits setPage(1) — otherwise that render fires a
+// stale request for the previous page. The null guard keeps a first-mount
+// URL-persisted page intact; only a real transition overrides it.
 export function usePaginatedPage(resetKey: string) {
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
@@ -70,29 +66,26 @@ type UsePaginatedNavigationParams<TParams extends { page: number }> = {
   page: number;
   totalPages: number;
   setPage: (page: number) => void;
-  // Raw query flags, used only to derive the two loading states every list view
-  // needs. Required rather than defaulted: a missing flag would silently pin
-  // `isInitialLoading`/`isNavigating` to false and the caller would render a
-  // list that never reports loading.
+  // Raw query flags used to derive the two loading states. Required, not
+  // defaulted: a missing flag would silently pin both states to false and the
+  // caller would render a list that never reports loading.
   isLoading: boolean;
   isFetching: boolean;
-  // The current query params. Prefetch requests reuse these with `page`
-  // overridden. Pass the memoized object: the prefetch effect keys off its
-  // identity, so it re-warms adjacent pages when the query shape (sort,
-  // filters, time window) changes even while page and totalPages hold steady.
+  // Current query params; prefetch reuses these with `page` overridden. Pass a
+  // memoized object — the prefetch effect keys off its identity to re-warm when
+  // the query shape (sort, filters, time window) changes.
   queryParams: TParams;
-  // Warm a page's query. Fresh identity each render is fine — a ref stabilizes
-  // the effect, so callers do not need to memoize this.
+  // Warm a page's query. Fresh identity each render is fine; a ref stabilizes
+  // the effect, so callers need not memoize this.
   prefetch: (params: TParams) => void;
-  // Extra identity for values the `prefetch` closure captures but `queryParams`
-  // does not carry (e.g. a keyspace id). Without it the prefetch effect cannot
-  // see those values change and never re-warms the adjacent pages.
+  // Extra identity for values `prefetch` closes over but `queryParams` omits
+  // (e.g. a keyspace id). Without it the prefetch effect never re-warms when
+  // that value changes.
   prefetchKey?: string;
   // Set false while the view pins itself to page 1 (live-tail modes), where
-  // clamping the pinned page against a live total would fight the pin. Suspends
-  // the clamp ONLY: the prefetch keeps running so pages are warm when the user
-  // leaves live tail, and `onPageChange` still validates against totalPages.
-  // Defaults to true.
+  // clamping against a live total would fight the pin. Suspends the clamp ONLY:
+  // prefetch keeps running and `onPageChange` still validates against
+  // totalPages. Defaults to true.
   clampEnabled?: boolean;
 };
 
@@ -111,11 +104,10 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
   prefetchKey,
   clampEnabled = true,
 }: UsePaginatedNavigationParams<TParams>) {
-  // Clamp page to valid range after data loads. The data guard keeps a
-  // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
-  // totalCount is still 0 and totalPages collapses to 1. No isFetching gate:
-  // usePaginatedPage's synchronous reset already surfaces page 1 before a stale
-  // totalPages from the previous result set can pair with the pre-reset page.
+  // Clamp page into range after data loads. The data guard keeps a deep-linked
+  // page (?page=3) from snapping to 1 on first render, when totalCount is still
+  // 0 and totalPages collapses to 1. No isFetching gate needed: usePaginatedPage
+  // surfaces page 1 synchronously, before a stale totalPages can pair with it.
   useEffect(() => {
     if (!clampEnabled || data == null) {
       return;
@@ -125,10 +117,9 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
     }
   }, [clampEnabled, data, page, totalPages, setPage]);
 
-  // Prefetch the next few pages so navigation feels instant. A ref keeps a
-  // fresh caller arrow each render from re-firing the effect; the effect re-runs
-  // on page/totalPages changes, whenever queryParams identity changes, and
-  // whenever prefetchKey covers a closure value queryParams does not carry.
+  // Prefetch the next few pages so navigation feels instant. The ref keeps a
+  // fresh caller arrow each render from re-firing the effect, which re-runs on
+  // page/totalPages, queryParams identity, or prefetchKey changes.
   const prefetchRef = useRef(prefetch);
   prefetchRef.current = prefetch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
@@ -152,10 +143,9 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
     [totalPages, setPage],
   );
 
-  // Derived here so every list view agrees on what "still loading" versus
-  // "navigating between pages" means. Under keepPreviousData a page change
-  // keeps the previous rows on screen, so `isFetching` alone cannot tell the
-  // two apart — only the first load has no data to show.
+  // Derived here so every list view agrees on "still loading" vs "navigating".
+  // Under keepPreviousData a page change keeps the old rows on screen, so
+  // `isFetching` alone can't tell them apart — only the first load has no data.
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;
 
@@ -167,17 +157,13 @@ export function computeTotalPages(totalCount: number, pageSize: number) {
   return Math.max(1, Math.ceil(totalCount / pageSize));
 }
 
-// Derive totalPages when the server could not return a total count (e.g. a
-// failed ClickHouse count query). While the current page has rows, advertise
-// one page ahead only if it is full, so Next stays available exactly as far as
-// data has been proven to exist. An out-of-range page is only detectable once
-// it comes back empty; reporting the last page seen with rows as the total
-// then lets the caller's clamp snap back to the last real page, or to page 1
-// for a stale deep link that never saw data (lastNonEmptyPage stays 1 until a
-// settled response has rows). The isFetching gate matters under
-// keepPreviousData: without it, fetching the clamp target while the previous
-// empty result is still displayed would re-trigger the collapse and cascade
-// the clamp toward page 1.
+// Derive totalPages when the server returns no total count (e.g. a failed count
+// query). Advertise one page ahead only while the current page is full, so Next
+// stays available exactly as far as data is proven. An out-of-range page shows
+// up only once it comes back empty; reporting the last page seen with rows then
+// lets the clamp snap back to it — or to page 1 for a stale deep link that never
+// saw data (lastNonEmptyPage stays 1 until a settled response has rows). See the
+// isFetching branches below for the keepPreviousData handling.
 export function computeFallbackTotalPages(args: {
   isFetching: boolean;
   hasData: boolean;
@@ -191,14 +177,11 @@ export function computeFallbackTotalPages(args: {
   if (isEmptyPageBeyondFirst) {
     return Math.min(lastNonEmptyPage, queryPage - 1);
   }
-  // Mid-fetch, keepPreviousData still reports the PREVIOUS page's rows, so the
-  // `pageRowCount >= limit` test below would credit them to the page in flight
-  // and advertise a page-ahead nothing has been observed at. A user clicking
-  // Next twice in a row could then jump straight past the in-flight page — and
-  // since that page is never observed it never reaches lastNonEmptyPage, so the
-  // empty-page branch above later clamps back behind it, skipping a page that
-  // did have rows. Hold the total at what is already proven until the response
-  // settles; Next re-enables one commit later.
+  // Mid-fetch, keepPreviousData still shows the PREVIOUS page's rows, so the
+  // `pageRowCount >= limit` test below would credit them to the in-flight page
+  // and advertise a page-ahead nothing was observed at — letting a double Next
+  // click skip the in-flight page entirely. Hold the total at what is already
+  // proven until the response settles; Next re-enables one commit later.
   if (isFetching) {
     return Math.max(queryPage, lastNonEmptyPage);
   }
@@ -206,10 +189,9 @@ export function computeFallbackTotalPages(args: {
 }
 
 // Stateful companion to computeFallbackTotalPages: owns the lastNonEmptyPage
-// tracking so the count-outage rule lives in one place instead of being split
-// between this module and the caller. `resetKey` is the caller's page reset key
-// (filter content, time window…); when it changes the observed-pages memory is
-// dropped, since rows seen under the old inputs say nothing about the new ones.
+// memory so the count-outage rule lives in one place. `resetKey` is the caller's
+// page reset key; when it changes the memory is dropped, since rows seen under
+// the old inputs say nothing about the new ones.
 export function useFallbackTotalPages(args: {
   isFetching: boolean;
   hasData: boolean;
@@ -223,11 +205,9 @@ export function useFallbackTotalPages(args: {
   const lastNonEmptyPageRef = useRef(1);
 
   // Reset during render, not in an effect: totalPages is derived below on this
-  // same render, and usePaginatedPage has already snapped queryPage to 1 here.
-  // Deferring to an effect would pair the new page with the old page memory. A
-  // ref is safe despite React possibly discarding this render, because the
-  // reset is idempotent: a re-render at the same resetKey re-derives the same
-  // total.
+  // same render (queryPage is already 1 here), so deferring would pair the new
+  // page with the old memory. A ref is safe despite a possibly-discarded render
+  // because the reset is idempotent.
   const prevResetKeyRef = useRef(resetKey);
   if (prevResetKeyRef.current !== resetKey) {
     prevResetKeyRef.current = resetKey;
@@ -263,15 +243,11 @@ export function normalizePageSize(pageSize: number, defaultPageSize: number, max
     : defaultPageSize;
 }
 
-// Stable identity string for a set of filters. Feed it (or an extension of it,
-// e.g. with a time window appended) as the page reset key so page state resets
-// only when filter content actually changes — not when the filter hook returns
-// a new array reference for the same values.
-//
-// Encoded as JSON tuples rather than delimiter-joined text so the result is
-// unambiguous: a filter value containing a separator character cannot make two
-// distinct states collapse to the same key (which would suppress a real page
-// reset). The string is only ever compared for equality, never parsed.
+// Stable identity string for a filter set, for use as the page reset key so
+// page state resets on filter content changes, not on a new array reference for
+// the same values. Encoded as JSON tuples, not delimiter-joined text, so a value
+// containing the separator can't collapse two distinct states onto one key and
+// suppress a real reset. Only ever compared for equality, never parsed.
 export function paginationFilterKey(
   filters: ReadonlyArray<{ field: string; operator: string; value: unknown }>,
 ) {
