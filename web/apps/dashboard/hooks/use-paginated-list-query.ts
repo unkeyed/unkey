@@ -23,13 +23,15 @@ export const PAGINATED_LIST_PREFETCH_OPTIONS = {
 // ---------------------------------------------------------------------------
 // Primitives
 //
-// The two hooks below hold the machinery every server-paginated list view in
-// the dashboard used to copy by hand: URL-synced `page` state, reset-to-page-1
-// when the query inputs change, the deep-link clamp guard (ENG-2930), the
-// adjacent-page prefetch, and the bounds-checked `onPageChange`. Feature hooks
-// that share the shared sort/filter shape use `usePaginatedListQuery` below;
-// hooks with a bespoke sort surface, time window, or realtime polling compose
-// these two primitives directly and keep their feature-specific logic.
+// Shared machinery for every server-paginated list view. Two stateful hooks:
+// `usePaginatedPage` (URL-synced `page` plus reset-to-page-1 when the query
+// inputs change) and `usePaginatedNavigation` (deep-link clamp guard,
+// adjacent-page prefetch, bounds-checked `onPageChange`). Plus the count
+// helpers (`computeTotalPages`, `computeFallbackTotalPages`,
+// `useFallbackTotalPages`, `normalizePageSize`) and reset-key builders
+// (`paginationFilterKey`, `paginationSortKey`). Hooks with the common
+// sort/filter shape use `usePaginatedListQuery` below; hooks with a bespoke
+// sort surface, time window, or polling compose these primitives directly.
 // ---------------------------------------------------------------------------
 
 // Owns the URL `page` param and the reset-to-page-1 transition. `resetKey` is a
@@ -68,6 +70,12 @@ type UsePaginatedNavigationParams<TParams extends { page: number }> = {
   page: number;
   totalPages: number;
   setPage: (page: number) => void;
+  // Raw query flags, used only to derive the two loading states every list view
+  // needs. Required rather than defaulted: a missing flag would silently pin
+  // `isInitialLoading`/`isNavigating` to false and the caller would render a
+  // list that never reports loading.
+  isLoading: boolean;
+  isFetching: boolean;
   // The current query params. Prefetch requests reuse these with `page`
   // overridden. Pass the memoized object: the prefetch effect keys off its
   // identity, so it re-warms adjacent pages when the query shape (sort,
@@ -80,11 +88,12 @@ type UsePaginatedNavigationParams<TParams extends { page: number }> = {
   // does not carry (e.g. a keyspace id). Without it the prefetch effect cannot
   // see those values change and never re-warms the adjacent pages.
   prefetchKey?: string;
-  // Set false while the view is not paginating at all — live-tail modes pin
-  // themselves to page 1 and hide the footer. Suspends the clamp and the
-  // prefetch; `onPageChange` still validates against totalPages so a caller
-  // cannot navigate out of range. Defaults to true.
-  enabled?: boolean;
+  // Set false while the view pins itself to page 1 (live-tail modes), where
+  // clamping the pinned page against a live total would fight the pin. Suspends
+  // the clamp ONLY: the prefetch keeps running so pages are warm when the user
+  // leaves live tail, and `onPageChange` still validates against totalPages.
+  // Defaults to true.
+  clampEnabled?: boolean;
 };
 
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
@@ -95,27 +104,26 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
   page,
   totalPages,
   setPage,
+  isLoading,
+  isFetching,
   queryParams,
   prefetch,
   prefetchKey,
-  enabled = true,
+  clampEnabled = true,
 }: UsePaginatedNavigationParams<TParams>) {
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
-  // totalCount is still 0 and totalPages collapses to 1 (ENG-2930).
-  //
-  // The overview hooks additionally gated this on `!isFetching` (#6560): they
-  // fed the pre-reset page in here, so the clamp could pair a stale totalPages
-  // with a page belonging to the previous result set. usePaginatedPage's
-  // synchronous reset closes that window, so no isFetching gate is needed.
+  // totalCount is still 0 and totalPages collapses to 1. No isFetching gate:
+  // usePaginatedPage's synchronous reset already surfaces page 1 before a stale
+  // totalPages from the previous result set can pair with the pre-reset page.
   useEffect(() => {
-    if (!enabled || data == null) {
+    if (!clampEnabled || data == null) {
       return;
     }
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [enabled, data, page, totalPages, setPage]);
+  }, [clampEnabled, data, page, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant. A ref keeps a
   // fresh caller arrow each render from re-firing the effect; the effect re-runs
@@ -125,9 +133,6 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
   prefetchRef.current = prefetch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
       const nextPage = page + i;
       if (nextPage > totalPages) {
@@ -135,7 +140,7 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
       }
       prefetchRef.current({ ...queryParams, page: nextPage });
     }
-  }, [enabled, page, totalPages, queryParams, prefetchKey]);
+  }, [page, totalPages, queryParams, prefetchKey]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -147,7 +152,14 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
     [totalPages, setPage],
   );
 
-  return { onPageChange };
+  // Derived here so every list view agrees on what "still loading" versus
+  // "navigating between pages" means. Under keepPreviousData a page change
+  // keeps the previous rows on screen, so `isFetching` alone cannot tell the
+  // two apart — only the first load has no data to show.
+  const isInitialLoading = isLoading && !data;
+  const isNavigating = isFetching && !isInitialLoading;
+
+  return { onPageChange, isInitialLoading, isNavigating };
 }
 
 // Derive totalPages from a total count and page size, never below 1.
@@ -179,7 +191,65 @@ export function computeFallbackTotalPages(args: {
   if (isEmptyPageBeyondFirst) {
     return Math.min(lastNonEmptyPage, queryPage - 1);
   }
+  // Mid-fetch, keepPreviousData still reports the PREVIOUS page's rows, so the
+  // `pageRowCount >= limit` test below would credit them to the page in flight
+  // and advertise a page-ahead nothing has been observed at. A user clicking
+  // Next twice in a row could then jump straight past the in-flight page — and
+  // since that page is never observed it never reaches lastNonEmptyPage, so the
+  // empty-page branch above later clamps back behind it, skipping a page that
+  // did have rows. Hold the total at what is already proven until the response
+  // settles; Next re-enables one commit later.
+  if (isFetching) {
+    return Math.max(queryPage, lastNonEmptyPage);
+  }
   return queryPage + (pageRowCount >= limit ? 1 : 0);
+}
+
+// Stateful companion to computeFallbackTotalPages: owns the lastNonEmptyPage
+// tracking so the count-outage rule lives in one place instead of being split
+// between this module and the caller. `resetKey` is the caller's page reset key
+// (filter content, time window…); when it changes the observed-pages memory is
+// dropped, since rows seen under the old inputs say nothing about the new ones.
+export function useFallbackTotalPages(args: {
+  isFetching: boolean;
+  hasData: boolean;
+  pageRowCount: number;
+  queryPage: number;
+  limit: number;
+  resetKey: string;
+}) {
+  const { isFetching, hasData, pageRowCount, queryPage, limit, resetKey } = args;
+
+  const lastNonEmptyPageRef = useRef(1);
+
+  // Reset during render, not in an effect: totalPages is derived below on this
+  // same render, and usePaginatedPage has already snapped queryPage to 1 here.
+  // Deferring to an effect would pair the new page with the old page memory. A
+  // ref is safe despite React possibly discarding this render, because the
+  // reset is idempotent: a re-render at the same resetKey re-derives the same
+  // total.
+  const prevResetKeyRef = useRef(resetKey);
+  if (prevResetKeyRef.current !== resetKey) {
+    prevResetKeyRef.current = resetKey;
+    lastNonEmptyPageRef.current = 1;
+  }
+
+  // Same isFetching reasoning as above: rows on screen during a fetch belong to
+  // the previous page and must not mark the in-flight page as non-empty.
+  useEffect(() => {
+    if (!isFetching && pageRowCount > 0) {
+      lastNonEmptyPageRef.current = queryPage;
+    }
+  }, [isFetching, pageRowCount, queryPage]);
+
+  return computeFallbackTotalPages({
+    isFetching,
+    hasData,
+    pageRowCount,
+    queryPage,
+    limit,
+    lastNonEmptyPage: lastNonEmptyPageRef.current,
+  });
 }
 
 // Clamp a caller-supplied page size into [1, maxPageSize], falling back to the
@@ -334,15 +404,17 @@ export function usePaginatedListQuery<
     }
   }, [sortParams, setSortParams, defaultSortParams, syncDefaultSortToUrl]);
 
-  // The server honors a single sortBy/sortOrder — the first entry — but the
-  // rest stay in `sorting` so a multi-sort deep link keeps its header
-  // indicators. hasOwnProperty.call avoids treating inherited Object.prototype
+  // The server honors a single sortBy/sortOrder, so collapse a multi-sort URL
+  // to its first valid entry. Keeping the rest would let `sorting` paint header
+  // indicators for an ordering the server never applied — and callers that
+  // re-sort rows client-side off `sorting` would disagree with the server
+  // outright. hasOwnProperty.call avoids treating inherited Object.prototype
   // methods as valid columns when a crafted URL references them.
   const validSortParams = useMemo<SortUrlValue<TSortField>[]>(() => {
-    const valid = effectiveSortParams.filter((s) =>
+    const firstValid = effectiveSortParams.find((s) =>
       Object.prototype.hasOwnProperty.call(sortFieldToColumnId, s.column),
     );
-    return valid.length > 0 ? valid : defaultSortParams;
+    return firstValid ? [firstValid] : defaultSortParams;
   }, [effectiveSortParams, sortFieldToColumnId, defaultSortParams]);
 
   const sorting: SortingState = useMemo(() => {
@@ -422,15 +494,16 @@ export function usePaginatedListQuery<
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
 
-  const isInitialLoading = isLoading && !data;
   const totalCount = data ? getTotalCount(data) : 0;
   const totalPages = computeTotalPages(totalCount, normalizedPageSize);
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page: queryPage,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch,
     prefetchKey,
@@ -438,8 +511,12 @@ export function usePaginatedListQuery<
 
   return {
     data,
+    // The two states list views actually render against. The raw `isFetching`
+    // is deliberately not surfaced: every caller that had it re-derived
+    // `isNavigating` from it by hand, which is the duplication this hook exists
+    // to remove.
     isInitialLoading,
-    isFetching,
+    isNavigating,
     page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,

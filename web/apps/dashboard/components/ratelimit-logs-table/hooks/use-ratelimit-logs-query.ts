@@ -3,9 +3,9 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
-  computeFallbackTotalPages,
   computeTotalPages,
   paginationFilterKey,
+  useFallbackTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -120,7 +120,6 @@ export function useRatelimitLogsQuery({
   );
   const enrichmentMapRef = useRef(new Map<string, RatelimitLogEnrichment>());
   const [enrichmentVersion, setEnrichmentVersion] = useState(0);
-  const lastNonEmptyPageRef = useRef(1);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -261,7 +260,6 @@ export function useRatelimitLogsQuery({
       setRealtimeLogsMap(new Map());
       enrichmentMapRef.current.clear();
       setEnrichmentVersion(0);
-      lastNonEmptyPageRef.current = 1;
     }
   }, [filtersKey]);
 
@@ -349,35 +347,30 @@ export function useRatelimitLogsQuery({
   const knownTotal = logData?.total ?? null;
   const totalCount =
     knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
-  // The !isFetching gate mirrors the one inside computeFallbackTotalPages:
-  // with keepPreviousData, rows shown during a fetch belong to the previous
-  // page and must not be credited to the page still in flight.
-  useEffect(() => {
-    if (!isFetching && pageRowCount > 0) {
-      lastNonEmptyPageRef.current = queryPage;
-    }
-  }, [isFetching, pageRowCount, queryPage]);
+  // useFallbackTotalPages owns the last-non-empty-page memory and drops it when
+  // filtersKey changes, so the whole count-outage rule stays in one place.
+  const fallbackTotalPages = useFallbackTotalPages({
+    isFetching,
+    hasData: logData != null,
+    pageRowCount,
+    queryPage,
+    limit,
+    resetKey: filtersKey,
+  });
   const totalPages =
-    knownTotal !== null
-      ? computeTotalPages(totalCount, limit)
-      : computeFallbackTotalPages({
-          isFetching,
-          hasData: logData != null,
-          pageRowCount,
-          queryPage,
-          limit,
-          lastNonEmptyPage: lastNonEmptyPageRef.current,
-        });
+    knownTotal !== null ? computeTotalPages(totalCount, limit) : fallbackTotalPages;
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data: logData,
     page: queryPage,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) =>
       queryClient.ratelimit.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    enabled: !startPolling,
+    clampEnabled: !startPolling,
   });
 
   // Fetch enrichment whenever new historical data arrives
@@ -510,9 +503,6 @@ export function useRatelimitLogsQuery({
       setPage(1);
     }
   }, [startPolling, setPage]);
-
-  const isInitialLoading = isLoading && !logData;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     realtimeLogs,

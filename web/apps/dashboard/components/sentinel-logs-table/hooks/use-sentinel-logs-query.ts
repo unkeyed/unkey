@@ -184,18 +184,20 @@ export function useSentinelLogsQuery({
     }
   }, [startPolling, page, setPage]);
 
-  // The deep-link clamp (ENG-2930), the adjacent-page prefetch, and the
-  // bounds-checked onPageChange. `enabled: !startPolling` keeps both effects off
-  // while live, where the view is pinned to page 1 and the footer is hidden.
-  const { onPageChange } = usePaginatedNavigation({
+  // `clampEnabled: !startPolling` suspends only the clamp while live, where the
+  // view is pinned to page 1 and the footer hidden; the prefetch keeps running
+  // so pages are warm when the user leaves live tail.
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page: effectivePage,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams: queryInput,
     prefetch: (params) =>
       queryClient.deploy.sentinelLogs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    enabled: !startPolling,
+    clampEnabled: !startPolling,
   });
 
   // Poll for new logs (page 1 only).
@@ -264,9 +266,6 @@ export function useSentinelLogsQuery({
       setRealtimeLogsMap(new Map());
     }
   }, [startPolling]);
-
-  const isInitialLoading = isLoading && !data;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     realtimeLogs,

@@ -32,9 +32,11 @@ vi.mock("nuqs", async (importOriginal) => {
 
 import {
   computeFallbackTotalPages,
+  computeTotalPages,
   normalizePageSize,
   paginationFilterKey,
   paginationSortKey,
+  useFallbackTotalPages,
   usePaginatedListQuery,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -50,6 +52,11 @@ let queryResult: {
 };
 let currentFilters: { field: string; operator: string; value: string }[];
 let prefetchSpy: ReturnType<typeof vi.fn>;
+
+// usePaginatedNavigation requires the raw query flags so no caller can silently
+// lose its loading states. Tests that exercise the clamp/prefetch rather than
+// those states pass the settled combination.
+const SETTLED = { isLoading: false, isFetching: false } as const;
 
 function makeConfig(overrides?: { syncDefaultSortToUrl?: boolean }) {
   return {
@@ -87,7 +94,7 @@ afterEach(() => {
 });
 
 describe("usePaginatedListQuery", () => {
-  describe("deep-link clamp guarantee (ENG-2930)", () => {
+  describe("deep-link clamp guarantee", () => {
     it("does not clamp a deep-linked page to 1 before data loads", () => {
       // ?page=5 with no data yet: totalCount is 0 and totalPages collapses to 1,
       // but the data guard must keep the page intact until the first response.
@@ -214,15 +221,14 @@ describe("usePaginatedListQuery", () => {
       expect(result.current.sorting).toEqual([{ id: "created", desc: true }]);
     });
 
-    it("keeps every valid URL sort entry in sorting state, dropping unknown columns", () => {
-      // A multi-sort deep link (produced by the pre-consolidation bespoke
-      // hooks) must keep all its header indicators; only the first entry
-      // drives the server query.
+    it("collapses a multi-sort URL to the first valid entry", () => {
+      // The server takes one sortBy/sortOrder, so `sorting` must not advertise
+      // the trailing entries: header indicators (and callers that re-sort rows
+      // off `sorting`) would claim an ordering the rows do not have.
       queryResult = { data: { total: 100 }, isLoading: false, isFetching: false };
       urlStore.sort = [
         { column: "createdAt", direction: "asc" },
         { column: "updatedAt", direction: "desc" },
-        { column: "createdAt", direction: "desc" },
       ];
       const { result } = renderHook(() =>
         usePaginatedListQuery({
@@ -239,11 +245,31 @@ describe("usePaginatedListQuery", () => {
         }),
       );
 
-      expect(result.current.sorting).toEqual([
-        { id: "created", desc: false },
-        { id: "updated", desc: true },
-        { id: "created", desc: true },
-      ]);
+      expect(result.current.sorting).toEqual([{ id: "created", desc: false }]);
+    });
+
+    it("skips unknown leading columns and sorts by the first known one", () => {
+      queryResult = { data: { total: 100 }, isLoading: false, isFetching: false };
+      urlStore.sort = [
+        { column: "bogus", direction: "asc" },
+        { column: "updatedAt", direction: "desc" },
+      ];
+      const { result } = renderHook(() =>
+        usePaginatedListQuery({
+          ...makeConfig(),
+          columnIdToSortField: { created: "createdAt", updated: "updatedAt" } as Record<
+            string,
+            "createdAt" | "updatedAt"
+          >,
+          sortFieldToColumnId: { createdAt: "created", updatedAt: "updated" } as Record<
+            "createdAt" | "updatedAt",
+            string
+          >,
+          defaultSortField: "createdAt" as const,
+        }),
+      );
+
+      expect(result.current.sorting).toEqual([{ id: "updated", desc: true }]);
     });
 
     it("resets to page 1 when the sort changes", () => {
@@ -327,15 +353,11 @@ describe("usePaginatedPage", () => {
 });
 
 describe("usePaginatedPage + usePaginatedNavigation", () => {
-  // Upstream (#6560) additionally gated the overview clamps on `!isFetching`,
-  // because those hooks fed the *stale* page into the clamp on the render that
-  // observed a filter change: with keepPreviousData, `totalPages` still described
-  // the previous result set, so the clamp could snap the page to the old last
-  // page before the reset committed. usePaginatedPage closes that window by
-  // surfacing page 1 on that same render, so the clamp never sees a page drawn
-  // from one result set alongside totalPages drawn from another. This test pins
-  // that guarantee; if usePaginatedPage ever loses the synchronous reset, the
-  // clamp regresses and this fails.
+  // Without a synchronous reset, the render that observes a filter change would
+  // feed the stale page into the clamp while keepPreviousData still reports the
+  // previous result set's `totalPages`, snapping the page to the old last page.
+  // usePaginatedPage surfaces page 1 on that same render, closing the window.
+  // This test pins that guarantee: lose the synchronous reset and it fails.
   it("does not clamp against stale totalPages when the reset key changes", () => {
     urlStore.page = 3;
     const { result, rerender } = renderHook(
@@ -346,6 +368,7 @@ describe("usePaginatedPage + usePaginatedNavigation", () => {
           page,
           totalPages,
           setPage,
+          ...SETTLED,
           queryParams: { page },
           prefetch: vi.fn(),
         });
@@ -376,6 +399,7 @@ describe("usePaginatedNavigation", () => {
         page: 5,
         totalPages: 1,
         setPage,
+        ...SETTLED,
         queryParams: { page: 5 },
         prefetch: vi.fn(),
       }),
@@ -392,6 +416,7 @@ describe("usePaginatedNavigation", () => {
         page: 5,
         totalPages: 2,
         setPage,
+        ...SETTLED,
         queryParams: { page: 5 },
         prefetch: vi.fn(),
       }),
@@ -409,6 +434,7 @@ describe("usePaginatedNavigation", () => {
         totalPages: 5,
         setPage: vi.fn(),
         // A representative query shape — prefetch must carry it, overriding page.
+        ...SETTLED,
         queryParams: { page: 1, sortBy: "createdAt" },
         prefetch,
       }),
@@ -430,6 +456,7 @@ describe("usePaginatedNavigation", () => {
         page: 5,
         totalPages: 5,
         setPage: vi.fn(),
+        ...SETTLED,
         queryParams: { page: 5 },
         prefetch,
       }),
@@ -449,6 +476,7 @@ describe("usePaginatedNavigation", () => {
           page: 1,
           totalPages: 5,
           setPage: vi.fn(),
+          ...SETTLED,
           queryParams,
           prefetch,
         }),
@@ -479,6 +507,7 @@ describe("usePaginatedNavigation", () => {
           page: 1,
           totalPages: 5,
           setPage: vi.fn(),
+          ...SETTLED,
           queryParams,
           prefetch,
           prefetchKey,
@@ -495,28 +524,61 @@ describe("usePaginatedNavigation", () => {
     expect(prefetch.mock.calls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
   });
 
-  it("suspends the clamp and the prefetch when disabled, but still guards onPageChange", () => {
+  it("does not re-run the prefetch when only the prefetch identity changes", () => {
+    // Every caller passes a fresh inline arrow each render
+    // (`prefetch: (params) => utils.x.prefetch(...)`), so the ref indirection is
+    // what keeps the effect from firing on every render of every list view.
+    // Without it each render would issue PREFETCH_PAGES_AHEAD tRPC requests.
+    const first = vi.fn();
+    const next = vi.fn();
+    const queryParams = { page: 1 };
+    const { rerender } = renderHook(
+      ({ prefetch }) =>
+        usePaginatedNavigation({
+          data: { total: 50 },
+          page: 1,
+          totalPages: 5,
+          setPage: vi.fn(),
+          ...SETTLED,
+          queryParams,
+          prefetch,
+        }),
+      { initialProps: { prefetch: first } },
+    );
+
+    expect(first).toHaveBeenCalledTimes(2);
+    first.mockClear();
+
+    rerender({ prefetch: next });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it("suspends only the clamp when clampEnabled is false, but still guards onPageChange", () => {
     // Live-tail views (sentinel, ratelimit logs) pin themselves to page 1 and
-    // hide the footer; clamping or warming pages there is wasted work.
+    // hide the footer, so clamping the pinned page would fight the pin. The
+    // prefetch keeps running so pages are warm when the user leaves live tail.
     const prefetch = vi.fn();
     const setPage = vi.fn();
     const { result } = renderHook(() =>
       usePaginatedNavigation({
         data: { total: 20 },
-        page: 9,
-        totalPages: 2,
+        page: 1,
+        totalPages: 4,
         setPage,
-        queryParams: { page: 9 },
+        ...SETTLED,
+        queryParams: { page: 1 },
         prefetch,
-        enabled: false,
+        clampEnabled: false,
       }),
     );
 
-    expect(prefetch).not.toHaveBeenCalled();
+    expect(prefetch.mock.calls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
     expect(setPage).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.onPageChange(5);
+      result.current.onPageChange(9);
     });
     expect(setPage).not.toHaveBeenCalled();
 
@@ -524,6 +586,58 @@ describe("usePaginatedNavigation", () => {
       result.current.onPageChange(2);
     });
     expect(setPage).toHaveBeenCalledWith(2);
+  });
+
+  it("does not clamp an out-of-range page while clampEnabled is false", () => {
+    const setPage = vi.fn();
+    renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 20 },
+        page: 9,
+        totalPages: 2,
+        setPage,
+        ...SETTLED,
+        queryParams: { page: 9 },
+        prefetch: vi.fn(),
+        clampEnabled: false,
+      }),
+    );
+
+    expect(setPage).not.toHaveBeenCalled();
+  });
+
+  it("separates initial load from page-to-page navigation", () => {
+    // keepPreviousData keeps the previous rows on screen during a page change,
+    // so isFetching alone cannot tell a first load from a navigation.
+    const { result: initial } = renderHook(() =>
+      usePaginatedNavigation({
+        data: undefined,
+        page: 1,
+        totalPages: 1,
+        setPage: vi.fn(),
+        isLoading: true,
+        isFetching: true,
+        queryParams: { page: 1 },
+        prefetch: vi.fn(),
+      }),
+    );
+    expect(initial.current.isInitialLoading).toBe(true);
+    expect(initial.current.isNavigating).toBe(false);
+
+    const { result: navigating } = renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 20 },
+        page: 2,
+        totalPages: 2,
+        setPage: vi.fn(),
+        isLoading: false,
+        isFetching: true,
+        queryParams: { page: 2 },
+        prefetch: vi.fn(),
+      }),
+    );
+    expect(navigating.current.isInitialLoading).toBe(false);
+    expect(navigating.current.isNavigating).toBe(true);
   });
 
   it("onPageChange ignores out-of-range targets and navigates in-range ones", () => {
@@ -534,6 +648,7 @@ describe("usePaginatedNavigation", () => {
         page: 1,
         totalPages: 2,
         setPage,
+        ...SETTLED,
         queryParams: { page: 1 },
         prefetch: vi.fn(),
       }),
@@ -639,6 +754,110 @@ describe("computeFallbackTotalPages", () => {
 
   it("treats an empty first page as a single page", () => {
     expect(computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 1 })).toBe(1);
+  });
+
+  it("does not advertise a page ahead off the previous page's rows mid-fetch", () => {
+    // On page 4 with page 3's full result still on screen (keepPreviousData).
+    // Crediting those 50 rows to page 4 would report totalPages 5 and let a
+    // second Next click jump to page 5, skipping page 4 entirely — and since
+    // page 4 is then never observed, lastNonEmptyPage stays 3 and the empty
+    // branch above later clamps back to 3, past a page that did have rows.
+    expect(
+      computeFallbackTotalPages({
+        ...base,
+        isFetching: true,
+        pageRowCount: 50,
+        queryPage: 4,
+        lastNonEmptyPage: 3,
+      }),
+    ).toBe(4);
+  });
+
+  it("keeps a proven page reachable while an overshoot is in flight", () => {
+    // Mid-fetch on page 9 after page 3 was proven: the total must not collapse
+    // below the last proven page, or the clamp would fire before the response
+    // lands and strand the user behind data that exists.
+    expect(
+      computeFallbackTotalPages({
+        ...base,
+        isFetching: true,
+        pageRowCount: 0,
+        queryPage: 1,
+        lastNonEmptyPage: 3,
+      }),
+    ).toBe(3);
+  });
+});
+
+// useFallbackTotalPages wraps computeFallbackTotalPages with the observed-page
+// memory the caller used to own. The invariants: a page is only remembered once
+// its fetch settles with rows, and the memory is dropped when the reset key
+// changes, since rows seen under the old filters prove nothing about the new.
+describe("useFallbackTotalPages", () => {
+  const base = { hasData: true, limit: 50, resetKey: "filters-a" };
+
+  it("remembers a settled non-empty page and snaps a later empty page back to it", () => {
+    const { result, rerender } = renderHook(
+      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
+      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
+    );
+
+    // Page 3 settles with a full result: reachable one page ahead.
+    rerender({ ...base, isFetching: false, pageRowCount: 50, queryPage: 3 });
+    expect(result.current).toBe(4);
+
+    // Page 4 comes back empty: snap back to the last page seen with rows.
+    rerender({ ...base, isFetching: false, pageRowCount: 0, queryPage: 4 });
+    expect(result.current).toBe(3);
+  });
+
+  it("does not remember a page whose fetch has not settled", () => {
+    const { result, rerender } = renderHook(
+      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
+      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
+    );
+
+    // Rows on screen belong to the previous page, so page 4 is not proven.
+    rerender({ ...base, isFetching: true, pageRowCount: 50, queryPage: 4 });
+    expect(result.current).toBe(4);
+
+    // Page 4 settles empty: nothing was ever proven, so collapse to page 1.
+    rerender({ ...base, isFetching: false, pageRowCount: 0, queryPage: 4 });
+    expect(result.current).toBe(1);
+  });
+
+  it("drops the remembered page when the reset key changes", () => {
+    const { result, rerender } = renderHook(
+      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
+      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
+    );
+
+    rerender({ ...base, isFetching: false, pageRowCount: 50, queryPage: 3 });
+    expect(result.current).toBe(4);
+
+    // New filters: usePaginatedPage has already snapped the page to 1, and the
+    // old page-3 memory must not survive into the new result set.
+    rerender({
+      ...base,
+      resetKey: "filters-b",
+      isFetching: true,
+      pageRowCount: 0,
+      queryPage: 1,
+    });
+    expect(result.current).toBe(1);
+  });
+});
+
+// computeTotalPages is what every migrated hook routes its footer through.
+// The floor is load-bearing: a 0 here would make the clamp call setPage(0).
+describe("computeTotalPages", () => {
+  it("rounds a partial last page up", () => {
+    expect(computeTotalPages(101, 50)).toBe(3);
+    expect(computeTotalPages(100, 50)).toBe(2);
+  });
+
+  it("never reports fewer than one page for an empty list", () => {
+    expect(computeTotalPages(0, 50)).toBe(1);
   });
 });
 

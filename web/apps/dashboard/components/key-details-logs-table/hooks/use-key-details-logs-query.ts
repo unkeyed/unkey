@@ -44,9 +44,8 @@ export function useKeyDetailsLogsQuery({
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
-  // Reset to page 1 and clear the realtime buffer when filters or the time
-  // window change. usePaginatedPage owns the page reset; the buffer is cleared
-  // here.
+  // usePaginatedPage owns the page reset off this key; the realtime buffer is
+  // cleared here.
   const filtersKey = useMemo(
     () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
@@ -54,15 +53,11 @@ export function useKeyDetailsLogsQuery({
 
   const { page, setPage } = usePaginatedPage(filtersKey);
 
-  // Clear the buffer in-render on a filters/time transition (not on mount), so
-  // the same render that resets the page also sees an empty buffer — matching
-  // the previous behavior where the buffer was never shown against stale inputs.
-  // React re-renders synchronously and discards this render's output.
-  //
-  // The previous key is state, not a ref: a ref advanced during render sticks
-  // even when React throws that render away, which would swallow the paired
-  // buffer clear and leave rows from the old filters on screen. State rolls
-  // back with the discarded render, so the two always land together.
+  // Clear the buffer in-render on a filters/time transition, not in an effect:
+  // the page stays 1 across the transition and `activeRealtimeLogsMap` below is
+  // gated on the page, so an effect would paint one frame of the old filters'
+  // rows against the new ones. The previous key is state, not a ref, so that if
+  // React discards this render the paired buffer clear rolls back with it.
   const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
   if (prevFiltersKey !== filtersKey) {
     setPrevFiltersKey(filtersKey);
@@ -167,11 +162,13 @@ export function useKeyDetailsLogsQuery({
   const totalCount = logData?.total ?? 0;
   const totalPages = computeTotalPages(totalCount, limit);
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data: logData,
     page,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) =>
       queryClient.key.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
@@ -238,9 +235,6 @@ export function useKeyDetailsLogsQuery({
       return () => clearInterval(interval);
     }
   }, [startPolling, page, pollForNewLogs, pollIntervalMs]);
-
-  const isInitialLoading = isLoading && !logData;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     realtimeLogs,

@@ -70,7 +70,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   return {
     permissions: result.data?.permissions ?? [],
     isInitialLoading: result.isInitialLoading,
-    isFetching: result.isFetching,
+    isNavigating: result.isNavigating,
     page: result.page,
     pageSize: result.pageSize,
     totalPages: result.totalPages,

@@ -67,7 +67,7 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   return {
     roles: result.data?.roles ?? [],
     isInitialLoading: result.isInitialLoading,
-    isFetching: result.isFetching,
+    isNavigating: result.isNavigating,
     page: result.page,
     pageSize: result.pageSize,
     totalPages: result.totalPages,

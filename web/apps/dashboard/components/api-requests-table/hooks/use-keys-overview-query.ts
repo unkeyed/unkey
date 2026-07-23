@@ -154,11 +154,13 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   const totalCount = data?.total ?? 0;
   const totalPages = computeTotalPages(totalCount, limit);
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) => utils.api.keys.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
@@ -176,9 +178,6 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
     return Array.from(map.values());
   }, [data]);
-
-  const isInitialLoading = isLoading && !data;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     historicalLogs,

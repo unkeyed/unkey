@@ -115,20 +115,19 @@ export function useRatelimitsOverviewListPaginated({
   const totalCount = Math.max(0, data?.total ?? 0);
   const totalPages = computeTotalPages(totalCount, limit);
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) =>
       utils.ratelimit.overview.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];
-
-  const isInitialLoading = isLoading && !data;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     historicalLogs,

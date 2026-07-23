@@ -92,19 +92,21 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = computeTotalPages(totalCount, pageSize);
 
-  const { onPageChange } = usePaginatedNavigation({
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page,
     totalPages,
     setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) => utils.audit.logs.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   return {
     auditLogs: data?.auditLogs ?? [],
-    isLoading,
-    isFetching,
+    isLoading: isInitialLoading,
+    isNavigating,
     page,
     pageSize,
     totalPages,
