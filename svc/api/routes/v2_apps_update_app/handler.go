@@ -303,7 +303,7 @@ func (h *Handler) applyGitChange(
 		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return githubapp.GitState("", ""), nil
+				return githubapp.GitResponse("", ""), nil
 			}
 			return empty, fault.Wrap(
 				err,
@@ -312,7 +312,7 @@ func (h *Handler) applyGitChange(
 				fault.Public("Failed to retrieve app."),
 			)
 		}
-		return githubapp.GitState(conn.RepositoryFullName, app.DefaultBranch), nil
+		return githubapp.GitResponse(conn.RepositoryFullName, app.DefaultBranch), nil
 	}
 
 	if git.IsNull() {
@@ -328,7 +328,7 @@ func (h *Handler) applyGitChange(
 		}
 		update.DefaultBranch = ""
 		update.DefaultBranchSpecified = 1
-		return githubapp.GitState("", ""), nil
+		return githubapp.GitResponse("", ""), nil
 	}
 
 	// Connect, replace, or retarget the tracked branch.
@@ -360,7 +360,7 @@ func (h *Handler) applyGitChange(
 		branch := *requested.DefaultBranch
 		update.DefaultBranch = branch
 		update.DefaultBranchSpecified = 1
-		return githubapp.GitState(conn.RepositoryFullName, branch), nil
+		return githubapp.GitResponse(conn.RepositoryFullName, branch), nil
 	}
 
 	if h.GitHubAppName == "" {
@@ -428,5 +428,5 @@ func (h *Handler) applyGitChange(
 	update.DefaultBranch = branch
 	update.DefaultBranchSpecified = 1
 
-	return githubapp.GitState(resolved.Repository.FullName, branch), nil
+	return githubapp.GitResponse(resolved.Repository.FullName, branch), nil
 }

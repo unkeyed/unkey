@@ -109,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			Git:                 githubapp.GitState(repositoryFullName, app.DefaultBranch),
+			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,

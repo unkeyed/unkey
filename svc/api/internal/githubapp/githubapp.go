@@ -17,10 +17,10 @@ import (
 	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
-// GitState builds the App.git response value. An empty repositoryFullName (no
-// connection) yields JSON null; otherwise the repository and the branch the app
-// tracks.
-func GitState(repositoryFullName string, defaultBranch string) nullable.Nullable[openapi.AppGit] {
+// GitResponse builds the App.git response value. An empty repositoryFullName
+// (no connection) yields JSON null; otherwise the repository and the branch the
+// app tracks.
+func GitResponse(repositoryFullName string, defaultBranch string) nullable.Nullable[openapi.AppGit] {
 	var state nullable.Nullable[openapi.AppGit]
 	if repositoryFullName == "" {
 		state.SetNull()
