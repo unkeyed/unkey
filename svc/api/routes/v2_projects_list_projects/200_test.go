@@ -27,17 +27,18 @@ func TestListProjectsSuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("empty workspace returns empty list", func(t *testing.T) {
+	t.Run("new workspace returns its default project", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Empty(t, res.Body.Data)
+		require.Len(t, res.Body.Data, 1)
+		require.Equal(t, h.DefaultProjectID(workspace.ID), res.Body.Data[0].Id)
 		require.NotNil(t, res.Body.Pagination)
 		require.False(t, res.Body.Pagination.HasMore)
 		require.Nil(t, res.Body.Pagination.Cursor)
 	})
 
-	seeded := map[string]string{}
+	seeded := map[string]string{"default": h.DefaultProjectID(workspace.ID)}
 	for i := 0; i < 3; i++ {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		project := h.CreateProject(seed.CreateProjectRequest{
@@ -68,7 +69,7 @@ func TestListProjectsSuccessfully(t *testing.T) {
 				protectedCount++
 			}
 		}
-		require.Equal(t, 1, protectedCount, "exactly one seeded project has deleteProtection=true")
+		require.Equal(t, 2, protectedCount, "the default and one seeded project are protected")
 	})
 
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
@@ -133,7 +134,7 @@ func TestListProjectsPagination(t *testing.T) {
 		cursor = res.Body.Pagination.Cursor
 	}
 
-	require.Len(t, seen, total)
+	require.Len(t, seen, total+1)
 }
 
 func TestListProjectsWorkspaceIsolation(t *testing.T) {
@@ -155,6 +156,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 		Name:        "Mine",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
+	defaultProjectID := h.DefaultProjectID(workspace.ID)
 
 	otherWorkspace := h.CreateWorkspace()
 	theirs := h.CreateProject(seed.CreateProjectRequest{
@@ -166,8 +168,11 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Len(t, res.Body.Data, 1)
-	require.Equal(t, mine.ID, res.Body.Data[0].Id)
+	require.Len(t, res.Body.Data, 2)
+	require.ElementsMatch(t, []string{defaultProjectID, mine.ID}, []string{
+		res.Body.Data[0].Id,
+		res.Body.Data[1].Id,
+	})
 
 	t.Run("foreign cursor does not leak across workspaces", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -176,7 +181,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, p := range res.Body.Data {
 			require.NotEqual(t, theirs.ID, p.Id, "foreign project must never be returned")
-			require.Equal(t, mine.ID, p.Id, "only own-workspace projects may be returned")
+			require.Contains(t, []string{defaultProjectID, mine.ID}, p.Id)
 		}
 	})
 
@@ -187,7 +192,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
 		for _, p := range res.Body.Data {
-			require.Equal(t, mine.ID, p.Id, "only own-workspace projects may be returned")
+			require.Contains(t, []string{defaultProjectID, mine.ID}, p.Id)
 		}
 	})
 }
@@ -266,7 +271,7 @@ func TestListProjectsSearch(t *testing.T) {
 
 	t.Run("whitespace-only search returns all", func(t *testing.T) {
 		require.ElementsMatch(t,
-			[]string{"Billing Service", "Web Frontend", "Reports 100%"},
+			[]string{"Default", "Billing Service", "Web Frontend", "Reports 100%"},
 			list(t, "   "),
 		)
 	})
