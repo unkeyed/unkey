@@ -1,0 +1,12 @@
+type: object
+required:
+  - query
+properties:
+  query:
+    type: string
+    description: |
+      SQL query to execute against your rate limit analytics data.
+      Queries may reference only the five public aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. Physical `default.*` table names are unsupported. CTEs, subqueries, UNION, and EXCEPT are supported.
+      Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every namespace in that workspace; namespace-scoped permissions automatically restrict results to the permitted namespace IDs.
+      Workspace retention and query limits apply.
+    example: "SELECT namespace_id, COUNT(*) AS total FROM ratelimits_v1 WHERE namespace_id = 'rlns_123' GROUP BY namespace_id"
