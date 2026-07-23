@@ -555,10 +555,10 @@ describe("usePaginatedNavigation", () => {
     expect(first).not.toHaveBeenCalled();
   });
 
-  it("suspends only the clamp when clampEnabled is false, but still guards onPageChange", () => {
+  it("suspends the clamp and the prefetch when disabled, but still guards onPageChange", () => {
     // Live-tail views (sentinel, ratelimit logs) pin themselves to page 1 and
-    // hide the footer, so clamping the pinned page would fight the pin. The
-    // prefetch keeps running so pages are warm when the user leaves live tail.
+    // hide the footer, so both clamping the pinned page and warming pages the
+    // user cannot reach are wasted work while live.
     const prefetch = vi.fn();
     const setPage = vi.fn();
     const { result } = renderHook(() =>
@@ -570,11 +570,11 @@ describe("usePaginatedNavigation", () => {
         ...SETTLED,
         queryParams: { page: 1 },
         prefetch,
-        clampEnabled: false,
+        enabled: false,
       }),
     );
 
-    expect(prefetch.mock.calls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
+    expect(prefetch).not.toHaveBeenCalled();
     expect(setPage).not.toHaveBeenCalled();
 
     act(() => {
@@ -588,7 +588,7 @@ describe("usePaginatedNavigation", () => {
     expect(setPage).toHaveBeenCalledWith(2);
   });
 
-  it("does not clamp an out-of-range page while clampEnabled is false", () => {
+  it("does not clamp an out-of-range page while disabled", () => {
     const setPage = vi.fn();
     renderHook(() =>
       usePaginatedNavigation({
@@ -599,7 +599,7 @@ describe("usePaginatedNavigation", () => {
         ...SETTLED,
         queryParams: { page: 9 },
         prefetch: vi.fn(),
-        clampEnabled: false,
+        enabled: false,
       }),
     );
 

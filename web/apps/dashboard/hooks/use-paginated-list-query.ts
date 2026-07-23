@@ -82,11 +82,12 @@ type UsePaginatedNavigationParams<TParams extends { page: number }> = {
   // (e.g. a keyspace id). Without it the prefetch effect never re-warms when
   // that value changes.
   prefetchKey?: string;
-  // Set false while the view pins itself to page 1 (live-tail modes), where
-  // clamping against a live total would fight the pin. Suspends the clamp ONLY:
-  // prefetch keeps running and `onPageChange` still validates against
-  // totalPages. Defaults to true.
-  clampEnabled?: boolean;
+  // Set false while the view pins itself to page 1 (live-tail modes) and hides
+  // the footer. Suspends the clamp (which would fight the pin against a live
+  // total) and the adjacent-page prefetch (pages the pinned user cannot reach,
+  // so warming them is wasted backend load). `onPageChange` still validates
+  // against totalPages. Defaults to true.
+  enabled?: boolean;
 };
 
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
@@ -102,20 +103,20 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
   queryParams,
   prefetch,
   prefetchKey,
-  clampEnabled = true,
+  enabled = true,
 }: UsePaginatedNavigationParams<TParams>) {
   // Clamp page into range after data loads. The data guard keeps a deep-linked
   // page (?page=3) from snapping to 1 on first render, when totalCount is still
   // 0 and totalPages collapses to 1. No isFetching gate needed: usePaginatedPage
   // surfaces page 1 synchronously, before a stale totalPages can pair with it.
   useEffect(() => {
-    if (!clampEnabled || data == null) {
+    if (!enabled || data == null) {
       return;
     }
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [clampEnabled, data, page, totalPages, setPage]);
+  }, [enabled, data, page, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant. The ref keeps a
   // fresh caller arrow each render from re-firing the effect, which re-runs on
@@ -124,6 +125,9 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
   prefetchRef.current = prefetch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
       const nextPage = page + i;
       if (nextPage > totalPages) {
@@ -131,7 +135,7 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
       }
       prefetchRef.current({ ...queryParams, page: nextPage });
     }
-  }, [page, totalPages, queryParams, prefetchKey]);
+  }, [enabled, page, totalPages, queryParams, prefetchKey]);
 
   const onPageChange = useCallback(
     (newPage: number) => {

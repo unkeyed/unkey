@@ -370,7 +370,7 @@ export function useRatelimitLogsQuery({
     queryParams,
     prefetch: (params) =>
       queryClient.ratelimit.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    clampEnabled: !startPolling,
+    enabled: !startPolling,
   });
 
   // Fetch enrichment whenever new historical data arrives

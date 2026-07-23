@@ -184,9 +184,8 @@ export function useSentinelLogsQuery({
     }
   }, [startPolling, page, setPage]);
 
-  // `clampEnabled: !startPolling` suspends only the clamp while live, where the
-  // view is pinned to page 1 and the footer hidden; the prefetch keeps running
-  // so pages are warm when the user leaves live tail.
+  // `enabled: !startPolling` suspends the clamp and the adjacent-page prefetch
+  // while live, where the view is pinned to page 1 and the footer is hidden.
   const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
     page: effectivePage,
@@ -197,7 +196,7 @@ export function useSentinelLogsQuery({
     queryParams: queryInput,
     prefetch: (params) =>
       queryClient.deploy.sentinelLogs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    clampEnabled: !startPolling,
+    enabled: !startPolling,
   });
 
   // Poll for new logs (page 1 only).
