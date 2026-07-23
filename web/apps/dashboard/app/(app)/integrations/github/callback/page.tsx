@@ -26,33 +26,31 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      // Workspace install flow (workspaces.installGithub) carries no app or
-      // project, so there is nothing to connect. Land on the workspace settings.
-      if (!data.appId || !data.projectId) {
-        router.replace(routes.settings.general({ workspaceSlug: data.workspaceSlug }));
+      // The install flow decides where the user lands.
+      if (data.flow === "app" && data.projectId && data.appId) {
+        // App onboarding / app settings: return to the app's settings, or the
+        // repo picker when the wizard hasn't chosen one yet.
+        router.replace(
+          data.returnTo === "settings"
+            ? routes.projects.apps.settings({
+                workspaceSlug: data.workspaceSlug,
+                projectId: data.projectId,
+                appId: data.appId,
+              })
+            : routes.projects.apps.new({
+                workspaceSlug: data.workspaceSlug,
+                projectId: data.projectId,
+                step: "select-repo",
+                appId: data.appId,
+              }),
+        );
         return;
       }
 
-      // App-targeted dashboard flow: return to the app's settings, or the repo
-      // picker if the wizard hasn't chosen one yet.
-      if (data.returnTo === "settings") {
-        router.replace(
-          routes.projects.apps.settings({
-            workspaceSlug: data.workspaceSlug,
-            projectId: data.projectId,
-            appId: data.appId,
-          }),
-        );
-      } else {
-        router.replace(
-          routes.projects.apps.new({
-            workspaceSlug: data.workspaceSlug,
-            projectId: data.projectId,
-            step: "select-repo",
-            appId: data.appId,
-          }),
-        );
-      }
+      // Workspace-wide installs land on the workspace settings, where the
+      // connection status shows: both the dashboard settings button ("workspace",
+      // returning to where it was clicked) and the CLI/API flow ("api").
+      router.replace(routes.settings.general({ workspaceSlug: data.workspaceSlug }));
     },
   });
 

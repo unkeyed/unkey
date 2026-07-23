@@ -23,9 +23,9 @@ func sigFromState(t *testing.T, state string) (string, map[string]any) {
 	return sig, parsed
 }
 
-// This endpoint mints only the workspace install-only flow: workspaceId, nonce,
-// exp, and source, with no projectId/appId/repository/returnTo. The vector pins
-// that shape against the dashboard's verifyState.
+// This endpoint mints only the "api" install flow: workspaceId, nonce, exp, and
+// flow, with no projectId/appId/repository/returnTo/userId. The vector pins that
+// shape against the dashboard's verifyState.
 func TestSign_MatchesDashboardVector_InstallOnly(t *testing.T) {
 	s := newSigner(testPEM)
 
@@ -33,17 +33,18 @@ func TestSign_MatchesDashboardVector_InstallOnly(t *testing.T) {
 		WorkspaceID: "ws_KEBAP",
 		Nonce:       "nonce123",
 		ExpMs:       1700000000000,
-		Source:      "api",
+		Flow:        "api",
 	})
 	require.NoError(t, err)
 
 	sig, parsed := sigFromState(t, state)
-	require.Equal(t, "_YHr1IIkmnCzxPti5-GosO-PXHW4xMPoI06AVdyCNl0", sig)
-	require.Equal(t, "api", parsed["source"])
+	require.Equal(t, "ayvBgjo7JCS3PzqflZYPHL9V5ImlugzaP-QJjCz_9eM", sig)
+	require.Equal(t, "api", parsed["flow"])
 	require.NotContains(t, parsed, "projectId")
 	require.NotContains(t, parsed, "appId")
 	require.NotContains(t, parsed, "repository")
 	require.NotContains(t, parsed, "returnTo")
+	require.NotContains(t, parsed, "userId")
 }
 
 func sigOf(t *testing.T, s *signer, p payload) string {
@@ -79,7 +80,7 @@ func TestSign_EveryFieldIsAuthenticated(t *testing.T) {
 		{"workspaceId", mutate(func(p *payload) { p.WorkspaceID = "ws_2" })},
 		{"nonce", mutate(func(p *payload) { p.Nonce = "nonce_2" })},
 		{"exp", mutate(func(p *payload) { p.ExpMs = base.ExpMs + 1 })},
-		{"source", mutate(func(p *payload) { p.Source = "api" })},
+		{"flow", mutate(func(p *payload) { p.Flow = "api" })},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			require.NotEqual(t, baseSig, sigOf(t, s, tc.p), "changing %s must change the signature", tc.name)
