@@ -175,6 +175,20 @@ export const stripeErrorCode = (error: StripeError): TRPCError["code"] => {
 };
 
 /**
+ * Legacy helper that surfaces Stripe's own text ("Stripe error: <message>").
+ * That text names the objects involved and, on auth failures, an identifying
+ * key, so new code must use [throwRedactedStripeError] or
+ * [throwMaskedStripeError] instead. Retained only for `getSetupIntent`, which
+ * is being reworked separately in ENG-3080 (PR #6829).
+ */
+export const handleStripeError = (error: StripeError): never => {
+  throw new TRPCError({
+    code: stripeErrorCode(error),
+    message: `Stripe error: ${error.message}`,
+  });
+};
+
+/**
  * Replaces Stripe's text on failures the user cannot act on. Names no Stripe
  * object and no key.
  */
