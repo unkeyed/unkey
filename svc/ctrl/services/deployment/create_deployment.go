@@ -23,7 +23,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

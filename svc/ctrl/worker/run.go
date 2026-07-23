@@ -50,7 +50,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"

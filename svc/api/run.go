@@ -52,7 +52,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 // nolint:gocognit

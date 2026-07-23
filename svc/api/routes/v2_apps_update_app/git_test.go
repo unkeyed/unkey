@@ -18,7 +18,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
-	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	github "github.com/unkeyed/unkey/pkg/github"
 )
 
 func appSlug() string {

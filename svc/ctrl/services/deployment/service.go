@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates

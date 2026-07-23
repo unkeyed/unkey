@@ -10,7 +10,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/webhook"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 type pushPayload struct {

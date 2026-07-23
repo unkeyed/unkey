@@ -20,7 +20,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	github "github.com/unkeyed/unkey/pkg/github"
 )
 
 type (

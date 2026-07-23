@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	github "github.com/unkeyed/unkey/pkg/github"
 )
 
 // FakeGitHub is a github.GitHubClient stub returning a fixed repository, for

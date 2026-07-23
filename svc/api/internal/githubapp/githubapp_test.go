@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
-	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	github "github.com/unkeyed/unkey/pkg/github"
 )
 
 // recordingClient captures the repository string passed to GetInstallationRepo
