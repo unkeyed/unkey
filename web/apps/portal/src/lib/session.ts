@@ -4,7 +4,7 @@ import { z } from "zod";
 import { env } from "./env";
 import type { PortalConfig } from "./portal-config";
 
-const SESSION_COOKIE_NAME = "portal_session";
+export const SESSION_COOKIE_NAME = "portal_session";
 const SESSION_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours
 
 export type SessionData = {
@@ -15,6 +15,25 @@ export type SessionData = {
   preview: boolean;
   expiresAt: number;
 };
+
+/**
+ * The session `permissions` column holds the grant `portal.createSession`
+ * persists: `{ keyspaceIds, permissions: ["keys:read", ...] }`. The portal only
+ * needs the capability list for tab/visibility decisions, so normalize to that
+ * array here. Tolerates a plain string array too, in case the shape changes.
+ */
+function readCapabilities(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((p): p is string => typeof p === "string");
+  }
+  if (raw && typeof raw === "object" && "permissions" in raw) {
+    const inner = (raw as { permissions?: unknown }).permissions;
+    if (Array.isArray(inner)) {
+      return inner.filter((p): p is string => typeof p === "string");
+    }
+  }
+  return [];
+}
 
 type ExchangeResult = { success: true } | { success: false; error: string };
 
@@ -96,7 +115,11 @@ export const exchangeSession = createServerFn({ method: "POST" })
  * server function call so the route only needs a single round-trip.
  */
 export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ session: SessionData; config: PortalConfig | null } | null> => {
+  async (): Promise<{
+    session: SessionData;
+    config: PortalConfig | null;
+    logsRetentionDays: number;
+  } | null> => {
     const token = getCookie(SESSION_COOKIE_NAME);
     if (!token) {
       return null;
@@ -111,6 +134,7 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       where: (t, { eq, gt, and }) => and(eq(t.id, token), gt(t.expiresAt, nowMs)),
       columns: {
         id: true,
+        workspaceId: true,
         portalConfigId: true,
         externalId: true,
         permissions: true,
@@ -123,17 +147,41 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       return null;
     }
 
-    let config: PortalConfig | null = null;
-    try {
-      config = await loadPortalConfig(session.portalConfigId);
-    } catch (err) {
-      console.error("Failed to load portal config", {
-        portalConfigId: session.portalConfigId,
-        err,
-      });
-    }
+    const [config, logsRetentionDays] = await Promise.all([
+      loadPortalConfig(session.portalConfigId).catch((err) => {
+        console.error("Failed to load portal config", {
+          portalConfigId: session.portalConfigId,
+          err,
+        });
+        return null;
+      }),
+      // The workspace's log retention bounds how far back analytics can query;
+      // the analytics page uses it to only offer periods within retention. A
+      // failed/missing lookup falls back to 0 ("unknown"), which the UI treats
+      // as uncapped rather than blocking the page.
+      db.query.quotas
+        .findFirst({
+          where: (t, { eq }) => eq(t.workspaceId, session.workspaceId),
+          columns: { logsRetentionDays: true },
+        })
+        .then((quota) => quota?.logsRetentionDays ?? 0)
+        .catch((err) => {
+          console.error("Failed to load workspace quota", {
+            workspaceId: session.workspaceId,
+            err,
+          });
+          return 0;
+        }),
+    ]);
 
-    return { session, config };
+    // workspaceId is only needed server-side (quota lookup above); keep it off
+    // the client-facing session, which stays as SessionData.
+    const { workspaceId: _workspaceId, ...sessionColumns } = session;
+    return {
+      session: { ...sessionColumns, permissions: readCapabilities(session.permissions) },
+      config,
+      logsRetentionDays,
+    };
   },
 );
 

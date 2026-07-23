@@ -17,7 +17,10 @@
     ]
   },
   "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
-  "favicon": "/unkey.png",
+  "favicon": {
+    "dark": "/favicon-dark.svg",
+    "light": "/favicon-light.svg"
+  },
   "fonts": {
     "family": "Geist"
   },
@@ -33,8 +36,8 @@
     "library": "fontawesome"
   },
   "logo": {
-    "dark": "/unkey-white.png",
-    "light": "/unkey-black.png"
+    "dark": "/unkey-white.svg",
+    "light": "/unkey-black.svg"
   },
   "metadata": {
     "timestamp": true
@@ -90,6 +93,7 @@
                       "platform/analytics/getting-started",
                       "platform/analytics/quick-reference",
                       "platform/analytics/query-examples",
+                      "platform/analytics/get-ratelimits",
                       "platform/analytics/schema-reference",
                       "platform/analytics/query-restrictions",
                       "platform/analytics/troubleshooting"
@@ -456,6 +460,15 @@
                     "group": "Application",
                     "pages": [
                       "errors/unkey/application/assertion_failed",
+                      "errors/unkey/application/deployment_is_current",
+                      "errors/unkey/application/deployment_is_production",
+                      "errors/unkey/application/deployment_is_stopping",
+                      "errors/unkey/application/deployment_no_current",
+                      "errors/unkey/application/deployment_not_production",
+                      "errors/unkey/application/deployment_not_ready",
+                      "errors/unkey/application/deployment_not_running",
+                      "errors/unkey/application/deployment_not_stopped",
+                      "errors/unkey/application/invalid_environment_settings",
                       "errors/unkey/application/invalid_input",
                       "errors/unkey/application/precondition_failed",
                       "errors/unkey/application/protected_resource",
@@ -753,7 +766,7 @@
     {
       "destination": "/platform/apis/features/authorization/introduction",
       "source": "/security/roles"
-    }
+    } 
   ],
   "styling": {
     "codeblocks": {

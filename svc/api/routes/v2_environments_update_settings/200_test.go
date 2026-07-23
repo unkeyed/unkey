@@ -383,7 +383,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, int32(500), rt.AppRuntimeSetting.CpuMillicores)
-		require.Equal(t, int32(128), rt.AppRuntimeSetting.MemoryMib, "memory untouched, keeps seed default")
+		require.Equal(t, int32(256), rt.AppRuntimeSetting.MemoryMib, "memory untouched, keeps seed default")
 		require.Equal(t, int32(8080), rt.AppRuntimeSetting.Port, "port untouched, keeps seed default")
 	})
 

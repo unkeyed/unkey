@@ -441,7 +441,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// which can take 5-10 minutes for DNS propagation
 	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
 	if cfg.Heartbeat.CertRenewalURL != "" {
-		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.CertRenewalURL)
+		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		DB:            database,
@@ -599,11 +599,22 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// Without a cap the SDK default retries a failing quota check forever,
+	// parking its VO for the month. Kill on exhaustion and let the next daily
+	// tick retry; mirrors the billing-push and spend-check policies.
+	cronQuotaCheckRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
+		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
@@ -755,12 +766,12 @@ func Run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// cronHeartbeat returns a Checkly heartbeat for url, or a noop if url is
-// empty. Used to wire each cron task's monitoring URL without scattering
-// nil-or-noop branches through the cron service.
+// cronHeartbeat returns an HTTP heartbeat for url, or a noop if url is empty.
+// Used to wire each cron task's monitoring URL without scattering nil-or-noop
+// branches through the cron service.
 func cronHeartbeat(url string) healthcheck.Heartbeat {
 	if url == "" {
 		return healthcheck.NewNoop()
 	}
-	return healthcheck.NewChecklyHeartbeat(url)
+	return healthcheck.NewHTTPHeartbeat(url)
 }

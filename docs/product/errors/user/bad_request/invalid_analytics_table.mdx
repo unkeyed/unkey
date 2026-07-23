@@ -23,16 +23,6 @@ description: "Your analytics query references a table that does not exist or is 
 
 Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
 
-For security, only specific analytics tables are accessible:
-
-- `key_verifications_v1` - Raw key verification events
-- `key_verifications_per_minute_v1` - Minute-level aggregates
-- `key_verifications_per_hour_v1` - Hour-level aggregates
-- `key_verifications_per_day_v1` - Day-level aggregates
-- `key_verifications_per_month_v1` - Month-level aggregates
-
-System tables (like `system.*`) and other database tables are blocked.
-
 ## How to Fix It
 
 ### 1. Use the Correct Table Name
@@ -68,10 +58,15 @@ WHERE time >= now() - INTERVAL 1 DAY
 
 ## Available Tables
 
-| Table Name                        | Description             |
-| --------------------------------- | ----------------------- |
-| `key_verifications_v1`            | Raw verification events |
-| `key_verifications_per_minute_v1` | Minute-level aggregates |
-| `key_verifications_per_hour_v1`   | Hour-level aggregates   |
-| `key_verifications_per_day_v1`    | Day-level aggregates    |
-| `key_verifications_per_month_v1`  | Month-level aggregates  |
+| Endpoint | Table Name | Description |
+| --- | --- | --- |
+| `analytics.getVerifications` | `key_verifications_v1` | Raw verification events |
+| `analytics.getVerifications` | `key_verifications_per_minute_v1` | Minute-level aggregates |
+| `analytics.getVerifications` | `key_verifications_per_hour_v1` | Hour-level aggregates |
+| `analytics.getVerifications` | `key_verifications_per_day_v1` | Day-level aggregates |
+| `analytics.getVerifications` | `key_verifications_per_month_v1` | Month-level aggregates |
+| `analytics.getRatelimits` | `ratelimits_v1` | Raw rate limit events |
+| `analytics.getRatelimits` | `ratelimits_per_minute_v1` | Minute-level aggregates |
+| `analytics.getRatelimits` | `ratelimits_per_hour_v1` | Hour-level aggregates |
+| `analytics.getRatelimits` | `ratelimits_per_day_v1` | Day-level aggregates |
+| `analytics.getRatelimits` | `ratelimits_per_month_v1` | Month-level aggregates |

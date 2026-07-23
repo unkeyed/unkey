@@ -1,10 +1,11 @@
 "use client";
 
-import { LLMSearch } from "@unkey/ui";
+import { Magnifier, XMark } from "@unkey/icons";
+import { Button, Input } from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
 
 export const IdentitiesSearch = () => {
-  const [_search, setSearch] = useQueryState(
+  const [search, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -14,22 +15,35 @@ export const IdentitiesSearch = () => {
   );
 
   return (
-    <LLMSearch
-      placeholder="Search and filter Identities..."
-      exampleQueries={[
-        "Find identity with ID 'user_123'",
-        "Show identities with external ID containing 'test'",
-        "Find identities with external ID 'john@example.com'",
-        "Show identities created in the last week",
-      ]}
-      isLoading={false}
-      searchMode="allowTypeDuringSearch"
-      onSearch={(query) => {
-        setSearch(query);
-      }}
-      onClear={() => {
-        setSearch(null);
-      }}
-    />
+    <div className="flex h-8 w-full items-center md:w-80">
+      <Input
+        aria-label="Search identities"
+        type="text"
+        value={search}
+        maxLength={256}
+        placeholder="Search identities by ID or external ID..."
+        leftIcon={<Magnifier className="text-accent-9 size-4" />}
+        rightIcon={
+          search ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Clear search"
+              onClick={() => setSearch(null)}
+            >
+              <XMark className="size-4" />
+            </Button>
+          ) : null
+        }
+        className="h-8 text-[13px] font-medium"
+        onChange={(event) => setSearch(event.target.value || null)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setSearch(null);
+          }
+        }}
+      />
+    </div>
   );
 };

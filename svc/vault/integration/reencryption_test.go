@@ -17,14 +17,8 @@ import (
 	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
-// TestReEncrypt verifies that re-encryption works correctly across varying data sizes.
-//
-// This test encrypts data of increasing sizes (8^1 to 8^8 bytes), then performs
-// multiple DEK rotations and verifies the original encrypted data can still be
-// decrypted. This ensures:
-//   - Large data is handled correctly
-//   - Re-encryption with new DEKs doesn't lose data
-//   - Old ciphertexts remain valid after DEK rotation
+// TestReEncrypt verifies that successive DEK rotations move the ciphertext to
+// each new key without changing its plaintext across varying data sizes.
 func TestReEncrypt(t *testing.T) {
 
 	s3 := containers.S3(t)
@@ -71,7 +65,8 @@ func TestReEncrypt(t *testing.T) {
 			enc, err := v.Encrypt(ctx, encReq)
 			require.NoError(t, err)
 
-			deks := []string{}
+			encrypted := enc.Msg.GetEncrypted()
+			deks := []string{enc.Msg.GetKeyId()}
 			for range 10 {
 				dekID, createDekErr := v.CreateDEK(ctx, keyring)
 				require.NoError(t, createDekErr)
@@ -79,15 +74,17 @@ func TestReEncrypt(t *testing.T) {
 				deks = append(deks, dekID)
 				reReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
 					Keyring:   keyring,
-					Encrypted: enc.Msg.GetEncrypted(),
+					Encrypted: encrypted,
 				})
 				reReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
-				_, err = v.ReEncrypt(ctx, reReq)
-				require.NoError(t, err)
+				reEnc, reEncryptErr := v.ReEncrypt(ctx, reReq)
+				require.NoError(t, reEncryptErr)
+				require.Equal(t, dekID, reEnc.Msg.GetKeyId())
+				encrypted = reEnc.Msg.GetEncrypted()
 			}
 			decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 				Keyring:   keyring,
-				Encrypted: enc.Msg.GetEncrypted(),
+				Encrypted: encrypted,
 			})
 			decReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
 			dec, err := v.Decrypt(ctx, decReq)

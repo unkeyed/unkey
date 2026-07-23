@@ -8,7 +8,7 @@ export const updateCpu = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      cpuMillicores: z.number().int().min(1),
+      cpuMillicores: z.number().int().min(250),
     }),
   )
   .mutation(async ({ ctx, input }) => {

@@ -17,5 +17,6 @@ SET requests_per_month = sqlc.arg(requests_per_month),
     max_cpu_millicores_per_instance = sqlc.arg(max_cpu_millicores_per_instance),
     max_memory_mib_per_instance = sqlc.arg(max_memory_mib_per_instance),
     max_storage_mib_per_instance = sqlc.arg(max_storage_mib_per_instance),
-    max_concurrent_builds = sqlc.arg(max_concurrent_builds)
+    max_concurrent_builds = sqlc.arg(max_concurrent_builds),
+    max_replicas_per_region = sqlc.arg(max_replicas_per_region)
 WHERE workspace_id = sqlc.arg(workspace_id);

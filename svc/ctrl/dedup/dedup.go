@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -110,7 +112,7 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 
 	// ONE query to transition all siblings to superseded.
 	err = s.db.UpdateDeploymentStatusBatch(ctx, db.UpdateDeploymentStatusBatchParams{
-		Status:    db.DeploymentsStatusSuperseded,
+		Status:    mysqltype.DeploymentsStatusSuperseded,
 		UpdatedAt: now,
 		Ids:       deploymentIDs,
 	})

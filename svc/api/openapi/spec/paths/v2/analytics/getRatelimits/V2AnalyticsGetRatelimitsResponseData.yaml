@@ -1,0 +1,9 @@
+type: array
+description: Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
+items:
+  type: object
+  additionalProperties: true
+  description: Dynamic row with fields determined by the query.
+example:
+  - namespace_id: "rlns_123"
+    total: 1234

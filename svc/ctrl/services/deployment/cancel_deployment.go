@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -113,9 +115,9 @@ func (s *Service) CancelDeployment(
 	// but cancelled is in the NOT IN list so that update is a no-op.
 	if err := s.db.UpdateDeploymentStatusIfActive(ctx, db.UpdateDeploymentStatusIfActiveParams{
 		ID:               deploymentID,
-		Status:           db.DeploymentsStatusCancelled,
+		Status:           mysqltype.DeploymentsStatusCancelled,
 		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		TerminalStatuses: db.TerminalDeploymentStatuses,
+		TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
 	}); err != nil {
 		logger.Warn("failed to set deployment status to cancelled",
 			"deployment_id", deploymentID,
@@ -140,22 +142,22 @@ func (s *Service) CancelDeployment(
 // isTerminalDeploymentStatus reports whether a deployment status is one
 // from which no further state transitions will happen. Cancelling a
 // terminal deployment is a no-op.
-func isTerminalDeploymentStatus(status db.DeploymentsStatus) bool {
+func isTerminalDeploymentStatus(status mysqltype.DeploymentsStatus) bool {
 	switch status {
-	case db.DeploymentsStatusReady,
-		db.DeploymentsStatusFailed,
-		db.DeploymentsStatusSkipped,
-		db.DeploymentsStatusStopped,
-		db.DeploymentsStatusSuperseded,
-		db.DeploymentsStatusCancelled:
+	case mysqltype.DeploymentsStatusReady,
+		mysqltype.DeploymentsStatusFailed,
+		mysqltype.DeploymentsStatusSkipped,
+		mysqltype.DeploymentsStatusStopped,
+		mysqltype.DeploymentsStatusSuperseded,
+		mysqltype.DeploymentsStatusCancelled:
 		return true
-	case db.DeploymentsStatusPending,
-		db.DeploymentsStatusStarting,
-		db.DeploymentsStatusBuilding,
-		db.DeploymentsStatusDeploying,
-		db.DeploymentsStatusNetwork,
-		db.DeploymentsStatusFinalizing,
-		db.DeploymentsStatusAwaitingApproval:
+	case mysqltype.DeploymentsStatusPending,
+		mysqltype.DeploymentsStatusStarting,
+		mysqltype.DeploymentsStatusBuilding,
+		mysqltype.DeploymentsStatusDeploying,
+		mysqltype.DeploymentsStatusNetwork,
+		mysqltype.DeploymentsStatusFinalizing,
+		mysqltype.DeploymentsStatusAwaitingApproval:
 		return false
 	default:
 		return false

@@ -18,7 +18,8 @@ import { EditKeyDialog, type EditKeyValues } from "~/components/keys-table/edit-
 import { createKeysColumns, globalSearchFn } from "~/components/keys-table/keys-columns";
 import { KeysPagination } from "~/components/keys-table/keys-pagination";
 import { KeysToolbar, type StatusFilter } from "~/components/keys-table/keys-toolbar";
-import { RotateKeyDialog, type RotateResult } from "~/components/keys-table/rotate-key-dialog";
+import { type RerollFn, RotateKeyDialog } from "~/components/keys-table/rotate-key-dialog";
+import type { Key, RerollKeyResult } from "~/components/keys-table/schema/keys.schema";
 import { Button } from "~/components/ui/button";
 import {
   Empty,
@@ -36,7 +37,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import type { Key } from "~/routes/dave-initial-design/-seed";
 
 const PAGE_SIZE = 25;
 
@@ -45,7 +45,8 @@ function parseStatusFilter(value: unknown): StatusFilter {
 }
 
 type Props = {
-  appName: string;
+  /** Customer app name shown in the header. Falls back to a generic title. */
+  appName?: string;
 
   keys: Key[];
 
@@ -58,10 +59,14 @@ type Props = {
   pageIndex: number;
   onPageChange: (index: number) => void;
 
+  // Every mutating action is optional. The portal enables only reroll; the
+  // design prototype passes all of them. A column action / dialog appears only
+  // when its callback is provided, so the same table serves both surfaces.
   onDelete?: (id: string) => void;
   onEdit?: (id: string, values: EditKeyValues) => void;
-  onRotate?: (id: string, result: RotateResult) => void;
-  onCreate: (key: Key) => void;
+  onReroll?: RerollFn;
+  onRerolled?: (result: RerollKeyResult) => void;
+  onCreate?: (key: Key) => void;
   freshKeyId?: string | null;
 };
 
@@ -78,7 +83,8 @@ export function KeysTable({
   onPageChange,
   onDelete,
   onEdit,
-  onRotate,
+  onReroll,
+  onRerolled,
   onCreate,
   freshKeyId,
 }: Props) {
@@ -99,11 +105,11 @@ export function KeysTable({
       }
     };
     return createKeysColumns({
-      onDelete: (id) => openWithKey(id, setPendingDeleteKey),
-      onEdit: (id) => openWithKey(id, setPendingEditKey),
-      onRotate: (id) => openWithKey(id, setPendingRotateKey),
+      onDelete: onDelete ? (id) => openWithKey(id, setPendingDeleteKey) : undefined,
+      onEdit: onEdit ? (id) => openWithKey(id, setPendingEditKey) : undefined,
+      onRotate: onReroll ? (id) => openWithKey(id, setPendingRotateKey) : undefined,
     });
-  }, [keys]);
+  }, [keys, onDelete, onEdit, onReroll]);
 
   const handleConfirmDelete = () => {
     if (!pendingDeleteKey) {
@@ -177,18 +183,24 @@ export function KeysTable({
     <section className="flex flex-col gap-3">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-semibold text-gray-12 text-xl">{appName} API</h1>
+          <h1 className="font-semibold text-gray-12 text-xl">
+            {appName ? `${appName} API` : "API keys"}
+          </h1>
           <p className="text-gray-11 text-sm">
-            Manage the API keys you use to authenticate with {appName}.
+            Manage the API keys you use to authenticate{appName ? ` with ${appName}` : ""}.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="self-start sm:self-auto">
-          <Plus />
-          Create key
-        </Button>
+        {onCreate && (
+          <Button onClick={() => setCreateOpen(true)} className="self-start sm:self-auto">
+            <Plus />
+            Create key
+          </Button>
+        )}
       </header>
 
-      <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={onCreate} />
+      {onCreate && (
+        <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={onCreate} />
+      )}
 
       {!showNoKeys && (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -212,12 +224,18 @@ export function KeysTable({
         {showNoKeys ? (
           <KeysEmptyState
             title="No API keys yet"
-            description="Create your first key to start making authenticated requests."
+            description={
+              onCreate
+                ? "Create your first key to start making authenticated requests."
+                : "You don't have any API keys yet."
+            }
             action={
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus />
-                Create key
-              </Button>
+              onCreate ? (
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus />
+                  Create key
+                </Button>
+              ) : undefined
             }
           />
         ) : showNoMatches ? (
@@ -263,43 +281,47 @@ export function KeysTable({
         )}
       </div>
 
-      <DeleteKeyDialog
-        open={pendingDeleteKey !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingDeleteKey(null);
-          }
-        }}
-        onConfirm={handleConfirmDelete}
-      />
+      {onDelete && (
+        <DeleteKeyDialog
+          open={pendingDeleteKey !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingDeleteKey(null);
+            }
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
 
-      <EditKeyDialog
-        open={pendingEditKey !== null}
-        onOpenChange={(open) => {
-          if (!open) {
+      {onEdit && (
+        <EditKeyDialog
+          open={pendingEditKey !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingEditKey(null);
+            }
+          }}
+          keyToEdit={pendingEditKey}
+          onSave={(id, values) => {
+            onEdit(id, values);
             setPendingEditKey(null);
-          }
-        }}
-        keyToEdit={pendingEditKey}
-        onSave={(id, values) => {
-          onEdit?.(id, values);
-          setPendingEditKey(null);
-        }}
-      />
+          }}
+        />
+      )}
 
-      <RotateKeyDialog
-        open={pendingRotateKey !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingRotateKey(null);
-          }
-        }}
-        keyToRotate={pendingRotateKey}
-        onRotate={(id, result) => {
-          onRotate?.(id, result);
-          setPendingRotateKey(null);
-        }}
-      />
+      {onReroll && (
+        <RotateKeyDialog
+          open={pendingRotateKey !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingRotateKey(null);
+            }
+          }}
+          keyToRotate={pendingRotateKey}
+          onReroll={onReroll}
+          onRerolled={onRerolled}
+        />
+      )}
     </section>
   );
 }
@@ -311,7 +333,7 @@ function KeysEmptyState({
 }: {
   title: string;
   description: string;
-  action: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <Empty>
@@ -322,7 +344,7 @@ function KeysEmptyState({
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>{action}</EmptyContent>
+      {action && <EmptyContent>{action}</EmptyContent>}
     </Empty>
   );
 }

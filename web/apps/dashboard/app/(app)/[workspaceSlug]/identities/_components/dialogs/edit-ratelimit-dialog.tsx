@@ -2,32 +2,32 @@
 
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { useEditIdentityRatelimits } from "@/hooks/use-edit-ratelimits";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { useUpdateIdentityMutation } from "@/lib/identities-query";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer } from "@unkey/ui";
+import type { Identity } from "@unkey/api/models/components";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
 import { IdentityInfo } from "./identity-info";
-
-type Identity = IdentityForActions;
 
 type EditRatelimitDialogProps = { identity: Identity } & ActionComponentProps;
 
 const EDIT_RATELIMITS_FORM_STORAGE_KEY = "unkey_edit_identity_ratelimits_form_state";
 
 const getIdentityRatelimitsDefaults = (identity: Identity) => {
-  const hasRatelimits = identity.ratelimits && identity.ratelimits.length > 0;
+  const ratelimits = identity.ratelimits ?? [];
+  const hasRatelimits = ratelimits.length > 0;
 
   return {
     ratelimit: hasRatelimits
       ? ({
           enabled: true as const,
-          data: identity.ratelimits.map((rl) => ({
+          data: ratelimits.map((rl) => ({
             id: rl.id,
             name: rl.name,
             limit: rl.limit,
@@ -45,6 +45,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
   onClose,
 }) => {
   const formId = useId();
+  const updateIdentity = useUpdateIdentityMutation();
 
   const methods = usePersistedForm<RatelimitFormValues>(
     `${EDIT_RATELIMITS_FORM_STORAGE_KEY}_${identity.id}`,
@@ -60,7 +61,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
 
   const {
     handleSubmit,
-    formState: { isSubmitting, isValid },
+    formState: { isDirty, isSubmitting, isValid },
     loadSavedValues,
     saveCurrentValues,
     clearPersistedData,
@@ -73,23 +74,27 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
     }
   }, [isOpen, loadSavedValues]);
 
-  const updateRatelimit = useEditIdentityRatelimits(() => {
-    reset(getIdentityRatelimitsDefaults(identity));
-    clearPersistedData();
-    onClose();
-  });
-
   const onSubmit = async (data: RatelimitFormValues) => {
     try {
-      await updateRatelimit.mutateAsync({
-        identityId: identity.id,
-        ratelimit: data.ratelimit,
+      const updatedIdentity = await updateIdentity.mutateAsync({
+        identity: identity.id,
+        ratelimits: data.ratelimit.enabled
+          ? data.ratelimit.data.map((rule) => ({
+              name: rule.name,
+              limit: rule.limit,
+              duration: rule.refillInterval,
+              autoApply: rule.autoApply,
+            }))
+          : [],
       });
+      reset(getIdentityRatelimitsDefaults(updatedIdentity));
+      clearPersistedData();
     } catch {
-      // `useEditIdentityRatelimits` already shows a toast, but we still
-      // need to prevent unhandled rejection noise in the console.
+      // The mutation state keeps the error visible in the dialog.
     }
   };
+
+  const showSuccess = updateIdentity.isSuccess && !isDirty;
 
   return (
     <FormProvider {...methods}>
@@ -97,8 +102,13 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
         <DialogContainer
           isOpen={isOpen}
           onOpenChange={(o) => {
-            if (!o) {
-              saveCurrentValues();
+            if (!o && !isSubmitting) {
+              if (showSuccess) {
+                clearPersistedData();
+              } else {
+                saveCurrentValues();
+              }
+              updateIdentity.reset();
               onClose();
             }
           }}
@@ -107,15 +117,32 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
           className="flex flex-col"
           contentClassName="flex flex-col flex-1 min-h-0"
           footer={
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <div className="w-full flex flex-col gap-3 items-center justify-center">
+              {updateIdentity.isError ? (
+                <Alert variant="alert">
+                  <AlertTitle>Couldn&apos;t Update Rate Limits</AlertTitle>
+                  <AlertDescription>
+                    {getErrorMessage(updateIdentity.error)} Review your rate limits and try again.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {showSuccess ? (
+                <output
+                  aria-live="polite"
+                  className="w-full rounded-lg border border-success-7 bg-successA-2 p-4 text-success-11"
+                >
+                  <span className="block font-medium leading-none">Rate Limits Updated</span>
+                  <span className="mt-1 block text-sm">Your changes are now active.</span>
+                </output>
+              ) : null}
               <Button
                 type="submit"
                 form={formId}
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!isValid || isSubmitting}
-                loading={updateRatelimit.isLoading}
+                disabled={!isValid || isSubmitting || showSuccess}
+                loading={isSubmitting}
               >
                 Update ratelimit
               </Button>

@@ -5,7 +5,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // StopDeployment is the public Restate entrypoint for putting a running
@@ -27,10 +29,6 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		return nil, fmt.Errorf("failed to load deployment: %w", err)
 	}
 
-	if deployment.Status != db.DeploymentsStatusReady {
-		return nil, restate.TerminalError(fmt.Errorf("deployment is not ready"), 400)
-	}
-
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for stop"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -40,12 +38,13 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		}
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
-	if environment.Slug == "production" {
-		return nil, restate.TerminalError(fmt.Errorf("production deployments cannot be stopped"), 400)
-	}
 
-	if deployment.DesiredState != db.DeploymentsDesiredStateRunning {
-		return nil, restate.TerminalError(fmt.Errorf("deployment is not running"), 400)
+	if err := deploygate.CheckStopTarget(deploygate.StopInput{
+		Status:          deployment.Status,
+		DesiredState:    deployment.DesiredState,
+		EnvironmentSlug: environment.Slug,
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).
