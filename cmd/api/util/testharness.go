@@ -56,6 +56,11 @@ func CaptureRequestWithResponse[T any](t *testing.T, cmd *cli.Command, args stri
 		t.Fatalf("failed to create pipe: %v", err)
 	}
 	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = origStdout
+		_ = w.Close()
+		_ = r.Close()
+	})
 
 	fullArgs := fmt.Sprintf("unkey %s --api-url=%s --root-key=test_key", args, srv.URL)
 	root := &cli.Command{

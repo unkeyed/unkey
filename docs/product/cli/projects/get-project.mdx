@@ -1,0 +1,26 @@
+---
+title: "get-project"
+description: "Retrieve a single project"
+---
+
+Retrieve a project by ID or slug. Use this to fetch details after creation, verify a project exists, or resolve its metadata.
+
+## Usage
+```bash
+unkey api projects get-project [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api projects get-project --project=payments-service
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/v2/projects/get-project).

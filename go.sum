@@ -678,8 +678,8 @@ github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab h1:H6aJ0yKQ0gF49Q
 github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab/go.mod h1:ulncasL3N9uLrVann0m+CDlJKWsIAP34MPcOJF6VRvc=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/unkeyed/sdks/api/go/v2 v2.6.1 h1:Sz4Rv4fhh7ByCTIcJ7orK+2ZOMyoXLsAV6t+q4B+Gck=
-github.com/unkeyed/sdks/api/go/v2 v2.6.1/go.mod h1:1eT/d35dAxF/Ncbg9jrDSuw9CHo/qKzGPppo0gABOU4=
+github.com/unkeyed/sdks/api/go/v2 v2.7.1 h1:qLsrVYZZC71VjSDOWkBIqQ6DPEasHu0L9gNemyc2TW0=
+github.com/unkeyed/sdks/api/go/v2 v2.7.1/go.mod h1:gt+BiRjnnAR6Q/4r6xhxeZ9KBp6r6O2egC8njM86IOw=
 github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
 github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vishvananda/netlink v1.3.1 h1:3AEMt62VKqz90r0tmNhog0r/PpWKmrEShJU0wJW6bV0=

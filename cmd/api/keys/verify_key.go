@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -39,20 +38,21 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 			"unkey api keys verify-key --key=sk_1234abcdef",
 			"unkey api keys verify-key --key=sk_1234abcdef --permissions='documents.read AND users.view'",
 			"unkey api keys verify-key --key=sk_1234abcdef --tags=endpoint=/users/profile,method=GET",
-			`unkey api keys verify-key --key=sk_1234abcdef --credits-json='{"cost":5}'`,
-			`unkey api keys verify-key --key=sk_1234abcdef --ratelimits-json='[{"name":"requests","limit":100,"duration":60000}]'`,
+			`unkey api keys verify-key --key=sk_1234abcdef --credits='{"cost":5}'`,
+			`unkey api keys verify-key --key=sk_1234abcdef --ratelimits='[{"name":"requests","limit":100,"duration":60000}]'`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key", "The API key to verify, including any prefix.", cli.Required()),
-			cli.StringSlice("tags", "Metadata tags for analytics in key=value format."),
-			cli.String("permissions", "Permission query to check, supports AND/OR operators."),
-			cli.String("credits-json", "JSON object for credit consumption configuration."),
-			cli.String("ratelimits-json", "JSON array of rate limit checks to enforce."),
-			cli.String("migration-id", "Migration provider ID for on-demand key migration."),
+			cli.String("key", "The API key to verify, including any prefix.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.StringSlice("tags", "Metadata tags for analytics in key=value format.", cli.MutuallyExclusive("body")),
+			cli.String("permissions", "Permission query to check, supports AND/OR operators.", cli.MutuallyExclusive("body")),
+			cli.String("credits", "JSON object for credit consumption configuration.", cli.MutuallyExclusive("body")),
+			cli.String("ratelimits", "JSON array of rate limit checks to enforce.", cli.MutuallyExclusive("body")),
+			cli.String("migration-id", "Migration provider ID for on-demand key migration.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -60,7 +60,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.VerifyKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+			}
+
+			send := func(req components.V2KeysVerifyKeyRequestBody) error {
+				res, err := client.Keys.VerifyKey(ctx, req)
+				if err != nil {
+					return fmt.Errorf("%s", util.FormatError(err))
+				}
+				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+			}
 			req := components.V2KeysVerifyKeyRequestBody{
 				Key:         cmd.String("key"),
 				Tags:        nil,
@@ -78,18 +93,18 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 				req.Permissions = &v
 			}
 
-			if v := cmd.String("credits-json"); v != "" {
+			if v := cmd.String("credits"); v != "" {
 				var credits components.KeysVerifyKeyCredits
 				if err := json.Unmarshal([]byte(v), &credits); err != nil {
-					return fmt.Errorf("invalid JSON for --credits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --credits: %w", err)
 				}
 				req.Credits = &credits
 			}
 
-			if v := cmd.String("ratelimits-json"); v != "" {
+			if v := cmd.String("ratelimits"); v != "" {
 				var ratelimits []components.KeysVerifyKeyRatelimit
 				if err := json.Unmarshal([]byte(v), &ratelimits); err != nil {
-					return fmt.Errorf("invalid JSON for --ratelimits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --ratelimits: %w", err)
 				}
 				req.Ratelimits = ratelimits
 			}
@@ -97,12 +112,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 			if v := cmd.String("migration-id"); v != "" {
 				req.MigrationID = &v
 			}
-
-			res, err := client.Keys.VerifyKey(ctx, req)
-			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
-			}
-			return util.Output(cmd, res.V2KeysVerifyKeyResponseBody, time.Since(start))
+			return send(req)
 		},
 	}
 }

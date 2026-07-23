@@ -47,6 +47,23 @@ func TestListPermissions(t *testing.T) {
 				Cursor: ptr.P("eyJrZXkiOiJwZXJtXzU2NzgifQ=="),
 			},
 		},
+		{
+			name: "with search",
+			args: "permissions list-permissions --search=documents",
+			want: openapi.V2PermissionsListPermissionsRequestBody{
+				Limit:  ptr.P(100),
+				Search: ptr.P("documents"),
+			},
+		},
+		{
+			name: "with all flags",
+			args: "permissions list-permissions --limit=25 --cursor=cursor_123 --search=documents",
+			want: openapi.V2PermissionsListPermissionsRequestBody{
+				Limit:  ptr.P(25),
+				Cursor: ptr.P("cursor_123"),
+				Search: ptr.P("documents"),
+			},
+		},
 	}
 
 	for _, tt := range tests {

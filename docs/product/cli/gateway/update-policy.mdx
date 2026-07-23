@@ -1,0 +1,34 @@
+---
+title: "update-policy"
+description: "Update one gateway policy in place"
+---
+
+Update one policy while preserving its ID, evaluation position, and all omitted fields. Supply the fields to update in a single policy JSON object. At least one update field is required, and at most one rule field may be supplied.
+
+## Usage
+```bash
+unkey api gateway update-policy [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>Application ID or slug.</ParamField>
+<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+<ParamField body="--policy-id" type="string" required>Current policy ID from `gateway.listPolicies`.</ParamField>
+<ParamField body="--policy" type="JSON string" required>
+Policy fields to update. Supported fields are `name`, `enabled`, `match`, `keyauth`, `ratelimit`, `firewall`, and `openapi`. Omitted fields remain unchanged. Set `match` to `null` or an empty array to clear all match expressions. Include at most one of `keyauth`, `ratelimit`, `firewall`, or `openapi`.
+</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format, use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api gateway update-policy --project=payments --app=payments-api \
+  --environment=production --policy-id=pol_123 \
+  --policy='{"enabled":false,"firewall":{"action":"ACTION_DENY"}}'
+```
+See the [API reference](/docs/api-reference/v2/gateway/update-policy).
