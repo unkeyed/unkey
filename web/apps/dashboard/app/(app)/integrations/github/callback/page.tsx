@@ -26,10 +26,9 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      // The install flow decides where the user lands.
       if (data.flow === "app" && data.projectId && data.appId) {
-        // App onboarding / app settings: return to the app's settings, or the
-        // repo picker when the wizard hasn't chosen one yet.
+        // Return to the app: its settings, or the repo picker when the wizard
+        // hasn't chosen a repo yet.
         router.replace(
           data.returnTo === "settings"
             ? routes.projects.apps.settings({
@@ -47,9 +46,7 @@ export default function Page() {
         return;
       }
 
-      // Workspace-wide installs land on the workspace settings, where the
-      // connection status shows: both the dashboard settings button ("workspace",
-      // returning to where it was clicked) and the CLI/API flow ("api").
+      // "workspace" and "api" flows both land on workspace settings.
       router.replace(routes.settings.general({ workspaceSlug: data.workspaceSlug }));
     },
   });

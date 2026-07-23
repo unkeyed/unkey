@@ -16,8 +16,6 @@ export function GithubConnection() {
   const { data, isLoading } = trpc.github.hasInstallations.useQuery();
   const prepareInstall = trpc.github.prepareWorkspaceInstall.useMutation();
 
-  // The install URL carries a server-signed state, so mint it lazily on click
-  // rather than in render (mirrors the app build-settings install flow).
   const onInstall = useCallback(async () => {
     try {
       const { state } = await prepareInstall.mutateAsync();
