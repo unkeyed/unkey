@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -19,17 +20,17 @@ func TestExtractUserFriendlyError(t *testing.T) {
 		{
 			name:     "unknown identifier with suggestion",
 			input:    `sendQuery: [HTTP 404] response body: "Code: 47. DB::Exception: Unknown expression identifier 'external_idd' in scope SELECT external_id, COUNT(*) AS total FROM default.key_verifications_raw_v2 WHERE (workspace_id = 'ws_4qD3194xe2x56qmv') AND (outcome = 'VALID') AND (time >= (now() - toIntervalDay(7))) GROUP BY external_idd LIMIT 10000000. Maybe you meant: ['external_id']. (UNKNOWN_IDENTIFIER) (version 25.6.4.12 (official build))\n"`,
-			expected: "Unknown expression identifier 'external_idd' in scope SELECT external_id, COUNT(*) AS total FROM default.key_verifications_raw_v2 WHERE (workspace_id = 'ws_4qD3194xe2x56qmv') AND (outcome = 'VALID') AND (time >= (now() - toIntervalDay(7))) GROUP BY external_idd LIMIT 10000000. Maybe you meant: ['external_id']",
+			expected: "Unknown identifier in analytics query",
 		},
 		{
 			name:     "syntax error",
 			input:    `sendQuery: [HTTP 400] response body: "Code: 62. DB::Exception: Syntax error: failed at position 10. (SYNTAX_ERROR) (version 25.6.4.12)\n"`,
-			expected: "Syntax error: failed at position 10",
+			expected: "Invalid SQL syntax",
 		},
 		{
 			name:     "unknown table",
 			input:    `Code: 60. DB::Exception: Table default.nonexistent doesn't exist. (UNKNOWN_TABLE) (version 25.6.4.12)`,
-			expected: "Table default.nonexistent doesn't exist",
+			expected: "Invalid analytics query",
 		},
 	}
 
@@ -88,5 +89,29 @@ func TestWrapClickHouseError_ResultLimits(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, tt.expected, code)
 		})
+	}
+}
+
+// TestWrapClickHouseError_HidesRewrittenQuery guarantees public errors do not
+// reveal physical tables or workspace predicates added during query rewriting.
+func TestWrapClickHouseError_HidesRewrittenQuery(t *testing.T) {
+	workspaceID := "ws_private_123"
+	err := errors.New("Unknown expression identifier `missing` in scope SELECT missing FROM default.key_verifications_raw_v2 WHERE key_verifications_raw_v2.workspace_id = '" + workspaceID + "'")
+
+	publicMessage := fault.UserFacingMessage(WrapClickHouseError(err))
+	require.NotContains(t, publicMessage, "default.key_verifications_raw_v2")
+	require.NotContains(t, publicMessage, workspaceID)
+	require.NotContains(t, publicMessage, "workspace_id")
+}
+
+// TestWrapClickHouseError_ContextCancellation guarantees API cancellation is
+// classified as an execution timeout rather than an invalid customer query.
+func TestWrapClickHouseError_ContextCancellation(t *testing.T) {
+	for _, contextErr := range []error{context.Canceled, context.DeadlineExceeded} {
+		err := WrapClickHouseError(contextErr)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.User.UnprocessableEntity.QueryExecutionTimeout.URN(), code)
+		require.ErrorIs(t, err, contextErr)
 	}
 }

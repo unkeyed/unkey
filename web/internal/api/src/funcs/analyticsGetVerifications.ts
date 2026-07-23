@@ -31,6 +31,7 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * Execute custom SQL queries against your key verification analytics.
+ * Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every API in that workspace; API-scoped permissions automatically restrict results to the permitted APIs.
  * For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
@@ -45,7 +46,6 @@ export function analyticsGetVerifications(
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
-    | errors.NotFoundErrorResponse
     | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -78,7 +78,6 @@ async function $do(
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
-      | errors.NotFoundErrorResponse
       | errors.UnprocessableEntityErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -181,7 +180,6 @@ async function $do(
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
-    | errors.NotFoundErrorResponse
     | errors.UnprocessableEntityErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -202,7 +200,6 @@ async function $do(
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
-    M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(422, errors.UnprocessableEntityErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
