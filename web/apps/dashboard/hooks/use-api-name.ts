@@ -13,8 +13,14 @@ export function useApiName(apiId: string): { name: string | undefined; isLoading
     queryKey: ["dashboard-api-proxy", "apis.getApi", apiId],
     enabled: Boolean(apiId),
     queryFn: async () => {
-      const response = await getUnkeyClient().apis.getApi({ apiId });
-      return response.data;
+      // The proxy lookup is best-effort — unknown/prototype ids fall back to
+      // the workspace-scoped name below instead of surfacing an error.
+      try {
+        const response = await getUnkeyClient().apis.getApi({ apiId });
+        return response.data;
+      } catch {
+        return null;
+      }
     },
   });
 

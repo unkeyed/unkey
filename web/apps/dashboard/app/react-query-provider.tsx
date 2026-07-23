@@ -1,6 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { prototypeHandlers } from "@/lib/trpc/prototype-handlers";
+import { createPrototypeLink } from "@/lib/trpc/prototype-link";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import type React from "react";
@@ -56,6 +58,9 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
     trpc.createClient({
       transformer: SuperJSON,
       links: [
+        // Vibe-branch prototype: serves keyspace/keys/ratelimit data from the
+        // localStorage store so previews need no backend seed.
+        createPrototypeLink(prototypeHandlers),
         splitLink({
           condition(op) {
             // check for context property `skipBatch`

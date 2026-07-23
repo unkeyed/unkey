@@ -1,10 +1,10 @@
-export type Scenario = "new" | "migrated" | "active" | "live";
-export type MockScenario = Exclude<Scenario, "live">;
+export type Scenario = "new" | "migrated" | "active";
 export type Timeframe = "24h" | "7d";
 
 export type KeyspaceStat = {
   id: string;
   name: string;
+  projectId: string;
   projectName: string;
   keyCount: number;
   requests: Record<Timeframe, number>;
@@ -15,6 +15,7 @@ export type KeyspaceStat = {
 export type RatelimitStat = {
   id: string;
   name: string;
+  projectId: string;
   projectName: string;
   checks: Record<Timeframe, number>;
   blockedPct: number;
@@ -57,6 +58,7 @@ const migrated: OverviewData = {
   keyspaces: [
     {
       id: "ks_1",
+      projectId: "p_1",
       name: "production",
       projectName: "acme-corp",
       keyCount: 1284,
@@ -69,6 +71,7 @@ const migrated: OverviewData = {
     },
     {
       id: "ks_2",
+      projectId: "p_1",
       name: "partner-api",
       projectName: "acme-corp",
       keyCount: 96,
@@ -81,6 +84,7 @@ const migrated: OverviewData = {
     },
     {
       id: "ks_3",
+      projectId: "p_1",
       name: "staging",
       projectName: "acme-corp",
       keyCount: 312,
@@ -95,6 +99,7 @@ const migrated: OverviewData = {
   ratelimits: [
     {
       id: "rl_1",
+      projectId: "p_1",
       name: "auth.login",
       projectName: "acme-corp",
       checks: { "24h": 128_000, "7d": 910_000 },
@@ -106,6 +111,7 @@ const migrated: OverviewData = {
     },
     {
       id: "rl_2",
+      projectId: "p_1",
       name: "sms.send",
       projectName: "acme-corp",
       checks: { "24h": 40_000, "7d": 300_000 },
@@ -155,6 +161,7 @@ const active: OverviewData = {
   keyspaces: [
     {
       id: "ks_a1",
+      projectId: "p_a1",
       name: "production",
       projectName: "acme-corp",
       keyCount: 2140,
@@ -167,6 +174,7 @@ const active: OverviewData = {
     },
     {
       id: "ks_a2",
+      projectId: "p_a2",
       name: "checkout-keys",
       projectName: "checkout-service",
       keyCount: 220,
@@ -179,6 +187,7 @@ const active: OverviewData = {
     },
     {
       id: "ks_a3",
+      projectId: "p_a1",
       name: "partner-api",
       projectName: "acme-corp",
       keyCount: 96,
@@ -193,6 +202,7 @@ const active: OverviewData = {
   ratelimits: [
     {
       id: "rl_a1",
+      projectId: "p_a1",
       name: "auth.login",
       projectName: "acme-corp",
       checks: { "24h": 128_000, "7d": 910_000 },
@@ -204,6 +214,7 @@ const active: OverviewData = {
     },
     {
       id: "rl_a2",
+      projectId: "p_a2",
       name: "checkout.rate",
       projectName: "checkout-service",
       checks: { "24h": 64_000, "7d": 452_000 },
@@ -242,11 +253,10 @@ const empty: OverviewData = {
   },
 };
 
-export const MOCK: Record<MockScenario, OverviewData> = { new: empty, migrated, active };
+export const MOCK: Record<Scenario, OverviewData> = { new: empty, migrated, active };
 
 export const SCENARIO_LABELS: Record<Scenario, string> = {
   new: "New",
   migrated: "Migrated",
   active: "Active",
-  live: "Live",
 };

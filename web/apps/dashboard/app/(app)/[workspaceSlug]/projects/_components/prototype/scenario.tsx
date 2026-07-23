@@ -5,8 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStyle } from "./agent-setup";
 import type { Mark } from "./marks";
 import { type Scenario, SCENARIO_LABELS } from "./mock-data";
+import { SCENARIO_STORAGE_KEY } from "./store";
 
-const SCENARIOS: Scenario[] = ["new", "migrated", "active", "live"];
+const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
 export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid";
 
@@ -44,14 +45,34 @@ function readParam(key: string): string | null {
   }
 }
 
+const CONFIG_EVENT = "prototype:config";
+
 function writeParam(key: string, value: string) {
   try {
     const url = new URL(window.location.href);
     url.searchParams.set(key, value);
     window.history.replaceState(null, "", url.toString());
+    window.dispatchEvent(new Event(CONFIG_EVENT));
   } catch {
     // ignore
   }
+}
+
+// Current query string (including the prototype config params), so in-prototype
+// links can carry the chosen configuration across pages.
+export function useCurrentSearch(): string {
+  const [search, setSearch] = useState("");
+  useEffect(() => {
+    const read = () => setSearch(window.location.search);
+    read();
+    window.addEventListener(CONFIG_EVENT, read);
+    window.addEventListener("popstate", read);
+    return () => {
+      window.removeEventListener(CONFIG_EVENT, read);
+      window.removeEventListener("popstate", read);
+    };
+  }, []);
+  return search;
 }
 
 // Reads the param on mount (falling back to `initial`) and always writes the
@@ -106,6 +127,13 @@ function useUrlBool(key: string, initial: boolean) {
 
 export function useScenario() {
   const [scenario, setScenario] = useUrlEnum<Scenario>("scenario", SCENARIOS, "migrated");
+  useEffect(() => {
+    try {
+      localStorage.setItem(SCENARIO_STORAGE_KEY, scenario);
+    } catch {
+      // ignore
+    }
+  }, [scenario]);
   return { scenario, setScenario };
 }
 
@@ -143,6 +171,7 @@ export function DebugCommand({
   onAgentStyle,
   agentDismissed,
   onToggleAgent,
+  onReset,
 }: {
   scenario: Scenario;
   onScenario: (s: Scenario) => void;
@@ -154,6 +183,7 @@ export function DebugCommand({
   onAgentStyle: (a: AgentStyle) => void;
   agentDismissed: boolean;
   onToggleAgent: () => void;
+  onReset: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -214,6 +244,13 @@ export function DebugCommand({
       label: agentDismissed ? "Restore agent card" : "Dismiss agent card",
       active: false,
       run: onToggleAgent,
+    },
+    {
+      id: "reset",
+      group: "Data",
+      label: "Reset prototype data",
+      active: false,
+      run: onReset,
     },
   ];
 

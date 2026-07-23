@@ -1,8 +1,6 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
   PageBody,
   PageContainer,
@@ -12,8 +10,6 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { CreateProjectButton } from "../create-project-button";
-import { LiveRail } from "./live-rail";
-import { MOCK, type ProjectMock } from "./mock-data";
 import { ProjectGrid, ProjectsEmptyCard } from "./project-grid";
 import { Rail } from "./rail";
 import {
@@ -24,42 +20,26 @@ import {
   useRowVariant,
   useScenario,
 } from "./scenario";
+import { PrototypeProvider, usePrototypeWorlds } from "./store";
 
 export function ProjectsPrototype() {
+  return (
+    <PrototypeProvider>
+      <ProjectsPrototypeInner />
+    </PrototypeProvider>
+  );
+}
+
+function ProjectsPrototypeInner() {
   const workspace = useWorkspaceNavigation();
   const { scenario, setScenario } = useScenario();
   const { variant, setVariant } = useRowVariant();
   const { mark, setMark } = useMark();
   const { agentStyle, setAgentStyle } = useAgentStyle();
   const [agentDismissed, setAgentDismissed] = useAgentDismissed();
+  const { worlds, resetWorlds } = usePrototypeWorlds();
 
-  const projectsQuery = useLiveQuery((q) => q.from({ project: collection.projects }));
-  const mockData = scenario === "live" ? null : MOCK[scenario];
-
-  const liveProjects: ProjectMock[] = (projectsQuery.data ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    subtitle: p.appCount > 0 ? `${p.appCount} app${p.appCount === 1 ? "" : "s"}` : "No apps yet",
-    apps: (p.apps ?? []).map((a) => ({ id: a.id, source: a.source })),
-    appCount: p.appCount,
-  }));
-
-  const gridProjects = mockData ? mockData.projects : liveProjects;
-
-  const debugBar = (
-    <DebugCommand
-      scenario={scenario}
-      onScenario={setScenario}
-      variant={variant}
-      onVariant={setVariant}
-      mark={mark}
-      onMark={setMark}
-      agentStyle={agentStyle}
-      onAgentStyle={setAgentStyle}
-      agentDismissed={agentDismissed}
-      onToggleAgent={() => setAgentDismissed(!agentDismissed)}
-    />
-  );
+  const world = worlds[scenario];
 
   return (
     <PageContainer>
@@ -74,37 +54,38 @@ export function ProjectsPrototype() {
       <PageBody>
         <div className="flex flex-col-reverse lg:flex-row items-start gap-6">
           <div className="flex-1 min-w-0 w-full">
-            {gridProjects.length === 0 ? (
+            {world.projects.length === 0 ? (
               <ProjectsEmptyCard>
                 <CreateProjectButton workspaceSlug={workspace.slug} variant="outline" />
               </ProjectsEmptyCard>
             ) : (
-              <ProjectGrid projects={gridProjects} />
+              <ProjectGrid projects={world.projects} />
             )}
           </div>
-          {mockData ? (
-            <Rail
-              data={mockData}
-              variant={variant}
-              mark={mark}
-              agentStyle={agentStyle}
-              workspaceSlug={workspace.slug}
-              agentDismissed={agentDismissed}
-              onDismissAgent={() => setAgentDismissed(true)}
-            />
-          ) : (
-            <LiveRail
-              variant={variant}
-              mark={mark}
-              agentStyle={agentStyle}
-              workspaceSlug={workspace.slug}
-              agentDismissed={agentDismissed}
-              onDismissAgent={() => setAgentDismissed(true)}
-            />
-          )}
+          <Rail
+            data={world}
+            variant={variant}
+            mark={mark}
+            agentStyle={agentStyle}
+            workspaceSlug={workspace.slug}
+            agentDismissed={agentDismissed}
+            onDismissAgent={() => setAgentDismissed(true)}
+          />
         </div>
       </PageBody>
-      {debugBar}
+      <DebugCommand
+        scenario={scenario}
+        onScenario={setScenario}
+        variant={variant}
+        onVariant={setVariant}
+        mark={mark}
+        onMark={setMark}
+        agentStyle={agentStyle}
+        onAgentStyle={setAgentStyle}
+        agentDismissed={agentDismissed}
+        onToggleAgent={() => setAgentDismissed(!agentDismissed)}
+        onReset={resetWorlds}
+      />
     </PageContainer>
   );
 }

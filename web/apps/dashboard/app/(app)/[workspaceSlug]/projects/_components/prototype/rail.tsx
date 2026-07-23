@@ -55,7 +55,8 @@ export function Rail({
     errorRatio: (100 - ks.validPct) / 100,
     stroke: TEAL,
     kind: "keyspace",
-    href: STUB_HREF,
+    // The real API detail page, fed by the prototype tRPC interceptor.
+    href: routes.apis.detail({ workspaceSlug, apiId: ks.id }),
   }));
   const ratelimitItems: RowItem[] = data.ratelimits.map((rl) => ({
     id: rl.id,
@@ -67,7 +68,7 @@ export function Rail({
     errorRatio: rl.blockedPct / 100,
     stroke: INFO,
     kind: "ratelimit",
-    href: STUB_HREF,
+    href: routes.ratelimits.detail({ workspaceSlug, namespaceId: rl.id }),
   }));
 
   return (
