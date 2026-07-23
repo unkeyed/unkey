@@ -57,7 +57,7 @@ examples:
       deleteProtection: true
   connectRepo:
     summary: Connect a GitHub repository
-    description: Connect a repository and track a branch. Requires the Unkey GitHub App installed on the owner.
+    description: Connect a repository and track a branch. The workspace must have the Unkey GitHub App installed with access to the repository.
     value:
       project: payments
       app: app_1234abcd

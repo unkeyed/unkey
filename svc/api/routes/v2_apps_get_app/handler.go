@@ -85,21 +85,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// A missing connection is the common "no repo / Docker app" case, so absence
-	// is not an error; any other failure is.
-	repositoryFullName := ""
+	// is not an error; any other failure is. On not-found sqlc returns a
+	// zero-valued row, so RepositoryFullName is "" and GitResponse renders null.
 	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
-	if err != nil {
-		if !db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve app."),
-			)
-		}
-	} else {
-		repositoryFullName = conn.RepositoryFullName
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve app."),
+		)
 	}
+	repositoryFullName := conn.RepositoryFullName
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

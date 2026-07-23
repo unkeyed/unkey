@@ -36,7 +36,7 @@ examples:
       slug: payments-api
   connectRepo:
     summary: Create and connect a GitHub repository
-    description: Create an app already connected to a repository. Requires the Unkey GitHub App installed on the owner.
+    description: Create an app and connect it to a GitHub repository in one request. The workspace must have the Unkey GitHub App installed with access to the repository.
     value:
       project: payments
       name: Payments API

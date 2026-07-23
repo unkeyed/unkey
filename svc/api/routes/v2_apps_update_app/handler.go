@@ -99,8 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return openapi.App{}, err
 		}
 
-		// Connecting or disconnecting a repository is an additionally-gated
-		// capability, required whenever the `git` field is present (object or null).
+		// connect_repository gates every git change, disconnect included.
 		gitSpecified := req.Git.IsSpecified()
 		if gitSpecified {
 			err = principal.Authorize(rbac.Or(
@@ -156,9 +155,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			update.DeleteProtectionSpecified = 1
 		}
 
-		// gitState is the repository connection reflected back in the response:
-		// unspecified => the app's current connection, null => disconnected,
-		// object => the newly connected repository.
+		// gitState is the connection echoed in the response: current when git is
+		// unspecified, null on disconnect, the new repository on connect.
 		gitState, err := h.applyGitChange(ctx, tx, app, req.Git, &update)
 		if err != nil {
 			return openapi.App{}, err
