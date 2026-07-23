@@ -59,6 +59,17 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	err = workspaceConn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	require.NoError(t, err)
 	require.Equal(t, uint8(1), result)
+	err = workspaceConn.QueryRow(ctx, "SELECT 1 SETTINGS max_execution_time = 29").Scan(&result)
+	require.NoError(t, err)
+
+	for _, value := range []int64{0, clickhouse.AnalyticsExecutionTimeMax + 1} {
+		t.Run(fmt.Sprintf("max_execution_time/%d", value), func(t *testing.T) {
+			err := workspaceConn.QueryRow(ctx, fmt.Sprintf("SELECT 1 SETTINGS max_execution_time = %d", value)).Scan(&result)
+			var clickhouseErr *driver.Exception
+			require.ErrorAs(t, err, &clickhouseErr)
+			require.Equal(t, int32(452), clickhouseErr.Code)
+		})
+	}
 
 	protectedSettings := []struct {
 		name            string
@@ -66,7 +77,7 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 		readonly        uint8
 		errorCode       int32
 	}{
-		{name: "max_execution_time", configuredValue: 30, readonly: 0, errorCode: 452},
+		{name: "max_execution_time", configuredValue: clickhouse.AnalyticsExecutionTimeMax, readonly: 0, errorCode: 452},
 		{name: "max_memory_usage", configuredValue: 64 * 1024 * 1024, readonly: 1, errorCode: 164},
 		{name: "max_result_rows", configuredValue: 100, readonly: 1, errorCode: 164},
 	}
@@ -145,7 +156,7 @@ func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, workspaceClient.Close()) })
 
-		queryCtx, cancel := context.WithTimeout(ctx, time.Minute)
+		queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
 		defer cancel()
 		rows, err := workspaceClient.QueryToMaps(queryCtx, "SELECT count() AS total FROM default.key_verifications_raw_v2")
 		require.NoError(t, err, "a bounded API request must not conflict with the generated readonly profile")
