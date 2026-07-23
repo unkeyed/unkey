@@ -3,6 +3,7 @@ package clickhouse_test
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -58,12 +59,22 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	err = workspaceConn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	require.NoError(t, err)
 	require.Equal(t, uint8(1), result)
+	err = workspaceConn.QueryRow(ctx, "SELECT 1 SETTINGS max_execution_time = 29").Scan(&result)
+	require.NoError(t, err)
+
+	for _, value := range []int64{0, clickhouse.AnalyticsExecutionTimeMax + 1} {
+		t.Run(fmt.Sprintf("max_execution_time/%d", value), func(t *testing.T) {
+			err := workspaceConn.QueryRow(ctx, fmt.Sprintf("SELECT 1 SETTINGS max_execution_time = %d", value)).Scan(&result)
+			var clickhouseErr *driver.Exception
+			require.ErrorAs(t, err, &clickhouseErr)
+			require.Equal(t, int32(452), clickhouseErr.Code)
+		})
+	}
 
 	protectedSettings := []struct {
 		name            string
 		configuredValue int64
 	}{
-		{name: "max_execution_time", configuredValue: 30},
 		{name: "max_memory_usage", configuredValue: 64 * 1024 * 1024},
 		{name: "max_result_rows", configuredValue: 100},
 	}
@@ -87,4 +98,30 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 			})
 		}
 	}
+
+	t.Run("HTTP transport preserves context deadlines", func(t *testing.T) {
+		workspaceURL, err := url.Parse(clickhouseConfig.HTTPDSN)
+		require.NoError(t, err)
+		workspaceURL.User = url.UserPassword(workspaceID, password)
+
+		workspaceClient, err := clickhouse.New(clickhouse.Config{URL: workspaceURL.String()})
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, workspaceClient.Close()) })
+
+		// QueryToMaps must receive the real deadline. clickhouse-go adds five
+		// seconds, so the API's 10-second query timeout requests
+		// max_execution_time=15 and remains within the profile's hard cap.
+		queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
+		rows, err := workspaceClient.QueryToMaps(queryCtx, "SELECT 1")
+		cancel()
+		require.NoError(t, err, "the API query deadline must satisfy the readonly profile")
+		require.Len(t, rows, 1)
+
+		queryCtx, cancel = context.WithTimeout(ctx, 50*time.Millisecond)
+		startedAt := time.Now()
+		_, err = workspaceClient.QueryToMaps(queryCtx, "SELECT sleep(2)")
+		cancel()
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		require.Less(t, time.Since(startedAt), time.Second)
+	})
 }

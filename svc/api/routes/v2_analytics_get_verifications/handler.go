@@ -129,8 +129,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 
-	// Execute query using workspace connection
-	verifications, err := conn.QueryToMaps(ctx, parsedQuery)
+	// The API request has a one-minute deadline for authentication, parsing, the
+	// query, and response encoding. Bound only the ClickHouse phase more tightly:
+	// clickhouse-go adds five seconds when translating this deadline to
+	// max_execution_time, so the 10-second client timeout requests 15 seconds and
+	// remains below the profile's hard 30-second server cap.
+	queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
+	defer cancel()
+	verifications, err := conn.QueryToMaps(queryCtx, parsedQuery)
 	if err != nil {
 		return err
 	}
