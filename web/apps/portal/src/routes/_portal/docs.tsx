@@ -1,6 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_portal/docs")({
+  beforeLoad: () => {
+    // Docs is deferred to v2. The route is kept for reuse but blocked at the
+    // route layer: direct navigation must not render the page.
+    throw redirect({ to: "/keys" });
+  },
   component: DocsPage,
 });
 
