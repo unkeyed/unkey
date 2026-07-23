@@ -51,8 +51,7 @@ export type UnkeyAuditLog = {
       | "identity"
       | "auditLogBucket"
       | "environment"
-      | "deployment"
-      | "githubInstallation";
+      | "deployment";
 
     id: string;
     name?: string;

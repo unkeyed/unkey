@@ -503,13 +503,17 @@ export const githubRouter = t.router({
             {
               workspaceId: ctx.workspace.id,
               actor: { type: "user", id: ctx.user.id },
-              event: "githubInstallation.create",
+              event: "workspace.install_github",
               description: `Bound GitHub installation ${input.installationId}`,
               resources: [
                 {
-                  type: "githubInstallation",
-                  id: String(input.installationId),
-                  meta: { flow: parsedState.flow, appId: target?.appId },
+                  type: "workspace",
+                  id: ctx.workspace.id,
+                  meta: {
+                    flow: parsedState.flow,
+                    installationId: input.installationId,
+                    appId: target?.appId,
+                  },
                 },
               ],
               context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },

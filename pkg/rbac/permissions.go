@@ -237,10 +237,6 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
-
-	// ConnectGithubApp permits starting a GitHub connection for an app
-	// (minting the App install URL and binding a repository).
-	ConnectGithubApp ActionType = "connect_github"
 )
 
 // Predefined environment actions. These constants define operations that can

@@ -28,7 +28,7 @@ func TestInstallGithubAuthorization(t *testing.T) {
 		{name: "workspace install permission", permissions: []string{"workspace.*.install_github"}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "workspace.*.install_github"}, shouldPass: true},
 		{name: "wrong action", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "app-level connect_github", permissions: []string{"app.*.connect_github"}, shouldPass: false},
+		{name: "app-level permission", permissions: []string{"app.*.read_app"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
