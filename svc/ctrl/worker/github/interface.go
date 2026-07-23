@@ -87,9 +87,6 @@ type RepoInfo struct {
 	// DefaultBranch is the repository's default branch on GitHub, used as the
 	// tracked branch when the caller does not specify one.
 	DefaultBranch string
-
-	// Private reports whether the repository is private on GitHub.
-	Private bool
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

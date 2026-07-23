@@ -20,7 +20,7 @@ type recordingClient struct {
 
 func (c *recordingClient) GetInstallationRepo(_ int64, repo string) (*github.RepoInfo, error) {
 	c.gotRepo = repo
-	return &github.RepoInfo{ID: 1, FullName: "unkeyed/unkey", DefaultBranch: "main", Private: false}, nil
+	return &github.RepoInfo{ID: 1, FullName: "unkeyed/unkey", DefaultBranch: "main"}, nil
 }
 
 func TestResolveNormalizesRepository(t *testing.T) {
