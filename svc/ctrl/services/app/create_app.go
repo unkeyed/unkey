@@ -50,6 +50,16 @@ func (s *Service) CreateApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// Apps are docker-image apps unless a GitHub repo gets connected later,
+	// which flips source_type to github. When the caller supplies a docker
+	// source we also persist the default image so the first deployment can
+	// resolve it without an explicit image on the request.
+	dockerImage := strings.TrimSpace(req.Msg.GetDockerSource().GetImage())
+	if req.Msg.GetDockerSource() != nil && dockerImage == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("docker_source.image must not be empty"))
+	}
+
 	workspaceID := req.Msg.GetWorkspaceId()
 	projectID := req.Msg.GetProjectId()
 	appID := uid.New(uid.AppPrefix)
@@ -62,12 +72,25 @@ func (s *Service) CreateApp(
 			ProjectID:        projectID,
 			Name:             req.Msg.GetName(),
 			Slug:             req.Msg.GetSlug(),
+			SourceType:       db.AppsSourceTypeDockerImage,
 			DefaultBranch:    "main",
 			DeleteProtection: sql.NullBool{Valid: false},
 			CreatedAt:        now,
 			UpdatedAt:        sql.NullInt64{Valid: false},
 		}); txErr != nil {
 			return fmt.Errorf("insert app: %w", txErr)
+		}
+
+		if dockerImage != "" {
+			if txErr := db.NewQueries(tx).UpsertAppDockerSource(txCtx, db.UpsertAppDockerSourceParams{
+				WorkspaceID: workspaceID,
+				AppID:       appID,
+				Image:       dockerImage,
+				CreatedAt:   now,
+				UpdatedAt:   sql.NullInt64{Valid: false},
+			}); txErr != nil {
+				return fmt.Errorf("upsert app docker source: %w", txErr)
+			}
 		}
 
 		// Pick a default schedulable region to seed so a fresh environment is

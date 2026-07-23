@@ -45,6 +45,7 @@ export const createApp = workspaceProcedure
         projectId: input.projectId,
         name: input.name,
         slug: input.slug,
+        dockerSource: input.dockerImage ? { image: input.dockerImage } : undefined,
         actor: {
           id: ctx.user.id,
           type: ActorType.USER,

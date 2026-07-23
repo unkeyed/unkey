@@ -13,12 +13,28 @@ service AppService {
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {}
 }
 
+// DockerSource configures an app that deploys a prebuilt docker image
+// instead of building from a connected git repository.
+message DockerSource {
+  // Full image reference including tag or digest,
+  // e.g. "ghcr.io/acme/mcp-server:v1.2.3" or "nginx@sha256:...".
+  string image = 1;
+}
+
 message CreateAppRequest {
   string workspace_id = 1;
   string project_id = 2;
   string name = 3;
   string slug = 4;
   ActorInfo actor = 5;
+
+  // Optional source configuration. Apps are always created as docker-image
+  // apps; connecting a GitHub repo later flips them to git apps. When set,
+  // the given image is stored as the app's default image, so deployments
+  // created without an explicit image deploy this reference. When omitted,
+  // the app has no default image yet: deploy with an explicit image, set a
+  // default image, or connect a GitHub repo first.
+  DockerSource docker_source = 6;
 }
 
 message CreateAppResponse {

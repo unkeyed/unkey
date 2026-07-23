@@ -36,8 +36,15 @@ export const deployments = mysqlTable(
 
     // the docker image
     // null until the build is done
-    image: varchar("image", { length: 256 }),
+    image: varchar("image", { length: 512 }),
     buildId: varchar("build_id", { length: 128 }).unique(),
+
+    // How the deployment's artifact came to be: built from a git commit or a
+    // prebuilt docker image. Explicit rather than derived because historical
+    // image redeploys carried copied git metadata, so `git_commit_sha IS NULL`
+    // is not a reliable discriminator. Image deployments leave all git_*
+    // columns NULL.
+    source: mysqlEnum("source", ["git_build", "docker_image"]).notNull().default("docker_image"),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),

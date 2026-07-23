@@ -63,6 +63,12 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteAppDockerSourceByAppId(runCtx, appID)
+	}, restate.WithName("delete app docker source")); err != nil {
+		return nil, fmt.Errorf("delete app docker source: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteAppById(runCtx, appID)
 	}, restate.WithName("delete app")); err != nil {
 		return nil, fmt.Errorf("delete app: %w", err)

@@ -12,7 +12,30 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJ7ChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIhCgVhY3RvchgFIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSIdCgxEb2NrZXJTb3VyY2USDQoFaW1hZ2UYASABKAkiqQEKEENyZWF0ZUFwcFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRzbHVnGAQgASgJEiEKBWFjdG9yGAUgASgLMhIuY3RybC52MS5BY3RvckluZm8SLAoNZG9ja2VyX3NvdXJjZRgGIAEoCzIVLmN0cmwudjEuRG9ja2VyU291cmNlIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+
+/**
+ * DockerSource configures an app that deploys a prebuilt docker image
+ * instead of building from a connected git repository.
+ *
+ * @generated from message ctrl.v1.DockerSource
+ */
+export type DockerSource = Message<"ctrl.v1.DockerSource"> & {
+  /**
+   * Full image reference including tag or digest,
+   * e.g. "ghcr.io/acme/mcp-server:v1.2.3" or "nginx@sha256:...".
+   *
+   * @generated from field: string image = 1;
+   */
+  image: string;
+};
+
+/**
+ * Describes the message ctrl.v1.DockerSource.
+ * Use `create(DockerSourceSchema)` to create a new message.
+ */
+export const DockerSourceSchema: GenMessage<DockerSource> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_app, 0);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -42,6 +65,18 @@ export type CreateAppRequest = Message<"ctrl.v1.CreateAppRequest"> & {
    * @generated from field: ctrl.v1.ActorInfo actor = 5;
    */
   actor?: ActorInfo;
+
+  /**
+   * Optional source configuration. Apps are always created as docker-image
+   * apps; connecting a GitHub repo later flips them to git apps. When set,
+   * the given image is stored as the app's default image, so deployments
+   * created without an explicit image deploy this reference. When omitted,
+   * the app has no default image yet: deploy with an explicit image, set a
+   * default image, or connect a GitHub repo first.
+   *
+   * @generated from field: ctrl.v1.DockerSource docker_source = 6;
+   */
+  dockerSource?: DockerSource;
 };
 
 /**
@@ -49,7 +84,7 @@ export type CreateAppRequest = Message<"ctrl.v1.CreateAppRequest"> & {
  * Use `create(CreateAppRequestSchema)` to create a new message.
  */
 export const CreateAppRequestSchema: GenMessage<CreateAppRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 0);
+  messageDesc(file_ctrl_v1_app, 1);
 
 /**
  * @generated from message ctrl.v1.CreateAppResponse
@@ -66,7 +101,7 @@ export type CreateAppResponse = Message<"ctrl.v1.CreateAppResponse"> & {
  * Use `create(CreateAppResponseSchema)` to create a new message.
  */
 export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 1);
+  messageDesc(file_ctrl_v1_app, 2);
 
 /**
  * @generated from message ctrl.v1.DeleteAppRequest
@@ -88,7 +123,7 @@ export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
  * Use `create(DeleteAppRequestSchema)` to create a new message.
  */
 export const DeleteAppRequestSchema: GenMessage<DeleteAppRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 2);
+  messageDesc(file_ctrl_v1_app, 3);
 
 /**
  * @generated from message ctrl.v1.DeleteAppResponse
@@ -101,7 +136,7 @@ export type DeleteAppResponse = Message<"ctrl.v1.DeleteAppResponse"> & {
  * Use `create(DeleteAppResponseSchema)` to create a new message.
  */
 export const DeleteAppResponseSchema: GenMessage<DeleteAppResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 3);
+  messageDesc(file_ctrl_v1_app, 4);
 
 /**
  * @generated from service ctrl.v1.AppService

@@ -5,6 +5,7 @@ CREATE TABLE `apps` (
 	`project_id` varchar(64) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
+	`source_type` enum('github','docker_image') NOT NULL DEFAULT 'docker_image',
 	`default_branch` varchar(256) NOT NULL DEFAULT 'main',
 	`current_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,

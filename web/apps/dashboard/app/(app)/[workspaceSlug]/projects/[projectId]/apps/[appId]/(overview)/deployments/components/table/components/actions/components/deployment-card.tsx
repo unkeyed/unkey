@@ -23,16 +23,16 @@ export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) =
         </div>
         <div className="text-xs text-grayA-9 flex items-center gap-1.5">
           <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
-          <span>
-            {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
-          </span>
+          <span className="truncate">{deployment.gitCommitMessage || deployment.image}</span>
         </div>
       </div>
       <div className="flex gap-1.5">
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">
-          <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
-          <span className="truncate">{deployment.gitBranch}</span>
-        </div>
+        {deployment.gitBranch && (
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">
+            <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <span className="truncate">{deployment.gitBranch}</span>
+          </div>
+        )}
         {deployment.gitCommitSha && (
           <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11">
             <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />

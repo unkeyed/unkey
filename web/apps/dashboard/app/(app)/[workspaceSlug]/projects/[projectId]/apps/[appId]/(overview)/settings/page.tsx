@@ -1,6 +1,8 @@
 "use client";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { collection } from "@/lib/collections";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import {
   PageBody,
   PageContainer,
@@ -9,6 +11,7 @@ import {
   PageHeaderTitle,
   SettingsDangerZone,
 } from "@unkey/ui";
+import { useAppId, useProjectData } from "../data-provider";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
 import { DeploymentSettings } from "./deployment-settings";
@@ -17,7 +20,21 @@ import { useScrollToHash } from "./hooks/use-scroll-to-hash";
 
 export default function SettingsPage() {
   const { bypass } = usePreventLeave();
+  const appId = useAppId();
+  const { projectId } = useProjectData();
+  const { data: apps } = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  const app = apps.at(0);
   useScrollToHash();
+
+  if (!app) {
+    return null;
+  }
 
   return (
     <EnvironmentSettingsProvider>
@@ -28,9 +45,9 @@ export default function SettingsPage() {
           </PageHeaderContent>
         </PageHeader>
         <PageBody>
-          <DeploymentSettings onBeforeNavigate={bypass} />
+          <DeploymentSettings onBeforeNavigate={bypass} sourceType={app.sourceType} app={app} />
           <SettingsDangerZone>
-            <DisconnectGitHub />
+            {app.sourceType === "github" && <DisconnectGitHub />}
             <DeleteApp />
           </SettingsDangerZone>
         </PageBody>

@@ -61,10 +61,11 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 	})
 
 	req := connect.NewRequest(&ctrlv1.CreateAppRequest{
-		WorkspaceId: workspaceID,
-		ProjectId:   project.ID,
-		Name:        "Atomic App",
-		Slug:        slug,
+		WorkspaceId:  workspaceID,
+		ProjectId:    project.ID,
+		Name:         "Atomic App",
+		Slug:         slug,
+		DockerSource: &ctrlv1.DockerSource{Image: "ghcr.io/acme/atomic:1.0.0"},
 		Actor: &ctrlv1.ActorInfo{
 			Id:        "user_test",
 			Name:      "Test User",
@@ -105,6 +106,11 @@ func TestCreateAppRollsBackWhenAuditInsertFails(t *testing.T) {
 	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
 		SELECT COUNT(*)
 		FROM app_regional_settings
+		WHERE workspace_id = ?
+	`, workspaceID))
+	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
+		SELECT COUNT(*)
+		FROM app_docker_sources
 		WHERE workspace_id = ?
 	`, workspaceID))
 
@@ -215,6 +221,11 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
 		SELECT COUNT(*)
 		FROM app_regional_settings
+		WHERE app_id = ? AND workspace_id = ?
+	`, appID, s.workspaceID))
+	require.Equal(s.t, 1, countRows(s.t, ctx, tx, `
+		SELECT COUNT(*)
+		FROM app_docker_sources
 		WHERE app_id = ? AND workspace_id = ?
 	`, appID, s.workspaceID))
 

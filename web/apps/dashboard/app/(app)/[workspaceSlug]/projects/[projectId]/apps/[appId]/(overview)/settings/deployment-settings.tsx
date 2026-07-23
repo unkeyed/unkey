@@ -1,9 +1,11 @@
 "use client";
 
+import type { App } from "@/lib/collections/deploy/apps";
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
+import { DockerImage } from "./components/build-settings/docker-image-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
@@ -30,22 +32,34 @@ type DeploymentSettingsProps = {
   githubReadOnly?: boolean;
   sections?: Partial<Record<DeploymentSection, true>>;
   onBeforeNavigate?: () => void;
+  sourceType?: "docker_image" | "github";
+  app?: App;
 };
 
 export const DeploymentSettings = ({
   githubReadOnly = false,
   sections = { build: true, runtime: true, advanced: true, sentinel: true },
   onBeforeNavigate,
+  sourceType = "github",
+  app,
 }: DeploymentSettingsProps) => {
   return (
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
-        <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        <RootDirectory />
-        <Dockerfile />
-        <BuildCommand />
-        <WatchPaths />
-        <AutoDeploy />
+        {sourceType === "docker_image" ? (
+          app ? (
+            <DockerImage app={app} />
+          ) : null
+        ) : (
+          <>
+            <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+            <RootDirectory />
+            <Dockerfile />
+            <BuildCommand />
+            <WatchPaths />
+            <AutoDeploy />
+          </>
+        )}
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}

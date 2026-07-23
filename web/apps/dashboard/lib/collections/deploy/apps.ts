@@ -9,6 +9,8 @@ const schema = z.object({
   projectId: z.string(),
   name: z.string(),
   slug: z.string(),
+  sourceType: z.enum(["github", "docker_image"]),
+  defaultDockerImage: z.string().nullable(),
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -28,6 +30,7 @@ const schema = z.object({
 
 export const createAppRequestSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
+  dockerImage: z.string().trim().min(1).max(512).optional(),
   name: z.string().trim().min(1, "App name is required").max(256, "App name too long"),
   slug: z
     .string()
@@ -126,6 +129,7 @@ export const apps = createCollection<App, string>(
         projectId: changes.projectId,
         name: changes.name,
         slug: changes.slug,
+        dockerImage: changes.defaultDockerImage ?? undefined,
       });
       const mutation = trpcClient.deploy.app.create.mutate(createInput);
 

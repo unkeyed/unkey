@@ -21,20 +21,75 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// DockerSource configures an app that deploys a prebuilt docker image
+// instead of building from a connected git repository.
+type DockerSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Full image reference including tag or digest,
+	// e.g. "ghcr.io/acme/mcp-server:v1.2.3" or "nginx@sha256:...".
+	Image         string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DockerSource) Reset() {
+	*x = DockerSource{}
+	mi := &file_ctrl_v1_app_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DockerSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DockerSource) ProtoMessage() {}
+
+func (x *DockerSource) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_app_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DockerSource.ProtoReflect.Descriptor instead.
+func (*DockerSource) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DockerSource) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
 type CreateAppRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Slug          string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
-	Actor         *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId   string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Name        string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Slug        string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Actor       *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
+	// Optional source configuration. Apps are always created as docker-image
+	// apps; connecting a GitHub repo later flips them to git apps. When set,
+	// the given image is stored as the app's default image, so deployments
+	// created without an explicit image deploy this reference. When omitted,
+	// the app has no default image yet: deploy with an explicit image, set a
+	// default image, or connect a GitHub repo first.
+	DockerSource  *DockerSource `protobuf:"bytes,6,opt,name=docker_source,json=dockerSource,proto3" json:"docker_source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateAppRequest) Reset() {
 	*x = CreateAppRequest{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[0]
+	mi := &file_ctrl_v1_app_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +101,7 @@ func (x *CreateAppRequest) String() string {
 func (*CreateAppRequest) ProtoMessage() {}
 
 func (x *CreateAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[0]
+	mi := &file_ctrl_v1_app_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +114,7 @@ func (x *CreateAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAppRequest.ProtoReflect.Descriptor instead.
 func (*CreateAppRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{0}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateAppRequest) GetWorkspaceId() string {
@@ -97,6 +152,13 @@ func (x *CreateAppRequest) GetActor() *ActorInfo {
 	return nil
 }
 
+func (x *CreateAppRequest) GetDockerSource() *DockerSource {
+	if x != nil {
+		return x.DockerSource
+	}
+	return nil
+}
+
 type CreateAppResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -106,7 +168,7 @@ type CreateAppResponse struct {
 
 func (x *CreateAppResponse) Reset() {
 	*x = CreateAppResponse{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[1]
+	mi := &file_ctrl_v1_app_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -118,7 +180,7 @@ func (x *CreateAppResponse) String() string {
 func (*CreateAppResponse) ProtoMessage() {}
 
 func (x *CreateAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[1]
+	mi := &file_ctrl_v1_app_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -131,7 +193,7 @@ func (x *CreateAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAppResponse.ProtoReflect.Descriptor instead.
 func (*CreateAppResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateAppResponse) GetId() string {
@@ -151,7 +213,7 @@ type DeleteAppRequest struct {
 
 func (x *DeleteAppRequest) Reset() {
 	*x = DeleteAppRequest{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	mi := &file_ctrl_v1_app_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +225,7 @@ func (x *DeleteAppRequest) String() string {
 func (*DeleteAppRequest) ProtoMessage() {}
 
 func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[2]
+	mi := &file_ctrl_v1_app_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +238,7 @@ func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAppRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeleteAppRequest) GetAppId() string {
@@ -201,7 +263,7 @@ type DeleteAppResponse struct {
 
 func (x *DeleteAppResponse) Reset() {
 	*x = DeleteAppResponse{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +275,7 @@ func (x *DeleteAppResponse) String() string {
 func (*DeleteAppResponse) ProtoMessage() {}
 
 func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[3]
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,21 +288,24 @@ func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAppResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{4}
 }
 
 var File_ctrl_v1_app_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xa6\x01\n" +
+	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"$\n" +
+	"\fDockerSource\x12\x14\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"\xe2\x01\n" +
 	"\x10CreateAppRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
 	"\x04slug\x18\x04 \x01(\tR\x04slug\x12(\n" +
-	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"#\n" +
+	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12:\n" +
+	"\rdocker_source\x18\x06 \x01(\v2\x15.ctrl.v1.DockerSourceR\fdockerSource\"#\n" +
 	"\x11CreateAppResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
@@ -265,26 +330,28 @@ func file_ctrl_v1_app_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_app_proto_rawDescData
 }
 
-var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ctrl_v1_app_proto_goTypes = []any{
-	(*CreateAppRequest)(nil),  // 0: ctrl.v1.CreateAppRequest
-	(*CreateAppResponse)(nil), // 1: ctrl.v1.CreateAppResponse
-	(*DeleteAppRequest)(nil),  // 2: ctrl.v1.DeleteAppRequest
-	(*DeleteAppResponse)(nil), // 3: ctrl.v1.DeleteAppResponse
-	(*ActorInfo)(nil),         // 4: ctrl.v1.ActorInfo
+	(*DockerSource)(nil),      // 0: ctrl.v1.DockerSource
+	(*CreateAppRequest)(nil),  // 1: ctrl.v1.CreateAppRequest
+	(*CreateAppResponse)(nil), // 2: ctrl.v1.CreateAppResponse
+	(*DeleteAppRequest)(nil),  // 3: ctrl.v1.DeleteAppRequest
+	(*DeleteAppResponse)(nil), // 4: ctrl.v1.DeleteAppResponse
+	(*ActorInfo)(nil),         // 5: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
-	4, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	4, // 1: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 2: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
-	2, // 3: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
-	1, // 4: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
-	3, // 5: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	5, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 1: ctrl.v1.CreateAppRequest.docker_source:type_name -> ctrl.v1.DockerSource
+	5, // 2: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	1, // 3: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
+	3, // 4: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
+	2, // 5: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
+	4, // 6: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_app_proto_init() }
@@ -299,7 +366,7 @@ func file_ctrl_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_app_proto_rawDesc), len(file_ctrl_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

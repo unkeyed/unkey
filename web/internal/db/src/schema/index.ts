@@ -15,6 +15,7 @@ export * from "./shared_secrets";
 // Deployment platform tables
 export * from "./projects";
 export * from "./apps";
+export * from "./app_docker_sources";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
 export * from "./app_regional_settings";

@@ -9,7 +9,6 @@ import { useState } from "react";
 import { OnboardingStepContainer } from "./onboarding-step-container";
 import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
-import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateAppStep } from "./steps/create-app";
 import { DeploymentLiveStep } from "./steps/deployment-live";
 import { EnvVarsStep } from "./steps/env-vars";
@@ -17,7 +16,6 @@ import { SelectRepo } from "./steps/select-repo";
 
 export default function AppSetupPage() {
   const { data: context } = trpc.deploy.project.creationContext.useQuery();
-  const hasGithubInstallation = context?.hasGithubInstallation === true;
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
@@ -35,6 +33,9 @@ export default function AppSetupPage() {
 
   const [appId, setAppId] = useState<string | null>(initialAppId ?? null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
+  const [sourceType, setSourceType] = useState<"docker_image" | "github">(
+    initialStep === "select-repo" ? "github" : "docker_image",
+  );
 
   const { bypass } = usePreventLeave(!deploymentId);
 
@@ -47,20 +48,14 @@ export default function AppSetupPage() {
     <StepWizard.Root defaultStepId={initialStep}>
       <StepWizard.Step id="create-app" label="Create app">
         <OnboardingStepContainer>
-          {deployYourAppHeader}
-          <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
+          <DeployYourAppHeader />
+          <CreateAppStep
+            projectId={projectId}
+            onAppCreated={setAppId}
+            onSourceTypeChange={setSourceType}
+          />
         </OnboardingStepContainer>
       </StepWizard.Step>
-      {!hasGithubInstallation && (
-        <StepWizard.Step id="connect-github" label="Connect GitHub">
-          {appId ? (
-            <OnboardingStepContainer>
-              {deployYourAppHeader}
-              <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
-            </OnboardingStepContainer>
-          ) : null}
-        </StepWizard.Step>
-      )}
       <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
         {appId ? (
           <OnboardingStepContainer>
@@ -92,7 +87,7 @@ export default function AppSetupPage() {
               subtitle="Review the defaults. Edit anything you'd like to adjust."
               allowBack
             />
-            <ConfigureDeploymentStep projectId={projectId} appId={appId} />
+            <ConfigureDeploymentStep projectId={projectId} appId={appId} sourceType={sourceType} />
           </OnboardingStepContainer>
         ) : null}
       </StepWizard.Step>
@@ -116,13 +111,13 @@ export default function AppSetupPage() {
   );
 }
 
-const deployYourAppHeader = (
+const DeployYourAppHeader = () => (
   <OnboardingStepHeader
     title="Deploy your app"
     showIconRow
     subtitle={
       <>
-        Connect a GitHub repo and get a live URL in minutes.
+        Deploy a Docker image or connect a GitHub repo.
         <br />
         Unkey handles builds, infra, scaling, and routing.
       </>

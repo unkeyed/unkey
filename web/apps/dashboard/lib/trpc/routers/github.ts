@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
@@ -786,13 +786,17 @@ export const githubRouter = t.router({
           });
         });
 
+      // Connecting a repo makes this a git app: deployments now build from
+      // the connected repository instead of a prebuilt image.
       const branchToStore = input.selectedBranch ?? verifiedRepo.default_branch;
-      if (branchToStore) {
-        await db
-          .update(schema.apps)
-          .set({ defaultBranch: branchToStore, updatedAt: Date.now() })
-          .where(eq(schema.apps.id, appId));
-      }
+      await db
+        .update(schema.apps)
+        .set({
+          sourceType: "github",
+          ...(branchToStore ? { defaultBranch: branchToStore } : {}),
+          updatedAt: Date.now(),
+        })
+        .where(eq(schema.apps.id, appId));
 
       return { success: true };
     }),
@@ -832,6 +836,36 @@ export const githubRouter = t.router({
             message: "Failed to disconnect GitHub repository",
           });
         });
+
+      // The app is a docker-image app again. Seed its default image from the
+      // live deployment so a redeploy keeps working without reconfiguration.
+      const currentDeploymentId = app.currentDeploymentId;
+      if (currentDeploymentId) {
+        const currentDeployment = await db.query.deployments.findFirst({
+          where: (table, { eq: eqFn }) => eqFn(table.id, currentDeploymentId),
+          columns: { image: true },
+        });
+        if (currentDeployment?.image) {
+          const now = Date.now();
+          await db
+            .insert(schema.appDockerSources)
+            .values({
+              workspaceId: ctx.workspace.id,
+              appId: input.appId,
+              image: currentDeployment.image,
+              createdAt: now,
+              updatedAt: null,
+            })
+            .onDuplicateKeyUpdate({
+              set: { image: currentDeployment.image, updatedAt: now },
+            });
+        }
+      }
+
+      await db
+        .update(schema.apps)
+        .set({ sourceType: "docker_image", updatedAt: Date.now() })
+        .where(eq(schema.apps.id, input.appId));
 
       return { success: true };
     }),
@@ -901,6 +935,25 @@ export const githubRouter = t.router({
         });
       }
 
+      // Removing the installation disconnects every app that built from it.
+      // Those apps fall back to docker-image deployments (the backend resolves
+      // the live deployment image when no default image is configured).
+      const affectedConnections = await db.query.githubRepoConnections
+        .findMany({
+          where: (table, { and: andFn, eq: eqFn }) =>
+            andFn(
+              eqFn(table.installationId, input.installationId),
+              eqFn(table.workspaceId, ctx.workspace.id),
+            ),
+          columns: { appId: true },
+        })
+        .catch(() => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load GitHub repository connections",
+          });
+        });
+
       await db
         .delete(schema.githubRepoConnections)
         .where(
@@ -915,6 +968,14 @@ export const githubRouter = t.router({
             message: "Failed to remove GitHub installation",
           });
         });
+
+      const affectedAppIds = affectedConnections.map((c) => c.appId);
+      if (affectedAppIds.length > 0) {
+        await db
+          .update(schema.apps)
+          .set({ sourceType: "docker_image", updatedAt: Date.now() })
+          .where(inArray(schema.apps.id, affectedAppIds));
+      }
 
       await db
         .delete(schema.githubAppInstallations)

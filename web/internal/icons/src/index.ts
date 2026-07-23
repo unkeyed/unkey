@@ -3,6 +3,7 @@ export * from "./props";
 export * from "./icons/adjust-contrast-3";
 export * from "./icons/arrow-dot-anti-clockwise";
 export * from "./icons/arrow-dotted-rotate-anticlockwise";
+export * from "./icons/arrow-left";
 export * from "./icons/arrow-opposite-direction-y";
 export * from "./icons/arrow-right";
 export * from "./icons/arrow-up-right";

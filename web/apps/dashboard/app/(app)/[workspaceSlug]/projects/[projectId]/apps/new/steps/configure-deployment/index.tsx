@@ -9,15 +9,20 @@ import { ConfigureDeploymentFallback } from "./fallback";
 type ConfigureDeploymentStepProps = {
   projectId: string;
   appId: string;
+  sourceType: "docker_image" | "github";
 };
 
-export const ConfigureDeploymentStep = ({ projectId, appId }: ConfigureDeploymentStepProps) => {
+export const ConfigureDeploymentStep = ({
+  projectId,
+  appId,
+  sourceType,
+}: ConfigureDeploymentStepProps) => {
   const [settingsReady, setSettingsReady] = useState(false);
 
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
       <OnboardingEnvironmentSettingsProvider onSettingsReady={() => setSettingsReady(true)}>
-        <ConfigureDeploymentContent />
+        <ConfigureDeploymentContent sourceType={sourceType} />
       </OnboardingEnvironmentSettingsProvider>
       <ConfigureDeploymentFallback settingsReady={settingsReady} />
     </ProjectDataProvider>

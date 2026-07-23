@@ -56,17 +56,11 @@ type commitFields struct {
 	ForkRepository  string
 }
 
-// dockerSourceInfo holds the Docker image and inherited git metadata from a
-// current deployment, used when redeploying a non-git project.
-type dockerSourceInfo struct {
-	commitFields
-	dockerImage string
-}
-
 // CreateDeployment creates a new deployment record and initiates an async Restate
 // workflow. When source is omitted, the handler auto-detects: git-connected
-// apps deploy HEAD of their default branch, non-git apps reuse the live
-// deployment's Docker image.
+// apps deploy HEAD of their default branch, docker-image apps deploy the
+// app's default image (falling back to the live deployment's image for apps
+// that predate default images).
 //
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
@@ -423,10 +417,31 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
 	}
 
+	// The app's source type is authoritative: a leftover repo connection on a
+	// docker-image app must not turn a redeploy into a git build.
+	isGitApp := c.app.SourceType == db.AppsSourceTypeGithub
+
+	// Persisted on the row so consumers never have to guess the source from
+	// which nullable columns happen to be set.
+	source := db.DeploymentsSourceDockerImage
+
 	switch {
 	case p.dockerImage != "":
-		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.
-		// Don't touch git metadata — the caller owns whatever they passed.
+		// Explicit docker image (CLI, REST API): skip rebuild, deploy as-is.
+		// The row's source is docker_image, so git columns stay NULL even on
+		// git apps and even when the caller reported a commit (`unkey deploy`
+		// does): we didn't build this artifact from git, and recording a
+		// commit we can't verify it was built from would lie.
+		commit = commitFields{
+			SHA:             "",
+			Branch:          "",
+			Message:         "",
+			AuthorHandle:    "",
+			AuthorAvatarURL: "",
+			Timestamp:       0,
+			ForkRepository:  "",
+		}
+
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
 			"app_id", c.app.ID,
@@ -443,14 +458,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			},
 		}
 
-	case explicitGit && !hasRepoConnection:
-		// Caller asked for a specific commit, but the app has no git
-		// connection. Refuse rather than silently redeploying the current
-		// image (a different artifact than what was requested).
+	case explicitGit && (!isGitApp || !hasRepoConnection):
+		// Caller asked for a specific commit, but the app either isn't a git
+		// app or has no git connection. Refuse rather than silently redeploying
+		// the current image (a different artifact than what was requested).
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no GitHub repo connection; cannot deploy requested git commit", c.app.ID))
+			fmt.Errorf("app %q is not connected to a GitHub repository; cannot deploy requested git commit", c.app.ID))
 
-	case hasRepoConnection:
+	case isGitApp && hasRepoConnection:
 		// Git-connected app: fill missing commit metadata synchronously so
 		// the deployment row is complete at insert time and buildImage can
 		// run without any GitHub calls.
@@ -474,6 +489,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			return "", connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("failed to resolve git commit metadata for the requested branch or commit"))
 		}
+		source = db.DeploymentsSourceGitBuild
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			KeyAuthId:    p.keyAuthID,
@@ -494,13 +510,16 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 
 	default:
-		// No docker image, no git commit, no repo connection: reuse current
-		// deployment's image.
-		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.app, deploymentID)
-		if dockerErr != nil {
-			return "", dockerErr
+		// Docker-image app (or a git app whose connection went missing) with
+		// no explicit source: deploy the app's default image, or reuse the
+		// live deployment's image for apps that predate default images. Git
+		// columns stay NULL — a prebuilt image has no commit, and copying
+		// metadata from a previous deployment would attribute this artifact
+		// to a commit it wasn't built from.
+		image, imageErr := s.resolveAppDockerImage(ctx, c.app, deploymentID)
+		if imageErr != nil {
+			return "", imageErr
 		}
-		commit = dockerInfo.commitFields
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -508,7 +527,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			Command:      command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
-					Image: dockerInfo.dockerImage,
+					Image: image,
 				},
 			},
 		}
@@ -530,6 +549,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		ProjectID:                     c.project.ID,
 		AppID:                         c.app.ID,
 		EnvironmentID:                 c.env.Environment.ID,
+		Source:                        source,
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
@@ -657,31 +677,46 @@ func defaultBranch(appDefault string) string {
 	return "main"
 }
 
-// buildDockerSource looks up the app's current deployment's Docker image and carries
-// over its git metadata for the new deployment record.
-func buildDockerSource(
+// resolveAppDockerImage returns the image a docker-image app should deploy
+// when the request didn't specify one: the app's configured default image,
+// falling back to the live deployment's image for apps that predate default
+// images. Deliberately returns only the image — a prebuilt image carries no
+// git provenance, so callers must not attach commit metadata to it.
+func (s *Service) resolveAppDockerImage(
 	ctx context.Context,
-	database db.Database,
 	app db.App,
 	deploymentID string,
-) (dockerSourceInfo, error) {
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
-		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
+) (string, error) {
+	dockerSource, err := s.db.FindAppDockerSourceByAppId(ctx, app.ID)
+	if err == nil && dockerSource.Image != "" {
+		logger.Info("deployment will use app default image",
+			"deployment_id", deploymentID,
+			"app_id", app.ID,
+			"image", dockerSource.Image)
+		return dockerSource.Image, nil
+	}
+	if err != nil && !db.IsNotFound(err) {
+		return "", connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup app docker source: %w", err))
 	}
 
-	currentDeployment, err := database.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
+	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("app %q has no default image, no current deployment, and no git connection; specify an image to deploy", app.ID))
+	}
+
+	currentDeployment, err := s.db.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
+			return "", connect.NewError(connect.CodeNotFound,
 				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
 		}
-		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
+		return "", connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
 	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
-		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
+		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
 				app.CurrentDeploymentID.String))
 	}
@@ -691,18 +726,7 @@ func buildDockerSource(
 		"current_deployment_id", app.CurrentDeploymentID.String,
 		"image", currentDeployment.Image.String)
 
-	return dockerSourceInfo{
-		dockerImage: currentDeployment.Image.String,
-		commitFields: commitFields{
-			SHA:             currentDeployment.GitCommitSha.String,
-			Branch:          currentDeployment.GitBranch.String,
-			Message:         currentDeployment.GitCommitMessage.String,
-			AuthorHandle:    currentDeployment.GitCommitAuthorHandle.String,
-			AuthorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
-			Timestamp:       currentDeployment.GitCommitTimestamp.Int64,
-			ForkRepository:  currentDeployment.ForkRepositoryFullName.String,
-		},
-	}, nil
+	return currentDeployment.Image.String, nil
 }
 
 // trimLength truncates s to at most maxBytes bytes while preserving valid

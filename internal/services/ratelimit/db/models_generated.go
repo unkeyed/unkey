@@ -267,6 +267,48 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type AppsSourceType string
+
+const (
+	AppsSourceTypeGithub      AppsSourceType = "github"
+	AppsSourceTypeDockerImage AppsSourceType = "docker_image"
+)
+
+func (e *AppsSourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppsSourceType(s)
+	case string:
+		*e = AppsSourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppsSourceType: %T", src)
+	}
+	return nil
+}
+
+type NullAppsSourceType struct {
+	AppsSourceType AppsSourceType
+	Valid          bool // Valid is true if AppsSourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppsSourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppsSourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppsSourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppsSourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppsSourceType), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -568,6 +610,48 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsShutdownSignal), nil
+}
+
+type DeploymentsSource string
+
+const (
+	DeploymentsSourceGitBuild    DeploymentsSource = "git_build"
+	DeploymentsSourceDockerImage DeploymentsSource = "docker_image"
+)
+
+func (e *DeploymentsSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsSource(s)
+	case string:
+		*e = DeploymentsSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsSource: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsSource struct {
+	DeploymentsSource DeploymentsSource
+	Valid             bool // Valid is true if DeploymentsSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsSource), nil
 }
 
 type DeploymentsStatus string
@@ -886,6 +970,7 @@ type App struct {
 	ProjectID           string         `db:"project_id"`
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
+	SourceType          AppsSourceType `db:"source_type"`
 	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
@@ -906,6 +991,15 @@ type AppBuildSetting struct {
 	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
+type AppDockerSource struct {
+	Pk          uint64        `db:"pk"`
+	WorkspaceID string        `db:"workspace_id"`
+	AppID       string        `db:"app_id"`
+	Image       string        `db:"image"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
 type AppEnvironmentVariable struct {
@@ -1047,6 +1141,7 @@ type Deployment struct {
 	AppID                         string                      `db:"app_id"`
 	Image                         sql.NullString              `db:"image"`
 	BuildID                       sql.NullString              `db:"build_id"`
+	Source                        DeploymentsSource           `db:"source"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
 	GitBranch                     sql.NullString              `db:"git_branch"`
 	GitCommitMessage              sql.NullString              `db:"git_commit_message"`
