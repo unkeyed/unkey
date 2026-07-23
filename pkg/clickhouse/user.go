@@ -171,6 +171,22 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 		}
 	}
 
+	// ClickHouse exposes metadata for every table a user can SELECT through
+	// system.tables and system.columns, even without explicit system-table
+	// grants. Empty row policies keep physical schema details behind the API's
+	// public table aliases.
+	metadataPolicyName := fmt.Sprintf("workspace_%s_metadata_rls", config.WorkspaceID)
+	for _, table := range []string{"system.tables", "system.columns"} {
+		createPolicySQL := fmt.Sprintf(
+			"CREATE ROW POLICY OR REPLACE %s ON %s AS RESTRICTIVE FOR SELECT USING 0 TO %s",
+			metadataPolicyName, table, config.Username,
+		)
+		err = c.Exec(ctx, createPolicySQL)
+		if err != nil {
+			return fmt.Errorf("failed to hide metadata from %s: %w", table, err)
+		}
+	}
+
 	// Create or replace quota
 	quotaName := fmt.Sprintf("workspace_%s_quota", config.WorkspaceID)
 	logger.Info("creating/updating quota", "name", quotaName)
@@ -246,5 +262,11 @@ func DefaultAllowedTables() []string {
 		"default.key_verifications_per_hour_v3",
 		"default.key_verifications_per_day_v3",
 		"default.key_verifications_per_month_v3",
+		// Rate limits
+		"default.ratelimits_raw_v2",
+		"default.ratelimits_per_minute_v2",
+		"default.ratelimits_per_hour_v2",
+		"default.ratelimits_per_day_v2",
+		"default.ratelimits_per_month_v2",
 	}
 }

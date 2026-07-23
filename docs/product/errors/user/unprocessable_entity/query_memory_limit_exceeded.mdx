@@ -46,12 +46,11 @@ WHERE time >= now() - INTERVAL 7 DAY
 ```sql Memory Efficient - Aggregates data
 SELECT
   toStartOfHour(time) as hour,
-  api_id,
-  COUNT(*) as total,
-  AVG(response_time) as avg_response
+  key_space_id,
+  COUNT(*) as total
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
-GROUP BY hour, api_id
+GROUP BY hour, key_space_id
 ```
 
 </CodeGroup>
@@ -63,16 +62,16 @@ Reduce the amount of data the query needs to process:
 <CodeGroup>
 
 ```sql Too Much Data
-SELECT api_id, key_id, outcome, time
+SELECT key_space_id, key_id, outcome, time
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
 ```
 
 ```sql Filtered Query
-SELECT api_id, key_id, outcome, time
+SELECT key_space_id, key_id, outcome, time
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 1 DAY
-  AND api_id = 'api_123'
+  AND key_space_id = 'ks_1234'
   AND outcome = 'VALID'
 ```
 
@@ -83,7 +82,7 @@ WHERE time >= now() - INTERVAL 1 DAY
 Add a `LIMIT` to cap the number of returned rows. If the response still exceeds 4 MiB, lower the limit or select fewer columns.
 
 ```sql
-SELECT api_id, key_id, outcome, time
+SELECT key_space_id, key_id, outcome, time
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 7 DAY
 ORDER BY time DESC
@@ -103,11 +102,11 @@ WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY key_id
 ```
 
-```sql Lower Memory - Hundreds of APIs
-SELECT api_id, COUNT(*) as total
+```sql Lower Memory - Verification outcomes
+SELECT outcome, COUNT(*) as total
 FROM key_verifications_v1
 WHERE time >= now() - INTERVAL 30 DAY
-GROUP BY api_id
+GROUP BY outcome
 ```
 
 </CodeGroup>

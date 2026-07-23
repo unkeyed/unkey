@@ -1,7 +1,9 @@
 package healthcheck
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,9 +66,18 @@ func TestHTTPHeartbeat_EmptyURL(t *testing.T) {
 }
 
 func TestNoop_Ping(t *testing.T) {
+	var logs bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() {
+		slog.SetDefault(previousLogger)
+	})
+
 	hb := NewNoop()
 	err := hb.Ping(context.Background())
 	require.NoError(t, err)
+	require.Contains(t, logs.String(), "level=WARN")
+	require.Contains(t, logs.String(), "heartbeat not sent (noop heartbeat)")
 }
 
 func TestImplementsHeartbeat(t *testing.T) {

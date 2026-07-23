@@ -24,6 +24,30 @@ func NewParser(config Config) *Parser {
 	}
 }
 
+// walkQueryIncludingExcept traverses the complete query tree, including the
+// right side of EXCEPT expressions omitted by the upstream Walk function.
+func walkQueryIncludingExcept(node clickhouse.Expr, visit clickhouse.WalkFunc) bool {
+	exceptBranches := make([]*clickhouse.SelectQuery, 0)
+	if !clickhouse.Walk(node, func(current clickhouse.Expr) bool {
+		if !visit(current) {
+			return false
+		}
+		if query, ok := current.(*clickhouse.SelectQuery); ok && query.Except != nil {
+			exceptBranches = append(exceptBranches, query.Except)
+		}
+		return true
+	}) {
+		return false
+	}
+
+	for _, branch := range exceptBranches {
+		if !walkQueryIncludingExcept(branch, visit) {
+			return false
+		}
+	}
+	return true
+}
+
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	if len(query) > queryBytesMax {
@@ -44,6 +68,12 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", fault.New("no statements found",
 			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
 			fault.Public("No SQL statements found"),
+		)
+	}
+	if len(stmts) != 1 {
+		return "", fault.New("multiple statements are not allowed",
+			fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+			fault.Public("Analytics queries must contain exactly one statement"),
 		)
 	}
 
@@ -67,13 +97,20 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 
 	// Build CTE registry FIRST so we know which table references are CTEs
 	p.buildCTERegistry()
+	if err := p.validateCTEAliases(); err != nil {
+		return "", err
+	}
 
-	// Inject security filters
-	p.injectSecurityFilters()
+	if err := p.validateSetOperands(); err != nil {
+		return "", err
+	}
+
 	if err := p.rewriteTables(); err != nil {
 		return "", err
 	}
 
+	// Qualify every injected predicate with its rewritten physical source.
+	p.injectSecurityFilters()
 	p.injectWorkspaceFilter()
 
 	p.enforceLimit()
@@ -92,37 +129,23 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 func (p *Parser) validateComplexity() error {
 	astNodesCount := 0
 	projectedColumnsCount := 0
-	expressionsPending := []clickhouse.Expr{p.stmt}
-	for len(expressionsPending) > 0 {
-		expressionsPendingIndexLast := len(expressionsPending) - 1
-		expression := expressionsPending[expressionsPendingIndexLast]
-		expressionsPending = expressionsPending[:expressionsPendingIndexLast]
-		var errLimit error
-		clickhouse.Walk(expression, func(node clickhouse.Expr) bool {
-			astNodesCount++
-			if astNodesCount > astNodesMax {
-				errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
+	var errLimit error
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		astNodesCount++
+		if astNodesCount > astNodesMax {
+			errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")
+			return false
+		}
+		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
+			projectedColumnsCount += len(selectQuery.SelectItems)
+			if projectedColumnsCount > projectedColumnsMax {
+				errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
 				return false
 			}
-			if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
-				projectedColumnsCount += len(selectQuery.SelectItems)
-				if projectedColumnsCount > projectedColumnsMax {
-					errLimit = newQueryLimitError("too many projected columns", "Analytics query projects too many columns")
-					return false
-				}
-				// AfterShip's walker omits EXCEPT, so count that branch explicitly.
-				if selectQuery.Except != nil {
-					expressionsPending = append(expressionsPending, selectQuery.Except)
-				}
-			}
-			return true
-		})
-		if errLimit != nil {
-			return errLimit
 		}
-	}
-
-	return nil
+		return true
+	})
+	return errLimit
 }
 
 func newQueryLimitError(messageInternal, messagePublic string) error {

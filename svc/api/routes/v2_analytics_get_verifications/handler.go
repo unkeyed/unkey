@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -11,14 +10,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -75,72 +72,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Get workspace-specific ClickHouse connection and settings first
-	conn, settings, err := h.AnalyticsConnectionManager.GetConnection(ctx, principal.WorkspaceID)
-	if err != nil {
-		return err
+	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})
+	hasWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
+	allowedAPIIDs := extractAllowedAPIIDs(principal.Permissions)
+	if !hasWildcard && len(allowedAPIIDs) == 0 {
+		return principal.Authorize(wildcard)
 	}
 
-	// Build a list of keySpaceIds that the root key has permissions for.
-	securityFilters, err := h.buildSecurityFilters(ctx, principal)
-	if err != nil {
-		return err
-	}
-
-	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:       principal.WorkspaceID,
-		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
-		SecurityFilters:   securityFilters,
-		TableAliases:      tableAliases,
-		AllowedTables:     allowedTables,
-		QueryRangeDaysMax: settings.Quotas.LogsRetentionDays,
-	})
-
-	parsedQuery, err := parser.Parse(ctx, req.Query)
-	if err != nil {
-		return err
-	}
-
-	// Now we build permission checks based on the key_space_id(s) one specified in the query itself
-	// If none are specified, we will just check if there is wildcard read_analytics permission set
-	permissionChecks := []rbac.PermissionQuery{
-		// Wildcard API analytics access
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.ReadAnalytics,
-		}),
-	}
-
-	keySpaceIds := parser.ExtractColumn("key_space_id")
-	if len(keySpaceIds) > 0 {
-		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIds)
-		if permErr != nil {
-			return permErr
+	securityFilters := make([]chquery.SecurityFilter, 0, 1)
+	if !hasWildcard {
+		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.WorkspaceID, allowedAPIIDs)
+		if fetchErr != nil {
+			return fetchErr
 		}
-		permissionChecks = append(permissionChecks, rbac.And(apiPermissions...))
+		allowedKeySpaceIDs := make([]string, 0, len(keySpaces))
+		for _, keySpace := range keySpaces {
+			allowedKeySpaceIDs = append(allowedKeySpaceIDs, keySpace.KeyAuthID)
+		}
+		securityFilters = append(securityFilters, chquery.SecurityFilter{Column: "key_space_id", AllowedValues: allowedKeySpaceIDs})
 	}
 
-	// Verify user has at least one of: api.*.read_analytics OR (api.<api_id1>.read_analytics AND api.<api_id2>.read_analytics)
-	err = principal.Authorize(rbac.Or(permissionChecks...))
+	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
+		Query:           req.Query,
+		WorkspaceID:     principal.WorkspaceID,
+		TableAliases:    tableAliases,
+		AllowedTables:   allowedTables,
+		SecurityFilters: securityFilters,
+	})
 	if err != nil {
 		return err
 	}
-
-	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
-
-	// The API request has a one-minute deadline for authentication, parsing, the
-	// query, and response encoding. Bound only the ClickHouse phase more tightly:
-	// clickhouse-go adds five seconds when translating this deadline to
-	// max_execution_time, so the 10-second client timeout requests 15 seconds and
-	// remains below the profile's hard 30-second server cap.
-	queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
-	defer cancel()
-	verifications, err := conn.QueryToMaps(queryCtx, parsedQuery)
-	if err != nil {
-		return err
-	}
-
 	responseBytes, err := json.Marshal(Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
@@ -160,36 +121,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.Send(http.StatusOK, responseBytes)
 }
 
-// buildSecurityFilters creates ClickHouse security filters based on user permissions.
-// Returns filters that restrict queries to only the key_space_ids the user has access to.
-func (h *Handler) buildSecurityFilters(ctx context.Context, principal *authprincipal.Principal) ([]chquery.SecurityFilter, error) {
-	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
-	if len(allowedAPIIds) == 0 {
-		return []chquery.SecurityFilter{}, nil
-	}
-
-	// Fetch key auths for the allowed API IDs
-	apis, err := h.fetchKeyAuthsByAPIIds(ctx, principal.WorkspaceID, allowedAPIIds)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract key space IDs from the fetched APIs
-	keySpaceIds := make([]string, 0, len(apis))
-	for _, api := range apis {
-		keySpaceIds = append(keySpaceIds, api.KeyAuthID)
-	}
-
-	return []chquery.SecurityFilter{
-		{
-			Column:        "key_space_id",
-			AllowedValues: keySpaceIds,
-		},
-	}, nil
-}
-
-// fetchKeyAuthsByAPIIds fetches key auth rows for the given API IDs using the cache.
-func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
+// fetchKeyAuthsByAPIIDs fetches key auth rows for the given API IDs using the cache.
+func (h *Handler) fetchKeyAuthsByAPIIDs(ctx context.Context, workspaceID string, apiIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByIdsRow, error) {
 	cacheKeys := array.Map(apiIDs, func(apiID string) cache.ScopedKey {
 		return cache.ScopedKey{
 			WorkspaceID: workspaceID,
@@ -224,79 +157,8 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 	return apis, err
 }
 
-// buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
-// Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
-	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check for missing key_space_ids and build permissions
-	apiPermissions := make([]rbac.PermissionQuery, 0, len(keySpaceHits))
-	for key, hit := range keySpaceHits {
-		if hit == cache.Null {
-			return nil, fault.New("key_space_id not found",
-				fault.Code(codes.Data.KeySpace.NotFound.URN()),
-				fault.Public(fmt.Sprintf("KeySpace '%s' was not found.", key.Key)),
-			)
-		}
-
-		apiPermissions = append(apiPermissions, rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   keySpaces[key].ApiID,
-			Action:       rbac.ReadAnalytics,
-		}))
-	}
-
-	return apiPermissions, nil
-}
-
-// fetchKeyAuthsByKeyAuthIds fetches key auth rows for the given key auth IDs using the cache.
-func (h *Handler) fetchKeyAuthsByKeyAuthIds(ctx context.Context, workspaceID string, keyAuthIDs []string) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, map[cache.ScopedKey]cache.CacheHit, error) {
-	cacheKeys := array.Map(keyAuthIDs, func(keyAuthID string) cache.ScopedKey {
-		return cache.ScopedKey{
-			WorkspaceID: workspaceID,
-			Key:         keyAuthID,
-		}
-	})
-
-	return h.Caches.KeyAuthToApiRow.SWRMany(
-		ctx,
-		cacheKeys,
-		func(ctx context.Context, keys []cache.ScopedKey) (map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, error) {
-			keySpaces, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
-				WorkspaceID: workspaceID,
-				KeyAuthIds: array.Map(keys, func(keySpace cache.ScopedKey) string {
-					return keySpace.Key
-				}),
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			return array.Reduce(
-				keySpaces,
-				func(acc map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow, api db.FindKeyAuthsByKeyAuthIdsRow) map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow {
-					acc[cache.ScopedKey{WorkspaceID: workspaceID, Key: api.KeyAuthID}] = api
-					return acc
-				},
-				map[cache.ScopedKey]db.FindKeyAuthsByKeyAuthIdsRow{},
-			), nil
-		},
-		caches.DefaultFindFirstOp,
-	)
-}
-
-// extractAllowedAPIIds extracts API IDs from permissions
-// Returns empty slice if user has wildcard access (api.*.read_analytics)
-// Returns specific API IDs if user has limited access (api.api_123.read_analytics, etc.)
-func extractAllowedAPIIds(permissions []string) []string {
-	if slices.Contains(permissions, "api.*.read_analytics") {
-		return nil
-	}
-
-	// Extract specific API IDs from permissions like "api.api_123.read_analytics"
+// extractAllowedAPIIDs extracts API IDs from analytics permissions.
+func extractAllowedAPIIDs(permissions []string) []string {
 	apiIDs := make([]string, 0)
 	for _, perm := range permissions {
 		pattern := strings.Split(perm, ".")

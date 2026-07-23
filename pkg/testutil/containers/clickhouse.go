@@ -25,7 +25,7 @@ const (
 type ClickHouseConfig struct {
 	// DSN is the connection string for connecting from the test runner.
 	DSN string
-	// HTTPDSN exercises the transport used by the API analytics client.
+	// HTTPDSN exercises the same transport used by the local API deployment.
 	HTTPDSN string
 }
 
