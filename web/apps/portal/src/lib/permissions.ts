@@ -33,7 +33,7 @@ const ANALYTICS_READ = "analytics:read";
  */
 export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyArray<TabConfig> {
   const hasKeys = canReadKeys(permissions);
-  const hasAnalytics = permissions.includes(ANALYTICS_READ);
+  const hasAnalytics = canReadAnalytics(permissions);
   const hasDocs = permissions.length > 0;
 
   return TAB_CONFIGS.filter((tab) => {
@@ -55,6 +55,15 @@ export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyA
  */
 export function canReadKeys(permissions: ReadonlyArray<string>): boolean {
   return permissions.includes("keys:read");
+}
+
+/**
+ * Whether a session may read analytics. The portal analytics page queries
+ * verification analytics via `portal.getVerifications`, so the page must only
+ * render for sessions granted the `analytics:read` capability.
+ */
+export function canReadAnalytics(permissions: ReadonlyArray<string>): boolean {
+  return permissions.includes(ANALYTICS_READ);
 }
 
 /**

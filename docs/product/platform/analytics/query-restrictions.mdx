@@ -7,15 +7,15 @@ This page explains the restrictions, resource limits, and permissions for analyt
 
 ### Only SELECT Allowed
 
-Only `SELECT` queries are permitted. All other SQL statement types return a `query_not_supported` error.
+Only `SELECT` queries are permitted. All other SQL statement types return an `invalid_analytics_query_type` error.
 
 **Allowed query patterns:**
 
 - `SELECT` statements
 - `WITH` (Common Table Expressions)
 - `UNION`
+- `EXCEPT`
 - Subqueries
-- Joins
 - Aggregations
 - Window functions
 
@@ -23,11 +23,11 @@ Only `SELECT` queries are permitted. All other SQL statement types return a `que
 
 ### Table Access Control
 
-Only explicitly allowed analytics tables are accessible. Any attempt to access tables not on the allow list (including `system.*` or `information_schema.*`) will return an `invalid_table` error.
+Queries must reference analytics data through the public, versioned table aliases listed in the endpoint schema reference. Physical ClickHouse table names under `default.*` are unsupported, including when nested in a CTE or subquery. Attempts to use physical names or other tables such as `system.*` and `information_schema.*` return an `invalid_analytics_table` error.
 
 ### Function Allow List
 
-Only explicitly approved functions are allowed. Any function not on this list will be rejected with an `invalid_function` error.
+Only explicitly approved functions are allowed. Any function not on this list will be rejected with an `invalid_analytics_function` error.
 
 #### Allowed Functions
 
@@ -35,7 +35,7 @@ Only explicitly approved functions are allowed. Any function not on this list wi
 
 <Accordion title="Aggregates">
   `count`, `sum`, `avg`, `min`, `max`, `any`, `groupArray`, `groupUniqArray`,
-  `uniq`, `uniqExact`, `quantile`, `countIf`
+  `uniq`, `uniqExact`, `quantile`, `countIf`, `sumIf`
 </Accordion>
 
 <Accordion title="Date/Time">

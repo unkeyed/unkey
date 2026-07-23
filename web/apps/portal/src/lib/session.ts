@@ -115,7 +115,11 @@ export const exchangeSession = createServerFn({ method: "POST" })
  * server function call so the route only needs a single round-trip.
  */
 export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ session: SessionData; config: PortalConfig | null } | null> => {
+  async (): Promise<{
+    session: SessionData;
+    config: PortalConfig | null;
+    logsRetentionDays: number;
+  } | null> => {
     const token = getCookie(SESSION_COOKIE_NAME);
     if (!token) {
       return null;
@@ -130,6 +134,7 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       where: (t, { eq, gt, and }) => and(eq(t.id, token), gt(t.expiresAt, nowMs)),
       columns: {
         id: true,
+        workspaceId: true,
         portalConfigId: true,
         externalId: true,
         permissions: true,
@@ -142,19 +147,40 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       return null;
     }
 
-    let config: PortalConfig | null = null;
-    try {
-      config = await loadPortalConfig(session.portalConfigId);
-    } catch (err) {
-      console.error("Failed to load portal config", {
-        portalConfigId: session.portalConfigId,
-        err,
-      });
-    }
+    const [config, logsRetentionDays] = await Promise.all([
+      loadPortalConfig(session.portalConfigId).catch((err) => {
+        console.error("Failed to load portal config", {
+          portalConfigId: session.portalConfigId,
+          err,
+        });
+        return null;
+      }),
+      // The workspace's log retention bounds how far back analytics can query;
+      // the analytics page uses it to only offer periods within retention. A
+      // failed/missing lookup falls back to 0 ("unknown"), which the UI treats
+      // as uncapped rather than blocking the page.
+      db.query.quotas
+        .findFirst({
+          where: (t, { eq }) => eq(t.workspaceId, session.workspaceId),
+          columns: { logsRetentionDays: true },
+        })
+        .then((quota) => quota?.logsRetentionDays ?? 0)
+        .catch((err) => {
+          console.error("Failed to load workspace quota", {
+            workspaceId: session.workspaceId,
+            err,
+          });
+          return 0;
+        }),
+    ]);
 
+    // workspaceId is only needed server-side (quota lookup above); keep it off
+    // the client-facing session, which stays as SessionData.
+    const { workspaceId: _workspaceId, ...sessionColumns } = session;
     return {
-      session: { ...session, permissions: readCapabilities(session.permissions) },
+      session: { ...sessionColumns, permissions: readCapabilities(session.permissions) },
       config,
+      logsRetentionDays,
     };
   },
 );

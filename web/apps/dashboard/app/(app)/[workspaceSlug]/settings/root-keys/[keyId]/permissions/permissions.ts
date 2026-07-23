@@ -61,6 +61,10 @@ export const workspacePermissions = {
     },
   },
   Ratelimit: {
+    read_analytics: {
+      description: "Query rate limit analytics data for this workspace using SQL.",
+      permission: "ratelimit.*.read_analytics",
+    },
     create_namespace: {
       description: "Create new namespaces in this workspace.",
       permission: "ratelimit.*.create_namespace",

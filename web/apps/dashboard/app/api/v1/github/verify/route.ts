@@ -58,8 +58,17 @@ export async function POST(request: Request) {
 
   const isGithubVerified = await verifyGitSignature(rawBody, signature, keyId, GITHUB_KEYS_URI);
   if (!isGithubVerified) {
+    console.warn("[github-verify] rejecting webhook: signature verification failed", { keyId });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Reported `type` is GitHub's own label for the secret and is not sensitive,
+  // so it is safe to log. Raw tokens and their hashes are never logged.
+  console.info("[github-verify] verified webhook", {
+    keyId,
+    reportedTokens: data.length,
+    reportedTypes: [...new Set(data.map((item) => item.type))],
+  });
 
   // Classify every reported token using only database lookups. GitHub retries
   // the webhook when the response is slow, and each retry would otherwise
@@ -122,6 +131,27 @@ export async function POST(request: Request) {
     return { ...base, isFound: true, keyId: keyFound.id, orgId: ws.orgId, wsName: ws.name };
   });
 
+  for (const item of classified) {
+    console.info("[github-verify] debug token", {
+      tokenPrefix: item.rawToken.slice(0, 6),
+      tokenLen: item.rawToken.length,
+      hash: item.hashedToken,
+      type: item.type,
+      matched: item.isFound,
+    });
+  }
+
+  const matchedCount = classified.filter((key) => key.isFound).length;
+  console.info("[github-verify] classified tokens", {
+    reported: classified.length,
+    matched: matchedCount,
+    unmatched: classified.length - matchedCount,
+    // Number of distinct live keys the batched lookup resolved. If this is 0
+    // while tokens were reported, none of the reported secrets matched a live,
+    // non-deleted key in the database.
+    liveKeyRows: keyRows.length,
+  });
+
   const githubResponse = classified.map((key) => {
     if (!key.isFound) {
       return {
@@ -150,10 +180,13 @@ export async function POST(request: Request) {
   // GitHub marks the secret handled, and the error is reported to Sentry.
   const found = classified.filter((key) => key.isFound);
   if (found.length > 0) {
+    console.info("[github-verify] notifying leaked keys", { keys: found.length });
     await notifyLeakedKeys(RESEND_API_KEY, found).catch((err) => {
       console.error("Failed to send leaked key notifications", err);
       Sentry.captureException(err);
     });
+  } else {
+    console.info("[github-verify] no matching keys, skipping notifications");
   }
 
   return NextResponse.json([...githubResponse], { status: 201 });

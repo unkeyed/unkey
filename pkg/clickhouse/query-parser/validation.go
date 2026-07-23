@@ -94,6 +94,51 @@ var allowedFunctions = map[string]bool{
 	"arrayfilter": true,
 }
 
+// canonicalFunctionNames contains functions whose ClickHouse spelling is
+// case-sensitive. Validation remains case-insensitive at the API boundary.
+var canonicalFunctionNames = map[string]string{
+	"grouparray":               "groupArray",
+	"groupuniqarray":           "groupUniqArray",
+	"uniqexact":                "uniqExact",
+	"now64":                    "now64",
+	"todate":                   "toDate",
+	"todatetime":               "toDateTime",
+	"todatetime64":             "toDateTime64",
+	"tostartofday":             "toStartOfDay",
+	"tostartofweek":            "toStartOfWeek",
+	"tostartofmonth":           "toStartOfMonth",
+	"tostartofquarter":         "toStartOfQuarter",
+	"tostartofyear":            "toStartOfYear",
+	"tostartofhour":            "toStartOfHour",
+	"tostartofminute":          "toStartOfMinute",
+	"formatdatetime":           "formatDateTime",
+	"fromunixtimestamp64milli": "fromUnixTimestamp64Milli",
+	"tounixtimestamp64milli":   "toUnixTimestamp64Milli",
+	"tointervalday":            "toIntervalDay",
+	"tointervalweek":           "toIntervalWeek",
+	"tointervalmonth":          "toIntervalMonth",
+	"tointervalyear":           "toIntervalYear",
+	"tointervalhour":           "toIntervalHour",
+	"tointervalminute":         "toIntervalMinute",
+	"tointervalsecond":         "toIntervalSecond",
+	"tointervalmillisecond":    "toIntervalMillisecond",
+	"tointervalmicrosecond":    "toIntervalMicrosecond",
+	"tointervalnanosecond":     "toIntervalNanosecond",
+	"tointervalquarter":        "toIntervalQuarter",
+	"startswith":               "startsWith",
+	"endswith":                 "endsWith",
+	"sumif":                    "sumIf",
+	"countif":                  "countIf",
+	"tostring":                 "toString",
+	"toint32":                  "toInt32",
+	"toint64":                  "toInt64",
+	"tofloat64":                "toFloat64",
+	"hasany":                   "hasAny",
+	"hasall":                   "hasAll",
+	"arrayjoin":                "arrayJoin",
+	"arrayfilter":              "arrayFilter",
+}
+
 // Whitelist of allowed table functions
 // Table functions are used in FROM clause and can access external data sources
 // Most are blocked by default for security
@@ -105,7 +150,7 @@ var allowedTableFunctions = map[string]bool{
 
 func (p *Parser) validateSettings() error {
 	var validationErr error
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok || selectQuery.Settings == nil {
 			return true
@@ -121,10 +166,42 @@ func (p *Parser) validateSettings() error {
 	return validationErr
 }
 
+// validateSetOperands rejects ClickHouse's table-backed set syntax because
+// those sources are not represented as table identifiers and cannot receive
+// public-alias validation or row-level filters. Callers can express the same
+// operation with a subquery, whose physical sources are validated normally.
+func (p *Parser) validateSetOperands() error {
+	var validationErr error
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+		operation, ok := node.(*clickhouse.BinaryOperation)
+		if !ok {
+			return true
+		}
+
+		switch strings.ToUpper(string(operation.Operation)) {
+		case "IN", "NOT IN", "GLOBAL IN", "GLOBAL NOT IN":
+		default:
+			return true
+		}
+
+		switch operation.RightExpr.(type) {
+		case *clickhouse.ParamExprList, *clickhouse.ArrayParamList, *clickhouse.SubQuery:
+			return true
+		default:
+			validationErr = fault.New("table-backed set expressions are not supported",
+				fault.Code(codes.User.BadRequest.InvalidAnalyticsQuery.URN()),
+				fault.Public("Table-backed IN expressions are not supported; use a literal list or a subquery"),
+			)
+			return false
+		}
+	})
+	return validationErr
+}
+
 func (p *Parser) validateFunctions() error {
 	var validateErr error
 
-	clickhouse.WalkWithBreak(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		// Check regular functions
 		funcExpr, isFuncExpr := node.(*clickhouse.FunctionExpr)
 		if isFuncExpr {
@@ -134,6 +211,9 @@ func (p *Parser) validateFunctions() error {
 
 			funcName := strings.ToLower(funcExpr.Name.Name)
 			if allowedFunctions[funcName] {
+				if canonicalName, ok := canonicalFunctionNames[funcName]; ok {
+					funcExpr.Name.Name = canonicalName
+				}
 				return true
 			}
 
