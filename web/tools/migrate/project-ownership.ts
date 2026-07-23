@@ -18,7 +18,7 @@ async function main(databaseURL: string): Promise<void> {
     for (const [index, workspace] of workspaces.entries()) {
       console.log(`[${index + 1}/${workspaces.length}] Migrating workspace ${workspace.id}`);
 
-      let [projects] = await connection.execute<(RowDataPacket & { id: string })[]>(
+      const [projects] = await connection.execute<(RowDataPacket & { id: string })[]>(
         "SELECT id FROM projects WHERE workspace_id = ? AND slug = 'default' LIMIT 1",
         [workspace.id],
       );
@@ -27,26 +27,12 @@ async function main(databaseURL: string): Promise<void> {
       if (projectId) {
         console.log(`Using existing default project ${projectId}`);
       } else {
-        const newProjectId = newId("project");
-        const [result] = await connection.execute<ResultSetHeader>(
-          "INSERT IGNORE INTO projects (id, workspace_id, name, slug, delete_protection, created_at) VALUES (?, ?, 'Default', 'default', true, ?)",
-          [newProjectId, workspace.id, Date.now()],
+        projectId = newId("project");
+        await connection.execute(
+          "INSERT INTO projects (id, workspace_id, name, slug, delete_protection, created_at) VALUES (?, ?, 'Default', 'default', true, ?)",
+          [projectId, workspace.id, Date.now()],
         );
-
-        [projects] = await connection.execute<(RowDataPacket & { id: string })[]>(
-          "SELECT id FROM projects WHERE workspace_id = ? AND slug = 'default' LIMIT 1",
-          [workspace.id],
-        );
-        projectId = projects[0]?.id;
-        if (!projectId) {
-          throw new Error(`Failed to create a default project for workspace ${workspace.id}`);
-        }
-
-        console.log(
-          result.affectedRows === 1
-            ? `Created default project ${projectId}`
-            : `Using default project ${projectId} created by another process`,
-        );
+        console.log(`Created default project ${projectId}`);
       }
 
       const [apis] = await connection.execute<ResultSetHeader>(
