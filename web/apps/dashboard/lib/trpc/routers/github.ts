@@ -22,43 +22,28 @@ import { t, workspaceProcedure } from "../trpc";
 const STATE_TTL_MS = 15 * 60 * 1000;
 
 // State payload signed and handed to GitHub's install URL. The signature binds
-// the state to a workspace (and, for the dashboard flow, a user + app) so the
-// callback cannot be replayed across sessions or used by an attacker who
-// phishes a logged-in victim into hitting /integrations/github/callback?state=
+// the state to a workspace (and, when present, a user + app) so the callback
+// cannot be replayed across sessions or used by an attacker who phishes a
+// logged-in victim into hitting /integrations/github/callback?state=
 //
-// `source` discriminates the two flows:
-//   - "api": a workspace-wide install (workspaces.installGithub). No user or app
-//     target; the callback only binds the installation to the workspace.
-//   - "dashboard": an app-targeted install from the dashboard wizard, bound to
-//     the initiating user and carrying the app to land back on.
-const stateBaseFields = {
+// The flow is derived from which fields are present:
+//   - `userId` present  -> bound to that user (dashboard-initiated); enforced.
+//   - `appId` present   -> app-targeted install (dashboard wizard); otherwise a
+//                          workspace-wide install (CLI/API or dashboard settings).
+// `source` is NOT a shape discriminator; it only records the install origin
+// ("api" = CLI/API, "dashboard" = dashboard) for the audit log.
+const signedStatePayload = z.object({
   workspaceId: z.string().min(1),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
-};
-
-const apiInstallState = z.object({
-  ...stateBaseFields,
-  source: z.literal("api"),
-});
-
-const dashboardInstallState = z.object({
-  ...stateBaseFields,
-  source: z.literal("dashboard"),
-  projectId: z.string().min(1),
-  appId: z.string().min(1),
-  userId: z.string().min(1),
-  // Only the wizard chooses between the app settings page and the repo picker;
-  // the workspace install always lands on workspace settings.
+  userId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  appId: z.string().min(1).optional(),
   returnTo: z.enum(["settings"]).optional(),
+  source: z.enum(["api", "dashboard"]),
 });
 
-const signedStatePayload = z.discriminatedUnion("source", [apiInstallState, dashboardInstallState]);
-
-const signedState = z.discriminatedUnion("source", [
-  apiInstallState.extend({ sig: z.string().min(1) }),
-  dashboardInstallState.extend({ sig: z.string().min(1) }),
-]);
+const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
 
 type SignedStatePayload = z.infer<typeof signedStatePayload>;
 
@@ -245,6 +230,29 @@ export const githubRouter = t.router({
     return { hasInstallation: Boolean(installation) };
   }),
 
+  // Mint a signed install state for a workspace-wide install started from the
+  // dashboard settings. No app target, but bound to the initiating user; the
+  // callback's OAuth-code ownership proof is the primary access control. The
+  // CLI/API equivalent is the workspaces.installGithub route (source "api").
+  prepareWorkspaceInstall: workspaceProcedure.mutation(async ({ ctx }) => {
+    if (!githubAppEnv()) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "GitHub App not configured",
+      });
+    }
+
+    return {
+      state: signState({
+        source: "dashboard",
+        workspaceId: ctx.workspace.id,
+        userId: ctx.user.id,
+        nonce: crypto.randomBytes(16).toString("base64url"),
+        exp: Date.now() + STATE_TTL_MS,
+      }),
+    };
+  }),
+
   prepareInstallation: workspaceProcedure
     .input(
       z.object({
@@ -324,11 +332,10 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        // Dashboard states are bound to the initiating user, so the caller must
-        // match. Workspace install ("api") states carry no user and are
-        // workspace-scoped (the OAuth-code ownership proof below is the real
-        // access control).
-        (parsedState.source === "dashboard" && parsedState.userId !== ctx.user.id)
+        // A state carrying a userId is bound to that user, so it must match the
+        // caller. States without one (CLI/API installs) are workspace-scoped and
+        // rely on the OAuth-code ownership proof below as the access control.
+        (parsedState.userId !== undefined && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -338,7 +345,7 @@ export const githubRouter = t.router({
 
       // The app to land back on, or null for a workspace install.
       const target =
-        parsedState.source === "dashboard"
+        parsedState.projectId && parsedState.appId
           ? {
               projectId: parsedState.projectId,
               appId: parsedState.appId,
