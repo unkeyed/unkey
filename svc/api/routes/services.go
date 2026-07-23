@@ -105,7 +105,7 @@ type Services struct {
 	PortalBaseURL string
 
 	// GitHubAppName is the GitHub App slug used to build the install URL in
-	// apps.createGithubConnection. GitHubPrivateKeyPEM is the App private key
+	// workspaces.installGithub. GitHubPrivateKeyPEM is the App private key
 	// used to derive the install-state signing key. Either empty disables the
 	// endpoint.
 	GitHubAppName       string

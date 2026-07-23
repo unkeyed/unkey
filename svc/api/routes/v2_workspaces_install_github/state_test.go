@@ -23,45 +23,27 @@ func sigFromState(t *testing.T, state string) (string, map[string]any) {
 	return sig, parsed
 }
 
-func TestSign_MatchesDashboardVector_Basic(t *testing.T) {
+// This endpoint mints only the workspace install-only flow: workspaceId, nonce,
+// exp, and source, with no projectId/appId/repository/returnTo. The vector pins
+// that shape against the dashboard's verifyState.
+func TestSign_MatchesDashboardVector_InstallOnly(t *testing.T) {
 	s := newSigner(testPEM)
 
 	state, err := s.sign(payload{
-		ProjectID:   "proj_KEBAP",
-		AppID:       "app_KEBAP",
 		WorkspaceID: "ws_KEBAP",
 		Nonce:       "nonce123",
 		ExpMs:       1700000000000,
-	})
-	require.NoError(t, err)
-
-	sig, parsed := sigFromState(t, state)
-	require.Equal(t, "lImgw4jlqHWRNvO9DUu311yMIs_tJFpXicuWRQ7O7zw", sig)
-
-	require.NotContains(t, parsed, "returnTo")
-	require.NotContains(t, parsed, "repository")
-	require.NotContains(t, parsed, "source")
-	require.NotContains(t, parsed, "userId")
-}
-
-func TestSign_MatchesDashboardVector_OptionalFields(t *testing.T) {
-	s := newSigner(testPEM)
-
-	state, err := s.sign(payload{
-		ProjectID:   "proj_KEBAP",
-		AppID:       "app_KEBAP",
-		WorkspaceID: "ws_KEBAP",
-		Nonce:       "nonce123",
-		ExpMs:       1700000000000,
-		Repository:  "unkeyed/unkey",
 		Source:      "api",
 	})
 	require.NoError(t, err)
 
 	sig, parsed := sigFromState(t, state)
-	require.Equal(t, "mMGf-LuwV-jKBRgcosHt7lSL9g_oDqpKHpI6u5g-4rU", sig)
-	require.Equal(t, "unkeyed/unkey", parsed["repository"])
+	require.Equal(t, "_YHr1IIkmnCzxPti5-GosO-PXHW4xMPoI06AVdyCNl0", sig)
 	require.Equal(t, "api", parsed["source"])
+	require.NotContains(t, parsed, "projectId")
+	require.NotContains(t, parsed, "appId")
+	require.NotContains(t, parsed, "repository")
+	require.NotContains(t, parsed, "returnTo")
 }
 
 func sigOf(t *testing.T, s *signer, p payload) string {
@@ -78,8 +60,6 @@ func sigOf(t *testing.T, s *signer, p payload) string {
 func TestSign_EveryFieldIsAuthenticated(t *testing.T) {
 	s := newSigner(testPEM)
 	base := payload{
-		ProjectID:   "proj_1",
-		AppID:       "app_1",
 		WorkspaceID: "ws_1",
 		Nonce:       "nonce_1",
 		ExpMs:       1700000000000,
@@ -96,13 +76,9 @@ func TestSign_EveryFieldIsAuthenticated(t *testing.T) {
 		name string
 		p    payload
 	}{
-		{"projectId", mutate(func(p *payload) { p.ProjectID = "proj_2" })},
-		{"appId", mutate(func(p *payload) { p.AppID = "app_2" })},
 		{"workspaceId", mutate(func(p *payload) { p.WorkspaceID = "ws_2" })},
 		{"nonce", mutate(func(p *payload) { p.Nonce = "nonce_2" })},
 		{"exp", mutate(func(p *payload) { p.ExpMs = base.ExpMs + 1 })},
-		{"returnTo", mutate(func(p *payload) { p.ReturnTo = "settings" })},
-		{"repository", mutate(func(p *payload) { p.Repository = "owner/name" })},
 		{"source", mutate(func(p *payload) { p.Source = "api" })},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -111,22 +87,10 @@ func TestSign_EveryFieldIsAuthenticated(t *testing.T) {
 	}
 }
 
-// Swapping two field values must change the signature: the field names, not just
-// the concatenated values, must be bound so an attacker can't move a value from
-// one field to another undetected.
-func TestSign_FieldSwapChangesSignature(t *testing.T) {
-	s := newSigner(testPEM)
-	base := payload{ProjectID: "shared_a", AppID: "shared_b", WorkspaceID: "ws_1", Nonce: "n", ExpMs: 1}
-	swapped := base
-	swapped.ProjectID, swapped.AppID = base.AppID, base.ProjectID
-
-	require.NotEqual(t, sigOf(t, s, base), sigOf(t, s, swapped))
-}
-
 // The signature is bound to the signing key: a different private key produces a
 // different sig, so a state cannot be forged without the server secret.
 func TestSign_KeyBound(t *testing.T) {
-	base := payload{ProjectID: "p", AppID: "a", WorkspaceID: "w", Nonce: "n", ExpMs: 1}
+	base := payload{WorkspaceID: "w", Nonce: "n", ExpMs: 1}
 	require.NotEqual(t,
 		sigOf(t, newSigner(testPEM), base),
 		sigOf(t, newSigner("a-different-private-key"), base),
@@ -135,7 +99,7 @@ func TestSign_KeyBound(t *testing.T) {
 
 func TestSign_Deterministic(t *testing.T) {
 	s := newSigner(testPEM)
-	base := payload{ProjectID: "p", AppID: "a", WorkspaceID: "w", Nonce: "n", ExpMs: 1}
+	base := payload{WorkspaceID: "w", Nonce: "n", ExpMs: 1}
 	require.Equal(t, sigOf(t, s, base), sigOf(t, s, base))
 }
 
@@ -145,7 +109,7 @@ func TestNewSigner_NormalizesEscapedNewlines(t *testing.T) {
 	escaped := newSigner(`line1\nline2`)
 	real := newSigner("line1\nline2")
 
-	p := payload{ProjectID: "p", AppID: "a", WorkspaceID: "w", Nonce: "n", ExpMs: 1}
+	p := payload{WorkspaceID: "w", Nonce: "n", ExpMs: 1}
 	got1, err := escaped.sign(p)
 	require.NoError(t, err)
 	got2, err := real.sign(p)

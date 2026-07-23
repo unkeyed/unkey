@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../../../../common/Meta.yaml"
   data:
-    $ref: "./V2AppsCreateGithubConnectionResponseData.yaml"
+    $ref: "./V2WorkspacesInstallGithubResponseData.yaml"
 additionalProperties: false
 examples:
   success:

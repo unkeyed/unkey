@@ -40,21 +40,17 @@ func newSigner(privateKeyPEM string) *signer {
 	return &signer{key: sum[:]}
 }
 
-// payload is the install-state claim set. Optional fields are omitted from the
-// signed JSON when empty, matching how the dashboard drops undefined properties.
+// payload is the claim set for the workspace-wide install flow. It carries no
+// app, project, or repository; the dashboard signs its own app-targeted states.
+// The JSON must match the dashboard's signer byte-for-byte, so empty optional
+// fields are omitted rather than serialized.
 type payload struct {
-	ProjectID   string
-	AppID       string
 	WorkspaceID string
 	Nonce       string
 	ExpMs       int64
-	ReturnTo    string
-	// Repository ("owner/name"), when set, tells the callback to auto-connect
-	// the repo instead of showing the picker.
-	Repository string
-	// Source marks the flow origin. "api" signals the callback to skip the
-	// dashboard-user binding while keeping the workspace binding and the OAuth
-	// ownership proof.
+	// Source lets the dashboard discriminate the two flows. "api" marks a
+	// workspace install, verified by the OAuth ownership proof rather than a
+	// per-user binding.
 	Source string
 }
 
@@ -81,17 +77,9 @@ func (s *signer) sign(p payload) (string, error) {
 
 func (p payload) fields() map[string]any {
 	fields := map[string]any{
-		"projectId":   p.ProjectID,
-		"appId":       p.AppID,
 		"workspaceId": p.WorkspaceID,
 		"nonce":       p.Nonce,
 		"exp":         p.ExpMs,
-	}
-	if p.ReturnTo != "" {
-		fields["returnTo"] = p.ReturnTo
-	}
-	if p.Repository != "" {
-		fields["repository"] = p.Repository
 	}
 	if p.Source != "" {
 		fields["source"] = p.Source

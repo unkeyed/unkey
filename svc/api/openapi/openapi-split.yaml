@@ -124,6 +124,8 @@ tags:
     description: Customer Portal session management
   - name: ratelimit
     description: Rate limiting operations
+  - name: workspaces
+    description: Workspace-level operations
 
 paths:
   # Health Endpoints
@@ -249,11 +251,13 @@ paths:
   /v2/projects.deleteProject:
     $ref: "./spec/paths/v2/projects/deleteProject/index.yaml"
 
+  # Workspace Endpoints
+  /v2/workspaces.installGithub:
+    $ref: "./spec/paths/v2/workspaces/installGithub/index.yaml"
+
   # App Endpoints
   /v2/apps.createApp:
     $ref: "./spec/paths/v2/apps/createApp/index.yaml"
-  /v2/apps.createGithubConnection:
-    $ref: "./spec/paths/v2/apps/createGithubConnection/index.yaml"
   /v2/apps.getApp:
     $ref: "./spec/paths/v2/apps/getApp/index.yaml"
   /v2/apps.listApps:
