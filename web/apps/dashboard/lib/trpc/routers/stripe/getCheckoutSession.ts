@@ -28,10 +28,6 @@ export const getCheckoutSession = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
-    // Rejecting foreign sessions prevents an attacker phishing a victim into
-    // hitting /success?session_id=<attacker_session>, which would leak the
-    // attacker's customer id into the victim's UI and trigger downstream
-    // workspace mutations.
     const session = await retrieveWorkspaceCheckoutSession({
       stripe,
       sessionId: input.sessionId,

@@ -15,12 +15,11 @@ import Stripe from "stripe";
 import { z } from "zod";
 
 const updateCustomerInputSchema = z.object({
-  // No customer id from the client: it comes from this session, which is
-  // verified to be the workspace's. Required, because without it nothing ties
-  // the payment method to a completed setup (ENG-2927).
+  // No customer id from the client: it is derived from this session, which is
+  // verified to belong to the workspace.
   sessionId: z.string().min(1, "Stripe checkout session ID is required"),
-  // Stripe reads an empty string as "unset", which clears the card on file
-  // and reports success.
+  // Stripe reads an empty string as "unset", which clears the card on file and
+  // reports success.
   paymentMethod: z.string().min(1, "Payment method is required"),
 });
 
@@ -36,8 +35,8 @@ export const updateCustomer = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
-    // Use the session's customer, not the workspace's. Setup-mode checkout
-    // creates a new customer and attaches the payment method to that one.
+    // The session's customer, not the workspace's: setup-mode checkout creates
+    // a new customer and attaches the payment method to that one.
     const session = await retrieveCompletedWorkspaceCheckoutSession({
       stripe,
       sessionId: input.sessionId,
@@ -64,14 +63,10 @@ export const updateCustomer = workspaceProcedure
         id: customer.id,
       };
     } catch (error) {
-      // The client renders this message, and Stripe's own names the customer
-      // or payment method in it.
       if (error instanceof Stripe.errors.StripeError) {
         throwRedactedStripeError(error, "Failed to set the default payment method");
       }
 
-      // Transport or programmer errors, whose messages are not written to be
-      // read by a user either.
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to set the default payment method",

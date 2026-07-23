@@ -46,11 +46,6 @@ export const mapProduct = (p: Stripe.Product) => {
   };
 };
 
-/**
- * Reads the id from a Stripe expandable field, which is either a bare id or
- * the expanded object. Returns null when absent, so callers decide what a
- * missing relation means.
- */
 export const expandableId = (value: string | { id: string } | null | undefined): string | null => {
   if (!value) {
     return null;
@@ -62,21 +57,12 @@ type RetrieveWorkspaceCheckoutSessionArgs = {
   stripe: Stripe;
   sessionId: string;
   workspaceId: string;
-  // Surfaced to the client on both a missing and a foreign session, so it must
-  // name the resource the caller asked for, not the session.
   notFoundMessage: string;
 };
 
 /**
- * Returns the session only if it belongs to this workspace. The session id
- * comes from the URL, so this is the authorization boundary for the /success
- * flow (ENG-2927).
- *
  * A missing session and one owned by another workspace both raise NOT_FOUND
- * with `notFoundMessage`, so a caller cannot probe which ids exist.
- *
- * Says nothing about whether checkout finished. Callers that write billing
- * state want [retrieveCompletedWorkspaceCheckoutSession] instead.
+ * with `notFoundMessage`, so a caller cannot probe which session ids exist.
  */
 export const retrieveWorkspaceCheckoutSession = async (
   args: RetrieveWorkspaceCheckoutSessionArgs,
@@ -97,9 +83,8 @@ export const retrieveWorkspaceCheckoutSession = async (
   }
 
   if (session.client_reference_id !== args.workspaceId) {
-    // Same response as a missing session, so the id is not confirmed. The
-    // cause separates them in logs: this one is an attack signal. No ids in
-    // it, they would be cross-tenant PII.
+    // Must match the missing-session response so the id is not confirmed. The
+    // cause separates the two in logs and carries no ids (cross-tenant PII).
     throw new TRPCError({
       code: "NOT_FOUND",
       message: args.notFoundMessage,
@@ -111,14 +96,9 @@ export const retrieveWorkspaceCheckoutSession = async (
 };
 
 /**
- * As [retrieveWorkspaceCheckoutSession], and additionally requires that
- * checkout finished.
- *
- * Callers bind billing to this session's customer, and an open or expired
- * session's customer may have no payment method, which would leave the
- * workspace pointing at a customer that can never be charged. Ownership is
- * proven before this check, so it can say what is wrong rather than masking
- * as not-found.
+ * As [retrieveWorkspaceCheckoutSession], but also rejects an unfinished
+ * checkout: its customer may have no payment method, so binding billing to it
+ * would leave the workspace pointing at a customer that can never be charged.
  */
 export const retrieveCompletedWorkspaceCheckoutSession = async (
   args: RetrieveWorkspaceCheckoutSessionArgs,
@@ -137,24 +117,16 @@ export const retrieveCompletedWorkspaceCheckoutSession = async (
 
 type StripeError = InstanceType<typeof Stripe.errors.StripeError>;
 
-/**
- * Reports whether Stripe says a resource is missing. Both signals are needed:
- * some endpoints send `resource_missing` with a 400, others send a bare 404
- * with no code.
- */
+// Both signals are needed: some endpoints send `resource_missing` with a 400,
+// others send a bare 404 with no code.
 export const isStripeNotFound = (error: StripeError): boolean => {
   return error.statusCode === 404 || error.code === "resource_missing";
 };
 
-/**
- * Maps a Stripe error onto the tRPC status to answer with.
- *
- * Branch order matters. Invalid-request wins over `isStripeNotFound` because
- * `resource_missing` also fires for a bad sub-resource in the parameters, such
- * as a bogus payment-method id, which is a bad request and not a missing
- * target. Permission wins too, so a restricted key is not reported as missing
- * data.
- */
+// Branch order matters: invalid-request and permission are checked before
+// `isStripeNotFound`, because `resource_missing` also fires for a bad
+// sub-resource in the parameters (a bad request, not a missing target) and for
+// a restricted key (a permission problem).
 export const stripeErrorCode = (error: StripeError): TRPCError["code"] => {
   if (error instanceof Stripe.errors.StripeAuthenticationError) {
     return "UNAUTHORIZED";
@@ -174,13 +146,9 @@ export const stripeErrorCode = (error: StripeError): TRPCError["code"] => {
   return "INTERNAL_SERVER_ERROR";
 };
 
-/**
- * Legacy helper that surfaces Stripe's own text ("Stripe error: <message>").
- * That text names the objects involved and, on auth failures, an identifying
- * key, so new code must use [throwRedactedStripeError] or
- * [throwMaskedStripeError] instead. Retained only for `getSetupIntent`, which
- * is being reworked separately in ENG-3080 (PR #6829).
- */
+// Legacy helper: surfaces Stripe's own text, which names the objects involved
+// and, on auth failures, an identifying key. New code must use
+// [throwRedactedStripeError] or [throwMaskedStripeError] instead.
 export const handleStripeError = (error: StripeError): never => {
   throw new TRPCError({
     code: stripeErrorCode(error),
@@ -188,18 +156,12 @@ export const handleStripeError = (error: StripeError): never => {
   });
 };
 
-/**
- * Replaces Stripe's text on failures the user cannot act on. Names no Stripe
- * object and no key.
- */
 const STRIPE_REQUEST_FAILED =
   "The billing provider rejected the request. Please try again or contact support@unkey.com if this issue persists.";
 
 /**
- * Throws the caller's message with the status Stripe's error maps to. Keeps
- * Stripe's text off the wire, since it names the objects involved ("No such
- * PaymentMethod: 'pm_x'") and, on auth failures, an identifying API key. The
- * original error stays on `cause` for the logs.
+ * Answers with `message` and Stripe's mapped status, keeping Stripe's own text
+ * (which names objects and keys) off the wire; the raw error stays on `cause`.
  *
  * The type sits on the binding, not the arrow: TypeScript only treats a call
  * as never-returning when the callee is a const with an explicit type.
@@ -217,12 +179,10 @@ export const throwRedactedStripeError: (error: StripeError, message: string) => 
 
 /**
  * Redacts like [throwRedactedStripeError], and also collapses not-found onto
- * the caller's message so a probed id looks the same as one the workspace
- * does not own.
- *
- * Permission errors stay unmasked. They fire identically for every id, so
- * they leak nothing, and calling a misconfigured key "missing data" sends
- * on-call hunting the wrong bug.
+ * `notFoundMessage` so a probed id looks the same as one the workspace does
+ * not own. Permission errors stay unmasked: they fire identically for every id
+ * so leak nothing, and masking them would report a misconfigured key as
+ * missing data.
  */
 export const throwMaskedStripeError: (error: StripeError, notFoundMessage: string) => never = (
   error,

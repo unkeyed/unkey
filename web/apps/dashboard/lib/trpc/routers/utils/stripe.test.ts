@@ -95,11 +95,8 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     expect(expandableId(result.customer)).toBe("cus_1");
   });
 
-  /**
-   * Another workspace's session id must not reach that workspace's billing
-   * objects (ENG-2927). NOT_FOUND rather than FORBIDDEN, so the rejection
-   * does not confirm the session exists.
-   */
+  // NOT_FOUND rather than FORBIDDEN, so the rejection does not confirm the
+  // session exists.
   it("rejects a session belonging to another workspace with NOT_FOUND", async () => {
     const { stripe } = stubStripe(session({ client_reference_id: "ws_attacker" }));
 
@@ -114,11 +111,6 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     );
   });
 
-  /**
-   * The response cannot separate an ownership violation from a stale id, so
-   * the cause must, or the attack looks like noise in the logs. No ids in it,
-   * they would be cross-tenant PII.
-   */
   it("marks an ownership mismatch on the cause without naming any id", async () => {
     const { stripe } = stubStripe(session({ client_reference_id: "ws_attacker" }));
 
@@ -137,11 +129,8 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     expect(cause.message).not.toContain("ws_attacker");
   });
 
-  /**
-   * Reads report a session's status, so they must be able to see one that is
-   * not complete. Only the billing writes require completion, via
-   * [retrieveCompletedWorkspaceCheckoutSession].
-   */
+  // The plain retrieve returns incomplete sessions; only the completed variant
+  // rejects them.
   it.each(incompleteStatuses)("returns a %s session the workspace owns", async (status) => {
     const { stripe } = stubStripe(session({ status }));
 
@@ -155,10 +144,6 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     expect(result.status).toBe(status);
   });
 
-  /**
-   * A session with no `client_reference_id` was created outside the billing
-   * flow and belongs to nobody.
-   */
   it("rejects a session with no client_reference_id", async () => {
     const { stripe } = stubStripe(session({ client_reference_id: null }));
 
@@ -173,11 +158,6 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     );
   });
 
-  /**
-   * A nonexistent id must look like an ownership mismatch, or the error tells
-   * a caller probing ids which sessions exist. stripe-node throws
-   * resource_missing here, it never resolves null.
-   */
   it("maps a nonexistent session id onto the same NOT_FOUND as a mismatch", async () => {
     const { stripe } = stubStripe(
       new Stripe.errors.StripeInvalidRequestError({
@@ -199,10 +179,6 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     );
   });
 
-  /**
-   * A non-404 StripeInvalidRequestError is a real request defect. Masking the
-   * whole class would hide such bugs as "not found".
-   */
   it("does not mask a non-404 StripeInvalidRequestError as NOT_FOUND", async () => {
     const { stripe } = stubStripe(
       new Stripe.errors.StripeInvalidRequestError({
@@ -246,10 +222,6 @@ describe("retrieveWorkspaceCheckoutSession", () => {
     expect(error.code).toBe("UNAUTHORIZED");
   });
 
-  /**
-   * tRPC's default formatter forwards the thrown message, so a non-Stripe
-   * error must not reach the client verbatim.
-   */
   it("masks non-Stripe errors as a generic INTERNAL_SERVER_ERROR with cause", async () => {
     const networkError = new Error("socket hang up");
     const { stripe } = stubStripe(networkError);
@@ -283,10 +255,6 @@ describe("retrieveCompletedWorkspaceCheckoutSession", () => {
     expect(result.id).toBe("cs_1");
   });
 
-  /**
-   * Callers bind billing to this session's customer, and an abandoned
-   * checkout's customer may have no payment method.
-   */
   it.each(incompleteStatuses)("rejects a %s session the workspace owns", async (status) => {
     const { stripe } = stubStripe(session({ status }));
 
@@ -388,10 +356,6 @@ describe("stripeErrorCode", () => {
 });
 
 describe("throwMaskedStripeError", () => {
-  /**
-   * Surfaces the caller's message, never Stripe's "No such ..." text, so
-   * probed ids stay indistinguishable.
-   */
   it("masks not-found shaped errors with the caller's message", () => {
     const error = new Stripe.errors.StripeInvalidRequestError({
       type: "invalid_request_error",
@@ -407,11 +371,6 @@ describe("throwMaskedStripeError", () => {
     expect(thrown.message).toBe("Setup intent not found");
   });
 
-  /**
-   * Masking hides outages too. A wrong-mode key turns every retrieve into a
-   * not-found, which reads like users passing stale ids unless the Stripe
-   * error survives on the cause.
-   */
   it("keeps the original Stripe error on the cause", () => {
     const error = new Stripe.errors.StripeInvalidRequestError({
       type: "invalid_request_error",
@@ -426,11 +385,6 @@ describe("throwMaskedStripeError", () => {
     expect(thrown.cause).toBe(error);
   });
 
-  /**
-   * The non-not-found path is the one that leaks. A wrong key makes Stripe
-   * answer 401 naming the key, and the client renders whatever the server
-   * throws.
-   */
   it("redacts non-not-found errors instead of forwarding Stripe's text", () => {
     const error = new Stripe.errors.StripeAuthenticationError({
       type: "invalid_request_error",
@@ -468,11 +422,6 @@ describe("throwMaskedStripeError", () => {
 });
 
 describe("throwRedactedStripeError", () => {
-  /**
-   * On `customers.update` Stripe's message names the customer and the payment
-   * method, and the client renders it verbatim. Only the text is replaced,
-   * the status still follows the error class.
-   */
   it("replaces Stripe's message but keeps its status and the error as cause", () => {
     const error = new Stripe.errors.StripeInvalidRequestError({
       type: "invalid_request_error",

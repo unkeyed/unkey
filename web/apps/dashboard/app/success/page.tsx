@@ -179,10 +179,7 @@ function SuccessContent() {
           return;
         }
 
-        // Update customer with default payment method
         try {
-          // The server resolves the customer from the verified session rather
-          // than trusting a client-supplied customer id.
           await updateCustomerFn({
             sessionId,
             paymentMethod: setupIntent.payment_method,
@@ -200,8 +197,7 @@ function SuccessContent() {
           if (!isMounted) {
             return;
           }
-          // The server message is already redacted and user-facing. Wrapping
-          // it here would stutter.
+          // Already redacted and user-facing; do not re-wrap.
           setError(error instanceof Error ? error.message : "Failed to set up the payment method");
           setLoading(false);
           return;
