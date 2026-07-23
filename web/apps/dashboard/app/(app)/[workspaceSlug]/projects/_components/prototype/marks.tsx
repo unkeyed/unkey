@@ -36,6 +36,64 @@ export function RowMark({
   }
 }
 
+// Full-width background chart for the hybrid row: a smooth line with a gradient
+// area that fades upward, so text above it stays readable.
+export function HybridChart({
+  points,
+  stroke,
+  className,
+}: {
+  points: number[];
+  stroke: string;
+  className?: string;
+}) {
+  if (points.length === 0) {
+    return null;
+  }
+  const w = 800;
+  const h = 100;
+  const pad = 10;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = max - min || 1;
+  const step = points.length > 1 ? w / (points.length - 1) : w;
+  const coords = points.map((p, i) => {
+    const x = i * step;
+    const y = h - pad - ((p - min) / range) * (h - pad * 2);
+    return [x, y] as const;
+  });
+  let d = `M${coords[0][0]},${coords[0][1]}`;
+  for (let i = 1; i < coords.length; i++) {
+    const [px, py] = coords[i - 1];
+    const [x, y] = coords[i];
+    d += ` Q${px},${py} ${(px + x) / 2},${(py + y) / 2}`;
+  }
+  d += ` L${coords[coords.length - 1][0]},${coords[coords.length - 1][1]}`;
+  const area = `${d} L${w},${h} L0,${h} Z`;
+  const gid = `hybgrad-${stroke.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none" aria-hidden>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={stroke} stopOpacity="0" />
+          <stop offset="100%" stopColor={stroke} stopOpacity="0.22" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path
+        d={d}
+        fill="none"
+        stroke={stroke}
+        strokeOpacity="0.5"
+        strokeWidth="1.5"
+        vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function LineMark({
   points,
   stroke,

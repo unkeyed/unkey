@@ -18,9 +18,9 @@ import { ProjectGrid, ProjectsEmptyCard } from "./project-grid";
 import { Rail } from "./rail";
 import {
   DebugCommand,
+  useAgentDismissed,
   useAgentStyle,
   useMark,
-  usePersistedFlag,
   useRowVariant,
   useScenario,
 } from "./scenario";
@@ -31,10 +31,7 @@ export function ProjectsPrototype() {
   const { variant, setVariant } = useRowVariant();
   const { mark, setMark } = useMark();
   const { agentStyle, setAgentStyle } = useAgentStyle();
-  const [agentDismissed, setAgentDismissed] = usePersistedFlag(
-    "unkey:projects-agent-dismissed",
-    false,
-  );
+  const [agentDismissed, setAgentDismissed] = useAgentDismissed();
 
   const projectsQuery = useLiveQuery((q) => q.from({ project: collection.projects }));
   const mockData = scenario === "live" ? null : MOCK[scenario];

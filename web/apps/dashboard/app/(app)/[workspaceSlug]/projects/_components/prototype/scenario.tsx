@@ -8,15 +8,16 @@ import { type Scenario, SCENARIO_LABELS } from "./mock-data";
 
 const SCENARIOS: Scenario[] = ["new", "migrated", "active", "live"];
 
-export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile";
+export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid";
 
-const ROW_VARIANTS: RowVariant[] = ["detailed", "graph", "flat", "list", "tile"];
+const ROW_VARIANTS: RowVariant[] = ["detailed", "graph", "flat", "list", "tile", "hybrid"];
 const ROW_VARIANT_LABELS: Record<RowVariant, string> = {
   detailed: "Detailed",
   graph: "Graph",
   flat: "Flat",
   list: "List",
   tile: "Tile",
+  hybrid: "Hybrid",
 };
 
 const MARKS: Mark[] = ["line", "bars", "ratio", "heatmap"];
@@ -33,117 +34,98 @@ const AGENT_STYLE_LABELS: Record<AgentStyle, string> = {
   stacked: "Stacked",
 };
 
-function readStorage(key: string): string | null {
+// All prototype choices live in the URL query string so a configuration can be
+// shared as a link (e.g. ?scenario=migrated&row=list&mark=bars&agent=minimal).
+function readParam(key: string): string | null {
   try {
-    return window.localStorage.getItem(key);
+    return new URLSearchParams(window.location.search).get(key);
   } catch {
     return null;
   }
 }
 
-function writeStorage(key: string, value: string) {
+function writeParam(key: string, value: string) {
   try {
-    window.localStorage.setItem(key, value);
+    const url = new URL(window.location.href);
+    url.searchParams.set(key, value);
+    window.history.replaceState(null, "", url.toString());
   } catch {
-    // ignore (private mode etc.)
+    // ignore
   }
 }
 
-export function useScenario() {
-  const key = "unkey:projects-scenario";
-  const [scenario, setScenarioState] = useState<Scenario>("migrated");
+// Reads the param on mount (falling back to `initial`) and always writes the
+// resolved value back, so the URL encodes the full config even for defaults.
+function useUrlEnum<T extends string>(key: string, allowed: readonly T[], initial: T) {
+  const [value, setValue] = useState<T>(initial);
 
   useEffect(() => {
-    const stored = readStorage(key);
-    if (SCENARIOS.includes(stored as Scenario)) {
-      setScenarioState(stored as Scenario);
+    const param = readParam(key);
+    const resolved = param && (allowed as readonly string[]).includes(param) ? (param as T) : initial;
+    if (resolved !== initial) {
+      setValue(resolved);
     }
+    writeParam(key, resolved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const setScenario = useCallback((next: Scenario) => {
-    setScenarioState(next);
-    writeStorage(key, next);
-  }, []);
-
-  return { scenario, setScenario };
-}
-
-export function useRowVariant() {
-  const key = "unkey:projects-rowvariant";
-  const [variant, setVariantState] = useState<RowVariant>("graph");
-
-  useEffect(() => {
-    const stored = readStorage(key);
-    if (stored && ROW_VARIANTS.includes(stored as RowVariant)) {
-      setVariantState(stored as RowVariant);
-    }
-  }, []);
-
-  const setVariant = useCallback((next: RowVariant) => {
-    setVariantState(next);
-    writeStorage(key, next);
-  }, []);
-
-  return { variant, setVariant };
-}
-
-export function useMark() {
-  const key = "unkey:projects-mark";
-  const [mark, setMarkState] = useState<Mark>("bars");
-
-  useEffect(() => {
-    const stored = readStorage(key);
-    if (stored && MARKS.includes(stored as Mark)) {
-      setMarkState(stored as Mark);
-    }
-  }, []);
-
-  const setMark = useCallback((next: Mark) => {
-    setMarkState(next);
-    writeStorage(key, next);
-  }, []);
-
-  return { mark, setMark };
-}
-
-export function useAgentStyle() {
-  const key = "unkey:projects-agentstyle";
-  const [agentStyle, setAgentStyleState] = useState<AgentStyle>("minimal");
-
-  useEffect(() => {
-    const stored = readStorage(key);
-    if (stored && AGENT_STYLES.includes(stored as AgentStyle)) {
-      setAgentStyleState(stored as AgentStyle);
-    }
-  }, []);
-
-  const setAgentStyle = useCallback((next: AgentStyle) => {
-    setAgentStyleState(next);
-    writeStorage(key, next);
-  }, []);
-
-  return { agentStyle, setAgentStyle };
-}
-
-export function usePersistedFlag(key: string, initial: boolean) {
-  const [value, setValue] = useState(initial);
-
-  useEffect(() => {
-    const stored = readStorage(key);
-    if (stored != null) {
-      setValue(stored === "true");
-    }
-  }, [key]);
 
   const set = useCallback(
-    (next: boolean) => {
+    (next: T) => {
       setValue(next);
-      writeStorage(key, String(next));
+      writeParam(key, next);
     },
     [key],
   );
 
   return [value, set] as const;
+}
+
+function useUrlBool(key: string, initial: boolean) {
+  const [value, setValue] = useState(initial);
+
+  useEffect(() => {
+    const param = readParam(key);
+    const resolved = param == null ? initial : param === "true";
+    if (resolved !== initial) {
+      setValue(resolved);
+    }
+    writeParam(key, String(resolved));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const set = useCallback(
+    (next: boolean) => {
+      setValue(next);
+      writeParam(key, String(next));
+    },
+    [key],
+  );
+
+  return [value, set] as const;
+}
+
+export function useScenario() {
+  const [scenario, setScenario] = useUrlEnum<Scenario>("scenario", SCENARIOS, "migrated");
+  return { scenario, setScenario };
+}
+
+export function useRowVariant() {
+  const [variant, setVariant] = useUrlEnum<RowVariant>("row", ROW_VARIANTS, "list");
+  return { variant, setVariant };
+}
+
+export function useMark() {
+  const [mark, setMark] = useUrlEnum<Mark>("mark", MARKS, "bars");
+  return { mark, setMark };
+}
+
+export function useAgentStyle() {
+  const [agentStyle, setAgentStyle] = useUrlEnum<AgentStyle>("agent", AGENT_STYLES, "minimal");
+  return { agentStyle, setAgentStyle };
+}
+
+export function useAgentDismissed() {
+  return useUrlBool("agentHidden", false);
 }
 
 type Cmd = { id: string; group: string; label: string; active: boolean; run: () => void };

@@ -217,6 +217,36 @@ export function RailRow({
     );
   }
 
+  // "hybrid" — big metric + a contained chart stacked on the right (no overlap).
+  if (variant === "hybrid") {
+    return (
+      <Link
+        href={item.href}
+        className="group flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-grayA-2"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-medium text-accent-12">{item.title}</div>
+          <RowSubtitle item={item} className="mt-0.5" />
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[15px] font-semibold leading-none tabular-nums text-accent-12">
+              {item.value}
+            </span>
+            <Delta spark={item.spark} />
+          </div>
+          <RowMark
+            mark="bars"
+            points={item.spark}
+            errorRatio={item.errorRatio}
+            stroke={item.stroke}
+            className="h-6"
+          />
+        </div>
+      </Link>
+    );
+  }
+
   // "graph" | "flat"
   const isFlat = variant === "flat";
   return (
