@@ -70,13 +70,14 @@ func TestInstallGithubSuccessfully(t *testing.T) {
 
 	state := stateFrom(t, res.Body.Data.Url)
 	require.Equal(t, workspace.ID, state["workspaceId"])
-	require.Equal(t, "api", state["source"])
+	require.Equal(t, "api", state["flow"])
 	require.NotEmpty(t, state["sig"])
 	require.NotEmpty(t, state["nonce"])
-	// Installation is workspace-wide: no app, project, repository, or returnTo
-	// is bound; the callback always lands on the caller's workspace settings.
+	// The api flow is workspace-wide: no app, project, repository, returnTo, or
+	// user is bound; the callback lands on the caller's workspace settings.
 	require.NotContains(t, state, "appId")
 	require.NotContains(t, state, "projectId")
 	require.NotContains(t, state, "repository")
 	require.NotContains(t, state, "returnTo")
+	require.NotContains(t, state, "userId")
 }

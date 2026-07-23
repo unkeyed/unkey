@@ -22,28 +22,58 @@ import { t, workspaceProcedure } from "../trpc";
 const STATE_TTL_MS = 15 * 60 * 1000;
 
 // State payload signed and handed to GitHub's install URL. The signature binds
-// the state to a workspace (and, when present, a user + app) so the callback
-// cannot be replayed across sessions or used by an attacker who phishes a
-// logged-in victim into hitting /integrations/github/callback?state=
+// the state to a workspace (and, per flow, a user + app) so the callback cannot
+// be replayed across sessions or used by an attacker who phishes a logged-in
+// victim into hitting /integrations/github/callback?state=
 //
-// The flow is derived from which fields are present:
-//   - `userId` present  -> bound to that user (dashboard-initiated); enforced.
-//   - `appId` present   -> app-targeted install (dashboard wizard); otherwise a
-//                          workspace-wide install (CLI/API or dashboard settings).
-// `source` is NOT a shape discriminator; it only records the install origin
-// ("api" = CLI/API, "dashboard" = dashboard) for the audit log.
-const signedStatePayload = z.object({
+// `flow` is the discriminator over the three install flows, and it also drives
+// where the callback lands the user:
+//   - "api":       CLI/API workspace install (workspaces.installGithub). No user;
+//                  secured by the OAuth-code ownership proof. -> workspace settings.
+//   - "workspace": dashboard workspace install (settings). User-bound. -> workspace home.
+//   - "app":       dashboard app install (onboarding or app settings). User- and
+//                  app-bound. -> the app.
+const stateBaseFields = {
   workspaceId: z.string().min(1),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
-  userId: z.string().min(1).optional(),
-  projectId: z.string().min(1).optional(),
-  appId: z.string().min(1).optional(),
-  returnTo: z.enum(["settings"]).optional(),
-  source: z.enum(["api", "dashboard"]),
-});
+};
 
-const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
+// Each variant is strict: a state may carry ONLY the fields its flow declares.
+// An "api" state with a userId, or a "workspace" state with an appId, fails to
+// verify rather than being silently stripped.
+const apiInstallState = z.object({ ...stateBaseFields, flow: z.literal("api") }).strict();
+
+const workspaceInstallState = z
+  .object({
+    ...stateBaseFields,
+    flow: z.literal("workspace"),
+    userId: z.string().min(1),
+  })
+  .strict();
+
+const appInstallState = z
+  .object({
+    ...stateBaseFields,
+    flow: z.literal("app"),
+    userId: z.string().min(1),
+    projectId: z.string().min(1),
+    appId: z.string().min(1),
+    returnTo: z.enum(["settings"]).optional(),
+  })
+  .strict();
+
+const signedStatePayload = z.discriminatedUnion("flow", [
+  apiInstallState,
+  workspaceInstallState,
+  appInstallState,
+]);
+
+const signedState = z.discriminatedUnion("flow", [
+  apiInstallState.extend({ sig: z.string().min(1) }),
+  workspaceInstallState.extend({ sig: z.string().min(1) }),
+  appInstallState.extend({ sig: z.string().min(1) }),
+]);
 
 type SignedStatePayload = z.infer<typeof signedStatePayload>;
 
@@ -244,7 +274,7 @@ export const githubRouter = t.router({
 
     return {
       state: signState({
-        source: "dashboard",
+        flow: "workspace",
         workspaceId: ctx.workspace.id,
         userId: ctx.user.id,
         nonce: crypto.randomBytes(16).toString("base64url"),
@@ -286,12 +316,12 @@ export const githubRouter = t.router({
 
       return {
         state: signState({
+          flow: "app",
           projectId: input.projectId,
           appId: input.appId,
           returnTo: input.returnTo,
           workspaceId: ctx.workspace.id,
           userId: ctx.user.id,
-          source: "dashboard",
           nonce: crypto.randomBytes(16).toString("base64url"),
           exp: Date.now() + STATE_TTL_MS,
         }),
@@ -332,10 +362,10 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        // A state carrying a userId is bound to that user, so it must match the
-        // caller. States without one (CLI/API installs) are workspace-scoped and
-        // rely on the OAuth-code ownership proof below as the access control.
-        (parsedState.userId !== undefined && parsedState.userId !== ctx.user.id)
+        // The dashboard flows ("workspace", "app") are bound to the initiating
+        // user, so the caller must match. The "api" flow carries no user and is
+        // secured by the OAuth-code ownership proof below.
+        (parsedState.flow !== "api" && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -343,9 +373,9 @@ export const githubRouter = t.router({
         });
       }
 
-      // The app to land back on, or null for a workspace install.
+      // The app to land back on, or null for a workspace-wide install.
       const target =
-        parsedState.projectId && parsedState.appId
+        parsedState.flow === "app"
           ? {
               projectId: parsedState.projectId,
               appId: parsedState.appId,
@@ -479,7 +509,7 @@ export const githubRouter = t.router({
                 {
                   type: "githubInstallation",
                   id: String(input.installationId),
-                  meta: { source: parsedState.source, appId: target?.appId },
+                  meta: { flow: parsedState.flow, appId: target?.appId },
                 },
               ],
               context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
@@ -496,6 +526,7 @@ export const githubRouter = t.router({
 
       return {
         workspaceSlug: ctx.workspace.slug,
+        flow: parsedState.flow,
         projectId: target?.projectId ?? null,
         appId: target?.appId ?? null,
         returnTo: target?.returnTo ?? null,

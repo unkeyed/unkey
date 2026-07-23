@@ -48,10 +48,10 @@ type payload struct {
 	WorkspaceID string
 	Nonce       string
 	ExpMs       int64
-	// Source lets the dashboard discriminate the two flows. "api" marks a
-	// workspace install, verified by the OAuth ownership proof rather than a
-	// per-user binding.
-	Source string
+	// Flow is the dashboard's discriminator over the install flows. This route
+	// only ever mints "api": a workspace-wide install with no user, verified by
+	// the OAuth ownership proof on the dashboard rather than a per-user binding.
+	Flow string
 }
 
 func (s *signer) sign(p payload) (string, error) {
@@ -81,8 +81,8 @@ func (p payload) fields() map[string]any {
 		"nonce":       p.Nonce,
 		"exp":         p.ExpMs,
 	}
-	if p.Source != "" {
-		fields["source"] = p.Source
+	if p.Flow != "" {
+		fields["flow"] = p.Flow
 	}
 	return fields
 }
