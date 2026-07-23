@@ -4,12 +4,20 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 const (
+	// AnalyticsExecutionTimeMax is the hard server-side execution cap for customer analytics queries.
+	AnalyticsExecutionTimeMax = 30
+	// AnalyticsQueryTimeout bounds the ClickHouse phase within the API's larger
+	// request timeout. clickhouse-go adds five seconds when converting this
+	// deadline into max_execution_time, so a 10-second client timeout requests
+	// 15 seconds from ClickHouse and remains below the 30-second server cap.
+	AnalyticsQueryTimeout = 10 * time.Second
 	// AnalyticsResultBytesMax is the maximum encoded size of customer analytics results.
 	AnalyticsResultBytesMax = 4 << 20
 	// AnalyticsASTDepthMax is the maximum ClickHouse AST depth for customer analytics queries.
@@ -223,7 +231,7 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	`,
 		profileName,
 		config.MaxQueryExecutionTime,
-		config.MaxQueryExecutionTime,
+		AnalyticsExecutionTimeMax,
 		config.MaxQueryMemoryBytes,
 		config.MaxQueryResultRows,
 		AnalyticsResultBytesMax,

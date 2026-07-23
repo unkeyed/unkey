@@ -24,20 +24,6 @@ type Client struct {
 	retry          *retry.Retry
 }
 
-// contextWithoutDeadline separates the HTTP request timeout from the database
-// execution limit. clickhouse-go converts context deadlines into a
-// max_execution_time query setting, but workspace users cannot override the
-// execution limit enforced by their readonly server profile. Hiding only the
-// deadline prevents that conflicting setting while preserving cancellation, so
-// a client disconnect or expired HTTP request still stops the query.
-type contextWithoutDeadline struct {
-	context.Context
-}
-
-func (contextWithoutDeadline) Deadline() (time.Time, bool) {
-	return time.Time{}, false
-}
-
 var (
 	_ Querier    = (*Client)(nil)
 	_ ClickHouse = (*Client)(nil)
@@ -161,7 +147,7 @@ func (c *Client) Conn() ch.Conn {
 // Returns fault-wrapped errors with appropriate codes for resource limits,
 // user query errors, and system errors.
 func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
-	rows, err := c.conn.Query(contextWithoutDeadline{Context: ctx}, query, args...)
+	rows, err := c.conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, WrapClickHouseError(err)
 	}

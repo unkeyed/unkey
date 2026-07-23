@@ -48,6 +48,7 @@ function KeysPage() {
       ) : (
         <TooltipProvider delay={300}>
           <KeysTable
+            appName={portalConfig?.slug ?? undefined}
             keys={keys}
             searchValue={search}
             onSearchChange={setSearch}

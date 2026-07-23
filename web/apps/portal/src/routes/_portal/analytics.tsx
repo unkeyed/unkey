@@ -56,8 +56,13 @@ function AnalyticsPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 pt-8 pb-12 sm:px-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl text-gray-12">Analytics</h1>
+      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-semibold text-gray-12 text-xl">Analytics</h1>
+          <p className="text-gray-11 text-sm">
+            Monitor verification activity and usage trends for your API keys.
+          </p>
+        </div>
         {periodOptions.length > 1 && (
           <Select
             value={String(days)}
@@ -79,7 +84,7 @@ function AnalyticsPage() {
             </SelectContent>
           </Select>
         )}
-      </div>
+      </header>
 
       {isInitialLoading ? (
         <AnalyticsLoading />
@@ -110,7 +115,7 @@ function AnalyticsPage() {
             <MetricCard label="Success Rate" value={formatPercent(metrics.successRate)} />
             <MetricCard label="Error Rate" value={formatPercent(metrics.errorRate)} />
           </div>
-          <div className="rounded-lg border border-gray-6 bg-background p-4">
+          <div className="rounded-lg border border-primary/10 bg-background p-4">
             <VerificationsChart buckets={buckets} days={days} />
           </div>
         </div>
@@ -126,7 +131,7 @@ function formatPercent(fraction: number): string {
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-gray-6 bg-background p-4">
+    <div className="rounded-lg border border-primary/10 bg-background p-4">
       <span className="text-gray-11 text-xs">{label}</span>
       <div className="mt-1 font-semibold text-2xl text-gray-12 tabular-nums">{value}</div>
     </div>
@@ -146,7 +151,7 @@ function AnalyticsLoading() {
 
 function AnalyticsEmpty() {
   return (
-    <div className="rounded-lg border border-gray-6 bg-background">
+    <div className="rounded-lg border border-primary/10 bg-background">
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">

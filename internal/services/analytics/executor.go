@@ -44,7 +44,9 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 	}
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
-	rows, err := conn.QueryToMaps(ctx, parsedQuery)
+	queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
+	defer cancel()
+	rows, err := conn.QueryToMaps(queryCtx, parsedQuery)
 	if err != nil {
 		return nil, clickhouse.WrapClickHouseError(err)
 	}
