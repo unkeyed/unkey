@@ -17,8 +17,8 @@ export const ratelimitNamespaces = mysqlTable(
   },
   (table) => {
     return {
-      uniqueNamePerWorkspaceIdx: unique("unique_name_per_workspace_idx").on(
-        table.workspaceId,
+      uniqueNamePerProjectIdx: unique("unique_name_per_project_idx").on(
+        table.projectId,
         table.name,
       ),
       projectIdIdx: index("ratelimit_namespaces_project_id_idx").on(table.projectId),
