@@ -441,7 +441,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// which can take 5-10 minutes for DNS propagation
 	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
 	if cfg.Heartbeat.CertRenewalURL != "" {
-		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.CertRenewalURL)
+		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
 		DB:            database,
@@ -766,12 +766,12 @@ func Run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// cronHeartbeat returns a Checkly heartbeat for url, or a noop if url is
-// empty. Used to wire each cron task's monitoring URL without scattering
-// nil-or-noop branches through the cron service.
+// cronHeartbeat returns an HTTP heartbeat for url, or a noop if url is empty.
+// Used to wire each cron task's monitoring URL without scattering nil-or-noop
+// branches through the cron service.
 func cronHeartbeat(url string) healthcheck.Heartbeat {
 	if url == "" {
 		return healthcheck.NewNoop()
 	}
-	return healthcheck.NewChecklyHeartbeat(url)
+	return healthcheck.NewHTTPHeartbeat(url)
 }
