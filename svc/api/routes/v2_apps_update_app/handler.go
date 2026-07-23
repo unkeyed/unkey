@@ -352,9 +352,7 @@ func (h *Handler) applyGitChange(
 				fault.Public("Failed to retrieve app."),
 			)
 		}
-		// minProperties guarantees a branch when repository is omitted (enforced by
-		// the validator; see the "git empty object" bad-request test), so the
-		// dereference is safe.
+
 		branch := *requested.DefaultBranch
 		update.DefaultBranch = branch
 		update.DefaultBranchSpecified = 1
