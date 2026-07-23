@@ -59,7 +59,7 @@ function ProjectsPrototypeInner() {
                 <CreateProjectButton workspaceSlug={workspace.slug} variant="outline" />
               </ProjectsEmptyCard>
             ) : (
-              <ProjectGrid projects={world.projects} />
+              <ProjectGrid projects={world.projects} workspaceSlug={workspace.slug} />
             )}
           </div>
           <Rail
