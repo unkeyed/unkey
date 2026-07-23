@@ -4,7 +4,6 @@ import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { TOP_NAV_HEIGHT } from "../top-nav";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 
@@ -27,11 +26,9 @@ export function SidebarV2(props: Props) {
     <Sidebar
       {...props}
       collapsible="icon"
-      className={cn("[&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
-      style={{
-        top: TOP_NAV_HEIGHT,
-        height: `calc(100svh - ${TOP_NAV_HEIGHT}px)`,
-      }}
+      // absolute, not the default viewport-fixed: the layout's relative content
+      // row already starts below the top nav and the paused banner.
+      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
     >
       <SidebarContent>
         <SidebarBody />

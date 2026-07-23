@@ -3,19 +3,14 @@
 import { Switch } from "@/components/ui/switch";
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
-import { Button, DialogContainer, FormInput, InfoTooltip, toast } from "@unkey/ui";
+import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState } from "react";
-import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
-/** Alert thresholds as fractions of the budget; fixed, like Vercel's. */
-const ALERT_STEPS = [0.5, 0.75] as const;
+/** Alert thresholds as fractions of the budget. */
+export const ALERT_STEPS = [0.5, 0.75] as const;
 
-/**
- * Mirrors MAX_BUDGET_CENTS in the deploy-budget router so an over-cap value
- * fails client-side with a readable message instead of surfacing the server's
- * raw validation error.
- */
+/** Mirrors MAX_BUDGET_CENTS in the deploy-budget router so an over-cap value
+ *  fails client-side with a readable message. */
 const MAX_BUDGET_CENTS = 1_000_000_000;
 
 /**
@@ -35,37 +30,69 @@ function parseDollars(value: string): number | null | undefined {
   return cents > 0 && cents <= MAX_BUDGET_CENTS ? cents : undefined;
 }
 
-type SpendBudgetProps = {
-  isAdmin: boolean;
-  /** Month-to-date gross usage spend in cents, or null while loading. */
-  usageCents: number | null;
+/** The spend bar's fill and severity: neutral, amber from 75%, red at 100%.
+ *  Suspended means the cap was reached, so the bar reads full-and-red even
+ *  while the usage query lags behind it. */
+export function spendBar(
+  usageCents: number | null,
+  budgetCents: number | null,
+  suspended: boolean,
+): { fraction: number | null; fillClassName: string } {
+  const fraction = suspended
+    ? 1
+    : usageCents !== null && budgetCents
+      ? Math.min(1, Math.max(0, usageCents / budgetCents))
+      : null;
+  const usedFraction = usageCents !== null && budgetCents ? usageCents / budgetCents : 0;
+  const fillClassName =
+    suspended || usedFraction >= 1
+      ? "bg-error-9"
+      : usedFraction >= 0.75
+        ? "bg-warning-9"
+        : "bg-gray-9";
+  return { fraction, fillClassName };
+}
+
+type SpendBudgetDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-/**
- * The Compute spend-budget row: a flush section under the meter stats showing
- * month-to-date usage spend against the monthly budget, severity-colored with
- * ticks at the fixed alert thresholds (one number, alerts at
- * percentages of it, stopping workloads is a toggle). The bar spans the full
- * width like the usage meter above it, so the ticks line up; the Edit action
- * sits on the caption line below. Unset budget renders a one-line invitation
- * instead. When the spend cap has paused compute, a warning banner sits above
- * it.
- */
-export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents }) => {
+export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps) {
   const trpcUtils = trpc.useUtils();
-  const [isOpen, setOpen] = useState(false);
-  const [budgetInput, setBudgetInput] = useState("");
-  const [stopAtBudget, setStopAtBudget] = useState(false);
 
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, {
     staleTime: 30_000,
   });
 
+  const currentBudget = budget?.budgetCents ?? null;
+  const hasBudget = currentBudget !== null;
+
+  // null = untouched, fall through to the saved budget; only edits are stored,
+  // so a background refetch can't wipe input mid-edit.
+  const [budgetDraft, setBudgetDraft] = useState<string | null>(null);
+  const [stopDraft, setStopDraft] = useState<boolean | null>(null);
+  const budgetInput = budgetDraft ?? (currentBudget != null ? String(currentBudget / 100) : "");
+  const stopAtBudget = stopDraft ?? budget?.stopAtBudget ?? false;
+
+  const setOpen = (value: boolean) => {
+    if (!value) {
+      setBudgetDraft(null);
+      setStopDraft(null);
+    }
+    onOpenChange(value);
+  };
+
   const save = trpc.billing.setDeployBudget.useMutation({
     onSuccess: async () => {
       setOpen(false);
       toast.success("Spend budget saved");
-      await trpcUtils.billing.getDeployBudget.invalidate();
+      // workspace.getCurrent carries deploySpendSuspended, which drives the
+      // app-wide paused banner.
+      await Promise.all([
+        trpcUtils.billing.getDeployBudget.invalidate(),
+        trpcUtils.workspace.getCurrent.invalidate(),
+      ]);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -73,174 +100,86 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
   const budgetCents = parseDollars(budgetInput);
   const invalid = budgetCents === undefined || (stopAtBudget && budgetCents === null);
 
-  const openDialog = () => {
-    setBudgetInput(budget?.budgetCents != null ? String(budget.budgetCents / 100) : "");
-    setStopAtBudget(budget?.stopAtBudget ?? false);
-    setOpen(true);
-  };
-
-  const currentBudget = budget?.budgetCents ?? null;
-  const hasBudget = currentBudget !== null;
-  const suspended = budget?.suspended ?? false;
-
-  const fraction =
-    usageCents !== null && currentBudget
-      ? Math.min(1, Math.max(0, usageCents / currentBudget))
-      : null;
-  const usedFraction = usageCents !== null && currentBudget ? usageCents / currentBudget : 0;
-  // Severity steps like Vercel's ring: neutral, amber from 75%, red at 100%.
-  const fillClassName =
-    usedFraction >= 1 ? "bg-error-9" : usedFraction >= 0.75 ? "bg-warning-9" : "bg-gray-9";
-
-  const editButton = (
-    <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-      <span>
-        <Button variant="outline" size="sm" disabled={!isAdmin || !budget} onClick={openDialog}>
-          {hasBudget ? "Edit" : "Set budget"}
-        </Button>
-      </span>
-    </InfoTooltip>
-  );
-
   return (
-    <>
-      {suspended ? (
-        <div className="rounded-lg border border-warning-6 bg-warningA-2 px-4 py-3">
-          <span className="text-[11px] text-warning-11 uppercase tracking-wide">
-            Compute paused
-          </span>
-          <p className="mt-1 text-[13px] text-gray-12">
-            Compute is paused: spend cap reached. Raise or remove your budget, or turn off
-            &quot;stop workloads&quot;, and Compute resumes automatically within about a minute.
-          </p>
-        </div>
-      ) : null}
-      {hasBudget ? (
-        <div className="flex w-full flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-[13px] text-gray-11">Spend budget</span>
-            <span className="font-medium text-[13px] text-gray-12 tabular-nums">
-              {usageCents !== null ? formatDollars(usageCents) : "—"} of{" "}
-              {formatDollars(currentBudget)}
-              {/* Floor, not round: the bar turns red at exactly 100%, so the
-                  label must not read "100%" while the color is still amber. */}
-              {usageCents !== null && currentBudget
-                ? ` (${Math.floor((usageCents / currentBudget) * 100)}%)`
-                : ""}
-            </span>
-          </div>
-          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grayA-3">
-            {fraction !== null ? (
-              <div
-                className={cn("h-full rounded-full transition-[width] duration-300", fillClassName)}
-                style={{ width: `${fraction * 100}%` }}
-              />
-            ) : null}
-            {ALERT_STEPS.map((step) => (
-              <div
-                key={step}
-                className="absolute top-0 h-full w-px bg-gray-8"
-                style={{ left: `${step * 100}%` }}
-              />
-            ))}
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-[12px] text-gray-10">
-              {budget?.stopAtBudget
-                ? "Email alerts at 50%, 75% and 100% of your budget · workloads stop at the budget"
-                : "Email alerts at 50%, 75% and 100% of your budget · workloads keep running"}
-            </span>
-            <div className="shrink-0">{editButton}</div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[13px] text-gray-10">
-            <span className="text-gray-11">No spend budget.</span> Get email alerts and optionally
-            stop workloads at a monthly usage amount.
-          </p>
-          <div className="shrink-0">{editButton}</div>
-        </div>
-      )}
-
-      <DialogContainer
-        isOpen={isOpen}
-        onOpenChange={setOpen}
-        title="Compute spend budget"
-        subTitle="Applies to usage spend per calendar month."
-        footer={
-          <div className="flex w-full items-center justify-between gap-4">
-            {hasBudget ? (
-              <button
-                type="button"
-                className="text-[13px] text-error-9 transition-colors hover:text-error-11"
-                disabled={save.isLoading}
-                onClick={() => save.mutate({ budgetCents: null, stopAtBudget: false })}
-              >
-                Remove budget
-              </button>
-            ) : (
-              <span />
-            )}
+    <DialogContainer
+      isOpen={open}
+      onOpenChange={setOpen}
+      title="Compute spend budget"
+      subTitle="Applies to usage spend per calendar month."
+      footer={
+        <div className="flex w-full items-center justify-between gap-4">
+          {hasBudget ? (
             <Button
               type="button"
-              variant="primary"
-              size="xlg"
-              className="rounded-lg px-8"
-              disabled={invalid}
-              loading={save.isLoading}
-              onClick={() => {
-                if (budgetCents === undefined) {
-                  return;
-                }
-                save.mutate({ budgetCents, stopAtBudget });
-              }}
+              variant="ghost"
+              color="danger"
+              size="md"
+              disabled={save.isLoading}
+              onClick={() => save.mutate({ budgetCents: null, stopAtBudget: false })}
             >
-              Save budget
+              Remove budget
             </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-5">
-          <FormInput
-            label="Monthly budget"
-            description="We email you when your usage spend reaches 50%, 75% and 100% of this amount. Leave empty for no budget."
-            placeholder="300"
-            prefix="$"
-            inputMode="numeric"
-            value={budgetInput}
-            onChange={(e) => {
-              const next = e.currentTarget.value;
-              setBudgetInput(next);
-              // Clearing the budget clears the stop too: a stop without a
-              // budget has no trigger point.
-              if (parseDollars(next) === null) {
-                setStopAtBudget(false);
+          ) : (
+            <span />
+          )}
+          <Button
+            type="button"
+            variant="primary"
+            size="xlg"
+            className="rounded-lg px-8"
+            disabled={invalid}
+            loading={save.isLoading}
+            onClick={() => {
+              if (budgetCents === undefined) {
+                return;
               }
+              save.mutate({ budgetCents, stopAtBudget });
             }}
-            error={
-              budgetCents === undefined
-                ? "Enter a whole dollar amount up to $10,000,000, or leave empty."
-                : undefined
-            }
-          />
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-[13px] text-gray-12">Stop workloads at the budget</span>
-              <span className="text-[12px] text-gray-10">
-                {budgetCents != null
-                  ? `Workloads stop for the rest of the month when usage spend reaches ${formatDollars(budgetCents)}.`
-                  : "Workloads stop for the rest of the month when usage spend reaches the budget."}
-              </span>
-            </div>
-            <Switch
-              checked={stopAtBudget}
-              onCheckedChange={setStopAtBudget}
-              disabled={budgetCents === null || budgetCents === undefined}
-            />
-          </div>
+          >
+            Save budget
+          </Button>
         </div>
-      </DialogContainer>
-    </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <FormInput
+          label="Monthly budget"
+          description="We email you when your usage spend reaches 50%, 75% and 100% of this amount. Leave empty for no budget."
+          placeholder="300"
+          prefix="$"
+          inputMode="numeric"
+          value={budgetInput}
+          onChange={(e) => {
+            const next = e.currentTarget.value;
+            setBudgetDraft(next);
+            // Clearing the budget clears the stop too: a stop without a
+            // budget has no trigger point.
+            if (parseDollars(next) === null) {
+              setStopDraft(false);
+            }
+          }}
+          error={
+            budgetCents === undefined
+              ? "Enter a whole dollar amount up to $10,000,000, or leave empty."
+              : undefined
+          }
+        />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-[13px] text-gray-12">Stop workloads at the budget</span>
+            <span className="text-[12px] text-gray-10">
+              {budgetCents != null
+                ? `Workloads stop for the rest of the month when usage spend reaches ${formatDollars(budgetCents)}.`
+                : "Workloads stop for the rest of the month when usage spend reaches the budget."}
+            </span>
+          </div>
+          <Switch
+            checked={stopAtBudget}
+            onCheckedChange={setStopDraft}
+            disabled={budgetCents === null || budgetCents === undefined}
+          />
+        </div>
+      </div>
+    </DialogContainer>
   );
-};
+}
