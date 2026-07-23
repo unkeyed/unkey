@@ -46,7 +46,7 @@ data:
     token = "your-local-dev-key"
 
     # Populated from the github-credentials secret (created by `dev github setup`).
-    # Empty when GitHub is not set up locally, which disables apps.createGithubConnection.
+    # Empty when GitHub is not set up locally, which disables workspaces.installGithub.
     [github]
     app_name = "${NEXT_PUBLIC_GITHUB_APP_NAME}"
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
@@ -84,7 +84,7 @@ spec:
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector:4318"
-            # GitHub App slug + private key for apps.createGithubConnection. From
+            # GitHub App slug + private key for workspaces.installGithub. From
             # the github-credentials secret; optional so api still boots without
             # `dev github setup` having run.
             - name: NEXT_PUBLIC_GITHUB_APP_NAME
