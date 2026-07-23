@@ -85,8 +85,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: principal.WorkspaceID,
 		Nonce:       base64.RawURLEncoding.EncodeToString(nonceBytes),
 		ExpMs:       expiresAtMs,
-		// "api" flow: a workspace-wide install with no user binding. The callback
-		// verifies it via the OAuth ownership proof and lands on workspace settings.
+		// "api" flow: a workspace-wide install with no user binding, verified by
+		// the callback's OAuth ownership proof.
 		Flow: "api",
 	})
 	if err != nil {
