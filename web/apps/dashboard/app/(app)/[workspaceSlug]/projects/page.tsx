@@ -1,33 +1,19 @@
 "use client";
 
-import { NewNavigationBanner } from "@/components/navigation/new-navigation-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import { useLiveQuery } from "@tanstack/react-db";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-  toast,
-} from "@unkey/ui";
+import { toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { CreateProjectButton } from "./_components/create-project-button";
-import { ProjectsList } from "./_components/list";
-import { EmptyProjects } from "./_components/list/empty-projects";
+import { ProjectsPrototype } from "./_components/prototype/projects-prototype";
 
 export default function ProjectsPage() {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isNewProject = searchParams.get("new") === "true";
-  const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   usePendingSubscribe();
 
@@ -39,28 +25,7 @@ export default function ProjectsPage() {
     }
   }, [isNewProject, router, workspace.slug]);
 
-  const isEmpty = !projects.isLoading && projects.data.length === 0;
-
-  if (isEmpty) {
-    return <EmptyProjects />;
-  }
-
-  return (
-    <PageContainer>
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>Projects</PageHeaderTitle>
-        </PageHeaderContent>
-        <PageHeaderActions>
-          <CreateProjectButton workspaceSlug={workspace.slug} />
-        </PageHeaderActions>
-      </PageHeader>
-      <PageBody>
-        <ProjectsList />
-        <NewNavigationBanner />
-      </PageBody>
-    </PageContainer>
-  );
+  return <ProjectsPrototype />;
 }
 
 /**
