@@ -39,6 +39,7 @@ func RunRateLimitTest(
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   "", // Deliberate rollout sentinel; this test does not select a project yet.
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
