@@ -9,7 +9,7 @@ properties:
     description: |
       The GitHub App install URL. Open it in a browser to install the app and
       grant repository access. After installation GitHub returns to Unkey, which
-      finishes the connection and lands you in the dashboard.
+      binds the installation and lands you in the workspace settings.
     example: https://github.com/apps/unkey/installations/new?state=eyJ...
   expiresAt:
     type: integer

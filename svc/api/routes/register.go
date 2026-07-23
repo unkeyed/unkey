@@ -73,7 +73,6 @@ import (
 	v2PortalRerollKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
-	v2AppsCreateGithubConnection "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_github_connection"
 	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
@@ -92,6 +91,8 @@ import (
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
+
+	v2WorkspacesInstallGithub "github.com/unkeyed/unkey/svc/api/routes/v2_workspaces_install_github"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -799,10 +800,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/apps.createGithubConnection
+	// v2/workspaces.installGithub
 	srv.RegisterRoute(
 		protectedMiddlewares,
-		&v2AppsCreateGithubConnection.Handler{
+		&v2WorkspacesInstallGithub.Handler{
 			DB:                  svc.Database,
 			GitHubAppName:       svc.GitHubAppName,
 			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,

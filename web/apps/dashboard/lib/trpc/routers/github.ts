@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
@@ -21,31 +21,44 @@ import { t, workspaceProcedure } from "../trpc";
 
 const STATE_TTL_MS = 15 * 60 * 1000;
 
-// State payload signed and handed to GitHub's install URL. The signature
-// binds the state to a specific user + workspace + project so the callback
-// cannot be replayed across sessions or used by an attacker who phishes
-// a logged-in victim into hitting /integrations/github/callback?state=...
-const signedStatePayload = z.object({
-  projectId: z.string().min(1),
-  appId: z.string().min(1),
-  returnTo: z.enum(["settings"]).optional(),
+// State payload signed and handed to GitHub's install URL. The signature binds
+// the state to a workspace (and, for the dashboard flow, a user + app) so the
+// callback cannot be replayed across sessions or used by an attacker who
+// phishes a logged-in victim into hitting /integrations/github/callback?state=
+//
+// `source` discriminates the two flows:
+//   - "api": a workspace-wide install (workspaces.installGithub). No user or app
+//     target; the callback only binds the installation to the workspace.
+//   - "dashboard": an app-targeted install from the dashboard wizard, bound to
+//     the initiating user and carrying the app to land back on.
+const stateBaseFields = {
   workspaceId: z.string().min(1),
-  // Present for dashboard-initiated installs (binds the state to the initiating
-  // user). Absent for API-minted states (apps.createGithubConnection), which a
-  // root key authorizes at the workspace level with no user identity.
-  userId: z.string().min(1).optional(),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
-  // Set by the API flow to auto-connect a repository ("owner/name") after
-  // install, skipping the picker.
-  repository: z.string().min(1).optional(),
-  // Marks the flow origin explicitly. "dashboard" states are bound to the
-  // initiating user; "api" states skip the user binding (see userId above).
-  // Optional so states minted before this field existed still verify.
-  source: z.enum(["api", "dashboard"]).optional(),
+};
+
+const apiInstallState = z.object({
+  ...stateBaseFields,
+  source: z.literal("api"),
 });
 
-const signedState = signedStatePayload.extend({ sig: z.string().min(1) });
+const dashboardInstallState = z.object({
+  ...stateBaseFields,
+  source: z.literal("dashboard"),
+  projectId: z.string().min(1),
+  appId: z.string().min(1),
+  userId: z.string().min(1),
+  // Only the wizard chooses between the app settings page and the repo picker;
+  // the workspace install always lands on workspace settings.
+  returnTo: z.enum(["settings"]).optional(),
+});
+
+const signedStatePayload = z.discriminatedUnion("source", [apiInstallState, dashboardInstallState]);
+
+const signedState = z.discriminatedUnion("source", [
+  apiInstallState.extend({ sig: z.string().min(1) }),
+  dashboardInstallState.extend({ sig: z.string().min(1) }),
+]);
 
 type SignedStatePayload = z.infer<typeof signedStatePayload>;
 
@@ -168,11 +181,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
     defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
-        pk: app.githubRepoConnection.pk,
-        repositoryId: app.githubRepoConnection.repositoryId,
-        repositoryFullName: app.githubRepoConnection.repositoryFullName,
-        installationId: app.githubRepoConnection.installationId,
-      }
+          pk: app.githubRepoConnection.pk,
+          repositoryId: app.githubRepoConnection.repositoryId,
+          repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
+        }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };
@@ -311,11 +324,11 @@ export const githubRouter = t.router({
       if (
         !parsedState ||
         parsedState.workspaceId !== ctx.workspace.id ||
-        // A state carrying a userId is dashboard-initiated and bound to that
-        // user, so it must match the caller. API-minted states carry none and
-        // are workspace-scoped (the OAuth-code ownership proof below is the real
+        // Dashboard states are bound to the initiating user, so the caller must
+        // match. Workspace install ("api") states carry no user and are
+        // workspace-scoped (the OAuth-code ownership proof below is the real
         // access control).
-        (parsedState.userId !== undefined && parsedState.userId !== ctx.user.id)
+        (parsedState.source === "dashboard" && parsedState.userId !== ctx.user.id)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -323,7 +336,15 @@ export const githubRouter = t.router({
         });
       }
 
-      const projectId = parsedState.projectId;
+      // The app to land back on, or null for a workspace install.
+      const target =
+        parsedState.source === "dashboard"
+          ? {
+              projectId: parsedState.projectId,
+              appId: parsedState.appId,
+              returnTo: parsedState.returnTo ?? null,
+            }
+          : null;
 
       // Look up any existing binding for this installation id up front; whether
       // we must re-prove ownership depends on who (if anyone) already owns it.
@@ -403,52 +424,34 @@ export const githubRouter = t.router({
         }
       }
 
-      const projectInstallation = await fetchProjectInstallation(
-        ctx.workspace.id,
-        projectId,
-        input.installationId,
-      ).catch((err) => {
-        console.error(err);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to load project installation",
-        });
-      });
-
-      if (!projectInstallation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Project not found",
-        });
-      }
-
-      // Resolve the repo to auto-connect BEFORE the transaction (GitHub API call;
-      // must not hold a DB tx open). Match against the installation's GRANTED
-      // repositories, not getRepository: getRepository returns metadata for a
-      // public repo even when it wasn't selected during install, which would
-      // create a non-functional connection to a repo the installation can't
-      // actually access. Not granted -> stays null -> user picks one on return.
-      let repoToConnect: Awaited<ReturnType<typeof getInstallationRepositories>>[number] | null =
-        null;
-      if (parsedState.repository) {
-        try {
-          const granted = await getInstallationRepositories(input.installationId);
-          const wanted = parsedState.repository.toLowerCase();
-          repoToConnect = granted.find((r) => r.full_name.toLowerCase() === wanted) ?? null;
-        } catch (err) {
+      // Only the app-targeted flow references a project; validate it exists and
+      // owns this installation before landing the user back on it.
+      if (target) {
+        const projectInstallation = await fetchProjectInstallation(
+          ctx.workspace.id,
+          target.projectId,
+          input.installationId,
+        ).catch((err) => {
           console.error(err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load project installation",
+          });
+        });
+
+        if (!projectInstallation) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Project not found",
+          });
         }
       }
 
-      const origin = parsedState.source ?? "dashboard";
-      let repositoryConnected = false;
-
-      // Bind the installation, connect the repo, and record both audit events
-      // atomically so an audit entry can never orphan or go missing.
+      // Bind the installation and record the audit event atomically so an audit
+      // entry can never orphan or go missing. Repositories are linked to apps
+      // separately (apps.createApp / apps.updateApp), not during install.
       await db
         .transaction(async (tx) => {
-          const auditLogs: UnkeyAuditLog[] = [];
-
           await tx
             .insert(schema.githubAppInstallations)
             .values({
@@ -458,71 +461,23 @@ export const githubRouter = t.router({
               updatedAt: null,
             })
             .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } });
-          auditLogs.push({
-            workspaceId: ctx.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "githubInstallation.create",
-            description: `Bound GitHub installation ${input.installationId}`,
-            resources: [
-              {
-                type: "githubInstallation",
-                id: String(input.installationId),
-                meta: { source: origin, appId: parsedState.appId },
-              },
-            ],
-            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
-          });
 
-          if (repoToConnect) {
-            await tx
-              .insert(schema.githubRepoConnections)
-              .values({
-                workspaceId: ctx.workspace.id,
-                projectId,
-                appId: parsedState.appId,
-                installationId: input.installationId,
-                repositoryId: repoToConnect.id,
-                repositoryFullName: repoToConnect.full_name,
-                createdAt: Date.now(),
-                updatedAt: null,
-              })
-              .onDuplicateKeyUpdate({
-                set: {
-                  installationId: input.installationId,
-                  repositoryId: repoToConnect.id,
-                  repositoryFullName: repoToConnect.full_name,
-                  updatedAt: Date.now(),
-                },
-              });
-            if (repoToConnect.default_branch) {
-              await tx
-                .update(schema.apps)
-                .set({ defaultBranch: repoToConnect.default_branch, updatedAt: Date.now() })
-                .where(eq(schema.apps.id, parsedState.appId));
-            }
-            repositoryConnected = true;
-            auditLogs.push({
+          await insertAuditLogs(tx, [
+            {
               workspaceId: ctx.workspace.id,
               actor: { type: "user", id: ctx.user.id },
-              event: "app.connect_github",
-              description: `Connected ${repoToConnect.full_name}`,
+              event: "githubInstallation.create",
+              description: `Bound GitHub installation ${input.installationId}`,
               resources: [
                 {
-                  type: "app",
-                  id: parsedState.appId,
-                  name: repoToConnect.full_name,
-                  meta: {
-                    source: origin,
-                    installationId: input.installationId,
-                    repositoryFullName: repoToConnect.full_name,
-                  },
+                  type: "githubInstallation",
+                  id: String(input.installationId),
+                  meta: { source: parsedState.source, appId: target?.appId },
                 },
               ],
               context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
-            });
-          }
-
-          await insertAuditLogs(tx, auditLogs);
+            },
+          ]);
         })
         .catch((err) => {
           console.error(err);
@@ -534,11 +489,9 @@ export const githubRouter = t.router({
 
       return {
         workspaceSlug: ctx.workspace.slug,
-        projectId,
-        appId: parsedState.appId,
-        returnTo: parsedState.returnTo ?? null,
-        repositoryConnected,
-        requestedRepository: parsedState.repository ?? null,
+        projectId: target?.projectId ?? null,
+        appId: target?.appId ?? null,
+        returnTo: target?.returnTo ?? null,
       };
     }),
 

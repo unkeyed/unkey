@@ -1471,44 +1471,6 @@ type V2AppsCreateAppResponseData struct {
 	AppId string `json:"appId"`
 }
 
-// V2AppsCreateGithubConnectionRequestBody defines model for V2AppsCreateGithubConnectionRequestBody.
-type V2AppsCreateGithubConnectionRequestBody struct {
-	// App Identifies a resource by either its unique ID or its slug.
-	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	App ResourceIdentifier `json:"app"`
-
-	// Project Identifies a resource by either its unique ID or its slug.
-	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	Project ResourceIdentifier `json:"project"`
-
-	// Repository Optional repository to connect once the GitHub App is installed, as
-	// `owner/name` or a full GitHub URL (e.g. `https://github.com/owner/name`).
-	// When provided and the repository is granted during installation, it is
-	// wired to the app automatically so you skip the repository picker. Omit it
-	// to pick the repository after installing.
-	Repository *string `json:"repository,omitempty"`
-}
-
-// V2AppsCreateGithubConnectionResponseBody defines model for V2AppsCreateGithubConnectionResponseBody.
-type V2AppsCreateGithubConnectionResponseBody struct {
-	Data V2AppsCreateGithubConnectionResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2AppsCreateGithubConnectionResponseData defines model for V2AppsCreateGithubConnectionResponseData.
-type V2AppsCreateGithubConnectionResponseData struct {
-	// ExpiresAt Unix timestamp in milliseconds after which the URL's signed state expires
-	// and the link must be requested again.
-	ExpiresAt int64 `json:"expiresAt"`
-
-	// Url The GitHub App install URL. Open it in a browser to install the app and
-	// grant repository access. After installation GitHub returns to Unkey, which
-	// finishes the connection and lands you in the dashboard.
-	Url string `json:"url"`
-}
-
 // V2AppsDeleteAppRequestBody defines model for V2AppsDeleteAppRequestBody.
 type V2AppsDeleteAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -4018,6 +3980,26 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2WorkspacesInstallGithubResponseBody defines model for V2WorkspacesInstallGithubResponseBody.
+type V2WorkspacesInstallGithubResponseBody struct {
+	Data V2WorkspacesInstallGithubResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2WorkspacesInstallGithubResponseData defines model for V2WorkspacesInstallGithubResponseData.
+type V2WorkspacesInstallGithubResponseData struct {
+	// ExpiresAt Unix timestamp in milliseconds after which the URL's signed state expires
+	// and the link must be requested again.
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Url The GitHub App install URL. Open it in a browser to install the app and
+	// grant repository access. After installation GitHub returns to Unkey, which
+	// binds the installation and lands you in the workspace settings.
+	Url string `json:"url"`
+}
+
 // ValidationError Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
 type ValidationError struct {
 	// Fix A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
@@ -4083,9 +4065,6 @@ type ApisListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
 // AppsCreateAppJSONRequestBody defines body for AppsCreateApp for application/json ContentType.
 type AppsCreateAppJSONRequestBody = V2AppsCreateAppRequestBody
-
-// AppsCreateGithubConnectionJSONRequestBody defines body for AppsCreateGithubConnection for application/json ContentType.
-type AppsCreateGithubConnectionJSONRequestBody = V2AppsCreateGithubConnectionRequestBody
 
 // AppsDeleteAppJSONRequestBody defines body for AppsDeleteApp for application/json ContentType.
 type AppsDeleteAppJSONRequestBody = V2AppsDeleteAppRequestBody

@@ -25,6 +25,7 @@ const identityEnvId = z.string();
 const projectId = buildIdSchema("proj");
 const appId = buildIdSchema("app");
 const environmentId = buildIdSchema("env");
+const workspaceId = buildIdSchema("ws");
 export const apiActions = z.enum([
   "read_api",
   "create_api",
@@ -83,6 +84,7 @@ export const projectActions = z.enum([
   "generate_upload_url",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app", "connect_github"]);
+export const workspaceActions = z.enum(["install_github"]);
 export const environmentActions = z.enum([
   "read_environment",
   "update_environment",
@@ -109,6 +111,7 @@ const scopedResources = {
   project: { idSchema: projectId, actionsSchema: projectActions },
   app: { idSchema: appId, actionsSchema: appActions },
   environment: { idSchema: environmentId, actionsSchema: environmentActions },
+  workspace: { idSchema: workspaceId, actionsSchema: workspaceActions },
 } as const;
 
 export type Resources = {
@@ -129,6 +132,8 @@ export type Resources = {
   [resourceId in `environment.${z.infer<typeof environmentId>}`]: z.infer<
     typeof environmentActions
   >;
+} & {
+  [resourceId in `workspace.${z.infer<typeof workspaceId>}`]: z.infer<typeof workspaceActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
