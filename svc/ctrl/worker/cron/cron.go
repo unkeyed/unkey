@@ -29,12 +29,14 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploymentcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/ratelimitcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/registrysweep"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -51,6 +53,7 @@ type Service struct {
 	auditLogExport       *auditlogexport.Handler
 	deployBilling        *deploybilling.Handler
 	deployBillingPush    *deploybilling.PushHandler
+	deploymentCleanup    *deploymentcleanup.Handler
 	deploySpendCheck     *deployspendcheck.Handler
 	deploySpendCheckWork *deployspendcheck.CheckHandler
 	idlePreview          *idlepreview.Handler
@@ -89,6 +92,7 @@ type Heartbeats struct {
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
 	DeploySpendCheck   healthcheck.Heartbeat
+	DeploymentCleanup  healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -136,6 +140,10 @@ type Config struct {
 	// BillingBaseURL is the dashboard origin used to build the alert's billing
 	// link, e.g. "https://app.unkey.com".
 	BillingBaseURL string
+
+	RegistrySweepDepot registrysweep.DepotAPI
+	RegistryRepository string
+	DepotProjectPrefix string
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -155,6 +163,8 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeploymentCleanup, "Heartbeats.DeploymentCleanup must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.RegistrySweepDepot, "RegistrySweepDepot must not be nil; use depotclient.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -202,6 +212,23 @@ func New(cfg Config) (*Service, error) {
 	auditLogCleanupH, err := auditlogcleanup.New(auditlogcleanup.Config{
 		DB:        cfg.DB,
 		Heartbeat: cfg.Heartbeats.AuditLogCleanup,
+	})
+	if err != nil {
+		return nil, err
+	}
+	registrySweepH, err := registrysweep.New(registrysweep.Config{
+		DB:                 cfg.DB,
+		Depot:              cfg.RegistrySweepDepot,
+		Repository:         cfg.RegistryRepository,
+		DepotProjectPrefix: cfg.DepotProjectPrefix,
+	})
+	if err != nil {
+		return nil, err
+	}
+	deploymentCleanupH, err := deploymentcleanup.New(deploymentcleanup.Config{
+		DB:            cfg.DB,
+		Heartbeat:     cfg.Heartbeats.DeploymentCleanup,
+		RegistrySweep: registrySweepH,
 	})
 	if err != nil {
 		return nil, err
@@ -309,6 +336,7 @@ func New(cfg Config) (*Service, error) {
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
+		deploymentCleanup:              deploymentCleanupH,
 		deploySpendCheck:               deploySpendCheckH,
 		deploySpendCheckWork:           deploySpendCheckWorkH,
 		idlePreview:                    idlePreviewH,
@@ -373,6 +401,13 @@ func (s *Service) RunScaleDownIdlePreviewDeployments(
 	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
 ) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return s.idlePreview.Handle(ctx, req)
+}
+
+func (s *Service) RunDeploymentCleanup(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeploymentCleanupRequest,
+) (*hydrav1.RunDeploymentCleanupResponse, error) {
+	return s.deploymentCleanup.Handle(ctx, req)
 }
 
 func (s *Service) RunDeployBillingClose(

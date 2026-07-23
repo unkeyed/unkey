@@ -57,6 +57,16 @@ jobs:
     urlPath: "hydra.v1.CronService/deploy-billing-push-$(date -u +%Y-%m)/RunDeployBillingPush/send"
     idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
 
+  # Prunes expired deployment resources: first terminal deployment rows older
+  # than 30 days, then orphaned Depot registry tags and projects from namespaces
+  # explicitly configured as exclusive to this database. Stopped deployments
+  # remain wakeable and are retained. The fixed slug also owns reconciliation
+  # pagination state.
+  deployment-cleanup:
+    schedule: "0 14 * * *"
+    urlPath: "hydra.v1.CronService/deployment-cleanup/RunDeploymentCleanup/send"
+    idempotencyKey: "deployment-cleanup-$(date -u +%Y-%m-%d)"
+
   idle-preview-deployments:
     schedule: "* * * * *"
     urlPath: "hydra.v1.CronService/idle-preview-deployments/RunScaleDownIdlePreviewDeployments/send"

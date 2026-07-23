@@ -39,6 +39,18 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("find project: %w", err)
 	}
 
+	// The Depot project (build cache) goes before the row: the row holds
+	// the only pointer to it, so deleting the row first would leak the
+	// Depot project until the registry sweep finds it by name.
+	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
+		depotProjectID := project.DepotProjectID.String
+		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return s.depot.DeleteProject(runCtx, depotProjectID)
+		}, restate.WithName("delete depot project"), restate.WithMaxRetryAttempts(5)); err != nil {
+			return nil, fmt.Errorf("delete depot project %s: %w", depotProjectID, err)
+		}
+	}
+
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
 		return s.db.ListAppIdsByProject(runCtx, projectID)
 	}, restate.WithName("list apps"))

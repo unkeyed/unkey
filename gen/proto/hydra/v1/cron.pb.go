@@ -960,6 +960,110 @@ func (x *RunDeploySpendCheckResponse) GetWorkspacesDispatched() int32 {
 	return 0
 }
 
+type RunDeploymentCleanupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunDeploymentCleanupRequest) Reset() {
+	*x = RunDeploymentCleanupRequest{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunDeploymentCleanupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunDeploymentCleanupRequest) ProtoMessage() {}
+
+func (x *RunDeploymentCleanupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunDeploymentCleanupRequest.ProtoReflect.Descriptor instead.
+func (*RunDeploymentCleanupRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{22}
+}
+
+type RunDeploymentCleanupResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentsDeleted   int64                  `protobuf:"varint,1,opt,name=deployments_deleted,json=deploymentsDeleted,proto3" json:"deployments_deleted,omitempty"`
+	TagsDeleted          int64                  `protobuf:"varint,2,opt,name=tags_deleted,json=tagsDeleted,proto3" json:"tags_deleted,omitempty"`
+	TagsSkipped          int64                  `protobuf:"varint,3,opt,name=tags_skipped,json=tagsSkipped,proto3" json:"tags_skipped,omitempty"`
+	DepotProjectsDeleted int64                  `protobuf:"varint,4,opt,name=depot_projects_deleted,json=depotProjectsDeleted,proto3" json:"depot_projects_deleted,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *RunDeploymentCleanupResponse) Reset() {
+	*x = RunDeploymentCleanupResponse{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunDeploymentCleanupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunDeploymentCleanupResponse) ProtoMessage() {}
+
+func (x *RunDeploymentCleanupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunDeploymentCleanupResponse.ProtoReflect.Descriptor instead.
+func (*RunDeploymentCleanupResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RunDeploymentCleanupResponse) GetDeploymentsDeleted() int64 {
+	if x != nil {
+		return x.DeploymentsDeleted
+	}
+	return 0
+}
+
+func (x *RunDeploymentCleanupResponse) GetTagsDeleted() int64 {
+	if x != nil {
+		return x.TagsDeleted
+	}
+	return 0
+}
+
+func (x *RunDeploymentCleanupResponse) GetTagsSkipped() int64 {
+	if x != nil {
+		return x.TagsSkipped
+	}
+	return 0
+}
+
+func (x *RunDeploymentCleanupResponse) GetDepotProjectsDeleted() int64 {
+	if x != nil {
+		return x.DepotProjectsDeleted
+	}
+	return 0
+}
+
 var File_hydra_v1_cron_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_cron_proto_rawDesc = "" +
@@ -1006,7 +1110,14 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"#CloseDeployBillingWorkspaceResponse\"\x1c\n" +
 	"\x1aRunDeploySpendCheckRequest\"R\n" +
 	"\x1bRunDeploySpendCheckResponse\x123\n" +
-	"\x15workspaces_dispatched\x18\x01 \x01(\x05R\x14workspacesDispatched2\xce\t\n" +
+	"\x15workspaces_dispatched\x18\x01 \x01(\x05R\x14workspacesDispatched\"\x1d\n" +
+	"\x1bRunDeploymentCleanupRequest\"\xcb\x01\n" +
+	"\x1cRunDeploymentCleanupResponse\x12/\n" +
+	"\x13deployments_deleted\x18\x01 \x01(\x03R\x12deploymentsDeleted\x12!\n" +
+	"\ftags_deleted\x18\x02 \x01(\x03R\vtagsDeleted\x12!\n" +
+	"\ftags_skipped\x18\x03 \x01(\x03R\vtagsSkipped\x124\n" +
+	"\x16depot_projects_deleted\x18\x04 \x01(\x03R\x14depotProjectsDeleted2\xb7\n" +
+	"\n" +
 	"\vCronService\x12R\n" +
 	"\rRunQuotaCheck\x12\x1e.hydra.v1.RunQuotaCheckRequest\x1a\x1f.hydra.v1.RunQuotaCheckResponse\"\x00\x12O\n" +
 	"\fRunKeyRefill\x12\x1d.hydra.v1.RunKeyRefillRequest\x1a\x1e.hydra.v1.RunKeyRefillResponse\"\x00\x12a\n" +
@@ -1018,7 +1129,8 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\"RunScaleDownIdlePreviewDeployments\x123.hydra.v1.RunScaleDownIdlePreviewDeploymentsRequest\x1a4.hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse\"\x00\x12j\n" +
 	"\x15RunDeployBillingClose\x12&.hydra.v1.RunDeployBillingCloseRequest\x1a'.hydra.v1.RunDeployBillingCloseResponse\"\x00\x12|\n" +
 	"\x1bCloseDeployBillingWorkspace\x12,.hydra.v1.CloseDeployBillingWorkspaceRequest\x1a-.hydra.v1.CloseDeployBillingWorkspaceResponse\"\x00\x12d\n" +
-	"\x13RunDeploySpendCheck\x12$.hydra.v1.RunDeploySpendCheckRequest\x1a%.hydra.v1.RunDeploySpendCheckResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8f\x01\n" +
+	"\x13RunDeploySpendCheck\x12$.hydra.v1.RunDeploySpendCheckRequest\x1a%.hydra.v1.RunDeploySpendCheckResponse\"\x00\x12g\n" +
+	"\x14RunDeploymentCleanup\x12%.hydra.v1.RunDeploymentCleanupRequest\x1a&.hydra.v1.RunDeploymentCleanupResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8f\x01\n" +
 	"\fcom.hydra.v1B\tCronProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -1033,7 +1145,7 @@ func file_hydra_v1_cron_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_cron_proto_rawDescData
 }
 
-var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_hydra_v1_cron_proto_goTypes = []any{
 	(*RunQuotaCheckRequest)(nil),                       // 0: hydra.v1.RunQuotaCheckRequest
 	(*RunQuotaCheckResponse)(nil),                      // 1: hydra.v1.RunQuotaCheckResponse
@@ -1057,6 +1169,8 @@ var file_hydra_v1_cron_proto_goTypes = []any{
 	(*CloseDeployBillingWorkspaceResponse)(nil),        // 19: hydra.v1.CloseDeployBillingWorkspaceResponse
 	(*RunDeploySpendCheckRequest)(nil),                 // 20: hydra.v1.RunDeploySpendCheckRequest
 	(*RunDeploySpendCheckResponse)(nil),                // 21: hydra.v1.RunDeploySpendCheckResponse
+	(*RunDeploymentCleanupRequest)(nil),                // 22: hydra.v1.RunDeploymentCleanupRequest
+	(*RunDeploymentCleanupResponse)(nil),               // 23: hydra.v1.RunDeploymentCleanupResponse
 }
 var file_hydra_v1_cron_proto_depIdxs = []int32{
 	0,  // 0: hydra.v1.CronService.RunQuotaCheck:input_type -> hydra.v1.RunQuotaCheckRequest
@@ -1070,19 +1184,21 @@ var file_hydra_v1_cron_proto_depIdxs = []int32{
 	16, // 8: hydra.v1.CronService.RunDeployBillingClose:input_type -> hydra.v1.RunDeployBillingCloseRequest
 	18, // 9: hydra.v1.CronService.CloseDeployBillingWorkspace:input_type -> hydra.v1.CloseDeployBillingWorkspaceRequest
 	20, // 10: hydra.v1.CronService.RunDeploySpendCheck:input_type -> hydra.v1.RunDeploySpendCheckRequest
-	1,  // 11: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
-	3,  // 12: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
-	5,  // 13: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
-	7,  // 14: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
-	9,  // 15: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
-	11, // 16: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
-	13, // 17: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
-	15, // 18: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
-	17, // 19: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
-	19, // 20: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
-	21, // 21: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
-	11, // [11:22] is the sub-list for method output_type
-	0,  // [0:11] is the sub-list for method input_type
+	22, // 11: hydra.v1.CronService.RunDeploymentCleanup:input_type -> hydra.v1.RunDeploymentCleanupRequest
+	1,  // 12: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
+	3,  // 13: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
+	5,  // 14: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
+	7,  // 15: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
+	9,  // 16: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
+	11, // 17: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
+	13, // 18: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
+	15, // 19: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
+	17, // 20: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
+	19, // 21: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
+	21, // 22: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
+	23, // 23: hydra.v1.CronService.RunDeploymentCleanup:output_type -> hydra.v1.RunDeploymentCleanupResponse
+	12, // [12:24] is the sub-list for method output_type
+	0,  // [0:12] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -1099,7 +1215,7 @@ func file_hydra_v1_cron_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_cron_proto_rawDesc), len(file_hydra_v1_cron_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

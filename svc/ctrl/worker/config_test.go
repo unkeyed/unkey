@@ -37,3 +37,34 @@ token = "vault-token"
 		require.Error(t, err)
 	})
 }
+
+func TestConfigValidateCleanupExclusivity(t *testing.T) {
+	t.Run("rejects registry exclusivity without Depot credentials", func(t *testing.T) {
+		cfg := Config{Registry: RegistryConfig{Exclusive: true}}
+		require.Error(t, cfg.Validate())
+	})
+
+	t.Run("rejects project prefix exclusivity without Depot credentials", func(t *testing.T) {
+		cfg := Config{Depot: DepotConfig{ProjectPrefixExclusive: true}}
+		require.Error(t, cfg.Validate())
+	})
+
+	t.Run("accepts fully configured exclusive cleanup", func(t *testing.T) {
+		cfg := Config{
+			Registry: RegistryConfig{
+				Repository: "registry.depot.dev/project",
+				Username:   "x-token",
+				Password:   "token",
+				Exclusive:  true,
+			},
+			Depot: DepotConfig{
+				APIUrl:                 "https://api.depot.dev",
+				ProjectRegion:          "us-east-1",
+				ProjectPrefix:          "builds-test",
+				ProjectPrefixExclusive: true,
+			},
+			Heartbeat: HeartbeatConfig{DeploymentCleanupURL: "https://heartbeat.example.com"},
+		}
+		require.NoError(t, cfg.Validate())
+	})
+}

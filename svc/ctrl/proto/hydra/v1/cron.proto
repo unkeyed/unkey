@@ -98,6 +98,13 @@ service CronService {
   // per-workspace work prices usage locally from ClickHouse, so the tight
   // cadence costs no Stripe calls.
   rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
+
+  // RunDeploymentCleanup first hard-deletes non-recoverable terminal
+  // deployments older than the retention window, then reconciles Depot
+  // registry tags and projects against MySQL. External deletion is limited to
+  // namespaces explicitly configured as exclusive to this database. Key is
+  // the fixed slug "deployment-cleanup", which also owns pagination state.
+  rpc RunDeploymentCleanup(RunDeploymentCleanupRequest) returns (RunDeploymentCleanupResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -176,4 +183,12 @@ message RunDeploySpendCheckRequest {}
 message RunDeploySpendCheckResponse {
   // Number of budgeted workspaces the orchestrator fanned out a check for.
   int32 workspaces_dispatched = 1;
+}
+
+message RunDeploymentCleanupRequest {}
+message RunDeploymentCleanupResponse {
+  int64 deployments_deleted = 1;
+  int64 tags_deleted = 2;
+  int64 tags_skipped = 3;
+  int64 depot_projects_deleted = 4;
 }

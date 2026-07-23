@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
@@ -59,6 +60,13 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 			return nil, restate.TerminalError(fmt.Errorf("target deployment not found: %s", req.GetTargetDeploymentId()), 404)
 		}
 		return nil, fmt.Errorf("failed to get target deployment: %w", err)
+	}
+	if targetDeployment.Status != mysqltype.DeploymentsStatusReady || targetDeployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning {
+		return nil, restate.TerminalError(fmt.Errorf(
+			"target deployment must be ready and running, got status=%s desired_state=%s",
+			targetDeployment.Status,
+			targetDeployment.DesiredState,
+		), 400)
 	}
 
 	err = assert.All(
@@ -112,6 +120,19 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
 	if err != nil {
 		return nil, err
+	}
+	targetDeployment, err = restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
+		return w.db.FindDeploymentById(stepCtx, req.GetTargetDeploymentId())
+	}, restate.WithName("revalidating target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to revalidate target deployment: %w", err)
+	}
+	if targetDeployment.Status != mysqltype.DeploymentsStatusReady || targetDeployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning {
+		return nil, restate.TerminalError(fmt.Errorf(
+			"target deployment must be ready and running, got status=%s desired_state=%s",
+			targetDeployment.Status,
+			targetDeployment.DesiredState,
+		), 400)
 	}
 
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {

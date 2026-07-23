@@ -20,7 +20,15 @@ func TestDeploymentStatusSetsMatchIsTerminal(t *testing.T) {
 		inProgressing[s] = true
 	}
 
+	inPrunable := make(map[DeploymentsStatus]bool, len(PrunableDeploymentStatuses))
+	for _, s := range PrunableDeploymentStatuses {
+		inPrunable[s] = true
+	}
+
 	for _, s := range AllDeploymentStatuses {
+		require.Equal(t, s.IsTerminal() && s != DeploymentsStatusReady && s != DeploymentsStatusStopped, inPrunable[s],
+			"status %q: PrunableDeploymentStatuses must contain exactly the non-recoverable terminal statuses",
+			s)
 		require.Equal(t, s.IsTerminal(), inTerminal[s],
 			"status %q: IsTerminal=%v but TerminalDeploymentStatuses membership=%v",
 			s, s.IsTerminal(), inTerminal[s])

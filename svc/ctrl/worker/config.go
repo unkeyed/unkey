@@ -96,6 +96,10 @@ type DepotConfig struct {
 	// not customer environments. It keeps Depot projects from different Unkey
 	// deployments isolated from each other.
 	ProjectPrefix string `toml:"project_prefix" config:"default=builds-local"`
+
+	// ProjectPrefixExclusive reserves the entire "{prefix}-proj_*" namespace
+	// for this control-plane database. Orphan project deletion requires this.
+	ProjectPrefixExclusive bool `toml:"project_prefix_exclusive"`
 }
 
 // RegistryConfig holds container registry authentication configuration.
@@ -114,6 +118,10 @@ type RegistryConfig struct {
 	// Password is the registry password or authentication token.
 	// Should be stored securely and rotated regularly.
 	Password string `toml:"password"`
+
+	// Exclusive asserts that this repository is written only by deployments in
+	// this worker's database and cannot be selected as a prebuilt image source.
+	Exclusive bool `toml:"exclusive"`
 }
 
 // ClickHouseConfig holds ClickHouse connection configuration.
@@ -201,6 +209,10 @@ type HeartbeatConfig struct {
 	// check orchestrator. When set, a heartbeat is sent after a successful run.
 	// Optional - if empty, no heartbeat is sent.
 	DeploySpendCheckURL string `toml:"deploy_spend_check_url"`
+
+	// DeploymentCleanupURL receives one heartbeat after database pruning and
+	// external reconciliation both succeed. Optional.
+	DeploymentCleanupURL string `toml:"deployment_cleanup_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -402,6 +414,25 @@ func (c *Config) Validate() error {
 	// Validate build platform format (only if configured)
 	if c.BuildPlatformStr != "" {
 		if _, err := parseBuildPlatform(c.BuildPlatformStr); err != nil {
+			return err
+		}
+	}
+
+	if c.Registry.Exclusive {
+		if err := assert.All(
+			assert.NotEmpty(c.Registry.Repository, "registry repository is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Registry.Password, "registry password is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when exclusive registry cleanup is enabled"),
+		); err != nil {
+			return err
+		}
+	}
+	if c.Depot.ProjectPrefixExclusive {
+		if err := assert.All(
+			assert.NotEmpty(c.Depot.ProjectPrefix, "Depot project prefix is required when exclusive cleanup is enabled"),
+			assert.NotEmpty(c.Registry.Password, "registry password is required when Depot project cleanup is enabled"),
+			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when Depot project cleanup is enabled"),
+		); err != nil {
 			return err
 		}
 	}

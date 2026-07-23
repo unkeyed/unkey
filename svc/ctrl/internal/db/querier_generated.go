@@ -76,6 +76,12 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, environmentID string) error
+	// DeleteCiliumNetworkPoliciesByDeploymentIds removes generated network policy
+	// state before its deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM cilium_network_policies
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteCiliumNetworkPoliciesByDeploymentIds(ctx context.Context, deploymentIds []string) error
 	//DeleteCiliumNetworkPoliciesByEnvironmentId
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
@@ -93,12 +99,24 @@ type Querier interface {
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	DeleteDeploymentInstances(ctx context.Context, arg DeleteDeploymentInstancesParams) error
+	// DeleteDeploymentStepsByDeploymentIds removes execution history before its
+	// deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM deployment_steps
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteDeploymentStepsByDeploymentIds(ctx context.Context, deploymentIds []string) error
 	//DeleteDeploymentStepsByEnvironmentId
 	//
 	//  DELETE ds FROM deployment_steps ds
 	//  JOIN deployments d ON ds.deployment_id = d.id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, environmentID string) error
+	// DeleteDeploymentTopologiesByDeploymentIds removes desired regional state
+	// before its deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM deployment_topology
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteDeploymentTopologiesByDeploymentIds(ctx context.Context, deploymentIds []string) error
 	//DeleteDeploymentTopologiesByEnvironmentId
 	//
 	//  DELETE dt FROM deployment_topology dt
@@ -109,6 +127,12 @@ type Querier interface {
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, environmentID string) error
+	// DeleteDeploymentsByIds removes deployments after cleanup has revalidated and
+	// removed every dependent row in the same transaction.
+	//
+	//  DELETE FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	DeleteDeploymentsByIds(ctx context.Context, ids []string) error
 	//DeleteEnvironmentById
 	//
 	//  DELETE FROM environments WHERE id = ?
@@ -142,6 +166,12 @@ type Querier interface {
 	//  WHERE fully_qualified_domain_name = ?
 	//    AND project_id = ?
 	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
+	// DeleteFrontlineRoutesByDeploymentIds removes routes that can no longer serve
+	// before their deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM frontline_routes
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteFrontlineRoutesByDeploymentIds(ctx context.Context, deploymentIds []string) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
@@ -154,6 +184,18 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
+	// DeleteInstancesByDeploymentIds removes observed runtime state before its
+	// deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM instances
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteInstancesByDeploymentIds(ctx context.Context, deploymentIds []string) error
+	// DeleteOpenapiSpecsByDeploymentIds removes generated specifications before
+	// their deployments are hard-deleted by the retention sweep.
+	//
+	//  DELETE FROM openapi_specs
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?)
+	DeleteOpenapiSpecsByDeploymentIds(ctx context.Context, deploymentIds []sql.NullString) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
@@ -176,6 +218,44 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	// FilterExistingDeploymentIds returns the subset of the given deployment ids
+	// that exist. Used by the registry sweep to decide which Depot image tags
+	// are orphaned.
+	//
+	//  SELECT id FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	FilterExistingDeploymentIds(ctx context.Context, ids []string) ([]string, error)
+	// FilterExistingDeploymentImages returns image references still used by any
+	// deployment. Registry reconciliation preserves these tags even when the
+	// deployment ID encoded in the tag no longer exists, as rebuilds reuse images.
+	//
+	//  SELECT DISTINCT image
+	//  FROM deployments
+	//  WHERE image IN (/*SLICE:images*/?)
+	FilterExistingDeploymentImages(ctx context.Context, images []sql.NullString) ([]sql.NullString, error)
+	// FilterExistingDepotProjectIds returns Depot project IDs still referenced by
+	// MySQL. Registry reconciliation compares exact IDs so duplicate same-name
+	// Depot projects do not survive merely because an Unkey project exists.
+	//
+	//  SELECT depot_project_id
+	//  FROM projects
+	//  WHERE depot_project_id IS NOT NULL
+	//    AND depot_project_id IN (/*SLICE:depot_project_ids*/?)
+	FilterExistingDepotProjectIds(ctx context.Context, depotProjectIds []sql.NullString) ([]sql.NullString, error)
+	// FilterPrunableDeploymentIds revalidates cleanup candidates while locking
+	// their rows. Cleanup calls this inside the transaction that removes dependent
+	// rows so a concurrent status change cannot invalidate an earlier list result.
+	//
+	//  SELECT d.id
+	//  FROM deployments d
+	//  WHERE d.id IN (/*SLICE:ids*/?)
+	//    AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
+	//    AND COALESCE(d.updated_at, d.created_at) < ?
+	//    AND NOT EXISTS (
+	//      SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
+	//    )
+	//  FOR UPDATE
+	FilterPrunableDeploymentIds(ctx context.Context, arg FilterPrunableDeploymentIdsParams) ([]string, error)
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -335,6 +415,14 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
+	// FindDeploymentByIdForUpdate locks a routing target so retention cleanup
+	// cannot delete it while routes and the app live pointer are reassigned in the
+	// same transaction.
+	//
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM deployments
+	//  WHERE id = ?
+	//  FOR UPDATE
+	FindDeploymentByIdForUpdate(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
@@ -1457,6 +1545,30 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
+	// ListPrunableDeployments returns a bounded batch of deployments that are
+	// safe to hard-delete: they reached a terminal status that can never serve
+	// traffic again and last changed before the retention cutoff.
+	//
+	// COALESCE falls back to created_at so rows whose updated_at was never
+	// stamped still age out instead of surviving forever.
+	//
+	// The NOT EXISTS guard is a second safety boundary against deleting a row an
+	// app still references. Stopped deployments are excluded by the caller because
+	// preview deployments remain wakeable regardless of this pointer.
+	//
+	// LIMIT bounds each batch; the cron loops until a batch returns fewer rows
+	// than the limit.
+	//
+	//  SELECT d.id
+	//  FROM deployments d
+	//  WHERE d.status IN ('failed', 'cancelled', 'superseded', 'skipped')
+	//    AND COALESCE(d.updated_at, d.created_at) < ?
+	//    AND NOT EXISTS (
+	//      SELECT 1 FROM apps a WHERE a.current_deployment_id = d.id
+	//    )
+	//  ORDER BY d.pk
+	//  LIMIT ?
+	ListPrunableDeployments(ctx context.Context, arg ListPrunableDeploymentsParams) ([]string, error)
 	//ListRegions
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions

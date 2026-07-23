@@ -38,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/depotclient"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
@@ -241,10 +242,18 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
 
-		GitHub:                          ghClient,
-		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
-		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
-		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
+		GitHub: ghClient,
+		RegistryConfig: deploy.RegistryConfig{
+			Repository: cfg.Registry.Repository,
+			Username:   cfg.Registry.Username,
+			Password:   cfg.Registry.Password,
+		},
+		BuildPlatform: deploy.BuildPlatform(buildPlatform),
+		DepotConfig: deploy.DepotConfig{
+			APIUrl:        cfg.Depot.APIUrl,
+			ProjectRegion: cfg.Depot.ProjectRegion,
+			ProjectPrefix: cfg.Depot.ProjectPrefix,
+		},
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
@@ -326,6 +335,28 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
+	var depotAPI depotclient.API = depotclient.NewNoop()
+	registryRepository := ""
+	depotProjectPrefix := ""
+	if cfg.Depot.APIUrl != "" && cfg.Registry.Password != "" {
+		depotAPI, err = depotclient.New(depotclient.Config{APIUrl: cfg.Depot.APIUrl, Token: cfg.Registry.Password})
+		if err != nil {
+			return fmt.Errorf("create depot client: %w", err)
+		}
+		if cfg.Registry.Exclusive {
+			registryRepository = cfg.Registry.Repository
+		} else {
+			logger.Info("registry image cleanup skipped: repository is not exclusive to this database")
+		}
+		if cfg.Depot.ProjectPrefixExclusive {
+			depotProjectPrefix = cfg.Depot.ProjectPrefix
+		} else {
+			logger.Info("Depot project cleanup skipped: project prefix is not exclusive to this database")
+		}
+	} else {
+		logger.Info("external deployment cleanup skipped: Depot credentials are not configured")
+	}
+
 	// Deletion workflows write their audit logs as durable steps, so the audit
 	// record is tied to the retried deletion unit rather than the enqueueing RPC.
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
@@ -336,6 +367,7 @@ func Run(ctx context.Context, cfg Config) error {
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
+		Depot:     depotAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create project worker service: %w", err)
@@ -492,11 +524,14 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
-		BillingPusher:  nil,
-		BillingCloser:  nil,
-		WorkOSAPIKey:   cfg.WorkOSAPIKey,
-		ResendAPIKey:   cfg.Email.ResendAPIKey,
-		BillingBaseURL: cfg.DashboardURL,
+		BillingPusher:      nil,
+		BillingCloser:      nil,
+		WorkOSAPIKey:       cfg.WorkOSAPIKey,
+		ResendAPIKey:       cfg.Email.ResendAPIKey,
+		BillingBaseURL:     cfg.DashboardURL,
+		RegistrySweepDepot: depotAPI,
+		RegistryRepository: registryRepository,
+		DepotProjectPrefix: depotProjectPrefix,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
@@ -506,6 +541,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
+			DeploymentCleanup:  cronHeartbeat(cfg.Heartbeat.DeploymentCleanupURL),
 		},
 	})
 	if err != nil {
@@ -552,6 +588,13 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
 		restate.PauseOnMaxAttempts(),
+	)
+	cronDeploymentCleanupRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Second),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(30*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
 	)
 	// AuditLogExport runs every minute and is idempotent: any failure is
 	// recovered by the next tick, not by replaying journals from
@@ -613,6 +656,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
+		ConfigureHandler("RunDeploymentCleanup", cronDeploymentCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).

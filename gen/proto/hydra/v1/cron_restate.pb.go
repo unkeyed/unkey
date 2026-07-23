@@ -95,6 +95,12 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
+	RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
 }
 
 type cronServiceClient struct {
@@ -199,6 +205,14 @@ func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeploymentCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeploymentCleanupRequest](sdk_go.Object[*RunDeploymentCleanupResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploymentCleanup", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -266,6 +280,12 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
+	RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -335,6 +355,11 @@ func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Request
 func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeploymentCleanup() ingress.Requester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeploymentCleanupRequest, *RunDeploymentCleanupResponse](c.client, c.serviceName, "RunDeploymentCleanup", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -421,6 +446,12 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunDeploymentCleanup first hard-deletes non-recoverable terminal
+	// deployments older than the retention window, then reconciles Depot
+	// registry tags and projects against MySQL. External deletion is limited to
+	// namespaces explicitly configured as exclusive to this database. Key is
+	// the fixed slug "deployment-cleanup", which also owns pagination state.
+	RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -463,6 +494,9 @@ func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.Obj
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeploymentCleanup(ctx sdk_go.ObjectContext, req *RunDeploymentCleanupRequest) (*RunDeploymentCleanupResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploymentCleanup not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -493,5 +527,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
+	router = router.Handler("RunDeploymentCleanup", sdk_go.NewObjectHandler(srv.RunDeploymentCleanup))
 	return router
 }

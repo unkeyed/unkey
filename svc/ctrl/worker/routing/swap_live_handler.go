@@ -9,6 +9,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -29,42 +30,44 @@ func (s *Service) SwapLiveDeployment(
 ) (*hydrav1.SwapLiveDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
 
-	// Reassign routes first — if the update fails, the live-deployment
-	// marker stays pointing at the previous deployment so traffic is
-	// unaffected.
-	for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
-		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, s.db.ReassignFrontlineRoute(stepCtx, db.ReassignFrontlineRouteParams{
-				ID:           frontlineRouteID,
-				DeploymentID: deploymentID,
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName(fmt.Sprintf("reassign-%s", frontlineRouteID)))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Swap the live-deployment pointer. Reads + writes the apps row in a
-	// single transaction so no other call can observe a half-applied state
-	// (which matters if this handler is ever extended to touch multiple
-	// rows).
+	// Lock the target and update routes plus the live pointer in one transaction.
+	// Cleanup locks the same deployment row before pruning, so either routing
+	// observes a valid ready target or cleanup completes first and routing fails.
 	previous, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return db.TxWithResult(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-			deployment, findErr := db.NewQueries(tx).FindDeploymentById(txCtx, deploymentID)
+			queries := db.NewQueries(tx)
+			deployment, findErr := queries.FindDeploymentByIdForUpdate(txCtx, deploymentID)
 			if findErr != nil {
 				return sql.NullString{}, fmt.Errorf("find target deployment: %w", findErr)
 			}
-			currentApp, findErr := db.NewQueries(tx).FindAppById(txCtx, deployment.AppID)
+			if deployment.Status != mysqltype.DeploymentsStatusReady || deployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning {
+				return sql.NullString{}, restate.TerminalError(fmt.Errorf(
+					"target deployment must be ready and running, got status=%s desired_state=%s",
+					deployment.Status,
+					deployment.DesiredState,
+				), 400)
+			}
+			currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
 			if findErr != nil {
 				return sql.NullString{}, fmt.Errorf("find app: %w", findErr)
 			}
 
-			updateErr := db.NewQueries(tx).UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
+			now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+			for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
+				if routeErr := queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
+					ID:           frontlineRouteID,
+					DeploymentID: deploymentID,
+					UpdatedAt:    now,
+				}); routeErr != nil {
+					return sql.NullString{}, fmt.Errorf("reassign frontline route %s: %w", frontlineRouteID, routeErr)
+				}
+			}
+
+			updateErr := queries.UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
 				AppID:               deployment.AppID,
 				CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 				IsRolledBack:        req.GetSetRollbackFlag(),
-				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				UpdatedAt:           now,
 			})
 			if updateErr != nil {
 				return sql.NullString{}, fmt.Errorf("update app deployments: %w", updateErr)
