@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -83,6 +84,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// A missing connection is the common "no repo / Docker app" case, so absence
+	// is not an error; any other failure is.
+	repositoryFullName := ""
+	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve app."),
+			)
+		}
+	} else {
+		repositoryFullName = conn.RepositoryFullName
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
@@ -91,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			DefaultBranch:       app.DefaultBranch,
+			Git:                 githubapp.GitState(repositoryFullName, app.DefaultBranch),
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,

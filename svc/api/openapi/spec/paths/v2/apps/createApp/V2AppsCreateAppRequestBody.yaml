@@ -16,6 +16,8 @@ properties:
     example: Payments API
   slug:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
+  git:
+    "$ref": "../../../../common/AppGitInput.yaml"
 additionalProperties: false
 examples:
   byProjectSlug:
@@ -32,3 +34,12 @@ examples:
       project: proj_1234abcd
       name: Payments API
       slug: payments-api
+  connectRepo:
+    summary: Create and connect a GitHub repository
+    description: Create an app already connected to a repository. Requires the Unkey GitHub App installed on the owner.
+    value:
+      project: payments
+      name: Payments API
+      slug: payments-api
+      git:
+        repository: unkeyed/unkey

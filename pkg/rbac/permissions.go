@@ -237,6 +237,12 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
+
+	// ConnectRepository permits connecting or disconnecting a GitHub repository
+	// for an app (the `git` field on apps.createApp / apps.updateApp). Installing
+	// the Unkey GitHub App itself is a separate workspace-level action,
+	// InstallGithub.
+	ConnectRepository ActionType = "connect_repository"
 )
 
 // Predefined environment actions. These constants define operations that can

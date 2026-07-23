@@ -228,6 +228,10 @@ export const workspacePermissions = {
       description: "Install the Unkey GitHub App for this workspace",
       permission: "workspace.*.install_github",
     },
+    connect_repository: {
+      description: "Connect or disconnect a GitHub repository for any app in this workspace",
+      permission: "app.*.connect_repository",
+    },
   },
   Environments: {
     read_environment: {

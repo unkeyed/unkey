@@ -2,19 +2,25 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 type (
@@ -25,6 +31,13 @@ type (
 type Handler struct {
 	DB         db.Database
 	CtrlClient ctrl.AppServiceClient
+	Auditlogs  auditlogs.AuditLogService
+
+	// GitHubClient resolves and verifies repositories for the optional `git`
+	// connection. GitHubAppName is the App slug used to build actionable install
+	// URLs in error messages; empty means GitHub connection is not configured.
+	GitHubClient  github.GitHubClient
+	GitHubAppName string
 }
 
 func (h *Handler) Method() string {
@@ -45,6 +58,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
+	// Group every audit event this request emits (app create side effects plus a
+	// repository connect) under one correlation id.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
@@ -83,6 +100,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	var resolved githubapp.Resolved
+	if req.Git != nil {
+		if err = principal.Authorize(rbac.T(rbac.Tuple{
+			ResourceType: rbac.App,
+			ResourceID:   "*",
+			Action:       rbac.ConnectRepository,
+		})); err != nil {
+			return err
+		}
+
+		// Creating an app can only connect a repository, so it needs one. A branch
+		// alone has nothing to track; retargeting a branch is an updateApp concern.
+		if req.Git.Repository == nil {
+			return fault.New(
+				"missing repository",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("git.repository is required to connect a repository on create"),
+				fault.Public("Provide git.repository to connect a GitHub repository."),
+			)
+		}
+
+		if h.GitHubAppName == "" {
+			return fault.New(
+				"github not configured",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("github app credentials are not configured for this deployment"),
+				fault.Public("GitHub repository connection is not enabled."),
+			)
+		}
+
+		installations, iErr := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, h.DB.RO(), principal.WorkspaceID)
+		if iErr != nil {
+			return fault.Wrap(
+				iErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to load github installations"),
+				fault.Public("Failed to connect the GitHub repository."),
+			)
+		}
+
+		resolved, err = githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, *req.Git.Repository)
+		if err != nil {
+			return err
+		}
+	}
+
 	actor, err := ctrlclient.Actor(s)
 	if err != nil {
 		return err
@@ -106,12 +169,87 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return ctrlclient.HandleError(err, "create app")
 	}
 
+	appID := res.GetId()
+
+	if req.Git != nil {
+		defaultBranch := githubapp.DefaultBranch(resolved.Repository.DefaultBranch, req.Git.DefaultBranch)
+
+		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			now := time.Now().UnixMilli()
+			if txErr := db.Query.UpsertGithubRepoConnection(ctx, tx, db.UpsertGithubRepoConnectionParams{
+				WorkspaceID:        principal.WorkspaceID,
+				ProjectID:          project.ID,
+				AppID:              appID,
+				InstallationID:     resolved.InstallationID,
+				RepositoryID:       resolved.Repository.ID,
+				RepositoryFullName: resolved.Repository.FullName,
+				CreatedAt:          now,
+				UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+			}); txErr != nil {
+				return fault.Wrap(
+					txErr,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("failed to upsert github repo connection"),
+					fault.Public("Failed to connect the GitHub repository."),
+				)
+			}
+
+			if txErr := db.Query.UpdateApp(ctx, tx, db.UpdateAppParams{
+				WorkspaceID:               principal.WorkspaceID,
+				ID:                        appID,
+				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+				NameSpecified:             0,
+				Name:                      "",
+				SlugSpecified:             0,
+				Slug:                      "",
+				DefaultBranchSpecified:    1,
+				DefaultBranch:             defaultBranch,
+				DeleteProtectionSpecified: 0,
+				DeleteProtection:          sql.NullBool{Valid: false, Bool: false},
+			}); txErr != nil {
+				return fault.Wrap(
+					txErr,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("failed to set app default branch"),
+					fault.Public("Failed to connect the GitHub repository."),
+				)
+			}
+
+			return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+				{
+					WorkspaceID:   principal.WorkspaceID,
+					Event:         auditlog.AppConnectRepositoryEvent,
+					Display:       fmt.Sprintf("Connected app %s to %s", appID, resolved.Repository.FullName),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
+					ActorMeta:     map[string]any{},
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
+					Resources: []auditlog.AuditLogResource{
+						{
+							ID:          appID,
+							Type:        auditlog.AppResourceType,
+							Meta:        map[string]any{"repository": resolved.Repository.FullName, "defaultBranch": defaultBranch},
+							Name:        resolved.Repository.FullName,
+							DisplayName: resolved.Repository.FullName,
+						},
+					},
+				},
+			})
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2AppsCreateAppResponseData{
-			AppId: res.GetId(),
+			AppId: appID,
 		},
 	})
 }

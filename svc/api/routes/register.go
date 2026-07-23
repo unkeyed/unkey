@@ -795,8 +795,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsCreateApp.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlAppClient,
+			DB:            svc.Database,
+			CtrlClient:    svc.CtrlAppClient,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
 		},
 	)
 
@@ -830,8 +833,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsUpdateApp.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
+			DB:            svc.Database,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
 		},
 	)
 

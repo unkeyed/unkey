@@ -75,7 +75,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.Equal(t, id, res.Body.Data.Id)
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.Equal(t, slug, res.Body.Data.Slug)
-		require.Equal(t, "main", res.Body.Data.DefaultBranch)
+		require.True(t, res.Body.Data.Git.IsNull(), "app without a repo connection reports git=null")
 		require.False(t, res.Body.Data.DeleteProtection)
 		require.Greater(t, res.Body.Data.UpdatedAt, int64(0))
 
@@ -114,24 +114,6 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		app := getApp(t, id)
 		require.Equal(t, newSlug, app.Slug)
 		require.Equal(t, "Slug Change", app.Name)
-	})
-
-	t.Run("update default branch only", func(t *testing.T) {
-		id, _ := createApp(t, "Branch Change", "main")
-
-		newBranch := "develop"
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Project:       project.ID,
-			App:           id,
-			DefaultBranch: &newBranch,
-		})
-		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		require.Equal(t, "develop", res.Body.Data.DefaultBranch)
-		require.Equal(t, "Branch Change", res.Body.Data.Name, "name must survive a branch-only update")
-
-		app := getApp(t, id)
-		require.Equal(t, "develop", app.DefaultBranch)
-		require.Equal(t, "Branch Change", app.Name)
 	})
 
 	t.Run("update delete protection only", func(t *testing.T) {
@@ -185,7 +167,6 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		id, _ := createApp(t, "Before", "main")
 		newName := "After"
 		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		newBranch := "release"
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -193,19 +174,16 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 			App:              id,
 			Name:             &newName,
 			Slug:             &newSlug,
-			DefaultBranch:    &newBranch,
 			DeleteProtection: &protect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.Equal(t, newSlug, res.Body.Data.Slug)
-		require.Equal(t, newBranch, res.Body.Data.DefaultBranch)
 		require.True(t, res.Body.Data.DeleteProtection)
 
 		app := getApp(t, id)
 		require.Equal(t, newName, app.Name)
 		require.Equal(t, newSlug, app.Slug)
-		require.Equal(t, newBranch, app.DefaultBranch)
 		require.True(t, app.DeleteProtection.Bool)
 	})
 
@@ -219,7 +197,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Unchanged", res.Body.Data.Name)
 		require.Equal(t, slug, res.Body.Data.Slug)
-		require.Equal(t, "main", res.Body.Data.DefaultBranch)
+		require.True(t, res.Body.Data.Git.IsNull())
 		require.False(t, res.Body.Data.DeleteProtection)
 
 		app := getApp(t, id)

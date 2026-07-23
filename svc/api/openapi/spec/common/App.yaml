@@ -3,7 +3,6 @@ required:
   - id
   - name
   - slug
-  - defaultBranch
   - isRolledBack
   - deleteProtection
   - createdAt
@@ -24,11 +23,13 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
-  defaultBranch:
-    type: string
+  git:
     description: |
-      The default git branch deployments track for this app.
-    example: main
+      The connected GitHub repository and the branch deployments track, or null
+      when the app has no repository connected (for example a Docker-based app).
+    anyOf:
+      - "$ref": "./AppGit.yaml"
+      - type: "null"
   currentDeploymentId:
     type: string
     description: |

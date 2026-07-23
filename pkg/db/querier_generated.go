@@ -659,6 +659,14 @@ type Querier interface {
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
 	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	//FindGithubAppInstallationsByWorkspaceId
+	//
+	//  SELECT
+	//      installation_id
+	//  FROM github_app_installations
+	//  WHERE workspace_id = ?
+	//  ORDER BY installation_id ASC
+	FindGithubAppInstallationsByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]int64, error)
 	//FindGithubRepoConnectionByAppId
 	//
 	//  SELECT
@@ -2340,15 +2348,16 @@ type Querier interface {
 	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error)
 	//ListAppsByProject
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
 	//  FROM apps
-	//  WHERE project_id = ?
-	//    AND id >= ?
+	//  LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+	//  WHERE apps.project_id = ?
+	//    AND apps.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
-	//  ORDER BY id ASC
+	//    AND (? IS NULL OR apps.id LIKE ? OR apps.name LIKE ? OR apps.slug LIKE ?)
+	//  ORDER BY apps.id ASC
 	//  LIMIT ?
-	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
+	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -3966,6 +3975,35 @@ type Querier interface {
 	//  ) VALUES (?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
 	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
+	//UpsertGithubRepoConnection
+	//
+	//  INSERT INTO github_repo_connections (
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      installation_id,
+	//      repository_id,
+	//      repository_full_name,
+	//      created_at,
+	//      updated_at
+	//  )
+	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      project_id = VALUES(project_id),
+	//      installation_id = VALUES(installation_id),
+	//      repository_id = VALUES(repository_id),
+	//      repository_full_name = VALUES(repository_full_name),
+	//      updated_at = VALUES(updated_at)
+	UpsertGithubRepoConnection(ctx context.Context, db DBTX, arg UpsertGithubRepoConnectionParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.
 	//

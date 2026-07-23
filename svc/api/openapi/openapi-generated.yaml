@@ -393,6 +393,8 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
+                git:
+                    "$ref": "#/components/schemas/AppGitInput"
             additionalProperties: false
         V2AppsCreateAppResponseBody:
             type: object
@@ -531,14 +533,15 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                defaultBranch:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
+                git:
                     description: |
-                        New default git branch deployments track for this app.
-                        Omit this field to leave the current branch unchanged.
-                    example: main
+                        Connect, reconfigure, or disconnect this app's GitHub repository.
+                        Omit to leave unchanged, set null to disconnect, or set an object with a
+                        "repository" to connect or replace it and/or a "defaultBranch" to set which
+                        branch it tracks. Fields are independent, so send only the one you change.
+                    anyOf:
+                        - "$ref": "#/components/schemas/AppGitInput"
+                        - type: "null"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -3762,6 +3765,29 @@ components:
                 Identifies a resource by either its unique ID or its slug.
                 Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
             example: proj_1234abcd
+        AppGitInput:
+            type: object
+            minProperties: 1
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". On apps.updateApp, omit
+                        to change only the tracked branch of the already-connected repository.
+                        The workspace must have the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to track the repository's
+                        default branch. On apps.updateApp, set it alone to retarget the branch of
+                        the already-connected repository.
+                    example: main
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -3783,7 +3809,6 @@ components:
                 - id
                 - name
                 - slug
-                - defaultBranch
                 - isRolledBack
                 - deleteProtection
                 - createdAt
@@ -3804,11 +3829,13 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
-                defaultBranch:
-                    type: string
+                git:
                     description: |
-                        The default git branch deployments track for this app.
-                    example: main
+                        The connected GitHub repository and the branch deployments track, or null
+                        when the app has no repository connected (for example a Docker-based app).
+                    anyOf:
+                        - "$ref": "#/components/schemas/AppGit"
+                        - type: "null"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -3847,6 +3874,24 @@ components:
                     example: 1704153600000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        AppGit:
+            type: object
+            required:
+                - repository
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: The connected GitHub repository, as "owner/repo".
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: The branch this app's deployments track.
+                    example: main
             additionalProperties: false
         V2DeployGitCommit:
             type: object

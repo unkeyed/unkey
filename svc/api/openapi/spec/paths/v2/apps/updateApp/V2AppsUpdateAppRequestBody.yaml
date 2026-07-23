@@ -17,14 +17,15 @@ properties:
     example: Payments API
   slug:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
-  defaultBranch:
-    type: string
-    minLength: 1
-    maxLength: 256
+  git:
     description: |
-      New default git branch deployments track for this app.
-      Omit this field to leave the current branch unchanged.
-    example: main
+      Connect, reconfigure, or disconnect this app's GitHub repository.
+      Omit to leave unchanged, set null to disconnect, or set an object with a
+      "repository" to connect or replace it and/or a "defaultBranch" to set which
+      branch it tracks. Fields are independent, so send only the one you change.
+    anyOf:
+      - "$ref": "../../../../common/AppGitInput.yaml"
+      - type: "null"
   deleteProtection:
     type: boolean
     description: |
@@ -54,3 +55,27 @@ examples:
       project: payments
       app: app_1234abcd
       deleteProtection: true
+  connectRepo:
+    summary: Connect a GitHub repository
+    description: Connect a repository and track a branch. Requires the Unkey GitHub App installed on the owner.
+    value:
+      project: payments
+      app: app_1234abcd
+      git:
+        repository: unkeyed/unkey
+        defaultBranch: main
+  retargetBranch:
+    summary: Change only the tracked branch
+    description: Retarget the branch of the already-connected repository without re-specifying it
+    value:
+      project: payments
+      app: app_1234abcd
+      git:
+        defaultBranch: develop
+  disconnectRepo:
+    summary: Disconnect the GitHub repository
+    description: Remove the repository connection, leaving the app without a linked repo
+    value:
+      project: payments
+      app: app_1234abcd
+      git: null

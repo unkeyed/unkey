@@ -201,6 +201,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			PortalBaseURL: "https://portal.test.local",
 			GitHub: api.GitHubConfig{
 				AppName:       "unkey-test",
+				AppID:         0,
 				PrivateKeyPEM: "test-private-key-pem",
 			},
 		}
