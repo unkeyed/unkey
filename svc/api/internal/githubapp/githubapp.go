@@ -6,6 +6,7 @@
 package githubapp
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -75,20 +76,28 @@ func Resolve(
 
 	// An installation token is scoped to only the repositories the installation
 	// was granted, so GetInstallationRepo doubles as the access check. A GitHub
-	// "owner/repo" is globally unique, so at most one installation can grant it;
-	// the first match is the only match.
+	// "owner/repo" is globally unique, so at most one installation can grant it.
+	var verifyErrs []error
 	for _, installationID := range installations {
 		info, gErr := client.GetInstallationRepo(installationID, repository)
 		if gErr != nil {
-			return Resolved{}, fault.Wrap(gErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to verify github repository access"),
-				fault.Public("Failed to verify access to the GitHub repository."),
-			)
+			verifyErrs = append(verifyErrs, fmt.Errorf("installation %d: %w", installationID, gErr))
+			continue
 		}
 		if info != nil {
 			return Resolved{InstallationID: installationID, Repository: *info}, nil
 		}
+	}
+
+	// A failed lookup makes "not accessible" unprovable (the errored installation
+	// may have been the one that grants access), so collect the errors and, if
+	// none resolved, report a verification failure rather than a hard "no access".
+	if len(verifyErrs) > 0 {
+		return Resolved{}, fault.Wrap(errors.Join(verifyErrs...),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to verify github repository access"),
+			fault.Public("Failed to verify access to the GitHub repository."),
+		)
 	}
 
 	return Resolved{}, fault.New("repository not accessible",
@@ -101,13 +110,14 @@ func Resolve(
 	)
 }
 
-// DefaultBranch picks the branch an app should track: the caller's override
-// when non-empty, otherwise the repository's GitHub default.
-func DefaultBranch(repoDefault string, override *string) string {
+// DefaultBranch returns the branch to track: the caller's override when it is
+// set and non-empty, otherwise the given fallback (a fresh connect passes the
+// repository's GitHub default; a replace passes the app's current branch).
+func DefaultBranch(fallback string, override *string) string {
 	if override != nil && *override != "" {
 		return *override
 	}
-	return repoDefault
+	return fallback
 }
 
 // normalizeRepository reduces a user-supplied repository reference to a clean

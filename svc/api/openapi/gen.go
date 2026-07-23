@@ -202,9 +202,10 @@ type AppGit struct {
 
 // AppGitInput defines model for AppGitInput.
 type AppGitInput struct {
-	// DefaultBranch The branch this app's deployments track. Omit to track the repository's
-	// default branch. On apps.updateApp, set it alone to retarget the branch of
-	// the already-connected repository.
+	// DefaultBranch The branch this app's deployments track. Omit it to adopt the repository's
+	// default branch on a new connection, or to keep the current branch when
+	// replacing an already-connected repository. On apps.updateApp, set it alone
+	// to retarget the branch of the already-connected repository.
 	DefaultBranch *string `json:"defaultBranch,omitempty"`
 
 	// Repository The GitHub repository to connect, as "owner/repo". On apps.updateApp, omit

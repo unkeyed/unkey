@@ -59,8 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Group every audit event this request emits (app create side effects plus a
-	// repository connect) under one correlation id.
+	// Tag the repository-connect audit event with a correlation id so it can be
+	// traced back to this request. The app.create event is emitted separately by
+	// ctrl and is not part of this correlation.
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
@@ -171,7 +172,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	appID := res.GetId()
 
+	// If the connection write fails, the app stays created but unconnected. That
+	// is a valid repo-less app the caller can attach later via apps.updateApp, so
+	// we surface the error rather than roll the app back.
 	if req.Git != nil {
+		// A create is always a fresh connect, so it adopts the repository's GitHub
+		// default branch unless the caller passes one.
 		defaultBranch := githubapp.DefaultBranch(resolved.Repository.DefaultBranch, req.Git.DefaultBranch)
 
 		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {

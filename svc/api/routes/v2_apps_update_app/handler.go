@@ -354,7 +354,9 @@ func (h *Handler) applyGitChange(
 				fault.Public("Failed to retrieve app."),
 			)
 		}
-		// minProperties on the request guarantees a branch when repository is omitted.
+		// minProperties guarantees a branch when repository is omitted (enforced by
+		// the validator; see the "git empty object" bad-request test), so the
+		// dereference is safe.
 		branch := *requested.DefaultBranch
 		update.DefaultBranch = branch
 		update.DefaultBranchSpecified = 1
@@ -385,7 +387,24 @@ func (h *Handler) applyGitChange(
 		return empty, err
 	}
 
-	branch := githubapp.DefaultBranch(resolved.Repository.DefaultBranch, requested.DefaultBranch)
+	// A fresh connect adopts the repository's GitHub default branch; replacing an
+	// already-connected repository keeps the branch the app currently tracks, so
+	// swapping the repository never silently retargets it. An explicit
+	// defaultBranch always wins over both.
+	fallback := resolved.Repository.DefaultBranch
+	if _, connErr := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID); connErr == nil {
+		fallback = app.DefaultBranch
+	} else if !db.IsNotFound(connErr) {
+		return empty, fault.Wrap(
+			connErr,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to load github repo connection"),
+			fault.Public("Failed to connect the GitHub repository."),
+		)
+	}
+	branch := githubapp.DefaultBranch(fallback, requested.DefaultBranch)
+	update.DefaultBranch = branch
+	update.DefaultBranchSpecified = 1
 
 	now := time.Now().UnixMilli()
 	if err = db.Query.UpsertGithubRepoConnection(ctx, tx, db.UpsertGithubRepoConnectionParams{

@@ -114,8 +114,18 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		require.Equal(t, "develop", app.DefaultBranch)
 	})
 
-	t.Run("connect replaces an existing connection", func(t *testing.T) {
-		id := newApp(t)
+	t.Run("replace keeps the existing branch when none passed", func(t *testing.T) {
+		// Seed a branch that differs from the repo's GitHub default ("main") so we
+		// can prove a replace keeps it instead of silently adopting the default.
+		app := h.CreateApp(seed.CreateAppRequest{
+			ID:            uid.New(uid.AppPrefix),
+			WorkspaceID:   workspace.ID,
+			ProjectID:     project.ID,
+			Name:          "App",
+			Slug:          appSlug(),
+			DefaultBranch: "keep-me",
+		})
+		id := app.ID
 
 		require.NoError(t, db.Query.InsertGithubRepoConnection(ctx, h.DB.RW(), db.InsertGithubRepoConnectionParams{
 			WorkspaceID:        workspace.ID,
@@ -134,11 +144,18 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		git := res.Body.Data.Git.MustGet()
+		require.Equal(t, "unkeyed/unkey", git.Repository, "connection should be replaced, not duplicated")
+		require.Equal(t, "keep-me", *git.DefaultBranch, "replace must keep the existing branch, not adopt the repo default")
 
 		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), id)
 		require.NoError(t, err)
-		require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName, "connection should be replaced, not duplicated")
+		require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
 		require.Equal(t, int64(12345), conn.InstallationID)
+
+		reloaded, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
+		require.NoError(t, err)
+		require.Equal(t, "keep-me", reloaded.DefaultBranch)
 	})
 
 	t.Run("retarget branch only, repository omitted", func(t *testing.T) {
