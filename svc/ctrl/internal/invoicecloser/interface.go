@@ -7,6 +7,9 @@ type DraftInvoice struct {
 	ID string
 	// "subscription_cycle" vs proration invoices the close must skip.
 	BillingReason string
+	// Invoice period start (unix seconds). Asserted against the calendar-month
+	// start at close so an anchor-misaligned invoice never finalizes.
+	PeriodStart int64
 	// Invoice period end (unix seconds).
 	PeriodEnd int64
 	// false means we claimed the draft and are waiting to close it.

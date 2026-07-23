@@ -286,6 +286,23 @@ func (h *Handler) closeWorkspace(
 			continue
 		}
 
+		// Period end must land on the calendar-month boundary (a drifted anchor
+		// bills the wrong window); a later start is fine (a mid-month subscribe's
+		// first cycle is [subscribe_date, 1st]). Defer on mismatch: the withheld
+		// heartbeat pages and the invoice stays unbilled until the anchor is fixed.
+		if draft.PeriodEnd != p.End().Unix() || draft.PeriodStart < p.Start().Unix() {
+			logger.Error("deploy invoice period does not align to the calendar month; refusing to finalize",
+				"workspace_id", ws.ID,
+				"invoice_id", draft.ID,
+				"invoice_period_start", draft.PeriodStart,
+				"invoice_period_end", draft.PeriodEnd,
+				"expected_period_start", p.Start().Unix(),
+				"expected_period_end", p.End().Unix(),
+			)
+			result.Deferred++
+			continue
+		}
+
 		alreadyDone, err := h.closer.FinalizeInvoice(rc, draft.ID)
 		if err != nil {
 			logger.Error("finalize invoice failed; deferring close",

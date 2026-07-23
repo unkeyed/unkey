@@ -221,6 +221,12 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+
+	// BillingReconcileWebhookURL is the Slack webhook the monthly Deploy billing
+	// reconcile pass pages to on structural findings (billing code or catalog
+	// bugs). Optional - if empty, structural findings surface as error-level logs
+	// only, which page via log alerting.
+	BillingReconcileWebhookURL string `toml:"billing_reconcile_webhook_url"`
 }
 
 // EmailConfig holds transactional email (Resend) configuration. Used by the

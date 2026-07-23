@@ -23,11 +23,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	reconcile "github.com/unkeyed/unkey/svc/ctrl/internal/billingreconcile"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/billingreconcile"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
@@ -47,17 +49,18 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup      *auditlogcleanup.Handler
-	auditLogExport       *auditlogexport.Handler
-	deployBilling        *deploybilling.Handler
-	deployBillingPush    *deploybilling.PushHandler
-	deploySpendCheck     *deployspendcheck.Handler
-	deploySpendCheckWork *deployspendcheck.CheckHandler
-	idlePreview          *idlepreview.Handler
-	keyLastUsedSync      *keylastusedsync.Handler
-	keyRefill            *keyrefill.Handler
-	quotaCheck           *quotacheck.Handler
-	ratelimitCleanup     *ratelimitcleanup.Handler
+	auditLogCleanup        *auditlogcleanup.Handler
+	auditLogExport         *auditlogexport.Handler
+	deployBilling          *deploybilling.Handler
+	deployBillingPush      *deploybilling.PushHandler
+	deployBillingReconcile *billingreconcile.Handler
+	deploySpendCheck       *deployspendcheck.Handler
+	deploySpendCheckWork   *deployspendcheck.CheckHandler
+	idlePreview            *idlepreview.Handler
+	keyLastUsedSync        *keylastusedsync.Handler
+	keyRefill              *keyrefill.Handler
+	quotaCheck             *quotacheck.Handler
+	ratelimitCleanup       *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -81,14 +84,14 @@ func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
-	QuotaCheck         healthcheck.Heartbeat
-	KeyRefill          healthcheck.Heartbeat
-	KeyLastUsedSync    healthcheck.Heartbeat
-	AuditLogExport     healthcheck.Heartbeat
-	AuditLogCleanup    healthcheck.Heartbeat
-	DeployBillingPush  healthcheck.Heartbeat
-	DeployBillingClose healthcheck.Heartbeat
-	DeploySpendCheck   healthcheck.Heartbeat
+	QuotaCheck             healthcheck.Heartbeat
+	KeyRefill              healthcheck.Heartbeat
+	KeyLastUsedSync        healthcheck.Heartbeat
+	AuditLogExport         healthcheck.Heartbeat
+	AuditLogCleanup        healthcheck.Heartbeat
+	DeployBillingPush      healthcheck.Heartbeat
+	DeployBillingClose     healthcheck.Heartbeat
+	DeploySpendCheck       healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -107,6 +110,12 @@ type Config struct {
 	// SlackQuotaCheckWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
 	SlackQuotaCheckWebhookURL string
+
+	// SlackBillingReconcileWebhookURL is the Slack webhook the monthly billing
+	// reconcile pass pages to on structural findings (billing code or catalog
+	// bugs). Empty falls back to an error-level log, which pages via log
+	// alerting.
+	SlackBillingReconcileWebhookURL string
 
 	// BillingUsageReader reads month-to-date Deploy usage for the billing
 	// push. Pass the concrete *clickhouse.Client (the meter query is not on
@@ -260,6 +269,29 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	// The reconcile engine needs both a Stripe key (invoice + price reads) and a
+	// ClickHouse usage reader (the live re-derivation). Missing either leaves the
+	// engine nil, so the monthly reconcile cron runs as a no-op, matching the
+	// push and spend check in non-billing environments.
+	var reconcileEngine billingreconcile.Engine
+	if cfg.StripeSecretKey != "" && cfg.BillingUsageReader != nil {
+		reconcileEngine = reconcile.New(
+			reconcile.NewStripeInvoiceReader(cfg.StripeSecretKey),
+			reconcile.NewStripePriceReader(cfg.StripeSecretKey),
+			reconcile.NewClickHouseUsageReader(cfg.BillingUsageReader),
+		)
+	} else {
+		logger.Info("deploy billing reconcile is DISABLED: requires both a stripe secret key and a clickhouse usage reader")
+	}
+	deployBillingReconcileH, err := billingreconcile.New(billingreconcile.Config{
+		Engine:          reconcileEngine,
+		DB:              cfg.DB,
+		SlackWebhookURL: cfg.SlackBillingReconcileWebhookURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Spend check reuses the billing usage reader (same ClickHouse meter query);
 	// a nil reader makes the orchestrator a no-op, matching the push. The
 	// orchestrator prices every workspace from one scan and passes the gross to
@@ -309,6 +341,7 @@ func New(cfg Config) (*Service, error) {
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
+		deployBillingReconcile:         deployBillingReconcileH,
 		deploySpendCheck:               deploySpendCheckH,
 		deploySpendCheckWork:           deploySpendCheckWorkH,
 		idlePreview:                    idlePreviewH,
@@ -393,4 +426,11 @@ func (s *Service) RunDeploySpendCheck(
 	req *hydrav1.RunDeploySpendCheckRequest,
 ) (*hydrav1.RunDeploySpendCheckResponse, error) {
 	return s.deploySpendCheck.Handle(ctx, req)
+}
+
+func (s *Service) RunDeployBillingReconcile(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeployBillingReconcileRequest,
+) (*hydrav1.RunDeployBillingReconcileResponse, error) {
+	return s.deployBillingReconcile.Handle(ctx, req)
 }

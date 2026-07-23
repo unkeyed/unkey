@@ -34,6 +34,7 @@ func (c *stripeCloser) ListDraftInvoices(ctx context.Context, stripeSubscription
 		drafts = append(drafts, DraftInvoice{
 			ID:            invoice.ID,
 			BillingReason: string(invoice.BillingReason),
+			PeriodStart:   invoice.PeriodStart,
 			PeriodEnd:     invoice.PeriodEnd,
 			AutoAdvance:   invoice.AutoAdvance,
 		})

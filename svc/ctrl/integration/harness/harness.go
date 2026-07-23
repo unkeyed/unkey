@@ -231,11 +231,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
 	// webhook is empty so quota-check skips notification calls.
 	cronSvc, err := cron.New(cron.Config{
-		DB:                        database,
-		Clickhouse:                chClient,
-		Clock:                     o.clock,
-		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
-		SlackQuotaCheckWebhookURL: "",
+		DB:                              database,
+		Clickhouse:                      chClient,
+		Clock:                           o.clock,
+		RatelimitDB:                     ratelimitdb.New(database.RW(), database.RO()),
+		SlackQuotaCheckWebhookURL:       "",
+		SlackBillingReconcileWebhookURL: "",
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
 		BillingUsageReader: o.billingUsageReader,
@@ -248,14 +249,14 @@ func New(t *testing.T, opts ...Option) *Harness {
 		ResendAPIKey:   "",
 		BillingBaseURL: "",
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:         healthcheck.NewNoop(),
-			KeyRefill:          healthcheck.NewNoop(),
-			KeyLastUsedSync:    healthcheck.NewNoop(),
-			AuditLogExport:     healthcheck.NewNoop(),
-			AuditLogCleanup:    healthcheck.NewNoop(),
-			DeployBillingPush:  healthcheck.NewNoop(),
-			DeployBillingClose: healthcheck.NewNoop(),
-			DeploySpendCheck:   healthcheck.NewNoop(),
+			QuotaCheck:             healthcheck.NewNoop(),
+			KeyRefill:              healthcheck.NewNoop(),
+			KeyLastUsedSync:        healthcheck.NewNoop(),
+			AuditLogExport:         healthcheck.NewNoop(),
+			AuditLogCleanup:        healthcheck.NewNoop(),
+			DeployBillingPush:      healthcheck.NewNoop(),
+			DeployBillingClose:     healthcheck.NewNoop(),
+			DeploySpendCheck:       healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)

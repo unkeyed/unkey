@@ -98,6 +98,19 @@ service CronService {
   // per-workspace work prices usage locally from ClickHouse, so the tight
   // cadence costs no Stripe calls.
   rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
+
+  // RunDeployBillingReconcile reconciles the closed period's finalized Deploy
+  // invoices against live ClickHouse usage. Key = the CLOSED billing period
+  // "YYYY-MM" behind a task-slug prefix ("deploy-billing-reconcile-YYYY-MM") so
+  // it does not share a serialization queue with the other period-keyed tasks.
+  // Enumerates billable workspaces from OUR DB (the DB->Stripe direction) and
+  // runs the read-only reconcile engine per workspace, classifying each into a
+  // verdict. Read-only and idempotent: no DB write, no Stripe write. Emits per-
+  // workspace verdicts to logs, an aggregate drift metric, and a monthly summary;
+  // structural findings page. The heartbeat asserts completion only -- drift is a
+  // finding, not a failed run. Runs at ~T+72h (a few days after month end), past
+  // the 48h invoice auto-finalize backstop so invoices are definitely final.
+  rpc RunDeployBillingReconcile(RunDeployBillingReconcileRequest) returns (RunDeployBillingReconcileResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -176,4 +189,24 @@ message RunDeploySpendCheckRequest {}
 message RunDeploySpendCheckResponse {
   // Number of budgeted workspaces the orchestrator fanned out a check for.
   int32 workspaces_dispatched = 1;
+}
+
+message RunDeployBillingReconcileRequest {
+  // Closed-period invoice period_end (unix seconds). Proves Stripe rolled the
+  // period so reconcile may run before wall clock catches up (test clocks),
+  // mirroring the close. Omitted for the scheduled cron, which runs days after
+  // month end when wall clock has already passed the period end.
+  int64 period_end = 1;
+}
+message RunDeployBillingReconcileResponse {
+  // Per-verdict workspace counts for the closed period. The reconcile pass
+  // logs the same numbers as its monthly summary; the response carries them so
+  // an operator invoking the handler directly sees the outcome.
+  int32 workspaces_clean = 1;
+  int32 workspaces_late_data_underbill = 2;
+  int32 workspaces_overbill = 3;
+  int32 workspaces_structural = 4;
+  // Workspaces skipped because they carried no Stripe subscription id to
+  // reconcile against (a data gap, logged per workspace, not a verdict).
+  int32 workspaces_skipped = 5;
 }

@@ -95,6 +95,18 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeployBillingReconcile reconciles the closed period's finalized Deploy
+	// invoices against live ClickHouse usage. Key = the CLOSED billing period
+	// "YYYY-MM" behind a task-slug prefix ("deploy-billing-reconcile-YYYY-MM") so
+	// it does not share a serialization queue with the other period-keyed tasks.
+	// Enumerates billable workspaces from OUR DB (the DB->Stripe direction) and
+	// runs the read-only reconcile engine per workspace, classifying each into a
+	// verdict. Read-only and idempotent: no DB write, no Stripe write. Emits per-
+	// workspace verdicts to logs, an aggregate drift metric, and a monthly summary;
+	// structural findings page. The heartbeat asserts completion only -- drift is a
+	// finding, not a failed run. Runs at ~T+72h (a few days after month end), past
+	// the 48h invoice auto-finalize backstop so invoices are definitely final.
+	RunDeployBillingReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingReconcileRequest, *RunDeployBillingReconcileResponse]
 }
 
 type cronServiceClient struct {
@@ -199,6 +211,14 @@ func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeployBillingReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingReconcileRequest, *RunDeployBillingReconcileResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeployBillingReconcileRequest](sdk_go.Object[*RunDeployBillingReconcileResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingReconcile", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -266,6 +286,18 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunDeployBillingReconcile reconciles the closed period's finalized Deploy
+	// invoices against live ClickHouse usage. Key = the CLOSED billing period
+	// "YYYY-MM" behind a task-slug prefix ("deploy-billing-reconcile-YYYY-MM") so
+	// it does not share a serialization queue with the other period-keyed tasks.
+	// Enumerates billable workspaces from OUR DB (the DB->Stripe direction) and
+	// runs the read-only reconcile engine per workspace, classifying each into a
+	// verdict. Read-only and idempotent: no DB write, no Stripe write. Emits per-
+	// workspace verdicts to logs, an aggregate drift metric, and a monthly summary;
+	// structural findings page. The heartbeat asserts completion only -- drift is a
+	// finding, not a failed run. Runs at ~T+72h (a few days after month end), past
+	// the 48h invoice auto-finalize backstop so invoices are definitely final.
+	RunDeployBillingReconcile() ingress.Requester[*RunDeployBillingReconcileRequest, *RunDeployBillingReconcileResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -335,6 +367,11 @@ func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Request
 func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeployBillingReconcile() ingress.Requester[*RunDeployBillingReconcileRequest, *RunDeployBillingReconcileResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeployBillingReconcileRequest, *RunDeployBillingReconcileResponse](c.client, c.serviceName, "RunDeployBillingReconcile", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -421,6 +458,18 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunDeployBillingReconcile reconciles the closed period's finalized Deploy
+	// invoices against live ClickHouse usage. Key = the CLOSED billing period
+	// "YYYY-MM" behind a task-slug prefix ("deploy-billing-reconcile-YYYY-MM") so
+	// it does not share a serialization queue with the other period-keyed tasks.
+	// Enumerates billable workspaces from OUR DB (the DB->Stripe direction) and
+	// runs the read-only reconcile engine per workspace, classifying each into a
+	// verdict. Read-only and idempotent: no DB write, no Stripe write. Emits per-
+	// workspace verdicts to logs, an aggregate drift metric, and a monthly summary;
+	// structural findings page. The heartbeat asserts completion only -- drift is a
+	// finding, not a failed run. Runs at ~T+72h (a few days after month end), past
+	// the 48h invoice auto-finalize backstop so invoices are definitely final.
+	RunDeployBillingReconcile(ctx sdk_go.ObjectContext, req *RunDeployBillingReconcileRequest) (*RunDeployBillingReconcileResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -463,6 +512,9 @@ func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.Obj
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeployBillingReconcile(ctx sdk_go.ObjectContext, req *RunDeployBillingReconcileRequest) (*RunDeployBillingReconcileResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingReconcile not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -493,5 +545,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
+	router = router.Handler("RunDeployBillingReconcile", sdk_go.NewObjectHandler(srv.RunDeployBillingReconcile))
 	return router
 }

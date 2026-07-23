@@ -35,13 +35,15 @@ const (
 // must track catalog.go (both are covered by pricing_test.go and the TS mirror
 // in deployPricing.ts). The spend-cap check prices usage locally with these so
 // it never calls Stripe. The meters bill flat per unit (no tiers), so spend is
-// a plain dot product of MeterValues and these rates.
+// a plain dot product of MeterValues and these rates. Exported so the billing
+// reconcile engine (svc/ctrl/internal/billingreconcile) prices the exact same
+// rates the hourly push bills with, with no second copy of the rates to drift.
 const (
-	centsPerCPUSecond       = 0.0006944
-	centsPerMemoryGiBSecond = 0.0003472
-	centsPerEgressGiB       = 5.0
-	centsPerDiskGiBSecond   = 0.000006
-	centsPerActiveKey       = 0.2
+	CentsPerCPUSecond       = 0.0006944
+	CentsPerMemoryGiBSecond = 0.0003472
+	CentsPerEgressGiB       = 5.0
+	CentsPerDiskGiBSecond   = 0.000006
+	CentsPerActiveKey       = 0.2
 )
 
 // usageAccumulator sums per-resource meter rows for one workspace, in the
@@ -159,11 +161,11 @@ const MicroCentsPerCent = 1_000_000
 // the gross usage the hourly push reports, priced with the catalog rates, and
 // the same figure the spend-cap check compares against the budget.
 func PriceMicroCents(v billingmeter.MeterValues) int64 {
-	cents := v.CPUSeconds*centsPerCPUSecond +
-		v.MemoryGiBSeconds*centsPerMemoryGiBSecond +
-		v.EgressGiB*centsPerEgressGiB +
-		v.DiskGiBSeconds*centsPerDiskGiBSecond +
-		float64(v.ActiveKeys)*centsPerActiveKey
+	cents := v.CPUSeconds*CentsPerCPUSecond +
+		v.MemoryGiBSeconds*CentsPerMemoryGiBSecond +
+		v.EgressGiB*CentsPerEgressGiB +
+		v.DiskGiBSeconds*CentsPerDiskGiBSecond +
+		float64(v.ActiveKeys)*CentsPerActiveKey
 	return int64(math.Round(cents * MicroCentsPerCent))
 }
 

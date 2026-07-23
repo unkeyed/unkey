@@ -94,3 +94,21 @@ jobs:
     schedule: "*/3 * * * *"
     urlPath: "hydra.v1.CronService/deploy-spend-check-$(date -u +%Y-%m)/RunDeploySpendCheck/send"
     idempotencyKey: "deploy-spend-check-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Monthly Deploy billing reconcile: compares the CLOSED period's finalized
+  # invoices against live ClickHouse usage and emits verdicts + drift metrics.
+  # Read-only, writes nothing. Runs at 06:00 UTC on the 4th (~T+78h, a day past
+  # the 48h invoice auto-finalize backstop on the 3rd) so every invoice is
+  # definitely final and late data has settled. Keyed by the CLOSED period
+  # behind the task-slug prefix ("deploy-billing-reconcile-YYYY-MM") so it does
+  # not share a serialization queue with the other period-keyed tasks. The
+  # closed period is derived by stepping the clock back 4 days from the 4th,
+  # which always lands in the previous month (same epoch-math trick as the close
+  # backup). The idempotency key carries the run timestamp so a manual
+  # re-trigger is a fresh invocation, not a replay.
+  #
+  # NOTE: local/test schedule; the production cron lives in the infra repo too.
+  deploy-billing-reconcile:
+    schedule: "0 6 4 * *"
+    urlPath: "hydra.v1.CronService/deploy-billing-reconcile-$(date -u -d @$(( $(date -u +%s) - 345600 )) +%Y-%m)/RunDeployBillingReconcile/send"
+    idempotencyKey: "deploy-billing-reconcile-$(date -u -d @$(( $(date -u +%s) - 345600 )) +%Y-%m)-$(date -u +%Y-%m-%dT%H%M)"

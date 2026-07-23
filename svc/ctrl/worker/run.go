@@ -483,13 +483,14 @@ func Run(ctx context.Context, cfg Config) error {
 	// keyed VOs wedges every subsequent tick under that key. Per-handler
 	// options below mirror each task's pre-consolidation behavior.
 	cronSvc, err := cron.New(cron.Config{
-		DB:                        database,
-		Clickhouse:                ch,
-		Clock:                     clk,
-		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
-		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
-		BillingUsageReader:        billingUsageReader,
-		StripeSecretKey:           cfg.Billing.StripeSecretKey,
+		DB:                              database,
+		Clickhouse:                      ch,
+		Clock:                           clk,
+		RatelimitDB:                     ratelimitdb.New(database.RW(), database.RO()),
+		SlackQuotaCheckWebhookURL:       cfg.Slack.QuotaCheckWebhookURL,
+		SlackBillingReconcileWebhookURL: cfg.Slack.BillingReconcileWebhookURL,
+		BillingUsageReader:              billingUsageReader,
+		StripeSecretKey:                 cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
 		BillingPusher:  nil,
 		BillingCloser:  nil,
@@ -497,14 +498,14 @@ func Run(ctx context.Context, cfg Config) error {
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
-			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
-			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
-			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
-			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
-			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
-			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
-			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
+			QuotaCheck:             cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:              cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:        cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:         cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			AuditLogCleanup:        cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			DeployBillingPush:      cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			DeployBillingClose:     cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
+			DeploySpendCheck:       cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
 		},
 	})
 	if err != nil {
@@ -598,6 +599,21 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// DeployBillingReconcile is the monthly read-only reconcile pass, keyed by
+	// the closed billing period. Its reads (list workspaces, and the engine's
+	// per-workspace Stripe + ClickHouse reads) can fail non-terminally; without a
+	// cap that invocation retries forever on the period VO. The pass writes
+	// nothing and is idempotent, so kill on exhaustion and let the next monthly
+	// tick (or a manual re-trigger) retry from a clean slate. A killed pass never
+	// pings its heartbeat, so the dead-man switch pages. Mirrors the billing-push
+	// and spend-check policies.
+	cronDeployBillingReconcileRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	// Without a cap the SDK default retries a failing quota check forever,
 	// parking its VO for the month. Kill on exhaustion and let the next daily
 	// tick retry; mirrors the billing-push and spend-check policies.
@@ -617,6 +633,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
+		ConfigureHandler("RunDeployBillingReconcile", cronDeployBillingReconcileRetry).
 		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")
 
