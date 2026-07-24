@@ -262,65 +262,14 @@ export function RailRow({
         <div className="text-[13px] text-accent-12 truncate leading-4">{item.title}</div>
         <RowSubtitle item={item} className="mt-0.5" />
       </div>
-      <div className="relative shrink-0">
-        <RowMark
-          mark={mark}
-          points={item.spark}
-          errorRatio={item.errorRatio}
-          stroke={item.stroke}
-          className="w-40 h-7"
-        />
-        <div className="absolute bottom-full right-0 z-20 mb-2 hidden group-hover:block">
-          <HoverStats item={item} />
-        </div>
-      </div>
+      <RowMark
+        mark={mark}
+        points={item.spark}
+        errorRatio={item.errorRatio}
+        stroke={item.stroke}
+        className="w-40 h-7 shrink-0"
+      />
     </Link>
-  );
-}
-
-function HoverStats({ item }: { item: RowItem }) {
-  const total = item.spark.reduce((acc, n) => acc + n, 0);
-  const errors = Math.round(total * item.errorRatio);
-  const valid = Math.max(0, total - errors);
-  const isKeyspace = item.kind === "keyspace";
-  return (
-    <div className="w-48 rounded-lg border border-grayA-4 bg-background p-3 shadow-md">
-      <div className="font-medium text-[13px] text-accent-12">
-        {isKeyspace ? "Keyspace activity" : "Ratelimit activity"}
-      </div>
-      <div className="text-xs text-gray-9">Last 24 hours</div>
-      <div className="mt-2.5 flex flex-col gap-1.5 text-xs">
-        <StatRow label="Total" count={total} swatch="bg-transparent" bold />
-        <StatRow label={isKeyspace ? "Valid" : "Passed"} count={valid} swatch="bg-gray-7" />
-        {errors > 0 && (
-          <StatRow label={isKeyspace ? "Invalid" : "Blocked"} count={errors} swatch="bg-error-9" />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatRow({
-  label,
-  count,
-  swatch,
-  bold,
-}: {
-  label: string;
-  count: number;
-  swatch: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="flex items-center gap-2 text-gray-11">
-        <span className={cn("size-1.5 rounded-[1px]", swatch)} aria-hidden />
-        {label}
-      </span>
-      <span className={cn("text-gray-12 tabular-nums", bold && "font-medium")}>
-        {fmtInt(count)}
-      </span>
-    </div>
   );
 }
 
