@@ -200,17 +200,29 @@ type AppGit struct {
 	Repository string `json:"repository"`
 }
 
-// AppGitInput defines model for AppGitInput.
-type AppGitInput struct {
-	// DefaultBranch The branch this app's deployments track. Omit it to adopt the repository's
-	// default branch on a new connection, or to keep the current branch when
-	// replacing an already-connected repository. On apps.updateApp, set it alone
-	// to retarget the branch of the already-connected repository.
+// AppGitCreateInput Connect a GitHub repository to the app on creation. Omit to create the app
+// without a repository and connect one later with apps.updateApp.
+type AppGitCreateInput struct {
+	// DefaultBranch The branch this app's deployments track. Omit to adopt the repository's
+	// default branch on GitHub.
 	DefaultBranch *string `json:"defaultBranch,omitempty"`
 
-	// Repository The GitHub repository to connect, as "owner/repo". On apps.updateApp, omit
-	// to change only the tracked branch of the already-connected repository.
-	// The workspace must have the Unkey GitHub App installed with access to it.
+	// Repository The GitHub repository to connect, as "owner/repo". The workspace must have
+	// the Unkey GitHub App installed with access to it.
+	Repository string `json:"repository"`
+}
+
+// AppGitUpdateInput defines model for AppGitUpdateInput.
+type AppGitUpdateInput struct {
+	// DefaultBranch The branch this app's deployments track. Omit to adopt the repository's
+	// GitHub default branch on a new connection, keep the current branch when
+	// replacing an already-connected repository, or set it alone to retarget the
+	// branch of the connected repository.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// Repository The GitHub repository to connect, as "owner/repo". Omit to change only the
+	// tracked branch of the already-connected repository. The workspace must have
+	// the Unkey GitHub App installed with access to it.
 	Repository *string `json:"repository,omitempty"`
 }
 
@@ -1467,7 +1479,9 @@ type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2AppsCreateAppRequestBody defines model for V2AppsCreateAppRequestBody.
 type V2AppsCreateAppRequestBody struct {
-	Git *AppGitInput `json:"git,omitempty"`
+	// Git Connect a GitHub repository to the app on creation. Omit to create the app
+	// without a repository and connect one later with apps.updateApp.
+	Git *AppGitCreateInput `json:"git,omitempty"`
 
 	// Name Human-readable name for this app.
 	// Use a descriptive name like 'Payments API' to identify its purpose.
@@ -1580,7 +1594,7 @@ type V2AppsUpdateAppRequestBody struct {
 	// Omit to leave unchanged, set null to disconnect, or set an object with a
 	// "repository" to connect or replace it and/or a "defaultBranch" to set which
 	// branch it tracks. Fields are independent, so send only the one you change.
-	Git nullable.Nullable[AppGitInput] `json:"git,omitempty"`
+	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
 
 	// Name New human-readable name for the app.
 	// Omit this field to leave the current name unchanged.

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -65,7 +64,7 @@ func TestCreateAppConnectRepository(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    slug(),
-		Git:     &openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")},
+		Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, appID, res.Body.Data.AppId)
@@ -124,7 +123,7 @@ func TestCreateAppConnectRepositoryForbidden(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    slug(),
-		Git:     &openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")},
+		Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }

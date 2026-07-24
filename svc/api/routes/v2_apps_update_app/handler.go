@@ -291,7 +291,7 @@ func (h *Handler) applyGitChange(
 	ctx context.Context,
 	tx db.DBTX,
 	app db.App,
-	git nullable.Nullable[openapi.AppGitInput],
+	git nullable.Nullable[openapi.AppGitUpdateInput],
 	update *db.UpdateAppParams,
 ) (nullable.Nullable[openapi.AppGit], error) {
 	var empty nullable.Nullable[openapi.AppGit]

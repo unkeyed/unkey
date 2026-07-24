@@ -24,7 +24,7 @@ properties:
       "repository" to connect or replace it and/or a "defaultBranch" to set which
       branch it tracks. Fields are independent, so send only the one you change.
     anyOf:
-      - "$ref": "../../../../common/AppGitInput.yaml"
+      - "$ref": "../../../../common/AppGitUpdateInput.yaml"
       - type: "null"
   deleteProtection:
     type: boolean

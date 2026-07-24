@@ -111,17 +111,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		// Creating an app can only connect a repository, so it needs one. A branch
-		// alone has nothing to track; retargeting a branch is an updateApp concern.
-		if req.Git.Repository == nil {
-			return fault.New(
-				"missing repository",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("git.repository is required to connect a repository on create"),
-				fault.Public("Provide git.repository to connect a GitHub repository."),
-			)
-		}
-
 		if h.GitHubAppName == "" {
 			return fault.New(
 				"github not configured",
@@ -141,7 +130,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		resolved, err = githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, *req.Git.Repository)
+		resolved, err = githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, req.Git.Repository)
 		if err != nil {
 			return err
 		}

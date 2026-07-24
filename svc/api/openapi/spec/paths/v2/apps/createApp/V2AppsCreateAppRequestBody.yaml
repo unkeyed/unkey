@@ -17,7 +17,7 @@ properties:
   slug:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   git:
-    "$ref": "../../../../common/AppGitInput.yaml"
+    "$ref": "../../../../common/AppGitCreateInput.yaml"
 additionalProperties: false
 examples:
   byProjectSlug:

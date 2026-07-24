@@ -74,7 +74,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.False(t, res.Body.Data.Git.IsNull())
@@ -103,7 +103,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: &branch}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: &branch}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git.MustGet()
@@ -141,7 +141,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git.MustGet()
@@ -174,7 +174,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{DefaultBranch: ptr.P("release")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: ptr.P("release")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		git := res.Body.Data.Git.MustGet()
@@ -192,7 +192,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     id,
-			Git:     nullable.NewNullableWithValue(openapi.AppGitInput{DefaultBranch: ptr.P("release")}),
+			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: ptr.P("release")}),
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
@@ -245,7 +245,7 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Git:     nullable.NewNullNullable[openapi.AppGitInput](),
+		Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.True(t, res.Body.Data.Git.IsNull(), "response git should be null after disconnect")
@@ -295,7 +295,7 @@ func TestUpdateAppConnectRepositoryNotConfigured(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")}),
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 	})
 	require.GreaterOrEqual(t, res.Status, 500, "unconfigured GitHub connection should fail, received: %s", res.RawBody)
 }
@@ -336,7 +336,7 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
 		Project: project.ID,
 		App:     app.ID,
-		Git:     nullable.NewNullableWithValue(openapi.AppGitInput{Repository: ptr.P("unkeyed/unkey")}),
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }

@@ -394,7 +394,7 @@ components:
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
-                    "$ref": "#/components/schemas/AppGitInput"
+                    "$ref": "#/components/schemas/AppGitCreateInput"
             additionalProperties: false
         V2AppsCreateAppResponseBody:
             type: object
@@ -540,7 +540,7 @@ components:
                         "repository" to connect or replace it and/or a "defaultBranch" to set which
                         branch it tracks. Fields are independent, so send only the one you change.
                     anyOf:
-                        - "$ref": "#/components/schemas/AppGitInput"
+                        - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
                 deleteProtection:
                     type: boolean
@@ -3765,28 +3765,29 @@ components:
                 Identifies a resource by either its unique ID or its slug.
                 Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
             example: proj_1234abcd
-        AppGitInput:
+        AppGitCreateInput:
             type: object
-            minProperties: 1
+            description: |
+                Connect a GitHub repository to the app on creation. Omit to create the app
+                without a repository and connect one later with apps.updateApp.
+            required:
+                - repository
             properties:
                 repository:
                     type: string
                     minLength: 1
                     maxLength: 255
                     description: |
-                        The GitHub repository to connect, as "owner/repo". On apps.updateApp, omit
-                        to change only the tracked branch of the already-connected repository.
-                        The workspace must have the Unkey GitHub App installed with access to it.
+                        The GitHub repository to connect, as "owner/repo". The workspace must have
+                        the Unkey GitHub App installed with access to it.
                     example: unkeyed/unkey
                 defaultBranch:
                     type: string
                     minLength: 1
                     maxLength: 256
                     description: |
-                        The branch this app's deployments track. Omit it to adopt the repository's
-                        default branch on a new connection, or to keep the current branch when
-                        replacing an already-connected repository. On apps.updateApp, set it alone
-                        to retarget the branch of the already-connected repository.
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        default branch on GitHub.
                     example: main
             additionalProperties: false
         V2AppsCreateAppResponseData:
@@ -3892,6 +3893,30 @@ components:
                     minLength: 1
                     maxLength: 256
                     description: The branch this app's deployments track.
+                    example: main
+            additionalProperties: false
+        AppGitUpdateInput:
+            type: object
+            minProperties: 1
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". Omit to change only the
+                        tracked branch of the already-connected repository. The workspace must have
+                        the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        GitHub default branch on a new connection, keep the current branch when
+                        replacing an already-connected repository, or set it alone to retarget the
+                        branch of the connected repository.
                     example: main
             additionalProperties: false
         V2DeployGitCommit:

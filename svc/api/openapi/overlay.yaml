@@ -91,4 +91,4 @@ actions:
     update:
       nullable: true
       allOf:
-        - "$ref": "#/components/schemas/AppGitInput"
+        - "$ref": "#/components/schemas/AppGitUpdateInput"
