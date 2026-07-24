@@ -28,31 +28,35 @@ export function SidebarBody() {
   const appOverview = useFlag("appOverview");
   const portalManagement = useFlag("portalManagement");
 
-  // Authorization is a project-scoped concept living at workspace URLs, so it
-  // keeps the sidebar of the project the user was last inside. Resolved in an
-  // effect (localStorage) so the SSR render stays consistent.
+  // Authorization and identities are project-scoped concepts living at
+  // workspace URLs, so they keep the sidebar of the project the user was last
+  // inside. Resolved in an effect (localStorage) so SSR stays consistent.
   const [lastProjectId, setLastProjectId] = useState<string | null>(null);
-  const inAuthorization = context.type === "authorization";
+  const keepProjectContext = context.type === "authorization" || context.type === "identity";
   useEffect(() => {
-    if (inAuthorization) {
+    if (keepProjectContext) {
       setLastProjectId(readLastProjectId());
     }
-  }, [inAuthorization]);
+  }, [keepProjectContext]);
 
   const links = (() => {
     switch (context.type) {
       case "authorization":
+      case "identity":
         if (lastProjectId) {
           return buildProjectLinks(
             slug,
             lastProjectId,
-            ["projects", lastProjectId, "authorization"],
+            [
+              "projects",
+              lastProjectId,
+              context.type === "identity" ? "identities" : "authorization",
+            ],
             portalManagement,
           );
         }
         return buildWorkspaceSections(slug, segments);
       case "workspace":
-      case "identity":
       // Settings keeps the top-level workspace nav in the global sidebar; its
       // sub-pages live in a SecondaryNav rail (see the settings layout).
       case "settings":

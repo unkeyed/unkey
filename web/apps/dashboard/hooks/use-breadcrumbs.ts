@@ -40,21 +40,23 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
     [resourceId],
   );
 
-  // Authorization is project-scoped conceptually but lives at workspace URLs;
-  // surface the project the user was last inside (matches the sidebar).
+  // Authorization and identities are project-scoped conceptually but live at
+  // workspace URLs; surface the project the user was last inside (matches the
+  // sidebar).
   const isAuthorization = pathname.startsWith(`/${workspace.slug}/authorization`);
+  const keepProjectContext = isAuthorization || Boolean(params.identityId && !params.projectId);
   const [lastProjectId, setLastProjectId] = useState<string | null>(null);
   useEffect(() => {
-    if (isAuthorization) {
+    if (keepProjectContext) {
       setLastProjectId(readLastProjectId());
     }
-  }, [isAuthorization]);
+  }, [keepProjectContext]);
 
   // The create-project page has no entity params, so it gets a static crumb.
   const isNewProject = pathname === routes.projects.new({ workspaceSlug: workspace.slug });
 
   const workspaceHref =
-    isNewProject || resourceProjectId || (isAuthorization && lastProjectId)
+    isNewProject || resourceProjectId || (keepProjectContext && lastProjectId)
       ? routes.projects.list({ workspaceSlug: workspace.slug })
       : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
@@ -70,9 +72,11 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   if (!params.projectId && resourceProjectId) {
     crumbs.push({ type: "project", projectId: resourceProjectId });
   }
-  if (isAuthorization && lastProjectId) {
+  if (keepProjectContext && lastProjectId) {
     crumbs.push({ type: "project", projectId: lastProjectId });
-    crumbs.push({ type: "label", label: "Authorization", icon: "shield-key" });
+    if (isAuthorization) {
+      crumbs.push({ type: "label", label: "Authorization", icon: "shield-key" });
+    }
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId });
