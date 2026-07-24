@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestConfigureUser_ProtectsPerQueryLimits guarantees workspace users retain
@@ -23,7 +24,7 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, admin.Close()) })
 
-	workspaceID := fmt.Sprintf("ws_sqlsec_%d", time.Now().UnixNano())
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	password := "sqlsec_password"
 	err = admin.ConfigureUser(ctx, clickhouse.UserConfig{
 		WorkspaceID:               workspaceID,
@@ -113,7 +114,7 @@ func TestConfigureUser_HTTPTransport(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, admin.Close()) })
 
-	workspaceID := fmt.Sprintf("ws_http_%d", time.Now().UnixNano())
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	password := "http_password"
 	err = admin.ConfigureUser(ctx, clickhouse.UserConfig{
 		WorkspaceID:               workspaceID,
