@@ -360,6 +360,8 @@ export function useRatelimitLogsQuery({
   const totalPages =
     knownTotal !== null ? computeTotalPages(totalCount, limit) : fallbackTotalPages;
 
+  // `enabled: !startPolling` suspends the clamp and the adjacent-page prefetch
+  // while live, where the view is pinned to page 1 and the footer is hidden.
   const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data: logData,
     page: queryPage,

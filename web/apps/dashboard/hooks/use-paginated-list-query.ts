@@ -118,9 +118,10 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
     }
   }, [enabled, data, page, totalPages, setPage]);
 
-  // Prefetch the next few pages so navigation feels instant. The ref keeps a
-  // fresh caller arrow each render from re-firing the effect, which re-runs on
-  // page/totalPages, queryParams identity, or prefetchKey changes.
+  // Prefetch the next few pages so navigation feels instant, unless disabled
+  // (live tail — see `enabled`). The ref keeps a fresh caller arrow each render
+  // from re-firing the effect, which re-runs on enabled/page/totalPages,
+  // queryParams identity, or prefetchKey changes.
   const prefetchRef = useRef(prefetch);
   prefetchRef.current = prefetch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: prefetchKey is read through the caller's prefetch closure, not this body, so it has to be listed to re-warm on change
