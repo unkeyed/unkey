@@ -113,19 +113,186 @@ function findKey(keyId: string): { ks: KeyspaceStat; key: MockKey } | null {
 const defaultPrefix = (ks: KeyspaceStat) =>
   ks.name.replace(/[^a-z0-9]/gi, "").slice(0, 4) || "key";
 
-function isFakeProject(projectId: string | undefined): boolean {
+type FakeProject = World["projects"][number];
+
+function findFakeProject(projectId: string | undefined): FakeProject | null {
   if (!projectId) {
-    return false;
+    return null;
   }
-  return allWorlds().some((world) => world.projects.some((p) => p.id === projectId));
+  for (const world of allWorlds()) {
+    const project = world.projects.find((p) => p.id === projectId);
+    if (project) {
+      return project;
+    }
+  }
+  return null;
 }
 
-// Fake projects have no deploy resources; short-circuit those list queries to
-// empty instead of letting the backend 404 on unknown project ids.
+function findFakeApp(appId: string): { project: FakeProject; app: FakeProject["apps"][number] } | null {
+  for (const world of allWorlds()) {
+    for (const project of world.projects) {
+      const app = project.apps.find((a) => a.id === appId);
+      if (app) {
+        return { project, app };
+      }
+    }
+  }
+  return null;
+}
+
+// Fake projects have no custom domains; short-circuit that list to empty
+// instead of letting the backend 404 on unknown project ids.
 const emptyForFakeProject = (rawInput: unknown) => {
   const input = rawInput as { projectId?: string };
-  return isFakeProject(input.projectId) ? [] : PASS;
+  return findFakeProject(input.projectId) ? [] : PASS;
 };
+
+// ---------------------------------------------------------------------------
+// Deploy-tree fabrication (apps, environments, deployments, domains) so the
+// project Apps flow and app overview render for fake projects.
+// ---------------------------------------------------------------------------
+
+const REGION = { id: "reg_us_east_1", name: "us-east-1", platform: "aws" };
+const COMMIT_TITLES = [
+  "fix: retry webhook delivery on 5xx",
+  "feat: add usage caps to checkout",
+  "chore: bump dependencies",
+  "feat: stream responses from the edge",
+  "fix: handle empty cart on checkout",
+  "refactor: split billing worker queue",
+];
+
+const projectSlug = (project: FakeProject) =>
+  project.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+const currentDeploymentId = (appId: string) => `dep_${appId}_current`;
+const productionEnvId = (appId: string) => `env_${appId}_production`;
+
+function appCommit(appId: string) {
+  const rand = mulberry32(hashCode(`commit:${appId}`));
+  const sha = Array.from({ length: 40 }, () => Math.floor(rand() * 16).toString(16)).join("");
+  return {
+    title: COMMIT_TITLES[Math.floor(rand() * COMMIT_TITLES.length)],
+    sha,
+    // 1h–2d ago, stable per app within a session.
+    timestamp: Date.now() - Math.floor((1 + rand() * 47) * HOUR_MS),
+  };
+}
+
+const appDomain = (project: FakeProject, app: FakeProject["apps"][number]) =>
+  `${app.name}-${projectSlug(project)}.unkey.app`;
+
+function fakeAppRows(project: FakeProject): Outputs["deploy"]["app"]["list"] {
+  return project.apps.map((app) => {
+    const commit = appCommit(app.id);
+    return {
+      id: app.id,
+      projectId: project.id,
+      name: app.name,
+      slug: app.name,
+      defaultBranch: "main",
+      currentDeploymentId: currentDeploymentId(app.id),
+      isRolledBack: false,
+      repositoryFullName: app.source === "github" ? `acme/${projectSlug(project)}` : null,
+      latestDeploymentId: currentDeploymentId(app.id),
+      commitTitle: commit.title,
+      commitSha: commit.sha,
+      forkRepositoryFullName: null,
+      prNumber: null,
+      branch: "main",
+      author: app.source === "github" ? "dave" : null,
+      authorAvatar: null,
+      commitTimestamp: commit.timestamp,
+      domain: appDomain(project, app),
+    };
+  });
+}
+
+function fakeEnvironmentRows(project: FakeProject): Outputs["deploy"]["environment"]["list"] {
+  return project.apps.flatMap((app) => [
+    { id: productionEnvId(app.id), projectId: project.id, slug: "production", appId: app.id },
+    { id: `env_${app.id}_preview`, projectId: project.id, slug: "preview", appId: app.id },
+  ]);
+}
+
+function fakeDeploymentRows(project: FakeProject): Outputs["deploy"]["deployment"]["list"] {
+  return project.apps.flatMap((app) => {
+    const commit = appCommit(app.id);
+    const base = {
+      projectId: project.id,
+      appId: app.id,
+      environmentId: productionEnvId(app.id),
+      gitBranch: "main",
+      gitCommitAuthorHandle: app.source === "github" ? "dave" : null,
+      gitCommitAuthorAvatarUrl: "",
+      prNumber: null,
+      forkRepositoryFullName: null,
+      image: app.source === "code" ? `registry.unkey.app/${app.name}:latest` : null,
+      hasOpenApiSpec: false,
+      desiredState: "running" as const,
+      desiredInstanceCount: 1,
+      desiredRegions: [{ region: REGION, flagCode: "us" as const }],
+      cpuMillicores: 250,
+      memoryMib: 512,
+      storageMib: 1024,
+      port: 8080,
+      upstreamProtocol: "http1" as const,
+      healthcheck: null,
+      shutdownSignal: "SIGTERM" as const,
+      trigger: app.source === "github" ? ("github" as const) : ("cli" as const),
+      triggeredBy: "dave",
+      triggerReason: null,
+      updatedAt: null,
+      lastExit: null,
+    };
+    const previous = appCommit(`${app.id}:prev`);
+    return [
+      {
+        ...base,
+        id: currentDeploymentId(app.id),
+        gitCommitSha: commit.sha,
+        gitCommitMessage: commit.title,
+        gitCommitTimestamp: commit.timestamp,
+        status: "ready" as const,
+        instances: [
+          {
+            id: `inst_${app.id}_1`,
+            region: REGION,
+            flagCode: "us" as const,
+            status: "running" as const,
+          },
+        ],
+        createdAt: commit.timestamp,
+        buildEndedAt: commit.timestamp + 95_000,
+      },
+      {
+        ...base,
+        id: `dep_${app.id}_prev`,
+        gitCommitSha: previous.sha,
+        gitCommitMessage: previous.title,
+        gitCommitTimestamp: commit.timestamp - 26 * HOUR_MS,
+        status: "superseded" as const,
+        instances: [],
+        createdAt: commit.timestamp - 26 * HOUR_MS,
+        buildEndedAt: commit.timestamp - 26 * HOUR_MS + 80_000,
+      },
+    ];
+  });
+}
+
+function fakeDomainRows(project: FakeProject): Outputs["deploy"]["domain"]["list"] {
+  return project.apps.map((app) => ({
+    id: `dom_${app.id}`,
+    fullyQualifiedDomainName: appDomain(project, app),
+    projectId: project.id,
+    appId: app.id,
+    deploymentId: currentDeploymentId(app.id),
+    environmentId: productionEnvId(app.id),
+    sticky: "live" as const,
+    createdAt: appCommit(app.id).timestamp,
+    updatedAt: null,
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // Timeseries generation
@@ -330,13 +497,13 @@ function fakeProjects(): Outputs["deploy"]["project"]["list"] {
       out.push({
         id: project.id,
         name: project.name,
-        slug: project.name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+        slug: projectSlug(project),
         appCount: project.appCount,
-        apps: project.apps.map((app, i) => ({
+        apps: project.apps.map((app) => ({
           id: app.id,
-          name: app.source === "github" ? "web" : `service-${i + 1}`,
+          name: app.name,
           source: app.source,
-          repository: app.source === "github" ? `acme/${project.name}` : null,
+          repository: app.source === "github" ? `acme/${projectSlug(project)}` : null,
         })),
         repositoryFullName: null,
         latestDeploymentId: null,
@@ -366,10 +533,64 @@ const EMPTY_SERIES = { timeseries: [], granularity: "perHour" as Granularity };
 export const prototypeHandlers: PrototypeHandlers = {
   replace: {
     "deploy.customDomain.list": emptyForFakeProject,
-    "deploy.domain.list": emptyForFakeProject,
-    "deploy.environment.list": emptyForFakeProject,
-    "deploy.deployment.list": emptyForFakeProject,
-    "deploy.app.list": emptyForFakeProject,
+
+    "deploy.app.list": (rawInput) => {
+      const project = findFakeProject((rawInput as { projectId?: string }).projectId);
+      return project ? fakeAppRows(project) : PASS;
+    },
+
+    "deploy.environment.list": (rawInput) => {
+      const project = findFakeProject((rawInput as { projectId?: string }).projectId);
+      return project ? fakeEnvironmentRows(project) : PASS;
+    },
+
+    "deploy.deployment.list": (rawInput) => {
+      const input = rawInput as { projectId?: string; appId?: string };
+      const project = findFakeProject(input.projectId);
+      if (!project) {
+        return PASS;
+      }
+      const rows = fakeDeploymentRows(project);
+      return input.appId ? rows.filter((d) => d.appId === input.appId) : rows;
+    },
+
+    "deploy.domain.list": (rawInput) => {
+      const input = rawInput as { projectId?: string; appId?: string };
+      const project = findFakeProject(input.projectId);
+      if (!project) {
+        return PASS;
+      }
+      const rows = fakeDomainRows(project);
+      return input.appId ? rows.filter((d) => d.appId === input.appId) : rows;
+    },
+
+    "deploy.metrics.getAppRpsMetrics": (rawInput) => {
+      const input = rawInput as { appId: string };
+      const found = findFakeApp(input.appId);
+      if (!found) {
+        return PASS;
+      }
+      // Week view: 168 hourly buckets of average req/s, like a >1d-old app.
+      const bucketMs = HOUR_MS;
+      const end = Math.floor(Date.now() / bucketMs) * bucketMs;
+      const baseRps = 4 + (Math.abs(hashCode(input.appId)) % 40);
+      let totalRequests = 0;
+      const rps: Array<{ time: number; requests: number; errors: number }> = [];
+      for (let i = 168; i >= 1; i--) {
+        const time = end - i * bucketMs;
+        const rand = mulberry32(hashCode(`${input.appId}:rps:${time}`));
+        const daily = 0.6 + 0.8 * Math.abs(Math.sin(((time % DAY_MS) / DAY_MS) * Math.PI));
+        const requests = Math.round(baseRps * daily * (0.8 + rand() * 0.4) * 100) / 100;
+        const errors = Math.round(requests * rand() * 0.02 * 100) / 100;
+        totalRequests += Math.round(requests * (bucketMs / 1000));
+        rps.push({ time, requests, errors });
+      }
+      return {
+        range: "week",
+        totalRequests,
+        rps,
+      } satisfies Outputs["deploy"]["metrics"]["getAppRpsMetrics"];
+    },
 
     "api.overview.query": (rawInput) => {
       const input = rawInput as { limit?: number; cursor?: { id: string } };

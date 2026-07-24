@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentStyle } from "./agent-setup";
 import type { Mark } from "./marks";
 import { type Scenario, SCENARIO_LABELS } from "./mock-data";
-import { SCENARIO_STORAGE_KEY } from "./store";
 
 const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
@@ -36,12 +35,34 @@ const AGENT_STYLE_LABELS: Record<AgentStyle, string> = {
 };
 
 // All prototype choices live in the URL query string so a configuration can be
-// shared as a link (e.g. ?scenario=migrated&row=list&mark=bars&agent=minimal).
+// shared as a link (e.g. ?scenario=migrated&row=list&mark=bars&agent=minimal),
+// and are mirrored to localStorage so they survive navigating away and back.
+// URL param wins; stored value fills in when the URL has none.
 function readParam(key: string): string | null {
   try {
     return new URLSearchParams(window.location.search).get(key);
   } catch {
     return null;
+  }
+}
+
+// Prefix matches SCENARIO_STORAGE_KEY in store.tsx: "scenario" lands on the
+// exact key the tRPC interceptor reads.
+const STORAGE_PREFIX = "unkey.projects-prototype.";
+
+function readStored(key: string): string | null {
+  try {
+    return localStorage.getItem(STORAGE_PREFIX + key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: string) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, value);
+  } catch {
+    // ignore
   }
 }
 
@@ -75,18 +96,21 @@ export function useCurrentSearch(): string {
   return search;
 }
 
-// Reads the param on mount (falling back to `initial`) and always writes the
-// resolved value back, so the URL encodes the full config even for defaults.
+// Reads the param on mount (URL wins, then localStorage, then `initial`) and
+// writes the resolved value back to both, so the URL encodes the full config
+// even for defaults and the choice survives navigation.
 function useUrlEnum<T extends string>(key: string, allowed: readonly T[], initial: T) {
   const [value, setValue] = useState<T>(initial);
 
   useEffect(() => {
-    const param = readParam(key);
-    const resolved = param && (allowed as readonly string[]).includes(param) ? (param as T) : initial;
+    const valid = (v: string | null) =>
+      v && (allowed as readonly string[]).includes(v) ? (v as T) : null;
+    const resolved = valid(readParam(key)) ?? valid(readStored(key)) ?? initial;
     if (resolved !== initial) {
       setValue(resolved);
     }
     writeParam(key, resolved);
+    writeStored(key, resolved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -94,6 +118,7 @@ function useUrlEnum<T extends string>(key: string, allowed: readonly T[], initia
     (next: T) => {
       setValue(next);
       writeParam(key, next);
+      writeStored(key, next);
     },
     [key],
   );
@@ -105,12 +130,13 @@ function useUrlBool(key: string, initial: boolean) {
   const [value, setValue] = useState(initial);
 
   useEffect(() => {
-    const param = readParam(key);
+    const param = readParam(key) ?? readStored(key);
     const resolved = param == null ? initial : param === "true";
     if (resolved !== initial) {
       setValue(resolved);
     }
     writeParam(key, String(resolved));
+    writeStored(key, String(resolved));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,6 +144,7 @@ function useUrlBool(key: string, initial: boolean) {
     (next: boolean) => {
       setValue(next);
       writeParam(key, String(next));
+      writeStored(key, String(next));
     },
     [key],
   );
@@ -127,13 +154,6 @@ function useUrlBool(key: string, initial: boolean) {
 
 export function useScenario() {
   const [scenario, setScenario] = useUrlEnum<Scenario>("scenario", SCENARIOS, "migrated");
-  useEffect(() => {
-    try {
-      localStorage.setItem(SCENARIO_STORAGE_KEY, scenario);
-    } catch {
-      // ignore
-    }
-  }, [scenario]);
   return { scenario, setScenario };
 }
 

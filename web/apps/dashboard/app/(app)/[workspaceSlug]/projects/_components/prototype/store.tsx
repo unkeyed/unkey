@@ -40,7 +40,7 @@ export const SCENARIO_STORAGE_KEY = "unkey.projects-prototype.scenario";
 
 const STORAGE_KEY = "unkey.projects-prototype";
 // Bump when the seed shape changes so stale localStorage copies get replaced.
-const VERSION = 2;
+const VERSION = 3;
 
 export function mulberry32(seed: number) {
   let a = seed;

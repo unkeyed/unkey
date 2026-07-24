@@ -22,7 +22,7 @@ export type RatelimitStat = {
   spark: Record<Timeframe, number[]>;
 };
 
-export type AppMock = { id: string; source: "github" | "code" };
+export type AppMock = { id: string; source: "github" | "code"; name: string };
 
 export type ProjectMock = {
   id: string;
@@ -140,21 +140,28 @@ const active: OverviewData = {
       id: "p_a1",
       name: "acme-corp",
       subtitle: "Default project",
-      apps: [{ id: "a1", source: "github" }, { id: "a2", source: "code" }],
+      apps: [
+        { id: "app_a1", source: "github", name: "web" },
+        { id: "app_a2", source: "code", name: "api" },
+        { id: "app_a3", source: "code", name: "worker" },
+      ],
       appCount: 3,
     },
     {
       id: "p_a2",
       name: "checkout-service",
       subtitle: "Deployed 2h ago · main",
-      apps: [{ id: "a3", source: "github" }, { id: "a4", source: "code" }],
+      apps: [
+        { id: "app_a4", source: "github", name: "checkout-api" },
+        { id: "app_a5", source: "code", name: "webhooks" },
+      ],
       appCount: 2,
     },
     {
       id: "p_a3",
       name: "docs-site",
       subtitle: "Deployed 1d ago · main",
-      apps: [{ id: "a5", source: "github" }],
+      apps: [{ id: "app_a6", source: "github", name: "docs" }],
       appCount: 1,
     },
   ],
