@@ -302,6 +302,11 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	// Removes every Stripe subscription row for a workspace. Paired with
+	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
+	//
+	//  DELETE FROM `billing_subscriptions` WHERE workspace_id = ?
+	DeleteWorkspaceBillingSubscriptions(ctx context.Context, db DBTX, id string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -1353,11 +1358,31 @@ type Querier interface {
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
-	// that query rather than a second round trip.
+	// that query rather than a second round trip. Stripe subscription ids now live
+	// on billing_subscriptions, one row per (workspace, product).
 	//
-	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
-	//  WHERE workspace_id = ?
-	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (WorkspaceBilling, error)
+	//  SELECT
+	//     b.pk,
+	//     b.workspace_id,
+	//     b.tier,
+	//     b.stripe_customer_id,
+	//     bs_api.stripe_subscription_id AS stripe_subscription_id,
+	//     bs_deploy.stripe_subscription_id AS stripe_deploy_subscription_id,
+	//     b.plan,
+	//     b.plan_override,
+	//     b.spend_budget_cents,
+	//     b.spend_budget_stop,
+	//     b.spend_suspended,
+	//     b.created_at_m,
+	//     b.updated_at_m,
+	//     b.deleted_at_m
+	//  FROM `workspace_billing` b
+	//  LEFT JOIN `billing_subscriptions` bs_api
+	//     ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+	//  LEFT JOIN `billing_subscriptions` bs_deploy
+	//     ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+	//  WHERE b.workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -3219,14 +3244,15 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
-	// Clears every billing linkage on a workspace, returning it to the Free
-	// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
-	// stripe_customer_id, which no webhook ever clears. Used by the
-	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
+	// Clears the workspace_billing linkage on a workspace, returning it to the
+	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
+	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
+	// ids live on billing_subscriptions and are cleared separately by
+	// DeleteWorkspaceBillingSubscriptions. Used by the `unkey dev stripe reset`
+	// tooling; quota is reset separately via UpdateQuota.
 	//
 	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
-	//      stripe_subscription_id = NULL,
 	//      plan = NULL,
 	//      tier = 'Free'
 	//  WHERE workspace_id = ?

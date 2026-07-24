@@ -66,7 +66,7 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 	// leaving resubscribed compute running unbilled. A retry of the same call
 	// (row unchanged) still dedupes.
 	idempotencyKey := fmt.Sprintf("deploy-teardown-archive-%s-%s-%d",
-		workspaceID, billing.StripeSubscriptionID.String, billing.UpdatedAtM.Int64)
+		workspaceID, billing.StripeDeploySubscriptionID.String, billing.UpdatedAtM.Int64)
 	_, err = hydrav1.NewDeployTeardownServiceIngressClient(s.restate, workspaceID).
 		Teardown().
 		Send(ctx, &hydrav1.TeardownRequest{
@@ -81,10 +81,10 @@ func (s *Service) DeprovisionCompute(ctx context.Context, req *connect.Request[c
 	// the idempotency guard keys on deploy_plan; a crash after the clear would
 	// strand the suspension with no retry path.
 	//
-	// Accepted race: a spend-check child dispatched from a pre-cancel snapshot
-	// can re-suspend after this clear. A complete fix needs deploy_plan plumbed
-	// into CheckWorkspaceSpendRequest (proto change, deferred); the window is a
-	// single tick and support can clear the flag.
+	// A spend-check child dispatched from a pre-cancel snapshot could otherwise
+	// re-suspend after this clear; the check now re-reads the live entitlement
+	// before suspending (see deployspendcheck.hasActiveDeployPlan) and skips a
+	// workspace whose plan is gone, so this clear stays cleared.
 	if err := s.db.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
 		Suspended: false,
 		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

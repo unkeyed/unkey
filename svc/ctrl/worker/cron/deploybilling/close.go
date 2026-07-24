@@ -260,7 +260,7 @@ func (h *Handler) closeWorkspace(
 		return result, nil
 	}
 
-	if !ws.StripeSubscriptionID.Valid || ws.StripeSubscriptionID.String == "" {
+	if !ws.StripeDeploySubscriptionID.Valid || ws.StripeDeploySubscriptionID.String == "" {
 		logger.Error("deploy workspace has no stripe subscription id; deferring close",
 			"workspace_id", ws.ID,
 			"stripe_customer_id", ws.StripeCustomerID.String,
@@ -269,11 +269,11 @@ func (h *Handler) closeWorkspace(
 		return result, nil
 	}
 
-	drafts, err := h.closer.ListDraftInvoices(rc, ws.StripeSubscriptionID.String)
+	drafts, err := h.closer.ListDraftInvoices(rc, ws.StripeDeploySubscriptionID.String)
 	if err != nil {
 		logger.Error("list draft invoices failed; deferring close",
 			"workspace_id", ws.ID,
-			"stripe_subscription_id", ws.StripeSubscriptionID.String,
+			"stripe_subscription_id", ws.StripeDeploySubscriptionID.String,
 			"error", err,
 		)
 		result.Deferred++

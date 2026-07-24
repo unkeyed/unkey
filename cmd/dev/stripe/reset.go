@@ -89,6 +89,12 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("reset workspace row: %w", err)
 	}
 
+	// Stripe subscription ids live on billing_subscriptions, not
+	// workspace_billing; clear them too so a fresh subscribe starts clean.
+	if err := db.Query.DeleteWorkspaceBillingSubscriptions(ctx, database.RW(), workspaceID); err != nil {
+		return fmt.Errorf("reset workspace billing subscriptions: %w", err)
+	}
+
 	// Free-tier quota values, mirroring freeTierQuotas in the dashboard
 	// (web/apps/dashboard/lib/quotas.ts). Every column is set, not just the core
 	// quotas, so a previously paid workspace does not keep elevated rate-limit or
