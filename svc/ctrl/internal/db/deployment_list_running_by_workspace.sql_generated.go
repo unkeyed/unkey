@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const listRunningDeploymentsByWorkspaceId = `-- name: ListRunningDeploymentsByWorkspaceId :many
@@ -27,8 +29,8 @@ WHERE d.workspace_id = ?
 `
 
 type ListRunningDeploymentsByWorkspaceIdParams struct {
-	WorkspaceID    string              `db:"workspace_id"`
-	ActiveStatuses []DeploymentsStatus `db:"active_statuses"`
+	WorkspaceID    string                        `db:"workspace_id"`
+	ActiveStatuses []mysqltype.DeploymentsStatus `db:"active_statuses"`
 }
 
 type ListRunningDeploymentsByWorkspaceIdRow struct {

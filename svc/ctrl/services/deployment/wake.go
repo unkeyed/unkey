@@ -7,9 +7,11 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // WakeDeployment transitions a stopped deployment back to running. The actual
@@ -32,10 +34,6 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	if deployment.DesiredState != db.DeploymentsDesiredStateStopped {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not stopped"))
-	}
-
 	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -43,8 +41,21 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
-	if environment.Slug == "production" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("production deployments cannot be woken"))
+
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, deployment.WorkspaceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
+	}
+
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
+		DesiredState:    deployment.DesiredState,
+		EnvironmentSlug: environment.Slug,
+		SpendSuspended:  entitlement.SpendSuspended.Bool,
+	}); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)

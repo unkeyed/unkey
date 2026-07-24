@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -41,14 +43,14 @@ const (
 // polling the database, not by awaiting the children.
 func (v *VirtualObject) Teardown(
 	ctx restate.ObjectContext,
-	_ *hydrav1.TeardownRequest,
+	req *hydrav1.TeardownRequest,
 ) (*hydrav1.TeardownResponse, error) {
 	workspaceID := restate.Key(ctx)
 
 	running, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListRunningDeploymentsByWorkspaceIdRow, error) {
 		return v.db.ListRunningDeploymentsByWorkspaceId(rc, db.ListRunningDeploymentsByWorkspaceIdParams{
 			WorkspaceID:    workspaceID,
-			ActiveStatuses: db.ActiveComputeDeploymentStatuses,
+			ActiveStatuses: mysqltype.ActiveComputeDeploymentStatuses,
 		})
 	}, restate.WithName("list running deployments"))
 	if err != nil {
@@ -61,6 +63,12 @@ func (v *VirtualObject) Teardown(
 	}
 
 	ids := make([]string, 0, len(running))
+
+	// appCurrent records each app's current deployment that SUSPEND is stopping
+	// so Resume can re-promote exactly that deployment. It is gathered from the
+	// same snapshot rows that drive the clear below, so recording it is free.
+	appCurrent := make(map[string]string, len(running))
+
 	for _, d := range running {
 		ids = append(ids, d.ID)
 
@@ -68,6 +76,10 @@ func (v *VirtualObject) Teardown(
 		// clearing it for a non-current one would wrongly drop a different live
 		// deployment's pointer.
 		if d.CurrentDeploymentID.Valid && d.CurrentDeploymentID.String == d.ID {
+			if req.GetMode() == hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND {
+				appCurrent[d.AppID] = d.ID
+			}
+
 			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 				return v.db.ClearAppCurrentDeployment(rc, db.ClearAppCurrentDeploymentParams{
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -95,6 +107,38 @@ func (v *VirtualObject) Teardown(
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 				Overwrite:   true,
 			})
+	}
+
+	// Persist what this teardown stopped so Resume can reverse it. SUSPEND
+	// records the restore map (when there is anything to restore); ARCHIVE is
+	// permanent, so it drops any stale record instead.
+	switch req.GetMode() {
+	case hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND:
+		if len(appCurrent) > 0 {
+			// Merge into any existing suspension record: a re-enforcing teardown
+			// only sees deployments running now, and replacing would drop the apps
+			// the first teardown stopped from the restore map, so Resume would
+			// never bring them back. New entries win on collision.
+			existing, err := restate.Get[*suspension](ctx, suspensionKey)
+			if err != nil {
+				return nil, fmt.Errorf("read suspension record: %w", err)
+			}
+			merged := make(map[string]string, len(appCurrent))
+			if existing != nil {
+				for appID, deploymentID := range existing.AppCurrent {
+					merged[appID] = deploymentID
+				}
+			}
+			for appID, deploymentID := range appCurrent {
+				merged[appID] = deploymentID
+			}
+			restate.Set(ctx, suspensionKey, &suspension{AppCurrent: merged})
+		}
+	case hydrav1.TeardownMode_TEARDOWN_MODE_ARCHIVE:
+		restate.Clear(ctx, suspensionKey)
+	case hydrav1.TeardownMode_TEARDOWN_MODE_UNSPECIFIED:
+		// Callers always set SUSPEND or ARCHIVE. An unset mode records no
+		// suspension and clears none, leaving any prior record untouched.
 	}
 
 	logger.Info("teardown stopping deployments",

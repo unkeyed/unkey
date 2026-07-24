@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
@@ -32,10 +36,6 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, fmt.Errorf("failed to load deployment: %w", err)
 	}
 
-	if deployment.DesiredState != db.DeploymentsDesiredStateStopped {
-		return nil, restate.TerminalError(fmt.Errorf("deployment is not stopped"), 400)
-	}
-
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -45,8 +45,15 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		}
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
-	if environment.Slug == "production" {
-		return nil, restate.TerminalError(fmt.Errorf("production deployments cannot be woken"), 400)
+
+	if err := deploygate.CheckStartTarget(deploygate.StartInput{
+		DesiredState:    deployment.DesiredState,
+		EnvironmentSlug: environment.Slug,
+		// Spend is gated by the ctrl service before enqueue; the worker only
+		// re-checks lifecycle state.
+		SpendSuspended: false,
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
 
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).
@@ -65,7 +72,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusDeploying,
+			Status:    mysqltype.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("mark waking deployment as deploying"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -126,7 +133,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusReady,
+			Status:    mysqltype.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("mark woken deployment ready"), restate.WithMaxRetryAttempts(runMaxAttempts))

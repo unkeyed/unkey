@@ -2,12 +2,13 @@ package queryparser
 
 import (
 	"context"
-	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+// TestExtractColumnValues guarantees authorization-relevant literals are
+// found across qualified predicates, nested queries, and supported operators.
 func TestExtractColumnValues(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -26,6 +27,18 @@ func TestExtractColumnValues(t *testing.T) {
 			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id IN ('ks_1234', 'ks_5678')",
 			columnName: "key_space_id",
 			expected:   []string{"ks_1234", "ks_5678"},
+		},
+		{
+			name:       "qualified equality",
+			query:      "SELECT COUNT(*) FROM key_verifications AS r WHERE r.key_space_id = 'ks_qualified'",
+			columnName: "key_space_id",
+			expected:   []string{"ks_qualified"},
+		},
+		{
+			name:       "qualified IN",
+			query:      "SELECT COUNT(*) FROM key_verifications AS r WHERE r.key_space_id IN ('ks_first', 'ks_second')",
+			columnName: "key_space_id",
+			expected:   []string{"ks_first", "ks_second"},
 		},
 		{
 			name:       "multiple conditions with AND",
@@ -71,15 +84,27 @@ func TestExtractColumnValues(t *testing.T) {
 		},
 		{
 			name:       "duplicate values deduplicated",
-			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id = 'ks_1234' OR key_space_id = 'ks_1234'",
+			query:      "SELECT COUNT(*) FROM key_verifications WHERE key_space_id = 'ks_1234' OR key_space_id IN ('ks_5678', 'ks_1234')",
 			columnName: "key_space_id",
-			expected:   []string{"ks_1234"},
+			expected:   []string{"ks_1234", "ks_5678"},
 		},
 		{
 			name:       "HAVING clause",
 			query:      "SELECT key_space_id, COUNT(*) FROM key_verifications GROUP BY key_space_id HAVING key_space_id = 'ks_1234'",
 			columnName: "key_space_id",
 			expected:   []string{"ks_1234"},
+		},
+		{
+			name:       "nested branches retain first-seen order",
+			query:      "SELECT * FROM key_verifications WHERE key_space_id = 'ks_outer' AND key_id IN (SELECT key_id FROM key_verifications WHERE key_space_id IN ('ks_inner_1', 'ks_inner_2'))",
+			columnName: "key_space_id",
+			expected:   []string{"ks_outer", "ks_inner_1", "ks_inner_2"},
+		},
+		{
+			name:       "EXCEPT branches retain first-seen order",
+			query:      "SELECT * FROM key_verifications WHERE key_space_id = 'ks_left' EXCEPT SELECT * FROM key_verifications WHERE key_space_id = 'ks_right'",
+			columnName: "key_space_id",
+			expected:   []string{"ks_left", "ks_right"},
 		},
 		{
 			name:       "negative operator != ignored",
@@ -109,14 +134,6 @@ func TestExtractColumnValues(t *testing.T) {
 
 			// Extract values
 			values := parser.ExtractColumn(tt.columnName)
-
-			// Sort for consistent comparison
-			if values != nil {
-				slices.Sort(values)
-			}
-			if tt.expected != nil {
-				slices.Sort(tt.expected)
-			}
 
 			require.Equal(t, tt.expected, values)
 		})

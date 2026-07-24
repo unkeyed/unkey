@@ -1373,6 +1373,7 @@ type Quotum struct {
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
 	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
+	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
 }
 
 type Ratelimit struct {
@@ -1476,6 +1477,7 @@ type Workspace struct {
 	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
 	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
 	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
+	DeploySpendSuspended   bool            `db:"deploy_spend_suspended"`
 	BetaFeatures           json.RawMessage `db:"beta_features"`
 	Subscriptions          []byte          `db:"subscriptions"`
 	Enabled                bool            `db:"enabled"`
@@ -1483,4 +1485,20 @@ type Workspace struct {
 	CreatedAtM             int64           `db:"created_at_m"`
 	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
 	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
+}
+
+type WorkspaceBilling struct {
+	Pk                   uint64         `db:"pk"`
+	WorkspaceID          string         `db:"workspace_id"`
+	Tier                 sql.NullString `db:"tier"`
+	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
+	Plan                 sql.NullString `db:"plan"`
+	PlanOverride         sql.NullString `db:"plan_override"`
+	SpendBudgetCents     sql.NullInt64  `db:"spend_budget_cents"`
+	SpendBudgetStop      bool           `db:"spend_budget_stop"`
+	SpendSuspended       bool           `db:"spend_suspended"`
+	CreatedAtM           int64          `db:"created_at_m"`
+	UpdatedAtM           sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM           sql.NullInt64  `db:"deleted_at_m"`
 }

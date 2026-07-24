@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -34,12 +36,13 @@ func TestStopDeploymentNotRunning(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusStopped,
+		Status:        mysqltype.DeploymentsStatusStopped,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "is not running")
+	require.Contains(t, res.Body.Error.Type, "deployment_not_running")
 	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called for a deployment that is not running")
 }
 
@@ -71,18 +74,19 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	err := db.Query.UpdateDeploymentDesiredState(t.Context(), h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
 		ID:           dep.ID,
-		DesiredState: db.DeploymentsDesiredStateStopped,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
 	})
 	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "already stopping")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_stopping")
 	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called for a deployment that is already stopping")
 }
 
@@ -103,12 +107,13 @@ func TestStopDeploymentProduction(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "Production deployments cannot be stopped.")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
 	require.Empty(t, mock.StopDeploymentCalls, "ctrl must not be called for production deployments")
 }
 
@@ -143,7 +148,7 @@ func TestStopDeploymentCtrlPreconditionFailed(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
 		EnvironmentID: preview.ID,
-		Status:        db.DeploymentsStatusReady,
+		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})

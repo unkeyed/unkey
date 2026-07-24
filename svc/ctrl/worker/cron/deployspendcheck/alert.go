@@ -11,9 +11,14 @@ import (
 )
 
 // budgetAlertTemplate is the published Resend template alias for the Compute
-// budget alert. It owns the subject and sender; this handler supplies only the
-// recipients and variables.
-const budgetAlertTemplate = "compute-budget-alert"
+// budget threshold warning (50/75/100%). budgetStoppedTemplate is the alias for
+// the "compute stopped" email sent when the spend cap actually suspends compute.
+// Each template owns its subject and sender; this handler supplies only the
+// recipients and variables. Both aliases must exist in Resend.
+const (
+	budgetAlertTemplate   = "compute-budget-alert"
+	budgetStoppedTemplate = "compute-budget-stopped"
+)
 
 // budgetAlert is the data for one budget-threshold alert email.
 type budgetAlert struct {
@@ -29,12 +34,46 @@ type budgetAlert struct {
 	SpendMicroCents int64
 	BudgetCents     int64
 	Year            int
+	// Suspension is the per-period suspension counter; only the stopped email
+	// keys on it, so retries dedupe but a second suspension still sends.
+	Suspension int32
 }
 
-// alert resolves the workspace's org admins and emails them the budget alert.
-// The WorkOS lookup and the send are each journaled, so a replay repeats
-// neither. A workspace with no resolvable admins sends nothing.
+// alert emails the org admins the budget threshold warning for a newly crossed
+// 50/75/100% level.
 func (h *CheckHandler) alert(ctx restate.ObjectContext, a budgetAlert) error {
+	return h.sendToAdmins(ctx, a, budgetAlertTemplate,
+		budgetAlertIdempotencyKey(a.WorkspaceID, a.Period, a.BudgetCents, a.Threshold),
+		map[string]string{
+			"PERCENT":        strconv.Itoa(int(a.Threshold)),
+			"USAGE":          deploybilling.FormatDollars(a.SpendMicroCents),
+			"BUDGET":         deploybilling.FormatDollars(a.BudgetCents * deploybilling.MicroCentsPerCent),
+			"WORKSPACE_NAME": a.WorkspaceName,
+			"BILLING_URL":    fmt.Sprintf("%s/%s/settings/billing", h.billingBaseURL, a.WorkspaceSlug),
+			"YEAR":           strconv.Itoa(a.Year),
+		})
+}
+
+// stoppedAlert emails the org admins that the spend cap has stopped their
+// Compute. It replaces the 100% threshold warning when stopping is enabled: the
+// action, not the warning, is what they need to see.
+func (h *CheckHandler) stoppedAlert(ctx restate.ObjectContext, a budgetAlert) error {
+	return h.sendToAdmins(ctx, a, budgetStoppedTemplate,
+		stoppedAlertIdempotencyKey(a.WorkspaceID, a.Period, a.Suspension),
+		map[string]string{
+			"USAGE":          deploybilling.FormatDollars(a.SpendMicroCents),
+			"BUDGET":         deploybilling.FormatDollars(a.BudgetCents * deploybilling.MicroCentsPerCent),
+			"WORKSPACE_NAME": a.WorkspaceName,
+			"BILLING_URL":    fmt.Sprintf("%s/%s/settings/billing", h.billingBaseURL, a.WorkspaceSlug),
+			"YEAR":           strconv.Itoa(a.Year),
+		})
+}
+
+// sendToAdmins resolves the workspace's org admins and sends them one template
+// email under the given Resend idempotency key. The WorkOS lookup and the send
+// are each journaled, so a replay repeats neither. A workspace with no resolvable
+// admins sends nothing.
+func (h *CheckHandler) sendToAdmins(ctx restate.ObjectContext, a budgetAlert, templateID, idempotencyKey string, variables map[string]string) error {
 	recipients, err := restate.Run(ctx, func(rc restate.RunContext) ([]string, error) {
 		return h.admins.AdminEmails(rc, a.OrgID)
 	}, restate.WithName("resolve org admins"))
@@ -45,34 +84,31 @@ func (h *CheckHandler) alert(ctx restate.ObjectContext, a budgetAlert) error {
 		logger.Warn("budget alert has no recipients",
 			"org_id", a.OrgID,
 			"workspace_name", a.WorkspaceName,
-			"threshold", a.Threshold,
+			"template", templateID,
 		)
 		return nil
 	}
 
-	variables := map[string]string{
-		"PERCENT":        strconv.Itoa(int(a.Threshold)),
-		"USAGE":          deploybilling.FormatDollars(a.SpendMicroCents),
-		"BUDGET":         deploybilling.FormatDollars(a.BudgetCents * deploybilling.MicroCentsPerCent),
-		"WORKSPACE_NAME": a.WorkspaceName,
-		"BILLING_URL":    fmt.Sprintf("%s/%s/settings/billing", h.billingBaseURL, a.WorkspaceSlug),
-		"YEAR":           strconv.Itoa(a.Year),
-	}
 	return restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		return h.email.Send(rc, email.Email{
 			To:             recipients,
-			TemplateID:     budgetAlertTemplate,
+			TemplateID:     templateID,
 			Variables:      variables,
-			IdempotencyKey: budgetAlertIdempotencyKey(a.WorkspaceID, a.Period, a.Threshold),
-			// From and Subject left empty: the published template owns both (its
-			// subject interpolates PERCENT), so the sender uses its configured
-			// default From and the template's subject.
-			From:    "",
-			Subject: "",
+			From:           "",
+			Subject:        "",
+			IdempotencyKey: idempotencyKey,
 		})
 	}, restate.WithName("send budget alert"))
 }
 
-func budgetAlertIdempotencyKey(workspaceID, period string, threshold int32) string {
-	return fmt.Sprintf("budget-alert/%s/%s/%d", workspaceID, period, threshold)
+// budgetAlertIdempotencyKey dedupes a warning at Resend. The budget is in the
+// key so a threshold re-crossed after a budget change is a distinct send.
+func budgetAlertIdempotencyKey(workspaceID, period string, budgetCents int64, threshold int32) string {
+	return fmt.Sprintf("budget-alert/%s/%s/%d/%d", workspaceID, period, budgetCents, threshold)
+}
+
+// stoppedAlertIdempotencyKey dedupes a "compute stopped" email at Resend, keyed
+// by the suspension counter so retries dedupe but a second suspension sends.
+func stoppedAlertIdempotencyKey(workspaceID, period string, suspension int32) string {
+	return fmt.Sprintf("budget-stopped/%s/%s/%d", workspaceID, period, suspension)
 }

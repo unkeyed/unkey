@@ -28,10 +28,10 @@ type Querier interface {
 	// the invoice.created webhook and the month-end close both skip the workspace
 	// (they require deploy_plan IS NOT NULL), so the final invoice auto-finalizes.
 	//
-	//  UPDATE `workspaces`
-	//  SET deploy_plan = NULL,
+	//  UPDATE `workspace_billing`
+	//  SET plan = NULL,
 	//      updated_at_m = ?
-	//  WHERE id = ?
+	//  WHERE workspace_id = ?
 	ClearWorkspaceDeployPlan(ctx context.Context, arg ClearWorkspaceDeployPlanParams) error
 	//CompareAndSwapDeploymentStatus
 	//
@@ -287,7 +287,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
+	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -333,10 +333,11 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     w.stripe_subscription_id
-	//  FROM `workspaces` w
-	//  WHERE w.stripe_customer_id = ?
-	//    AND w.deploy_plan IS NOT NULL
+	//     b.stripe_subscription_id
+	//  FROM `workspace_billing` b
+	//  JOIN `workspaces` w ON w.id = b.workspace_id
+	//  WHERE b.stripe_customer_id = ?
+	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
 	//FindDeploymentById
@@ -536,7 +537,7 @@ type Querier interface {
 	FindProjectById(ctx context.Context, id string) (Project, error)
 	//FindQuotaByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
+	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
 	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
@@ -574,22 +575,36 @@ type Querier interface {
 	//    AND verification_status = 'verified'
 	//  LIMIT 1
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
+	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
+	// current plan and Stripe subscription. When a workspace is already being
+	// fetched, prefer joining workspace_billing in that query over a second round
+	// trip.
+	//
+	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
+	//  WHERE workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (WorkspaceBilling, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
-	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
-	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
-	// deploy_plan_override (manual comp for internal workspaces). The gate treats
-	// either being set as entitled. Read by ctrl-api outside the billing hot path,
-	// so a single lookup by id is fine. Explicit columns (not SELECT *) so the read
-	// is insensitive to workspace column ordering.
+	// Reads the Unkey Deploy entitlement signals for the project- and
+	// deployment-creation gates: deploy_plan (mirrored from Stripe by the
+	// dashboard webhook), deploy_plan_override (manual comp for internal
+	// workspaces), and deploy_spend_suspended (the spend cap stopped this
+	// workspace's compute). The gates treat either plan column being set as
+	// entitled; deployment creation additionally refuses while suspended. Read by
+	// ctrl-api outside the billing hot path, so a single lookup by id is fine.
+	// Explicit columns (not SELECT *) so the read is insensitive to workspace
+	// column ordering.
 	//
 	//  SELECT
-	//     w.deploy_plan,
-	//     w.deploy_plan_override
+	//     b.plan,
+	//     b.plan_override,
+	//     b.spend_suspended
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
@@ -605,12 +620,13 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	// Check whether a newer deployment exists for the same (app, env, branch) that
@@ -1264,6 +1280,22 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
+	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
+	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
+	// is safe to call after InsertWorkspace without a prior check. New workspaces
+	// start on the Free tier with no Stripe linkage and no plan.
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      tier,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      'Free',
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE workspace_id = workspace_id
+	InsertWorkspaceBilling(ctx context.Context, arg InsertWorkspaceBillingParams) error
 	// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 	// Used by SyncDesiredState to reconcile krane agents with current desired state.
 	//
@@ -1317,11 +1349,12 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     w.stripe_customer_id,
-	//     w.stripe_subscription_id
+	//     b.stripe_customer_id,
+	//     b.stripe_subscription_id
 	//  FROM `workspaces` w
-	//  WHERE w.deploy_plan IS NOT NULL
-	//    AND w.stripe_customer_id IS NOT NULL
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  WHERE b.plan IS NOT NULL
+	//    AND b.stripe_customer_id IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
@@ -1512,9 +1545,10 @@ type Querier interface {
 	//
 	//  SELECT
 	//     w.id,
-	//     w.stripe_customer_id,
+	//     b.stripe_customer_id,
 	//     w.enabled
 	//  FROM `workspaces` w
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
 	//ListWorkspacesForQuotaCheck
@@ -1523,31 +1557,39 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
-	//     w.stripe_customer_id,
-	//     w.tier,
+	//     b.stripe_customer_id,
+	//     b.tier,
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE w.id > ?
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
-	// Lists every enabled workspace that has set a Deploy spend budget: the opt-in
-	// set the spend-cap check evaluates. The check prices each one's month-to-date
-	// Deploy usage and compares the gross total spend against the budget.
+	// Lists every enabled workspace that has set a Deploy spend budget, plus any
+	// that is currently spend-cap suspended even without a budget: the set the
+	// spend-cap check evaluates. The check prices each one's month-to-date Deploy
+	// usage and compares the gross total spend against the budget. Suspended
+	// workspaces are included even without a budget so the check can resume them
+	// after the budget is removed (otherwise removing the budget would drop them
+	// from this list and they would never resume).
 	// org_id resolves the alert recipients (org admins via WorkOS); the stop flag
-	// decides whether 100% triggers teardown once enforcement (ENG-2923) lands.
+	// decides whether 100% triggers teardown; deploy_spend_suspended tells the check
+	// whether the cap has already stopped this workspace's compute.
 	//
 	//  SELECT
 	//     w.id,
 	//     w.name,
 	//     w.slug,
 	//     w.org_id,
-	//     w.deploy_spend_budget_cents,
-	//     w.deploy_spend_budget_stop
+	//     b.spend_budget_cents,
+	//     b.spend_budget_stop,
+	//     b.spend_suspended
 	//  FROM `workspaces` w
-	//  WHERE w.deploy_spend_budget_cents IS NOT NULL
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
 	//    AND w.enabled = true
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
@@ -1655,6 +1697,29 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	// Restores an app's current deployment on resume (the inverse of
+	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
+	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
+	// Guarded on the pointer still being unset: if anything promoted a new
+	// current deployment between suspend and resume, restoring the suspension
+	// record would silently roll the app back to the old version.
+	//
+	//  UPDATE `apps`
+	//  SET current_deployment_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND current_deployment_id IS NULL
+	SetAppCurrentDeployment(ctx context.Context, arg SetAppCurrentDeploymentParams) error
+	// Records whether the spend cap has suspended a workspace's compute. Written by
+	// the spend-cap check on the suspend/resume transition; read by the orchestrator
+	// (to keep checking a suspended workspace even after its budget is removed) and
+	// the dashboard (to show a suspended state).
+	//
+	//  UPDATE `workspace_billing`
+	//  SET spend_suspended = ?,
+	//      updated_at_m = ?
+	//  WHERE workspace_id = ?
+	SetWorkspaceDeploySpendSuspended(ctx context.Context, arg SetWorkspaceDeploySpendSuspendedParams) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`

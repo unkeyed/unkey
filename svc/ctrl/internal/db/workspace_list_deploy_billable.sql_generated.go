@@ -13,11 +13,12 @@ import (
 const listDeployBillableWorkspaces = `-- name: ListDeployBillableWorkspaces :many
 SELECT
    w.id,
-   w.stripe_customer_id,
-   w.stripe_subscription_id
+   b.stripe_customer_id,
+   b.stripe_subscription_id
 FROM ` + "`" + `workspaces` + "`" + ` w
-WHERE w.deploy_plan IS NOT NULL
-  AND w.stripe_customer_id IS NOT NULL
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+WHERE b.plan IS NOT NULL
+  AND b.stripe_customer_id IS NOT NULL
   AND w.deleted_at_m IS NULL
 `
 
@@ -40,11 +41,12 @@ type ListDeployBillableWorkspacesRow struct {
 //
 //	SELECT
 //	   w.id,
-//	   w.stripe_customer_id,
-//	   w.stripe_subscription_id
+//	   b.stripe_customer_id,
+//	   b.stripe_subscription_id
 //	FROM `workspaces` w
-//	WHERE w.deploy_plan IS NOT NULL
-//	  AND w.stripe_customer_id IS NOT NULL
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	WHERE b.plan IS NOT NULL
+//	  AND b.stripe_customer_id IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeployBillableWorkspaces)

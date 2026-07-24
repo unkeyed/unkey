@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildIdSchema } from "./permissions";
+import { buildIdSchema, ratelimitActions, unkeyPermissionValidation } from "./permissions";
 
 describe("apiIdSchema", () => {
   const testCases = [
@@ -16,4 +16,20 @@ describe("apiIdSchema", () => {
       expect(result.success).toBe(valid);
     });
   }
+});
+
+describe("ratelimit permissions", () => {
+  test("includes read analytics", () => {
+    expect(ratelimitActions.safeParse("read_analytics").success).toBe(true);
+    expect(unkeyPermissionValidation.safeParse("ratelimit.*.read_analytics").success).toBe(true);
+  });
+
+  test("requires the rlns namespace ID prefix", () => {
+    expect(
+      unkeyPermissionValidation.safeParse("ratelimit.rlns_12345678.read_analytics").success,
+    ).toBe(true);
+    expect(
+      unkeyPermissionValidation.safeParse("ratelimit.rl_12345678.read_analytics").success,
+    ).toBe(false);
+  });
 });

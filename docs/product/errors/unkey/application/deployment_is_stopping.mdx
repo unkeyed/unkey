@@ -1,0 +1,49 @@
+---
+title: "deployment_is_stopping"
+description: "A stop is already in progress for this deployment; it is finishing in-flight work and does not need to be stopped again."
+---
+
+<Danger>`err:unkey:application:deployment_is_stopping`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The deployment is already stopping.",
+    "status": 412,
+    "title": "Precondition Failed",
+    "type": "https://unkey.com/docs/errors/unkey/application/deployment_is_stopping"
+  }
+}
+```
+
+## What Happened?
+
+You called `stopDeployment` on a deployment whose stop is already in progress. A stopping deployment keeps `ready` status until its last instance is removed, so `status` alone does not reveal that a stop is underway. `getDeployment` reflects this through `availableActions`: a running deployment offers `stop`, but once a stop is in progress it offers no lifecycle actions at all. `start` appears only after the deployment has fully reached `stopped` status.
+
+## How To Fix
+
+1. Fetch the deployment with `getDeployment` and inspect `availableActions`.
+2. If the deployment reports `status: ready` but `stop` is not listed, a stop is already in progress; wait for it to finish.
+3. Once the deployment reaches `stopped`, `start` becomes available; use `startDeployment` to bring it back.
+
+```bash
+# Check the available actions before issuing another stop
+curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
+  -d '{ "deploymentId": "d_1234abcd" }'
+```
+
+## Common Mistakes
+
+- **Double-stopping**: Issuing a second `stop` while the first is still in progress.
+- **Relying on status alone**: A deployment can still report `ready` while it is stopping; use `availableActions` to see which operations apply.
+
+## Related Errors
+
+- [err:unkey:application:deployment_not_running](./deployment_not_running) - When the deployment is not running
+- [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When starting a deployment that is not stopped
+- [err:unkey:application:deployment_is_production](./deployment_is_production) - When the deployment is in production

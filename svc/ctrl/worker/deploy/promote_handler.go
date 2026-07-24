@@ -6,9 +6,11 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
@@ -33,7 +35,6 @@ import (
 func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteRequest) (*hydrav1.PromoteResponse, error) {
 	logger.Info("initiating promotion", "target", req.GetTargetDeploymentId())
 
-	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return w.db.FindDeploymentById(stepCtx, req.GetTargetDeploymentId())
 	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -47,7 +48,6 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to find the target deployment"))
 	}
 
-	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
 		return w.db.FindAppById(stepCtx, targetDeployment.AppID)
 	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -61,27 +61,35 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		return nil, fault.Wrap(err, fault.Public("Failed to find the app"))
 	}
 
-	// Validate preconditions
-	if targetDeployment.Status != db.DeploymentsStatusReady {
-		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("deployment status must be ready, got: %s", targetDeployment.Status), 400),
-			fault.Public("The deployment is not ready for promotion"),
-		)
+	// Re-validate at execution time against the same invariant the API and ctrl
+	// service already checked, so a state change between enqueue and execution
+	// (e.g. the target starts draining) fails the promote instead of swapping
+	// traffic onto it. The environment is loaded here only for its slug.
+	environment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Environment, error) {
+		return w.db.FindEnvironmentById(stepCtx, targetDeployment.EnvironmentID)
+	}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), 404),
+				fault.Public("The environment could not be found"),
+			)
+		}
+		return nil, fault.Wrap(err, fault.Public("Failed to find the environment"))
 	}
-	if !app.CurrentDeploymentID.Valid {
-		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("app has no live deployment"), 400),
-			fault.Public("The app has no live deployment to promote from"),
-		)
+
+	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
+		Status:              targetDeployment.Status,
+		DesiredState:        targetDeployment.DesiredState,
+		EnvironmentSlug:     environment.Slug,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        targetDeployment.ID,
+		IsRolledBack:        app.IsRolledBack,
+	}); err != nil {
+		return nil, gatefault.Terminal(err)
 	}
+
 	isConfirmingRollback := app.IsRolledBack && targetDeployment.ID == app.CurrentDeploymentID.String
-	// This guards against us forcing current deployment to promotion
-	if targetDeployment.ID == app.CurrentDeploymentID.String && !app.IsRolledBack {
-		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("target deployment is already the live deployment"), 400),
-			fault.Public("This deployment is already live"),
-		)
-	}
 
 	// Resolve routes for normal promotion. Confirm-rollback skips this since
 	// the routes already point at the target.

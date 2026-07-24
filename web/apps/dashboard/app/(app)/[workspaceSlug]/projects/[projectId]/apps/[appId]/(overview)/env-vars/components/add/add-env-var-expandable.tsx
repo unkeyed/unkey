@@ -292,7 +292,6 @@ export const AddEnvVarExpandable = ({
                   isOnly={fields.length === 1}
                   isLast={index === fields.length - 1}
                   register={register}
-                  control={control}
                   onRemove={remove}
                   onPasteEntries={handlePasteEntries}
                   onAdvanceRow={handleAdvanceRow}

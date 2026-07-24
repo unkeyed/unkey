@@ -203,12 +203,12 @@ export const createSubscription = workspaceProcedure
 
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
+        .update(schema.workspaceBilling)
         .set({
           stripeSubscriptionId: sub.id,
           tier: product.name,
         })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
       await tx
         .insert(schema.quotas)

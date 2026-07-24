@@ -4,14 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
@@ -93,6 +97,10 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	if err := s.ensureEnvironmentDeployable(ctx, ctxLoad); err != nil {
+		return nil, err
+	}
+
 	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
 	// but leaves the projects behind, so without this a cancelled (or never
 	// entitled) workspace could keep starting new compute through an existing
@@ -103,7 +111,7 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to load workspace entitlement: %w", err))
 	}
-	if !deployEntitled(entitlement.DeployPlan, entitlement.DeployPlanOverride) {
+	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
 		if s.enforceDeployGate {
 			return nil, connect.NewError(
 				connect.CodeFailedPrecondition,
@@ -124,14 +132,15 @@ func (s *Service) CreateDeployment(
 	}
 
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
-		context:       ctxLoad,
-		dockerImage:   req.Msg.GetDockerImage(),
-		gitCommit:     req.Msg.GetGitCommit(),
-		keyAuthID:     keyAuthID,
-		command:       req.Msg.GetCommand(),
-		trigger:       triggerFromProto(req.Msg.GetTrigger()),
-		triggeredBy:   req.Msg.GetTriggeredBy(),
-		triggerReason: req.Msg.GetTriggerReason(),
+		context:        ctxLoad,
+		dockerImage:    req.Msg.GetDockerImage(),
+		gitCommit:      req.Msg.GetGitCommit(),
+		keyAuthID:      keyAuthID,
+		command:        req.Msg.GetCommand(),
+		trigger:        triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:    req.Msg.GetTriggeredBy(),
+		triggerReason:  req.Msg.GetTriggerReason(),
+		spendSuspended: entitlement.SpendSuspended.Bool,
 	})
 	if err != nil {
 		return nil, err
@@ -149,6 +158,40 @@ func (s *Service) CreateDeployment(
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// ensureEnvironmentDeployable rejects an environment whose runtime or regional
+// settings would fail the deploy pipeline, before the workflow is enqueued. This
+// is the RPC-level enforcement point every caller (v2 API, deprecated deploy API,
+// CLI, future internal callers) passes through, so an undeployable deployment
+// never gets enqueued; the worker keeps the same checks as a backstop. Runtime
+// bounds share deployfail.RuntimeViolations with the worker and the API pre-flight.
+func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deploymentContext) error {
+	messages := make([]string, 0)
+	for _, v := range deployfail.RuntimeViolations(
+		dctx.appRuntimeSettings.Port,
+		dctx.appRuntimeSettings.CpuMillicores,
+		dctx.appRuntimeSettings.MemoryMib,
+	) {
+		messages = append(messages, v.Message)
+	}
+
+	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
+		AppID:         dctx.app.ID,
+		EnvironmentID: dctx.env.Environment.ID,
+	})
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
+	}
+	if !slices.ContainsFunc(regional, func(r db.FindAppRegionalSettingsByAppAndEnvRow) bool { return r.RegionCanSchedule }) {
+		messages = append(messages, deployfail.MsgNoSchedulableRegions)
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+	return connect.NewError(connect.CodeFailedPrecondition,
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
 }
 
 // recordCreateAudit writes a deployment.create audit log attributed to the
@@ -316,6 +359,12 @@ type createParams struct {
 	trigger       db.DeploymentsTrigger
 	triggeredBy   string
 	triggerReason string
+
+	// spendSuspended blocks starting compute when the workspace hit its
+	// Compute spend cap. Gated here rather than at each RPC because both
+	// CreateDeployment and the ops Rebuild path start compute through
+	// createAndDeploy, and Rebuild must not resurrect suspended compute.
+	spendSuspended bool
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
@@ -327,6 +376,17 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	now := time.Now().UnixMilli()
 
 	c := p.context
+
+	// Spend-cap gate, unconditional (no observe mode): the workspace opted
+	// into stopping at its budget and the spend check tore its compute down.
+	// Starting compute now would restart what the suspension deliberately
+	// stopped and keep accruing spend past the cap.
+	if p.spendSuspended {
+		return "", connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", c.workspaceID),
+		)
+	}
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with
@@ -473,7 +533,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        mysqltype.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
 		GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
@@ -520,7 +580,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 		updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
-			Status:    db.DeploymentsStatusFailed,
+			Status:    mysqltype.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if updateErr != nil {

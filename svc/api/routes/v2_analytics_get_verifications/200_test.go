@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -12,6 +13,77 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
+
+func Test200_InaccessibleKeySpacesReturnNoData(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	allowedAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api."+allowedAPI.ID+".read_analytics")
+	wildcardRootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	h.KeyVerifications.Buffer(schema.KeyVerification{
+		RequestID:   uid.New(uid.RequestPrefix),
+		Time:        time.Now().UnixMilli(),
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  otherAPI.KeyAuthID.String,
+		KeyID:       uid.New(uid.KeyPrefix),
+		Region:      "us-east-1",
+		Outcome:     "VALID",
+	})
+
+	route := &Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route)
+	headers := http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}
+	wildcardHeaders := http.Header{
+		"Authorization": []string{"Bearer " + wildcardRootKey},
+		"Content-Type":  []string{"application/json"},
+	}
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, wildcardHeaders, Request{
+			Query: fmt.Sprintf("SELECT key_space_id FROM key_verifications_v1 WHERE key_space_id = '%s'", otherAPI.KeyAuthID.String),
+		})
+		require.Equal(c, http.StatusOK, res.Status)
+		require.Len(c, res.Body.Data, 1)
+	}, 30*time.Second, time.Second)
+
+	for _, keySpaceID := range []string{otherAPI.KeyAuthID.String, "ks_nonexistent123"} {
+		res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+			Query: fmt.Sprintf("SELECT key_space_id FROM key_verifications_v1 WHERE key_space_id = '%s'", keySpaceID),
+		})
+		require.Equal(t, http.StatusOK, res.Status)
+		require.Empty(t, res.Body.Data)
+	}
+}
+
+func Test200_UnresolvableAnalyticsPermissionReturnsNoData(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api."+uid.New(uid.APIPrefix)+".read_analytics")
+	route := &Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route)
+
+	res := testutil.CallRoute[Request, Response](h, route, http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}, Request{Query: "SELECT key_space_id FROM key_verifications_v1"})
+	require.Equal(t, http.StatusOK, res.Status)
+	require.Empty(t, res.Body.Data)
+}
 
 func Test200_Success(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})

@@ -6,7 +6,11 @@ import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
-import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import {
+  deployBillingConfig,
+  deployBillingConfigured,
+  findApiItem,
+} from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
@@ -19,6 +23,7 @@ import {
   isPaymentFailureRelatedUpdate,
 } from "@/lib/stripe/subscriptionUtils";
 import {
+  alertInvalidProductQuotaMetadata,
   alertIsCancellingSubscription,
   alertOrphanedDeploySubscription,
   alertPaymentFailed,
@@ -36,13 +41,16 @@ import Stripe from "stripe";
  * deploy gate and dashboard read without a Stripe call in the hot path.
  */
 async function mirrorDeployPlan(
-  ws: { id: string; deployPlan: string | null },
+  billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const deployPlan = detectDeployPlan(sub);
-  const changed = deployPlan !== ws.deployPlan;
+  const plan = detectDeployPlan(sub);
+  const changed = plan !== billing.plan;
   if (changed) {
-    await db.update(schema.workspaces).set({ deployPlan }).where(eq(schema.workspaces.id, ws.id));
+    await db
+      .update(schema.workspaceBilling)
+      .set({ plan })
+      .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
   }
 }
 
@@ -92,8 +100,8 @@ async function downgradeAfterScheduledApiCancel(
   };
   const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
 
-  await db.update(schema.workspaces).set({ tier: "Free" }).where(eq(schema.workspaces.id, ws.id));
-
+  // The redelivery guard returns early on tier === "Free", so the tier
+  // write must come last or a partial failure would never be retried.
   await db
     .insert(schema.quotas)
     .values({
@@ -121,6 +129,11 @@ async function downgradeAfterScheduledApiCancel(
     await deactivateNonCreatorMemberships(ws.orgId);
   }
 
+  await db
+    .update(schema.workspaceBilling)
+    .set({ tier: "Free" })
+    .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+
   return new Response("OK", { status: 200 });
 }
 
@@ -145,10 +158,20 @@ async function linkComputeCheckoutSession(
   if (session.mode !== "subscription" || !session.subscription) {
     return new Response("OK", { status: 200 });
   }
+  const subscriptionId =
+    typeof session.subscription === "string" ? session.subscription : session.subscription.id;
   if (!session.client_reference_id) {
+    // A paid checkout with no workspace ref can never be linked and bills
+    // forever; no retry fixes it, so page a human.
     console.error("Compute checkout link event missing client_reference_id", {
       sessionId: session.id,
       eventId,
+    });
+    await alertOrphanedDeploySubscription({
+      subscriptionId,
+      sessionId: session.id,
+      eventId,
+      reason: "missing_client_reference_id",
     });
     return new Response("OK", { status: 200 });
   }
@@ -165,13 +188,14 @@ async function linkComputeCheckoutSession(
       eventId,
       reason: result.reason,
     });
-    if (result.reason === "subscription_conflict") {
-      const subscriptionId =
-        typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+    // Either way a paid subscription bills with no workspace attached and
+    // no retry fixes it; page a human.
+    if (result.reason === "subscription_conflict" || result.reason === "workspace_not_found") {
       await alertOrphanedDeploySubscription({
         workspaceId: session.client_reference_id,
         subscriptionId,
         sessionId: session.id,
+        eventId,
         reason: result.reason,
       });
     }
@@ -196,7 +220,15 @@ async function resolveApiSubscriptionContext(
   customer: Stripe.Customer | Stripe.DeletedCustomer;
   product: Stripe.Product;
 } | null> {
-  const apiItem = findApiItem(await deployBillingConfig(), sub.items?.data ?? []);
+  const config = await deployBillingConfig();
+  // Config resolution failure would let findApiItem misclassify a Compute
+  // item and ack a scheduled downgrade away; throw so Stripe retries. An
+  // unconfigured deployment keeps the legacy items[0] behavior.
+  if (!config && deployBillingConfigured()) {
+    throw new Error("Deploy billing configured but unresolved; retrying webhook");
+  }
+
+  const apiItem = findApiItem(config, sub.items?.data ?? []);
   if (!apiItem?.price?.id || !sub.customer) {
     return null;
   }
@@ -304,49 +336,79 @@ export const POST = async (req: Request): Promise<Response> => {
   switch (event.type) {
     case "customer.subscription.updated": {
       try {
-        const sub = event.data.object as Stripe.Subscription;
+        // The event snapshot only feeds the previous_attributes skip heuristics;
+        // every DB write derives from a freshly retrieved subscription.
+        const eventSub = event.data.object as Stripe.Subscription;
 
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billing = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, eventSub.id),
+          with: { workspace: true },
         });
-        if (!ws) {
+        const ws = billing?.workspace ?? null;
+        if (!billing || !ws || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
-            subscriptionId: sub.id,
+            subscriptionId: eventSub.id,
             eventId: event.id,
           });
+          // A live subscription nothing points at keeps billing; page a human.
+          await alertOrphanedDeploySubscription({
+            subscriptionId: eventSub.id,
+            eventId: event.id,
+            reason: "workspace_not_found",
+          });
           return new Response("OK", { status: 200 });
+        }
+
+        // Stripe does not guarantee event ordering, so the snapshot can be stale;
+        // derive every write from the live subscription. resource_missing means
+        // the deleted handler owns it: ack.
+        let sub: Stripe.Subscription;
+        try {
+          sub = await stripe.subscriptions.retrieve(eventSub.id);
+        } catch (retrieveError) {
+          if (
+            retrieveError instanceof Stripe.errors.StripeError &&
+            retrieveError.code === "resource_missing"
+          ) {
+            return new Response("OK", { status: 200 });
+          }
+          throw retrieveError;
         }
 
         // Sync before the skip-paths below: a plan add/change/remove must be
         // mirrored even when the rest of the update is a no-op (renewal, card
         // update) or bails on the API-tier quota validation, which a Deploy-only
         // subscription does not satisfy.
-        await mirrorDeployPlan(ws, sub);
+        await mirrorDeployPlan(billing, sub);
 
         const previousAttributes = event.data.previous_attributes;
 
-        // Skip database updates and notifications for automated billing renewals
-        if (isAutomatedBillingRenewal(sub, previousAttributes)) {
+        // Skip heuristics correlate with previous_attributes, so they read eventSub.
+        if (isAutomatedBillingRenewal(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 
         // Skip database updates and notifications for payment failure related updates
         // Payment failures are handled by the invoice.payment_failed webhook
-        if (isPaymentFailureRelatedUpdate(sub, previousAttributes)) {
+        if (isPaymentFailureRelatedUpdate(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 
         // Skip database updates and notifications for payment recovery scenarios
         // Payment recoveries are handled by the invoice.payment_succeeded webhook
-        const isRecovery = await isPaymentRecoveryUpdate(stripe, sub, previousAttributes, event);
+        const isRecovery = await isPaymentRecoveryUpdate(
+          stripe,
+          eventSub,
+          previousAttributes,
+          event,
+        );
         if (isRecovery) {
           return new Response("OK", { status: 201 });
         }
 
         // Skip database updates and notifications for card/payment method updates only
         // These don't affect subscription pricing, quotas, or other business logic
-        if (isCardUpdateOnly(sub, previousAttributes)) {
+        if (isCardUpdateOnly(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 
@@ -357,7 +419,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // them apart and downgrades the workspace for the latter.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return await downgradeAfterScheduledApiCancel(stripe, ws, sub);
+          return await downgradeAfterScheduledApiCancel(
+            stripe,
+            { id: ws.id, orgId: ws.orgId, tier: billing.tier },
+            sub,
+          );
         }
         const { unitAmount, customer, product } = apiContext;
 
@@ -366,6 +432,9 @@ export const POST = async (req: Request): Promise<Response> => {
          * So we get a subscription updated event, which we should handle accordingly.
          */
         if (sub.cancel_at) {
+          // Alert only when an email exists, but return unconditionally: the tier
+          // and quota update below is for active plan changes, never a cancelling
+          // subscription.
           if (customer && !customer.deleted && customer.email) {
             const formattedPrice = formatPrice(unitAmount);
             await alertIsCancellingSubscription(
@@ -374,14 +443,27 @@ export const POST = async (req: Request): Promise<Response> => {
               customer.email,
               customer.name || "Unknown",
             );
-
-            return new Response("OK");
           }
+          return new Response("OK");
         }
 
         // Validate and parse quotas
         const quotas = validateAndParseQuotas(product);
         if (!quotas.valid) {
+          // Without valid quota metadata the tier sync is skipped while Stripe
+          // bills the new plan; page a human to fix the product.
+          console.error("Subscription update skipped: invalid product quota metadata", {
+            productId: product.id,
+            productName: product.name,
+            subscriptionId: sub.id,
+            eventId: event.id,
+          });
+          await alertInvalidProductQuotaMetadata({
+            productId: product.id,
+            productName: product.name,
+            subscriptionId: sub.id,
+            eventId: event.id,
+          });
           return new Response("OK", { status: 200 });
         }
 
@@ -390,11 +472,11 @@ export const POST = async (req: Request): Promise<Response> => {
         // Update quotas and workspace tier
         await db.transaction(async (tx) => {
           await tx
-            .update(schema.workspaces)
+            .update(schema.workspaceBilling)
             .set({
               tier: product.name,
             })
-            .where(eq(schema.workspaces.id, ws.id));
+            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
           await tx
             .insert(schema.quotas)
@@ -507,14 +589,22 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billing = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
+          with: { workspace: true },
         });
-        if (!ws) {
+        const ws = billing?.workspace ?? null;
+        if (!billing || !ws || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
             subscriptionId: sub.id,
             eventId: event.id,
+          });
+          // No ongoing billing on a terminated subscription, but the lost billing
+          // link needs a human to reconcile.
+          await alertOrphanedDeploySubscription({
+            subscriptionId: sub.id,
+            eventId: event.id,
+            reason: "workspace_not_found",
           });
           return new Response("OK", { status: 200 });
         }
@@ -526,7 +616,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // deploy_plan. Must run before the column clear below, since
         // deprovisionCompute's idempotency guard keys on deploy_plan still being set.
         // Let a failure propagate so Stripe retries; the teardown must not be dropped.
-        if (ws.deployPlan) {
+        if (billing.plan) {
           try {
             const ctrl = createCtrlClient(DeployService);
             await ctrl.deprovisionCompute({ workspaceId: ws.id });
@@ -540,39 +630,44 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
-        await db
-          .update(schema.workspaces)
-          .set({
-            stripeSubscriptionId: null,
-            tier: "Free",
-            // The subscription is gone, so the Deploy plan goes with it.
-            deployPlan: null,
-          })
-          .where(eq(schema.workspaces.id, ws.id));
+        // One transaction: the link clear is the retry lookup key, so committing
+        // it alone would strand the redelivered event. Same shape as workspace
+        // creation.
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaceBilling)
+            .set({
+              stripeSubscriptionId: null,
+              tier: "Free",
+              // The subscription is gone, so the Deploy plan goes with it.
+              plan: null,
+            })
+            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
-        await db
-          .insert(schema.quotas)
-          .values({
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              ...freeTierQuotas,
+            })
+            .onDuplicateKeyUpdate({
+              set: freeTierQuotas,
+            });
+
+          await insertAuditLogs(tx, {
             workspaceId: ws.id,
-            ...freeTierQuotas,
-          })
-          .onDuplicateKeyUpdate({
-            set: freeTierQuotas,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: "Cancelled subscription.",
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
           });
-
-        await insertAuditLogs(db, {
-          workspaceId: ws.id,
-          actor: {
-            type: "system",
-            id: "stripe",
-          },
-          event: "workspace.update",
-          description: "Cancelled subscription.",
-          resources: [],
-          context: {
-            location: "",
-            userAgent: undefined,
-          },
         });
 
         // Free tier doesn't include team access — deactivate all members except the
@@ -630,12 +725,12 @@ export const POST = async (req: Request): Promise<Response> => {
         // not linked to this subscription yet, a later subscription.updated syncs
         // it. Done before the alert-only logic below so an early return can't skip
         // it.
-        const wsForDeploy = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        const billingForDeploy = await db.query.workspaceBilling.findFirst({
+          where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
+          with: { workspace: true },
         });
-        if (wsForDeploy) {
-          await mirrorDeployPlan(wsForDeploy, sub);
+        if (billingForDeploy && billingForDeploy.workspace?.deletedAtM == null) {
+          await mirrorDeployPlan(billingForDeploy, sub);
         }
 
         // Alert on the API plan item (the Deploy signal is mirrored above).
@@ -803,6 +898,55 @@ export const POST = async (req: Request): Promise<Response> => {
         // Return 200 to prevent Stripe from retrying, but log the error
         // This ensures payment processing errors don't affect other webhook types
         return new Response("Error processing payment failure", { status: 200 });
+      }
+    }
+
+    // invoice.paid also covers out-of-band and fully-credit-covered
+    // settlements. The grant is idempotent per invoice, so double-firing
+    // no-ops; recovery alerts stay on payment_succeeded.
+    case "invoice.paid": {
+      try {
+        const invoice = event.data.object as Stripe.Invoice;
+
+        if (!invoice || typeof invoice !== "object" || !invoice.customer) {
+          return new Response("OK", { status: 200 });
+        }
+
+        try {
+          const grant = await grantDeployCreditsForInvoice(stripe, invoice);
+          if (grant.granted) {
+            console.info("Granted Deploy usage credits", {
+              invoiceId: invoice.id,
+              grantId: grant.grantId,
+              amountCents: grant.amountCents,
+            });
+          } else {
+            console.info("Did not grant Deploy usage credits", {
+              invoiceId: invoice.id,
+              reason: grant.reason,
+            });
+          }
+        } catch (grantError) {
+          console.error("Failed to grant Deploy usage credits:", {
+            error: grantError,
+            invoiceId: invoice.id,
+            eventId: event.id,
+          });
+          return new Response("Error granting Deploy credits", { status: 500 });
+        }
+
+        return new Response("OK", { status: 200 });
+      } catch (error) {
+        console.error("Error processing invoice.paid webhook:", {
+          error:
+            error instanceof Error
+              ? { message: error.message, stack: error.stack, name: error.name }
+              : error,
+          eventId: event.id,
+          eventType: event.type,
+        });
+        // The only work here is the idempotent grant, so a retry is safe.
+        return new Response("Error processing invoice.paid", { status: 500 });
       }
     }
 

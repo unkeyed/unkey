@@ -11,10 +11,10 @@ import (
 )
 
 const clearWorkspaceDeployPlan = `-- name: ClearWorkspaceDeployPlan :exec
-UPDATE ` + "`" + `workspaces` + "`" + `
-SET deploy_plan = NULL,
+UPDATE ` + "`" + `workspace_billing` + "`" + `
+SET plan = NULL,
     updated_at_m = ?
-WHERE id = ?
+WHERE workspace_id = ?
 `
 
 type ClearWorkspaceDeployPlanParams struct {
@@ -28,10 +28,10 @@ type ClearWorkspaceDeployPlanParams struct {
 // the invoice.created webhook and the month-end close both skip the workspace
 // (they require deploy_plan IS NOT NULL), so the final invoice auto-finalizes.
 //
-//	UPDATE `workspaces`
-//	SET deploy_plan = NULL,
+//	UPDATE `workspace_billing`
+//	SET plan = NULL,
 //	    updated_at_m = ?
-//	WHERE id = ?
+//	WHERE workspace_id = ?
 func (q *Queries) ClearWorkspaceDeployPlan(ctx context.Context, arg ClearWorkspaceDeployPlanParams) error {
 	_, err := q.db.ExecContext(ctx, clearWorkspaceDeployPlan, arg.UpdatedAt, arg.ID)
 	return err

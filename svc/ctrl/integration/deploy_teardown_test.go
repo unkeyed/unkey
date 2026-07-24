@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+
 	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -70,7 +72,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Make the deployment its app's current deployment so we exercise the
@@ -122,7 +124,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	// VO, so poll for it. ARCHIVE maps to desired_state 'stopped'.
 	require.Eventually(t, func() bool {
 		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
-		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
 }
 
@@ -142,13 +144,13 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 
 	// Model a deployment that never produced instances.
 	_, err := h.DB.RW().ExecContext(ctx,
 		"UPDATE deployments SET status = ? WHERE id = ?",
-		db.DeploymentsStatusAwaitingApproval, dep.ID)
+		mysqltype.DeploymentsStatusAwaitingApproval, dep.ID)
 	require.NoError(t, err)
 
 	client := hydrav1.NewDeployTeardownServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
@@ -162,4 +164,62 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 	require.Equal(t, int32(1), resp.GetDeploymentsStopped())
 	require.True(t, resp.GetDrained(),
 		"no instances means nothing to drain; teardown must not wait out the grace timeout")
+}
+
+// TestDeployTeardown_SuspendThenResume verifies the resumable half of teardown:
+// SUSPEND records the app's current deployment and stops it, then Resume brings
+// it back to running and restores apps.current_deployment_id from that record.
+func TestDeployTeardown_SuspendThenResume(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+
+	tEnv := startTeardown(t, h.DB)
+
+	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
+		Region:       "us-east-1",
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
+	}).Deployment
+
+	// Make the deployment its app's current deployment so SUSPEND records it.
+	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
+		IsRolledBack:        false,
+		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
+		AppID:               dep.AppID,
+	})
+	require.NoError(t, err)
+
+	client := hydrav1.NewDeployTeardownServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
+	suspendResp, err := client.Teardown().Request(ctx, &hydrav1.TeardownRequest{
+		Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), suspendResp.GetDeploymentsStopped())
+
+	// current_deployment_id is cleared synchronously by teardown.
+	app, err := h.DB.FindAppById(ctx, dep.AppID)
+	require.NoError(t, err)
+	require.False(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be cleared on suspend")
+
+	// SUSPEND maps to desired_state 'stopped', applied asynchronously.
+	require.Eventually(t, func() bool {
+		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
+	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
+
+	resumeResp, err := client.Resume().Request(ctx, &hydrav1.ResumeRequest{})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resumeResp.GetDeploymentsResumed())
+
+	// Resume restores current_deployment_id synchronously.
+	app, err = h.DB.FindAppById(ctx, dep.AppID)
+	require.NoError(t, err)
+	require.True(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be restored on resume")
+	require.Equal(t, dep.ID, app.CurrentDeploymentID.String)
+
+	// The deployment is back to desired_state 'running'.
+	require.Eventually(t, func() bool {
+		got, getErr := h.DB.FindDeploymentById(ctx, dep.ID)
+		return getErr == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateRunning
+	}, 10*time.Second, 200*time.Millisecond, "desired_state should become running again")
 }

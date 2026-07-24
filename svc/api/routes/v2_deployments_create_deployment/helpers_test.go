@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
@@ -89,6 +91,54 @@ func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image s
 		Image:     sql.NullString{String: image, Valid: true},
 		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		ID:        deploymentID,
+	})
+	require.NoError(t, err)
+}
+
+// seedDeployableRegion attaches a schedulable region to the setup's environment
+// so it clears the create handler's deployability pre-flight and reaches ctrl.
+// The seeder gives an environment sane runtime settings but no region.
+func seedDeployableRegion(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup) {
+	t.Helper()
+	ctx := context.Background()
+	regionID := uid.New(uid.RegionPrefix)
+	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+		ID:       regionID,
+		Name:     uid.New(uid.RegionPrefix),
+		Platform: "test",
+	}))
+	require.NoError(t, db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
+		WorkspaceID:   setup.Workspace.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		RegionID:      regionID,
+		Replicas:      1,
+		CreatedAt:     time.Now().UnixMilli(),
+		UpdatedAt:     sql.NullInt64{Valid: false},
+	}))
+}
+
+// zeroRuntimeSettings overwrites an environment's runtime settings with the
+// undeployable zero defaults a freshly seeded environment used to carry, so the
+// create handler's pre-flight rejects the port/cpu/memory bounds.
+func zeroRuntimeSettings(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup) {
+	t.Helper()
+	err := db.Query.UpsertAppRuntimeSettings(context.Background(), h.DB.RW(), db.UpsertAppRuntimeSettingsParams{
+		WorkspaceID:      setup.Workspace.ID,
+		AppID:            setup.App.ID,
+		EnvironmentID:    setup.Environment.ID,
+		Port:             0,
+		CpuMillicores:    0,
+		MemoryMib:        0,
+		StorageMib:       0,
+		Command:          nil,
+		Healthcheck:      dbtype.NullHealthcheck{Valid: false},
+		ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+		SentinelConfig:   []byte("{}"),
+		CreatedAt:        time.Now().UnixMilli(),
+		UpdatedAt:        sql.NullInt64{Valid: false},
+		OpenapiSpecPath:  sql.NullString{Valid: false},
 	})
 	require.NoError(t, err)
 }

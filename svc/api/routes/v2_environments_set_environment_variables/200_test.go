@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -225,5 +226,26 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		// Separate entries are auto-correlated so one set call is traceable as a unit.
 		require.NotEmpty(t, logs[0].CorrelationID)
 		require.Equal(t, logs[0].CorrelationID, logs[1].CorrelationID)
+	})
+
+	t.Run("multi-line and large values round-trip through vault and the TEXT column", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		// A PEM block carries interior newlines that the previous varchar(4096)
+		// column and 3000-byte cap could not hold; a 16384-byte value sits at
+		// the new plaintext cap. Both must survive encryption, the widened TEXT
+		// column, and decryption byte for byte.
+		pem := "-----BEGIN PRIVATE KEY-----\nMIIabc/def+123==\nghi/JKL+456==\n-----END PRIVATE KEY-----\n"
+		atCap := strings.Repeat("a", 16384)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "TLS_KEY", Value: pem, Kind: ptr(openapi.Recoverable)},
+			{Key: "BIG_BLOB", Value: atCap, Kind: ptr(openapi.Recoverable)},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 2)
+		require.Equal(t, pem, decrypt(t, env.environmentID, raw["TLS_KEY"].value))
+		require.Equal(t, atCap, decrypt(t, env.environmentID, raw["BIG_BLOB"].value))
 	})
 }

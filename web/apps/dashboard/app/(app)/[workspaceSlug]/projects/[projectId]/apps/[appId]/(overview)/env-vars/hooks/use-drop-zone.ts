@@ -5,30 +5,55 @@ import type { EnvVarsFormValues } from "../components/add/schema";
 
 type ParseEnvResult = {
   entries: Array<{ key: string; value: string }>;
-  hasMultilineValues: boolean;
 };
 
+// parseEnvText reads a .env blob into key/value entries. A value that opens
+// with a quote and does not close on the same line is treated as multi-line:
+// following lines are accumulated (joined with LF) until the closing quote,
+// which is how PEM keys and certs paste in. Outer quotes are stripped without
+// escape expansion, matching how the build serializer emits them.
 export const parseEnvText = (text: string): ParseEnvResult => {
-  const lines = text.trim().split("\n");
+  // Normalize CRLF up front so multi-line values store as canonical LF.
+  const lines = text.replace(/\r\n/g, "\n").trim().split("\n");
   const entries: Array<{ key: string; value: string }> = [];
 
-  for (const line of lines) {
-    const trimmed = line.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
     if (!trimmed || trimmed.startsWith("#")) {
       continue;
     }
 
     const eqIndex = trimmed.indexOf("=");
     if (eqIndex === -1) {
-      return { entries: [], hasMultilineValues: true };
+      continue;
     }
 
     const key = trimmed.slice(0, eqIndex).trim();
     let value = trimmed.slice(eqIndex + 1).trim();
 
+    const quote = value[0];
+    if ((quote === '"' || quote === "'") && value.indexOf(quote, 1) === -1) {
+      // Opening quote with no closing quote on this line: gather following
+      // lines until one contains the closing quote.
+      const collected = [value.slice(1)];
+      i++;
+      while (i < lines.length) {
+        const closeIndex = lines[i].indexOf(quote);
+        if (closeIndex !== -1) {
+          collected.push(lines[i].slice(0, closeIndex));
+          break;
+        }
+        collected.push(lines[i]);
+        i++;
+      }
+      entries.push({ key, value: collected.join("\n") });
+      continue;
+    }
+
     if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
     ) {
       value = value.slice(1, -1);
     }
@@ -36,7 +61,7 @@ export const parseEnvText = (text: string): ParseEnvResult => {
     entries.push({ key, value });
   }
 
-  return { entries, hasMultilineValues: false };
+  return { entries };
 };
 
 const isEnvFile = (file: File) =>
@@ -92,13 +117,7 @@ export function useDropZone(
 
   const importText = useCallback(
     (text: string) => {
-      const { entries, hasMultilineValues } = parseEnvText(text);
-      if (hasMultilineValues) {
-        toast.error(
-          "Import failed: multiline values are not supported. Please ensure each variable is on a single line.",
-        );
-        return;
-      }
+      const { entries } = parseEnvText(text);
       if (entries.length > 0) {
         importParsed(entries);
       } else {
