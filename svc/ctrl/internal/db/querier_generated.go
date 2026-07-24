@@ -329,13 +329,15 @@ type Querier interface {
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
-	// finalization.
+	// finalization. The Deploy subscription id now lives on billing_subscriptions.
 	//
 	//  SELECT
 	//     w.id,
-	//     b.stripe_subscription_id
+	//     bs.stripe_subscription_id AS stripe_deploy_subscription_id
 	//  FROM `workspace_billing` b
 	//  JOIN `workspaces` w ON w.id = b.workspace_id
+	//  LEFT JOIN `billing_subscriptions` bs
+	//     ON bs.workspace_id = b.workspace_id AND bs.product = 'compute'
 	//  WHERE b.stripe_customer_id = ?
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
@@ -579,11 +581,31 @@ type Querier interface {
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being
 	// fetched, prefer joining workspace_billing in that query over a second round
-	// trip.
+	// trip. Stripe subscription ids now live on billing_subscriptions, one row per
+	// (workspace, product).
 	//
-	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
-	//  WHERE workspace_id = ?
-	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (WorkspaceBilling, error)
+	//  SELECT
+	//     b.pk,
+	//     b.workspace_id,
+	//     b.tier,
+	//     b.stripe_customer_id,
+	//     bs_api.stripe_subscription_id AS stripe_subscription_id,
+	//     bs_deploy.stripe_subscription_id AS stripe_deploy_subscription_id,
+	//     b.plan,
+	//     b.plan_override,
+	//     b.spend_budget_cents,
+	//     b.spend_budget_stop,
+	//     b.spend_suspended,
+	//     b.created_at_m,
+	//     b.updated_at_m,
+	//     b.deleted_at_m
+	//  FROM `workspace_billing` b
+	//  LEFT JOIN `billing_subscriptions` bs_api
+	//     ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+	//  LEFT JOIN `billing_subscriptions` bs_deploy
+	//     ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+	//  WHERE b.workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1350,9 +1372,11 @@ type Querier interface {
 	//  SELECT
 	//     w.id,
 	//     b.stripe_customer_id,
-	//     b.stripe_subscription_id
+	//     bs.stripe_subscription_id AS stripe_deploy_subscription_id
 	//  FROM `workspaces` w
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  LEFT JOIN `billing_subscriptions` bs
+	//     ON bs.workspace_id = w.id AND bs.product = 'compute'
 	//  WHERE b.plan IS NOT NULL
 	//    AND b.stripe_customer_id IS NOT NULL
 	//    AND w.deleted_at_m IS NULL

@@ -1,7 +1,6 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
-import { getApiCancelSchedule } from "@/lib/stripe/subscriptionUtils";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -46,7 +45,7 @@ export const getBillingInfo = workspaceProcedure
       });
     }
 
-    const [subscription, hasPreviousSubscriptions] = await Promise.all([
+    const [subscription, hasPreviousSubscriptions, config] = await Promise.all([
       ctx.workspace.stripeSubscriptionId
         ? // A stale recorded subscription id (cancelled and pruned from Stripe,
           // A stale id (lost deleted-webhook) 404s; treat as no subscription
@@ -69,29 +68,15 @@ export const getBillingInfo = workspaceProcedure
             })
             .then((res) => res.data.length > 0)
         : false,
+
+      deployBillingConfig(),
     ]);
 
-    // The API plan item, skipping Deploy items: on a Compute-first
-    // subscription items[0] is a Deploy price, not the API plan.
-    const apiItem = subscription
-      ? findApiItem(await deployBillingConfig(), subscription.items.data)
-      : undefined;
-    // Product via the item's price; the plan field is legacy.
+    // Resolve the API plan item specifically, skipping any Deploy price the
+    // subscription might carry; product via the item's price.
+    const apiItem = subscription ? findApiItem(config, subscription.items.data) : undefined;
     const apiProduct = apiItem?.price.product;
     const currentProductId = typeof apiProduct === "string" ? apiProduct : apiProduct?.id;
-
-    // A mixed-subscription API cancel is a scheduled phase-out with no
-    // cancel_at on the subscription (see cancelSubscription); surface its
-    // phase boundary as cancelAt so the pending-cancellation banner and the
-    // resume flow work unchanged. Only while the API item is still present —
-    // once the boundary passes, the plan is simply gone.
-    let scheduledApiCancelAt: number | undefined;
-    if (subscription && apiItem) {
-      const apiCancelSchedule = await getApiCancelSchedule(stripe, subscription);
-      if (apiCancelSchedule?.current_phase?.end_date) {
-        scheduledApiCancelAt = apiCancelSchedule.current_phase.end_date * 1000;
-      }
-    }
 
     // Check if user has an active enterprise subscription
     let enterpriseProductId: string | undefined;
@@ -118,7 +103,8 @@ export const getBillingInfo = workspaceProcedure
         ? {
             id: subscription.id,
             status: subscription.status,
-            cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : scheduledApiCancelAt,
+            // Native cancel_at, set by cancelSubscription's cancel_at_period_end.
+            cancelAt: subscription.cancel_at ? subscription.cancel_at * 1000 : undefined,
           }
         : undefined,
       hasPreviousSubscriptions,

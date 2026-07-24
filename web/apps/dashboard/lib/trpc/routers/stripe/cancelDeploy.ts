@@ -4,7 +4,6 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
-import { deployBillingConfig } from "@/lib/stripe/deployBilling";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -21,22 +20,12 @@ export const cancelDeploy = workspaceProcedure
   .mutation(async ({ ctx }) => {
     // Stop the Stripe renewal first. A workspace with a Deploy plan but no
     // subscription (a comped override) has no renewal to stop and goes straight
-    // to teardown.
-    const subscriptionId = ctx.workspace.stripeSubscriptionId;
+    // to teardown. Cancelling the Deploy subscription is now a native whole-
+    // subscription cancel at period end, so no billing-config lookup is needed.
+    const subscriptionId = ctx.workspace.stripeDeploySubscriptionId;
     if (subscriptionId) {
-      // The renewal must be stopped before ctrl clears the entitlement. If the
-      // billing config can't resolve (unconfigured, or a transient Stripe/reprice
-      // window), fail the whole cancel rather than clearing deploy_plan while the
-      // subscription keeps auto-renewing the plan fee.
-      const config = await deployBillingConfig();
-      if (!config) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Compute billing is unavailable right now. Please try again.",
-        });
-      }
       try {
-        await cancelDeploySubscription(getStripeClient(), subscriptionId, config);
+        await cancelDeploySubscription(getStripeClient(), subscriptionId);
       } catch (error) {
         console.error("Stripe cancel for Compute failed:", error);
         throw new TRPCError({

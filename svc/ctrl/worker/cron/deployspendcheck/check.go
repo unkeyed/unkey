@@ -96,6 +96,26 @@ func (h *CheckHandler) setSuspended(ctx restate.ObjectContext, workspaceID strin
 	}, restate.WithName("set spend-suspended"))
 }
 
+// hasActiveDeployPlan reports whether the workspace currently holds a Deploy
+// entitlement (a Stripe-mirrored plan or a manual override), read live rather
+// than from the orchestrator's snapshot. The snapshot that dispatched this
+// check can predate a cancel: deprovisionCompute clears deploy_plan and
+// deploy_spend_suspended when Compute is cancelled, so enforcing off the stale
+// snapshot would suspend a workspace with no plan and nothing running. A missing
+// workspace or billing row reads as not entitled.
+func (h *CheckHandler) hasActiveDeployPlan(ctx restate.ObjectContext, workspaceID string) (bool, error) {
+	entitlement, err := restate.Run(ctx, func(rc restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
+		return h.db.FindWorkspaceDeployEntitlement(rc, workspaceID)
+	}, restate.WithName("read deploy entitlement"))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("read deploy entitlement: %w", err)
+	}
+	return entitlement.Plan.Valid || entitlement.PlanOverride.Valid, nil
+}
+
 // CheckWorkspaceSpend takes the workspace's priced month-to-date usage from
 // the request and emails the admins for each 50/75/100% threshold of gross
 // total spend newly crossed this period: at most one email per tick (the
@@ -226,6 +246,20 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// stopping is turned off, or the period rolls.
 	switch {
 	case willSuspend:
+		// Skip enforcement when the plan was cancelled after the snapshot that
+		// dispatched this check: suspending a plan-less workspace re-sets
+		// deploy_spend_suspended that deprovisionCompute just cleared and strands
+		// it, so a later resubscribe starts blocked. Nothing is running to stop.
+		entitled, err := h.hasActiveDeployPlan(ctx, workspaceID)
+		if err != nil {
+			return nil, err
+		}
+		if !entitled {
+			logger.Info("deploy spend cap: skipping suspend for workspace with no active plan",
+				"workspace_id", workspaceID, "billing_period", req.GetPeriod())
+			return &hydrav1.CheckWorkspaceSpendResponse{}, nil
+		}
+
 		logger.Info("deploy spend threshold crossed",
 			"workspace_id", workspaceID,
 			"billing_period", req.GetPeriod(),

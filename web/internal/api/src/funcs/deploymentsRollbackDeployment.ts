@@ -31,11 +31,11 @@ import { Result } from "../types/fp.js";
  *
  * @remarks
  * Roll live traffic back to a previous deployment. `deploymentId` is the
- * deployment to roll back TO; the app's current live deployment is used as
+ * deployment to roll back TO; the app's current deployment is used as
  * the rollback source automatically.
  *
  * The target deployment must be ready, not already shutting down, belong to
- * the production environment, and must not itself be the live deployment.
+ * the production environment, and must not itself be the current deployment.
  *
  * After a rollback the app is marked as rolled back, which prevents new
  * deployments from automatically taking over live traffic. Promote the

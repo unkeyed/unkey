@@ -269,6 +269,48 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type BillingSubscriptionsProduct string
+
+const (
+	BillingSubscriptionsProductApi     BillingSubscriptionsProduct = "api"
+	BillingSubscriptionsProductCompute BillingSubscriptionsProduct = "compute"
+)
+
+func (e *BillingSubscriptionsProduct) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingSubscriptionsProduct(s)
+	case string:
+		*e = BillingSubscriptionsProduct(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingSubscriptionsProduct: %T", src)
+	}
+	return nil
+}
+
+type NullBillingSubscriptionsProduct struct {
+	BillingSubscriptionsProduct BillingSubscriptionsProduct
+	Valid                       bool // Valid is true if BillingSubscriptionsProduct is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingSubscriptionsProduct) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingSubscriptionsProduct, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingSubscriptionsProduct.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingSubscriptionsProduct) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingSubscriptionsProduct), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -954,6 +996,15 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
+}
+
+type BillingSubscription struct {
+	Pk                   uint64                      `db:"pk"`
+	WorkspaceID          string                      `db:"workspace_id"`
+	Product              BillingSubscriptionsProduct `db:"product"`
+	StripeSubscriptionID string                      `db:"stripe_subscription_id"`
+	CreatedAt            int64                       `db:"created_at"`
+	UpdatedAt            sql.NullInt64               `db:"updated_at"`
 }
 
 type Certificate struct {
