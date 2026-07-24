@@ -1,31 +1,34 @@
 "use client";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import {
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { use } from "react";
-
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-
-import { NamespaceNavbar } from "../namespace-navbar";
+import { OverrideIdentifierAction } from "../override-identifier-action";
 import { LogsClient } from "./components/logs-client";
 
 export default function RatelimitLogsPage(props: {
   params: Promise<{ namespaceId: string }>;
 }) {
   const params = use(props.params);
-
   const { namespaceId } = params;
 
-  const workspace = useWorkspaceNavigation();
-
   return (
-    <div>
-      <NamespaceNavbar
-        namespaceId={namespaceId}
-        activePage={{
-          href: routes.ratelimits.logs({ workspaceSlug: workspace.slug, namespaceId }),
-          text: "Logs",
-        }}
-      />
+    <PageContainer width="full">
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Logs</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <OverrideIdentifierAction namespaceId={namespaceId} />
+          <CopyableIDButton value={namespaceId} />
+        </PageHeaderActions>
+      </PageHeader>
       <LogsClient namespaceId={namespaceId} />
-    </div>
+    </PageContainer>
   );
 }

@@ -1,12 +1,10 @@
 "use client";
 
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { queryClient, trpcClient } from "@/lib/collections/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState, useTransition } from "react";
-import type React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -24,9 +22,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const CreateNamespaceButton = ({
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+export const CreateNamespaceButton = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -78,15 +74,10 @@ export const CreateNamespaceButton = ({
 
   return (
     <>
-      <NavbarActionButton
-        title="Create new namespace"
-        {...rest}
-        color="default"
-        onClick={() => setIsOpen(true)}
-      >
-        <Plus iconSize="md-medium" />
-        Create new namespace
-      </NavbarActionButton>
+      <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
+        <Plus iconSize="sm-regular" />
+        Create namespace
+      </Button>
 
       <DialogContainer
         isOpen={isOpen}
