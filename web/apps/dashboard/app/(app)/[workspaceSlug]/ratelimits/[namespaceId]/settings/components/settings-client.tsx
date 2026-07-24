@@ -10,7 +10,6 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
-  SettingsShell,
   SettingsZoneRow,
   toast,
 } from "@unkey/ui";
@@ -84,75 +83,67 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   return (
     <>
-      <SettingsShell>
-        <div className="flex flex-col gap-2 items-center">
-          <span className="font-semibold text-gray-12 leading-8 text-lg">Ratelimit Settings</span>
-          <span className="leading-4 text-gray-11 text-[13px]">
-            Configure your ratelimit namespace name and settings.
-          </span>
-        </div>
-        <div className="w-full">
-          <SettingCardGroup>
-            <SettingCard
-              title="Namespace name"
-              description={
-                <div>
-                  Used in API calls. Changing this may cause rate limit
-                  <br /> requests to be rejected.
-                </div>
-              }
-              contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
-            >
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleUpdateName();
-                }}
-                className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9"
-              >
-                <Input
-                  placeholder="Namespace name"
-                  value={namespaceName ?? ""}
-                  className="min-w-64 items-end h-9"
-                  onChange={(e) => setNamespaceName(e.target.value)}
-                />
-                <Button
-                  type="submit"
-                  className="h-full px-3.5 rounded-lg"
-                  size="lg"
-                  variant="primary"
-                  disabled={namespaceName === namespace.name || !namespaceName}
-                >
-                  Save
-                </Button>
-              </form>
-            </SettingCard>
-            <SettingCard
-              title="Namespace ID"
-              description="An identifier for the namespace, used in some API calls."
-              contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
-            >
-              <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
-                <pre className="flex-1 text-xs text-left overflow-x-auto">
-                  <code>{namespace.id}</code>
-                </pre>
-                <CopyButton value={namespace.id} variant="ghost" size="sm" />
+      <div className="w-full">
+        <SettingCardGroup>
+          <SettingCard
+            title="Namespace name"
+            description={
+              <div>
+                Used in API calls. Changing this may cause rate limit
+                <br /> requests to be rejected.
               </div>
-            </SettingCard>
-          </SettingCardGroup>
-        </div>
+            }
+            contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
+          >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateName();
+              }}
+              className="flex flex-row justify-end items-center gap-x-2 mt-2 h-9"
+            >
+              <Input
+                placeholder="Namespace name"
+                value={namespaceName ?? ""}
+                className="min-w-64 items-end h-9"
+                onChange={(e) => setNamespaceName(e.target.value)}
+              />
+              <Button
+                type="submit"
+                className="h-full px-3.5 rounded-lg"
+                size="lg"
+                variant="primary"
+                disabled={namespaceName === namespace.name || !namespaceName}
+              >
+                Save
+              </Button>
+            </form>
+          </SettingCard>
+          <SettingCard
+            title="Namespace ID"
+            description="An identifier for the namespace, used in some API calls."
+            contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
+          >
+            <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
+              <pre className="flex-1 text-xs text-left overflow-x-auto">
+                <code>{namespace.id}</code>
+              </pre>
+              <CopyButton value={namespace.id} variant="ghost" size="sm" />
+            </div>
+          </SettingCard>
+        </SettingCardGroup>
+      </div>
 
-        <SettingsDangerZone>
-          <SettingsZoneRow
-            title="Delete ratelimit"
-            description="Deletes this namespace along with all associated identifiers and data. This action cannot be undone."
-            action={{
-              label: "Delete Namespace",
-              onClick: () => setIsNamespaceNameDeleteModalOpen(true),
-            }}
-          />
-        </SettingsDangerZone>
-      </SettingsShell>
+      <SettingsDangerZone>
+        <SettingsZoneRow
+          title="Delete ratelimit"
+          description="Deletes this namespace along with all associated identifiers and data. This action cannot be undone."
+          action={{
+            label: "Delete Namespace",
+            onClick: () => setIsNamespaceNameDeleteModalOpen(true),
+          }}
+        />
+      </SettingsDangerZone>
       <DeleteNamespaceDialog
         namespace={namespace}
         onOpenChange={setIsNamespaceNameDeleteModalOpen}
