@@ -1310,6 +1310,17 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2GithubInstallAppResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2GithubInstallAppResponseData"
+            additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -3326,17 +3337,6 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
-        V2WorkspacesInstallGithubResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                data:
-                    $ref: "#/components/schemas/V2WorkspacesInstallGithubResponseData"
-            additionalProperties: false
         Meta:
             type: object
             required:
@@ -5027,6 +5027,28 @@ components:
                             prefix: /internal/
                 firewall:
                     action: ACTION_DENY
+        V2GithubInstallAppResponseData:
+            type: object
+            required:
+                - url
+                - expiresAt
+            properties:
+                url:
+                    type: string
+                    format: uri
+                    description: |
+                        The GitHub App install URL. Open it in a browser to install the app and
+                        grant repository access. After installation GitHub returns to Unkey, which
+                        binds the installation and lands you in the workspace settings.
+                    example: https://github.com/apps/unkey/installations/new?state=eyJ...
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds after which the URL's signed state expires
+                        and the link must be requested again.
+                    example: 1700000900000
+            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
@@ -6202,28 +6224,6 @@ components:
                     type: string
             required:
                 - overrideId
-        V2WorkspacesInstallGithubResponseData:
-            type: object
-            required:
-                - url
-                - expiresAt
-            properties:
-                url:
-                    type: string
-                    format: uri
-                    description: |
-                        The GitHub App install URL. Open it in a browser to install the app and
-                        grant repository access. After installation GitHub returns to Unkey, which
-                        binds the installation and lands you in the workspace settings.
-                    example: https://github.com/apps/unkey/installations/new?state=eyJ...
-                expiresAt:
-                    type: integer
-                    format: int64
-                    description: |
-                        Unix timestamp in milliseconds after which the URL's signed state expires
-                        and the link must be requested again.
-                    example: 1700000900000
-            additionalProperties: false
 info:
     description: |-
         Unkey's API provides programmatic access for all resources within our platform.
@@ -9319,6 +9319,79 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: updatePolicy
+    /v2/github.installApp:
+        post:
+            description: |
+                Start installing the Unkey GitHub App for your workspace. Returns a GitHub
+                App install URL: open it in a browser to install the app and grant
+                repository access. After installation GitHub returns to Unkey, which binds
+                the installation to your workspace and lands you in the workspace settings.
+
+                Installation is workspace-wide and takes no parameters. Once installed, link
+                repositories to individual apps with the `git` field on `apps.createApp` and
+                `apps.updateApp`.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `workspace.*.install_github`
+            operationId: github.installApp
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Open the returned url to install the GitHub App
+                                    summary: Install URL created
+                                    value:
+                                        data:
+                                            expiresAt: 1700000900000
+                                            url: https://github.com/apps/unkey/installations/new?state=eyJ...
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2GithubInstallAppResponseBody'
+                    description: |
+                        Install URL created. Open the returned url to install the GitHub App and
+                        finish binding it to your workspace.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Install GitHub App
+            tags:
+                - github
+            x-speakeasy-name-override: installApp
+            x-unkey-idempotency: idempotent
     /v2/identities.createIdentity:
         post:
             description: |
@@ -13310,79 +13383,6 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
-    /v2/workspaces.installGithub:
-        post:
-            description: |
-                Start installing the Unkey GitHub App for your workspace. Returns a GitHub
-                App install URL: open it in a browser to install the app and grant
-                repository access. After installation GitHub returns to Unkey, which binds
-                the installation to your workspace and lands you in the workspace settings.
-
-                Installation is workspace-wide and takes no parameters. Once installed, link
-                repositories to individual apps with the `git` field on `apps.createApp` and
-                `apps.updateApp`.
-
-                **Required Permissions**
-
-                Your root key must have the following permission:
-                - `workspace.*.install_github`
-            operationId: workspaces.installGithub
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            examples:
-                                success:
-                                    description: Open the returned url to install the GitHub App
-                                    summary: Install URL created
-                                    value:
-                                        data:
-                                            expiresAt: 1700000900000
-                                            url: https://github.com/apps/unkey/installations/new?state=eyJ...
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/V2WorkspacesInstallGithubResponseBody'
-                    description: |
-                        Install URL created. Open the returned url to install the GitHub App and
-                        finish binding it to your workspace.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Bad request
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
-                "429":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too Many Requests
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error
-            security:
-                - bearer: []
-            summary: Install GitHub App
-            tags:
-                - workspaces
-            x-speakeasy-name-override: installGithub
-            x-unkey-idempotency: idempotent
 security:
     - bearer: []
 servers:
@@ -13414,8 +13414,8 @@ tags:
       name: portal
     - description: Rate limiting operations
       name: ratelimit
-    - description: Workspace-level operations
-      name: workspaces
+    - description: GitHub App installation operations
+      name: github
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

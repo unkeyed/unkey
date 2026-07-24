@@ -28,7 +28,7 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 //
 // `flow` is the discriminator over the three install flows, and it also drives
 // where the callback lands the user:
-//   - "api":       CLI/API workspace install (workspaces.installGithub). No user;
+//   - "api":       CLI/API workspace install (github.installApp). No user;
 //                  secured by the OAuth-code ownership proof. -> workspace settings.
 //   - "workspace": dashboard workspace install (settings). User-bound. -> workspace settings.
 //   - "app":       dashboard app install (onboarding or app settings). User- and
@@ -263,7 +263,7 @@ export const githubRouter = t.router({
   // Mint a signed install state for a workspace-wide install started from the
   // dashboard settings. No app target, but bound to the initiating user; the
   // callback's OAuth-code ownership proof is the primary access control. The
-  // CLI/API equivalent is the workspaces.installGithub route (flow "api").
+  // CLI/API equivalent is the github.installApp route (flow "api").
   prepareWorkspaceInstall: workspaceProcedure.mutation(async ({ ctx }) => {
     if (!githubAppEnv()) {
       throw new TRPCError({

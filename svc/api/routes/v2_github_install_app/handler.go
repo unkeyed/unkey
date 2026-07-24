@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type Response = openapi.V2WorkspacesInstallGithubResponseBody
+type Response = openapi.V2GithubInstallAppResponseBody
 
 // stateTTL bounds how long the returned install URL stays valid. It matches the
 // dashboard's STATE_TTL_MS so a state minted here and verified there agree.
@@ -39,7 +39,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Path() string {
-	return "/v2/workspaces.installGithub"
+	return "/v2/github.installApp"
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
@@ -108,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.V2WorkspacesInstallGithubResponseData{
+		Data: openapi.V2GithubInstallAppResponseData{
 			Url:       installURL,
 			ExpiresAt: expiresAtMs,
 		},

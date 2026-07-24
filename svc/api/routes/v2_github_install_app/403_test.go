@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_workspaces_install_github"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 )
 
 // Installing the GitHub App is workspace-wide, gated by workspace.*.install_github.

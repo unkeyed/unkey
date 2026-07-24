@@ -1,6 +1,6 @@
 post:
   tags:
-    - workspaces
+    - github
   summary: Install GitHub App
   description: |
     Start installing the Unkey GitHub App for your workspace. Returns a GitHub
@@ -16,8 +16,8 @@ post:
 
     Your root key must have the following permission:
     - `workspace.*.install_github`
-  operationId: workspaces.installGithub
-  x-speakeasy-name-override: installGithub
+  operationId: github.installApp
+  x-speakeasy-name-override: installApp
   x-unkey-idempotency: idempotent
   security:
     - bearer: []
@@ -26,7 +26,7 @@ post:
       content:
         application/json:
           schema:
-            "$ref": "./V2WorkspacesInstallGithubResponseBody.yaml"
+            "$ref": "./V2GithubInstallAppResponseBody.yaml"
           examples:
             success:
               summary: Install URL created
