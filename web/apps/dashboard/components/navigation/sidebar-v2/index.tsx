@@ -6,7 +6,7 @@ import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { TOP_NAV_HEIGHT } from "../top-nav";
 import { SidebarBody } from "./sidebar-body";
-import { UsageBanner } from "./usage-banner";
+// import { UsageBanner } from "./usage-banner";
 
 export const SIDEBAR_WIDTH_VARS: React.CSSProperties & {
   "--sidebar-width": string;
@@ -37,7 +37,8 @@ export function SidebarV2(props: Props) {
         <SidebarBody />
       </SidebarContent>
       <SidebarFooter className="mx-0 gap-2 border-t-0 p-2">
-        <UsageBanner />
+        {/* Hidden per onboarding prototype feedback. */}
+        {/* <UsageBanner /> */}
         <CollapseButton />
       </SidebarFooter>
     </Sidebar>

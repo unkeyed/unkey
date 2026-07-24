@@ -58,7 +58,7 @@ export default function AuthenticationPage() {
         ) : (
           <>
             <h1 className="text-3xl font-semibold tracking-tight text-center leading-tight text-gray-12">
-              Go from from zero to deployed
+              Go from zero to deployed
               in minutes.
             </h1>
             {showEmail ? (

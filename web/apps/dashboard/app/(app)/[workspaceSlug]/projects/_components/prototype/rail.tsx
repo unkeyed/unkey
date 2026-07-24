@@ -10,8 +10,9 @@ import type { OverviewData, UsageStat } from "./mock-data";
 import type { RowVariant } from "./scenario";
 import { CubeIcon, fmtCompact, fmtInt, TrendArrow, trendPct } from "./ui";
 
-export const TEAL = "hsl(173 80% 36%)";
-export const INFO = "hsl(206 100% 50%)";
+// Matches the valid/success bar color used by the real API and ratelimit
+// listing pages (components/stats-list-card).
+const CHART_GRAY = "hsl(var(--accent-4))";
 
 export type RowItem = {
   id: string;
@@ -53,7 +54,7 @@ export function Rail({
     value: fmtCompact(ks.requests["24h"]),
     spark: ks.spark["24h"],
     errorRatio: (100 - ks.validPct) / 100,
-    stroke: TEAL,
+    stroke: CHART_GRAY,
     kind: "keyspace",
     // The real API detail page, fed by the prototype tRPC interceptor.
     href: routes.apis.detail({ workspaceSlug, apiId: ks.id }),
@@ -66,7 +67,7 @@ export function Rail({
     value: fmtCompact(rl.checks["24h"]),
     spark: rl.spark["24h"],
     errorRatio: rl.blockedPct / 100,
-    stroke: INFO,
+    stroke: CHART_GRAY,
     kind: "ratelimit",
     href: routes.ratelimits.detail({ workspaceSlug, namespaceId: rl.id }),
   }));

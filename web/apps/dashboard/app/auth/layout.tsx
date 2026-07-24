@@ -23,11 +23,7 @@ export default function AuthenticatedLayout({
         <AuthSwitchButton />
       </nav>
       <FullScreenContent className="px-4 py-8">
-        {/* WarnBanner/ErrorBanner (banners.tsx) portal in here to sit above
-            the card. Banners carry their own mb-4 so an empty slot adds no
-            height and the card stays centered. */}
-        <div id="auth-banner-slot" className="w-full max-w-[440px]" />
-        <Card className="w-full max-w-[440px] rounded-xl border-gray-5 bg-gray-1 px-6 py-10 sm:px-12 shadow-xs">
+        <div className="w-full max-w-[440px] bg-none px-6 py-10 sm:px-12">
           <div className="flex w-full flex-col gap-10">
             <RadarProvider>{children}</RadarProvider>
             <p className="text-xs text-center text-gray-9 text-balance">
@@ -52,7 +48,7 @@ export default function AuthenticatedLayout({
               , and to receive periodic emails with updates.
             </p>
           </div>
-        </Card>
+        </div>
       </FullScreenContent>
     </FullScreenLayout>
   );

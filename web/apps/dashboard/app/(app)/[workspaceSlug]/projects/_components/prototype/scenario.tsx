@@ -2,9 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AgentStyle } from "./agent-setup";
 import type { Mark } from "./marks";
-import { type Scenario, SCENARIO_LABELS } from "./mock-data";
+import { SCENARIO_LABELS, type Scenario } from "./mock-data";
 
 const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
@@ -211,14 +212,20 @@ export function DebugCommand({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // No ⌘K binding — that collides with the app's own command menu. Open via the
-  // pill; Escape closes.
+  // pill; Escape closes. Swallow ⌘K while open so it doesn't also pop the real
+  // command menu on top of this one.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+      } else if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open]);
 
   useEffect(() => {
@@ -275,9 +282,7 @@ export function DebugCommand({
   ];
 
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? cmds.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(q))
-    : cmds;
+  const filtered = q ? cmds.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(q)) : cmds;
 
   const run = (c: Cmd | undefined) => {
     if (!c) return;
@@ -304,73 +309,75 @@ export function DebugCommand({
       >
         Prototype options
       </button>
-      {open && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: prototype backdrop
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-[15vh]"
-          onClick={() => setOpen(false)}
-        >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: stops backdrop close */}
+      {open &&
+        createPortal(
+          // biome-ignore lint/a11y/useKeyWithClickEvents: prototype backdrop
           <div
-            className="w-[440px] max-w-[90vw] overflow-hidden rounded-xl border border-grayA-4 bg-background shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 backdrop-blur-xs pt-[15vh]"
+            onClick={() => setOpen(false)}
           >
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setActiveIndex(0);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setActiveIndex((a) => Math.min(a + 1, filtered.length - 1));
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setActiveIndex((a) => Math.max(a - 1, 0));
-                } else if (e.key === "Enter") {
-                  e.preventDefault();
-                  run(filtered[activeIndex]);
-                }
-              }}
-              placeholder="Set scenario, row style, mark…"
-              className="w-full border-b border-grayA-4 bg-transparent px-4 py-3 text-sm text-accent-12 outline-none placeholder:text-gray-9"
-            />
-            <div className="max-h-[50vh] overflow-y-auto p-1.5">
-              {filtered.length === 0 ? (
-                <div className="px-3 py-6 text-center text-xs text-gray-9">No matches</div>
-              ) : (
-                groups.map((g) => (
-                  <div key={g.name} className="mb-1">
-                    <div className="px-2 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-gray-9">
-                      {g.name}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: stops backdrop close */}
+            <div
+              className="w-[440px] max-w-[90vw] overflow-hidden rounded-xl border border-grayA-4 bg-background shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveIndex(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setActiveIndex((a) => Math.min(a + 1, filtered.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setActiveIndex((a) => Math.max(a - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    run(filtered[activeIndex]);
+                  }
+                }}
+                placeholder="Set scenario, row style, mark…"
+                className="w-full border-b border-grayA-4 bg-transparent px-4 py-3 text-sm text-accent-12 outline-none placeholder:text-gray-9"
+              />
+              <div className="max-h-[50vh] overflow-y-auto p-1.5">
+                {filtered.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs text-gray-9">No matches</div>
+                ) : (
+                  groups.map((g) => (
+                    <div key={g.name} className="mb-1">
+                      <div className="px-2 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-gray-9">
+                        {g.name}
+                      </div>
+                      {g.items.map((c) => {
+                        const idx = filtered.indexOf(c);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onMouseMove={() => setActiveIndex(idx)}
+                            onClick={() => run(c)}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-accent-12",
+                              idx === activeIndex ? "bg-grayA-3" : "hover:bg-grayA-2",
+                            )}
+                          >
+                            <span>{c.label}</span>
+                            {c.active && <span className="text-[11px] text-gray-9">current</span>}
+                          </button>
+                        );
+                      })}
                     </div>
-                    {g.items.map((c) => {
-                      const idx = filtered.indexOf(c);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onMouseMove={() => setActiveIndex(idx)}
-                          onClick={() => run(c)}
-                          className={cn(
-                            "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-accent-12",
-                            idx === activeIndex ? "bg-grayA-3" : "hover:bg-grayA-2",
-                          )}
-                        >
-                          <span>{c.label}</span>
-                          {c.active && <span className="text-[11px] text-gray-9">current</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

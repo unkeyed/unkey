@@ -6,7 +6,7 @@ export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTM
   return (
     <Card
       className={cn(
-        "w-full max-w-[440px] rounded-xl border-gray-5 bg-gray-1 px-6 py-10 sm:px-12 shadow-xs",
+        "w-full max-w-[440px] rounded-xl  px-6 py-10 sm:px-12 bg-red-500",
         className,
       )}
       {...props}

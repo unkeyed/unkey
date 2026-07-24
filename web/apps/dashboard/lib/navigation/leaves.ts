@@ -13,7 +13,6 @@ import {
   Nodes,
   ShieldKey,
   SquareBulletList,
-  User,
   WindowLayout,
 } from "@unkey/icons";
 import { routes } from "./routes";
@@ -57,17 +56,18 @@ export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
-  portalManagementEnabled: boolean,
+  _portalManagementEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
-  const portalLink: ResolvedNavLink = {
-    key: "portal",
-    label: "Portal",
-    href: routes.projects.portal(scope),
-    icon: User,
-    isActive: page === "portal",
-  };
+  // Hidden per onboarding prototype feedback.
+  // const portalLink: ResolvedNavLink = {
+  //   key: "portal",
+  //   label: "Portal",
+  //   href: routes.projects.portal(scope),
+  //   icon: User,
+  //   isActive: page === "portal",
+  // };
   return [
     {
       key: "overview",
@@ -127,7 +127,8 @@ export function buildProjectLinks(
       icon: ArrowOppositeDirectionY,
       isActive: page === "requests",
     },
-    ...(portalManagementEnabled ? [portalLink] : []),
+    // Hidden per onboarding prototype feedback.
+    // ...(portalManagementEnabled ? [portalLink] : []),
     {
       key: "settings",
       label: "Project Settings",

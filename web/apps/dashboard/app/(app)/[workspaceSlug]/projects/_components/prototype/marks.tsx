@@ -2,7 +2,9 @@ import { cn } from "@/lib/utils";
 
 export type Mark = "line" | "bars" | "ratio" | "heatmap";
 
-const ORANGE = "hsl(16 90% 52%)";
+// Matches the error/invalid bar color used by the real API and ratelimit
+// listing pages (components/stats-list-card).
+const ORANGE = "hsl(var(--orange-9))";
 
 function lastN(points: number[], n: number): number[] {
   return points.length > n ? points.slice(points.length - n) : points;
@@ -143,8 +145,8 @@ function LineMark({
   );
 }
 
-// Mirrors the portal key-usage sparkline: thin fixed-width valid bars (tinted per
-// resource kind) with a red error cap on top, in a subtle rounded well.
+// Mirrors the real listing-page sparkline (components/stats-list-card): bars
+// sit directly on the row background, no well, so the accent-4 fill stays visible.
 function BarsMark({
   points,
   errorRatio,
@@ -158,7 +160,7 @@ function BarsMark({
   const H = 28;
   const max = Math.max(...data, 1) * 1.3;
   return (
-    <div className="inline-flex h-7 items-end gap-[2px] rounded-sm bg-gray-2 px-1 transition-colors group-hover:bg-gray-3">
+    <div className="relative inline-flex h-7 items-end gap-[2px]">
       {data.map((v, i) => {
         const total = Math.min(Math.round((v / max) * H), H);
         const top = errorRatio > 0 && v > 0 ? Math.max(Math.round(errorRatio * total), 1) : 0;
@@ -166,11 +168,15 @@ function BarsMark({
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: positional bars
           <div key={i} className="flex w-[3px] shrink-0 flex-col justify-end">
-            <div className="w-full bg-error-9" style={{ height: `${top}px` }} />
+            <div className="w-full" style={{ height: `${top}px`, backgroundColor: ORANGE }} />
             <div className="w-full" style={{ height: `${bottom}px`, backgroundColor: stroke }} />
           </div>
         );
       })}
+      {/* Painted last so the dashed baseline reads in front of the bar bases.
+          gray-7 (not the real component's gray-5) since bars touch the line
+          directly here and need more contrast against the accent-4 fill. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-dashed border-gray-7" />
     </div>
   );
 }
