@@ -16,7 +16,7 @@ export type BreadcrumbDescriptor =
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string }
   | { type: "identity"; identityId: string }
-  | { type: "label"; label: string };
+  | { type: "label"; label: string; icon?: "shield-key" };
 
 type RouteParams = {
   projectId?: string;
@@ -72,7 +72,7 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   }
   if (isAuthorization && lastProjectId) {
     crumbs.push({ type: "project", projectId: lastProjectId });
-    crumbs.push({ type: "label", label: "Authorization" });
+    crumbs.push({ type: "label", label: "Authorization", icon: "shield-key" });
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId });

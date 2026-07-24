@@ -5,7 +5,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Menu } from "@unkey/icons";
+import { Menu, ShieldKey } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
 import { ApiCrumb } from "./api-crumb";
@@ -80,7 +80,10 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
       return <IdentityCrumb identityId={descriptor.identityId} />;
     case "label":
       return (
-        <span className="flex min-w-0 items-center px-1 py-1 text-[13px] font-medium text-accent-12">
+        <span className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12">
+          {descriptor.icon === "shield-key" && (
+            <ShieldKey className="size-3.5 text-accent-11" iconSize="sm-regular" />
+          )}
           <span className="truncate max-w-[120px] md:max-w-[180px]">{descriptor.label}</span>
         </span>
       );
