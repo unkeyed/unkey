@@ -1,9 +1,14 @@
 "use client";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import {
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { use } from "react";
-
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { NamespaceNavbar } from "../namespace-navbar";
 import { SettingsClient } from "./components/settings-client";
 
 type Props = {
@@ -15,18 +20,20 @@ type Props = {
 export default function SettingsPage(props: Props) {
   const params = use(props.params);
   const namespaceId = params.namespaceId;
-  const workspace = useWorkspaceNavigation();
 
   return (
-    <div>
-      <NamespaceNavbar
-        namespaceId={namespaceId}
-        activePage={{
-          href: routes.ratelimits.settings({ workspaceSlug: workspace.slug, namespaceId }),
-          text: "Settings",
-        }}
-      />
-      <SettingsClient namespaceId={namespaceId} />
-    </div>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Settings</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <CopyableIDButton value={namespaceId} />
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
+        <SettingsClient namespaceId={namespaceId} />
+      </PageBody>
+    </PageContainer>
   );
 }

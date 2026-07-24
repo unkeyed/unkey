@@ -1,6 +1,5 @@
 "use client";
 
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -74,10 +73,10 @@ export function CreateIdentityDialog() {
 
   return (
     <>
-      <NavbarActionButton title="Create Identity" onClick={() => setOpen(true)}>
-        <Plus iconSize="md-medium" />
-        Create Identity
-      </NavbarActionButton>
+      <Button size="md" variant="primary" onClick={() => setOpen(true)}>
+        <Plus iconSize="sm-regular" />
+        Create identity
+      </Button>
 
       <FormProvider {...methods}>
         <form id="create-identity-form" onSubmit={handleSubmit(onSubmit)}>
