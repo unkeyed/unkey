@@ -1,7 +1,9 @@
 "use client";
 
+import { findProjectIdForResource } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
 import { routes } from "@/lib/navigation/routes";
 import { useParams, usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
@@ -26,12 +28,22 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const params = useParams<RouteParams>();
   const pathname = usePathname();
 
+  // Keyspaces and ratelimits live inside projects now, but their pages mount
+  // at workspace-scoped URLs — resolve the owning (prototype) project so the
+  // breadcrumb still shows where the resource sits.
+  const resourceId = params.apiId ?? params.namespaceId;
+  const resourceProjectId = useMemo(
+    () => (resourceId ? findProjectIdForResource(resourceId) : null),
+    [resourceId],
+  );
+
   // The create-project page has no entity params, so it gets a static crumb.
   const isNewProject = pathname === routes.projects.new({ workspaceSlug: workspace.slug });
 
-  const workspaceHref = isNewProject
-    ? routes.projects.list({ workspaceSlug: workspace.slug })
-    : resolveWorkspaceHref(workspace.slug, params);
+  const workspaceHref =
+    isNewProject || resourceProjectId
+      ? routes.projects.list({ workspaceSlug: workspace.slug })
+      : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
   if (isNewProject) {
     crumbs.push({ type: "label", label: "New project" });
@@ -41,6 +53,9 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   }
   if (params.projectId && params.appId) {
     crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
+  }
+  if (!params.projectId && resourceProjectId) {
+    crumbs.push({ type: "project", projectId: resourceProjectId });
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId });

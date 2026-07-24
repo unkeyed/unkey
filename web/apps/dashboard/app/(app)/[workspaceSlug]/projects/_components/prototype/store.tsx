@@ -214,6 +214,24 @@ export function usePrototypeWorlds(): PrototypeContext {
   return ctx;
 }
 
+// Which prototype project owns this keyspace or ratelimit namespace, for the
+// top-nav breadcrumb on /apis/* and /ratelimits/* pages. Null for real ids.
+export function findProjectIdForResource(resourceId: string): string | null {
+  const worlds = loadWorlds();
+  for (const scenario of Object.keys(worlds) as Scenario[]) {
+    const world = worlds[scenario];
+    const keyspace = world.keyspaces.find((ks) => ks.id === resourceId);
+    if (keyspace) {
+      return keyspace.projectId;
+    }
+    const ratelimit = world.ratelimits.find((rl) => rl.id === resourceId);
+    if (ratelimit) {
+      return ratelimit.projectId;
+    }
+  }
+  return null;
+}
+
 // Locates a keyspace by id across all scenario worlds, so detail pages don't
 // need the scenario threaded through the URL.
 export function findKeyspace(worlds: Worlds, keyspaceId: string) {
