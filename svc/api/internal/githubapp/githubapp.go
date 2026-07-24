@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -18,17 +17,14 @@ import (
 )
 
 // GitResponse builds the App.git response value. An empty repositoryFullName
-// (no connection) yields JSON null; otherwise the repository and the branch the
-// app tracks.
-func GitResponse(repositoryFullName string, defaultBranch string) nullable.Nullable[openapi.AppGit] {
-	var state nullable.Nullable[openapi.AppGit]
+// (no connection) yields nil so the field is omitted; otherwise the repository
+// and the branch the app tracks.
+func GitResponse(repositoryFullName string, defaultBranch string) *openapi.AppGit {
 	if repositoryFullName == "" {
-		state.SetNull()
-		return state
+		return nil
 	}
 	branch := defaultBranch
-	state.Set(openapi.AppGit{Repository: repositoryFullName, DefaultBranch: &branch})
-	return state
+	return &openapi.AppGit{Repository: repositoryFullName, DefaultBranch: &branch}
 }
 
 // Resolved is the outcome of matching a repository to a workspace installation.

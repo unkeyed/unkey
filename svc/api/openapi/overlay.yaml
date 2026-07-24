@@ -78,13 +78,6 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["App"]["properties"]["git"]["anyOf"]
-    remove: true
-  - target: $["components"]["schemas"]["App"]["properties"]["git"]
-    update:
-      nullable: true
-      allOf:
-        - "$ref": "#/components/schemas/AppGit"
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]["anyOf"]
     remove: true
   - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["properties"]["git"]

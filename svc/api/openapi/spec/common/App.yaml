@@ -25,11 +25,11 @@ properties:
     example: payments-api
   git:
     description: |
-      The connected GitHub repository and the branch deployments track, or null
-      when the app has no repository connected (for example a Docker-based app).
-    anyOf:
+      The connected GitHub repository and the branch its deployments track.
+      Omitted when the app has no repository connected (for example a
+      Docker-based app).
+    allOf:
       - "$ref": "./AppGit.yaml"
-      - type: "null"
   currentDeploymentId:
     type: string
     description: |

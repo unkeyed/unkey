@@ -156,7 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// gitState is the connection echoed in the response: current when git is
-		// unspecified, null on disconnect, the new repository on connect.
+		// unspecified, nil on disconnect, the new repository on connect.
 		gitState, err := h.applyGitChange(ctx, tx, app, req.Git, &update)
 		if err != nil {
 			return openapi.App{}, err
@@ -220,15 +220,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			display := fmt.Sprintf("Disconnected the GitHub repository from app %s", app.ID)
 			meta := map[string]any{}
 			resourceName := app.ID
-			if !gitState.IsNull() {
-				git := gitState.MustGet()
+			if gitState != nil {
 				event = auditlog.AppConnectRepositoryEvent
-				display = fmt.Sprintf("Connected app %s to %s", app.ID, git.Repository)
-				meta = map[string]any{"repository": git.Repository}
-				if git.DefaultBranch != nil {
-					meta["defaultBranch"] = *git.DefaultBranch
+				display = fmt.Sprintf("Connected app %s to %s", app.ID, gitState.Repository)
+				meta = map[string]any{"repository": gitState.Repository}
+				if gitState.DefaultBranch != nil {
+					meta["defaultBranch"] = *gitState.DefaultBranch
 				}
-				resourceName = git.Repository
+				resourceName = gitState.Repository
 			}
 			logs = append(logs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
@@ -293,8 +292,7 @@ func (h *Handler) applyGitChange(
 	app db.App,
 	git nullable.Nullable[openapi.AppGitUpdateInput],
 	update *db.UpdateAppParams,
-) (nullable.Nullable[openapi.AppGit], error) {
-	var empty nullable.Nullable[openapi.AppGit]
+) (*openapi.AppGit, error) {
 
 	if !git.IsSpecified() {
 		// No change requested: reflect the app's current connection, if any.
@@ -303,7 +301,7 @@ func (h *Handler) applyGitChange(
 			if db.IsNotFound(err) {
 				return githubapp.GitResponse("", ""), nil
 			}
-			return empty, fault.Wrap(
+			return nil, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("failed to load github repo connection"),
@@ -317,7 +315,7 @@ func (h *Handler) applyGitChange(
 		// Disconnect: drop the connection and clear the tracked branch, which has
 		// no meaning without a repository.
 		if err := db.Query.DeleteGithubRepoConnectionsByAppId(ctx, tx, app.ID); err != nil {
-			return empty, fault.Wrap(
+			return nil, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("failed to disconnect github repo connection"),
@@ -338,14 +336,14 @@ func (h *Handler) applyGitChange(
 		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return empty, fault.New(
+				return nil, fault.New(
 					"no repository connected",
 					fault.Code(codes.App.Validation.InvalidInput.URN()),
 					fault.Internal("cannot set a branch without a connected repository"),
 					fault.Public("Connect a GitHub repository before setting the branch it tracks."),
 				)
 			}
-			return empty, fault.Wrap(
+			return nil, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("failed to load github repo connection"),
@@ -360,7 +358,7 @@ func (h *Handler) applyGitChange(
 	}
 
 	if h.GitHubAppName == "" {
-		return empty, fault.New(
+		return nil, fault.New(
 			"github not configured",
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("github app credentials are not configured for this deployment"),
@@ -370,7 +368,7 @@ func (h *Handler) applyGitChange(
 
 	installations, err := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, tx, app.WorkspaceID)
 	if err != nil {
-		return empty, fault.Wrap(
+		return nil, fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load github installations"),
@@ -380,7 +378,7 @@ func (h *Handler) applyGitChange(
 
 	resolved, err := githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, *requested.Repository)
 	if err != nil {
-		return empty, err
+		return nil, err
 	}
 
 	// A fresh connect adopts the repository's GitHub default branch; replacing an
@@ -391,7 +389,7 @@ func (h *Handler) applyGitChange(
 	if _, connErr := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID); connErr == nil {
 		fallback = app.DefaultBranch
 	} else if !db.IsNotFound(connErr) {
-		return empty, fault.Wrap(
+		return nil, fault.Wrap(
 			connErr,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to load github repo connection"),
@@ -413,7 +411,7 @@ func (h *Handler) applyGitChange(
 		CreatedAt:          now,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
 	}); err != nil {
-		return empty, fault.Wrap(
+		return nil, fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to upsert github repo connection"),

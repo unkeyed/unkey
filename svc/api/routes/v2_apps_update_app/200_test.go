@@ -75,7 +75,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.Equal(t, id, res.Body.Data.Id)
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.Equal(t, slug, res.Body.Data.Slug)
-		require.True(t, res.Body.Data.Git.IsNull(), "app without a repo connection reports git=null")
+		require.Nil(t, res.Body.Data.Git, "app without a repo connection omits git")
 		require.False(t, res.Body.Data.DeleteProtection)
 		require.Greater(t, res.Body.Data.UpdatedAt, int64(0))
 
@@ -197,7 +197,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Unchanged", res.Body.Data.Name)
 		require.Equal(t, slug, res.Body.Data.Slug)
-		require.True(t, res.Body.Data.Git.IsNull())
+		require.Nil(t, res.Body.Data.Git)
 		require.False(t, res.Body.Data.DeleteProtection)
 
 		app := getApp(t, id)

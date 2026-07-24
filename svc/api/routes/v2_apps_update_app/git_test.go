@@ -77,8 +77,8 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		require.False(t, res.Body.Data.Git.IsNull())
-		git := res.Body.Data.Git.MustGet()
+		require.NotNil(t, res.Body.Data.Git)
+		git := res.Body.Data.Git
 		require.Equal(t, "unkeyed/unkey", git.Repository)
 		require.NotNil(t, git.DefaultBranch)
 		require.Equal(t, "main", *git.DefaultBranch)
@@ -106,7 +106,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: &branch}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		git := res.Body.Data.Git.MustGet()
+		git := res.Body.Data.Git
 		require.Equal(t, "develop", *git.DefaultBranch)
 
 		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
@@ -144,7 +144,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		git := res.Body.Data.Git.MustGet()
+		git := res.Body.Data.Git
 		require.Equal(t, "unkeyed/unkey", git.Repository, "connection should be replaced, not duplicated")
 		require.Equal(t, "keep-me", *git.DefaultBranch, "replace must keep the existing branch, not adopt the repo default")
 
@@ -177,7 +177,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{DefaultBranch: ptr.P("release")}),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		git := res.Body.Data.Git.MustGet()
+		git := res.Body.Data.Git
 		require.Equal(t, "unkeyed/unkey", git.Repository, "repository stays connected")
 		require.Equal(t, "release", *git.DefaultBranch)
 
@@ -248,7 +248,7 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 		Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.True(t, res.Body.Data.Git.IsNull(), "response git should be null after disconnect")
+	require.Nil(t, res.Body.Data.Git, "response git should be omitted after disconnect")
 
 	_, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
 	require.True(t, db.IsNotFound(err), "connection row should be deleted")
