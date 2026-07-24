@@ -100,6 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		txErr := db.Query.UpdatePortalConfig(txCtx, tx, db.UpdatePortalConfigParams{
 			Slug:        req.Slug,
+			DisplayName: req.DisplayName,
 			AppID:       appCol,
 			KeyAuthID:   keyAuthCol,
 			Enabled:     enabled,
@@ -187,6 +188,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ID:          req.ConfigId,
 		WorkspaceID: workspaceID,
 		Slug:        req.Slug,
+		DisplayName: req.DisplayName,
 		AppID:       appCol,
 		KeyAuthID:   keyAuthCol,
 		Enabled:     enabled,

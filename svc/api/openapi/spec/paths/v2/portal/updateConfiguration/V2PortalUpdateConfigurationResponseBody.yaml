@@ -18,6 +18,7 @@ examples:
       data:
         id: pc_1234abcd
         slug: renamed-portal
+        displayName: Acme Corp
         keyspaceId: ks_1234abcd
         enabled: true
         createdAt: 1704067200000

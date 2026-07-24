@@ -33,6 +33,13 @@ export type PortalConfiguration = {
    */
   slug: string;
   /**
+   * Human-readable name for the portal, shown to end users in the portal UI
+   *
+   * @remarks
+   * (e.g. the header and page titles). Unlike the slug, it is free-form.
+   */
+  displayName: string;
+  /**
    * The keyspace this configuration maps to. Present when the configuration is
    *
    * @remarks
@@ -88,6 +95,7 @@ export const PortalConfiguration$inboundSchema: z.ZodType<
 > = z.object({
   id: z.string(),
   slug: z.string(),
+  displayName: z.string(),
   keyspaceId: z.string().optional(),
   appId: z.string().optional(),
   enabled: z.boolean(),

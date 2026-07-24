@@ -1,6 +1,7 @@
 type: object
 required:
   - slug
+  - displayName
 properties:
   slug:
     type: string
@@ -12,6 +13,14 @@ properties:
       Must be 3-64 characters, lowercase alphanumeric and hyphens only, must not
       start or end with a hyphen, and must not contain consecutive hyphens.
     example: my-portal
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      Free-form human-readable name for the portal, shown to end users in the
+      portal UI (header, page titles).
+    example: Acme Corp
   keyspaceId:
     type: string
     maxLength: 64
@@ -48,6 +57,7 @@ examples:
     description: Create a configuration bound to a keyspace, with branding
     value:
       slug: my-portal
+      displayName: Acme Corp
       keyspaceId: ks_1234abcd
       branding:
         logoUrl: "https://cdn.example.com/logo.png"
@@ -57,5 +67,6 @@ examples:
     description: Create a configuration bound to an app
     value:
       slug: billing-portal
+      displayName: Acme Billing
       appId: app_1234abcd
       returnUrl: "https://app.example.com/dashboard"

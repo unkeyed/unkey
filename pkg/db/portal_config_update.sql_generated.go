@@ -14,6 +14,7 @@ const updatePortalConfig = `-- name: UpdatePortalConfig :exec
 UPDATE portal_configurations
 SET
     slug = ?,
+    display_name = ?,
     app_id = ?,
     key_auth_id = ?,
     enabled = ?,
@@ -24,6 +25,7 @@ WHERE id = ? AND workspace_id = ?
 
 type UpdatePortalConfigParams struct {
 	Slug        string         `db:"slug"`
+	DisplayName string         `db:"display_name"`
 	AppID       sql.NullString `db:"app_id"`
 	KeyAuthID   sql.NullString `db:"key_auth_id"`
 	Enabled     bool           `db:"enabled"`
@@ -45,6 +47,7 @@ type UpdatePortalConfigParams struct {
 //	UPDATE portal_configurations
 //	SET
 //	    slug = ?,
+//	    display_name = ?,
 //	    app_id = ?,
 //	    key_auth_id = ?,
 //	    enabled = ?,
@@ -54,6 +57,7 @@ type UpdatePortalConfigParams struct {
 func (q *Queries) UpdatePortalConfig(ctx context.Context, db DBTX, arg UpdatePortalConfigParams) error {
 	_, err := db.ExecContext(ctx, updatePortalConfig,
 		arg.Slug,
+		arg.DisplayName,
 		arg.AppID,
 		arg.KeyAuthID,
 		arg.Enabled,

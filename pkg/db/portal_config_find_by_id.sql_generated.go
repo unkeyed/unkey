@@ -10,7 +10,7 @@ import (
 )
 
 const findPortalConfigByID = `-- name: FindPortalConfigByID :one
-SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 WHERE id = ? AND workspace_id = ?
 `
 
@@ -23,7 +23,7 @@ type FindPortalConfigByIDParams struct {
 // update/delete to verify the caller owns the config before mutating it, so a
 // config can never be read or mutated across workspace boundaries.
 //
-//	SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+//	SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 //	WHERE id = ? AND workspace_id = ?
 func (q *Queries) FindPortalConfigByID(ctx context.Context, db DBTX, arg FindPortalConfigByIDParams) (PortalConfiguration, error) {
 	row := db.QueryRowContext(ctx, findPortalConfigByID, arg.ID, arg.WorkspaceID)
@@ -33,6 +33,7 @@ func (q *Queries) FindPortalConfigByID(ctx context.Context, db DBTX, arg FindPor
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Slug,
+		&i.DisplayName,
 		&i.AppID,
 		&i.KeyAuthID,
 		&i.Enabled,

@@ -45,10 +45,11 @@ func Mapping(appID, keyspaceID *string) (appCol sql.NullString, keyAuthCol sql.N
 // branding column is set.
 func ToResponse(cfg db.PortalConfiguration, logoUrl, primaryColor sql.NullString) openapi.PortalConfiguration {
 	out := openapi.PortalConfiguration{
-		Id:        cfg.ID,
-		Slug:      cfg.Slug,
-		Enabled:   cfg.Enabled,
-		CreatedAt: cfg.CreatedAt,
+		Id:          cfg.ID,
+		Slug:        cfg.Slug,
+		DisplayName: cfg.DisplayName,
+		Enabled:     cfg.Enabled,
+		CreatedAt:   cfg.CreatedAt,
 	}
 	if cfg.AppID.Valid {
 		out.AppId = cfg.AppID.String

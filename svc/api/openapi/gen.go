@@ -980,6 +980,10 @@ type PortalConfiguration struct {
 	// CreatedAt Unix timestamp in milliseconds when the configuration was created.
 	CreatedAt int64 `json:"createdAt"`
 
+	// DisplayName Human-readable name for the portal, shown to end users in the portal UI
+	// (e.g. the header and page titles). Unlike the slug, it is free-form.
+	DisplayName string `json:"displayName"`
+
 	// Enabled Whether the portal configuration is enabled. Disabled configurations reject
 	// new session creation.
 	Enabled bool `json:"enabled"`
@@ -3427,6 +3431,10 @@ type V2PortalCreateConfigurationRequestBody struct {
 	// Branding Optional branding applied to the Customer Portal for a configuration.
 	Branding *PortalBranding `json:"branding,omitempty"`
 
+	// DisplayName Free-form human-readable name for the portal, shown to end users in the
+	// portal UI (header, page titles).
+	DisplayName string `json:"displayName"`
+
 	// Enabled Whether the configuration is enabled. Disabled configurations reject new
 	// session creation.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -3651,6 +3659,10 @@ type V2PortalUpdateConfigurationRequestBody struct {
 	// ConfigId The identifier of the portal configuration to update. Always begins with
 	// 'pc_'.
 	ConfigId string `json:"configId"`
+
+	// DisplayName Free-form human-readable name for the portal, shown to end users in the
+	// portal UI (header, page titles).
+	DisplayName string `json:"displayName"`
 
 	// Enabled Whether the configuration is enabled. Disabled configurations reject new
 	// session creation.

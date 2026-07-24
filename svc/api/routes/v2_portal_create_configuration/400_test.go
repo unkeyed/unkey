@@ -36,19 +36,25 @@ func TestCreateConfigurationBadRequest(t *testing.T) {
 	})
 
 	t.Run("invalid slug", func(t *testing.T) {
-		req := handler.Request{Slug: "Not_Valid", KeyspaceId: &keyspaceID}
+		req := handler.Request{Slug: "Not_Valid", DisplayName: "Valid Name", KeyspaceId: &keyspaceID}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+	})
+
+	t.Run("missing displayName", func(t *testing.T) {
+		req := handler.Request{Slug: "portal-noname", KeyspaceId: &keyspaceID}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 	})
 
 	t.Run("neither keyspace nor app", func(t *testing.T) {
-		req := handler.Request{Slug: "portal-nomap"}
+		req := handler.Request{Slug: "portal-nomap", DisplayName: "No Map"}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 
 	t.Run("both keyspace and app", func(t *testing.T) {
-		req := handler.Request{Slug: "portal-bothmap", KeyspaceId: &keyspaceID, AppId: &appID}
+		req := handler.Request{Slug: "portal-bothmap", DisplayName: "Both Map", KeyspaceId: &keyspaceID, AppId: &appID}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status, "expected 400, received: %s", res.RawBody)
 	})

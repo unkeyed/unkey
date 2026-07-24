@@ -2686,6 +2686,7 @@ components:
             type: object
             required:
                 - slug
+                - displayName
             properties:
                 slug:
                     type: string
@@ -2697,6 +2698,14 @@ components:
                         Must be 3-64 characters, lowercase alphanumeric and hyphens only, must not
                         start or end with a hyphen, and must not contain consecutive hyphens.
                     example: my-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Free-form human-readable name for the portal, shown to end users in the
+                        portal UI (header, page titles).
+                    example: Acme Corp
                 keyspaceId:
                     type: string
                     maxLength: 64
@@ -2954,6 +2963,7 @@ components:
             required:
                 - configId
                 - slug
+                - displayName
             properties:
                 configId:
                     type: string
@@ -2972,6 +2982,14 @@ components:
                         lowercase alphanumeric and hyphens only, must not start or end with a
                         hyphen, and must not contain consecutive hyphens.
                     example: my-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Free-form human-readable name for the portal, shown to end users in the
+                        portal UI (header, page titles).
+                    example: Acme Corp
                 keyspaceId:
                     type: string
                     maxLength: 64
@@ -5968,6 +5986,7 @@ components:
             required:
                 - id
                 - slug
+                - displayName
                 - enabled
                 - createdAt
             properties:
@@ -5986,6 +6005,14 @@ components:
                         Human-readable slug, unique within the workspace. Used by
                         `portal.createSession` to select the configuration.
                     example: my-portal
+                displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Human-readable name for the portal, shown to end users in the portal UI
+                        (e.g. the header and page titles). Unlike the slug, it is free-form.
+                    example: Acme Corp
                 keyspaceId:
                     type: string
                     description: |

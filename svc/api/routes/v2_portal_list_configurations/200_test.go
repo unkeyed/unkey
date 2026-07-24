@@ -45,6 +45,7 @@ func TestListConfigurationsSuccess(t *testing.T) {
 			ID:          olderID,
 			WorkspaceID: workspaceID,
 			Slug:        "older-portal",
+			DisplayName: "Older Portal",
 			KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 			Enabled:     true,
 			CreatedAt:   now,
@@ -61,6 +62,7 @@ func TestListConfigurationsSuccess(t *testing.T) {
 			ID:          newerID,
 			WorkspaceID: workspaceID,
 			Slug:        "newer-portal",
+			DisplayName: "Newer Portal",
 			AppID:       sql.NullString{Valid: true, String: uid.New(uid.AppPrefix)},
 			Enabled:     false,
 			CreatedAt:   now + 1000,
@@ -72,7 +74,9 @@ func TestListConfigurationsSuccess(t *testing.T) {
 
 		// Ordered by created_at DESC.
 		require.Equal(t, "newer-portal", res.Body.Data[0].Slug)
+		require.Equal(t, "Newer Portal", res.Body.Data[0].DisplayName)
 		require.Equal(t, "older-portal", res.Body.Data[1].Slug)
+		require.Equal(t, "Older Portal", res.Body.Data[1].DisplayName)
 
 		// Newer is app-mapped, disabled, no branding.
 		require.NotEmpty(t, res.Body.Data[0].AppId)

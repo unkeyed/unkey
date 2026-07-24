@@ -15,6 +15,7 @@ INSERT INTO portal_configurations (
     id,
     workspace_id,
     slug,
+    display_name,
     app_id,
     key_auth_id,
     enabled,
@@ -22,6 +23,7 @@ INSERT INTO portal_configurations (
     created_at,
     updated_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -38,6 +40,7 @@ type InsertPortalConfigParams struct {
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
 	Slug        string         `db:"slug"`
+	DisplayName string         `db:"display_name"`
 	AppID       sql.NullString `db:"app_id"`
 	KeyAuthID   sql.NullString `db:"key_auth_id"`
 	Enabled     bool           `db:"enabled"`
@@ -52,6 +55,7 @@ type InsertPortalConfigParams struct {
 //	    id,
 //	    workspace_id,
 //	    slug,
+//	    display_name,
 //	    app_id,
 //	    key_auth_id,
 //	    enabled,
@@ -67,6 +71,7 @@ type InsertPortalConfigParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertPortalConfig(ctx context.Context, db DBTX, arg InsertPortalConfigParams) error {
@@ -74,6 +79,7 @@ func (q *Queries) InsertPortalConfig(ctx context.Context, db DBTX, arg InsertPor
 		arg.ID,
 		arg.WorkspaceID,
 		arg.Slug,
+		arg.DisplayName,
 		arg.AppID,
 		arg.KeyAuthID,
 		arg.Enabled,

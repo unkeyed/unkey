@@ -21,6 +21,7 @@ examples:
       data:
         - id: pc_1234abcd
           slug: my-portal
+          displayName: Acme Corp
           keyspaceId: ks_1234abcd
           enabled: true
           branding:
@@ -29,6 +30,7 @@ examples:
           createdAt: 1704067200000
         - id: pc_5678efgh
           slug: billing-portal
+          displayName: Acme Billing
           appId: app_1234abcd
           enabled: false
           createdAt: 1704240000000

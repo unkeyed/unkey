@@ -12,7 +12,7 @@ import (
 
 const listPortalConfigsByWorkspace = `-- name: ListPortalConfigsByWorkspace :many
 SELECT
-    pc.pk, pc.id, pc.workspace_id, pc.slug, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
+    pc.pk, pc.id, pc.workspace_id, pc.slug, pc.display_name, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
     b.logo_url AS logo_url,
     b.primary_color AS primary_color
 FROM portal_configurations pc
@@ -32,7 +32,7 @@ type ListPortalConfigsByWorkspaceRow struct {
 // WHERE clause scopes the listing to the caller's workspace.
 //
 //	SELECT
-//	    pc.pk, pc.id, pc.workspace_id, pc.slug, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
+//	    pc.pk, pc.id, pc.workspace_id, pc.slug, pc.display_name, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
 //	    b.logo_url AS logo_url,
 //	    b.primary_color AS primary_color
 //	FROM portal_configurations pc
@@ -53,6 +53,7 @@ func (q *Queries) ListPortalConfigsByWorkspace(ctx context.Context, db DBTX, wor
 			&i.PortalConfiguration.ID,
 			&i.PortalConfiguration.WorkspaceID,
 			&i.PortalConfiguration.Slug,
+			&i.PortalConfiguration.DisplayName,
 			&i.PortalConfiguration.AppID,
 			&i.PortalConfiguration.KeyAuthID,
 			&i.PortalConfiguration.Enabled,

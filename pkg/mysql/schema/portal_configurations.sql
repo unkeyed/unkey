@@ -3,6 +3,7 @@ CREATE TABLE `portal_configurations` (
 	`id` varchar(64) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
+	`display_name` varchar(256) NOT NULL,
 	`app_id` varchar(64),
 	`key_auth_id` varchar(64),
 	`enabled` boolean NOT NULL DEFAULT true,

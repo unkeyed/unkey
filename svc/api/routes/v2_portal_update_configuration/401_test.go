@@ -18,7 +18,7 @@ func TestUpdateConfigurationUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	keyspaceID := uid.New(uid.KeySpacePrefix)
-	req := handler.Request{ConfigId: uid.New(uid.PortalConfigPrefix), Slug: "update-unauth", KeyspaceId: &keyspaceID}
+	req := handler.Request{ConfigId: uid.New(uid.PortalConfigPrefix), Slug: "update-unauth", DisplayName: "Update Unauth", KeyspaceId: &keyspaceID}
 
 	t.Run("invalid bearer token", func(t *testing.T) {
 		headers := http.Header{
