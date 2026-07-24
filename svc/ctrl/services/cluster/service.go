@@ -21,6 +21,16 @@ import (
 // or terminal there's no value in remembering its entry.
 const notifiedReadyTTL = 5 * time.Minute
 
+// Infra certificate provisioning is confirmed once the acme_challenges row
+// exists, and that state is effectively permanent, so we cache it aggressively
+// to keep the steady-state heartbeat path off the DB. The window only bounds
+// re-verification of an already-provisioned domain; a failed attempt is never
+// cached, so it keeps retrying on every heartbeat regardless.
+const (
+	infraCertCacheTTL     = 1 * time.Hour
+	infraCertCacheMaxSize = 256
+)
+
 // Region lookups are on the hot path of every region-scoped RPC but the
 // underlying row is effectively immutable (regions.id never changes once a
 // platform/name pair exists), so we cache aggressively. Fresh=5m keeps the
@@ -68,6 +78,16 @@ type Service struct {
 	// flushing them to ClickHouse. Always non-nil — if ClickHouse isn't
 	// configured for the api process this is a noop processor.
 	instanceEvents *batch.BatchProcessor[schema.InstanceEventV1]
+	// regionalDomain is the base domain for per-region wildcard certificates
+	// (*.{region}.{platform}.{regionalDomain}). When a new region registers via
+	// Heartbeat, EnsureInfraCertificate provisions its wildcard cert. Empty
+	// disables region cert issuance (e.g. local dev with no ACME configured).
+	regionalDomain string
+	// provisionedCerts caches infra domains whose certificate records already
+	// exist so EnsureInfraCertificate skips its DB check on the steady-state
+	// heartbeat path. Only confirmed-provisioned domains are stored, so a failed
+	// attempt is never cached and keeps retrying.
+	provisionedCerts cache.Cache[string, bool]
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -93,6 +113,11 @@ type Config struct {
 	// lifecycle events for ClickHouse ingestion. Required — pass a noop
 	// (batch.NewNoop) when ClickHouse is unavailable.
 	InstanceEvents *batch.BatchProcessor[schema.InstanceEventV1]
+
+	// RegionalDomain is the base domain for per-region wildcard certificates
+	// (*.{region}.{platform}.{RegionalDomain}). Empty disables automatic
+	// region certificate issuance on Heartbeat.
+	RegionalDomain string
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -123,6 +148,16 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create region cache: %w", err)
 	}
+	provisionedCerts, err := cache.New(cache.Config[string, bool]{
+		Fresh:    infraCertCacheTTL,
+		Stale:    infraCertCacheTTL,
+		MaxSize:  infraCertCacheMaxSize,
+		Resource: "ctrl_infra_certs",
+		Clock:    clk,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create infra cert cache: %w", err)
+	}
 	s := &Service{
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
@@ -132,6 +167,8 @@ func New(cfg Config) (*Service, error) {
 		regionCache:                        regionCache,
 		topologyCache:                      cfg.TopologyCache,
 		instanceEvents:                     cfg.InstanceEvents,
+		regionalDomain:                     cfg.RegionalDomain,
+		provisionedCerts:                   provisionedCerts,
 	}
 	repeat.Every(notifiedReadyTTL, func() {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {

@@ -758,47 +758,11 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Advanced Queries
+## Advanced queries
 
-**Use this for:** Complex analytical patterns, cohort analysis, moving averages, advanced insights.
+**Use this for:** Moving averages, trend smoothing, and advanced insights.
 
-**Key patterns:** User retention, trend smoothing, complex joins, window functions.
-
-### Cohort analysis: New vs returning users
-
-Perform cohort analysis to understand user retention patterns.
-
-<CodeGroup>
-```sql SQL
-WITH first_seen AS (
-  SELECT
-    external_id,
-    min(time) as first_verification
-  FROM key_verifications_per_day_v1
-  WHERE external_id != ''
-  GROUP BY external_id
-)
-SELECT
-  toDate(kv.time) as date,
-  SUM(CASE WHEN kv.time = fs.first_verification THEN kv.count ELSE 0 END) as new_users,
-  SUM(CASE WHEN kv.time > fs.first_verification THEN kv.count ELSE 0 END) as returning_users
-FROM key_verifications_per_day_v1 kv
-JOIN first_seen fs ON kv.external_id = fs.external_id
-WHERE kv.time >= now() - INTERVAL 30 DAY
-GROUP BY date
-ORDER BY date
-```
-
-```bash cURL
-curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
-  -H "Authorization: Bearer <YOUR_ROOT_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "WITH first_seen AS ( SELECT external_id, min(time) as first_verification FROM key_verifications_per_day_v1 WHERE external_id != '\'''\'' GROUP BY external_id ) SELECT toDate(kv.time) as date, SUM(CASE WHEN kv.time = fs.first_verification THEN kv.count ELSE 0 END) as new_users, SUM(CASE WHEN kv.time > fs.first_verification THEN kv.count ELSE 0 END) as returning_users FROM key_verifications_per_day_v1 kv JOIN first_seen fs ON kv.external_id = fs.external_id WHERE kv.time >= now() - INTERVAL 30 DAY GROUP BY date ORDER BY date"
-  }'
-```
-
-</CodeGroup>
+**Key patterns:** Trend smoothing and window functions.
 
 ### Moving average (7-day)
 

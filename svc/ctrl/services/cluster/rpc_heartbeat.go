@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -59,6 +60,18 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 	if err != nil {
 		logger.Error("failed to upsert cluster", "error", err, "region", region)
 		return nil, err
+	}
+
+	// Every region needs a wildcard cert for its frontline
+	// (*.{region}.{platform}.{regionalDomain}) so cross-region TLS works.
+	// EnsureInfraCertificate is idempotent (a single indexed read once the
+	// records exist) and best-effort, so we call it on every heartbeat rather
+	// than gating on a one-shot "region created" signal: that repeated call is
+	// the retry path if an earlier provisioning attempt failed to write its
+	// records.
+	if s.regionalDomain != "" {
+		domain := fmt.Sprintf("*.%s.%s.%s", regionName, platform, s.regionalDomain)
+		s.EnsureInfraCertificate(ctx, domain)
 	}
 
 	return connect.NewResponse(&ctrlv1.HeartbeatResponse{}), nil

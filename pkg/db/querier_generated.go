@@ -1240,6 +1240,13 @@ type Querier interface {
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
+	//FindRatelimitNamespacesByIDs
+	//
+	//  SELECT id
+	//  FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	//    AND id IN (/*SLICE:namespace_ids*/?)
+	FindRatelimitNamespacesByIDs(ctx context.Context, db DBTX, arg FindRatelimitNamespacesByIDsParams) ([]string, error)
 	//FindRatelimitOverrideByID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
