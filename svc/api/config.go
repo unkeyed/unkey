@@ -31,7 +31,7 @@ type ClickHouseConfig struct {
 // GitHubConfig holds the settings the API needs for the GitHub App install
 // flow: the App slug used to build the install URL and the App private key used
 // to derive the HMAC key that signs the install `state`. Either one empty
-// disables workspaces.installGithub (returns a "not configured" error).
+// disables github.installApp (returns a "not configured" error).
 type GitHubConfig struct {
 	// AppName is the GitHub App slug used in the install URL
 	// (https://github.com/apps/<app_name>/installations/new). Matches the
@@ -41,8 +41,8 @@ type GitHubConfig struct {
 	// PrivateKeyPEM is the GitHub App private key in PEM format. Used only to
 	// derive the install-state signing key (never to sign RSA JWTs here), and
 	// must be the same key the dashboard uses so its callback can verify the
-	// state. See the signer in the workspaces.installGithub handler
-	// (svc/api/routes/v2_workspaces_install_github/state.go).
+	// state. See the signer in the github.installApp handler
+	// (svc/api/routes/v2_github_install_app/state.go).
 	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
@@ -359,7 +359,7 @@ type Config struct {
 	Auth AuthConfigs `toml:"auth"`
 
 	// GitHub configures the GitHub App install flow. See [GitHubConfig].
-	// When unset, workspaces.installGithub reports the feature as unconfigured.
+	// When unset, github.installApp reports the feature as unconfigured.
 	GitHub GitHubConfig `toml:"github"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].

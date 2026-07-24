@@ -92,7 +92,7 @@ import (
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
-	v2WorkspacesInstallGithub "github.com/unkeyed/unkey/svc/api/routes/v2_workspaces_install_github"
+	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
@@ -800,10 +800,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/workspaces.installGithub
+	// v2/github.installApp
 	srv.RegisterRoute(
 		protectedMiddlewares,
-		&v2WorkspacesInstallGithub.Handler{
+		&v2GithubInstallApp.Handler{
 			DB:                  svc.Database,
 			GitHubAppName:       svc.GitHubAppName,
 			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,

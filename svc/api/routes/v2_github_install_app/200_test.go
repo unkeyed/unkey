@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_workspaces_install_github"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
 )
 
 func newRoute(h *testutil.Harness) *handler.Handler {

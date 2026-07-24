@@ -2206,6 +2206,26 @@ type V2GatewayUpdatePolicyResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2GithubInstallAppResponseBody defines model for V2GithubInstallAppResponseBody.
+type V2GithubInstallAppResponseBody struct {
+	Data V2GithubInstallAppResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2GithubInstallAppResponseData defines model for V2GithubInstallAppResponseData.
+type V2GithubInstallAppResponseData struct {
+	// ExpiresAt Unix timestamp in milliseconds after which the URL's signed state expires
+	// and the link must be requested again.
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Url The GitHub App install URL. Open it in a browser to install the app and
+	// grant repository access. After installation GitHub returns to Unkey, which
+	// binds the installation and lands you in the workspace settings.
+	Url string `json:"url"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -3978,26 +3998,6 @@ type V2RatelimitSetOverrideResponseData struct {
 	//
 	// Store this ID if you need to manage the override in the future.
 	OverrideId string `json:"overrideId"`
-}
-
-// V2WorkspacesInstallGithubResponseBody defines model for V2WorkspacesInstallGithubResponseBody.
-type V2WorkspacesInstallGithubResponseBody struct {
-	Data V2WorkspacesInstallGithubResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2WorkspacesInstallGithubResponseData defines model for V2WorkspacesInstallGithubResponseData.
-type V2WorkspacesInstallGithubResponseData struct {
-	// ExpiresAt Unix timestamp in milliseconds after which the URL's signed state expires
-	// and the link must be requested again.
-	ExpiresAt int64 `json:"expiresAt"`
-
-	// Url The GitHub App install URL. Open it in a browser to install the app and
-	// grant repository access. After installation GitHub returns to Unkey, which
-	// binds the installation and lands you in the workspace settings.
-	Url string `json:"url"`
 }
 
 // ValidationError Individual validation error details. Each validation error provides precise information about what failed, where it failed, and how to fix it, enabling efficient error resolution.
