@@ -109,9 +109,9 @@ export function CreateIdentityDialog() {
 
   return (
     <>
-      <Button size="md" title="Create Identity" onClick={() => setOpen(true)}>
-        <Plus iconSize="md-medium" />
-        Create Identity
+      <Button size="md" variant="primary" onClick={() => setOpen(true)}>
+        <Plus iconSize="sm-regular" />
+        Create identity
       </Button>
 
       <FormProvider {...methods}>
