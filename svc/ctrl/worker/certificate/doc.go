@@ -29,9 +29,6 @@
 // [EncryptedCertificate] holds certificate data with the private key encrypted via
 // the vault service before database storage.
 //
-// [BootstrapConfig] configures infrastructure certificate bootstrapping for wildcard
-// certificates needed by the platform itself.
-//
 // # Challenge Types
 //
 // The service automatically selects the appropriate ACME challenge type based on the

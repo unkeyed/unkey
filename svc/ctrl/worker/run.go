@@ -444,13 +444,12 @@ func Run(ctx context.Context, cfg Config) error {
 		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		DB:            database,
-		Vault:         vaultClient,
-		EmailDomain:   cfg.Acme.EmailDomain,
-		DefaultDomain: cfg.DefaultDomain,
-		DNSProvider:   dnsProvider,
-		HTTPProvider:  httpProvider,
-		Heartbeat:     certHeartbeat,
+		DB:           database,
+		Vault:        vaultClient,
+		EmailDomain:  cfg.Acme.EmailDomain,
+		DNSProvider:  dnsProvider,
+		HTTPProvider: httpProvider,
+		Heartbeat:    certHeartbeat,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)

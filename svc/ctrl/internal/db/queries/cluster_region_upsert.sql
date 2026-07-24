@@ -1,5 +1,6 @@
 -- name: UpsertRegion :exec
--- Inserts a region or does nothing if it already exists.
+-- Inserts a region or does nothing if it already exists (keyed by the
+-- (name, platform) unique index).
 INSERT INTO regions (
 	id,
 	name,
