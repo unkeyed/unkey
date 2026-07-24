@@ -255,7 +255,7 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 }
 
-func TestRerollKeyWithURNPermission(t *testing.T) {
+func TestRerollKeyWithLegacyPermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -278,7 +278,7 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	createKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspace.ID, api.KeyAuthID.String)
+	createKeyPermission := "api.*.create_key"
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

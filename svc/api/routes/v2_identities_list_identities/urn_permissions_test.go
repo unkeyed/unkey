@@ -12,16 +12,16 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
 
-// TestListIdentities_AuthorizesCanonicalURNPermission guarantees project-scoped
-// URNs can list identities without a legacy tuple grant.
-func TestListIdentities_AuthorizesCanonicalURNPermission(t *testing.T) {
+// TestListIdentities_AuthorizesLegacyPermission guarantees a legacy tuple grant
+// can list identities.
+func TestListIdentities_AuthorizesLegacyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: uid.New(uid.TestPrefix)})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read_identity", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, "identity.*.read_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

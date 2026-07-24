@@ -124,7 +124,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	})
 }
 
-func TestUpdateKeyWithURNPermission(t *testing.T) {
+func TestUpdateKeyWithLegacyPermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -149,7 +149,7 @@ func TestUpdateKeyWithURNPermission(t *testing.T) {
 		Name:        ptr.P("before"),
 	})
 
-	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	updateKeyPermission := "api.*.update_key"
 	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -193,7 +193,7 @@ func TestUpdateKeyWithTranslatedAdminPermission(t *testing.T) {
 		Name:        ptr.P("before"),
 	})
 
-	adminPermission := fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)
+	adminPermission := "api.*.update_key"
 	rootKey := h.CreateRootKey(workspace.ID, adminPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

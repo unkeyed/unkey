@@ -12,9 +12,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 )
 
-// TestUpdateIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
-// URN can update an identity without a legacy tuple grant.
-func TestUpdateIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
+// TestUpdateIdentity_AuthorizesLegacyPermission guarantees a legacy tuple grant
+// can update an identity.
+func TestUpdateIdentity_AuthorizesLegacyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
@@ -22,7 +22,7 @@ func TestUpdateIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#update_identity", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, "identity.*.update_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

@@ -9,9 +9,6 @@ import "fmt"
 //	workspace
 //	├── team
 //	├── billing
-//	├── keyspaces/{keyspace_id}
-//	├── ratelimits/namespaces/{namespace_id}
-//	├── rbac
 //	├── projects/{project_id}
 //	└── portals/{portal_id}
 //
@@ -22,9 +19,6 @@ type workspace struct {
 
 	// Team builds team resource paths in this workspace.
 	Team team
-
-	// RBAC builds RBAC resource paths in this workspace.
-	RBAC rbac
 }
 
 // Billing returns builders for billing resource paths.
@@ -37,26 +31,6 @@ func (w workspace) Billing() billing {
 	return billing{workspaceID: w.workspaceID, path: "billing"}
 }
 
-// Keyspace returns builders for keyspace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── keyspaces/{keyspace_id}
-func (w workspace) Keyspace(keyspaceID string) Keyspace {
-	return Keyspace{workspaceID: w.workspaceID, path: fmt.Sprintf("keyspaces/%s", keyspaceID)}
-}
-
-// RatelimitNamespace returns builders for rate limit namespace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── ratelimits/namespaces/{namespace_id}
-func (w workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
-	return RatelimitNamespace{workspaceID: w.workspaceID, path: fmt.Sprintf("ratelimits/namespaces/%s", namespaceID)}
-}
-
 // Project returns builders for project resource paths.
 //
 // Subresource:
@@ -64,7 +38,12 @@ func (w workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 //	workspace
 //	└── projects/{project_id}
 func (w workspace) Project(projectID string) Project {
-	return Project{workspaceID: w.workspaceID, path: fmt.Sprintf("projects/%s", projectID)}
+	path := fmt.Sprintf("projects/%s", projectID)
+	return Project{
+		workspaceID: w.workspaceID,
+		path:        path,
+		RBAC:        rbac{workspaceID: w.workspaceID, path: path + "/rbac"},
+	}
 }
 
 // Portal returns builders for portal resource paths.

@@ -2,13 +2,13 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// CreateIdentity authorizes creating identity resources.
+// CreateIdentity authorizes creating identities in a project.
 //
-// Valid resource: urn.Identity.
+// Valid resource: urn.Project.
 type CreateIdentity struct{}
 
-func (CreateIdentity) ActionFor(urn.Identity) {}
-func (CreateIdentity) String() string         { return "create_identity" }
+func (CreateIdentity) ActionFor(urn.Project) {}
+func (CreateIdentity) String() string        { return "create_identity" }
 
 // ReadIdentity authorizes reading identity resources.
 //

@@ -12,9 +12,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
 
-// TestGetIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
-// URN can read an identity without a legacy tuple grant.
-func TestGetIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
+// TestGetIdentity_AuthorizesLegacyPermission guarantees a legacy tuple grant
+// can read an identity.
+func TestGetIdentity_AuthorizesLegacyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
@@ -22,7 +22,7 @@ func TestGetIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/*#read_identity", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, "identity.*.read_identity")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

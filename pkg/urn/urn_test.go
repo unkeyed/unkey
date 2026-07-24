@@ -34,10 +34,10 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 	}{
 		{
 			name:  "segment wildcard",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/*",
+				Resource:    "projects/*/ratelimits/namespaces/*/overrides/*",
 			},
 		},
 		{
@@ -58,26 +58,26 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 		},
 		{
 			name:  "wildcard keyspace keys descendant scope",
-			value: "unkey:v1:ws_123:keyspaces/*/keys/**",
+			value: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "keyspaces/*/keys/**",
+				Resource:    "projects/*/keyspaces/*/keys/**",
 			},
 		},
 		{
 			name:  "wildcard ratelimit overrides descendant scope",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/**",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/**",
+				Resource:    "projects/*/ratelimits/namespaces/*/overrides/**",
 			},
 		},
 		{
-			name:  "descendant wildcard",
-			value: "unkey:v1:ws_123:ratelimits/**",
+			name:  "project ratelimits descendant wildcard",
+			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/**",
+				Resource:    "projects/proj_123/ratelimits/**",
 			},
 		},
 		{
@@ -124,6 +124,8 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123:/keyspaces/ks_123",
 		"unkey:v1:ws_123:keyspaces/ks_123/",
 		"unkey:v1:ws_123:keyspaces//ks_123",
+		"unkey:v1:ws_123:identities/id_123",
+		"unkey:v1:ws_123:rbac/roles/role_123",
 	} {
 		_, err := ParseV1(value)
 		require.ErrorIs(t, err, ErrInvalidResourceName, value)
@@ -139,6 +141,7 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 		"unkey:v1:ws_123:ratelimits/**/overrides/*",
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
 		"unkey:v1:ws_123:projects/*/apps/app_123",
+		"unkey:v1:ws_123:projects/*/keyspaces/ks_123",
 		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
 		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
 		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
@@ -157,18 +160,19 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	t.Parallel()
 
 	workspace := New().Workspace("ws_123")
+	project := workspace.Project("proj_123")
 	require.Equal(t, "unkey:v1:ws_123:team/memberships/mbr_123", workspace.Team.Membership("mbr_123").String())
 	require.Equal(t, "unkey:v1:ws_123:team/invitations/inv_123", workspace.Team.Invitation("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/quotas", workspace.Billing().Quotas().String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123", workspace.Keyspace("ks_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/keys/key_123", workspace.Keyspace("ks_123").Key("key_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/**", workspace.Keyspace("ks_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123", workspace.RatelimitNamespace("ns_123").Override("ov_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123", workspace.RatelimitNamespace("ns_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/**", workspace.RatelimitNamespace("ns_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/roles/role_123", workspace.RBAC.Role("role_123").String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/permissions/perm_123", workspace.RBAC.Permission("perm_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123", project.Keyspace("ks_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123", project.Keyspace("ks_123").Key("key_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/**", project.Keyspace("ks_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", project.RatelimitNamespace("ns_123").Override("ov_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123", project.RatelimitNamespace("ns_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/**", project.RatelimitNamespace("ns_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123", project.RBAC.Role("role_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123", project.RBAC.Permission("perm_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", workspace.Project("proj_123").Identity("id_123").String())
@@ -213,6 +217,8 @@ func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 		{name: "segment wildcard does not cross segments", pattern: "ratelimits/*", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "exact shorter", pattern: "ratelimits", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "exact longer", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits", want: false},
+		{name: "all projects", pattern: "projects/*/**", target: "projects/proj_123/keyspaces/ks_123", want: true},
+		{name: "sibling project", pattern: "projects/proj_123/**", target: "projects/proj_456/keyspaces/ks_123", want: false},
 	}
 
 	for _, tt := range tests {

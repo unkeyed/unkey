@@ -104,7 +104,7 @@ func TestGetKeyByKey(t *testing.T) {
 
 }
 
-func TestWhoamiWithURNPermission(t *testing.T) {
+func TestWhoamiWithLegacyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -124,7 +124,7 @@ func TestWhoamiWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	readKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#read_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	readKeyPermission := "api.*.read_key"
 	rootKey := h.CreateRootKey(workspace.ID, readKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

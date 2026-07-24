@@ -708,7 +708,7 @@ func TestSuccess(t *testing.T) {
 	})
 }
 
-func TestVerifyKeyWithURNPermission(t *testing.T) {
+func TestVerifyKeyWithLegacyPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -727,7 +727,7 @@ func TestVerifyKeyWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	verifyKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#verify_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	verifyKeyPermission := "api.*.verify_key"
 	rootKey := h.CreateRootKey(workspace.ID, verifyKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -77,16 +77,16 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
-//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
-//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
+//	unkey:v1:ws_1:projects/proj_1/ratelimits/namespaces/ns_1/overrides/ov_1#read_override
+//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key   wildcard grant
+//	unkey:v1:ws_1:**#*                                      admin grant (translated from admin:*)
 //
 // Rejected with errInvalidURNPermission:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1                 missing "#action"
-//	unkey:v1:ws_1:keyspaces/ks_1#read#key        more than one "#"
-//	unkey:v1:ws_1:keyspaces/ks_1#*               action wildcard off the global resource
-//	api.api_1.read_api                           legacy tuple, not a URN permission
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1            missing "#action"
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#read#key   more than one "#"
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#*          action wildcard off the global resource
+//	api.api_1.read_api                                      legacy tuple, not a URN permission
 func parseUrnPermission(value string) (UnkeyPermission, error) {
 	var zero UnkeyPermission
 

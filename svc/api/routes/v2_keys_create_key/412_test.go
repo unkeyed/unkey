@@ -34,10 +34,12 @@ func TestPreconditionError(t *testing.T) {
 	// create_key on that keyspace may learn that the API is not set up for keys.
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	apiID := uid.New(uid.APIPrefix)
+	projectID := h.DefaultProjectID(h.Resources().UserWorkspace.ID)
 	err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -47,8 +49,8 @@ func TestPreconditionError(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+		createKeyPermission(),
+		encryptKeyPermission(),
 	)
 
 	// Set up request headers
