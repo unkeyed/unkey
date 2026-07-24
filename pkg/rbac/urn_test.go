@@ -15,23 +15,66 @@ import (
 func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	t.Parallel()
 
-	resource := urn.New().Workspace("ws_123").RatelimitNamespace("ns_123").Override("ov_123")
+	resource := urn.New().Workspace("ws_123").Project("proj_123").RatelimitNamespace("ns_123").Override("ov_123")
 	query := U(resource, permissions.ReadOverride{})
 	stringQuery := S(UnkeyPermission{
 		Resource: resource.V1(),
 		Action:   "read_override",
 	}.String())
-	createQuery := U(urn.New().Workspace("ws_123").Keyspace("ks_123"), permissions.CreateKey{})
+	createQuery := U(urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123"), permissions.CreateKey{})
 
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override", query.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override", query.Value)
 	require.Equal(t, query.Value, stringQuery.Value)
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123#create_key", createQuery.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#create_key", createQuery.Value)
 
 	result, err := New().EvaluatePermissions(query, []string{
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
 	})
 	require.NoError(t, err)
 	require.True(t, result.Valid)
+}
+
+// TestProjectPermissionGrantsScopeToProjects guarantees an all-project grant
+// covers concrete project parents while a concrete grant cannot cross projects.
+func TestProjectPermissionGrantsScopeToProjects(t *testing.T) {
+	t.Parallel()
+
+	query := U(
+		urn.New().Workspace("ws_123").Project("proj_123"),
+		permissions.CreateIdentity{},
+	)
+
+	tests := []struct {
+		name       string
+		permission string
+		wantValid  bool
+	}{
+		{
+			name:       "all projects grant",
+			permission: "unkey:v1:ws_123:projects/*#create_identity",
+			wantValid:  true,
+		},
+		{
+			name:       "concrete project grant",
+			permission: "unkey:v1:ws_123:projects/proj_123#create_identity",
+			wantValid:  true,
+		},
+		{
+			name:       "sibling project grant",
+			permission: "unkey:v1:ws_123:projects/proj_456#create_identity",
+			wantValid:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := New().EvaluatePermissions(query, []string{tt.permission})
+			require.NoError(t, err)
+			require.Equal(t, tt.wantValid, result.Valid)
+		})
+	}
 }
 
 // TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching guarantees callers must
@@ -39,9 +82,9 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 	t.Parallel()
 
-	required := "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override"
+	required := "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override"
 	grants := []string{
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/*#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/*#read_override",
 	}
 
 	stringResult, err := New().EvaluatePermissions(S(required), grants)
@@ -52,6 +95,7 @@ func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 		U(
 			urn.New().
 				Workspace("ws_123").
+				Project("proj_123").
 				RatelimitNamespace("ns_123").
 				Override("ov_123"),
 			permissions.ReadOverride{},
@@ -75,25 +119,25 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 	}{
 		{
 			name:  "exact resource",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
 			want: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_123/overrides/ov_123"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
 				Action:   "read_override",
 			},
 		},
 		{
 			name:  "segment wildcard resource",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
+			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/*/overrides/*#read_override",
 			want: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/*/overrides/*"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/*/overrides/*"},
 				Action:   "read_override",
 			},
 		},
 		{
 			name:  "descendant wildcard resource",
-			value: "unkey:v1:ws_123:ratelimits/**#read_override",
+			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override",
 			want: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/**"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/**"},
 				Action:   "read_override",
 			},
 		},
@@ -148,7 +192,7 @@ func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
 func TestIsUnkeyPermission_OnlyAcceptsCanonicalUnkeyPermissions(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, isUnkeyPermission("unkey:v1:ws_123:ratelimits/namespaces/ns_123#read_override"))
+	require.True(t, isUnkeyPermission("unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123#read_override"))
 	require.False(t, isUnkeyPermission("api.*.read_key"))
 	require.False(t, isUnkeyPermission("ratelimit.ns_123.read_override"))
 	require.False(t, isUnkeyPermission("unkey:v1:ws_123:ratelimits/namespaces/ns_123"))
@@ -160,7 +204,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 	t.Parallel()
 
 	required := UnkeyPermission{
-		Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_123/overrides/ov_123"},
+		Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
 		Action:   "read_override",
 	}
 
@@ -177,7 +221,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "segment wildcard permission",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_123/overrides/*"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/*"},
 				Action:   "read_override",
 			},
 			want: true,
@@ -185,7 +229,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "workos wildcard permission",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/*/overrides/*"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/*/overrides/*"},
 				Action:   "read_override",
 			},
 			want: true,
@@ -193,7 +237,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "descendant wildcard permission",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/**"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/**"},
 				Action:   "read_override",
 			},
 			want: true,
@@ -209,7 +253,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "wrong workspace",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_456", Resource: "ratelimits/namespaces/ns_123/overrides/ov_123"},
+				Resource: urn.V1{WorkspaceID: "ws_456", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
 				Action:   "read_override",
 			},
 			want: false,
@@ -217,7 +261,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "wrong action",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_123/overrides/ov_123"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
 				Action:   "delete_override",
 			},
 			want: false,
@@ -225,7 +269,7 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "sibling resource",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_456/overrides/*"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_456/overrides/*"},
 				Action:   "read_override",
 			},
 			want: false,
@@ -233,7 +277,15 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 		{
 			name: "shorter exact resource",
 			granted: UnkeyPermission{
-				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "ratelimits/namespaces/ns_123"},
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_123/ratelimits/namespaces/ns_123"},
+				Action:   "read_override",
+			},
+			want: false,
+		},
+		{
+			name: "sibling project",
+			granted: UnkeyPermission{
+				Resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_456/ratelimits/namespaces/ns_123/overrides/*"},
 				Action:   "read_override",
 			},
 			want: false,
@@ -257,6 +309,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 	query := U(
 		urn.New().
 			Workspace("ws_123").
+			Project("proj_123").
 			RatelimitNamespace("ns_123").
 			Override("ov_123"),
 		permissions.ReadOverride{},
@@ -270,28 +323,28 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 		{
 			name: "exact permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "namespace override wildcard permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/*#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/*#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "workos wildcard namespace permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
+				"unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "ratelimits descendant permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/**#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override",
 			},
 			wantValid: true,
 		},
@@ -305,8 +358,8 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 		{
 			name: "malformed grants are ignored",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/**/nested#read_override",
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#delete_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/**/nested#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#delete_override",
 				"ratelimit.ns_123.read_override",
 			},
 			wantValid: false,
@@ -314,7 +367,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 		{
 			name: "wrong workspace",
 			permissions: []string{
-				"unkey:v1:ws_456:ratelimits/namespaces/ns_123/overrides/*#read_override",
+				"unkey:v1:ws_456:projects/proj_123/ratelimits/namespaces/ns_123/overrides/*#read_override",
 			},
 			wantValid: false,
 		},
@@ -338,9 +391,9 @@ func FuzzParseUrnPermission_InvalidInputNeverProducesUnsafePermission(f *testing
 	fuzz.Seed(f)
 	for _, seed := range []string{
 		"",
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
-		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
-		"unkey:v1:ws_123:ratelimits/**#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/*/overrides/*#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override",
 		"unkey:v1:ws_123:**#*",
 		"unkey:v1:ws_123:ratelimits/**/overrides/*#read_override",
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_123#read#override",

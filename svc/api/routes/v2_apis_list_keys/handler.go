@@ -113,11 +113,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(
 		rbac.And(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 				permissions.ReadKey{},
 			),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String),
 				permissions.ReadKeyspace{},
 			),
 		),
@@ -181,7 +181,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.DecryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+				urn.New().Workspace(principal.WorkspaceID).Project(api.KeyAuth.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 				permissions.DecryptKey{},
 			),
 		))

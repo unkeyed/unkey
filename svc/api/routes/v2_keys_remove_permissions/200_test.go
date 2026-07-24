@@ -38,12 +38,12 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("urn update_key permission can remove permissions", func(t *testing.T) {
+	t.Run("legacy permissions can remove permissions", func(t *testing.T) {
 		api := h.CreateApi(seed.CreateApiRequest{
 			WorkspaceID: workspace.ID,
 		})
-		keyName := "urn-remove-permission-key"
-		permissionName := "documents.write.urn.remove"
+		keyName := "legacy-remove-permission-key"
+		permissionName := "documents.write.legacy.remove"
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
@@ -57,14 +57,13 @@ func TestSuccess(t *testing.T) {
 			},
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
-		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
-		urnHeaders := http.Header{
+		legacyRootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.remove_permission_from_key")
+		legacyHeaders := http.Header{
 			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", urnRootKey)},
+			"Authorization": {fmt.Sprintf("Bearer %s", legacyRootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, urnHeaders, handler.Request{
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, legacyHeaders, handler.Request{
 			KeyId:       key.KeyID,
 			Permissions: []string{permissionName},
 		})

@@ -111,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+			urn.New().Workspace(principal.WorkspaceID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String),
 			permissions.CreateKey{},
 		),
 	))
@@ -210,7 +210,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
 		))
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(

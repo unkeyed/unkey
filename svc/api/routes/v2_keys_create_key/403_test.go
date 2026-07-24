@@ -100,7 +100,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("wrong action", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:keyspaces/%s#read_keyspace", h.Resources().UserWorkspace.ID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.read_key")
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -113,9 +113,9 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})
 
-	t.Run("create permission for different keyspace", func(t *testing.T) {
+	t.Run("insufficient legacy permission", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			createKeyPermission(h.Resources().UserWorkspace.ID, otherKeySpaceID),
+			"api.*.read_key",
 		)
 
 		headers := http.Header{
@@ -130,7 +130,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("create recoverable key without perms", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission())
 
 		req := handler.Request{
 			ApiId:       apiID,

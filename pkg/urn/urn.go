@@ -33,19 +33,19 @@ func (v V1) String() string {
 // resource in the workspace; the standalone path "*" covers only resources
 // with single-segment paths.
 //
-// These patterns cover unkey:v1:ws_1:keyspaces/ks_1/keys/k_1:
+// These patterns cover unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1/keys/k_1   (itself)
-//	unkey:v1:ws_1:keyspaces/*/keys/*
-//	unkey:v1:ws_1:keyspaces/ks_1/**
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1   (itself)
+//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/**
 //	unkey:v1:ws_1:**
 //
 // and these do not:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1            (concrete name, not the same resource)
-//	unkey:v1:ws_1:keyspaces/*               ("*" does not cross into keys/k_1)
-//	unkey:v1:ws_1:*                         ("*" is one segment, not a global wildcard)
-//	unkey:v1:ws_2:**                        (different workspace)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1   (concrete name, not the same resource)
+//	unkey:v1:ws_1:projects/*/keyspaces/*           ("*" does not cross into keys/k_1)
+//	unkey:v1:ws_1:*                                ("*" is one segment, not a global wildcard)
+//	unkey:v1:ws_2:**                               (different workspace)
 func (v V1) Covers(target V1) bool {
 	if v.WorkspaceID != target.WorkspaceID {
 		return false
@@ -85,18 +85,18 @@ func segmentsMatch(pattern []string, target []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_123:keyspaces/ks_1/keys/k_1    concrete resource name
-//	unkey:v1:ws_123:keyspaces/*/keys/*         one wildcard per segment
-//	unkey:v1:ws_123:ratelimits/**              descendant scope
-//	unkey:v1:ws_123:**                         everything in the workspace
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/k_1   concrete resource name
+//	unkey:v1:ws_123:projects/*/keyspaces/*/keys/*              one wildcard per segment
+//	unkey:v1:ws_123:projects/proj_1/ratelimits/**             descendant scope
+//	unkey:v1:ws_123:**                                        everything in the workspace
 //
 // Rejected with [ErrInvalidResourceName]:
 //
 //	unkey:v1:ws_123                            missing resource path
-//	unkey:v1:ws_123:keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
-//	unkey:v1:ws_123:keyspaces/ks_*             "*" must be a whole segment
-//	unkey:v1:ws_123:ratelimits/**/overrides    "**" must be the last segment
-//	unkey:v1:ws_123:projects/*/apps/app_123    specific selector nested under "*"
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#read_key   "#" belongs to permissions, not URNs
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_*            "*" must be a whole segment
+//	unkey:v1:ws_123:projects/proj_1/ratelimits/**/overrides   "**" must be the last segment
+//	unkey:v1:ws_123:projects/*/apps/app_123                   specific selector nested under "*"
 func ParseV1(value string) (V1, error) {
 	parts := strings.SplitN(value, ":", 4)
 	if len(parts) != 4 {
@@ -154,6 +154,10 @@ func validateWorkspaceID(value string) error {
 //     "projects/*/apps/app_123".
 func validateResourcePath(path string) error {
 	segments := strings.Split(path, "/")
+	if isLegacyWorkspaceResource(segments[0]) {
+		return errors.New("project-owned resources must be nested under a project")
+	}
+
 	seenWildcardSelector := false
 	for i, segment := range segments {
 		isLastSegment := i == len(segments)-1
@@ -172,10 +176,24 @@ func validateResourcePath(path string) error {
 		case strings.Contains(segment, "*"):
 			return errors.New(`"*" must be a whole segment`)
 		case seenWildcardSelector:
+			if segment == "ratelimits" && i+2 < len(segments) && segments[i+1] == "namespaces" && (segments[i+2] == "*" || segments[i+2] == "**") {
+				continue
+			}
 			if isLastSegment || (segments[i+1] != "*" && segments[i+1] != "**") {
 				return errors.New(`specific selectors must not appear below "*"`)
 			}
 		}
 	}
 	return nil
+}
+
+// isLegacyWorkspaceResource reports whether a path starts with a resource that
+// is project-owned in the v1 grammar.
+func isLegacyWorkspaceResource(segment string) bool {
+	switch segment {
+	case "identities", "keyspaces", "ratelimits", "rbac":
+		return true
+	default:
+		return false
+	}
 }

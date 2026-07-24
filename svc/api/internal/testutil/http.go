@@ -412,6 +412,11 @@ func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())
 }
 
+// DefaultProjectID returns the ID of a workspace's seeded default project.
+func (h *Harness) DefaultProjectID(workspaceID string) string {
+	return h.seeder.DefaultProjectID(context.Background(), workspaceID)
+}
+
 // CreateApi creates an API with the specified configuration. The API's key space
 // is created automatically. See [seed.CreateApiRequest] for available options.
 func (h *Harness) CreateApi(req seed.CreateApiRequest) db.Api {
