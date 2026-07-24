@@ -131,16 +131,6 @@ export async function POST(request: Request) {
     return { ...base, isFound: true, keyId: keyFound.id, orgId: ws.orgId, wsName: ws.name };
   });
 
-  for (const item of classified) {
-    console.info("[github-verify] debug token", {
-      tokenPrefix: item.rawToken.slice(0, 6),
-      tokenLen: item.rawToken.length,
-      hash: item.hashedToken,
-      type: item.type,
-      matched: item.isFound,
-    });
-  }
-
   const matchedCount = classified.filter((key) => key.isFound).length;
   console.info("[github-verify] classified tokens", {
     reported: classified.length,
