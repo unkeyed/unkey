@@ -9,7 +9,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`deleted_at_m` bigint,
 	CONSTRAINT `ratelimit_namespaces_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `ratelimit_namespaces_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_name_per_project_idx` UNIQUE(`project_id`,`name`)
+	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE INDEX `ratelimit_namespaces_project_id_idx` ON `ratelimit_namespaces` (`project_id`);

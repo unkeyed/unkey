@@ -31,8 +31,8 @@ export const identities = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("project_id_external_id_deleted_idx").on(
-      table.projectId,
+    uniqueIndex("workspace_id_external_id_deleted_idx").on(
+      table.workspaceId,
       table.externalId,
       table.deleted,
     ),

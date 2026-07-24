@@ -11,7 +11,7 @@ CREATE TABLE `identities` (
 	`updated_at` bigint,
 	CONSTRAINT `identities_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `identities_id_unique` UNIQUE(`id`),
-	CONSTRAINT `project_id_external_id_deleted_idx` UNIQUE(`project_id`,`external_id`,`deleted`)
+	CONSTRAINT `workspace_id_external_id_deleted_idx` UNIQUE(`workspace_id`,`external_id`,`deleted`)
 );
 
 CREATE INDEX `identity_project_id_idx` ON `identities` (`project_id`);
