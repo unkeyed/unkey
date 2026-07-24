@@ -1,9 +1,12 @@
 "use client";
 
-import { findProjectIdForResource } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
+import {
+  findProjectIdForResource,
+  readLastProjectId,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
 import { routes } from "@/lib/navigation/routes";
 import { useParams, usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
@@ -37,11 +40,21 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
     [resourceId],
   );
 
+  // Authorization is project-scoped conceptually but lives at workspace URLs;
+  // surface the project the user was last inside (matches the sidebar).
+  const isAuthorization = pathname.startsWith(`/${workspace.slug}/authorization`);
+  const [lastProjectId, setLastProjectId] = useState<string | null>(null);
+  useEffect(() => {
+    if (isAuthorization) {
+      setLastProjectId(readLastProjectId());
+    }
+  }, [isAuthorization]);
+
   // The create-project page has no entity params, so it gets a static crumb.
   const isNewProject = pathname === routes.projects.new({ workspaceSlug: workspace.slug });
 
   const workspaceHref =
-    isNewProject || resourceProjectId
+    isNewProject || resourceProjectId || (isAuthorization && lastProjectId)
       ? routes.projects.list({ workspaceSlug: workspace.slug })
       : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
@@ -56,6 +69,10 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   }
   if (!params.projectId && resourceProjectId) {
     crumbs.push({ type: "project", projectId: resourceProjectId });
+  }
+  if (isAuthorization && lastProjectId) {
+    crumbs.push({ type: "project", projectId: lastProjectId });
+    crumbs.push({ type: "label", label: "Authorization" });
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId });

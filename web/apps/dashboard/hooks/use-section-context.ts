@@ -1,6 +1,8 @@
 "use client";
 
+import { rememberLastProjectId } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
+import { useEffect } from "react";
 
 export type SectionContext =
   | { type: "workspace" }
@@ -20,6 +22,15 @@ export function useSectionContext(): SectionContext {
     namespaceId?: string;
     identityId?: string;
   }>();
+
+  // Track the project the user was last inside so project-scoped concepts
+  // living at workspace URLs (authorization) can keep the project sidebar.
+  const projectId = params.projectId;
+  useEffect(() => {
+    if (projectId) {
+      rememberLastProjectId(projectId);
+    }
+  }, [projectId]);
 
   if (params.projectId) {
     return { type: "project", projectId: params.projectId, appId: params.appId };

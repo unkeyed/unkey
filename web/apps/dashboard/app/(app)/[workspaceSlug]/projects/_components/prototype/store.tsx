@@ -214,6 +214,45 @@ export function usePrototypeWorlds(): PrototypeContext {
   return ctx;
 }
 
+// Last project the user was inside, so workspace-scoped areas that are
+// conceptually project-scoped (authorization) can keep the project context.
+const LAST_PROJECT_STORAGE_KEY = "unkey.projects-prototype.lastProject";
+
+export function rememberLastProjectId(projectId: string) {
+  try {
+    localStorage.setItem(LAST_PROJECT_STORAGE_KEY, projectId);
+  } catch {
+    // ignore
+  }
+}
+
+// Stored last-visited project, falling back to the active scenario's first
+// project. Client-only (returns null during SSR) so callers hydrate cleanly.
+export function readLastProjectId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const stored = localStorage.getItem(LAST_PROJECT_STORAGE_KEY);
+    if (stored) {
+      return stored;
+    }
+  } catch {
+    // fall through
+  }
+  const worlds = loadWorlds();
+  let scenario: Scenario = "migrated";
+  try {
+    const v = localStorage.getItem(SCENARIO_STORAGE_KEY);
+    if (v === "new" || v === "migrated" || v === "active") {
+      scenario = v;
+    }
+  } catch {
+    // ignore
+  }
+  return worlds[scenario].projects[0]?.id ?? null;
+}
+
 // Which prototype project owns this keyspace or ratelimit namespace, for the
 // top-nav breadcrumb on /apis/* and /ratelimits/* pages. Null for real ids.
 export function findProjectIdForResource(resourceId: string): string | null {

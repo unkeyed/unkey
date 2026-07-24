@@ -1,5 +1,6 @@
 "use client";
 
+import { readLastProjectId } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -12,6 +13,7 @@ import {
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
 import { useSelectedLayoutSegments } from "next/navigation";
+import { useEffect, useState } from "react";
 import { NavLinkList } from "./nav-link-list";
 
 export function SidebarBody() {
@@ -26,15 +28,34 @@ export function SidebarBody() {
   const appOverview = useFlag("appOverview");
   const portalManagement = useFlag("portalManagement");
 
+  // Authorization is a project-scoped concept living at workspace URLs, so it
+  // keeps the sidebar of the project the user was last inside. Resolved in an
+  // effect (localStorage) so the SSR render stays consistent.
+  const [lastProjectId, setLastProjectId] = useState<string | null>(null);
+  const inAuthorization = context.type === "authorization";
+  useEffect(() => {
+    if (inAuthorization) {
+      setLastProjectId(readLastProjectId());
+    }
+  }, [inAuthorization]);
+
   const links = (() => {
     switch (context.type) {
+      case "authorization":
+        if (lastProjectId) {
+          return buildProjectLinks(
+            slug,
+            lastProjectId,
+            ["projects", lastProjectId, "authorization"],
+            portalManagement,
+          );
+        }
+        return buildWorkspaceSections(slug, segments);
       case "workspace":
       case "identity":
-      // Settings and Authorization keep the top-level workspace nav in the
-      // global sidebar; their sub-pages live in a SecondaryNav rail (see the
-      // settings/authorization layouts).
+      // Settings keeps the top-level workspace nav in the global sidebar; its
+      // sub-pages live in a SecondaryNav rail (see the settings layout).
       case "settings":
-      case "authorization":
         return buildWorkspaceSections(slug, segments);
       case "project":
         return context.appId
