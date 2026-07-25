@@ -127,6 +127,57 @@ async function sendComputeAlert(
 }
 
 /**
+ * Whether a subscription Stripe told us about is still capable of billing.
+ *
+ * Used to decide whether an unresolvable workspace is a real orphan or just a
+ * redelivered terminal event. `canceled` and `incomplete_expired` are Stripe's
+ * end states: nothing further is charged, so losing the local link is untidy but
+ * costs nothing. Any other status on a subscription we cannot resolve is money
+ * moving with no workspace attached, which is worth waking someone for.
+ */
+function subscriptionStillBilling(sub: Stripe.Subscription): boolean {
+  return sub.status !== "canceled" && sub.status !== "incomplete_expired";
+}
+
+/**
+ * Tears down Compute when a subscription becomes cancelling, before
+ * [[mirrorDeployPlan]] clears the plan.
+ *
+ * Ordering is load-bearing. ctrl's DeprovisionCompute keys its idempotency guard
+ * on `workspace_billing.plan` still being set, and deliberately tears down
+ * before clearing it. mirrorDeployPlan writes that same column to null on any
+ * cancelling subscription, which is correct for the dashboard flow (cancelDeploy
+ * has already deprovisioned, so the null is just the mirror catching up) but not
+ * for a cancel made on the Stripe side, in the customer portal or the Stripe
+ * dashboard. There our tRPC endpoint never runs, so the plan went to null with no
+ * teardown, and by the time `customer.subscription.deleted` arrived its
+ * `if (billing.plan)` gate saw null and skipped teardown for good. Workloads kept
+ * running with no subscription, and nothing billed them, because every billable
+ * query and the spend cap all require plan IS NOT NULL.
+ *
+ * Calling deprovision here restores the invariant those guards assume: by the
+ * time plan is null, teardown has been dispatched. On the dashboard path this is
+ * a no-op, since the plan is already null and ctrl returns early. Cancel means
+ * immediate teardown either way, which is the semantics cancelDeploy already
+ * chose (billing runs to the period boundary, no refund).
+ *
+ * Failures propagate so the caller returns 500 and Stripe redelivers: dropping
+ * this is how compute ends up running unbilled.
+ */
+async function deprovisionOnCancel(
+  billing: { workspaceId: string; plan: string | null },
+  sub: Stripe.Subscription,
+): Promise<void> {
+  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+  if (!cancelling || !billing.plan) {
+    return;
+  }
+
+  const ctrl = createCtrlClient(DeployService);
+  await ctrl.deprovisionCompute({ workspaceId: billing.workspaceId });
+}
+
+/**
  * Links a subscription-mode Compute checkout to its workspace via the shared
  * linker, shared by the `checkout.session.completed` and
  * `checkout.session.async_payment_succeeded` events (the latter fires when a
@@ -375,6 +426,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // from the Stripe event (a DB plan diff is unreliable because the
         // dashboard mutations write the plan optimistically before this fires).
         if (column === "compute") {
+          await deprovisionOnCancel(billing, sub);
           await mirrorDeployPlan(billing, sub);
           const deployConfig = await deployBillingConfig();
           await sendComputeAlert(
@@ -613,13 +665,22 @@ export const POST = async (req: Request): Promise<Response> => {
             subscriptionId: sub.id,
             eventId: event.id,
           });
-          // No ongoing billing on a terminated subscription, but the lost billing
-          // link needs a human to reconcile.
-          await alertOrphanedDeploySubscription({
-            subscriptionId: sub.id,
-            eventId: event.id,
-            reason: "workspace_not_found",
-          });
+          // Only page when this is genuinely a lost billing link, not the second
+          // delivery of a cancel we already processed. This handler deletes the
+          // billing_subscriptions row it looks itself up by, and Stripe delivers
+          // at-least-once, so a perfectly successful cancel used to page on
+          // redelivery — as did any `updated` arriving after the `deleted`. That
+          // trained the one alert meaning "a paid subscription is billing with no
+          // workspace attached" to be ignored, which is exactly the signal a
+          // Stripe-side cancel needs. A subscription Stripe reports as fully
+          // ended has no ongoing billing, so silence is correct for it.
+          if (subscriptionStillBilling(sub)) {
+            await alertOrphanedDeploySubscription({
+              subscriptionId: sub.id,
+              eventId: event.id,
+              reason: "workspace_not_found",
+            });
+          }
           return new Response("OK", { status: 200 });
         }
         const column = subscription.product;
