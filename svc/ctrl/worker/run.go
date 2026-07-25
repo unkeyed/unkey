@@ -578,12 +578,23 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// DeployBillingClose is idempotent and cron-backed; per-workspace
-	// failures are journaled as deferred so one bad customer cannot wedge
-	// the period VO. Kill on exhaustion so the backup cron can retry with
-	// a fresh idempotency key instead of sitting behind a wedged webhook
-	// invocation.
-	cronDeployBillingCloseRetry := restate.WithInvocationRetryPolicy(
+	// The fleet close runs once per month and is the fallback for webhook-driven
+	// workspace closes, so a brief infrastructure outage must not exhaust it in
+	// seconds. Nine attempts span roughly 75 minutes while staying well inside
+	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
+	// the period VO never remains wedged.
+	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Minute),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(15*time.Minute),
+		restate.WithMaxAttempts(9),
+		restate.KillOnMaxAttempts(),
+	)
+	// The per-workspace close is dispatched by invoice.created and backed up by
+	// the fleet close. Its handler turns customer-specific push and finalization
+	// failures into deferred work, so this short policy only covers failures that
+	// escape those bounds.
+	cronDeployBillingWorkspaceCloseRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
@@ -637,8 +648,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// ~1440 dead invocations/day.
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
-		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
-		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
 		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")
