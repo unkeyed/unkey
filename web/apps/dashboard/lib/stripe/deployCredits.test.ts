@@ -5,6 +5,8 @@ import {
   deployIncludedCreditCents,
   grantDeployCreditsForInvoice,
   netDeployFee,
+  revokeDeployCreditsForCustomer,
+  revokeDeployCreditsForInvoice,
 } from "./deployCredits";
 
 vi.mock("./deployBilling", async (importOriginal) => {
@@ -12,10 +14,11 @@ vi.mock("./deployBilling", async (importOriginal) => {
   return {
     ...actual,
     deployBillingConfig: vi.fn(),
+    deployBillingConfigured: vi.fn(),
   };
 });
 
-import { deployBillingConfig } from "./deployBilling";
+import { deployBillingConfig, deployBillingConfigured } from "./deployBilling";
 
 const config: DeployBillingConfig = {
   planFeePriceIds: {
@@ -207,6 +210,7 @@ function invoiceStub(overrides: Partial<Stripe.Invoice> = {}): Stripe.Invoice {
 describe("grantDeployCreditsForInvoice", () => {
   afterEach(() => {
     vi.mocked(deployBillingConfig).mockReset();
+    vi.mocked(deployBillingConfigured).mockReset();
   });
 
   it("grants credits for a paid renewal fee line", async () => {
@@ -229,6 +233,7 @@ describe("grantDeployCreditsForInvoice", () => {
 
   it("skips when billing is not configured", async () => {
     vi.mocked(deployBillingConfig).mockResolvedValue(null);
+    vi.mocked(deployBillingConfigured).mockReturnValue(false);
     const stripe = {
       billing: { creditGrants: { create: vi.fn(), list: vi.fn() } },
     } as unknown as Stripe;
@@ -291,5 +296,321 @@ describe("grantDeployCreditsForInvoice", () => {
       reason: expect.stringContaining("already granted"),
       periodTotalCents: 5000,
     });
+  });
+});
+
+describe("retryable vs terminal skips", () => {
+  afterEach(() => {
+    vi.mocked(deployBillingConfig).mockReset();
+    vi.mocked(deployBillingConfigured).mockReset();
+  });
+
+  // A null config means two different things and only one of them is retryable.
+  //
+  // Configured but unresolvable: the lookup keys are set and one did not resolve
+  // to an active price. Real misconfiguration, and acking destroys the credit
+  // permanently, so this must fail and let Stripe redeliver.
+  it("marks a configured-but-unresolvable catalogue retryable", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(null);
+    vi.mocked(deployBillingConfigured).mockReturnValue(true);
+    const stripe = {
+      billing: { creditGrants: { create: vi.fn(), list: vi.fn() } },
+    } as unknown as Stripe;
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result.granted).toBe(false);
+    expect(result.granted === false && result.retryable).toBe(true);
+  });
+
+  // Deploy simply not configured in this environment. The lookup-key env vars are
+  // optional, so whole deployments run without them, and EVERY paid invoice from
+  // EVERY customer, API-only ones included, lands here. Retrying those would 500
+  // on every invoice and eventually cost us the webhook endpoint, taking down
+  // subscription handling unrelated to Deploy. Must ack.
+  it("does NOT retry when Deploy billing is simply not configured", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(null);
+    vi.mocked(deployBillingConfigured).mockReturnValue(false);
+    const stripe = {
+      billing: { creditGrants: { create: vi.fn(), list: vi.fn() } },
+    } as unknown as Stripe;
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result.granted).toBe(false);
+    expect(result.granted === false && result.retryable).toBeFalsy();
+  });
+
+  // Everything else is terminal: a retry produces the same answer, so acking is
+  // right and the webhook must not be failed.
+  it("leaves a closed period terminal", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const stripe = {
+      billing: { creditGrants: { create: vi.fn(), list: vi.fn() } },
+    } as unknown as Stripe;
+
+    // Fee period ended well beyond the 3-day grace, so no grant could be redeemed.
+    const stale = invoiceStub({
+      lines: {
+        has_more: false,
+        data: [line("price_fee_business", 5000, 1_600_000_000)],
+      } as unknown as Stripe.Invoice["lines"],
+    });
+    const result = await grantDeployCreditsForInvoice(stripe, stale);
+    expect(result.granted).toBe(false);
+    expect(result.granted === false && result.retryable).toBeFalsy();
+  });
+
+  // Both invoice.paid and invoice.payment_succeeded fire for a card-paid invoice
+  // and share one idempotency key, so concurrent delivery hits Stripe's in-flight
+  // 409 routinely. The other delivery is creating this exact grant.
+  it("treats an in-flight idempotency conflict as done, not an error", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const conflict = Object.assign(new Error("in flight"), {
+      type: "StripeIdempotencyError",
+      rawType: "idempotency_error",
+    });
+    const create = vi.fn().mockRejectedValue(conflict);
+    const list = vi.fn().mockReturnValue((async function* () {})());
+    const stripe = { billing: { creditGrants: { create, list } } } as unknown as Stripe;
+
+    const result = await grantDeployCreditsForInvoice(stripe, invoiceStub());
+    expect(result.granted).toBe(false);
+    expect(result.granted === false && result.retryable).toBeFalsy();
+  });
+
+  it("still propagates a genuine grant-creation failure", async () => {
+    vi.mocked(deployBillingConfig).mockResolvedValue(config);
+    const create = vi.fn().mockRejectedValue(new Error("stripe is down"));
+    const list = vi.fn().mockReturnValue((async function* () {})());
+    const stripe = { billing: { creditGrants: { create, list } } } as unknown as Stripe;
+
+    await expect(grantDeployCreditsForInvoice(stripe, invoiceStub())).rejects.toThrow(
+      "stripe is down",
+    );
+  });
+});
+
+describe("revokeDeployCreditsForInvoice", () => {
+  function grant(id: string, invoiceId: string | undefined, voidedAt: number | null = null) {
+    return {
+      id,
+      voided_at: voidedAt,
+      expires_at: null,
+      metadata: invoiceId ? { stripe_invoice_id: invoiceId } : {},
+    } as unknown as Stripe.Billing.CreditGrant;
+  }
+
+  it("voids only the grants the reversed invoice funded", async () => {
+    const voidGrant = vi.fn().mockResolvedValue({});
+    const stripe = {
+      invoices: { retrieve: vi.fn().mockResolvedValue({ customer: "cus_test" }) },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield grant("credgrant_target", "in_reversed");
+              yield grant("credgrant_other", "in_unrelated");
+              yield grant("credgrant_manual", undefined);
+            })(),
+          ),
+          voidGrant,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForInvoice(stripe, "in_reversed");
+    expect(result).toEqual({ voided: 1, expired: 0, alreadyInactive: 0 });
+    expect(voidGrant).toHaveBeenCalledOnce();
+    expect(voidGrant).toHaveBeenCalledWith("credgrant_target");
+  });
+
+  it("is idempotent: an already-voided grant is counted, not voided again", async () => {
+    const voidGrant = vi.fn().mockResolvedValue({});
+    const stripe = {
+      invoices: { retrieve: vi.fn().mockResolvedValue({ customer: "cus_test" }) },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield grant("credgrant_done", "in_reversed", 1_700_000_000);
+            })(),
+          ),
+          voidGrant,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForInvoice(stripe, "in_reversed");
+    expect(result).toEqual({ voided: 0, expired: 0, alreadyInactive: 1 });
+    expect(voidGrant).not.toHaveBeenCalled();
+  });
+});
+
+describe("revokeDeployCreditsForCustomer", () => {
+  // Charge and dispute events cannot name their invoice in this Stripe API
+  // version, so the revoke re-reads each grant's funding invoice and voids the
+  // grant when that invoice no longer represents money we kept.
+  it("voids grants whose funding invoice is no longer paid, and keeps the rest", async () => {
+    const voidGrant = vi.fn().mockResolvedValue({});
+    const retrieve = vi.fn(async (id: string) =>
+      id === "in_refunded"
+        ? { status: "paid", amount_remaining: 5000 } // credited back
+        : { status: "paid", amount_remaining: 0 },
+    );
+    const stripe = {
+      invoices: { retrieve },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield {
+                id: "credgrant_refunded",
+                voided_at: null,
+                expires_at: null,
+                metadata: { stripe_invoice_id: "in_refunded" },
+              } as unknown as Stripe.Billing.CreditGrant;
+              yield {
+                id: "credgrant_good",
+                voided_at: null,
+                expires_at: null,
+                metadata: { stripe_invoice_id: "in_good" },
+              } as unknown as Stripe.Billing.CreditGrant;
+            })(),
+          ),
+          voidGrant,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForCustomer(stripe, "cus_test");
+    expect(result).toEqual({ voided: 1, expired: 0, alreadyInactive: 0 });
+    expect(voidGrant).toHaveBeenCalledOnce();
+    expect(voidGrant).toHaveBeenCalledWith("credgrant_refunded");
+  });
+
+  it("voids a grant whose funding invoice was voided outright", async () => {
+    const voidGrant = vi.fn().mockResolvedValue({});
+    const stripe = {
+      invoices: {
+        retrieve: vi.fn().mockResolvedValue({ status: "void", amount_remaining: 0 }),
+      },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield {
+                id: "credgrant_voidinv",
+                voided_at: null,
+                expires_at: null,
+                metadata: { stripe_invoice_id: "in_voided" },
+              } as unknown as Stripe.Billing.CreditGrant;
+            })(),
+          ),
+          voidGrant,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForCustomer(stripe, "cus_test");
+    expect(result).toEqual({ voided: 1, expired: 0, alreadyInactive: 0 });
+  });
+});
+
+describe("revoking a grant the customer already spent", () => {
+  // This is the case the whole feature exists for: the credit was applied to an
+  // invoice and then the funding payment was reversed. Stripe refuses to void a
+  // grant that has been applied to an invoice at all, even partially, so void
+  // alone would throw and the credit would stay live.
+  it("expires the grant when Stripe refuses to void an applied one", async () => {
+    const applied = Object.assign(new Error("cannot void an applied credit grant"), {
+      type: "StripeInvalidRequestError",
+      rawType: "invalid_request_error",
+      statusCode: 400,
+    });
+    const voidGrant = vi.fn().mockRejectedValue(applied);
+    const expire = vi.fn().mockResolvedValue({});
+    const stripe = {
+      invoices: { retrieve: vi.fn().mockResolvedValue({ customer: "cus_test" }) },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield {
+                id: "credgrant_spent",
+                voided_at: null,
+                expires_at: null,
+                metadata: { stripe_invoice_id: "in_reversed" },
+              } as unknown as Stripe.Billing.CreditGrant;
+            })(),
+          ),
+          voidGrant,
+          expire,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForInvoice(stripe, "in_reversed");
+    expect(result).toEqual({ voided: 0, expired: 1, alreadyInactive: 0 });
+    expect(expire).toHaveBeenCalledOnce();
+    expect(expire).toHaveBeenCalledWith("credgrant_spent");
+  });
+
+  it("does not swallow a genuine void failure", async () => {
+    const outage = Object.assign(new Error("stripe is down"), {
+      type: "StripeAPIError",
+      rawType: "api_error",
+      statusCode: 500,
+    });
+    const stripe = {
+      invoices: { retrieve: vi.fn().mockResolvedValue({ customer: "cus_test" }) },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield {
+                id: "credgrant_x",
+                voided_at: null,
+                expires_at: null,
+                metadata: { stripe_invoice_id: "in_reversed" },
+              } as unknown as Stripe.Billing.CreditGrant;
+            })(),
+          ),
+          voidGrant: vi.fn().mockRejectedValue(outage),
+          expire: vi.fn(),
+        },
+      },
+    } as unknown as Stripe;
+
+    await expect(revokeDeployCreditsForInvoice(stripe, "in_reversed")).rejects.toThrow(
+      "stripe is down",
+    );
+  });
+
+  it("skips a grant that has already expired, leaving nothing to do", async () => {
+    const voidGrant = vi.fn();
+    const expire = vi.fn();
+    const stripe = {
+      invoices: { retrieve: vi.fn().mockResolvedValue({ customer: "cus_test" }) },
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              yield {
+                id: "credgrant_old",
+                voided_at: null,
+                expires_at: Math.floor(Date.now() / 1000) - 3600,
+                metadata: { stripe_invoice_id: "in_reversed" },
+              } as unknown as Stripe.Billing.CreditGrant;
+            })(),
+          ),
+          voidGrant,
+          expire,
+        },
+      },
+    } as unknown as Stripe;
+
+    const result = await revokeDeployCreditsForInvoice(stripe, "in_reversed");
+    expect(result).toEqual({ voided: 0, expired: 0, alreadyInactive: 1 });
+    expect(voidGrant).not.toHaveBeenCalled();
+    expect(expire).not.toHaveBeenCalled();
   });
 });

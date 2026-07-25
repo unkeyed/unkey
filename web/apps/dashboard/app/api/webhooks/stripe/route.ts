@@ -8,7 +8,11 @@ import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
-import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
+import {
+  grantDeployCreditsForInvoice,
+  revokeDeployCreditsForCustomer,
+  revokeDeployCreditsForInvoice,
+} from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
@@ -974,6 +978,15 @@ export const POST = async (req: Request): Promise<Response> => {
               grantId: grant.grantId,
               amountCents: grant.amountCents,
             });
+          } else if (grant.retryable) {
+            // Transient: acking would destroy the grant permanently, and the
+            // customer would then pay full metered price on top of a plan fee
+            // meant to cover it. Fail so Stripe redelivers.
+            console.error("Deferring Deploy credit grant for retry", {
+              invoiceId: invoice.id,
+              reason: grant.reason,
+            });
+            return new Response("Retryable failure granting Deploy credits", { status: 500 });
           } else {
             console.info("Did not grant Deploy usage credits", {
               invoiceId: invoice.id,
@@ -1036,6 +1049,15 @@ export const POST = async (req: Request): Promise<Response> => {
               grantId: grant.grantId,
               amountCents: grant.amountCents,
             });
+          } else if (grant.retryable) {
+            // Transient: acking would destroy the grant permanently, and the
+            // customer would then pay full metered price on top of a plan fee
+            // meant to cover it. Fail so Stripe redelivers.
+            console.error("Deferring Deploy credit grant for retry", {
+              invoiceId: invoice.id,
+              reason: grant.reason,
+            });
+            return new Response("Retryable failure granting Deploy credits", { status: 500 });
           } else {
             // No credits is usually a deliberate skip: no Deploy plan-fee
             // line, period already closed, already granted, or non-positive
@@ -1151,8 +1173,121 @@ export const POST = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Reversals of a payment that funded a credit grant. Without these, paying a
+    // plan fee minted an immediately-redeemable metered credit worth the same
+    // amount, and disputing or refunding the charge took the money back while
+    // leaving the credit in place: burn the credit on compute during the month,
+    // then charge back. Nothing clawed it back and nothing noticed.
+    //
+    // Compounding, which is why invoice.voided and marked_uncollectible are here
+    // too: netDeployFee sizes the grant from line amounts and never reads
+    // amount_paid, and invoice.paid is deliberately accepted for
+    // fully-credit-covered settlements, so a refund routed to the customer's
+    // Stripe balance later settles the next renewal and mints a SECOND full-size
+    // grant from the same dollar.
+    case "charge.refunded":
+    case "charge.dispute.created":
+    case "charge.dispute.funds_withdrawn":
+    case "credit_note.created":
+    case "invoice.voided":
+    case "invoice.marked_uncollectible": {
+      try {
+        const target = await reversalTarget(stripe, event);
+        if (!target) {
+          console.info("Payment reversal carries no usable reference; nothing to revoke", {
+            eventId: event.id,
+            eventType: event.type,
+          });
+          return new Response("OK", { status: 200 });
+        }
+
+        const revoked =
+          target.kind === "invoice"
+            ? await revokeDeployCreditsForInvoice(stripe, target.id)
+            : await revokeDeployCreditsForCustomer(stripe, target.id);
+
+        console.info("Revoked Deploy usage credits after payment reversal", {
+          eventType: event.type,
+          [target.kind === "invoice" ? "invoiceId" : "customerId"]: target.id,
+          grantsVoided: revoked.voided,
+          grantsAlreadyInactive: revoked.alreadyInactive,
+        });
+        return new Response("OK", { status: 200 });
+      } catch (error) {
+        // Fail so Stripe redelivers: a grant left live after the funding payment
+        // was reversed is free compute, so dropping this is worse than a retry.
+        console.error("Failed to revoke Deploy credits after payment reversal:", {
+          error: error instanceof Error ? error.message : error,
+          eventId: event.id,
+          eventType: event.type,
+        });
+        return new Response("Error revoking Deploy credits", { status: 500 });
+      }
+    }
+
     default:
       break;
   }
   return new Response("OK");
 };
+
+/**
+ * What a reversal event lets us scope the revoke to.
+ *
+ * Credit notes and invoice-level events name their invoice, so the revoke is
+ * exact. Charges and disputes do not: this Stripe API version dropped
+ * `charge.invoice`, and neither the charge nor its payment intent carries an
+ * invoice reference in the webhook payload. For those the best available handle
+ * is the customer, and the revoke re-verifies each grant's funding invoice
+ * instead of trusting the event to identify it. That is also the only shape that
+ * catches a refund routed to the customer's Stripe balance, which would otherwise
+ * settle the next renewal and mint a second grant from the same dollar.
+ */
+type ReversalTarget = { kind: "invoice" | "customer"; id: string };
+
+async function reversalTarget(
+  stripe: Stripe,
+  event: Stripe.Event,
+): Promise<ReversalTarget | null> {
+  const asId = (ref: string | { id: string } | null | undefined): string | null => {
+    if (!ref) {
+      return null;
+    }
+    return typeof ref === "string" ? ref : ref.id;
+  };
+
+  switch (event.type) {
+    case "credit_note.created": {
+      const id = asId((event.data.object as Stripe.CreditNote).invoice);
+      return id ? { kind: "invoice", id } : null;
+    }
+    case "invoice.voided":
+    case "invoice.marked_uncollectible": {
+      const id = (event.data.object as Stripe.Invoice).id;
+      return id ? { kind: "invoice", id } : null;
+    }
+    case "charge.refunded": {
+      const id = asId((event.data.object as Stripe.Charge).customer);
+      return id ? { kind: "customer", id } : null;
+    }
+    case "charge.dispute.created":
+    case "charge.dispute.funds_withdrawn": {
+      // A dispute references its charge, and the customer hangs off the charge
+      // rather than the dispute. Webhook payloads are never expanded, so
+      // `dispute.charge` is always the id string here even though the type
+      // permits an object. Treating the string case as "nothing to do" is how
+      // this silently no-opped on the one attack it exists to stop, so fetch the
+      // charge. One extra read on a rare event.
+      const chargeRef = (event.data.object as Stripe.Dispute).charge;
+      if (typeof chargeRef !== "string") {
+        const id = asId(chargeRef?.customer);
+        return id ? { kind: "customer", id } : null;
+      }
+      const charge = await stripe.charges.retrieve(chargeRef);
+      const id = asId(charge.customer);
+      return id ? { kind: "customer", id } : null;
+    }
+    default:
+      return null;
+  }
+}

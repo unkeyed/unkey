@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import {
   type DeployBillingConfig,
   deployBillingConfig,
+  deployBillingConfigured,
   planForPlanFeePriceId,
 } from "./deployBilling";
 import type { DeployPlan } from "./deployPlan";
@@ -20,10 +21,196 @@ const EXPIRY_GRACE_SECONDS = 3 * 24 * 60 * 60;
 
 export { EXPIRY_GRACE_SECONDS };
 
+/** Outcome of revoking the grants a reversed invoice funded. */
+export type DeployCreditRevokeResult = {
+  /** Grants voided, which Stripe only permits on a grant never applied to an invoice. */
+  voided: number;
+  /** Grants expired instead, because they had already been applied and could not be voided. */
+  expired: number;
+  /** Grants already void or already past their expiry, so there was no balance left to stop. */
+  alreadyInactive: number;
+};
+
+/**
+ * Voids the credit grants a given invoice funded, for when the payment behind it
+ * is reversed: a refund, a dispute, a credit note, or the invoice being voided or
+ * written off.
+ *
+ * Grants carry the funding invoice on `metadata.stripe_invoice_id`, and
+ * creditGrants.list has no metadata filter, so this scans the customer's grants
+ * the same way the duplicate check in [[grantDeployCreditsForInvoice]] does.
+ * Voiding is idempotent: a grant that is already void or expired is counted and
+ * skipped.
+ *
+ * Credit already consumed cannot be reclaimed. Voiding stops the remaining
+ * balance being spent, which is the part still recoverable at this point.
+ */
+export async function revokeDeployCreditsForInvoice(
+  stripe: Stripe,
+  invoiceId: string,
+): Promise<DeployCreditRevokeResult> {
+  const invoice = await stripe.invoices.retrieve(invoiceId);
+  const customerId =
+    typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+  if (!customerId) {
+    return { voided: 0, expired: 0, alreadyInactive: 0 };
+  }
+
+  return revokeGrants(stripe, customerId, (grant) => grant.metadata?.stripe_invoice_id === invoiceId);
+}
+
+/**
+ * Voids every grant of a customer whose funding invoice no longer represents
+ * money we kept.
+ *
+ * Used for charge and dispute reversals, which cannot name their invoice: this
+ * Stripe API version has no `charge.invoice` and the payment intent does not
+ * carry one either. Rather than guess, this re-reads each grant's funding invoice
+ * and voids the grant when that invoice is no longer `paid`, or has been
+ * refunded. Slightly more work than an exact match, and it self-heals: a grant
+ * whose funding was reversed by any route gets caught the next time any reversal
+ * event arrives for that customer.
+ */
+export async function revokeDeployCreditsForCustomer(
+  stripe: Stripe,
+  customerId: string,
+): Promise<DeployCreditRevokeResult> {
+  const settled = new Map<string, boolean>();
+
+  const fundingReversed = async (invoiceId: string): Promise<boolean> => {
+    const cached = settled.get(invoiceId);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+    // amount_remaining > 0 on a once-paid invoice means it was credited back.
+    const reversed =
+      invoice.status !== "paid" || (invoice.amount_remaining ?? 0) > 0;
+    settled.set(invoiceId, reversed);
+    return reversed;
+  };
+
+  return revokeGrants(stripe, customerId, async (grant) => {
+    const invoiceId = grant.metadata?.stripe_invoice_id;
+    if (!invoiceId) {
+      return false;
+    }
+    return fundingReversed(invoiceId);
+  });
+}
+
+/**
+ * Shared scan: revoke every grant of a customer that `matches`.
+ *
+ * creditGrants.list has no metadata filter, so this walks the customer's grants
+ * the same way the duplicate check in [[grantDeployCreditsForInvoice]] does.
+ * Grants are roughly one per month, so this is a page or two.
+ *
+ * Void and expire are not interchangeable, and the difference decides this whole
+ * feature. Stripe only allows voiding a grant "you haven't applied to an invoice,
+ * either partially or completely"
+ * (docs.stripe.com/billing/subscriptions/usage-based/billing-credits). The case
+ * this code exists for is a customer who SPENT the credit and then reversed the
+ * payment, so the grant is applied and void is rejected. Expiring is the
+ * documented tool there: it kills whatever balance remains.
+ *
+ * So: try void, because it is the stronger statement and leaves a clearer audit
+ * trail on an untouched grant, and fall back to expire when Stripe refuses.
+ * Neither reclaims credit the customer already consumed; the only documented
+ * route for that is voiding the invoice the credit was applied to, which is a
+ * decision for a human, not this handler.
+ */
+async function revokeGrants(
+  stripe: Stripe,
+  customerId: string,
+  matches: (grant: Stripe.Billing.CreditGrant) => boolean | Promise<boolean>,
+): Promise<DeployCreditRevokeResult> {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  let voided = 0;
+  let expired = 0;
+  let alreadyInactive = 0;
+
+  for await (const grant of stripe.billing.creditGrants.list({
+    customer: customerId,
+    limit: 100,
+  })) {
+    if (!(await matches(grant))) {
+      continue;
+    }
+    // Already void, or already expired, means there is no balance left to stop.
+    if (grant.voided_at || (grant.expires_at !== null && grant.expires_at <= nowSeconds)) {
+      alreadyInactive++;
+      continue;
+    }
+
+    try {
+      await stripe.billing.creditGrants.voidGrant(grant.id);
+      voided++;
+    } catch (err) {
+      if (!isAlreadyAppliedRejection(err)) {
+        throw err;
+      }
+      // Applied to an invoice, so it cannot be voided. Expire it instead, which
+      // stops the remaining balance being spent on anything further.
+      await stripe.billing.creditGrants.expire(grant.id);
+      expired++;
+    }
+  }
+
+  return { voided, expired, alreadyInactive };
+}
+
+/**
+ * Whether Stripe refused a void because the grant has already been applied to an
+ * invoice. Matched loosely on the request-error class rather than a specific
+ * message, because Stripe documents the restriction in prose but does not
+ * document a stable error code for it. A genuine failure (auth, network, a
+ * missing grant) is not a request-validation error and still propagates.
+ */
+function isAlreadyAppliedRejection(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) {
+    return false;
+  }
+  const { type, rawType, statusCode } = err as {
+    type?: unknown;
+    rawType?: unknown;
+    statusCode?: unknown;
+  };
+  const invalidRequest = type === "StripeInvalidRequestError" || rawType === "invalid_request_error";
+  return invalidRequest && statusCode === 400;
+}
+
+/**
+ * Whether an error is Stripe rejecting a request because the same idempotency
+ * key is already in flight.
+ *
+ * Duck-typed rather than an `instanceof` check so this module keeps its
+ * type-only Stripe import. Both shapes are accepted: stripe-node sets
+ * `type` to "StripeIdempotencyError" and mirrors Stripe's own
+ * "idempotency_error" on `rawType`.
+ */
+function isIdempotencyConflict(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) {
+    return false;
+  }
+  const { type, rawType } = err as { type?: unknown; rawType?: unknown };
+  return type === "StripeIdempotencyError" || rawType === "idempotency_error";
+}
+
 export type DeployCreditGrantResult =
   | {
       granted: false;
       reason: string;
+      /**
+       * True when the reason is transient and the caller should fail the webhook
+       * so Stripe redelivers. Every other not-granted reason is terminal: acking
+       * them is correct, because a retry produces the same answer.
+       *
+       * This distinction is the whole point. A grant that is skipped and acked is
+       * gone forever, and the customer then pays full metered price on top of a
+       * plan fee that was meant to cover it.
+       */
+      retryable?: boolean;
       /**
        * The period's total granted credit (cents), recomputed from Stripe's
        * grants, when the invoice carries Deploy fee lines for an open period.
@@ -114,6 +301,29 @@ export async function grantDeployCreditsForInvoice(
 ): Promise<DeployCreditGrantResult> {
   const config = await deployBillingConfig();
   if (!config) {
+    // Null means two very different things and they must not be treated alike.
+    //
+    // Deploy is not configured here at all. The lookup-key env vars are optional
+    // by design, so entire environments run without them, and every paid invoice
+    // for every customer, API-only ones included, reaches this line in those.
+    // Failing them would 500 on each one and, sustained, cost us the webhook
+    // endpoint outright, taking down subscription handling that has nothing to do
+    // with Deploy. Ack and move on.
+    //
+    // Or: the keys ARE set and one of them did not resolve to an active price.
+    // That is a real misconfiguration, and acking it destroys the customer's
+    // credit permanently with no way to reissue it. Since every Deploy
+    // subscription renews on day 1, a bad catalogue would hit the whole fleet's
+    // renewals at once. Retrying does not repair the catalogue by itself, but it
+    // buys Stripe's multi-day retry window for someone else to, and it puts the
+    // failure in the error rate rather than an info log nobody reads.
+    if (deployBillingConfigured()) {
+      return {
+        granted: false,
+        reason: "deploy billing configured but a price failed to resolve",
+        retryable: true,
+      };
+    }
     return { granted: false, reason: "deploy billing not configured" };
   }
   if (!invoice.customer) {
@@ -146,7 +356,16 @@ export async function grantDeployCreditsForInvoice(
   const expiresAt = fee.periodEnd + EXPIRY_GRACE_SECONDS;
   if (expiresAt * 1000 <= Date.now()) {
     // Paid long after the period closed; the usage invoice has already
-    // finalized, so a grant could never be redeemed.
+    // finalized, so a grant could never be redeemed. Terminal, and there is no
+    // repair path: the customer has paid a plan fee and will be billed the full
+    // metered price the fee was meant to cover. Logged at error rather than info
+    // because nothing else will ever surface it.
+    console.error("Deploy credit grant skipped: period already closed", {
+      invoiceId: invoice.id,
+      customerId,
+      feePeriodEnd: fee.periodEnd,
+      expiresAt,
+    });
     return { granted: false, reason: "period already closed" };
   }
 
@@ -180,24 +399,42 @@ export async function grantDeployCreditsForInvoice(
   // explain itself there: "Business plan monthly included usage ($50.00 off)".
   const planLabel = fee.plan ? fee.plan.charAt(0).toUpperCase() + fee.plan.slice(1) : "Compute";
 
-  const created = await stripe.billing.creditGrants.create(
-    {
-      name: `${planLabel} plan monthly included usage`,
-      customer: customerId,
-      category: "promotional",
-      amount: {
-        type: "monetary",
-        monetary: { currency: invoice.currency, value: fee.amountCents },
+  let created: Stripe.Billing.CreditGrant;
+  try {
+    created = await stripe.billing.creditGrants.create(
+      {
+        name: `${planLabel} plan monthly included usage`,
+        customer: customerId,
+        category: "promotional",
+        amount: {
+          type: "monetary",
+          monetary: { currency: invoice.currency, value: fee.amountCents },
+        },
+        applicability_config: { scope: { price_type: "metered" } },
+        expires_at: expiresAt,
+        metadata: {
+          stripe_invoice_id: invoice.id,
+          ...(fee.plan ? { deploy_plan: fee.plan } : {}),
+        },
       },
-      applicability_config: { scope: { price_type: "metered" } },
-      expires_at: expiresAt,
-      metadata: {
-        stripe_invoice_id: invoice.id,
-        ...(fee.plan ? { deploy_plan: fee.plan } : {}),
-      },
-    },
-    { idempotencyKey: `deploy-credit-grant:${invoice.id}` },
-  );
+      { idempotencyKey: `deploy-credit-grant:${invoice.id}` },
+    );
+  } catch (err) {
+    // Stripe rejects a request whose idempotency key is still in flight with a
+    // 409 idempotency_error. Both invoice.paid and invoice.payment_succeeded fire
+    // for a card-paid invoice and share this key, so concurrent delivery hits it
+    // routinely. The other delivery is creating exactly this grant, so treat it
+    // as done rather than turning it into a 500 that fails the webhook and
+    // pollutes the error rate.
+    if (isIdempotencyConflict(err)) {
+      return {
+        granted: false,
+        reason: "grant creation already in flight for this invoice",
+        periodTotalCents,
+      };
+    }
+    throw err;
+  }
 
   return {
     granted: true,
