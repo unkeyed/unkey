@@ -180,6 +180,54 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		require.Equal(t, int64(2000), u.EgressBytes)
 	})
 
+	t.Run("never re-bills the cumulative egress counter after a heimdall restart", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+
+		// A long-lived pod that has already accumulated 10 GiB of egress this
+		// month. The eBPF counter map is pinned to bpffs, so it survives heimdall
+		// restarting; only heimdall's in-process attach table is lost.
+		const accumulated = 10 * 1024 * 1024 * 1024
+
+		samples := []schema.InstanceCheckpoint{
+			// Measured, counter at its accumulated value.
+			c.sample(ws, resource, base, sampleValues{
+				egressBytes: accumulated, memoryBytes: gib, diskBytes: gib,
+			}),
+			// heimdall restarts. The pod is not in the new process's attach table,
+			// so the counters are not read and the row is written with zero. This
+			// is the row that used to poison the next delta.
+			c.sampleUnattached(ws, resource, base+sampleGap, sampleValues{
+				egressBytes: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			// Re-attached. The kernel counter never reset, so it reads back at its
+			// real value plus whatever flowed in between (1 MiB here).
+			c.sample(ws, resource, base+2*sampleGap, sampleValues{
+				egressBytes: accumulated + 1024*1024, memoryBytes: gib, diskBytes: gib,
+			}),
+		}
+		insertCheckpoints(t, ctx, conn, samples)
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		// Both deltas touching the unmeasured row are dropped, so the 1 MiB that
+		// flowed across the gap is lost. Undercounting one tick is the correct
+		// trade: the alternative billed the full 10 GiB a second time, which is
+		// what `greatest(0, lead - cur)` produced from the (0, accumulated) pair.
+		require.Equal(t, int64(0), u.EgressBytes,
+			"an unmeasured zero must not be diffed against a measured counter")
+		// The non-network meters are unaffected: they are integrated over time
+		// and their liveness comes from the cgroup read, not the eBPF attach.
+		require.Greater(t, u.MemoryGiBHours, 0.0)
+	})
+
 	t.Run("empty workspace id aggregates across workspaces", func(t *testing.T) {
 		// Two distinct workspaces, queried with an empty filter, both appear.
 		wsA := uid.New(uid.WorkspacePrefix)
@@ -258,7 +306,28 @@ func newContainerWithRestart(restart uint32) *container {
 	}
 }
 
+// sample builds a MEASURED checkpoint: network_attached is set, so the egress
+// counter is trusted. Use sampleUnattached for the fail-open shape.
 func (c *container) sample(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
+	s := c.rawSample(ws, resource, ts, v)
+	// Marshalled through the production type rather than a hand-written literal,
+	// so a renamed json tag breaks this test instead of silently making every
+	// row look unmeasured to the billing query.
+	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: true}.Marshal()
+	return s
+}
+
+// sampleUnattached builds a checkpoint whose network counters were NOT read:
+// heimdall restarted, attach had not completed, the pod is host-network, or the
+// reader is the macOS stub. The egress column is zero by fail-open and must not
+// be diffed against a neighbouring measured row.
+func (c *container) sampleUnattached(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
+	s := c.rawSample(ws, resource, ts, v)
+	s.Attributes = schema.InstanceCheckpointAttributes{NetworkAttached: false}.Marshal()
+	return s
+}
+
+func (c *container) rawSample(ws, resource string, ts int64, v sampleValues) schema.InstanceCheckpoint {
 	return schema.InstanceCheckpoint{
 		NodeID:                   "node-1",
 		WorkspaceID:              ws,
