@@ -171,8 +171,30 @@ func (h *Handler) resolvePushTasks(
 	endMillis int64,
 	eventTimestamp int64,
 ) (tasks []pushTask, workspacesWithUsage int, err error) {
-	// Whole fleet (no id scoping): billable workspaces are filtered below.
-	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, nil)
+	// Resolve the only workspaces whose usage can become a Stripe meter event
+	// before reading ClickHouse. Besides avoiding work that would be discarded
+	// below, the stable id set lets FleetMeterValues split the single-threaded
+	// checkpoint window query into disjoint, index-backed shards.
+	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListDeployBillingCustomersRow, error) {
+		return h.db.ListDeployBillingCustomers(rc)
+	}, restate.WithName("list deploy billing customers"))
+	if err != nil {
+		return nil, 0, fmt.Errorf("list deploy billing customers: %w", err)
+	}
+	if len(workspaces) == 0 {
+		logger.Info("no deploy billing customers", "billing_period", period)
+		return nil, 0, nil
+	}
+	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].ID < workspaces[j].ID })
+
+	workspaceIDs := make([]string, 0, len(workspaces))
+	workspacesByID := make(map[string]db.ListDeployBillingCustomersRow, len(workspaces))
+	for _, workspace := range workspaces {
+		workspaceIDs = append(workspaceIDs, workspace.ID)
+		workspacesByID[workspace.ID] = workspace
+	}
+
+	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, workspaceIDs)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -182,23 +204,11 @@ func (h *Handler) resolvePushTasks(
 	}
 
 	// Stable order so the journaled fan-out steps replay identically.
-	workspaceIDs := make([]string, 0, len(valuesByWorkspace))
+	workspaceIDs = workspaceIDs[:0]
 	for id := range valuesByWorkspace {
 		workspaceIDs = append(workspaceIDs, id)
 	}
 	sort.Strings(workspaceIDs)
-
-	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForDeployBillingByIDsRow, error) {
-		return h.db.ListWorkspacesForDeployBillingByIDs(rc, workspaceIDs)
-	}, restate.WithName("fetch workspace billing identities"))
-	if err != nil {
-		return nil, 0, fmt.Errorf("fetch workspace billing identities: %w", err)
-	}
-
-	workspacesByID := make(map[string]db.ListWorkspacesForDeployBillingByIDsRow, len(workspaces))
-	for _, w := range workspaces {
-		workspacesByID[w.ID] = w
-	}
 
 	tasks = make([]pushTask, 0, len(workspaceIDs))
 	for _, id := range workspaceIDs {
@@ -215,10 +225,6 @@ func (h *Handler) resolvePushTasks(
 		// regardless of the workspace's current state. The only blocker is a
 		// missing Stripe customer, since there is nothing to map the usage onto.
 		if !w.StripeCustomerID.Valid || w.StripeCustomerID.String == "" {
-			logger.Info("workspace has deploy usage but no stripe customer; skipping",
-				"workspace_id", id,
-				"billing_period", period,
-			)
 			continue
 		}
 
