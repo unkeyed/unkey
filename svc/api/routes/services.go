@@ -15,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/zen/validation"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
 // Services aggregates all dependencies required by API route handlers. It acts

@@ -6,8 +6,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // BuildPlatform specifies the target platform for container builds.

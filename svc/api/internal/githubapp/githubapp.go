@@ -12,8 +12,8 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	github "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // GitResponse builds the App.git response value. An empty repositoryFullName

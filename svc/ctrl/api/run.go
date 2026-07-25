@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -44,7 +45,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
-	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
