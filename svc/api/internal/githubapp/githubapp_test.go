@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
-	github "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 // recordingClient captures the repository string passed to GetInstallationRepo
