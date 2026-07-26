@@ -1,6 +1,7 @@
 package dev
 
 import (
+	devui "github.com/unkeyed/unkey/cmd/dev/ui"
 	"github.com/unkeyed/unkey/cmd/dev/github"
 	"github.com/unkeyed/unkey/cmd/dev/seed"
 	devstripe "github.com/unkeyed/unkey/cmd/dev/stripe"
@@ -17,5 +18,6 @@ var Cmd = &cli.Command{
 		generateMasterKeyCmd,
 		github.Cmd,
 		devstripe.Cmd,
+		devui.Cmd,
 	},
 }

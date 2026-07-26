@@ -36,6 +36,12 @@ linters:
         - ^github\.com/stripe/stripe-go/.*$
         - ^github\.com/unkeyed/unkey/svc/api/openapi\.Meta$
         - ^github\.com/unkeyed/unkey/pkg/cli\.Command$
+        # dev TUI option structs: zero values are the intended defaults
+        - ^github\.com/unkeyed/unkey/pkg/tui/widget\.ConfirmLine$
+        - ^github\.com/unkeyed/unkey/pkg/tui/widget\.Column$
+        - ^github\.com/unkeyed/unkey/cmd/dev/ui\.globalBind$
+        - ^github\.com/unkeyed/unkey/cmd/dev/ui\.paneKey$
+        - ^github\.com/unkeyed/unkey/pkg/tui/app\.Binding$
         - ^k8s\.io/api/core/v1.*$
         - ^k8s\.io/api/apps/v1.*$
         - ^k8s\.io/api/batch/v1.*$

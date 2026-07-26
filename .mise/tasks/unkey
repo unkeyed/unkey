@@ -6,7 +6,7 @@ set -euo pipefail
 needs_stripe_env() {
   local prev=""
   for arg in "$@" ${ARGS:-}; do
-    if [[ "$prev" == "dev" && "$arg" == "stripe" ]]; then
+    if [[ "$prev" == "dev" && ( "$arg" == "stripe" || "$arg" == "ui" ) ]]; then
       return 0
     fi
     prev="$arg"

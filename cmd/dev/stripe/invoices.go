@@ -2,10 +2,10 @@ package stripe
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	stripesdk "github.com/stripe/stripe-go/v86"
+	devstripe "github.com/unkeyed/unkey/internal/devtools/stripe"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/tui"
 )
@@ -27,34 +27,34 @@ func invoices(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	return printInvoices(ctx, tui.New(os.Stdout), sc, cmd.RequireString("customer"))
+	return printInvoicesFromSummaries(ctx, tui.New(os.Stdout), sc, cmd.RequireString("customer"))
 }
 
 func printInvoices(ctx context.Context, out *tui.Renderer, sc *stripesdk.Client, customerID string) error {
-	list := sc.V1Invoices.List(ctx, &stripesdk.InvoiceListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(5)},
-		Customer:   stripesdk.String(customerID),
-	})
-	count := 0
-	for invoice, err := range list.All(ctx) {
-		if err != nil {
-			return fmt.Errorf("list invoices: %w", err)
-		}
-		count++
+	return printInvoicesFromSummaries(ctx, out, sc, customerID)
+}
+
+func printInvoicesFromSummaries(ctx context.Context, out *tui.Renderer, sc *stripesdk.Client, customerID string) error {
+	invoices, err := devstripe.ListInvoices(ctx, sc, customerID)
+	if err != nil {
+		return err
+	}
+	if len(invoices) == 0 {
+		out.Println("No invoices yet.")
+		return nil
+	}
+	for _, invoice := range invoices {
 		out.Blank()
 		out.Printf("%s  %s  %.2f %s\n",
 			out.Bold(invoice.ID), invoiceStatusLabel(out, invoice.Status), float64(invoice.Total)/100, invoice.Currency)
 		out.KV().Indent(2).
-			Add("period", formatTime(invoice.PeriodStart)+" -> "+formatTime(invoice.PeriodEnd)).
+			Add("period", devstripe.FormatTime(invoice.PeriodStart)+" -> "+devstripe.FormatTime(invoice.PeriodEnd)).
 			AddIf("hosted", out.Cyan(invoice.HostedInvoiceURL)).
 			AddIf("pdf", out.Cyan(invoice.InvoicePDF)).
 			Print()
 		if invoice.InvoicePDF == "" && invoice.Status == stripesdk.InvoiceStatusDraft {
 			out.Println(out.Dim("  draft: advance the clock ~2h further to finalize"))
 		}
-	}
-	if count == 0 {
-		out.Println("No invoices yet.")
 	}
 	return nil
 }

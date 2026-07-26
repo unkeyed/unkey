@@ -1,0 +1,605 @@
+package seed
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/uid"
+)
+
+// LocalParams configures a local development database seed.
+type LocalParams struct {
+	DatabasePrimary string
+	Slug            string
+	OrgID           string
+	CtrlURL         string
+	APIKey          string
+	Output          string
+	Portal          bool
+}
+
+// LocalResult summarizes a completed local seed.
+type LocalResult struct {
+	WorkspaceID string
+	ProjectID   string
+	APIID       string
+	KeySpaceID  string
+	RootKey     string
+	OutputPath  string
+}
+
+// SeedLocal seeds workspace, project, environment, API, and root key for local development.
+func SeedLocal(ctx context.Context, params LocalParams) (LocalResult, error) {
+	var result LocalResult
+	database, err := db.New(db.Config{
+		PrimaryDSN:  params.DatabasePrimary,
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
+	})
+	if err != nil {
+		return result, fmt.Errorf("failed to connect to MySQL: %w", err)
+	}
+
+	keyService, err := keys.New(keys.Config{
+		DB:           db.ToMySQL(database),
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Region:       "local",
+		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
+		KeyCache:     nil,
+	})
+	if err != nil {
+		return result, fmt.Errorf("failed to create key service: %w", err)
+	}
+
+	slug := params.Slug
+	orgID := params.OrgID
+	now := time.Now().UnixMilli()
+
+	titleCase := strings.ToUpper(slug[:1]) + slug[1:]
+	workspaceID := fmt.Sprintf("ws_%s", slug)
+	workspaceName := fmt.Sprintf("Org %s", titleCase)
+
+	projectID := uid.New(uid.ProjectPrefix)
+	projectSlug := fmt.Sprintf("%s-api", slug)
+	projectName := fmt.Sprintf("%s API", titleCase)
+	appID := uid.New(uid.AppPrefix)
+	rootWorkspaceID := "ws_unkey"
+	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
+	rootApiID := "api_unkey"
+	userKeySpaceID := fmt.Sprintf("ks_%s", slug)
+	userApiID := fmt.Sprintf("api_%s", slug)
+
+	rootKeyID := uid.New(uid.KeyPrefix)
+	keyResult, err := keyService.CreateKey(ctx, keys.CreateKeyRequest{
+		Prefix:     "unkey",
+		ByteLength: 16,
+	})
+	if err != nil {
+		return result, fmt.Errorf("failed to generate root key: %w", err)
+	}
+
+	// Create project via control plane API
+	logger.Info("creating project via control plane API",
+		"workspace", workspaceID,
+		"name", projectName,
+		"slug", projectSlug,
+	)
+
+	previewEnvID := uid.New(uid.EnvironmentPrefix)
+	productionEnvID := uid.New(uid.EnvironmentPrefix)
+	regionID := uid.New(uid.RegionPrefix)
+	portalConfigID := fmt.Sprintf("portal_%s", slug)
+
+	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
+		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
+			{
+				ID:           workspaceID,
+				OrgID:        orgID,
+				Name:         workspaceName,
+				Slug:         slug,
+				CreatedAtM:   now,
+				Tier:         sql.NullString{String: "Free", Valid: true},
+				BetaFeatures: json.RawMessage(`{}`),
+			},
+			{
+				ID:           rootWorkspaceID,
+				OrgID:        fmt.Sprintf("user_%s", slug),
+				Name:         "Unkey",
+				Slug:         fmt.Sprintf("unkey-%s", slug),
+				CreatedAtM:   now,
+				Tier:         sql.NullString{String: "Free", Valid: true},
+				BetaFeatures: json.RawMessage(`{}`),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create workspaces: %w", err)
+		}
+
+		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
+			ID:               projectID,
+			WorkspaceID:      workspaceID,
+			Name:             projectName,
+			Slug:             projectSlug,
+			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+			CreatedAt:        time.Now().UnixMilli(),
+			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+		})
+		if err != nil {
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create project: %w", err)
+			}
+			existing, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+				WorkspaceID: workspaceID,
+				Project:     projectSlug,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing project: %w", err)
+			}
+			projectID = existing.ID
+		}
+
+		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
+			{
+				ID:               appID,
+				WorkspaceID:      workspaceID,
+				ProjectID:        projectID,
+				Name:             projectName,
+				Slug:             "default",
+				DefaultBranch:    "main",
+				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+			},
+		})
+		if err != nil {
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create apps: %w", err)
+			}
+			existing, err := db.Query.FindAppByProjectAndSlug(ctx, tx, db.FindAppByProjectAndSlugParams{
+				ProjectID: projectID,
+				Slug:      "default",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing app: %w", err)
+			}
+			appID = existing.App.ID
+		}
+
+		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
+			{
+				ID:          previewEnvID,
+				WorkspaceID: workspaceID,
+				ProjectID:   projectID,
+				AppID:       appID,
+				Slug:        "preview",
+				Description: "",
+				CreatedAt:   time.Now().UnixMilli(),
+				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+			}, {
+				ID:          productionEnvID,
+				WorkspaceID: workspaceID,
+				ProjectID:   projectID,
+				AppID:       appID,
+				Slug:        "production",
+				Description: "",
+				CreatedAt:   time.Now().UnixMilli(),
+				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+			},
+		})
+		if err != nil {
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create environments: %w", err)
+			}
+			previewEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "preview",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing preview environment: %w", err)
+			}
+			previewEnvID = previewEnv.Environment.ID
+			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "production",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing production environment: %w", err)
+			}
+			productionEnvID = productionEnv.Environment.ID
+		}
+
+		// Create default runtime settings for each environment
+		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
+			{
+				WorkspaceID:      workspaceID,
+				AppID:            appID,
+				EnvironmentID:    previewEnvID,
+				Port:             8080,
+				CpuMillicores:    250,
+				MemoryMib:        256,
+				StorageMib:       0,
+				Command:          dbtype.StringSlice{},
+				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				SentinelConfig:   []byte{},
+				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
+				OpenapiSpecPath:  sql.NullString{Valid: true, String: "/openapi.yaml"},
+			},
+			{
+				WorkspaceID:      workspaceID,
+				AppID:            appID,
+				EnvironmentID:    productionEnvID,
+				Port:             8080,
+				CpuMillicores:    250,
+				MemoryMib:        256,
+				StorageMib:       0,
+				Command:          dbtype.StringSlice{},
+				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				SentinelConfig:   []byte{},
+				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
+				OpenapiSpecPath:  sql.NullString{Valid: true, String: "/openapi.yaml"},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create runtime settings: %w", err)
+		}
+
+		// Create default build settings for each environment
+		err = db.BulkQuery.UpsertAppBuildSettings(ctx, tx, []db.UpsertAppBuildSettingsParams{
+			{
+				WorkspaceID:   workspaceID,
+				AppID:         appID,
+				EnvironmentID: previewEnvID,
+				Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
+				DockerContext: ".",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
+				WatchPaths:    nil,
+				AutoDeploy:    true,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+			{
+				WorkspaceID:   workspaceID,
+				AppID:         appID,
+				EnvironmentID: productionEnvID,
+				Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
+				DockerContext: ".",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
+				WatchPaths:    nil,
+				AutoDeploy:    true,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create build settings: %w", err)
+		}
+
+		// Create local region (no-op if Krane's heartbeat already inserted it)
+		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
+			ID:       regionID,
+			Name:     "local",
+			Platform: "dev",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create region: %w", err)
+		}
+
+		// The upsert is a no-op on duplicate (name, platform), so the existing row keeps
+		// its original ID. We must read back the actual ID to use in regional settings.
+		existingRegion, err := db.Query.FindRegionByPlatformAndName(ctx, tx, db.FindRegionByPlatformAndNameParams{
+			Platform: "dev",
+			Name:     "local",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to find region after upsert: %w", err)
+		}
+		regionID = existingRegion.ID
+
+		// Create regional settings so deployments work without manually saving each environment
+		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
+			{
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 previewEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
+			},
+			{
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 productionEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create regional settings: %w", err)
+		}
+
+		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
+			{
+				WorkspaceID:            workspaceID,
+				RequestsPerMonth:       150000,
+				AuditLogsRetentionDays: 30,
+				LogsRetentionDays:      7,
+				Team:                   false,
+				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+			},
+			{
+				WorkspaceID:            rootWorkspaceID,
+				RequestsPerMonth:       150000,
+				AuditLogsRetentionDays: 30,
+				LogsRetentionDays:      7,
+				Team:                   false,
+				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create quotas: %w", err)
+		}
+
+		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{
+			{
+				ID:                 rootKeySpaceID,
+				WorkspaceID:        rootWorkspaceID,
+				CreatedAtM:         now,
+				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
+				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
+				StoreEncryptedKeys: false,
+			},
+			{
+				ID:                 userKeySpaceID,
+				WorkspaceID:        workspaceID,
+				CreatedAtM:         now,
+				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
+				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
+				StoreEncryptedKeys: true,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create key spaces: %w", err)
+		}
+
+		err = db.BulkQuery.InsertApis(ctx, tx, []db.InsertApiParams{
+			{
+				ID:          rootApiID,
+				Name:        "Unkey",
+				WorkspaceID: rootWorkspaceID,
+				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+				IpWhitelist: sql.NullString{},
+				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
+				CreatedAtM:  now,
+			},
+			{
+				ID:          userApiID,
+				Name:        fmt.Sprintf("%s API", titleCase),
+				WorkspaceID: workspaceID,
+				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+				IpWhitelist: sql.NullString{},
+				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
+				CreatedAtM:  now,
+			},
+		})
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return fmt.Errorf("failed to create APIs: %w", err)
+		}
+
+		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
+			ID:                 rootKeyID,
+			KeySpaceID:         rootKeySpaceID,
+			Hash:               keyResult.Hash,
+			Start:              keyResult.Start,
+			WorkspaceID:        rootWorkspaceID,
+			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
+			Name:               sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},
+			IdentityID:         sql.NullString{},
+			Meta:               sql.NullString{},
+			Expires:            sql.NullTime{},
+			CreatedAtM:         now,
+			Enabled:            true,
+			RemainingRequests:  sql.NullInt64{},
+			RefillDay:          sql.NullInt16{},
+			RefillAmount:       sql.NullInt64{},
+			PendingMigrationID: sql.NullString{},
+		})
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return fmt.Errorf("failed to create root key: %w", err)
+		}
+
+		allPermissions := []string{
+			"api.*.create_api",
+			"api.*.read_api",
+			"api.*.delete_api",
+			"api.*.create_key",
+			"api.*.read_key",
+			"api.*.update_key",
+			"api.*.delete_key",
+			"api.*.verify_key",
+			"api.*.decrypt_key",
+			"api.*.encrypt_key",
+			"api.*.read_analytics",
+			"identity.*.create_identity",
+			"identity.*.read_identity",
+			"identity.*.update_identity",
+			"identity.*.delete_identity",
+			"rbac.*.create_permission",
+			"rbac.*.read_permission",
+			"rbac.*.delete_permission",
+			"rbac.*.create_role",
+			"rbac.*.read_role",
+			"rbac.*.delete_role",
+			"rbac.*.add_permission_to_key",
+			"rbac.*.remove_permission_from_key",
+			"rbac.*.add_role_to_key",
+			"rbac.*.remove_role_from_key",
+			"ratelimit.*.create_namespace",
+			"ratelimit.*.limit",
+			"ratelimit.*.read_override",
+			"ratelimit.*.set_override",
+			"workspace.*.read_workspace",
+			"environment.*.create_deployment",
+			"environment.*.read_deployment",
+			"project.*.generate_upload_url",
+			"project.*.create_deployment",
+			"project.*.read_deployment",
+		}
+
+		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))
+		permissionIDs := make([]string, len(allPermissions))
+		for i, perm := range allPermissions {
+			permID := uid.New(uid.PermissionPrefix)
+			permissionIDs[i] = permID
+			permissionParams[i] = db.InsertPermissionParams{
+				PermissionID: permID,
+				WorkspaceID:  rootWorkspaceID,
+				Name:         perm,
+				Slug:         perm,
+				Description:  dbtype.NullString{Valid: false, String: ""},
+				CreatedAtM:   now,
+			}
+		}
+
+		err = db.BulkQuery.InsertPermissions(ctx, tx, permissionParams)
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return fmt.Errorf("failed to insert permissions: %w", err)
+		}
+
+		keyPermissionParams := make([]db.InsertKeyPermissionParams, len(allPermissions))
+		for i := range allPermissions {
+			keyPermissionParams[i] = db.InsertKeyPermissionParams{
+				KeyID:        rootKeyID,
+				PermissionID: permissionIDs[i],
+				WorkspaceID:  rootWorkspaceID,
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{},
+			}
+		}
+
+		err = db.BulkQuery.InsertKeyPermissions(ctx, tx, keyPermissionParams)
+		if err != nil && !db.IsDuplicateKeyError(err) {
+			return fmt.Errorf("failed to insert key permissions: %w", err)
+		}
+
+		// Optionally seed portal configuration and branding.
+		if params.Portal {
+			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
+				ID:          portalConfigID,
+				WorkspaceID: workspaceID,
+				Slug:        "awesome",
+				AppID:       sql.NullString{Valid: true, String: appID},
+				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:     true,
+				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
+				CreatedAt:   now,
+				UpdatedAt:   sql.NullInt64{},
+			})
+			if err != nil && !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create portal config: %w", err)
+			}
+
+			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
+				PortalConfigID: portalConfigID,
+				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create portal branding: %w", err)
+			}
+
+			logger.Info("portal seeded", "portalConfigId", portalConfigID)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return result, err
+	}
+
+	logger.Info("project created successfully", "id", projectID)
+
+	// Write environment file with generated values
+	if outputFile := params.Output; outputFile != "" {
+		envContent := fmt.Sprintf(`# Generated by: unkey dev seed local --slug=%s
+# Source this file or copy values to your .env
+
+UNKEY_WORKSPACE_ID=%s
+UNKEY_PROJECT_ID=%s
+UNKEY_API_ID=%s
+UNKEY_KEYSPACE_ID=%s
+UNKEY_ROOT_KEY=%s
+`,
+			slug,
+			workspaceID,
+			projectID,
+			userApiID,
+			userKeySpaceID,
+			keyResult.Key,
+		)
+
+		if params.Portal {
+			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+		}
+
+		// Ensure directory exists
+		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return result, fmt.Errorf("failed to create output directory: %w", err)
+			}
+		}
+
+		if err := os.WriteFile(outputFile, []byte(envContent), 0o600); err != nil {
+			return result, fmt.Errorf("failed to write output file: %w", err)
+		}
+		logger.Info("wrote environment file", "path", outputFile)
+	}
+
+	logger.Info("seed completed",
+		"workspace", workspaceID,
+		"project", projectID,
+		"preview_environment", previewEnvID,
+		"production_environment", productionEnvID,
+		"api", userApiID,
+		"keySpace", userKeySpaceID,
+		"rootKey", keyResult.Key,
+	)
+
+	result = LocalResult{
+		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
+		APIID:       userApiID,
+		KeySpaceID:  userKeySpaceID,
+		RootKey:     keyResult.Key,
+		OutputPath:  params.Output,
+	}
+	return result, nil
+}
