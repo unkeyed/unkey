@@ -606,6 +606,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Environment: "",
 		Meta:        metaBytes,
 		Deleted:     false,
@@ -656,6 +657,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 		Pk:          0, // db internal
 		ID:          roleID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Name:        req.Name,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
@@ -773,6 +775,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Pk:          0, // db internal
 		ID:          permissionID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   "",
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},

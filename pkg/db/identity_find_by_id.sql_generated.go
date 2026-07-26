@@ -10,7 +10,7 @@ import (
 )
 
 const findIdentityByID = `-- name: FindIdentityByID :one
-SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
 FROM identities
 WHERE workspace_id = ?
   AND id = ?
@@ -25,7 +25,7 @@ type FindIdentityByIDParams struct {
 
 // FindIdentityByID
 //
-//	SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+//	SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
 //	FROM identities
 //	WHERE workspace_id = ?
 //	  AND id = ?
@@ -38,6 +38,7 @@ func (q *Queries) FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentit
 		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Environment,
 		&i.Meta,
 		&i.Deleted,

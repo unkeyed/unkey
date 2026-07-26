@@ -472,6 +472,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Slug:        requestedSlug,
 						CreatedAtM:  now,
 						WorkspaceID: principal.WorkspaceID,
+						ProjectID:   "",
 						Description: dbtype.NullString{String: "", Valid: false},
 						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
 					})
