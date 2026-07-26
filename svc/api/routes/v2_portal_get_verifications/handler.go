@@ -47,7 +47,7 @@ func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string { return "/v2/portal.getVerifications" }
 
 // Handle returns a verification timeseries scoped to the portal session's
-// external identity.
+// external identity and configured keyspaces.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -55,6 +55,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	externalID, err := portalscope.ExternalID(s)
+	if err != nil {
+		return err
+	}
+	keyspaceIDs, err := portalscope.KeyspaceIDs(s)
 	if err != nil {
 		return err
 	}
@@ -107,6 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 		WorkspaceID: principal.WorkspaceID,
 		ExternalID:  externalID,
+		KeyspaceIDs: keyspaceIDs,
 		KeyID:       ptr.SafeDeref(req.KeyId),
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,
