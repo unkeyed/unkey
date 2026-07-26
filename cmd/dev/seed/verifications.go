@@ -357,6 +357,7 @@ func (s *Seeder) createIdentitiesBatched(ctx context.Context, workspaceID string
 			ID:          identityID,
 			ExternalID:  externalID,
 			WorkspaceID: workspaceID,
+			ProjectID:   "",
 			Environment: "default",
 			CreatedAt:   now,
 			Meta:        []byte(`{}`),

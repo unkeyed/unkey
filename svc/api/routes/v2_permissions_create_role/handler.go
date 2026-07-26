@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -73,10 +74,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 5. Create role in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return resolveErr
+		}
+
 		// Insert the role
 		err = db.Query.InsertRole(ctx, tx, db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   projectID,
 			Name:        req.Name,
 			Description: sql.NullString{Valid: description != "", String: description},
 			CreatedAt:   time.Now().UnixMilli(),

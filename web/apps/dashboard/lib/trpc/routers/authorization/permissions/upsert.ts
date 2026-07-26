@@ -1,5 +1,6 @@
 import { permissionSchema } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
+import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { and, db, eq, schema } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -126,6 +127,7 @@ export const upsertPermission = workspaceProcedure
           },
         });
       } else {
+        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
         // Create mode - check for both name and slug conflicts
         const [nameConflict, slugConflict] = await Promise.all([
           await tx.query.permissions.findFirst({
@@ -161,6 +163,7 @@ export const upsertPermission = workspaceProcedure
             slug: input.slug,
             description: input.description,
             workspaceId: ctx.workspace.id,
+            projectId,
           })
           .catch(() => {
             throw new TRPCError({

@@ -707,12 +707,14 @@ type Querier interface {
 	//      id,
 	//      name,
 	//      workspace_id,
+	//      project_id,
 	//      auth_type,
 	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1048,10 +1050,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1193,6 +1197,7 @@ type Querier interface {
 	//  INSERT INTO `key_auth` (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      store_encrypted_keys,
 	//      default_prefix,
@@ -1202,7 +1207,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//        ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1215,12 +1221,14 @@ type Querier interface {
 	//  INSERT INTO permissions (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1248,11 +1256,13 @@ type Querier interface {
 	//  INSERT INTO roles (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,

@@ -363,6 +363,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 rootKeySpaceID,
 				WorkspaceID:        rootWorkspaceID,
+				ProjectID:          "",
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -371,6 +372,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 userKeySpaceID,
 				WorkspaceID:        workspaceID,
+				ProjectID:          "",
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -386,6 +388,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          rootApiID,
 				Name:        "Unkey",
 				WorkspaceID: rootWorkspaceID,
+				ProjectID:   "",
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
@@ -395,6 +398,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          userApiID,
 				Name:        fmt.Sprintf("%s API", titleCase),
 				WorkspaceID: workspaceID,
+				ProjectID:   "",
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
@@ -473,6 +477,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			permissionParams[i] = db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  rootWorkspaceID,
+				ProjectID:    "",
 				Name:         perm,
 				Slug:         perm,
 				Description:  dbtype.NullString{Valid: false, String: ""},

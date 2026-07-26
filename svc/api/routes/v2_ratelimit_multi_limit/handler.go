@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -312,6 +313,11 @@ func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names [
 
 func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principal *principal.Principal, names []string) (map[string]db.FindRatelimitNamespace, error) {
 	created, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[string]db.FindRatelimitNamespace, error) {
+		projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+
 		now := time.Now().UnixMilli()
 		result := make(map[string]db.FindRatelimitNamespace, len(names))
 
@@ -326,6 +332,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 			insertParams[i] = db.InsertRatelimitNamespaceParams{
 				ID:          id,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Name:        name,
 				CreatedAt:   now,
 			}

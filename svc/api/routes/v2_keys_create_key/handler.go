@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 type (
@@ -249,6 +250,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// keys.id unique index can be recovered by regenerating the ID.
 		keyID = uid.New(uid.KeyPrefix)
 		return db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			projectID := api.ProjectID
+			if projectID == "" {
+				projectID, err = projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+				if err != nil {
+					return err
+				}
+			}
+
 			insertKeyParams := db.InsertKeyParams{
 				ID:                 keyID,
 				KeySpaceID:         api.KeyAuthID.String,
@@ -282,6 +291,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   projectID,
 					Environment: "default",
 					CreatedAt:   now,
 					Meta:        []byte("{}"),
@@ -459,6 +469,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 						PermissionID: newPermID,
 						WorkspaceID:  principal.WorkspaceID,
+						ProjectID:    projectID,
 						Name:         requestedSlug,
 						Slug:         requestedSlug,
 						Description:  dbtype.NullString{String: "", Valid: false},
@@ -472,7 +483,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Slug:        requestedSlug,
 						CreatedAtM:  now,
 						WorkspaceID: principal.WorkspaceID,
-						ProjectID:   "",
+						ProjectID:   projectID,
 						Description: dbtype.NullString{String: "", Valid: false},
 						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
 					})
