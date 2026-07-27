@@ -1,7 +1,7 @@
 import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { and, db, eq, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import type { Transaction } from "@unkey/db";
@@ -269,7 +269,7 @@ export const upsertRole = workspaceProcedure
           correlationId,
         });
       } else {
-        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
+        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         // Create mode - always check for name conflicts
         const nameConflict = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>

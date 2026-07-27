@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { db, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -24,7 +24,7 @@ export const createPermission = workspaceProcedure
     const permissionId = newId("permission");
     await db
       .transaction(async (tx) => {
-        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
+        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         const existing = await tx.query.permissions.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),

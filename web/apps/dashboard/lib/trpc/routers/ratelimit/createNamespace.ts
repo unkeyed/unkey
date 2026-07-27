@@ -2,8 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { db, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { newId } from "@unkey/id";
 import { workspaceProcedure } from "../../trpc";
 export const createNamespace = workspaceProcedure
@@ -16,7 +16,7 @@ export const createNamespace = workspaceProcedure
     const namespaceId = newId("ratelimitNamespace");
     await db
       .transaction(async (tx) => {
-        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
+        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         await tx.insert(schema.ratelimitNamespaces).values({
           id: namespaceId,
           name: input.name,

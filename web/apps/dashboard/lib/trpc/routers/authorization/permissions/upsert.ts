@@ -1,7 +1,7 @@
 import { permissionSchema } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { resolveDefaultProjectId } from "@/lib/projects/resolve-default-project-id";
 import { and, db, eq, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -127,7 +127,7 @@ export const upsertPermission = workspaceProcedure
           },
         });
       } else {
-        const projectId = await resolveDefaultProjectId(tx, ctx.workspace.id);
+        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         // Create mode - check for both name and slug conflicts
         const [nameConflict, slugConflict] = await Promise.all([
           await tx.query.permissions.findFirst({
