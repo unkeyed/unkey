@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -212,15 +211,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		projectID := key.Api.ProjectID
-		if projectID == "" {
-			projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-			if err != nil {
-				return err
-			}
-		}
 		for i := range permissionsToInsert {
-			permissionsToInsert[i].ProjectID = projectID
+			permissionsToInsert[i].ProjectID = key.Api.ProjectID
 		}
 
 		var auditLogs []auditlog.AuditLog

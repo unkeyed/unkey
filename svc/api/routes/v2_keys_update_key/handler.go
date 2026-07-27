@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -115,12 +114,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	txErr := db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		projectID := key.Api.ProjectID
-		if projectID == "" {
-			projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-			if err != nil {
-				return err
-			}
-		}
 
 		auditLogs := []auditlog.AuditLog{}
 

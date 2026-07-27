@@ -30,7 +30,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 type (
@@ -251,12 +250,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keyID = uid.New(uid.KeyPrefix)
 		return db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			projectID := api.ProjectID
-			if projectID == "" {
-				projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-				if err != nil {
-					return err
-				}
-			}
 
 			insertKeyParams := db.InsertKeyParams{
 				ID:                 keyID,
