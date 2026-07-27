@@ -120,7 +120,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	var projectID string
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		var resolveErr error
+		projectID, resolveErr = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		return resolveErr
+	})
 	if err != nil {
 		return err
 	}
