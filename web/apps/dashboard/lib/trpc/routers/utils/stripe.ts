@@ -146,18 +146,10 @@ export const stripeErrorCode = (error: StripeError): TRPCError["code"] => {
   return "INTERNAL_SERVER_ERROR";
 };
 
-// Legacy helper: surfaces Stripe's own text, which names the objects involved
-// and, on auth failures, an identifying key. New code must use
-// [throwRedactedStripeError] or [throwMaskedStripeError] instead.
-export const handleStripeError = (error: StripeError): never => {
-  throw new TRPCError({
-    code: stripeErrorCode(error),
-    message: `Stripe error: ${error.message}`,
-  });
-};
-
-const STRIPE_REQUEST_FAILED =
-  "The billing provider rejected the request. Please try again or contact support@unkey.com if this issue persists.";
+// Deliberately carries no "contact support" line. Callers own that: the ones
+// that render this to a user append it themselves, and a message that already
+// had it forced them to sniff the prose to avoid printing it twice.
+const STRIPE_REQUEST_FAILED = "The billing provider rejected the request. Please try again.";
 
 /**
  * Answers with `message` and Stripe's mapped status, keeping Stripe's own text

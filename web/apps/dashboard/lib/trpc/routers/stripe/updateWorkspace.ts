@@ -70,8 +70,8 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
       .catch((err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the workspace Stripe customer. Please try again or contact support@unkey.com",
+          // No "contact support" line: /success appends one when it renders.
+          message: "We are unable to update the workspace Stripe customer. Please try again.",
           cause: err,
         });
       });

@@ -7,6 +7,20 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
 
+const SUPPORT_SUFFIX = "Please contact support@unkey.com if this issue persists.";
+
+const endWithPunctuation = (message: string): string => {
+  return /[.!?]$/.test(message) ? message : `${message}.`;
+};
+
+// Prepends the failed billing step, since server messages are phrased without
+// knowing the caller ("Workspace not found.") and do not say which step broke.
+const toUserFacingError = (error: unknown, context: string): string => {
+  const detail = error instanceof Error ? error.message : "Unknown error";
+
+  return `${context}: ${endWithPunctuation(detail)} ${SUPPORT_SUFFIX}`;
+};
+
 type ProcessedData = {
   workspaceSlug?: string;
   showPlanSelection?: boolean;
@@ -126,8 +140,7 @@ function SuccessContent() {
               return;
             }
             if (!entitled) {
-              const errorMessage = error instanceof Error ? error.message : "Unknown error";
-              setError(`Failed to activate your Compute plan: ${errorMessage}`);
+              setError(toUserFacingError(error, "Failed to activate your Compute plan"));
               setLoading(false);
               return;
             }
@@ -189,16 +202,14 @@ function SuccessContent() {
             return;
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update customer with payment method:", {
-            error: errorMessage,
+            error: error instanceof Error ? error.message : "Unknown error",
             hasPaymentMethod: !!setupIntent.payment_method,
           });
           if (!isMounted) {
             return;
           }
-          // Already redacted and user-facing; do not re-wrap.
-          setError(error instanceof Error ? error.message : "Failed to set up the payment method");
+          setError(toUserFacingError(error, "Failed to set up the payment method"));
           setLoading(false);
           return;
         }
@@ -220,14 +231,13 @@ function SuccessContent() {
           await trpcUtils.stripe.invalidate();
           await trpcUtils.billing.invalidate();
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update workspace with payment method:", {
-            error: errorMessage,
+            error: error instanceof Error ? error.message : "Unknown error",
           });
           if (!isMounted) {
             return;
           }
-          setError("Failed to update workspace with payment information");
+          setError(toUserFacingError(error, "Failed to update workspace with payment information"));
           setLoading(false);
           return;
         }
@@ -275,7 +285,7 @@ function SuccessContent() {
         if (!isMounted) {
           return;
         }
-        setError("Failed to process payment session");
+        setError(toUserFacingError(error, "Failed to process payment session"));
         setLoading(false);
       }
     };
@@ -307,9 +317,7 @@ function SuccessContent() {
     return (
       <Empty>
         <Empty.Title>Payment Processing Error</Empty.Title>
-        <Empty.Description>
-          {error}. Please contact support@unkey.com if this issue persists.
-        </Empty.Description>
+        <Empty.Description>{error}</Empty.Description>
       </Empty>
     );
   }
