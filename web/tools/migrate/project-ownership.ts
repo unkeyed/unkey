@@ -46,12 +46,12 @@ async function main() {
         `Migrating workspace ${workspace.id} (${currentWorkspace}/${totalWorkspaces}, ${((currentWorkspace / totalWorkspaces) * 100).toFixed(1)}%)`,
       );
       const project = await db.query.projects.findFirst({
-        columns: { id: true, slug: true },
+        columns: { id: true },
         where: (table, { eq }) =>
           and(eq(table.workspaceId, workspace.id), eq(table.slug, "default")),
       });
 
-      let projectId = project?.slug === "default" ? project.id : undefined;
+      let projectId = project?.id;
       if (!projectId) {
         projectId = newId("project");
         await db.insert(schema.projects).values({
