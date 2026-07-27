@@ -32,7 +32,8 @@ export class Analytics extends ClientSDK {
    * Query key verification data
    *
    * @remarks
-   * Execute custom SQL queries against your key verification analytics.
+   * Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, and EXCEPT are supported.
+   * Queries must use one of the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
    * Queries are always restricted to the authenticated workspace. Wildcard analytics permission can read every API in that workspace; API-scoped permissions automatically restrict results to the permitted APIs.
    * For complete documentation including available tables, columns, data types, query examples, see the schema reference in the API documentation.
    */
