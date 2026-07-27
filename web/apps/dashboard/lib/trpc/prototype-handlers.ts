@@ -4,12 +4,12 @@ import type {
   Scenario,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/mock-data";
 import {
-  hashCode,
-  loadWorlds,
   type MockKey,
-  mulberry32,
   SCENARIO_STORAGE_KEY,
   type World,
+  hashCode,
+  loadWorlds,
+  mulberry32,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
 import type { inferRouterOutputs } from "@trpc/server";
 import { PASS, type PrototypeHandlers } from "./prototype-link";
@@ -23,6 +23,55 @@ import type { Router } from "./routers";
 type Outputs = inferRouterOutputs<Router>;
 
 const WORKSPACE_ID = "ws_prototype";
+
+// Matches the local seed's slug so links copied between localhost and a preview
+// deployment resolve to the same routes.
+const WORKSPACE_SLUG = "test1202101";
+
+// Only used when the real workspace query fails. Beta features are all on so the
+// nav renders in full; quotas are generous so nothing reads as over-limit.
+function fakeWorkspace(): Outputs["workspace"]["getCurrent"] {
+  const now = Date.now();
+  return {
+    pk: 1,
+    id: WORKSPACE_ID,
+    orgId: "org_prototype",
+    name: "acme-corp",
+    slug: WORKSPACE_SLUG,
+    k8sNamespace: null,
+    tier: "Free",
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    deployPlan: null,
+    deployPlanOverride: null,
+    deploySpendBudgetCents: null,
+    deploySpendBudgetStop: false,
+    betaFeatures: { rbac: true, identities: true, portal: true },
+    subscriptions: null,
+    enabled: true,
+    deleteProtection: false,
+    createdAtM: now,
+    updatedAtM: null,
+    deletedAtM: null,
+    quotas: {
+      pk: 1,
+      workspaceId: WORKSPACE_ID,
+      requestsPerMonth: 10_000_000,
+      logsRetentionDays: 7,
+      auditLogsRetentionDays: 30,
+      team: true,
+      ratelimitApiLimit: null,
+      ratelimitApiDuration: null,
+      allocatedCpuMillicoresTotal: 4000,
+      allocatedMemoryMibTotal: 8192,
+      allocatedStorageMibTotal: 20480,
+      maxCpuMillicoresPerInstance: 1000,
+      maxMemoryMibPerInstance: 2048,
+      maxStorageMibPerInstance: 8192,
+      maxConcurrentBuilds: 3,
+    },
+  };
+}
 const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -1066,6 +1115,13 @@ export const prototypeHandlers: PrototypeHandlers = {
       const fakes = activeWorld().ratelimits.map((rl) => ({ id: rl.id, name: rl.name }));
       return [...fakes, ...realNamespaces];
     },
+
+    // The shell can't render anything without a workspace, and this is a real
+    // database query — on a preview deployment with no database it 500s and the
+    // app sits on "Loading workspace…" forever, so none of the prototype pages
+    // are reachable. Merge rather than replace: the real workspace wins whenever
+    // the query succeeds, so local development is unaffected.
+    "workspace.getCurrent": (_input, real) => real ?? fakeWorkspace(),
   },
 };
 
