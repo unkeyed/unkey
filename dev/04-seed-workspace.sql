@@ -62,14 +62,6 @@ INSERT INTO projects (
   UNIX_TIMESTAMP() * 1000
 ) ON DUPLICATE KEY UPDATE created_at = UNIX_TIMESTAMP() * 1000;
 
-SET @default_project_id = (
-  SELECT id
-  FROM projects
-  WHERE workspace_id = 'ws_local_root'
-    AND BINARY slug = 'default'
-  LIMIT 1
-);
-
 -- Insert root keyspace
 INSERT INTO key_auth (
   id,
@@ -79,7 +71,7 @@ INSERT INTO key_auth (
 ) VALUES (
   'ks_local_root_keys',
   'ws_local_root',
-  @default_project_id,
+  'proj_local_root',
   UNIX_TIMESTAMP() * 1000
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 
@@ -96,7 +88,7 @@ INSERT INTO apis (
   'api_local_root_keys',
   'Unkey',
   'ws_local_root',
-  @default_project_id,
+  'proj_local_root',
   'key',
   'ks_local_root_keys',
   UNIX_TIMESTAMP() * 1000

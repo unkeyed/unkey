@@ -2,16 +2,45 @@ package projects
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// ResolveDefaultID returns the exact default project owned by workspaceID.
-func ResolveDefaultID(ctx context.Context, database db.DBTX, workspaceID string) (string, error) {
-	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, database, workspaceID)
-	if err != nil {
+// EnsureDefaultProject returns the exact default project owned by workspaceID,
+// creating it in the caller's transaction when it does not exist.
+func EnsureDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (string, error) {
+	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, tx, workspaceID)
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsNotFound(err) {
 		return "", fault.Wrap(err, fault.Internal("unable to resolve default project"))
+	}
+
+	projectID = uid.New(uid.ProjectPrefix)
+	err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
+		ID:               projectID,
+		WorkspaceID:      workspaceID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: sql.NullBool{Bool: true, Valid: true},
+		CreatedAt:        time.Now().UnixMilli(),
+		UpdatedAt:        sql.NullInt64{},
+	})
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsDuplicateKeyError(err) {
+		return "", fault.Wrap(err, fault.Internal("unable to create default project"))
+	}
+
+	projectID, err = db.Query.LockDefaultProjectByWorkspaceID(ctx, tx, workspaceID)
+	if err != nil {
+		return "", fault.Wrap(err, fault.Internal("unable to resolve default project after concurrent creation"))
 	}
 
 	return projectID, nil

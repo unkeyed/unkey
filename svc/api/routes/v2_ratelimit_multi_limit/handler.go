@@ -313,7 +313,7 @@ func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names [
 
 func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principal *principal.Principal, names []string) (map[string]db.FindRatelimitNamespace, error) {
 	created, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[string]db.FindRatelimitNamespace, error) {
-		projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return nil, resolveErr
 		}

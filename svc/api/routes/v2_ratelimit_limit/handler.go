@@ -235,7 +235,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 	key := principal.WorkspaceID + ":" + name
 	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
-			projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+			projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 			if resolveErr != nil {
 				return db.FindRatelimitNamespace{}, resolveErr //nolint:exhaustruct
 			}
@@ -259,7 +259,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 
 			if db.IsDuplicateKeyError(insertErr) {
 				// Re-fetch after this transaction closes so a snapshot established by
-				// ResolveDefaultID cannot hide the concurrently committed row.
+				// EnsureDefaultProject cannot hide the concurrently committed row.
 				return db.FindRatelimitNamespace{}, nil //nolint:exhaustruct
 			}
 

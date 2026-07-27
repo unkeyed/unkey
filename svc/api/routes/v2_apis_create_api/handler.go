@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return "", resolveErr
 		}

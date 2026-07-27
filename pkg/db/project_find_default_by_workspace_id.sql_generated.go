@@ -31,3 +31,28 @@ func (q *Queries) FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, 
 	err := row.Scan(&id)
 	return id, err
 }
+
+const lockDefaultProjectByWorkspaceID = `-- name: LockDefaultProjectByWorkspaceID :one
+SELECT id
+FROM projects
+WHERE workspace_id = ?
+  AND BINARY slug = 'default'
+LIMIT 1
+FOR UPDATE
+`
+
+// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
+// observe a default project created after its repeatable-read snapshot.
+//
+//	SELECT id
+//	FROM projects
+//	WHERE workspace_id = ?
+//	  AND BINARY slug = 'default'
+//	LIMIT 1
+//	FOR UPDATE
+func (q *Queries) LockDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error) {
+	row := db.QueryRowContext(ctx, lockDefaultProjectByWorkspaceID, workspaceID)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}

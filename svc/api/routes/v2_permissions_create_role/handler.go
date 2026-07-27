@@ -74,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 5. Create role in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID, resolveErr := projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
 		}
