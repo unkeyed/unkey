@@ -608,7 +608,7 @@ type Querier interface {
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project- and
@@ -1283,7 +1283,6 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      created_at_m,
-	//      tier,
 	//      beta_features,
 	//      enabled,
 	//      delete_protection,
@@ -1295,7 +1294,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      'Free',
 	//      '{}',
 	//      true,
 	//      true,
