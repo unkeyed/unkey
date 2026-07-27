@@ -185,6 +185,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	config := db.PortalConfiguration{
+		Pk:          existing.Pk,
 		ID:          req.ConfigId,
 		WorkspaceID: workspaceID,
 		Slug:        req.Slug,

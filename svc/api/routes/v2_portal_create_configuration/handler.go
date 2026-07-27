@@ -153,7 +153,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Pk is the DB autoincrement, unknown without a read-back and never surfaced
+	// in the response; ToResponse ignores it.
 	config := db.PortalConfiguration{
+		Pk:          0,
 		ID:          configID,
 		WorkspaceID: workspaceID,
 		Slug:        req.Slug,
