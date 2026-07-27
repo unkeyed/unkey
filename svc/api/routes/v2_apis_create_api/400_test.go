@@ -83,8 +83,8 @@ func TestCreateApi_BadRequest(t *testing.T) {
 		// Check that the error message contains information about the name length
 		require.Equal(t, "POST request body for '/v2/apis.createApi' failed to validate schema", res.Body.Error.Detail)
 		require.Greater(t, len(res.Body.Error.Errors), 0)
-		require.Equal(t, "/properties/name/minLength", res.Body.Error.Errors[0].Location)
-		require.Equal(t, "minLength: got 2, want 3", res.Body.Error.Errors[0].Message)
+		require.Equal(t, "body.name", res.Body.Error.Errors[0].Location)
+		require.Equal(t, "must be at least 3 characters long", res.Body.Error.Errors[0].Message)
 	})
 
 	// Test with invalid JSON in request
