@@ -14,11 +14,13 @@ const insertRole = `-- name: InsertRole :exec
 INSERT INTO roles (
   id,
   workspace_id,
+  project_id,
   name,
   description,
   created_at_m
 )
 VALUES (
+  ?,
   ?,
   ?,
   ?,
@@ -30,6 +32,7 @@ VALUES (
 type InsertRoleParams struct {
 	RoleID      string         `db:"role_id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
 	CreatedAt   int64          `db:"created_at"`
@@ -40,11 +43,13 @@ type InsertRoleParams struct {
 //	INSERT INTO roles (
 //	  id,
 //	  workspace_id,
+//	  project_id,
 //	  name,
 //	  description,
 //	  created_at_m
 //	)
 //	VALUES (
+//	  ?,
 //	  ?,
 //	  ?,
 //	  ?,
@@ -55,6 +60,7 @@ func (q *Queries) InsertRole(ctx context.Context, arg InsertRoleParams) error {
 	_, err := q.db.ExecContext(ctx, insertRole,
 		arg.RoleID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Name,
 		arg.Description,
 		arg.CreatedAt,

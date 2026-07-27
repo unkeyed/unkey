@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertPermission is the base query for bulk insert
-const bulkInsertPermission = `INSERT INTO permissions ( id, workspace_id, name, slug, description, created_at_m ) VALUES %s`
+const bulkInsertPermission = `INSERT INTO permissions ( id, workspace_id, project_id, name, slug, description, created_at_m ) VALUES %s`
 
 // InsertPermissions performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertPermissions(ctx context.Context, args []InsertPermis
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertPermission, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertPermissions(ctx context.Context, args []InsertPermis
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.PermissionID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.Description)

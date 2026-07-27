@@ -2,6 +2,7 @@
 INSERT INTO permissions (
   id,
   workspace_id,
+  project_id,
   name,
   slug,
   description,
@@ -10,6 +11,7 @@ INSERT INTO permissions (
 VALUES (
   sqlc.arg(permission_id),
   sqlc.arg(workspace_id),
+  sqlc.arg(project_id),
   sqlc.arg(name),
   sqlc.arg(slug),
   sqlc.arg(description),
