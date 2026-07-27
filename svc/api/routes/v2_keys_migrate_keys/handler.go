@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -114,6 +115,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.WorkspaceID})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -143,8 +149,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// However, all state (maps, slices, generated IDs) must be initialized inside the closure to ensure
 	// retry safety - if the tx fails and retries, we need fresh state to avoid orphaned references from stale IDs.
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID := api.ProjectID
-
 		var hashes []string
 		var identitiesToFind []string
 		var permissionsToFind []string
