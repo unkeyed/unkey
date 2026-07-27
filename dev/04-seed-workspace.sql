@@ -45,14 +45,41 @@ INSERT INTO workspace_billing (
   UNIX_TIMESTAMP() * 1000
 ) ON DUPLICATE KEY UPDATE workspace_id = 'ws_local_root';
 
+-- Insert the root workspace's exact default project
+INSERT INTO projects (
+  id,
+  workspace_id,
+  name,
+  slug,
+  delete_protection,
+  created_at
+) VALUES (
+  'proj_local_root',
+  'ws_local_root',
+  'Default',
+  'default',
+  true,
+  UNIX_TIMESTAMP() * 1000
+) ON DUPLICATE KEY UPDATE created_at = UNIX_TIMESTAMP() * 1000;
+
+SET @default_project_id = (
+  SELECT id
+  FROM projects
+  WHERE workspace_id = 'ws_local_root'
+    AND BINARY slug = 'default'
+  LIMIT 1
+);
+
 -- Insert root keyspace
 INSERT INTO key_auth (
   id,
   workspace_id,
+  project_id,
   created_at_m
 ) VALUES (
   'ks_local_root_keys',
   'ws_local_root',
+  @default_project_id,
   UNIX_TIMESTAMP() * 1000
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 
@@ -61,6 +88,7 @@ INSERT INTO apis (
   id,
   name,
   workspace_id,
+  project_id,
   auth_type,
   key_auth_id,
   created_at_m
@@ -68,6 +96,7 @@ INSERT INTO apis (
   'api_local_root_keys',
   'Unkey',
   'ws_local_root',
+  @default_project_id,
   'key',
   'ks_local_root_keys',
   UNIX_TIMESTAMP() * 1000

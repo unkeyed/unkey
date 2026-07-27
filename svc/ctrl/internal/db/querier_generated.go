@@ -326,6 +326,15 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own

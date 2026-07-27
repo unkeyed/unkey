@@ -25,8 +25,8 @@ LIMIT 1
 //	WHERE workspace_id = ?
 //	  AND BINARY slug = 'default'
 //	LIMIT 1
-func (q *Queries) FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error) {
-	row := db.QueryRowContext(ctx, findDefaultProjectByWorkspaceID, workspaceID)
+func (q *Queries) FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error) {
+	row := q.db.QueryRowContext(ctx, findDefaultProjectByWorkspaceID, workspaceID)
 	var id string
 	err := row.Scan(&id)
 	return id, err

@@ -537,7 +537,8 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
-	//FindDefaultProjectByWorkspaceID
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
 	//  SELECT id
 	//  FROM projects
