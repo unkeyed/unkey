@@ -1,13 +1,8 @@
+import { and, createCommentedPool, drizzle, eq, schema, staticTagsFromEnv } from "@unkey/db";
 import { newId } from "@unkey/id";
-import mysql, { type ResultSetHeader, type RowDataPacket } from "mysql2/promise";
 
-interface WorkspaceRow extends RowDataPacket {
-  id: string;
-}
-
-interface ProjectRow extends RowDataPacket {
-  id: string;
-}
+const WORKSPACE_PAGE_SIZE = 1_000;
+const UPDATE_BATCH_SIZE = 10_000;
 
 async function main() {
   const databaseUrl = process.env.DRIZZLE_DATABASE_URL;
@@ -15,71 +10,170 @@ async function main() {
     throw new Error("DRIZZLE_DATABASE_URL is not set");
   }
 
-  const connection = await mysql.createConnection(databaseUrl);
+  const pool = createCommentedPool(
+    { uri: databaseUrl, connectionLimit: 1 },
+    staticTagsFromEnv("project-ownership-migration"),
+  );
+  const db = drizzle(pool, { schema, mode: "default" });
 
   try {
-    await connection.ping();
-
-    const [workspaces] = await connection.query<WorkspaceRow[]>(
-      "SELECT id FROM workspaces ORDER BY pk",
-    );
-    console.info(`Found ${workspaces.length} workspaces`);
-
     let failures = 0;
+    let processed = 0;
+    let cursor = 0;
 
-    for (const workspace of workspaces) {
-      try {
-        const [projects] = await connection.execute<ProjectRow[]>(
-          "SELECT id FROM projects WHERE workspace_id = ? AND BINARY slug = 'default' LIMIT 1",
-          [workspace.id],
-        );
+    while (true) {
+      const workspaces = await db.query.workspaces.findMany({
+        columns: { id: true, pk: true },
+        where: (table, { gt }) => gt(table.pk, cursor),
+        orderBy: (table, { asc }) => asc(table.pk),
+        limit: WORKSPACE_PAGE_SIZE,
+      });
 
-        let projectId = projects[0]?.id;
-        if (!projectId) {
-          projectId = newId("project");
-          await connection.execute<ResultSetHeader>(
-            "INSERT INTO projects (id, workspace_id, name, slug, delete_protection, created_at) VALUES (?, ?, 'Default', 'default', true, ?)",
-            [projectId, workspace.id, Date.now()],
-          );
-          console.info(`Created default project ${projectId} for workspace ${workspace.id}`);
+      if (workspaces.length === 0) {
+        break;
+      }
+
+      console.info(`Processing ${workspaces.length} workspaces after pk ${cursor}`);
+
+      for (const workspace of workspaces) {
+        try {
+          const project = await db.query.projects.findFirst({
+            columns: { id: true, slug: true },
+            where: (table, { eq }) =>
+              and(eq(table.workspaceId, workspace.id), eq(table.slug, "default")),
+          });
+
+          let projectId = project?.slug === "default" ? project.id : undefined;
+          if (!projectId) {
+            projectId = newId("project");
+            await db.insert(schema.projects).values({
+              id: projectId,
+              workspaceId: workspace.id,
+              name: "Default",
+              slug: "default",
+              deleteProtection: true,
+              createdAt: Date.now(),
+            });
+            console.info(`Created default project ${projectId} for workspace ${workspace.id}`);
+          }
+
+          let apis = 0;
+          while (true) {
+            const result = await db
+              .update(schema.apis)
+              .set({ projectId })
+              .where(and(eq(schema.apis.workspaceId, workspace.id), eq(schema.apis.projectId, "")))
+              .limit(UPDATE_BATCH_SIZE);
+            apis += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          let keyAuth = 0;
+          while (true) {
+            const result = await db
+              .update(schema.keyAuth)
+              .set({ projectId })
+              .where(
+                and(eq(schema.keyAuth.workspaceId, workspace.id), eq(schema.keyAuth.projectId, "")),
+              )
+              .limit(UPDATE_BATCH_SIZE);
+            keyAuth += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          let identities = 0;
+          while (true) {
+            const result = await db
+              .update(schema.identities)
+              .set({ projectId })
+              .where(
+                and(
+                  eq(schema.identities.workspaceId, workspace.id),
+                  eq(schema.identities.projectId, ""),
+                ),
+              )
+              .limit(UPDATE_BATCH_SIZE);
+            identities += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          let roles = 0;
+          while (true) {
+            const result = await db
+              .update(schema.roles)
+              .set({ projectId })
+              .where(
+                and(eq(schema.roles.workspaceId, workspace.id), eq(schema.roles.projectId, "")),
+              )
+              .limit(UPDATE_BATCH_SIZE);
+            roles += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          let permissions = 0;
+          while (true) {
+            const result = await db
+              .update(schema.permissions)
+              .set({ projectId })
+              .where(
+                and(
+                  eq(schema.permissions.workspaceId, workspace.id),
+                  eq(schema.permissions.projectId, ""),
+                ),
+              )
+              .limit(UPDATE_BATCH_SIZE);
+            permissions += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          let ratelimitNamespaces = 0;
+          while (true) {
+            const result = await db
+              .update(schema.ratelimitNamespaces)
+              .set({ projectId })
+              .where(
+                and(
+                  eq(schema.ratelimitNamespaces.workspaceId, workspace.id),
+                  eq(schema.ratelimitNamespaces.projectId, ""),
+                ),
+              )
+              .limit(UPDATE_BATCH_SIZE);
+            ratelimitNamespaces += result[0].affectedRows;
+            if (result[0].affectedRows < UPDATE_BATCH_SIZE) {
+              break;
+            }
+          }
+
+          console.info(`Backfilled workspace ${workspace.id}`, {
+            apis,
+            keyAuth,
+            identities,
+            roles,
+            permissions,
+            ratelimitNamespaces,
+          });
+        } catch (error) {
+          failures++;
+          console.error(`Failed to migrate workspace ${workspace.id}`, error);
         }
+      }
 
-        const [apis] = await connection.execute<ResultSetHeader>(
-          "UPDATE apis SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
-        const [keyAuth] = await connection.execute<ResultSetHeader>(
-          "UPDATE key_auth SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
-        const [identities] = await connection.execute<ResultSetHeader>(
-          "UPDATE identities SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
-        const [roles] = await connection.execute<ResultSetHeader>(
-          "UPDATE roles SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
-        const [permissions] = await connection.execute<ResultSetHeader>(
-          "UPDATE permissions SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
-        const [ratelimitNamespaces] = await connection.execute<ResultSetHeader>(
-          "UPDATE ratelimit_namespaces SET project_id = ? WHERE workspace_id = ? AND project_id = ''",
-          [projectId, workspace.id],
-        );
+      processed += workspaces.length;
+      cursor = workspaces[workspaces.length - 1].pk;
+      console.info(`Processed ${processed} workspaces`);
 
-        console.info(`Backfilled workspace ${workspace.id}`, {
-          apis: apis.affectedRows,
-          keyAuth: keyAuth.affectedRows,
-          identities: identities.affectedRows,
-          roles: roles.affectedRows,
-          permissions: permissions.affectedRows,
-          ratelimitNamespaces: ratelimitNamespaces.affectedRows,
-        });
-      } catch (error) {
-        failures++;
-        console.error(`Failed to migrate workspace ${workspace.id}`, error);
+      if (workspaces.length < WORKSPACE_PAGE_SIZE) {
+        break;
       }
     }
 
@@ -89,7 +183,7 @@ async function main() {
 
     console.info("Project ownership migration complete");
   } finally {
-    await connection.end();
+    await pool.end();
   }
 }
 
