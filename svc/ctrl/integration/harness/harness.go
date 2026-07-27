@@ -153,9 +153,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	start := time.Now()
 
-	// Start the passive backing services in parallel. Restate starts after its
-	// handlers are constructed so the helper can lease their service names and
-	// register the complete worker deployment atomically.
+	// Start the shared backing services in parallel. Restate starts after its
+	// handlers are constructed because it is private to this test and is
+	// registered as one complete worker deployment.
 	var wg sync.WaitGroup
 	var mysqlCfg containers.MySQLConfig
 	var chCfg containers.ClickHouseConfig
@@ -281,8 +281,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
-	// Lease and register every worker service as one Restate deployment.
-	// Use the proto-generated wrappers (same as run.go) to get correct service names.
+	// Register every worker service as one deployment on this test's own
+	// Restate. Use the proto-generated wrappers (same as run.go) to get
+	// correct service names.
 	restateCfg := containers.Restate(t,
 		hydrav1.NewCronServiceServer(cronSvc),
 		// The deploy billing orchestrator (push and close) fans out to this

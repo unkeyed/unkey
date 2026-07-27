@@ -11,7 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRestateResetsServiceBetweenRegistrations(t *testing.T) {
+// TestRestateIsolatesConcurrentRegistrations pins the property the helper
+// exists for. Both subtests register the same service name, under the same
+// object key, at the same time. Sharing one Restate server would route both
+// through whichever worker registered last and share its state, so a marker
+// mismatch or a count above one means isolation broke.
+func TestRestateIsolatesConcurrentRegistrations(t *testing.T) {
+	t.Parallel()
+
 	const (
 		serviceName = "unkey.test.Isolation"
 		handlerName = "increment"
@@ -32,8 +39,10 @@ func TestRestateResetsServiceBetweenRegistrations(t *testing.T) {
 
 	for _, marker := range []string{"first", "second"} {
 		t.Run(marker, func(t *testing.T) {
+			t.Parallel()
+
 			cfg := Restate(t, service(marker))
-			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 
 			response, err := ingress.Object[string, string](
@@ -45,7 +54,13 @@ func TestRestateResetsServiceBetweenRegistrations(t *testing.T) {
 	}
 }
 
-func TestRestateDrainsPendingInvocations(t *testing.T) {
+// TestRestateCleansUpWithInvocationInFlight leaves a handler parked for an hour
+// when the test ends. Cleanup has to remove the container before closing the
+// worker, otherwise it waits on the invocation's still-open request and the
+// test binary hangs instead of finishing.
+func TestRestateCleansUpWithInvocationInFlight(t *testing.T) {
+	t.Parallel()
+
 	const serviceName = "unkey.test.PendingInvocation"
 	service := restate.NewObject(serviceName).
 		Handler("sleep", restate.NewObjectHandler(
@@ -65,51 +80,24 @@ func TestRestateDrainsPendingInvocations(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
-func TestRestateServiceLeasesSerializeOverlappingRegistrations(t *testing.T) {
-	firstRelease, err := acquireRestateServiceLeases([]string{"unkey.test.Lease"})
-	require.NoError(t, err)
-	firstReleased := false
-	defer func() {
-		if !firstReleased {
-			_ = firstRelease()
-		}
-	}()
+func TestIsolatedProjectOwner(t *testing.T) {
+	t.Parallel()
 
-	type leaseResult struct {
-		release func() error
-		err     error
-	}
-	second := make(chan leaseResult, 1)
-	go func() {
-		release, acquireErr := acquireRestateServiceLeases([]string{"unkey.test.Lease"})
-		second <- leaseResult{release: release, err: acquireErr}
-	}()
+	const prefix = "unkey-test-abc123-restate-"
 
-	select {
-	case result := <-second:
-		if result.release != nil {
-			_ = result.release()
-		}
-		require.Fail(t, "overlapping Restate service lease was acquired before its owner released it")
-	case <-time.After(100 * time.Millisecond):
-	}
+	owner, ok := isolatedProjectOwner(prefix+"4242-7", prefix)
+	require.True(t, ok)
+	require.Equal(t, 4242, owner)
 
-	require.NoError(t, firstRelease())
-	firstReleased = true
-	select {
-	case result := <-second:
-		require.NoError(t, result.err)
-		require.NoError(t, result.release())
-	case <-time.After(5 * time.Second):
-		require.Fail(t, "overlapping Restate service lease was not acquired after its owner released it")
-	}
-}
+	_, ok = isolatedProjectOwner("unkey-test-abc123-mysql-1", prefix)
+	require.False(t, ok, "a shared service project must never be reaped")
 
-func TestDeploymentOverlapsMultipleServices(t *testing.T) {
-	deployment := restateDeployment{
-		ID:       "deployment",
-		Services: []restateDeploymentService{{Name: "service.b"}},
-	}
-	require.True(t, deploymentOverlaps(deployment, []string{"service.a", "service.b", "service.c"}))
-	require.False(t, deploymentOverlaps(deployment, []string{"service.c", "service.d"}))
+	_, ok = isolatedProjectOwner("unkey-test-abc123", prefix)
+	require.False(t, ok)
+
+	_, ok = isolatedProjectOwner(prefix+"notapid-1", prefix)
+	require.False(t, ok)
+
+	_, ok = isolatedProjectOwner(prefix+"4242", prefix)
+	require.False(t, ok, "a name without the sequence suffix is not one of ours")
 }
