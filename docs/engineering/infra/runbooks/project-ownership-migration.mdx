@@ -37,10 +37,21 @@ DRIZZLE_DATABASE_URL='<mysql-url>' \
   mise exec -- pnpm --dir=web/tools/migrate project-ownership
 ```
 
-The command processes workspaces sequentially. It logs each created project,
-the affected row counts for each table, and any workspace failures. A failed
-workspace makes the command exit with a non-zero status after the remaining
-workspaces finish.
+The command reads workspaces in pages of 1,000 and processes them sequentially.
+It logs each created project, the affected row counts for each table, and any
+workspace failures. A failed workspace makes the command exit with a non-zero
+status after the remaining workspaces finish.
+
+## Complete the writer rollout
+
+After the first migration pass, deploy the application version that writes a
+non-empty `project_id` when it creates owned resources. Wait until all instances
+running the previous version have stopped.
+
+Run the migration command again after the writer rollout. This second pass
+backfills resources created by an old application instance between the first
+migration pass and the completed rollout. Do not remove the migration command
+until this pass and the ownership verification succeed.
 
 ## Verify ownership
 
@@ -80,6 +91,3 @@ FROM apis a
 INNER JOIN key_auth ka ON ka.id = a.key_auth_id
 WHERE a.project_id != ka.project_id;
 ```
-
-Rerun the migration once after verification. Every affected row count must be
-zero, and the verification queries must produce the same results.
