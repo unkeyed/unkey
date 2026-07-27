@@ -5,6 +5,7 @@ properties:
   sessionId:
     type: string
     minLength: 1
+    x-unkey-redact: true
     description: |
       The session token ID received from `portal.createSession`.
       Must be valid, unexpired, and not previously exchanged.
