@@ -222,7 +222,7 @@
           },
           {
             "group": "Runbooks",
-            "pages": ["infra/runbooks/key-migration", "infra/runbooks/project-ownership-migration"]
+            "pages": ["infra/runbooks/key-migration"]
           },
           {
             "group": "ClickHouse",
