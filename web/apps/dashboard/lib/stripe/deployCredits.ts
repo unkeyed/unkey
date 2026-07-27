@@ -230,7 +230,10 @@ export async function deployIncludedCreditCents(
 ): Promise<number> {
   const nowSeconds = Date.now() / 1000;
   const centsByExpiry = new Map<number, number>();
-  for await (const grant of stripe.billing.creditGrants.list({ customer: customerId, limit: 100 })) {
+  for await (const grant of stripe.billing.creditGrants.list({
+    customer: customerId,
+    limit: 100,
+  })) {
     if (grant.applicability_config?.scope?.price_type !== "metered") {
       continue;
     }

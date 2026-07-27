@@ -7,6 +7,7 @@ import {
   priceDeployMetersCents,
   priceDeployUsageMicroCents,
   projectDeployUsage,
+  sumDeployMeterCents,
 } from "./deployPricing";
 
 describe("priceDeployMetersCents", () => {
@@ -37,6 +38,53 @@ describe("priceDeployMetersCents", () => {
     const partsSum = costs.cpu + costs.memory + costs.egress + costs.disk + costs.activeKeys;
     const gross = priceDeployUsageMicroCents(usage) / MICRO_CENTS_PER_CENT;
     expect(partsSum).toBeCloseTo(gross, 4);
+  });
+});
+
+describe("sumDeployMeterCents", () => {
+  /**
+   * Quantities from a real Stripe invoice preview, whose usage lines rounded to
+   * 794 + 15873 + 265 + 69 cents for a $170.01 subtotal. Rounding each meter
+   * before summing reproduces that; summing the exact amounts and rounding once
+   * lands on $170.00, a cent under the invoice.
+   */
+  const invoiceUsage: DeployUsageQuantities = {
+    cpuSeconds: 1_142_941.51892,
+    memoryGiBHours: 45_717_656.0512 / 3600,
+    diskGiBHours: 11_429_400 / 3600,
+    egressGiB: 52.9138888894,
+    activeKeys: 0,
+  };
+
+  it("rounds each meter before summing, matching the invoice", () => {
+    expect(sumDeployMeterCents(invoiceUsage)).toBe(17_001);
+  });
+
+  it("differs from rounding the exact total once", () => {
+    expect(microCentsToCents(priceDeployUsageMicroCents(invoiceUsage))).toBe(16_999);
+  });
+
+  it("agrees with the per-meter figures shown beside it", () => {
+    const costs = priceDeployMetersCents(invoiceUsage);
+    const shown =
+      Math.round(costs.cpu) +
+      Math.round(costs.memory) +
+      Math.round(costs.egress) +
+      Math.round(costs.disk) +
+      Math.round(costs.activeKeys);
+    expect(sumDeployMeterCents(invoiceUsage)).toBe(shown);
+  });
+
+  it("prices zero usage as zero", () => {
+    expect(
+      sumDeployMeterCents({
+        cpuSeconds: 0,
+        memoryGiBHours: 0,
+        diskGiBHours: 0,
+        egressGiB: 0,
+        activeKeys: 0,
+      }),
+    ).toBe(0);
   });
 });
 

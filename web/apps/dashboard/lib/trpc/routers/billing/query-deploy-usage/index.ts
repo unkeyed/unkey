@@ -1,8 +1,4 @@
-import {
-  microCentsToCents,
-  priceDeployUsageMicroCents,
-  projectDeployUsage,
-} from "@/lib/billing/deployPricing";
+import { projectDeployUsage, sumDeployMeterCents } from "@/lib/billing/deployPricing";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -20,7 +16,10 @@ export const queryDeployUsageResponse = z.object({
   diskGiBHours: z.number(),
   egressGiB: z.number(),
   activeKeys: z.number(),
-  /** Month-to-date gross usage priced locally (cents), same math as the spend-cap worker. */
+  /**
+   * Month-to-date gross usage priced locally (cents), rounded per meter the way
+   * the invoice is, so this matches the usage lines Stripe bills.
+   */
   grossCents: z.number(),
   /**
    * Gross usage projected to the end of the calendar month (cents): month-to-date
@@ -77,21 +76,20 @@ export const queryDeployUsage = workspaceProcedure
         activeKeys: keys.activeKeys,
       };
 
-      const grossMicroCents = priceDeployUsageMicroCents(monthToDate);
-
       const projected = projectDeployUsage(
         monthToDate,
         trailing,
         TRAILING_WINDOW_MS,
         monthEnd - nowMs,
       );
-      const projectedMicroCents = priceDeployUsageMicroCents(projected);
 
+      // Priced per meter and rounded per line, the way the invoice is built, so
+      // the card's estimate matches what Stripe charges. See sumDeployMeterCents.
       return {
         ...meters,
         activeKeys: keys.activeKeys,
-        grossCents: microCentsToCents(grossMicroCents),
-        projectedGrossCents: microCentsToCents(projectedMicroCents),
+        grossCents: sumDeployMeterCents(monthToDate),
+        projectedGrossCents: sumDeployMeterCents(projected),
       };
     } catch (err) {
       console.error("Failed to query deploy usage", err);

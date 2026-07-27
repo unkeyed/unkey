@@ -10,6 +10,15 @@ const SECONDS_PER_HOUR = 3600;
 /** Same fixed-point scale as deploybilling.MicroCentsPerCent. */
 export const MICRO_CENTS_PER_CENT = 1_000_000;
 
+/** Display rates for the billing tooltip; keep in sync with the constants above. */
+export const DEPLOY_METER_RATE_LABELS = [
+  { label: "CPU", rate: "$0.025 / vCPU-hr" },
+  { label: "Memory", rate: "$0.0125 / GiB-hr" },
+  { label: "Egress", rate: "$0.05 / GiB" },
+  { label: "Disk", rate: "$0.00022 / GiB-hr" },
+  { label: "Active keys", rate: "$0.002 / key" },
+] as const;
+
 export type DeployUsageQuantities = {
   cpuSeconds: number;
   memoryGiBHours: number;
@@ -39,6 +48,30 @@ export function priceDeployUsageMicroCents(usage: DeployUsageQuantities): number
 /** Converts micro-cents to whole cents for formatDollars and the spend budget bar. */
 export function microCentsToCents(microCents: number): number {
   return Math.floor(microCents / MICRO_CENTS_PER_CENT);
+}
+
+/**
+ * Total usage in whole cents the way Stripe invoices it: each meter is priced
+ * and rounded to a cent on its own line, then the lines are summed.
+ *
+ * Summing the exact amounts and rounding once (microCentsToCents over
+ * priceDeployUsageMicroCents) is off by a cent or two against the invoice,
+ * because it never materializes the per-line rounding Stripe applies. The
+ * difference is small but it is the difference between a bill estimate that
+ * matches the invoice and one that is always a hair under it, and it is also
+ * what makes the per-meter figures on the card add up to the total shown beside
+ * them. priceDeployUsageMicroCents stays the fixed-point path for the spend cap,
+ * which compares against a budget rather than reproducing an invoice.
+ */
+export function sumDeployMeterCents(usage: DeployUsageQuantities): number {
+  const costs = priceDeployMetersCents(usage);
+  return (
+    Math.round(costs.cpu) +
+    Math.round(costs.memory) +
+    Math.round(costs.egress) +
+    Math.round(costs.disk) +
+    Math.round(costs.activeKeys)
+  );
 }
 
 /** Per-meter spend in cents, so the card can show what each usage line costs. */
