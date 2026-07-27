@@ -146,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		projectID := api.ProjectID
 		if projectID == "" {
-			projectID, err = projects.ResolveDefaultID(ctx, tx, principal.WorkspaceID)
+			projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 			if err != nil {
 				return err
 			}

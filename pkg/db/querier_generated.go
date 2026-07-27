@@ -3143,6 +3143,16 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
+	// observe a default project created after its repeatable-read snapshot.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	//  FOR UPDATE
+	LockDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
 	// This serializes region reconciliation, which reads the current set then replaces it.
 	//
