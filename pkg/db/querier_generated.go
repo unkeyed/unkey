@@ -537,6 +537,15 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
@@ -1506,12 +1515,14 @@ type Querier interface {
 	//      id,
 	//      name,
 	//      workspace_id,
+	//      project_id,
 	//      auth_type,
 	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1865,10 +1876,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1949,11 +1962,13 @@ type Querier interface {
 	//  INSERT INTO key_auth (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      default_prefix,
 	//      default_bytes,
 	//      store_encrypted_keys
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2040,6 +2055,7 @@ type Querier interface {
 	//  INSERT INTO `key_auth` (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      store_encrypted_keys,
 	//      default_prefix,
@@ -2049,7 +2065,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//        ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2062,12 +2079,14 @@ type Querier interface {
 	//  INSERT INTO permissions (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -2164,6 +2183,7 @@ type Querier interface {
 	//      `ratelimit_namespaces` (
 	//          id,
 	//          workspace_id,
+	//          project_id,
 	//          name,
 	//          created_at_m,
 	//          updated_at_m,
@@ -2171,6 +2191,7 @@ type Querier interface {
 	//          )
 	//  VALUES
 	//      (
+	//          ?,
 	//          ?,
 	//          ?,
 	//          ?,
@@ -2209,11 +2230,13 @@ type Querier interface {
 	//  INSERT INTO roles (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -3118,6 +3141,16 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
+	// observe a default project created after its repeatable-read snapshot.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	//  FOR UPDATE
+	LockDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
 	// This serializes region reconciliation, which reads the current set then replaces it.
 	//
@@ -3998,10 +4031,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -4050,11 +4085,12 @@ type Querier interface {
 	//  INSERT INTO key_auth (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      default_prefix,
 	//      default_bytes,
 	//      store_encrypted_keys
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)

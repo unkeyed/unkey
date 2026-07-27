@@ -63,7 +63,10 @@ func TestLimitSuccessfully(t *testing.T) {
 			Name:        namespaceName,
 		})
 		require.NoError(t, err)
+		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+		require.NoError(t, err)
 		require.Equal(t, namespaceName, namespace.Name)
+		require.Equal(t, projectID, namespace.ProjectID)
 		require.False(t, namespace.DeletedAtM.Valid, "Namespace should not be deleted")
 
 		// Verify the audit log was queued in clickhouse_outbox.
