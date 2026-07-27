@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -112,6 +113,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("wrong workspace, masking as 404"),
 			fault.Public("The requested API does not exist or has been deleted."),
 		)
+	}
+
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil {
+		return err
 	}
 
 	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.WorkspaceID})
@@ -349,6 +355,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ID:          id,
 				ExternalID:  externalId,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Environment: "default",
 				CreatedAt:   now,
 				Meta:        []byte("{}"),
@@ -366,6 +373,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
 				PermissionID: id,
 				WorkspaceID:  principal.WorkspaceID,
+				ProjectID:    projectID,
 				Name:         slug,
 				Slug:         slug,
 				Description:  dbtype.NullString{Valid: false, String: ""},
@@ -384,6 +392,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			rolesToInsert = append(rolesToInsert, db.InsertRoleParams{
 				RoleID:      id,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Name:        name,
 				Description: sql.NullString{Valid: false, String: ""},
 				CreatedAt:   now,

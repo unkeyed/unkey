@@ -1,7 +1,11 @@
 import type Stripe from "stripe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DeployBillingConfig } from "./deployBilling";
-import { grantDeployCreditsForInvoice, netDeployFee } from "./deployCredits";
+import {
+  deployIncludedCreditCents,
+  grantDeployCreditsForInvoice,
+  netDeployFee,
+} from "./deployCredits";
 
 vi.mock("./deployBilling", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./deployBilling")>();
@@ -119,6 +123,70 @@ describe("netDeployFee", () => {
     // invoice-level coupons this way): the grant tracks the $40 actually paid.
     const fee = netDeployFee(config, [line("price_fee_business", 5000, 1_700_000_000, 1000)]);
     expect(fee?.amountCents).toBe(4000);
+  });
+});
+
+describe("deployIncludedCreditCents", () => {
+  const future = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const past = Math.floor(Date.now() / 1000) - 30 * 24 * 3600;
+
+  // A credit grant as creditGrants.list yields it: metered scope, an expiry,
+  // and a monetary value.
+  function grant(value: number, expiresAt: number | null, priceType = "metered") {
+    return {
+      id: `credgrant_${value}_${expiresAt}`,
+      expires_at: expiresAt,
+      amount: { monetary: { value } },
+      applicability_config: { scope: { price_type: priceType } },
+    };
+  }
+
+  function stripeWith(grants: ReturnType<typeof grant>[]): Stripe {
+    return {
+      billing: {
+        creditGrants: {
+          list: vi.fn().mockReturnValue(
+            (async function* () {
+              for (const g of grants) {
+                yield g;
+              }
+            })(),
+          ),
+        },
+      },
+    } as unknown as Stripe;
+  }
+
+  it("returns 0 when the customer has no active credit", async () => {
+    expect(await deployIncludedCreditCents(stripeWith([]), "cus_x")).toBe(0);
+  });
+
+  it("sums the current period's grants (baseline plus upgrade top-up)", async () => {
+    // One period's grants share an expires_at: a subscribe baseline and an
+    // upgrade top-up both expire together and both count.
+    const cents = await deployIncludedCreditCents(
+      stripeWith([grant(3000, future), grant(2000, future)]),
+      "cus_x",
+    );
+    expect(cents).toBe(5000);
+  });
+
+  it("ignores expired grants and other price scopes", async () => {
+    const cents = await deployIncludedCreditCents(
+      stripeWith([grant(5000, future), grant(9999, past), grant(4000, future, "licensed")]),
+      "cus_x",
+    );
+    expect(cents).toBe(5000);
+  });
+
+  it("takes only the latest period during the post-period grace overlap", async () => {
+    // Near a boundary the previous period's grant is briefly still unexpired;
+    // the current period's is the later expiry, so only it counts.
+    const cents = await deployIncludedCreditCents(
+      stripeWith([grant(1672, future - 3 * 24 * 3600), grant(5000, future)]),
+      "cus_x",
+    );
+    expect(cents).toBe(5000);
   });
 });
 

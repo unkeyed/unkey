@@ -12,17 +12,31 @@ import (
 const globalCountersDeleteExpired = `-- name: GlobalCountersDeleteExpired :execrows
 DELETE FROM ratelimit_global_counters
 WHERE expires_at < ?
+LIMIT ?
 `
 
-// GlobalCountersDeleteExpired removes rows whose grace period has passed and
-// returns the number of rows deleted so the caller can surface it for
-// observability. Called by an external Restate cron, not the ratelimit
-// service itself.
+type GlobalCountersDeleteExpiredParams struct {
+	Cutoff uint64 `db:"cutoff"`
+	Limit  int32  `db:"limit"`
+}
+
+// GlobalCountersDeleteExpired removes a bounded batch of rows whose grace
+// period has passed and returns the number of rows deleted so the caller can
+// loop until the table is drained of expired rows. Called by an external
+// Restate cron, not the ratelimit service itself.
+//
+// LIMIT is required, not an optimization: PlanetScale rejects any single DML
+// statement that would affect more than 100,000 rows, so an unbounded DELETE
+// fails outright once a backlog builds. Bounding each batch below that ceiling
+// also keeps row locks short and replication lag contained.
+//
+// expires_at_idx makes this a range seek rather than a full scan.
 //
 //	DELETE FROM ratelimit_global_counters
 //	WHERE expires_at < ?
-func (q *Queries) GlobalCountersDeleteExpired(ctx context.Context, cutoff uint64) (int64, error) {
-	result, err := q.db.ExecContext(ctx, globalCountersDeleteExpired, cutoff)
+//	LIMIT ?
+func (q *Queries) GlobalCountersDeleteExpired(ctx context.Context, arg GlobalCountersDeleteExpiredParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, globalCountersDeleteExpired, arg.Cutoff, arg.Limit)
 	if err != nil {
 		return 0, err
 	}

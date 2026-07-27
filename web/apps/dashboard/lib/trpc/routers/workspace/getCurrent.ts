@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../trpc";
 
@@ -22,7 +23,11 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
   // attempt before reporting the workspace as missing.
   const orgId = ctx.tenant.id;
   let workspace: Awaited<
-    ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true; billing: true } }>>
+    ReturnType<
+      typeof db.query.workspaces.findFirst<{
+        with: { quotas: true; billing: true; billingSubscriptions: true };
+      }>
+    >
   >;
   try {
     workspace = await db.query.workspaces.findFirst({
@@ -30,6 +35,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
       with: {
         quotas: true,
         billing: true,
+        billingSubscriptions: true,
       },
     });
   } catch (error) {
@@ -55,7 +61,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     ...workspace,
     tier: workspace.billing?.tier ?? "Free",
     stripeCustomerId: workspace.billing?.stripeCustomerId ?? null,
-    stripeSubscriptionId: workspace.billing?.stripeSubscriptionId ?? null,
+    ...subscriptionIdsByProduct(workspace.billingSubscriptions ?? []),
     deployPlan: workspace.billing?.plan ?? null,
     deployPlanOverride: workspace.billing?.planOverride ?? null,
     deploySpendBudgetCents: workspace.billing?.spendBudgetCents ?? null,

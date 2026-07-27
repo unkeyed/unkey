@@ -149,6 +149,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 		require.NoError(t, err, "Identity should exist from first migration")
 		require.Len(t, identity, 1, "Identity should exist from first migration")
+		require.Equal(t, api.ProjectID, identity[0].ProjectID)
 
 		permissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -156,6 +157,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, permissions, 1, "Permission should exist from first migration")
+		require.Equal(t, api.ProjectID, permissions[0].ProjectID)
 
 		roles, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -163,6 +165,9 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, roles, 1, "Role should exist from first migration")
+		role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), roles[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, api.ProjectID, role.ProjectID)
 
 		// Perform the second migration
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

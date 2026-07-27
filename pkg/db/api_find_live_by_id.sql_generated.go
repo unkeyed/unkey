@@ -11,7 +11,7 @@ import (
 )
 
 const findLiveApiByID = `-- name: FindLiveApiByID :one
-SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 FROM apis
 JOIN key_auth as ka ON ka.id = apis.key_auth_id
 WHERE apis.id = ?
@@ -25,6 +25,7 @@ type FindLiveApiByIDRow struct {
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
 	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
@@ -37,7 +38,7 @@ type FindLiveApiByIDRow struct {
 
 // FindLiveApiByID
 //
-//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 //	FROM apis
 //	JOIN key_auth as ka ON ka.id = apis.key_auth_id
 //	WHERE apis.id = ?
@@ -52,6 +53,7 @@ func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (Find
 		&i.ID,
 		&i.Name,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.IpWhitelist,
 		&i.AuthType,
 		&i.KeyAuthID,
@@ -62,6 +64,7 @@ func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (Find
 		&i.KeyAuth.Pk,
 		&i.KeyAuth.ID,
 		&i.KeyAuth.WorkspaceID,
+		&i.KeyAuth.ProjectID,
 		&i.KeyAuth.CreatedAtM,
 		&i.KeyAuth.UpdatedAtM,
 		&i.KeyAuth.DeletedAtM,

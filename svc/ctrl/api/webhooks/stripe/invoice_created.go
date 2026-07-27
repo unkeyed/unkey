@@ -56,12 +56,12 @@ func (h *handler) invoiceCreated(
 
 	// Same customer can hold multiple Stripe subscriptions. Only claim and
 	// close renewals for this workspace's Deploy subscription.
-	if !ws.StripeSubscriptionID.Valid || ws.StripeSubscriptionID.String == "" {
+	if !ws.StripeDeploySubscriptionID.Valid || ws.StripeDeploySubscriptionID.String == "" {
 		return fmt.Errorf("%w: deploy workspace %s has no stripe subscription id", webhook.ErrIgnore, ws.ID)
 	}
-	if invoice.Subscription != ws.StripeSubscriptionID.String {
+	if invoice.Subscription != ws.StripeDeploySubscriptionID.String {
 		return fmt.Errorf("%w: invoice subscription %s is not workspace deploy subscription %s",
-			webhook.ErrIgnore, invoice.Subscription, ws.StripeSubscriptionID.String)
+			webhook.ErrIgnore, invoice.Subscription, ws.StripeDeploySubscriptionID.String)
 	}
 
 	// Replace Stripe's ~1h auto-finalization with a scheduled one at period end

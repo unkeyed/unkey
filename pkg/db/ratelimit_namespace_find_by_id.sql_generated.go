@@ -10,13 +10,13 @@ import (
 )
 
 const findRatelimitNamespaceByID = `-- name: FindRatelimitNamespaceByID :one
-SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
+SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
 WHERE id = ?
 `
 
 // FindRatelimitNamespaceByID
 //
-//	SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
+//	SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
 //	WHERE id = ?
 func (q *Queries) FindRatelimitNamespaceByID(ctx context.Context, db DBTX, id string) (RatelimitNamespace, error) {
 	row := db.QueryRowContext(ctx, findRatelimitNamespaceByID, id)
@@ -25,6 +25,7 @@ func (q *Queries) FindRatelimitNamespaceByID(ctx context.Context, db DBTX, id st
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,
