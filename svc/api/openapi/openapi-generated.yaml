@@ -2294,6 +2294,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The API key to verify, exactly as provided by your user.
                         Include any prefix - even small changes will cause verification to fail.
@@ -2363,6 +2364,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The complete API key string provided by you, including any prefix.
                         Never log, cache, or store API keys in your system as they provide full access to user resources.
@@ -2780,6 +2782,7 @@ components:
                 sessionId:
                     type: string
                     minLength: 1
+                    x-unkey-redact: true
                     description: |
                         The session token ID received from `portal.createSession`.
                         Must be valid, unexpired, and not previously exchanged.
@@ -3605,9 +3608,10 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 plaintext:
                     type: string
+                    x-unkey-redact: true
                     description: Decrypted key value (only when decrypt=true).
-                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer: true
+                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
@@ -4522,11 +4526,12 @@ components:
                     "$ref": "#/components/schemas/EnvironmentVariableKind"
                 value:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The decrypted plaintext value. Present only for `recoverable` variables.
                         Omitted for `writeonly` variables, which can never be read back.
-                    example: postgresql://user:pass@host:5432/db
                     x-go-type-skip-optional-pointer: true
+                    example: postgresql://user:pass@host:5432/db
                 description:
                     type: string
                     description: Human-readable description. Omitted if none was provided.
@@ -4571,6 +4576,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 16384
+                    x-unkey-redact: true
                     description: |
                         The variable value. Always encrypted at rest. The limit is enforced
                         server-side in UTF-8 bytes, so a multibyte value may be rejected before
@@ -5208,6 +5214,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: "The full generated API key that should be securely provided to your user.\nSECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`)."
                     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
             required:
@@ -5420,6 +5427,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The newly generated API key token (the actual secret that authenticates requests).
 
@@ -5815,12 +5823,14 @@ components:
             properties:
                 sessionId:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
                     example: pst_abc123def456
                 url:
                     type: string
                     format: uri
+                    x-unkey-redact: true
                     description: |
                         The full portal URL with the session parameter. Redirect the end user to this URL.
                     example: "https://portal.unkey.com/?session=pst_abc123def456"
@@ -5833,6 +5843,7 @@ components:
             properties:
                 token:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
                     example: ps_xyz789abc123
