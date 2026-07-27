@@ -1,5 +1,5 @@
 import type { Project } from "@/lib/collections/deploy/projects";
-import { and, db, desc, eq, inArray, sql } from "@/lib/db";
+import { and, db, desc, eq, inArray, not, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   apps,
@@ -22,7 +22,7 @@ export const listProjects = workspaceProcedure
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(and(eq(projects.workspaceId, workspaceId), sql`BINARY ${projects.slug} <> 'default'`))
+      .where(and(eq(projects.workspaceId, workspaceId), not(eq(projects.slug, "default"))))
       .orderBy(desc(projects.updatedAt));
 
     if (projectRows.length === 0) {
