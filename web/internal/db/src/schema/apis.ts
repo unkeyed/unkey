@@ -12,7 +12,7 @@ export const apis = mysqlTable(
     id: varchar("id", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
+    projectId: varchar("project_id", { length: 64 }).notNull(),
     /**
      * comma separated ips
      */

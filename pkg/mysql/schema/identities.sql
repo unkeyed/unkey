@@ -3,7 +3,7 @@ CREATE TABLE `identities` (
 	`id` varchar(256) NOT NULL,
 	`external_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(64) NOT NULL DEFAULT '',
+	`project_id` varchar(64) NOT NULL,
 	`environment` varchar(256) NOT NULL DEFAULT 'default',
 	`meta` json,
 	`deleted` boolean NOT NULL DEFAULT false,

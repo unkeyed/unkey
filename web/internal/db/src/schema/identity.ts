@@ -23,7 +23,7 @@ export const identities = mysqlTable(
      */
     externalId: varchar("external_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
+    projectId: varchar("project_id", { length: 64 }).notNull(),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
