@@ -27,9 +27,9 @@ func TestConfigureUser_Integration(t *testing.T) {
 		// Verify the user was created in MySQL
 		settings, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
-		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.WorkspaceID)
-		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.Username)
-		require.NotEmpty(t, settings.ClickhouseWorkspaceSetting.PasswordEncrypted)
+		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceID)
+		require.Equal(t, ws.ID, settings.ClickhouseUsername)
+		require.NotEmpty(t, settings.ClickhousePasswordEncrypted)
 
 		// Verify the user exists in ClickHouse
 		var userName string
@@ -67,7 +67,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 		// Get the initial settings
 		initial, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
-		initialPassword := initial.ClickhouseWorkspaceSetting.PasswordEncrypted
+		initialPassword := initial.ClickhousePasswordEncrypted
 
 		// Call ConfigureUser again with different settings
 		_, err = client.ConfigureUser().Request(h.Ctx, &hydrav1.ConfigureUserRequest{
@@ -78,9 +78,17 @@ func TestConfigureUser_Integration(t *testing.T) {
 		// Verify password was preserved (not regenerated)
 		updated, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
-		require.Equal(t, initialPassword, updated.ClickhouseWorkspaceSetting.PasswordEncrypted)
+		require.Equal(t, initialPassword, updated.ClickhousePasswordEncrypted)
 
-		// Verify the new settings were applied
-		require.Equal(t, int32(2000), updated.ClickhouseWorkspaceSetting.MaxQueriesPerWindow)
+		// Query this test-only field directly so the production lookup remains
+		// limited to values used by the service.
+		var maxQueriesPerWindow int32
+		err = h.DB.RO().QueryRowContext(
+			h.Ctx,
+			"SELECT max_queries_per_window FROM clickhouse_workspace_settings WHERE workspace_id = ?",
+			ws.ID,
+		).Scan(&maxQueriesPerWindow)
+		require.NoError(t, err)
+		require.Equal(t, int32(2000), maxQueriesPerWindow)
 	})
 }

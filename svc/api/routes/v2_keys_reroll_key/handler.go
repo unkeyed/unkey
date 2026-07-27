@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if key.WorkspaceID != principal.WorkspaceID {
+	if key.KeyWorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -119,8 +119,8 @@ func (h *Handler) RerollKey(
 		return err
 	}
 	if err := assert.All(
-		assert.Equal(key.WorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
-		assert.Equal(key.ID, req.KeyId, "preloaded reroll key must match request"),
+		assert.Equal(key.KeyWorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.KeyID, req.KeyId, "preloaded reroll key must match request"),
 	); err != nil {
 		return err
 	}
@@ -131,17 +131,17 @@ func (h *Handler) RerollKey(
 	length := 16
 	prefix := ""
 
-	split := strings.Split(key.Start, "_")
+	split := strings.Split(keyData.Key.Start, "_")
 	if len(split) > 1 {
 		prefix = split[0]
 	}
 
-	if prefix == "" && key.KeyAuth.DefaultPrefix.Valid {
-		prefix = key.KeyAuth.DefaultPrefix.String
+	if prefix == "" && keyData.KeyAuth.DefaultPrefix.Valid {
+		prefix = keyData.KeyAuth.DefaultPrefix.String
 	}
 
-	if key.KeyAuth.DefaultBytes.Valid {
-		length = int(key.KeyAuth.DefaultBytes.Int32)
+	if keyData.KeyAuth.DefaultBytes.Valid {
+		length = int(keyData.KeyAuth.DefaultBytes.Int32)
 	}
 
 	// keyID is assigned at the start of each retry attempt below; on a
@@ -165,7 +165,7 @@ func (h *Handler) RerollKey(
 			)
 		}
 
-		if !key.KeyAuth.StoreEncryptedKeys {
+		if !keyData.KeyAuth.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -173,7 +173,7 @@ func (h *Handler) RerollKey(
 		}
 
 		encryption, err = h.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Keyring: key.WorkspaceID,
+			Keyring: keyData.Key.WorkspaceID,
 			Data:    keyResult.Key,
 		})
 		if err != nil {
@@ -196,20 +196,20 @@ func (h *Handler) RerollKey(
 		return db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 				ID:                 keyID,
-				KeySpaceID:         key.KeyAuthID,
+				KeySpaceID:         keyData.Key.KeyAuthID,
 				Hash:               keyResult.Hash,
 				Start:              keyResult.Start,
-				WorkspaceID:        key.WorkspaceID,
-				ForWorkspaceID:     key.ForWorkspaceID,
+				WorkspaceID:        keyData.Key.WorkspaceID,
+				ForWorkspaceID:     keyData.Key.ForWorkspaceID,
 				CreatedAtM:         now,
-				Enabled:            key.Enabled,
-				RemainingRequests:  key.RemainingRequests,
-				RefillDay:          key.RefillDay,
-				RefillAmount:       key.RefillAmount,
-				Name:               key.Name,
-				IdentityID:         key.IdentityID,
-				Meta:               key.Meta,
-				Expires:            key.Expires,
+				Enabled:            keyData.Key.Enabled,
+				RemainingRequests:  keyData.Key.RemainingRequests,
+				RefillDay:          keyData.Key.RefillDay,
+				RefillAmount:       keyData.Key.RefillAmount,
+				Name:               keyData.Key.Name,
+				IdentityID:         keyData.Key.IdentityID,
+				Meta:               keyData.Key.Meta,
+				Expires:            keyData.Key.Expires,
 				PendingMigrationID: sql.NullString{Valid: false, String: ""},
 			})
 			if err != nil {
@@ -245,7 +245,7 @@ func (h *Handler) RerollKey(
 
 					ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
 						ID:          uid.New(uid.RatelimitPrefix),
-						WorkspaceID: key.WorkspaceID,
+						WorkspaceID: keyData.Key.WorkspaceID,
 						KeyID:       sql.NullString{String: keyID, Valid: true},
 						Name:        ratelimit.Name,
 						Limit:       ratelimit.Limit,
@@ -271,7 +271,7 @@ func (h *Handler) RerollKey(
 				rolesToInsert := make([]db.InsertKeyRoleParams, 0, len(keyData.Roles))
 				for _, role := range keyData.Roles {
 					rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
-						WorkspaceID: key.WorkspaceID,
+						WorkspaceID: keyData.Key.WorkspaceID,
 						KeyID:       keyID,
 						RoleID:      role.ID,
 						CreatedAtM:  now,
@@ -291,7 +291,7 @@ func (h *Handler) RerollKey(
 				permissionsToInsert := make([]db.InsertKeyPermissionParams, 0, len(keyData.Permissions))
 				for _, permission := range keyData.Permissions {
 					permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
-						WorkspaceID:  key.WorkspaceID,
+						WorkspaceID:  keyData.Key.WorkspaceID,
 						KeyID:        keyID,
 						PermissionID: permission.ID,
 						CreatedAt:    now,
@@ -352,22 +352,22 @@ func (h *Handler) RerollKey(
 					{
 						Type:        auditlog.KeyResourceType,
 						ID:          keyID,
-						DisplayName: key.Name.String,
-						Name:        key.Name.String,
+						DisplayName: keyData.Key.Name.String,
+						Name:        keyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
 						Type:        auditlog.KeyResourceType,
 						ID:          req.KeyId,
-						DisplayName: key.Name.String,
-						Name:        key.Name.String,
+						DisplayName: keyData.Key.Name.String,
+						Name:        keyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
 						Type:        auditlog.APIResourceType,
-						ID:          key.Api.ID,
-						DisplayName: key.Api.Name,
-						Name:        key.Api.Name,
+						ID:          keyData.Api.ID,
+						DisplayName: keyData.Api.Name,
+						Name:        keyData.Api.Name,
 						Meta:        map[string]any{},
 					},
 				},
@@ -403,7 +403,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 	checks := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   key.Api.ID,
+			ResourceID:   key.ApiID,
 			Action:       rbac.CreateKey,
 		}),
 		rbac.T(rbac.Tuple{
@@ -412,7 +412,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
+			urn.New().Workspace(key.KeyWorkspaceID).Keyspace(key.KeyKeyAuthID),
 			permissions.CreateKey{},
 		),
 	)
@@ -423,7 +423,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 			rbac.Or(
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
+					ResourceID:   key.ApiID,
 					Action:       rbac.EncryptKey,
 				}),
 				rbac.T(rbac.Tuple{
@@ -432,7 +432,7 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 					Action:       rbac.EncryptKey,
 				}),
 				rbac.U(
-					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					urn.New().Workspace(key.KeyWorkspaceID).Keyspace(key.KeyKeyAuthID).Key("*"),
 					permissions.EncryptKey{},
 				),
 			),

@@ -43,6 +43,11 @@ export const updateRegions = workspaceProcedure
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
           eq(appRegionalSettings.environmentId, input.environmentId),
         ),
+        columns: {
+          regionId: true,
+          replicas: true,
+          horizontalAutoscalingPolicyId: true,
+        },
       }),
     ]);
     if (!env) {

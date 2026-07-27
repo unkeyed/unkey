@@ -44,6 +44,7 @@ export const searchKeysRoles = workspaceProcedure
         ],
         with: {
           keys: {
+            columns: { keyId: true },
             with: {
               key: {
                 columns: {
@@ -54,6 +55,7 @@ export const searchKeysRoles = workspaceProcedure
             },
           },
           permissions: {
+            columns: { permissionId: true },
             with: {
               permission: {
                 columns: {

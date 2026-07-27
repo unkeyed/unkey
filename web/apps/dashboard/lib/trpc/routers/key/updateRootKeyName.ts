@@ -19,6 +19,7 @@ export const updateRootKeyName = workspaceProcedure
           eq(table.id, input.keyId),
           isNull(table.deletedAtM),
         ),
+      columns: { id: true },
     });
 
     if (!key) {

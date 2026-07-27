@@ -32,6 +32,10 @@ export const updateRootKeyPermissions = workspaceProcedure
             eq(table.forWorkspaceId, ctx.workspace.id),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          name: true,
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -56,8 +60,11 @@ export const updateRootKeyPermissions = workspaceProcedure
         const currentPermissions = await tx.query.keysPermissions
           .findMany({
             where: (table, { eq }) => eq(table.keyId, input.keyId),
+            columns: { permissionId: true },
             with: {
-              permission: true,
+              permission: {
+                columns: { name: true },
+              },
             },
           })
           .catch((_err) => {

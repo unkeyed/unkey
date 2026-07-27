@@ -10,7 +10,7 @@ import (
 )
 
 const findPortalConfigByWorkspaceAndSlug = `-- name: FindPortalConfigByWorkspaceAndSlug :one
-SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+SELECT portal_configurations.pk, portal_configurations.id, portal_configurations.workspace_id, portal_configurations.slug, portal_configurations.app_id, portal_configurations.key_auth_id, portal_configurations.enabled, portal_configurations.return_url, portal_configurations.created_at, portal_configurations.updated_at FROM portal_configurations
 WHERE workspace_id = ? AND slug = ?
 `
 
@@ -21,7 +21,7 @@ type FindPortalConfigByWorkspaceAndSlugParams struct {
 
 // FindPortalConfigByWorkspaceAndSlug
 //
-//	SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+//	SELECT portal_configurations.pk, portal_configurations.id, portal_configurations.workspace_id, portal_configurations.slug, portal_configurations.app_id, portal_configurations.key_auth_id, portal_configurations.enabled, portal_configurations.return_url, portal_configurations.created_at, portal_configurations.updated_at FROM portal_configurations
 //	WHERE workspace_id = ? AND slug = ?
 func (q *Queries) FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error) {
 	row := db.QueryRowContext(ctx, findPortalConfigByWorkspaceAndSlug, arg.WorkspaceID, arg.Slug)

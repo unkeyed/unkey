@@ -16,12 +16,21 @@ export const connectRoleToKey = workspaceProcedure
       .findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        columns: { id: true },
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
+            columns: {
+              id: true,
+              name: true,
+            },
           },
           keys: {
             where: (table, { eq }) => eq(table.id, input.keyId),
+            columns: {
+              id: true,
+              name: true,
+            },
           },
         },
       })

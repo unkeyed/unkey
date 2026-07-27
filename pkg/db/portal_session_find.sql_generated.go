@@ -10,7 +10,7 @@ import (
 )
 
 const findValidPortalSession = `-- name: FindValidPortalSession :one
-SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
+SELECT portal_sessions.pk, portal_sessions.id, portal_sessions.workspace_id, portal_sessions.portal_config_id, portal_sessions.external_id, portal_sessions.permissions, portal_sessions.preview, portal_sessions.expires_at, portal_sessions.created_at FROM portal_sessions
 WHERE id = ?
   AND expires_at > ?
 `
@@ -22,7 +22,7 @@ type FindValidPortalSessionParams struct {
 
 // FindValidPortalSession
 //
-//	SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
+//	SELECT portal_sessions.pk, portal_sessions.id, portal_sessions.workspace_id, portal_sessions.portal_config_id, portal_sessions.external_id, portal_sessions.permissions, portal_sessions.preview, portal_sessions.expires_at, portal_sessions.created_at FROM portal_sessions
 //	WHERE id = ?
 //	  AND expires_at > ?
 func (q *Queries) FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error) {

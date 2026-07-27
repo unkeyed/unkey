@@ -21,6 +21,10 @@ export const updateNamespaceName = workspaceProcedure
             isNull(table.deletedAtM),
             eq(table.id, input.namespaceId),
           ),
+        columns: {
+          id: true,
+          name: true,
+        },
       })
 
       .catch((_err) => {

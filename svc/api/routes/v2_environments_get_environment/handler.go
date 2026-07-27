@@ -103,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	default:
-		runtimeSettings = &runtime.AppRuntimeSetting
+		runtimeSettings = &runtime
 	}
 
 	build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{

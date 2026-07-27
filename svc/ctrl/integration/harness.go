@@ -75,7 +75,22 @@ type CreateDeploymentRequest struct {
 // CreateDeploymentResult contains the created deployment and topology.
 type CreateDeploymentResult struct {
 	Deployment db.Deployment
-	Topology   db.DeploymentTopology
+	Topology   DeploymentTopology
+}
+
+// DeploymentTopology contains the topology values returned by the test fixture.
+type DeploymentTopology struct {
+	Pk                         uint64
+	WorkspaceID                string
+	DeploymentID               string
+	RegionID                   string
+	AutoscalingReplicasMin     uint32
+	AutoscalingReplicasMax     uint32
+	AutoscalingThresholdCpu    sql.NullInt16
+	AutoscalingThresholdMemory sql.NullInt16
+	DesiredStatus              db.DeploymentTopologyDesiredStatus
+	CreatedAt                  int64
+	UpdatedAt                  sql.NullInt64
 }
 
 // CreateDeployment creates a deployment with topology for testing.
@@ -199,7 +214,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 	return CreateDeploymentResult{
 		Deployment: deployment,
-		Topology: db.DeploymentTopology{
+		Topology: DeploymentTopology{
 			Pk:                         0,
 			WorkspaceID:                workspaceID,
 			DeploymentID:               deploymentID,

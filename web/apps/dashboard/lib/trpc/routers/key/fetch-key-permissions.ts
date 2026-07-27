@@ -138,6 +138,7 @@ export const fetchKeyPermissions = workspaceProcedure
       const keyAuth = await db.query.keyAuth.findFirst({
         where: (keyAuth, { and, eq }) =>
           and(eq(keyAuth.id, input.keyspaceId), eq(keyAuth.workspaceId, ctx.workspace.id)),
+        columns: { id: true },
       });
 
       if (!keyAuth) {
@@ -153,32 +154,138 @@ export const fetchKeyPermissions = workspaceProcedure
           eq(schema.keys.workspaceId, ctx.workspace.id),
           isNull(schema.keys.deletedAtM),
         ),
+        columns: {
+          id: true,
+          remaining: true,
+        },
         with: {
-          keyAuth: true,
+          keyAuth: {
+            columns: {
+              pk: true,
+              id: true,
+              workspaceId: true,
+              projectId: true,
+              createdAtM: true,
+              updatedAtM: true,
+              deletedAtM: true,
+              storeEncryptedKeys: true,
+              defaultPrefix: true,
+              defaultBytes: true,
+              sizeApprox: true,
+              sizeLastUpdatedAt: true,
+            },
+          },
           roles: {
+            columns: {
+              pk: true,
+              keyId: true,
+              roleId: true,
+              workspaceId: true,
+              createdAtM: true,
+              updatedAtM: true,
+            },
             with: {
               role: {
+                columns: {
+                  pk: true,
+                  id: true,
+                  workspaceId: true,
+                  projectId: true,
+                  name: true,
+                  description: true,
+                  createdAtM: true,
+                  updatedAtM: true,
+                },
                 with: {
                   permissions: {
+                    columns: {
+                      pk: true,
+                      roleId: true,
+                      permissionId: true,
+                      workspaceId: true,
+                      createdAtM: true,
+                      updatedAtM: true,
+                    },
                     with: {
-                      permission: true,
+                      permission: {
+                        columns: {
+                          pk: true,
+                          id: true,
+                          workspaceId: true,
+                          projectId: true,
+                          name: true,
+                          slug: true,
+                          description: true,
+                          createdAtM: true,
+                          updatedAtM: true,
+                        },
+                      },
                     },
                   },
                 },
               },
             },
           },
-          permissions: true,
+          permissions: {
+            columns: {
+              pk: true,
+              keyId: true,
+              permissionId: true,
+              workspaceId: true,
+              createdAtM: true,
+              updatedAtM: true,
+            },
+          },
           workspace: {
+            columns: { id: true },
             with: {
               roles: {
+                columns: {
+                  pk: true,
+                  id: true,
+                  workspaceId: true,
+                  projectId: true,
+                  name: true,
+                  description: true,
+                  createdAtM: true,
+                  updatedAtM: true,
+                },
                 with: {
-                  permissions: true,
+                  permissions: {
+                    columns: {
+                      pk: true,
+                      roleId: true,
+                      permissionId: true,
+                      workspaceId: true,
+                      createdAtM: true,
+                      updatedAtM: true,
+                    },
+                  },
                 },
               },
               permissions: {
+                columns: {
+                  pk: true,
+                  id: true,
+                  workspaceId: true,
+                  projectId: true,
+                  name: true,
+                  slug: true,
+                  description: true,
+                  createdAtM: true,
+                  updatedAtM: true,
+                },
                 with: {
-                  roles: true,
+                  roles: {
+                    columns: {
+                      pk: true,
+                      roleId: true,
+                      permissionId: true,
+                      workspaceId: true,
+                      createdAtM: true,
+                      updatedAtM: true,
+                    },
+                  },
                 },
               },
             },

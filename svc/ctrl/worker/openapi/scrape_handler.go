@@ -45,7 +45,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 		return nil, fault.Wrap(err, fault.Public("Failed to find the deployment."))
 	}
 
-	settings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
+	openapiSpecPath, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return s.db.FindAppRuntimeSettingsByAppAndEnv(runCtx, db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
@@ -59,11 +59,11 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 		return nil, fault.Wrap(err, fault.Public("Failed to find runtime settings."))
 	}
 
-	if !settings.AppRuntimeSetting.OpenapiSpecPath.Valid || settings.AppRuntimeSetting.OpenapiSpecPath.String == "" {
+	if !openapiSpecPath.Valid || openapiSpecPath.String == "" {
 		logger.Info("openapi_spec_path not configured, skipping scrape", "deployment_id", deploymentID)
 		return &hydrav1.ScrapeSpecResponse{}, nil
 	}
-	specPath := settings.AppRuntimeSetting.OpenapiSpecPath.String
+	specPath := openapiSpecPath.String
 
 	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
 		return s.db.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, db.FindFrontlineRouteByDeploymentIDAndStickyParams{

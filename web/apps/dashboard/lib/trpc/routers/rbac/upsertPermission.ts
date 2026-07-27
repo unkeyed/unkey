@@ -15,10 +15,15 @@ export async function upsertPermission(
       .findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.name, name), eq(table.workspaceId, workspaceId)),
-        with: {
-          workspace: {
-            columns: { id: true },
-          },
+        columns: {
+          id: true,
+          workspaceId: true,
+          projectId: true,
+          name: true,
+          slug: true,
+          description: true,
+          createdAtM: true,
+          updatedAtM: true,
         },
       })
       .catch((_err) => {

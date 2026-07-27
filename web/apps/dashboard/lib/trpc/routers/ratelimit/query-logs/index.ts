@@ -26,6 +26,7 @@ export const queryRatelimitLogs = workspaceProcedure
             eq(table.workspaceId, ctx.workspace.id),
             and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
           ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({

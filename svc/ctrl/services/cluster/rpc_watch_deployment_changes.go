@@ -134,14 +134,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state, err := deploymentRowToState(deploymentRow{
-			dt:              row.DeploymentTopology,
-			d:               row.Deployment,
-			k8sNamespace:    row.K8sNamespace,
-			environmentSlug: row.EnvironmentSlug,
-			regionName:      row.RegionName,
-			gitRepo:         row.GitRepo,
-		}, change.Pk)
+		state, err := deploymentRowToState(deploymentRowFromFind(row), change.Pk)
 		if err != nil {
 			return nil, err
 		}
@@ -173,12 +166,64 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 
 // deploymentRow holds the common fields from both full sync and incremental query results.
 type deploymentRow struct {
-	dt              db.DeploymentTopology
+	dt              deploymentTopology
 	d               db.Deployment
 	k8sNamespace    sql.NullString
 	environmentSlug string
 	regionName      string
 	gitRepo         sql.NullString
+}
+
+type deploymentTopology struct {
+	DesiredStatus              db.DeploymentTopologyDesiredStatus
+	AutoscalingReplicasMin     uint32
+	AutoscalingReplicasMax     uint32
+	AutoscalingThresholdCpu    sql.NullInt16
+	AutoscalingThresholdMemory sql.NullInt16
+}
+
+func deploymentRowFromFind(row db.FindDeploymentTopologyByDeploymentAndRegionRow) deploymentRow {
+	// The topology projection intentionally contains only fields consumed by deploymentRowToState.
+	deployment := db.Deployment{ //nolint:exhaustruct
+		ID: row.DeploymentID, K8sName: row.DeploymentK8sName, WorkspaceID: row.DeploymentWorkspaceID,
+		ProjectID: row.DeploymentProjectID, EnvironmentID: row.DeploymentEnvironmentID, AppID: row.DeploymentAppID,
+		Image: row.DeploymentImage, BuildID: row.DeploymentBuildID, GitCommitSha: row.DeploymentGitCommitSha,
+		GitBranch: row.DeploymentGitBranch, GitCommitMessage: row.DeploymentGitCommitMessage,
+		CpuMillicores: row.DeploymentCpuMillicores, MemoryMib: row.DeploymentMemoryMib, StorageMib: row.DeploymentStorageMib,
+		EncryptedEnvironmentVariables: row.DeploymentEncryptedEnvironmentVariables, Command: row.DeploymentCommand,
+		Port: row.DeploymentPort, ShutdownSignal: row.DeploymentShutdownSignal, Healthcheck: row.DeploymentHealthcheck,
+	}
+	return deploymentRow{
+		dt: deploymentTopology{
+			DesiredStatus: row.TopologyDesiredStatus, AutoscalingReplicasMin: row.TopologyAutoscalingReplicasMin,
+			AutoscalingReplicasMax: row.TopologyAutoscalingReplicasMax, AutoscalingThresholdCpu: row.TopologyAutoscalingThresholdCpu,
+			AutoscalingThresholdMemory: row.TopologyAutoscalingThresholdMemory,
+		},
+		d: deployment, k8sNamespace: row.K8sNamespace, environmentSlug: row.EnvironmentSlug,
+		regionName: row.RegionName, gitRepo: row.GitRepo,
+	}
+}
+
+func deploymentRowFromList(row db.ListAllDeploymentTopologiesByRegionRow) deploymentRow {
+	// The topology projection intentionally contains only fields consumed by deploymentRowToState.
+	deployment := db.Deployment{ //nolint:exhaustruct
+		ID: row.DeploymentID, K8sName: row.DeploymentK8sName, WorkspaceID: row.DeploymentWorkspaceID,
+		ProjectID: row.DeploymentProjectID, EnvironmentID: row.DeploymentEnvironmentID, AppID: row.DeploymentAppID,
+		Image: row.DeploymentImage, BuildID: row.DeploymentBuildID, GitCommitSha: row.DeploymentGitCommitSha,
+		GitBranch: row.DeploymentGitBranch, GitCommitMessage: row.DeploymentGitCommitMessage,
+		CpuMillicores: row.DeploymentCpuMillicores, MemoryMib: row.DeploymentMemoryMib, StorageMib: row.DeploymentStorageMib,
+		EncryptedEnvironmentVariables: row.DeploymentEncryptedEnvironmentVariables, Command: row.DeploymentCommand,
+		Port: row.DeploymentPort, ShutdownSignal: row.DeploymentShutdownSignal, Healthcheck: row.DeploymentHealthcheck,
+	}
+	return deploymentRow{
+		dt: deploymentTopology{
+			DesiredStatus: row.TopologyDesiredStatus, AutoscalingReplicasMin: row.TopologyAutoscalingReplicasMin,
+			AutoscalingReplicasMax: row.TopologyAutoscalingReplicasMax, AutoscalingThresholdCpu: row.TopologyAutoscalingThresholdCpu,
+			AutoscalingThresholdMemory: row.TopologyAutoscalingThresholdMemory,
+		},
+		d: deployment, k8sNamespace: row.K8sNamespace, environmentSlug: row.EnvironmentSlug,
+		regionName: row.RegionName, gitRepo: row.GitRepo,
+	}
 }
 
 // deploymentRowToState converts a deployment row to a proto DeploymentState message.

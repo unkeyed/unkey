@@ -12,6 +12,7 @@ export const deleteApp = workspaceProcedure
     const app = await db.query.apps.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: { id: true, name: true, deleteProtection: true },
     });
 
     if (!app) {

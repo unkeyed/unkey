@@ -1,5 +1,5 @@
 -- name: FindEnvironmentByIdentifiers :one
-SELECT e.*
+SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 FROM environments e
 JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id

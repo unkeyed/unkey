@@ -42,14 +42,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	state, err := deploymentRowToState(deploymentRow{
-		dt:              row.DeploymentTopology,
-		d:               row.Deployment,
-		k8sNamespace:    row.K8sNamespace,
-		environmentSlug: row.EnvironmentSlug,
-		regionName:      row.RegionName,
-		gitRepo:         row.GitRepo,
-	}, 0)
+	state, err := deploymentRowToState(deploymentRowFromFind(row), 0)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

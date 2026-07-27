@@ -10,7 +10,7 @@ import (
 )
 
 const findValidPortalSessionToken = `-- name: FindValidPortalSessionToken :one
-SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
+SELECT portal_session_tokens.pk, portal_session_tokens.id, portal_session_tokens.workspace_id, portal_session_tokens.portal_config_id, portal_session_tokens.external_id, portal_session_tokens.permissions, portal_session_tokens.preview, portal_session_tokens.exchanged_at, portal_session_tokens.expires_at, portal_session_tokens.created_at FROM portal_session_tokens
 WHERE id = ?
   AND exchanged_at IS NULL
   AND expires_at > ?
@@ -23,7 +23,7 @@ type FindValidPortalSessionTokenParams struct {
 
 // FindValidPortalSessionToken
 //
-//	SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
+//	SELECT portal_session_tokens.pk, portal_session_tokens.id, portal_session_tokens.workspace_id, portal_session_tokens.portal_config_id, portal_session_tokens.external_id, portal_session_tokens.permissions, portal_session_tokens.preview, portal_session_tokens.exchanged_at, portal_session_tokens.expires_at, portal_session_tokens.created_at FROM portal_session_tokens
 //	WHERE id = ?
 //	  AND exchanged_at IS NULL
 //	  AND expires_at > ?

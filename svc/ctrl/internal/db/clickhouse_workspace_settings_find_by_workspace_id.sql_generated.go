@@ -11,23 +11,29 @@ import (
 
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
 SELECT
-    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
+    c.workspace_id AS clickhouse_workspace_id,
+    c.username AS clickhouse_username,
+    c.password_encrypted AS clickhouse_password_encrypted,
+    q.logs_retention_days AS quota_logs_retention_days
 FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
 JOIN ` + "`" + `quota` + "`" + ` q ON q.workspace_id = c.workspace_id
 WHERE c.workspace_id = ?
 `
 
 type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
-	ClickhouseWorkspaceSetting ClickhouseWorkspaceSetting `db:"clickhouse_workspace_setting"`
-	Quotas                     Quotas                     `db:"quotas"`
+	ClickhouseWorkspaceID       string `db:"clickhouse_workspace_id"`
+	ClickhouseUsername          string `db:"clickhouse_username"`
+	ClickhousePasswordEncrypted string `db:"clickhouse_password_encrypted"`
+	QuotaLogsRetentionDays      int32  `db:"quota_logs_retention_days"`
 }
 
 // FindClickhouseWorkspaceSettingsByWorkspaceID
 //
 //	SELECT
-//	    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-//	    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
+//	    c.workspace_id AS clickhouse_workspace_id,
+//	    c.username AS clickhouse_username,
+//	    c.password_encrypted AS clickhouse_password_encrypted,
+//	    q.logs_retention_days AS quota_logs_retention_days
 //	FROM `clickhouse_workspace_settings` c
 //	JOIN `quota` q ON q.workspace_id = c.workspace_id
 //	WHERE c.workspace_id = ?
@@ -35,34 +41,10 @@ func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Conte
 	row := q.db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)
 	var i FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	err := row.Scan(
-		&i.ClickhouseWorkspaceSetting.Pk,
-		&i.ClickhouseWorkspaceSetting.WorkspaceID,
-		&i.ClickhouseWorkspaceSetting.Username,
-		&i.ClickhouseWorkspaceSetting.PasswordEncrypted,
-		&i.ClickhouseWorkspaceSetting.QuotaDurationSeconds,
-		&i.ClickhouseWorkspaceSetting.MaxQueriesPerWindow,
-		&i.ClickhouseWorkspaceSetting.MaxExecutionTimePerWindow,
-		&i.ClickhouseWorkspaceSetting.MaxQueryExecutionTime,
-		&i.ClickhouseWorkspaceSetting.MaxQueryMemoryBytes,
-		&i.ClickhouseWorkspaceSetting.MaxQueryResultRows,
-		&i.ClickhouseWorkspaceSetting.CreatedAt,
-		&i.ClickhouseWorkspaceSetting.UpdatedAt,
-		&i.Quotas.Pk,
-		&i.Quotas.WorkspaceID,
-		&i.Quotas.RequestsPerMonth,
-		&i.Quotas.LogsRetentionDays,
-		&i.Quotas.AuditLogsRetentionDays,
-		&i.Quotas.Team,
-		&i.Quotas.RatelimitApiLimit,
-		&i.Quotas.RatelimitApiDuration,
-		&i.Quotas.AllocatedCpuMillicoresTotal,
-		&i.Quotas.AllocatedMemoryMibTotal,
-		&i.Quotas.AllocatedStorageMibTotal,
-		&i.Quotas.MaxCpuMillicoresPerInstance,
-		&i.Quotas.MaxMemoryMibPerInstance,
-		&i.Quotas.MaxStorageMibPerInstance,
-		&i.Quotas.MaxConcurrentBuilds,
-		&i.Quotas.MaxReplicasPerRegion,
+		&i.ClickhouseWorkspaceID,
+		&i.ClickhouseUsername,
+		&i.ClickhousePasswordEncrypted,
+		&i.QuotaLogsRetentionDays,
 	)
 	return i, err
 }

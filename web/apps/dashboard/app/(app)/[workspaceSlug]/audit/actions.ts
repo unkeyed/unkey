@@ -23,6 +23,7 @@ export const getWorkspace = async (orgId: string) => {
 
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+      columns: { id: true },
     });
 
     if (!workspace) {

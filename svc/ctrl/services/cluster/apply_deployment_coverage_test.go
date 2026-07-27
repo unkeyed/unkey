@@ -16,7 +16,7 @@ import (
 // in from the database row.
 func fullDeploymentRow() deploymentRow {
 	return deploymentRow{
-		dt: db.DeploymentTopology{
+		dt: deploymentTopology{
 			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 			AutoscalingReplicasMin:     2,
 			AutoscalingReplicasMax:     5,

@@ -467,6 +467,7 @@ export const getApi = async (apiId: string, workspaceId: string) => {
           },
         },
       },
+      columns: { id: true },
     })
     .catch((err) => {
       console.error("Database query error:", err);
