@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Permission, db, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
@@ -32,10 +33,11 @@ export async function upsertPermission(
       return existingPermission;
     }
 
+    const projectId = await ensureDefaultProjectId(tx, workspaceId);
     const permission = {
       id: newId("permission"),
       workspaceId,
-      projectId: "",
+      projectId,
       name,
       slug: name,
       description: null,

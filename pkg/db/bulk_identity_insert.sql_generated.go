@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertIdentity is the base query for bulk insert
-const bulkInsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, external_id, workspace_id, environment, created_at, meta ) VALUES %s`
+const bulkInsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, external_id, workspace_id, project_id, environment, created_at, meta ) VALUES %s`
 
 // InsertIdentities performs bulk insert in a single query
 func (q *BulkQueries) InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertIdentities(ctx context.Context, db DBTX, args []Inse
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, CAST(? AS JSON) )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, CAST(? AS JSON) )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertIdentity, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertIdentities(ctx context.Context, db DBTX, args []Inse
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.ExternalID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Environment)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.Meta)
