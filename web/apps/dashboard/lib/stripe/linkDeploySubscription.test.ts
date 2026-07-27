@@ -39,9 +39,15 @@ vi.mock("@unkey/db", () => ({
   schema: { billingSubscriptions: { workspaceId: {}, product: {} } },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
+vi.mock("@/lib/env", () => ({
+  stripeEnv: () => ({
+    STRIPE_PRODUCT_IDS_PRO: ["prod_api"],
+    STRIPE_PRODUCT_IDS_ENTERPRISE: [],
+  }),
+}));
 
 import Stripe from "stripe";
-import { linkDeploySubscription } from "./linkDeploySubscription";
+import { linkApiSubscription, linkDeploySubscription } from "./linkDeploySubscription";
 
 const WORKSPACE_ID = "ws_1";
 const AUDIT = {
@@ -70,6 +76,30 @@ function subscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.Subs
   } as unknown as Stripe.Subscription;
 }
 
+function apiSession(overrides: Partial<Stripe.Checkout.Session> = {}): Stripe.Checkout.Session {
+  return session({ metadata: { unkey_product: "api" }, ...overrides });
+}
+
+function apiSubscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.Subscription {
+  return subscription({
+    items: { data: [{ id: "si_api", price: { id: "price_api", product: "prod_api" } }] },
+    ...overrides,
+  } as unknown as Partial<Stripe.Subscription>);
+}
+
+function apiProduct(overrides: Partial<Stripe.Product> = {}): Stripe.Product {
+  return {
+    id: "prod_api",
+    name: "Pro",
+    metadata: {
+      quota_requests_per_month: "1000000",
+      quota_logs_retention_days: "30",
+      quota_audit_logs_retention_days: "90",
+    },
+    ...overrides,
+  } as unknown as Stripe.Product;
+}
+
 const customersUpdate = vi.fn(async () => ({}));
 
 function stubStripe(opts: {
@@ -82,6 +112,7 @@ function stubStripe(opts: {
     invoice_settings?: { default_payment_method?: string | null };
     default_source?: string | null;
   };
+  product?: Stripe.Product;
   sessionError?: unknown;
 }): Stripe {
   return {
@@ -115,6 +146,9 @@ function stubStripe(opts: {
       ),
       update: customersUpdate,
     },
+    products: {
+      retrieve: vi.fn(async () => opts.product ?? apiProduct()),
+    },
   } as unknown as Stripe;
 }
 
@@ -132,8 +166,11 @@ describe("linkDeploySubscription", () => {
     h.transaction.mockClear();
     h.insertAuditLogs.mockClear();
     h.update.mockClear();
+    h.set.mockClear();
+    h.where.mockClear();
     h.insert.mockClear();
     h.values.mockClear();
+    h.onDuplicateKeyUpdate.mockClear();
     customersUpdate.mockClear();
   });
 
@@ -380,5 +417,176 @@ describe("linkDeploySubscription", () => {
     });
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: false });
     expect(h.transaction).toHaveBeenCalledOnce();
+  });
+});
+
+describe("linkApiSubscription", () => {
+  beforeEach(() => {
+    h.findFirst.mockReset();
+    h.transaction.mockClear();
+    h.insertAuditLogs.mockClear();
+    h.update.mockClear();
+    h.set.mockClear();
+    h.where.mockClear();
+    h.insert.mockClear();
+    h.values.mockClear();
+    h.onDuplicateKeyUpdate.mockClear();
+    customersUpdate.mockClear();
+  });
+
+  it("rejects an API checkout belonging to another workspace", async () => {
+    const stripe = stubStripe({
+      session: apiSession({ client_reference_id: "ws_other" }),
+      sub: apiSubscription(),
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "forbidden" });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unpaid API checkout without granting the tier", async () => {
+    const stripe = stubStripe({
+      session: apiSession({ status: "open", payment_status: "unpaid" }),
+      sub: apiSubscription(),
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "not_paid" });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cancelling API subscription so webhook redelivery cannot restore it", async () => {
+    const stripe = stubStripe({
+      session: apiSession(),
+      sub: apiSubscription({ cancel_at_period_end: true }),
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "not_active" });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a subscription whose product is outside the API allow-list", async () => {
+    const stripe = stubStripe({
+      session: apiSession(),
+      sub: apiSubscription({
+        items: { data: [{ id: "si_bad", price: { id: "price_bad", product: "prod_bad" } }] },
+      } as unknown as Partial<Stripe.Subscription>),
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "invalid_api_product" });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
+  it("atomically links a paid API subscription and grants its configured quotas", async () => {
+    h.findFirst.mockResolvedValue({
+      id: WORKSPACE_ID,
+      orgId: "org_1",
+      billing: { tier: "Free" },
+      billingSubscriptions: [],
+    });
+    const stripe = stubStripe({ session: apiSession(), sub: apiSubscription() });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toEqual({ ok: true, productName: "Pro", alreadyLinked: false });
+    expect(h.transaction).toHaveBeenCalledOnce();
+    expect(h.set).toHaveBeenCalledWith({ stripeCustomerId: "cus_1", tier: "Pro" });
+    expect(h.values).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      product: "api",
+      stripeSubscriptionId: "sub_1",
+    });
+    expect(h.values).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      requestsPerMonth: 1_000_000,
+      logsRetentionDays: 30,
+      auditLogsRetentionDays: 90,
+      team: true,
+    });
+    expect(h.insertAuditLogs).toHaveBeenCalledOnce();
+  });
+
+  it("does not replace a different live API subscription", async () => {
+    h.findFirst.mockResolvedValue({
+      id: WORKSPACE_ID,
+      orgId: "org_1",
+      billing: { tier: "Pro" },
+      billingSubscriptions: [{ product: "api", stripeSubscriptionId: "sub_existing" }],
+    });
+    const stripe = stubStripe({
+      session: apiSession(),
+      sub: apiSubscription(),
+      subsById: { sub_existing: apiSubscription({ id: "sub_existing" }) },
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "subscription_conflict" });
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
+  it("replaces a dead API subscription on resubscribe", async () => {
+    h.findFirst.mockResolvedValue({
+      id: WORKSPACE_ID,
+      orgId: "org_1",
+      billing: { tier: "Free" },
+      billingSubscriptions: [{ product: "api", stripeSubscriptionId: "sub_dead" }],
+    });
+    const stripe = stubStripe({
+      session: apiSession(),
+      sub: apiSubscription(),
+      subsById: { sub_dead: apiSubscription({ id: "sub_dead", status: "canceled" }) },
+    });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toEqual({ ok: true, productName: "Pro", alreadyLinked: false });
+    expect(h.transaction).toHaveBeenCalledOnce();
+  });
+
+  it("is an idempotent no-op when the same API subscription is already linked", async () => {
+    h.findFirst.mockResolvedValue({
+      id: WORKSPACE_ID,
+      orgId: "org_1",
+      billing: { tier: "Pro" },
+      billingSubscriptions: [{ product: "api", stripeSubscriptionId: "sub_1" }],
+    });
+    const stripe = stubStripe({ session: apiSession(), sub: apiSubscription() });
+    const result = await linkApiSubscription(stripe, {
+      sessionId: "cs_api",
+      expectedWorkspaceId: WORKSPACE_ID,
+      audit: AUDIT,
+    });
+
+    expect(result).toEqual({ ok: true, productName: "Pro", alreadyLinked: true });
+    expect(h.transaction).not.toHaveBeenCalled();
   });
 });

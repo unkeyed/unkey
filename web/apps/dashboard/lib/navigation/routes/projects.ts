@@ -17,15 +17,28 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { new: isNew || undefined });
   },
 
-  // Compute-plan gate hand-off: the projects landing reads these params,
-  // subscribes the chosen plan (card already on file), and on `from=create`
-  // opens the create-project dialog.
+  // Compute-plan hand-off: the projects landing reads these params, observes a
+  // Checkout-linked entitlement or resumes a cancelling subscription, and on
+  // `from=create` opens the create-project dialog.
   pendingSubscribe({
     workspaceSlug,
     plan,
     from,
-  }: WorkspaceScope & { plan: DeployCheckoutPlan; from: DeployCheckoutOrigin }): Route {
-    return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { pendingPlan: plan, from });
+    resume,
+  }: WorkspaceScope & {
+    plan: DeployCheckoutPlan;
+    from: DeployCheckoutOrigin;
+    resume?: boolean;
+  }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/projects",
+      { workspaceSlug },
+      {
+        pendingPlan: plan,
+        from,
+        resume: resume || undefined,
+      },
+    );
   },
 
   detail(scope: ProjectScope): Route {

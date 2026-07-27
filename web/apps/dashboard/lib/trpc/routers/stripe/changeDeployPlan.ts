@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { TRPCError } from "@trpc/server";
@@ -62,7 +63,7 @@ export const changeDeployPlan = workspaceProcedure
 
     if (planFeeItem.plan === input.plan) {
       // Already on the requested plan; nothing to do.
-      return;
+      return { kind: "applied" } satisfies Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     }
 
     // The Deploy subscription is set to cancel at period end. Repricing the fee
@@ -80,11 +81,13 @@ export const changeDeployPlan = workspaceProcedure
     const newPriceId = config.planFeePriceIds[input.plan];
     const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
 
+    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     try {
-      await stripe.subscriptionItems.update(planFeeItem.id, {
-        price: newPriceId,
-        proration_behavior: isDowngrade ? "none" : "always_invoice",
-        payment_behavior: "error_if_incomplete",
+      result = await changeSubscriptionPrice(stripe, {
+        subscriptionId: sub.id,
+        subscriptionItemId: planFeeItem.id,
+        newPriceId,
+        prorationBehavior: isDowngrade ? "none" : "always_invoice",
       });
     } catch (err) {
       if (
@@ -99,6 +102,10 @@ export const changeDeployPlan = workspaceProcedure
         });
       }
       throw err;
+    }
+
+    if (result.kind === "payment_required") {
+      return result;
     }
 
     // One transaction so the plan write and its audit log commit together; a
@@ -118,4 +125,6 @@ export const changeDeployPlan = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    return result;
   });

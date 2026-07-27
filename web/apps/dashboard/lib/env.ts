@@ -111,7 +111,7 @@ const stripeSchema = z.object({
   STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
   STRIPE_PRODUCT_IDS_ENTERPRISE: z.string().transform((s) => s.split(",")),
   STRIPE_WEBHOOK_SECRET: z.string(),
-  // Unkey Deploy plan-fee price lookup_keys, one per plan. subscribeDeploy /
+  // Unkey Deploy plan-fee price lookup_keys, one per plan. Checkout /
   // changeDeployPlan resolve these to the current active price and attach (or
   // swap) the plan-fee for the chosen tier. lookup_keys (not price ids) so a
   // reprice needs no env change. Optional so environments without Deploy

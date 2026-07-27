@@ -2,6 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { TRPCError } from "@trpc/server";
@@ -106,17 +107,25 @@ export const updateSubscription = workspaceProcedure
         message: `Product ${newProduct.id} is missing a default price.`,
       });
     }
+    const newPriceId =
+      typeof newProduct.default_price === "string"
+        ? newProduct.default_price
+        : newProduct.default_price.id;
 
-    /**
-     * `error_if_incomplete` rejects the call with a 402 if the proration invoice cannot
-     * be charged. We surface that to the user so they know to fix their payment method
-     * before the plan switch is applied.
-     */
+    if (sub.cancel_at_period_end) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Resume your API plan before changing it.",
+      });
+    }
+
+    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     try {
-      await stripe.subscriptionItems.update(item.id, {
-        price: newProduct.default_price.toString(),
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
+      result = await changeSubscriptionPrice(stripe, {
+        subscriptionId: sub.id,
+        subscriptionItemId: item.id,
+        newPriceId,
+        prorationBehavior: "always_invoice",
       });
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
@@ -138,10 +147,8 @@ export const updateSubscription = workspaceProcedure
       throw err;
     }
 
-    if (sub.cancel_at) {
-      await stripe.subscriptions.update(sub.id, {
-        cancel_at_period_end: false,
-      });
+    if (result.kind === "payment_required") {
+      return result;
     }
 
     await db.transaction(async (tx) => {
@@ -185,4 +192,6 @@ export const updateSubscription = workspaceProcedure
         },
       });
     });
+
+    return result;
   });

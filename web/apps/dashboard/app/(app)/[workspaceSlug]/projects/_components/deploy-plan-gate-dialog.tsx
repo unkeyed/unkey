@@ -98,11 +98,11 @@ type Props = {
 
 /**
  * The Compute paywall on the projects page. Selecting a plan routes it to
- * payment rather than subscribing inline: with a card on file it hands off to
- * the projects landing (?pendingPlan&from), where usePendingSubscribe runs
- * subscribeDeploy; without one it sends the user to Stripe checkout first,
- * and /success returns them to the same landing. ctrl-api remains the real
- * gate, so the non-admin lockout here is UX only.
+ * payment rather than subscribing inline. Saved cards still go through Stripe
+ * Checkout because the first charge can require a corrected CVC or 3DS;
+ * /success returns to the projects landing after the paid subscription is
+ * linked. ctrl-api remains the real gate, so the non-admin lockout here is UX
+ * only.
  */
 export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
   const router = useRouter();
@@ -115,24 +115,17 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
   const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
   const isAdmin = currentUser?.role === "admin";
   const plans = plansData?.plans ?? [];
-  const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
   const handleSelect = (plan: DeployPlan) => {
     onOpenChange(false);
-
-    if (hasPaymentMethod) {
-      // Card on file: skip Stripe and subscribe on the projects landing.
-      router.push(routes.projects.pendingSubscribe({ workspaceSlug: workspace.slug, plan, from }));
-    } else {
-      router.push(
-        routes.settings.stripe.checkout({
-          workspaceSlug: workspace.slug,
-          intent: "deploy",
-          plan,
-          from,
-        }),
-      );
-    }
+    router.push(
+      routes.settings.stripe.checkout({
+        workspaceSlug: workspace.slug,
+        intent: "deploy",
+        plan,
+        from,
+      }),
+    );
   };
 
   return (

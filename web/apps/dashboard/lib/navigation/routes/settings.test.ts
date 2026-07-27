@@ -30,5 +30,13 @@ describe("settings-scoped paths", () => {
     expect(
       routes.projects.pendingSubscribe({ workspaceSlug: ws, plan: "starter", from: "banner" }),
     ).toBe("/acme/projects?pendingPlan=starter&from=banner");
+    expect(
+      routes.projects.pendingSubscribe({
+        workspaceSlug: ws,
+        plan: "starter",
+        from: "banner",
+        resume: true,
+      }),
+    ).toBe("/acme/projects?pendingPlan=starter&from=banner&resume=true");
   });
 });

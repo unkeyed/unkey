@@ -1,8 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
 import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
+import { deployBillingConfig, findApiItem } from "./deployBilling";
 import { type DeployPlan, detectDeployPlan } from "./deployPlan";
+import { validateAndParseQuotas } from "./productUtils";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 /**
@@ -26,6 +29,8 @@ export type LinkDeployFailure =
   | "forbidden"
   | "not_paid"
   | "not_active"
+  | "no_api_plan"
+  | "invalid_api_product"
   | "no_deploy_plan"
   | "subscription_conflict";
 
@@ -33,47 +38,34 @@ export type LinkDeployResult =
   | { ok: true; plan: DeployPlan; alreadyLinked: boolean }
   | { ok: false; reason: LinkDeployFailure; message: string };
 
-/**
- * Links a subscription-mode Compute checkout onto its workspace: verifies the
- * session belongs to the workspace and was paid, that the resulting
- * subscription is live and carries a recognized Deploy plan, then writes
- * `stripeCustomerId` + `stripeDeploySubscriptionId` + `plan` to workspace_billing
- * optimistically (mirroring subscribeDeploy; the customer.subscription.* webhook
- * then derives the same value and no-ops).
- *
- * Shared by `/success` (fast-path when the user returns) and the
- * `checkout.session.completed` webhook (guaranteed, fires even if the user
- * never returns). Both entry points call this with the same session, so it is
- * idempotent: a matching already-linked subscription is a success no-op, and a
- * *different* existing subscription is a hard failure (never repoint/orphan a
- * live subscription).
- *
- * The session and subscription are resolved server-side; no id is trusted from
- * the caller beyond the session id and the workspace id to check ownership
- * against. Payment/status are verified here because detectDeployPlan keys only
- * on price metadata, never on whether the subscription was actually paid.
- */
-export async function linkDeploySubscription(
+export type LinkApiResult =
+  | { ok: true; productName: string; alreadyLinked: boolean }
+  | { ok: false; reason: LinkDeployFailure; message: string };
+
+type PaidCheckout = {
+  stripeCustomerId: string;
+  subscriptionId: string;
+  subscription: Stripe.Subscription;
+};
+
+async function resolvePaidCheckout(
   stripe: Stripe,
-  input: { sessionId: string; expectedWorkspaceId: string; audit: LinkDeployAudit },
-): Promise<LinkDeployResult> {
+  input: {
+    sessionId: string;
+    expectedWorkspaceId: string;
+    expectedProduct?: "api";
+  },
+): Promise<{ ok: true; checkout: PaidCheckout } | { ok: false; reason: LinkDeployFailure; message: string }> {
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe.checkout.sessions.retrieve(input.sessionId);
   } catch (err) {
-    // Only a genuinely missing session is a permanent "not found". A transient
-    // Stripe failure (network, 429, 5xx) must propagate so the webhook returns
-    // 500 and Stripe retries — swallowing it here would ack the event and leave
-    // a paid subscription orphaned from a purely transient cause.
     if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
       return { ok: false, reason: "session_not_found", message: "Checkout session not found." };
     }
     throw err;
   }
 
-  // Ownership: the session must have been created for this workspace. This is
-  // the same guard updateWorkspaceStripeCustomer uses to stop an attacker
-  // binding their session to a victim workspace.
   if (session.client_reference_id !== input.expectedWorkspaceId) {
     return {
       ok: false,
@@ -81,8 +73,13 @@ export async function linkDeploySubscription(
       message: "Checkout session does not belong to this workspace.",
     };
   }
-
-  // Payment gate: only a completed, paid session may grant entitlement.
+  if (input.expectedProduct && session.metadata?.unkey_product !== input.expectedProduct) {
+    return {
+      ok: false,
+      reason: "no_api_plan",
+      message: "Checkout session is not for an API plan.",
+    };
+  }
   if (session.status !== "complete" || session.payment_status !== "paid") {
     return { ok: false, reason: "not_paid", message: "Checkout session is not paid." };
   }
@@ -101,18 +98,231 @@ export async function linkDeploySubscription(
     };
   }
 
-  const sub = await stripe.subscriptions.retrieve(subscriptionId);
-  // Only a live subscription grants a plan. Mirrors subscribeDeploy's
-  // active/trialing guard so an incomplete/past_due first charge cannot
-  // entitle the workspace. A subscription already set to cancel is excluded
-  // too (it is still "active" until the boundary): a checkout.session.completed
-  // redelivered after the user cancelled would otherwise re-detect the plan-fee
-  // item and resurrect the plan the cancel cleared, the same failure
-  // mirrorDeployPlan guards against.
-  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  if ((sub.status !== "active" && sub.status !== "trialing") || cancelling) {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const cancelling =
+    Boolean(subscription.cancel_at_period_end) || Boolean(subscription.cancel_at);
+  if (
+    (subscription.status !== "active" && subscription.status !== "trialing") ||
+    cancelling
+  ) {
     return { ok: false, reason: "not_active", message: "Subscription is not active." };
   }
+
+  return {
+    ok: true,
+    checkout: { stripeCustomerId, subscriptionId, subscription },
+  };
+}
+
+/** Checkout stores its selected card on the subscription; mirror it to the
+ * customer so later subscriptions and plan changes can reuse it. Linking has
+ * already committed when this runs, so a Stripe failure is best-effort only. */
+async function mirrorCheckoutPaymentMethod(
+  stripe: Stripe,
+  input: {
+    workspaceId: string;
+    stripeCustomerId: string;
+    sub: Stripe.Subscription;
+    product: "API" | "Compute";
+  },
+): Promise<void> {
+  const paymentMethod =
+    typeof input.sub.default_payment_method === "string"
+      ? input.sub.default_payment_method
+      : input.sub.default_payment_method?.id;
+  if (!paymentMethod) {
+    return;
+  }
+
+  try {
+    const customer = await stripe.customers.retrieve(input.stripeCustomerId);
+    if (
+      !customer.deleted &&
+      !customer.invoice_settings?.default_payment_method &&
+      !customer.default_source
+    ) {
+      await stripe.customers.update(input.stripeCustomerId, {
+        invoice_settings: { default_payment_method: paymentMethod },
+      });
+    }
+  } catch (err) {
+    console.error(`Failed to set customer default payment method after ${input.product} link`, {
+      workspaceId: input.workspaceId,
+      error: err instanceof Error ? err.message : err,
+    });
+  }
+}
+
+/**
+ * Links a paid subscription-mode API checkout onto its workspace. Checkout
+ * owns first-payment recovery (CVC recollection and 3DS); this function owns
+ * the entitlement boundary and only writes the paid tier after Stripe reports
+ * both the session and subscription as complete and active.
+ *
+ * Shared by /success and checkout.session.completed, so it is deliberately
+ * idempotent. A different live API subscription is never overwritten; a dead
+ * recorded subscription may be replaced on a later subscribe cycle.
+ */
+export async function linkApiSubscription(
+  stripe: Stripe,
+  input: { sessionId: string; expectedWorkspaceId: string; audit: LinkDeployAudit },
+): Promise<LinkApiResult> {
+  const resolved = await resolvePaidCheckout(stripe, { ...input, expectedProduct: "api" });
+  if (!resolved.ok) {
+    return resolved;
+  }
+  const { stripeCustomerId, subscriptionId, subscription: sub } = resolved.checkout;
+
+  const config = await deployBillingConfig();
+  const apiItem = findApiItem(config, sub.items.data);
+  const productRef = apiItem?.price.product;
+  const productId =
+    typeof productRef === "string"
+      ? productRef
+      : productRef && !productRef.deleted
+        ? productRef.id
+        : null;
+  if (!productId) {
+    return { ok: false, reason: "no_api_plan", message: "Subscription has no API plan." };
+  }
+
+  const e = stripeEnv();
+  const allowedProductIds = e
+    ? new Set([...e.STRIPE_PRODUCT_IDS_PRO, ...e.STRIPE_PRODUCT_IDS_ENTERPRISE])
+    : null;
+  if (!allowedProductIds?.has(productId)) {
+    return {
+      ok: false,
+      reason: "invalid_api_product",
+      message: "Subscription has an unsupported API plan.",
+    };
+  }
+
+  const product = await stripe.products.retrieve(productId);
+  const quotas = validateAndParseQuotas(product);
+  if (
+    !quotas.valid ||
+    quotas.requestsPerMonth === undefined ||
+    quotas.logsRetentionDays === undefined ||
+    quotas.auditLogsRetentionDays === undefined
+  ) {
+    return {
+      ok: false,
+      reason: "invalid_api_product",
+      message: "API plan is missing required quota configuration.",
+    };
+  }
+
+  const ws = await db.query.workspaces.findFirst({
+    where: (table, { and, eq: eqFn, isNull }) =>
+      and(eqFn(table.id, input.expectedWorkspaceId), isNull(table.deletedAtM)),
+    with: { billing: true, billingSubscriptions: true },
+  });
+  if (!ws) {
+    return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
+  }
+
+  const recordedSubscriptionId = subscriptionIdsByProduct(
+    ws.billingSubscriptions ?? [],
+  ).stripeSubscriptionId;
+  if (recordedSubscriptionId === subscriptionId) {
+    if (ws.billing?.tier === product.name) {
+      return { ok: true, productName: product.name, alreadyLinked: true };
+    }
+  } else if (recordedSubscriptionId) {
+    const recorded = await stripe.subscriptions
+      .retrieve(recordedSubscriptionId)
+      .catch((err: unknown) => {
+        if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
+          return null;
+        }
+        throw err;
+      });
+    if (recorded && !isDeadSubscription(recorded)) {
+      return {
+        ok: false,
+        reason: "subscription_conflict",
+        message: "Workspace already has a different API subscription.",
+      };
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.workspaceBilling)
+      .set({ stripeCustomerId, tier: product.name })
+      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+    await upsertBillingSubscription(tx, {
+      workspaceId: ws.id,
+      product: "api",
+      stripeSubscriptionId: subscriptionId,
+    });
+    await tx
+      .insert(schema.quotas)
+      .values({
+        workspaceId: ws.id,
+        requestsPerMonth: quotas.requestsPerMonth,
+        logsRetentionDays: quotas.logsRetentionDays,
+        auditLogsRetentionDays: quotas.auditLogsRetentionDays,
+        team: true,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          requestsPerMonth: quotas.requestsPerMonth,
+          logsRetentionDays: quotas.logsRetentionDays,
+          auditLogsRetentionDays: quotas.auditLogsRetentionDays,
+          team: true,
+        },
+      });
+    await insertAuditLogs(tx, {
+      workspaceId: ws.id,
+      actor: input.audit.actor,
+      event: "workspace.update",
+      description: `Subscribed to ${product.name} plan via checkout.`,
+      resources: [],
+      context: { location: input.audit.location, userAgent: input.audit.userAgent },
+    });
+  });
+
+  await mirrorCheckoutPaymentMethod(stripe, {
+    workspaceId: ws.id,
+    stripeCustomerId,
+    sub,
+    product: "API",
+  });
+
+  return { ok: true, productName: product.name, alreadyLinked: false };
+}
+
+/**
+ * Links a subscription-mode Compute checkout onto its workspace: verifies the
+ * session belongs to the workspace and was paid, that the resulting
+ * subscription is live and carries a recognized Deploy plan, then writes
+ * `stripeCustomerId` + `stripeDeploySubscriptionId` + `plan` to workspace_billing
+ * optimistically; the customer.subscription.* webhook then derives the same
+ * value and no-ops.
+ *
+ * Shared by `/success` (fast-path when the user returns) and the
+ * `checkout.session.completed` webhook (guaranteed, fires even if the user
+ * never returns). Both entry points call this with the same session, so it is
+ * idempotent: a matching already-linked subscription is a success no-op, and a
+ * *different* existing subscription is a hard failure (never repoint/orphan a
+ * live subscription).
+ *
+ * The session and subscription are resolved server-side; no id is trusted from
+ * the caller beyond the session id and the workspace id to check ownership
+ * against. Payment/status are verified here because detectDeployPlan keys only
+ * on price metadata, never on whether the subscription was actually paid.
+ */
+export async function linkDeploySubscription(
+  stripe: Stripe,
+  input: { sessionId: string; expectedWorkspaceId: string; audit: LinkDeployAudit },
+): Promise<LinkDeployResult> {
+  const resolved = await resolvePaidCheckout(stripe, input);
+  if (!resolved.ok) {
+    return resolved;
+  }
+  const { stripeCustomerId, subscriptionId, subscription: sub } = resolved.checkout;
 
   const plan = detectDeployPlan(sub);
   if (!plan) {
@@ -184,35 +394,12 @@ export async function linkDeploySubscription(
     });
   });
 
-  // Checkout attaches the card to the customer but records it as the
-  // SUBSCRIPTION's default payment method, not the customer's. Later flows
-  // that create a fresh subscription (cancel-then-resubscribe, the API plan)
-  // only consult the customer default, so mirror it over — best-effort and
-  // only when the customer has none, because the link above is already
-  // committed and must not fail on this.
-  const paymentMethod =
-    typeof sub.default_payment_method === "string"
-      ? sub.default_payment_method
-      : sub.default_payment_method?.id;
-  if (paymentMethod) {
-    try {
-      const customer = await stripe.customers.retrieve(stripeCustomerId);
-      if (
-        !customer.deleted &&
-        !customer.invoice_settings?.default_payment_method &&
-        !customer.default_source
-      ) {
-        await stripe.customers.update(stripeCustomerId, {
-          invoice_settings: { default_payment_method: paymentMethod },
-        });
-      }
-    } catch (err) {
-      console.error("Failed to set customer default payment method after Compute link", {
-        workspaceId: ws.id,
-        error: err instanceof Error ? err.message : err,
-      });
-    }
-  }
+  await mirrorCheckoutPaymentMethod(stripe, {
+    workspaceId: ws.id,
+    stripeCustomerId,
+    sub,
+    product: "Compute",
+  });
 
   return { ok: true, plan, alreadyLinked: false };
 }

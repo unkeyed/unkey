@@ -66,22 +66,18 @@ export default function ProjectsPage() {
  * Handles the Compute-plan gate hand-off: reads ?pendingPlan&from from the URL
  * and toasts the result, opening the create-project dialog on `from=create`.
  *
- * Two entry conditions land here, and the entitlement-first check absorbs both:
- * - Card on file (has-card path): the workspace is not yet subscribed, so
- *   subscribeDeploy runs here (no Stripe round-trip — the card is vaulted).
- * - Returning from a subscription-mode Compute checkout: /success (and the
- *   checkout.session.completed webhook) already linked the subscription, so the
- *   workspace is entitled and the entitlement check short-circuits to the
- *   toast/dialog with no subscribeDeploy call.
+ * The normal entry is a return from subscription-mode Compute checkout:
+ * /success (and the checkout.session.completed webhook) already linked the
+ * subscription, so the entitlement check short-circuits to the toast/dialog
+ * with no subscribeDeploy call.
  *
- * subscribeDeploy and its BAD_REQUEST decline-recovery stay for the has-card
- * path and the setup-mode fallback (workspace already has a subscription, so it
- * vaults a card and attaches Compute items on return). Params are stripped
- * after capture so a refresh doesn't re-fire, and a ref guards double-firing.
+ * subscribeDeploy remains only as the no-invoice resume path for an existing
+ * same-tier subscription which is cancelling at period end. Old/bookmarked
+ * pendingPlan URLs restart through Checkout. Params are stripped after capture
+ * so a refresh doesn't re-fire, and a ref guards double-firing.
  *
- * The params must be read reactively, not captured at mount: the has-card path
- * pushes ?pendingPlan&from while the user is ALREADY on the projects page (the
- * gate dialog lives here), so there is no remount — only a searchParams change.
+ * The params must be read reactively rather than captured at mount because the
+ * projects page can remain mounted across the checkout return navigation.
  */
 function usePendingSubscribe() {
   const router = useRouter();
@@ -109,8 +105,9 @@ function usePendingSubscribe() {
     // it verbatim instead of rewriting e.g. "billing" to "banner".
     const rawFrom = searchParams.get("from");
     const from = DEPLOY_ORIGINS.find((known) => known === rawFrom) ?? "banner";
-    const pending = { plan, from };
-    const key = `${pending.plan}:${pending.from}`;
+    const resume = searchParams.get("resume") === "true";
+    const pending = { plan, from, resume };
+    const key = `${pending.plan}:${pending.from}:${pending.resume}`;
     if (firedFor.current === key) {
       return;
     }
@@ -141,7 +138,7 @@ function usePendingSubscribe() {
       return Boolean(entitlement?.entitled);
     };
 
-    const attempt = () => {
+    const resumeSubscription = () => {
       subscribe.mutate(
         { plan: pending.plan },
         {
@@ -157,27 +154,13 @@ function usePendingSubscribe() {
               toast.error("Only workspace admins can manage billing.");
               return;
             }
-            // Payment failure: the workspace has a Stripe customer but no usable
-            // card, so the charge fails. Send them to Stripe to add one — /success
-            // returns to this landing and re-subscribes.
-            if (error.data?.code === "BAD_REQUEST") {
-              router.push(
-                routes.settings.stripe.checkout({
-                  workspaceSlug: workspace.slug,
-                  intent: "deploy",
-                  plan: pending.plan,
-                  from: pending.from,
-                }),
-              );
-              return;
-            }
             // Other preconditions won't clear on retry; surface the reason.
             if (error.data?.code === "PRECONDITION_FAILED") {
               toast.error(error.message || "Couldn't start your plan");
               return;
             }
             toast.error(error.message || "Couldn't start your plan", {
-              action: { label: "Retry", onClick: attempt },
+              action: { label: "Retry", onClick: resumeSubscription },
             });
           },
         },
@@ -189,7 +172,18 @@ function usePendingSubscribe() {
         await markActive();
         return;
       }
-      attempt();
+      if (pending.resume) {
+        resumeSubscription();
+        return;
+      }
+      router.push(
+        routes.settings.stripe.checkout({
+          workspaceSlug: workspace.slug,
+          intent: "deploy",
+          plan: pending.plan,
+          from: pending.from,
+        }),
+      );
     })();
   }, [searchParams, router, workspace.slug, subscribe, trpcUtils]);
 

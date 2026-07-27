@@ -1,10 +1,12 @@
 "use client";
 
 import { formatDollars, formatQuantity } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
 import {
@@ -21,6 +23,7 @@ import { SpendManagement } from "./spend-management";
 type DeployProductCardProps = {
   isAdmin: boolean;
   hasPaymentMethod: boolean;
+  workspaceSlug: string;
   /** Open the plan picker on mount (post-checkout intent hand-off). */
   autoOpenPlanModal?: boolean;
 };
@@ -34,12 +37,15 @@ type DeployProductCardProps = {
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
   hasPaymentMethod,
+  workspaceSlug,
   autoOpenPlanModal = false,
 }) => {
+  const router = useRouter();
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [isCancelOpen, setCancelOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
@@ -72,17 +78,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     ]);
   };
 
-  const subscribe = trpc.stripe.subscribeDeploy.useMutation({
-    onSuccess: async () => {
-      setPendingPlan(null);
-      setPlanModalOpen(false);
-      toast.success("Subscribed to Compute");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
   const change = trpc.stripe.changeDeployPlan.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       setPendingPlan(null);
       setPlanModalOpen(false);
       toast.success("Compute plan changed");
@@ -150,8 +151,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       ]
     : null;
 
-  const submittingPlan = subscribe.isLoading
-    ? (subscribe.variables?.plan ?? null)
+  const submittingPlan = isStartingCheckout
+    ? pendingPlan
     : change.isLoading
       ? (change.variables?.plan ?? null)
       : null;
@@ -178,7 +179,18 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     if (currentPlan) {
       change.mutate({ plan: pendingPlan });
     } else {
-      subscribe.mutate({ plan: pendingPlan });
+      // First payment must happen in Checkout so Stripe can collect a corrected
+      // CVC or complete 3DS. A server-only subscriptions.create call can only
+      // return requires_action and strand the user in this dialog.
+      setIsStartingCheckout(true);
+      router.push(
+        routes.settings.stripe.checkout({
+          workspaceSlug,
+          intent: "deploy",
+          plan: pendingPlan,
+          from: "billing",
+        }),
+      );
     }
   };
 
@@ -301,7 +313,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           }
         }}
         onConfirm={commitPending}
-        isLoading={subscribe.isLoading || change.isLoading}
+        isLoading={isStartingCheckout || change.isLoading}
         currentPlanName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
         note="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
       />
