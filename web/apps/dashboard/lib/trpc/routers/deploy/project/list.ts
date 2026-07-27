@@ -22,7 +22,7 @@ export const listProjects = workspaceProcedure
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(eq(projects.workspaceId, workspaceId))
+      .where(and(eq(projects.workspaceId, workspaceId), sql`BINARY ${projects.slug} <> 'default'`))
       .orderBy(desc(projects.updatedAt));
 
     if (projectRows.length === 0) {
