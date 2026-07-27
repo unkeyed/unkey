@@ -44,30 +44,27 @@ func Mapping(appID, keyspaceID *string) (appCol sql.NullString, keyAuthCol sql.N
 // columns into the public API shape. Branding is included only when at least one
 // branding column is set.
 func ToResponse(cfg db.PortalConfiguration, logoUrl, primaryColor sql.NullString) openapi.PortalConfiguration {
-	out := openapi.PortalConfiguration{
-		Id:          cfg.ID,
-		Slug:        cfg.Slug,
-		DisplayName: cfg.DisplayName,
-		Enabled:     cfg.Enabled,
-		CreatedAt:   cfg.CreatedAt,
-	}
-	if cfg.AppID.Valid {
-		out.AppId = cfg.AppID.String
-	}
-	if cfg.KeyAuthID.Valid {
-		out.KeyspaceId = cfg.KeyAuthID.String
-	}
-	if cfg.ReturnUrl.Valid {
-		out.ReturnUrl = cfg.ReturnUrl.String
-	}
-	if cfg.UpdatedAt.Valid {
-		out.UpdatedAt = cfg.UpdatedAt.Int64
-	}
+	// A nil-valued sql.NullString/NullInt64 already carries the "" / 0 zero
+	// value, which maps to the omitempty JSON fields, so the columns can be read
+	// directly into a single complete literal.
+	var branding *openapi.PortalBranding
 	if logoUrl.Valid || primaryColor.Valid {
-		out.Branding = &openapi.PortalBranding{
+		branding = &openapi.PortalBranding{
 			LogoUrl:      logoUrl.String,
 			PrimaryColor: primaryColor.String,
 		}
 	}
-	return out
+
+	return openapi.PortalConfiguration{
+		Id:          cfg.ID,
+		Slug:        cfg.Slug,
+		DisplayName: cfg.DisplayName,
+		AppId:       cfg.AppID.String,
+		KeyspaceId:  cfg.KeyAuthID.String,
+		Enabled:     cfg.Enabled,
+		ReturnUrl:   cfg.ReturnUrl.String,
+		Branding:    branding,
+		CreatedAt:   cfg.CreatedAt,
+		UpdatedAt:   cfg.UpdatedAt.Int64,
+	}
 }
