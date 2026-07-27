@@ -54,10 +54,10 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           profile: authResult.user ?? null,
         }
       : null,
-    // Billing state now lives on the workspace_billing relation. Surface it under
-    // the legacy workspace field names so existing ctx.workspace.<field> reads
-    // keep working and read the fresh values from the billing row rather than the
-    // stale columns still on workspaces. Writers target workspaceBilling directly.
+    // Billing state lives on the workspace_billing relation (the columns were
+    // dropped from workspaces). Surface it under the legacy workspace field names
+    // so existing ctx.workspace.<field> reads keep working against the billing
+    // row. Writers target workspaceBilling directly.
     workspace: ws
       ? {
           ...ws,
