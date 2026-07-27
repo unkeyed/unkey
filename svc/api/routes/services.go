@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -115,4 +116,10 @@ type Services struct {
 	// endpoint.
 	GitHubAppName       string
 	GitHubPrivateKeyPEM string
+
+	// GitHubClient authenticates against the GitHub API to resolve and verify
+	// repositories when connecting them to apps (apps.createApp /
+	// apps.updateApp). It is a Noop when GitHub is not configured, which makes
+	// those handlers report the repo-connection feature as unavailable.
+	GitHubClient githubclient.GitHubClient
 }

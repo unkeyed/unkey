@@ -11,13 +11,14 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
 FROM apps
-WHERE project_id = ?
-  AND id >= ?
+LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+WHERE apps.project_id = ?
+  AND apps.id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
-ORDER BY id ASC
+  AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))
+ORDER BY apps.id ASC
 LIMIT ?
 `
 
@@ -28,17 +29,34 @@ type ListAppsByProjectParams struct {
 	Limit     int32          `db:"limit"`
 }
 
+type ListAppsByProjectRow struct {
+	Pk                  uint64         `db:"pk"`
+	ID                  string         `db:"id"`
+	WorkspaceID         string         `db:"workspace_id"`
+	ProjectID           string         `db:"project_id"`
+	Name                string         `db:"name"`
+	Slug                string         `db:"slug"`
+	DefaultBranch       string         `db:"default_branch"`
+	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
+	IsRolledBack        bool           `db:"is_rolled_back"`
+	DeleteProtection    sql.NullBool   `db:"delete_protection"`
+	CreatedAt           int64          `db:"created_at"`
+	UpdatedAt           sql.NullInt64  `db:"updated_at"`
+	RepositoryFullName  sql.NullString `db:"repository_full_name"`
+}
+
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
 //	FROM apps
-//	WHERE project_id = ?
-//	  AND id >= ?
+//	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+//	WHERE apps.project_id = ?
+//	  AND apps.id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-//	  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
-//	ORDER BY id ASC
+//	  AND (? IS NULL OR LOWER(apps.id) LIKE LOWER(?) OR LOWER(apps.name) LIKE LOWER(?) OR LOWER(apps.slug) LIKE LOWER(?))
+//	ORDER BY apps.id ASC
 //	LIMIT ?
-func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error) {
+func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error) {
 	rows, err := db.QueryContext(ctx, listAppsByProject,
 		arg.ProjectID,
 		arg.IDCursor,
@@ -52,9 +70,9 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []App
+	var items []ListAppsByProjectRow
 	for rows.Next() {
-		var i App
+		var i ListAppsByProjectRow
 		if err := rows.Scan(
 			&i.Pk,
 			&i.ID,
@@ -68,6 +86,7 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.RepositoryFullName,
 		); err != nil {
 			return nil, err
 		}

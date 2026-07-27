@@ -6,7 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 func TestBuildGitContextURL(t *testing.T) {

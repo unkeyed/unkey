@@ -9,8 +9,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// Noop is a no-op implementation of GitHubClient that returns errors for all operations.
-// Use this when GitHub credentials are not configured.
+// Noop is the GitHubClient used when GitHub App credentials are not configured.
+// Authenticated operations return errNotConfigured; the unauthenticated
+// public-API methods (IsRepoPublic, GetBranchHeadCommitPublic) still work.
 type Noop struct{}
 
 // Ensure Noop implements GitHubClient
@@ -43,6 +44,11 @@ func (n *Noop) IsRepoPublic(repo string) (bool, error) {
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
 func (n *Noop) GetBranchHeadCommit(_ int64, _ string, _ string) (CommitInfo, error) {
 	return CommitInfo{}, errNotConfigured
+}
+
+// GetInstallationRepo returns an error indicating GitHub is not configured.
+func (n *Noop) GetInstallationRepo(_ int64, _ string) (*RepoInfo, error) {
+	return nil, errNotConfigured
 }
 
 // CreateDeployment returns an error indicating GitHub is not configured.
