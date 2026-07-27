@@ -195,7 +195,7 @@ type Querier interface {
 	FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
-	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
@@ -506,7 +506,7 @@ type Querier interface {
 	FindKeyIDByHash(ctx context.Context, hash string) (string, error)
 	//FindKeySpaceByID
 	//
-	//  SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+	//  SELECT pk, id, workspace_id, project_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, id string) (KeyAuth, error)
 	//FindLatestReadyDeploymentByAppAndEnv
 	//
@@ -525,7 +525,7 @@ type Querier interface {
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -545,7 +545,7 @@ type Querier interface {
 	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(

@@ -9,6 +9,7 @@ export const permissions = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
     name: varchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
@@ -18,7 +19,10 @@ export const permissions = mysqlTable(
       .$defaultFn(() => Date.now()),
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
-  (table) => [unique("unique_slug_per_workspace_idx").on(table.workspaceId, table.slug)],
+  (table) => [
+    unique("unique_slug_per_workspace_idx").on(table.workspaceId, table.slug),
+    index("permissions_project_id_idx").on(table.projectId),
+  ],
 );
 export const permissionsRelations = relations(permissions, ({ one, many }) => ({
   workspace: one(workspaces, {
@@ -75,6 +79,7 @@ export const roles = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
     name: varchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -86,6 +91,7 @@ export const roles = mysqlTable(
   (table) => [
     index("workspace_id_idx").on(table.workspaceId),
     unique("unique_name_per_workspace_idx").on(table.name, table.workspaceId),
+    index("roles_project_id_idx").on(table.projectId),
   ],
 );
 

@@ -40,6 +40,7 @@ export async function upsertPermissions(
       const permission = {
         id: newId("permission"),
         workspaceId,
+        projectId: "",
         name: slug,
         slug: slug,
         description: null,
