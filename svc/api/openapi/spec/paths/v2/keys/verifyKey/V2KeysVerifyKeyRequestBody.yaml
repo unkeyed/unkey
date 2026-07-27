@@ -21,6 +21,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 512
+    x-unkey-redact: true
     description: |
       The API key to verify, exactly as provided by your user.
       Include any prefix - even small changes will cause verification to fail.
