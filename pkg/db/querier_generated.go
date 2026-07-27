@@ -175,7 +175,7 @@ type Querier interface {
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
 	//FindApiByID
 	//
-	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
 	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
@@ -190,14 +190,14 @@ type Querier interface {
 	FindApisByKeyAuthIds(ctx context.Context, db DBTX, arg FindApisByKeyAuthIdsParams) ([]FindApisByKeyAuthIdsRow, error)
 	//FindAppBuildSettingByAppEnv
 	//
-	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  SELECT app_build_settings.pk, app_build_settings.workspace_id, app_build_settings.app_id, app_build_settings.environment_id, app_build_settings.dockerfile, app_build_settings.docker_context, app_build_settings.build_command, app_build_settings.watch_paths, app_build_settings.auto_deploy, app_build_settings.created_at, app_build_settings.updated_at
 	//  FROM `app_build_settings`
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
@@ -227,14 +227,19 @@ type Querier interface {
 	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error)
 	//FindAppByProjectAndSlug
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT
+	//    apps.id,
+	//    apps.workspace_id,
+	//    apps.slug
 	//  FROM apps
 	//  WHERE apps.project_id = ?
 	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppByWorkspaceAndSlugs
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT
+	//    p.id AS project_id,
+	//    a.id AS app_id
 	//  FROM apps a
 	//  INNER JOIN projects p ON a.project_id = p.id
 	//  WHERE p.workspace_id = ?
@@ -280,16 +285,35 @@ type Querier interface {
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT
+	//    app_runtime_settings.pk,
+	//    app_runtime_settings.workspace_id,
+	//    app_runtime_settings.app_id,
+	//    app_runtime_settings.environment_id,
+	//    app_runtime_settings.port,
+	//    app_runtime_settings.cpu_millicores,
+	//    app_runtime_settings.memory_mib,
+	//    app_runtime_settings.storage_mib,
+	//    app_runtime_settings.command,
+	//    app_runtime_settings.healthcheck,
+	//    app_runtime_settings.shutdown_signal,
+	//    app_runtime_settings.upstream_protocol,
+	//    app_runtime_settings.sentinel_config,
+	//    app_runtime_settings.openapi_spec_path,
+	//    app_runtime_settings.created_at,
+	//    app_runtime_settings.updated_at
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
-	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
+	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (AppRuntimeSetting, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
-	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
+	//      c.workspace_id AS clickhouse_workspace_id,
+	//      c.username AS clickhouse_username,
+	//      c.password_encrypted AS clickhouse_password_encrypted,
+	//      c.max_query_result_rows AS clickhouse_max_query_result_rows,
+	//      l.logs_retention_days_max AS quota_logs_retention_days
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -373,7 +397,7 @@ type Querier interface {
 	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentWithEnvironment
 	//
@@ -384,18 +408,21 @@ type Querier interface {
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT
+	//    environments.id,
+	//    environments.project_id
+	//  FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE id = ?
-	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
+	FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error)
 	//FindEnvironmentByIdentifiers
 	//
-	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
+	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 	//  FROM environments e
 	//  JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -404,10 +431,10 @@ type Querier interface {
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
-	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
+	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (FindEnvironmentByIdentifiersRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
 	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error)
 	//FindGithubAppInstallationsByWorkspaceId
 	//
@@ -434,7 +461,7 @@ type Querier interface {
 	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
 	//FindIdentitiesByExternalId
 	//
-	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
@@ -473,7 +500,7 @@ type Querier interface {
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
 	//
-	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//    AND external_id = ?
@@ -481,7 +508,7 @@ type Querier interface {
 	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)
 	//FindIdentityByID
 	//
-	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//    AND id = ?
@@ -521,7 +548,7 @@ type Querier interface {
 	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error)
 	//FindKeyEncryptionByKeyID
 	//
-	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
+	//  SELECT encrypted_keys.pk, encrypted_keys.workspace_id, encrypted_keys.key_id, encrypted_keys.created_at, encrypted_keys.updated_at, encrypted_keys.encrypted, encrypted_keys.encryption_key_id FROM encrypted_keys WHERE key_id = ?
 	FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
 	// you only need the ID for a subsequent mutation and do not need the full
@@ -541,14 +568,14 @@ type Querier interface {
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
 	//FindKeyRoleByKeyAndRoleID
 	//
-	//  SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
+	//  SELECT keys_roles.pk, keys_roles.key_id, keys_roles.role_id, keys_roles.workspace_id, keys_roles.created_at_m, keys_roles.updated_at_m
 	//  FROM keys_roles
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeySpaceByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error)
 	//FindKeysByHash
 	//
@@ -556,7 +583,13 @@ type Querier interface {
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
 	//FindLiveApiByID
 	//
-	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+	//  SELECT
+	//      apis.id AS api_id,
+	//      apis.name AS api_name,
+	//      apis.workspace_id AS api_workspace_id,
+	//      apis.key_auth_id AS api_key_auth_id,
+	//      ka.id AS key_auth_id,
+	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 	//  FROM apis
 	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
 	//  WHERE apis.id = ?
@@ -567,13 +600,22 @@ type Querier interface {
 	//FindLiveKeyByHash
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//      a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-	//      ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      k.id AS key_id,
+	//      k.key_auth_id AS key_key_auth_id,
+	//      k.start AS key_start,
+	//      k.workspace_id AS key_workspace_id,
+	//      k.name AS key_name,
+	//      k.meta AS key_meta,
+	//      k.expires AS key_expires,
+	//      k.created_at_m AS key_created_at_m,
+	//      k.updated_at_m AS key_updated_at_m,
+	//      k.refill_day AS key_refill_day,
+	//      k.refill_amount AS key_refill_amount,
+	//      k.enabled AS key_enabled,
+	//      k.remaining_requests AS key_remaining_requests,
+	//      k.last_used_at AS key_last_used_at,
+	//      a.id AS api_id,
+	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -668,13 +710,29 @@ type Querier interface {
 	//FindLiveKeyByID
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//      a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-	//      ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      k.id AS key_id,
+	//      k.key_auth_id AS key_key_auth_id,
+	//      k.hash AS key_hash,
+	//      k.start AS key_start,
+	//      k.workspace_id AS key_workspace_id,
+	//      k.for_workspace_id AS key_for_workspace_id,
+	//      k.name AS key_name,
+	//      k.identity_id AS key_identity_id,
+	//      k.meta AS key_meta,
+	//      k.expires AS key_expires,
+	//      k.created_at_m AS key_created_at_m,
+	//      k.updated_at_m AS key_updated_at_m,
+	//      k.refill_day AS key_refill_day,
+	//      k.refill_amount AS key_refill_amount,
+	//      k.enabled AS key_enabled,
+	//      k.remaining_requests AS key_remaining_requests,
+	//      k.last_used_at AS key_last_used_at,
+	//      a.id AS api_id,
+	//      a.name AS api_name,
+	//      ka.id AS key_auth_id,
+	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
+	//      ka.default_prefix AS key_auth_default_prefix,
+	//      ka.default_bytes AS key_auth_default_bytes,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -762,7 +820,7 @@ type Querier interface {
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
 	//FindManyRatelimitNamespaces
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -781,7 +839,7 @@ type Querier interface {
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
 	//FindManyRolesByNamesWithPerms
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              json_object(
 	//                  'id', permission.id,
@@ -802,20 +860,20 @@ type Querier interface {
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
 	//FindPermissionByIdOrSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
 	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -823,7 +881,7 @@ type Querier interface {
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionBySlugAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE slug = ?
 	//  AND workspace_id = ?
@@ -831,7 +889,7 @@ type Querier interface {
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
 	//FindPermissionsBySlugs
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindPermissionsBySlugsForUpdate
 	//
@@ -921,7 +979,7 @@ type Querier interface {
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
@@ -949,14 +1007,14 @@ type Querier interface {
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
 	//  FROM projects
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -975,20 +1033,20 @@ type Querier interface {
 	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByName
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
+	//  SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM `ratelimit_namespaces`
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
 	//FindRatelimitOverrideByID
 	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//      workspace_id = ?
 	//      AND id = ?
 	FindRatelimitOverrideByID(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIDParams) (RatelimitOverride, error)
 	//FindRatelimitOverrideByIdentifier
 	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//      workspace_id = ?
 	//      AND namespace_id = ?
@@ -1004,14 +1062,14 @@ type Querier interface {
 	// Finds a role record by its ID
 	// Returns: The role record if found
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
+	//  SELECT roles.pk, roles.id, roles.workspace_id, roles.project_id, roles.name, roles.description, roles.created_at_m, roles.updated_at_m
 	//  FROM roles
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
 	//FindRoleByIdOrNameWithPerms
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
+	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              json_object(
 	//                  'id', permission.id,
@@ -1035,7 +1093,7 @@ type Querier interface {
 	// Finds a role record by its name within a specific workspace
 	// Returns: The role record if found
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
+	//  SELECT roles.pk, roles.id, roles.workspace_id, roles.project_id, roles.name, roles.description, roles.created_at_m, roles.updated_at_m
 	//  FROM roles
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -1043,7 +1101,7 @@ type Querier interface {
 	FindRoleByNameAndWorkspaceID(ctx context.Context, db DBTX, arg FindRoleByNameAndWorkspaceIDParams) (Role, error)
 	//FindRolePermissionByRoleAndPermissionID
 	//
-	//  SELECT pk, role_id, permission_id, workspace_id, created_at_m, updated_at_m
+	//  SELECT roles_permissions.pk, roles_permissions.role_id, roles_permissions.permission_id, roles_permissions.workspace_id, roles_permissions.created_at_m, roles_permissions.updated_at_m
 	//  FROM roles_permissions
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
@@ -1054,7 +1112,7 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindVerifiedCustomDomainByAppID
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
 	//  WHERE app_id = ? AND verification_status = 'verified'
 	//  ORDER BY created_at ASC, id ASC
 	//  LIMIT 1
@@ -1089,12 +1147,12 @@ type Querier interface {
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//FindWorkspaceByOrgID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 	//  WHERE org_id = ?
 	//  AND deleted_at_m IS NULL
 	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
@@ -1836,7 +1894,7 @@ type Querier interface {
 	// Returns the build settings for every environment in an app, for callers
 	// that build multiple environments at once and group by environment_id.
 	//
-	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  SELECT app_build_settings.pk, app_build_settings.workspace_id, app_build_settings.app_id, app_build_settings.environment_id, app_build_settings.dockerfile, app_build_settings.docker_context, app_build_settings.build_command, app_build_settings.watch_paths, app_build_settings.auto_deploy, app_build_settings.created_at, app_build_settings.updated_at
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
@@ -1882,10 +1940,26 @@ type Querier interface {
 	// Returns the runtime settings for every environment in an app, for callers
 	// that build multiple environments at once and group by environment_id.
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT
+	//    app_runtime_settings.pk,
+	//    app_runtime_settings.workspace_id,
+	//    app_runtime_settings.app_id,
+	//    app_runtime_settings.environment_id,
+	//    app_runtime_settings.port,
+	//    app_runtime_settings.cpu_millicores,
+	//    app_runtime_settings.memory_mib,
+	//    app_runtime_settings.storage_mib,
+	//    app_runtime_settings.command,
+	//    app_runtime_settings.healthcheck,
+	//    app_runtime_settings.shutdown_signal,
+	//    app_runtime_settings.upstream_protocol,
+	//    app_runtime_settings.sentinel_config,
+	//    app_runtime_settings.openapi_spec_path,
+	//    app_runtime_settings.created_at,
+	//    app_runtime_settings.updated_at
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
-	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error)
+	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error)
 	//ListAppsByProject
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
@@ -2026,14 +2100,14 @@ type Querier interface {
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
-	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]ListEnvironmentsByAppRow, error)
 	//ListFailedDeploymentStepsByIds
 	//
-	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
+	//  SELECT deployment_steps.pk, deployment_steps.workspace_id, deployment_steps.project_id, deployment_steps.environment_id, deployment_steps.deployment_id, deployment_steps.app_id, deployment_steps.step, deployment_steps.started_at, deployment_steps.ended_at, deployment_steps.error FROM deployment_steps
 	//  WHERE workspace_id = ?
 	//    AND deployment_id IN (/*SLICE:deployment_ids*/?)
 	//    AND error IS NOT NULL AND error != ''
@@ -2078,14 +2152,14 @@ type Querier interface {
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
 	//ListIdentityRatelimits
 	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
+	//  SELECT ratelimits.pk, ratelimits.id, ratelimits.name, ratelimits.workspace_id, ratelimits.created_at, ratelimits.updated_at, ratelimits.key_id, ratelimits.identity_id, ratelimits.`limit`, ratelimits.duration, ratelimits.auto_apply
 	//  FROM ratelimits
 	//  WHERE identity_id = ?
 	//  ORDER BY id ASC
 	ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListIdentityRatelimitsByID
 	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
+	//  SELECT ratelimits.pk, ratelimits.id, ratelimits.name, ratelimits.workspace_id, ratelimits.created_at, ratelimits.updated_at, ratelimits.key_id, ratelimits.identity_id, ratelimits.`limit`, ratelimits.duration, ratelimits.auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListLiveKeysByKeySpaceID
 	//
@@ -2335,7 +2409,7 @@ type Querier interface {
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
 	//  WHERE
 	//  workspace_id = ?
 	//  AND namespace_id = ?

@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
-SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
+SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 FROM environments e
 JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -28,9 +29,22 @@ type FindEnvironmentByIdentifiersParams struct {
 	Environment string `db:"environment"`
 }
 
+type FindEnvironmentByIdentifiersRow struct {
+	Pk               uint64        `db:"pk"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	AppID            string        `db:"app_id"`
+	Slug             string        `db:"slug"`
+	Description      string        `db:"description"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+}
+
 // FindEnvironmentByIdentifiers
 //
-//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
+//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 //	FROM environments e
 //	JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -39,7 +53,7 @@ type FindEnvironmentByIdentifiersParams struct {
 //	  AND (a.id = ? OR a.slug = ?)
 //	  AND (e.id = ? OR e.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error) {
+func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (FindEnvironmentByIdentifiersRow, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByIdentifiers,
 		arg.WorkspaceID,
 		arg.Project,
@@ -49,7 +63,7 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		arg.Environment,
 		arg.Environment,
 	)
-	var i Environment
+	var i FindEnvironmentByIdentifiersRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -58,7 +72,6 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
-		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

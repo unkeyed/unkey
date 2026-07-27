@@ -10,47 +10,75 @@ import (
 )
 
 const listAppRuntimeSettingsByApp = `-- name: ListAppRuntimeSettingsByApp :many
-SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+SELECT
+  app_runtime_settings.pk,
+  app_runtime_settings.workspace_id,
+  app_runtime_settings.app_id,
+  app_runtime_settings.environment_id,
+  app_runtime_settings.port,
+  app_runtime_settings.cpu_millicores,
+  app_runtime_settings.memory_mib,
+  app_runtime_settings.storage_mib,
+  app_runtime_settings.command,
+  app_runtime_settings.healthcheck,
+  app_runtime_settings.shutdown_signal,
+  app_runtime_settings.upstream_protocol,
+  app_runtime_settings.sentinel_config,
+  app_runtime_settings.openapi_spec_path,
+  app_runtime_settings.created_at,
+  app_runtime_settings.updated_at
 FROM app_runtime_settings
 WHERE app_id = ?
 `
 
-type ListAppRuntimeSettingsByAppRow struct {
-	AppRuntimeSetting AppRuntimeSetting `db:"app_runtime_setting"`
-}
-
 // Returns the runtime settings for every environment in an app, for callers
 // that build multiple environments at once and group by environment_id.
 //
-//	SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+//	SELECT
+//	  app_runtime_settings.pk,
+//	  app_runtime_settings.workspace_id,
+//	  app_runtime_settings.app_id,
+//	  app_runtime_settings.environment_id,
+//	  app_runtime_settings.port,
+//	  app_runtime_settings.cpu_millicores,
+//	  app_runtime_settings.memory_mib,
+//	  app_runtime_settings.storage_mib,
+//	  app_runtime_settings.command,
+//	  app_runtime_settings.healthcheck,
+//	  app_runtime_settings.shutdown_signal,
+//	  app_runtime_settings.upstream_protocol,
+//	  app_runtime_settings.sentinel_config,
+//	  app_runtime_settings.openapi_spec_path,
+//	  app_runtime_settings.created_at,
+//	  app_runtime_settings.updated_at
 //	FROM app_runtime_settings
 //	WHERE app_id = ?
-func (q *Queries) ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error) {
+func (q *Queries) ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error) {
 	rows, err := db.QueryContext(ctx, listAppRuntimeSettingsByApp, appID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAppRuntimeSettingsByAppRow
+	var items []AppRuntimeSetting
 	for rows.Next() {
-		var i ListAppRuntimeSettingsByAppRow
+		var i AppRuntimeSetting
 		if err := rows.Scan(
-			&i.AppRuntimeSetting.Pk,
-			&i.AppRuntimeSetting.WorkspaceID,
-			&i.AppRuntimeSetting.AppID,
-			&i.AppRuntimeSetting.EnvironmentID,
-			&i.AppRuntimeSetting.Port,
-			&i.AppRuntimeSetting.CpuMillicores,
-			&i.AppRuntimeSetting.MemoryMib,
-			&i.AppRuntimeSetting.StorageMib,
-			&i.AppRuntimeSetting.Command,
-			&i.AppRuntimeSetting.Healthcheck,
-			&i.AppRuntimeSetting.ShutdownSignal,
-			&i.AppRuntimeSetting.UpstreamProtocol,
-			&i.AppRuntimeSetting.SentinelConfig,
-			&i.AppRuntimeSetting.OpenapiSpecPath,
-			&i.AppRuntimeSetting.CreatedAt,
-			&i.AppRuntimeSetting.UpdatedAt,
+			&i.Pk,
+			&i.WorkspaceID,
+			&i.AppID,
+			&i.EnvironmentID,
+			&i.Port,
+			&i.CpuMillicores,
+			&i.MemoryMib,
+			&i.StorageMib,
+			&i.Command,
+			&i.Healthcheck,
+			&i.ShutdownSignal,
+			&i.UpstreamProtocol,
+			&i.SentinelConfig,
+			&i.OpenapiSpecPath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

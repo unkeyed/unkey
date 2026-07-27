@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listPreviewEnvironments = `-- name: ListPreviewEnvironments :many
-SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE kind = 'preview'
 AND pk > ?
@@ -23,23 +24,36 @@ type ListPreviewEnvironmentsParams struct {
 	Limit            int32  `db:"limit"`
 }
 
+type ListPreviewEnvironmentsRow struct {
+	Pk               uint64        `db:"pk"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	AppID            string        `db:"app_id"`
+	Slug             string        `db:"slug"`
+	Description      string        `db:"description"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+}
+
 // ListPreviewEnvironments
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE kind = 'preview'
 //	AND pk > ?
 //	ORDER BY pk ASC
 //	LIMIT ?
-func (q *Queries) ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error) {
+func (q *Queries) ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]ListPreviewEnvironmentsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPreviewEnvironments, arg.PaginationCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Environment
+	var items []ListPreviewEnvironmentsRow
 	for rows.Next() {
-		var i Environment
+		var i ListPreviewEnvironmentsRow
 		if err := rows.Scan(
 			&i.Pk,
 			&i.ID,
@@ -48,7 +62,6 @@ func (q *Queries) ListPreviewEnvironments(ctx context.Context, arg ListPreviewEn
 			&i.AppID,
 			&i.Slug,
 			&i.Description,
-			&i.Kind,
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,

@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   row.Project.ID,
+			ResourceID:   row.ProjectID,
 			Action:       rbac.CreateDeployment,
 		}),
 	))
@@ -87,8 +87,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.Project.ID,
-		AppId:           row.App.ID,
+		ProjectId:       row.ProjectID,
+		AppId:           row.AppID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
 		GitCommit: &ctrlv1.GitCommitInfo{

@@ -7,22 +7,36 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE id = ?
 `
 
+type FindEnvironmentByIdRow struct {
+	Pk               uint64        `db:"pk"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	ProjectID        string        `db:"project_id"`
+	AppID            string        `db:"app_id"`
+	Slug             string        `db:"slug"`
+	Description      string        `db:"description"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+}
+
 // FindEnvironmentById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE id = ?
-func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error) {
+func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (FindEnvironmentByIdRow, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentById, id)
-	var i Environment
+	var i FindEnvironmentByIdRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -31,7 +45,6 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
-		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

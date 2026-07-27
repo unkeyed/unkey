@@ -153,7 +153,7 @@ func (s *Service) ConfigureUser(
 						return "", fmt.Errorf("update limits after duplicate: %w", updateErr)
 					}
 
-					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
+					return existing.ClickhousePasswordEncrypted, nil
 				}
 
 				return "", fmt.Errorf("insert settings: %w", err)
@@ -167,8 +167,8 @@ func (s *Service) ConfigureUser(
 
 	} else {
 		logger.Info("updating existing user", "workspace_id", workspaceID)
-		retentionDays = int32(result.Row.Limit.LogsRetentionDaysMax)
-		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
+		retentionDays = result.Row.QuotaLogsRetentionDays
+		encryptedPassword = result.Row.ClickhousePasswordEncrypted
 
 		now := time.Now().UnixMilli()
 		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {

@@ -11,23 +11,29 @@ import (
 
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
 SELECT
-    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-    l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
+    c.workspace_id AS clickhouse_workspace_id,
+    c.username AS clickhouse_username,
+    c.password_encrypted AS clickhouse_password_encrypted,
+    l.logs_retention_days_max AS quota_logs_retention_days
 FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
 JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = c.workspace_id
 WHERE c.workspace_id = ?
 `
 
 type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
-	ClickhouseWorkspaceSetting ClickhouseWorkspaceSetting `db:"clickhouse_workspace_setting"`
-	Limit                      Limit                      `db:"limit"`
+	ClickhouseWorkspaceID       string `db:"clickhouse_workspace_id"`
+	ClickhouseUsername          string `db:"clickhouse_username"`
+	ClickhousePasswordEncrypted string `db:"clickhouse_password_encrypted"`
+	QuotaLogsRetentionDays      uint16 `db:"quota_logs_retention_days"`
 }
 
 // FindClickhouseWorkspaceSettingsByWorkspaceID
 //
 //	SELECT
-//	    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-//	    l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
+//	    c.workspace_id AS clickhouse_workspace_id,
+//	    c.username AS clickhouse_username,
+//	    c.password_encrypted AS clickhouse_password_encrypted,
+//	    l.logs_retention_days_max AS quota_logs_retention_days
 //	FROM `clickhouse_workspace_settings` c
 //	JOIN `limits` l ON l.workspace_id = c.workspace_id
 //	WHERE c.workspace_id = ?
@@ -35,34 +41,10 @@ func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Conte
 	row := q.db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)
 	var i FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	err := row.Scan(
-		&i.ClickhouseWorkspaceSetting.Pk,
-		&i.ClickhouseWorkspaceSetting.WorkspaceID,
-		&i.ClickhouseWorkspaceSetting.Username,
-		&i.ClickhouseWorkspaceSetting.PasswordEncrypted,
-		&i.ClickhouseWorkspaceSetting.QuotaDurationSeconds,
-		&i.ClickhouseWorkspaceSetting.MaxQueriesPerWindow,
-		&i.ClickhouseWorkspaceSetting.MaxExecutionTimePerWindow,
-		&i.ClickhouseWorkspaceSetting.MaxQueryExecutionTime,
-		&i.ClickhouseWorkspaceSetting.MaxQueryMemoryBytes,
-		&i.ClickhouseWorkspaceSetting.MaxQueryResultRows,
-		&i.ClickhouseWorkspaceSetting.CreatedAt,
-		&i.ClickhouseWorkspaceSetting.UpdatedAt,
-		&i.Limit.Pk,
-		&i.Limit.WorkspaceID,
-		&i.Limit.ApiBillableOperationsCountMaxPerMonth,
-		&i.Limit.ApiRequestsCountMaxPerMinute,
-		&i.Limit.LogsRetentionDaysMax,
-		&i.Limit.LogsAuditRetentionDaysMax,
-		&i.Limit.TeamEnabled,
-		&i.Limit.CpuCoresMax,
-		&i.Limit.CpuCoresMaxPerInstance,
-		&i.Limit.MemoryMibMax,
-		&i.Limit.MemoryMibMaxPerInstance,
-		&i.Limit.StorageMibMax,
-		&i.Limit.StorageMibMaxPerInstance,
-		&i.Limit.BuildsConcurrentMax,
-		&i.Limit.CustomDomainsMax,
-		&i.Limit.AutoscalingReplicasMax,
+		&i.ClickhouseWorkspaceID,
+		&i.ClickhouseUsername,
+		&i.ClickhousePasswordEncrypted,
+		&i.QuotaLogsRetentionDays,
 	)
 	return i, err
 }
