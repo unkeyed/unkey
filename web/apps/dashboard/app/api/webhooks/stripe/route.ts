@@ -6,22 +6,19 @@ import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
-import {
-  deployBillingConfig,
-  deployBillingConfigured,
-  findApiItem,
-} from "@/lib/stripe/deployBilling";
+import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
-  getApiCancelSchedule,
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
 } from "@/lib/stripe/subscriptionUtils";
+import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
 import {
   alertInvalidProductQuotaMetadata,
   alertIsCancellingSubscription,
@@ -37,14 +34,25 @@ import Stripe from "stripe";
 /**
  * Mirrors a subscription's Deploy plan onto its workspace row, writing only when
  * it changed so the common renewal case (plan unchanged) does no DB write.
- * Stripe stays the source of truth; workspaces.deploy_plan is the cache the
+ * Stripe stays the source of truth; workspace_billing.plan is the cache the
  * deploy gate and dashboard read without a Stripe call in the hot path.
+ *
+ * A subscription set to cancel is treated as plan-ending and mirrors null:
+ * cancelDeploy tears down compute and clears the entitlement immediately (not at
+ * the period boundary), yet Stripe keeps the plan-fee item on the still-active
+ * subscription and bills to the boundary. Without this, the customer.subscription
+ * .updated event that the cancel itself fires would re-detect that item and
+ * resurrect the plan the cancel just cleared, leaving the workspace unable to
+ * resubscribe (subscribeDeploy requires plan IS NULL). A resume clears cancel_at
+ * and the next update re-mirrors the live plan. This mirrors the API side, whose
+ * updated handler already returns early on a cancelling subscription.
  */
 async function mirrorDeployPlan(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
 ): Promise<void> {
-  const plan = detectDeployPlan(sub);
+  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+  const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
     await db
@@ -52,89 +60,6 @@ async function mirrorDeployPlan(
       .set({ plan })
       .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
   }
-}
-
-/**
- * Completes a scheduled API-plan cancellation: when cancelSubscription phases
- * the API items off a mixed subscription, the phase boundary arrives as a
- * subscription.updated whose items no longer include an API plan. Mirror the
- * customer.subscription.deleted downgrade (tier, quotas) but keep the
- * subscription linked — Compute continues to bill on it.
- *
- * Team access follows ANY active paid subscription, so while the surviving
- * Compute plan is live the members stay active and the team quota stays on;
- * they only go when the last paid plan does (the whole-subscription deleted
- * handler). Everything else with no API item is a no-op: Compute-only
- * subscriptions are already on the Free tier, and an unmarked schedule (or
- * none) means the item disappeared some other way we must not react to.
- */
-async function downgradeAfterScheduledApiCancel(
-  stripe: Stripe,
-  ws: { id: string; orgId: string; tier: string | null },
-  sub: Stripe.Subscription,
-): Promise<Response> {
-  if (ws.tier === "Free") {
-    // Compute-only subscriptions and webhook redeliveries land here.
-    return new Response("OK", { status: 200 });
-  }
-  const schedule = await getApiCancelSchedule(stripe, sub);
-  if (!schedule) {
-    return new Response("OK", { status: 200 });
-  }
-
-  // Read the surviving Compute plan off the event's subscription rather than
-  // the workspace row: mirrorDeployPlan already reconciled the DB, but the
-  // in-memory row predates it.
-  const keepsTeam = detectDeployPlan(sub) !== null;
-
-  // When a Compute plan survives, reset only the API-scoped quota fields:
-  // the Compute resource ceilings belong to the surviving plan, so spreading
-  // all of freeTierQuotas would clamp them to Free the moment Compute tiers
-  // diverge from the Free defaults.
-  const apiFreeQuotas = {
-    requestsPerMonth: freeTierQuotas.requestsPerMonth,
-    logsRetentionDays: freeTierQuotas.logsRetentionDays,
-    auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
-    ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
-    ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
-  };
-  const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
-
-  // The redelivery guard returns early on tier === "Free", so the tier
-  // write must come last or a partial failure would never be retried.
-  await db
-    .insert(schema.quotas)
-    .values({
-      workspaceId: ws.id,
-      ...downgradedQuotas,
-    })
-    .onDuplicateKeyUpdate({
-      set: downgradedQuotas,
-    });
-
-  await insertAuditLogs(db, {
-    workspaceId: ws.id,
-    actor: { type: "system", id: "stripe" },
-    event: "workspace.update",
-    description: keepsTeam
-      ? "Scheduled API plan cancellation took effect; downgraded to Free (team retained via active Compute plan)."
-      : "Scheduled API plan cancellation took effect; downgraded to Free.",
-    resources: [],
-    context: { location: "", userAgent: undefined },
-  });
-
-  if (!keepsTeam) {
-    // Free tier doesn't include team access — deactivate all members except
-    // the original creator, same as a whole-subscription cancellation.
-    await deactivateNonCreatorMemberships(ws.orgId);
-  }
-
-  await db
-    .update(schema.workspaceBilling)
-    .set({ tier: "Free" })
-    .where(eq(schema.workspaceBilling.workspaceId, ws.id));
-
-  return new Response("OK", { status: 200 });
 }
 
 /**
@@ -205,10 +130,11 @@ async function linkComputeCheckoutSession(
 
 /**
  * Resolves the API plan item on a subscription and loads its price, customer,
- * and product. Anchors on findApiItem rather than items[0] so a mixed
- * (API + Compute) subscription resolves the API product, not a Compute item.
- * Returns null when there is nothing to act on: no API item (e.g. a
- * Compute-only subscription), no customer, or a price with no product/amount.
+ * and product. findApiItem skips any Deploy price the subscription might carry
+ * (so a mixed subscription's tier is still derived from the API item, never a
+ * Deploy line), falling back to items[0] only when Deploy billing is
+ * unconfigured. Returns null when there is nothing to act on: no item, no
+ * customer, or a price with no product/amount.
  */
 async function resolveApiSubscriptionContext(
   stripe: Stripe,
@@ -221,13 +147,6 @@ async function resolveApiSubscriptionContext(
   product: Stripe.Product;
 } | null> {
   const config = await deployBillingConfig();
-  // Config resolution failure would let findApiItem misclassify a Compute
-  // item and ack a scheduled downgrade away; throw so Stripe retries. An
-  // unconfigured deployment keeps the legacy items[0] behavior.
-  if (!config && deployBillingConfigured()) {
-    throw new Error("Deploy billing configured but unresolved; retrying webhook");
-  }
-
   const apiItem = findApiItem(config, sub.items?.data ?? []);
   if (!apiItem?.price?.id || !sub.customer) {
     return null;
@@ -340,12 +259,16 @@ export const POST = async (req: Request): Promise<Response> => {
         // every DB write derives from a freshly retrieved subscription.
         const eventSub = event.data.object as Stripe.Subscription;
 
-        const billing = await db.query.workspaceBilling.findFirst({
+        // Resolve the subscription to its (workspace, product) with one
+        // unique-index lookup on billing_subscriptions; the row's product
+        // decides the branch, never the subscription's items.
+        const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, eventSub.id),
-          with: { workspace: true },
+          with: { workspace: { with: { billing: true } } },
         });
-        const ws = billing?.workspace ?? null;
-        if (!billing || !ws || ws.deletedAtM !== null) {
+        const ws = subscription?.workspace ?? null;
+        const billing = ws?.billing ?? null;
+        if (!subscription || !ws || !billing || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
             subscriptionId: eventSub.id,
             eventId: event.id,
@@ -358,6 +281,7 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
+        const column = subscription.product;
 
         // Stripe does not guarantee event ordering, so the snapshot can be stale;
         // derive every write from the live subscription. resource_missing means
@@ -375,15 +299,22 @@ export const POST = async (req: Request): Promise<Response> => {
           throw retrieveError;
         }
 
-        // Sync before the skip-paths below: a plan add/change/remove must be
-        // mirrored even when the rest of the update is a no-op (renewal, card
-        // update) or bails on the API-tier quota validation, which a Deploy-only
-        // subscription does not satisfy.
-        await mirrorDeployPlan(billing, sub);
+        // Deploy-matched: mirror the plan and stop. The Deploy subscription
+        // never carries API tier/quota state, so there is nothing else to
+        // reconcile. mirrorDeployPlan only writes when the plan changed, so a
+        // renewal event is a no-op.
+        if (column === "compute") {
+          await mirrorDeployPlan(billing, sub);
+          return new Response("OK", { status: 200 });
+        }
 
+        // API-matched from here: reconcile tier/quotas from the API plan item.
         const previousAttributes = event.data.previous_attributes;
 
-        // Skip heuristics correlate with previous_attributes, so they read eventSub.
+        // Skip heuristics correlate the event snapshot with previous_attributes,
+        // so they read eventSub (what the event reported), not the re-retrieved
+        // subscription.
+        // Skip database updates and notifications for automated billing renewals
         if (isAutomatedBillingRenewal(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
@@ -412,18 +343,12 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 201 });
         }
 
-        // Reconcile tier/quotas from the API plan item (the Deploy signal is
-        // mirrored above). No API item either means a Compute-only
-        // subscription (no-op) or a scheduled API-plan cancellation whose
-        // phase boundary just hit — downgradeAfterScheduledApiCancel tells
-        // them apart and downgrades the workspace for the latter.
+        // Reconcile tier/quotas from the API plan item. A missing item/price is
+        // a degenerate API subscription with nothing to derive a tier from; ack
+        // rather than guess.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
-          return await downgradeAfterScheduledApiCancel(
-            stripe,
-            { id: ws.id, orgId: ws.orgId, tier: billing.tier },
-            sub,
-          );
+          return new Response("OK", { status: 200 });
         }
         const { unitAmount, customer, product } = apiContext;
 
@@ -589,12 +514,16 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        const billing = await db.query.workspaceBilling.findFirst({
+        // Resolve the ended subscription to its (workspace, product) with one
+        // unique-index lookup on billing_subscriptions; the row's product
+        // decides which product ended.
+        const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
-          with: { workspace: true },
+          with: { workspace: { with: { billing: true } } },
         });
-        const ws = billing?.workspace ?? null;
-        if (!billing || !ws || ws.deletedAtM !== null) {
+        const ws = subscription?.workspace ?? null;
+        const billing = ws?.billing ?? null;
+        if (!subscription || !ws || !billing || ws.deletedAtM !== null) {
           console.error("Workspace not found for subscription:", {
             subscriptionId: sub.id,
             eventId: event.id,
@@ -608,71 +537,121 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
+        const column = subscription.product;
 
-        // A Stripe-side cancel (e.g. the billing portal) removes the subscription
-        // without going through the dashboard cancel flow, so ctrl never tore down
-        // the workspace's Compute. If this workspace had a Compute plan, run the
-        // same keyed, idempotent teardown here: it stops running compute and clears
-        // deploy_plan. Must run before the column clear below, since
-        // deprovisionCompute's idempotency guard keys on deploy_plan still being set.
-        // Let a failure propagate so Stripe retries; the teardown must not be dropped.
-        if (billing.plan) {
-          try {
-            const ctrl = createCtrlClient(DeployService);
-            await ctrl.deprovisionCompute({ workspaceId: ws.id });
-          } catch (err) {
-            console.error("Failed to deprovision Compute on Stripe-side cancel", {
-              workspaceId: ws.id,
-              subscriptionId: sub.id,
-              error: err instanceof Error ? err.message : err,
-            });
-            throw err;
+        if (column === "compute") {
+          // A Stripe-side cancel (e.g. the billing portal) removes the Deploy
+          // subscription without going through the dashboard cancel flow, so
+          // ctrl never tore down the workspace's Compute. If a Compute plan is
+          // set, run the same keyed, idempotent teardown here: it stops running
+          // compute and clears deploy_plan. Must run before the plan clear
+          // below, since deprovisionCompute's idempotency guard keys on
+          // deploy_plan still being set. Let a failure propagate so Stripe
+          // retries; the teardown must not be dropped.
+          if (billing.plan) {
+            try {
+              const ctrl = createCtrlClient(DeployService);
+              await ctrl.deprovisionCompute({ workspaceId: ws.id });
+            } catch (err) {
+              console.error("Failed to deprovision Compute on Stripe-side cancel", {
+                workspaceId: ws.id,
+                subscriptionId: sub.id,
+                error: err instanceof Error ? err.message : err,
+              });
+              throw err;
+            }
           }
+
+          // Team follows any live paid product, so a paid API tier keeps it.
+          const keepsTeam = keepsTeamAfterDelete("compute", billing);
+
+          // One transaction. Deleting the billing_subscriptions row is what the
+          // retry lookup keys on, so a partial failure that committed it alone
+          // would strand the workspace unfindable on redelivery. Making the
+          // writes atomic means a retry re-finds the workspace.
+          await db.transaction(async (tx) => {
+            await tx
+              .update(schema.workspaceBilling)
+              .set({ plan: null })
+              .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+            await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "compute" });
+
+            // Only reset quotas when nothing paid remains; a paid API tier keeps
+            // its own quotas, so leave them untouched.
+            if (!keepsTeam) {
+              await tx
+                .insert(schema.quotas)
+                .values({ workspaceId: ws.id, ...freeTierQuotas })
+                .onDuplicateKeyUpdate({ set: freeTierQuotas });
+            }
+
+            await insertAuditLogs(tx, {
+              workspaceId: ws.id,
+              actor: { type: "system", id: "stripe" },
+              event: "workspace.update",
+              description: "Cancelled Compute subscription.",
+              resources: [],
+              context: { location: "", userAgent: undefined },
+            });
+          });
+
+          if (!keepsTeam) {
+            await deactivateNonCreatorMemberships(ws.orgId);
+          }
+          break;
         }
 
-        // One transaction: the link clear is the retry lookup key, so committing
-        // it alone would strand the redelivered event. Same shape as workspace
-        // creation.
+        // API-matched: downgrade the API tier. An active Deploy plan keeps team.
+        const keepsTeam = keepsTeamAfterDelete("api", billing);
+
+        // When a Compute plan survives, reset only the API-scoped quota fields:
+        // the Compute resource ceilings belong to the surviving plan, so
+        // spreading all of freeTierQuotas would clamp them to Free the moment
+        // Compute tiers diverge from the Free defaults.
+        const apiFreeQuotas = {
+          requestsPerMonth: freeTierQuotas.requestsPerMonth,
+          logsRetentionDays: freeTierQuotas.logsRetentionDays,
+          auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
+          ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
+          ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
+        };
+        const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
+
+        // One transaction. Deleting the billing_subscriptions row is what the
+        // retry lookup keys on, so if it committed alone and a later write
+        // failed, the redelivered event could no longer find the workspace and
+        // would strand paid quotas on Free forever. Atomic writes mean a partial
+        // failure rolls back the row delete too, so the retry re-finds the
+        // workspace and completes the downgrade. Same shape as workspace creation.
         await db.transaction(async (tx) => {
           await tx
             .update(schema.workspaceBilling)
-            .set({
-              stripeSubscriptionId: null,
-              tier: "Free",
-              // The subscription is gone, so the Deploy plan goes with it.
-              plan: null,
-            })
+            .set({ tier: "Free" })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+          await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "api" });
 
           await tx
             .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              ...freeTierQuotas,
-            })
-            .onDuplicateKeyUpdate({
-              set: freeTierQuotas,
-            });
+            .values({ workspaceId: ws.id, ...downgradedQuotas })
+            .onDuplicateKeyUpdate({ set: downgradedQuotas });
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
+            actor: { type: "system", id: "stripe" },
             event: "workspace.update",
-            description: "Cancelled subscription.",
+            description: keepsTeam
+              ? "Cancelled API subscription; downgraded to Free (team retained via active Compute plan)."
+              : "Cancelled API subscription.",
             resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
+            context: { location: "", userAgent: undefined },
           });
         });
 
-        // Free tier doesn't include team access — deactivate all members except the
-        // original creator so lapsed subscriptions don't leave shared access enabled.
-        await deactivateNonCreatorMemberships(ws.orgId);
+        if (!keepsTeam) {
+          // Free tier doesn't include team access — deactivate all members except
+          // the original creator so lapsed subscriptions don't leave shared access on.
+          await deactivateNonCreatorMemberships(ws.orgId);
+        }
 
         // Send notification for subscription cancellation
         if (sub.customer) {
@@ -719,22 +698,36 @@ export const POST = async (req: Request): Promise<Response> => {
       try {
         const sub = event.data.object as Stripe.Subscription;
 
-        // Mirror the Deploy plan signal when the new subscription already carries
-        // a Deploy plan-fee item (the free-tier path creates a subscription with
-        // Deploy items as its initial set). Best-effort: if the workspace row is
-        // not linked to this subscription yet, a later subscription.updated syncs
-        // it. Done before the alert-only logic below so an early return can't skip
-        // it.
-        const billingForDeploy = await db.query.workspaceBilling.findFirst({
+        // One unique-index lookup, then branch by the row's product. A created
+        // event can race ahead of the tRPC/link write that inserts the
+        // billing_subscriptions row, so a no-match is a best-effort no-op:
+        // subscribeDeploy/linkDeploySubscription already write the plan inline,
+        // and a later subscription.updated resyncs.
+        const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
-          with: { workspace: true },
+          with: { workspace: { with: { billing: true } } },
         });
-        if (billingForDeploy && billingForDeploy.workspace?.deletedAtM == null) {
-          await mirrorDeployPlan(billingForDeploy, sub);
+        const billing = subscription?.workspace?.billing ?? null;
+        const column =
+          subscription && billing && subscription.workspace?.deletedAtM == null
+            ? subscription.product
+            : null;
+
+        // Deploy-matched: mirror the plan and stop; no alert for Compute.
+        if (column === "compute" && billing) {
+          await mirrorDeployPlan(billing, sub);
+          return new Response("OK");
         }
 
-        // Alert on the API plan item (the Deploy signal is mirrored above).
-        // Nothing to alert on for a Compute-only subscription.
+        // Not matched to a column yet (the create event raced ahead of the
+        // tRPC/link write). No-op: the inline write set the plan and a later
+        // subscription.updated resyncs. Only an API-matched create alerts, so we
+        // never misfire a Compute create as an API subscription alert.
+        if (column !== "api") {
+          return new Response("OK");
+        }
+
+        // API-matched: alert on the API plan item.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
         if (!apiContext) {
           return new Response("OK");

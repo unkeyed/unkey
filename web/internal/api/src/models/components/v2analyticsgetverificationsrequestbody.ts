@@ -9,7 +9,8 @@ export type V2AnalyticsGetVerificationsRequestBody = {
    * SQL query to execute against your analytics data.
    *
    * @remarks
-   * Only SELECT queries are allowed.
+   * Queries may reference only the five public aliases: `key_verifications_v1`, `key_verifications_per_minute_v1`, `key_verifications_per_hour_v1`, `key_verifications_per_day_v1`, or `key_verifications_per_month_v1`. Physical `default.*` table names are unsupported.
+   * Only SELECT queries are allowed. CTEs, subqueries, UNION, and EXCEPT are supported.
    */
   query: string;
 };

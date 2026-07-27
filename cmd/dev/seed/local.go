@@ -105,7 +105,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Name:         workspaceName,
 				Slug:         slug,
 				CreatedAtM:   now,
-				Tier:         sql.NullString{String: "Free", Valid: true},
 				BetaFeatures: json.RawMessage(`{}`),
 			},
 			{
@@ -114,7 +113,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Name:         "Unkey",
 				Slug:         fmt.Sprintf("unkey-%s", slug),
 				CreatedAtM:   now,
-				Tier:         sql.NullString{String: "Free", Valid: true},
 				BetaFeatures: json.RawMessage(`{}`),
 			},
 		})

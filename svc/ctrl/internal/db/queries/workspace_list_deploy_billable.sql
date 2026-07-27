@@ -12,9 +12,11 @@
 SELECT
    w.id,
    b.stripe_customer_id,
-   b.stripe_subscription_id
+   bs.stripe_subscription_id AS stripe_deploy_subscription_id
 FROM `workspaces` w
 LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+LEFT JOIN `billing_subscriptions` bs
+   ON bs.workspace_id = w.id AND bs.product = 'compute'
 WHERE b.plan IS NOT NULL
   AND b.stripe_customer_id IS NOT NULL
   AND w.deleted_at_m IS NULL;

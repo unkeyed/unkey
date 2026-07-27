@@ -1,11 +1,13 @@
 "use client";
 
-import { formatDollars, formatQuantity } from "@/lib/fmt";
+import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
+import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
+import { ComputePausedBadge } from "./compute-paused";
 import {
   AllPlansInclude,
   ComputePlanConfirmDialog,
@@ -15,7 +17,12 @@ import {
 } from "./compute-plan-picker";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ProductCard } from "./product-card";
-import { SpendBudget } from "./spend-budget";
+import { SpendManagement } from "./spend-management";
+
+/** Matches the billing summary strip's period formatting, e.g. "Aug 1". */
+function formatRenewalDate(millis: number): string {
+  return new Date(millis).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 type DeployProductCardProps = {
   isAdmin: boolean;
@@ -48,6 +55,21 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   );
 
   const currentPlan = subscription?.plan ?? null;
+
+  const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
+  const suspended = budget?.suspended ?? false;
+
+  const { data: deployCredit } = trpc.stripe.getDeployCredit.useQuery(undefined, {
+    enabled: Boolean(currentPlan),
+    staleTime: 30_000,
+  });
+
+  // For the renewal date. The billing summary strip already fetches this, so on
+  // this page it's a cache hit.
+  const { data: upcomingInvoice } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
+    enabled: Boolean(currentPlan) && hasPaymentMethod,
+    staleTime: 30_000,
+  });
 
   // Usage is only worth fetching (and rendering) once there is a plan.
   const { data: usage } = trpc.billing.queryDeployUsage.useQuery(undefined, {
@@ -111,40 +133,112 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   // worker prices it, so the budget bar tracks what the cap enforces.
   const usageAmount = usage?.grossCents ?? null;
 
-  // The plan's recurring fee and its equal monthly credits, from the plan
-  // catalog. The fee includes credits of the same amount, so the two are equal.
+  // The plan's recurring fee, from the plan catalog.
   const planFee = currentPlanOption?.amount ?? null;
-  const credits = planFee;
 
-  const meterStats = usage
-    ? [
-        {
-          label: "CPU",
-          value: `${formatQuantity(usage.cpuSeconds / 3600)} hrs`,
-          hint: "vCPU time your workloads ran, totalled across the period.",
-        },
-        {
-          label: "Memory",
-          value: `${formatQuantity(usage.memoryGiBHours)} GiB-hrs`,
-          hint: "Memory allocated over time, in GiB-hours. 1 GiB held for 1 hour is 1 GiB-hour.",
-        },
-        {
-          label: "Egress",
-          value: `${formatQuantity(usage.egressGiB)} GiB`,
-          hint: "Data your workloads sent out over the public network this period.",
-        },
-        {
-          label: "Disk",
-          value: `${formatQuantity(usage.diskGiBHours)} GiB-hrs`,
-          hint: "Disk reserved over time, in GiB-hours. 1 GiB reserved for 1 hour is 1 GiB-hour. Charged on size reserved, not reads, writes, or space used.",
-        },
-        {
-          label: "Active keys",
-          value: formatQuantity(usage.activeKeys),
-          hint: "Distinct keys verified through the Deploy gateway this period.",
-        },
-      ]
-    : null;
+  // Included usage credit for the current period, from Stripe (cached). A
+  // mid-cycle plan change prorates the grant, so the credit is not always equal
+  // to the catalog fee; reading the granted amount is what keeps the estimate
+  // matching the invoice. Falls back to the plan fee before the query resolves,
+  // which is the steady-state (full clean month) value.
+  const includedCreditCents = deployCredit?.includedCreditCents ?? planFee;
+
+  // The plan fee actually invoiced for THIS period, which after a mid-cycle
+  // change is the prorated amount, not the catalog price. grantDeployCreditsForInvoice
+  // grants credit equal to netDeployFee, so the period's grant is the fee it was
+  // charged for: reading the fee off the grant keeps this period's total honest
+  // without a second Stripe round-trip. Falls back to the catalog fee when there
+  // is no grant to read (query still in flight, or a grant the webhook never
+  // wrote) so a missing grant understates the credit rather than the fee.
+  const periodFeeCents =
+    includedCreditCents !== null && includedCreditCents > 0 ? includedCreditCents : planFee;
+
+  // A mid-cycle plan change prorates both the fee and the credit, so this
+  // period's numbers are not the catalog ones. Say so rather than quoting a full
+  // period the customer has not been billed for yet.
+  const feeProrated = periodFeeCents !== null && planFee !== null && periodFeeCents !== planFee;
+
+  // Usage beyond the included credit: the only usage-driven charge on the bill,
+  // and the only part of this period still to come. The credit is not a discount
+  // applied to usage, it is the allowance the period's fee already paid for.
+  const overageCents =
+    usageAmount !== null && includedCreditCents !== null
+      ? Math.max(0, usageAmount - includedCreditCents)
+      : null;
+  // Headroom left in the allowance. Shown instead of a "credit applied" line:
+  // the credit is not a discount that grows with usage, so the useful number is
+  // what is left of it, and it keeps the plan picker's credit vocabulary on the
+  // card without implying the credit is subtracted from the total.
+  const creditRemainingCents =
+    usageAmount !== null && includedCreditCents !== null
+      ? Math.max(0, includedCreditCents - usageAmount)
+      : null;
+
+  const projectedAmount = usage?.projectedGrossCents ?? null;
+  const projectedOverageCents =
+    projectedAmount !== null && includedCreditCents !== null
+      ? Math.max(0, projectedAmount - includedCreditCents)
+      : null;
+
+  // What this period costs in total: the fee it was invoiced plus whatever usage
+  // spills past the included credit. "Projected" prices usage extrapolated to
+  // period end, using the same local pricing as the spend bar and the spend cap,
+  // so the numbers on the card never disagree.
+  const currentBillCents =
+    periodFeeCents !== null && overageCents !== null ? periodFeeCents + overageCents : null;
+
+  // The metered usage for a period bills on the invoice that finalizes at the
+  // start of the next one (see EXPIRY_GRACE_SECONDS), so period end is both the
+  // renewal date and when this period's overage lands.
+  const renewsAtMillis = upcomingInvoice?.deploy?.periodEnd ?? null;
+
+  // What the next invoice charges: this period's overage plus the next period's
+  // full fee, the two things that land on the same document. Stripe's own preview
+  // is authoritative (it applies the credit and any proration we don't model), so
+  // prefer it and fall back to the local sum when it hasn't loaded or the
+  // workspace has no payment method yet.
+  const nextInvoiceCents =
+    upcomingInvoice?.deploy?.total ??
+    (overageCents !== null && planFee !== null ? overageCents + planFee : null);
+
+  // Price each meter locally (same rates as the spend bar) so every usage line
+  // shows what it contributes to the bill; the parts sum to the gross above.
+  const meterCosts = usage ? priceDeployMetersCents(usage) : null;
+  const meterStats =
+    usage && meterCosts
+      ? [
+          {
+            label: "CPU",
+            value: `${formatCompactQuantity(usage.cpuSeconds / 3600)} hrs`,
+            cost: meterCosts.cpu,
+            hint: "vCPU time your workloads ran, totalled across the period.",
+          },
+          {
+            label: "Memory",
+            value: `${formatCompactQuantity(usage.memoryGiBHours)} GiB-hrs`,
+            cost: meterCosts.memory,
+            hint: "Memory allocated over time, in GiB-hours. 1 GiB held for 1 hour is 1 GiB-hour.",
+          },
+          {
+            label: "Egress",
+            value: `${formatCompactQuantity(usage.egressGiB)} GiB`,
+            cost: meterCosts.egress,
+            hint: "Data your workloads sent out over the public network this period.",
+          },
+          {
+            label: "Disk",
+            value: `${formatCompactQuantity(usage.diskGiBHours)} GiB-hrs`,
+            cost: meterCosts.disk,
+            hint: "Disk reserved over time, in GiB-hours. 1 GiB reserved for 1 hour is 1 GiB-hour. Charged on size reserved, not reads, writes, or space used.",
+          },
+          {
+            label: "Active keys",
+            value: formatCompactQuantity(usage.activeKeys),
+            cost: meterCosts.activeKeys,
+            hint: "Distinct keys verified through the Deploy gateway this period.",
+          },
+        ]
+      : null;
 
   const submittingPlan = subscribe.isLoading
     ? (subscribe.variables?.plan ?? null)
@@ -153,10 +247,10 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       : null;
 
   const selectLabel = (option: (typeof plans)[number]): string => {
-    if (!currentPlan || credits === null || option.amount === null) {
+    if (!currentPlan || planFee === null || option.amount === null) {
       return "Select";
     }
-    return option.amount > credits ? "Upgrade" : "Downgrade";
+    return option.amount > planFee ? "Upgrade" : "Downgrade";
   };
 
   const warningFor = (option: (typeof plans)[number]): string | null =>
@@ -183,12 +277,16 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       <ProductCard
         icon={<Cube iconSize="md-regular" />}
         iconClassName="bg-orangeA-3 text-orange-11"
+        className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
         name="Compute"
         tag={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
+        badge={currentPlan && suspended ? <ComputePausedBadge /> : undefined}
         subtitle={
           currentPlan
-            ? planFee !== null
-              ? `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, includes ${formatDollars(planFee)} of usage credits`
+            ? planFee !== null && includedCreditCents !== null
+              ? feeProrated
+                ? `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, prorated to ${formatDollars(includedCreditCents)} of fee and credits for this period`
+                : `${formatDollars(planFee)}/${currentPlanOption?.interval ?? "month"}, includes ${formatDollars(planFee)} of usage credits`
               : "The plan fee includes usage credits; usage beyond them is billed on top."
             : "Run and scale your projects. Every plan includes usage credits equal to its fee."
         }
@@ -247,7 +345,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             {meterStats ? (
               <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
-                  <div key={stat.label} className="bg-white px-3 py-2 dark:bg-black">
+                  <div key={stat.label} className="bg-white px-3 py-2 first:pl-0 dark:bg-black">
                     <InfoTooltip content={stat.hint} asChild>
                       <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}
@@ -256,11 +354,144 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     <p className="font-medium text-[13px] text-gray-12 tabular-nums">
                       {stat.value}
                     </p>
+                    <p className="text-[12px] text-gray-10 tabular-nums">
+                      {formatDollars(stat.cost)}
+                    </p>
                   </div>
                 ))}
               </div>
             ) : null}
-            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
+            {currentBillCents !== null &&
+            planFee !== null &&
+            periodFeeCents !== null &&
+            includedCreditCents !== null &&
+            overageCents !== null ? (
+              <div className="flex flex-col gap-1.5">
+                {/* Reconcile the next invoice, because that is the number people
+                    open this page to find, and it is the one Stripe shows: this
+                    period's overage plus the next period's full fee, the two
+                    charges that land on the same document. Only those two rows are
+                    money owed, so only they carry normal weight. This period's fee
+                    and credit balance are context, dimmed, and marked paid: they
+                    explain where the overage came from without reading as charges,
+                    which is what made a prorated period look like it undercharged.
+                    The credit reads as what is LEFT rather than what was applied,
+                    because a credit subtracted from a total is the reading that
+                    makes a $0 line look like a missing grant. */}
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-[13px] text-gray-10">
+                    Plan fee
+                    {feeProrated ? (
+                      <span className="ml-1.5 text-[12px] text-gray-9">prorated</span>
+                    ) : null}
+                  </span>
+                  <span className="text-[13px] text-gray-9 tabular-nums">
+                    {formatDollars(periodFeeCents)} paid
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-[13px] text-gray-10">Usage</span>
+                  <span className="text-[13px] text-gray-9 tabular-nums">
+                    {formatDollars(usageAmount ?? 0)}
+                  </span>
+                </div>
+                {includedCreditCents > 0 && creditRemainingCents !== null ? (
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-[13px] text-gray-10">Included credit</span>
+                    <span className="text-[13px] text-gray-9 tabular-nums">
+                      {formatDollars(creditRemainingCents)} of {formatDollars(includedCreditCents)}{" "}
+                      remaining
+                    </span>
+                  </div>
+                ) : null}
+                {includedCreditCents > 0 ? (
+                  <div className="mt-1 flex items-baseline justify-between gap-4 border-grayA-3 border-t pt-2">
+                    <span className="text-[13px] text-gray-10">
+                      Overage
+                      <span className="ml-1.5 text-[12px] text-gray-9">usage past credit</span>
+                    </span>
+                    <span className="text-[13px] text-gray-11 tabular-nums">
+                      {formatDollars(overageCents)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-[13px] text-gray-10">
+                    Next plan fee
+                    <span className="ml-1.5 text-[12px] text-gray-9">
+                      {currentPlanOption?.interval ?? "month"} ahead
+                    </span>
+                  </span>
+                  <span className="text-[13px] text-gray-11 tabular-nums">
+                    {formatDollars(planFee)}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-baseline justify-between gap-4 border-grayA-3 border-t pt-2">
+                  <span className="text-[13px] text-gray-12">
+                    <InfoTooltip
+                      asChild
+                      position={{ side: "top", align: "start" }}
+                      content={
+                        <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
+                          <div className="flex flex-col gap-0.5">
+                            <p className="font-medium text-gray-12">How this is calculated</p>
+                            <p className="text-gray-11">
+                              This period's {formatDollars(periodFeeCents)} fee is already invoiced
+                              and covers {formatDollars(includedCreditCents)} of usage. The next
+                              invoice charges what your usage went past that, plus the coming
+                              period's fee.
+                            </p>
+                            <p className="text-gray-11 tabular-nums">
+                              {formatDollars(overageCents)} + {formatDollars(planFee)} ={" "}
+                              {formatDollars(nextInvoiceCents ?? overageCents + planFee)}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1 border-grayA-4 border-t pt-2">
+                            <p className="font-medium text-gray-12">Usage rates</p>
+                            <ul className="flex flex-col gap-0.5">
+                              {DEPLOY_METER_RATE_LABELS.map((r) => (
+                                <li
+                                  key={r.label}
+                                  className="flex justify-between gap-3 text-gray-11"
+                                >
+                                  <span>{r.label}</span>
+                                  <span className="tabular-nums">{r.rate}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <span className="cursor-help underline decoration-dotted decoration-grayA-6 underline-offset-2">
+                        Next invoice
+                        {renewsAtMillis !== null ? ` · ${formatRenewalDate(renewsAtMillis)}` : ""}
+                      </span>
+                    </InfoTooltip>
+                    {/* Projected adds the usage still expected before the period
+                        closes, since the overage row only counts what has accrued. */}
+                    {projectedOverageCents !== null &&
+                    overageCents !== null &&
+                    nextInvoiceCents !== null &&
+                    projectedOverageCents > overageCents ? (
+                      <span className="ml-1.5 text-[12px] text-gray-9">
+                        (~
+                        {formatDollars(nextInvoiceCents + (projectedOverageCents - overageCents))}{" "}
+                        projected)
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="font-medium text-[15px] text-gray-12 tabular-nums">
+                    {nextInvoiceCents !== null ? formatDollars(nextInvoiceCents) : "—"}
+                  </span>
+                </div>
+                <p className="text-[12px] text-gray-9">
+                  This period's {formatDollars(periodFeeCents)} fee is already paid. Total cost for
+                  this period is {formatDollars(currentBillCents)}.
+                </p>
+              </div>
+            ) : null}
+            <SpendManagement usageCents={usageAmount} isAdmin={isAdmin} />
           </div>
         ) : null}
       </ProductCard>

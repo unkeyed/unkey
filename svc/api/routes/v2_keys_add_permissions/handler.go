@@ -192,6 +192,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          permissionID,
 			Name:        perm,
 			WorkspaceID: principal.WorkspaceID,
+			ProjectID:   "",
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,

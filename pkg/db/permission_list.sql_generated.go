@@ -13,7 +13,7 @@ import (
 )
 
 const listPermissions = `-- name: ListPermissions :many
-SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 FROM permissions p
 WHERE p.workspace_id = ?
   AND p.id >= ?
@@ -36,7 +36,7 @@ type ListPermissionsParams struct {
 
 // ListPermissions
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+//	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 //	FROM permissions p
 //	WHERE p.workspace_id = ?
 //	  AND p.id >= ?
@@ -69,6 +69,7 @@ func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissi
 			&i.Pk,
 			&i.ID,
 			&i.WorkspaceID,
+			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
 			&i.Description,

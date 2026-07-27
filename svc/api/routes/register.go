@@ -63,6 +63,7 @@ import (
 	v2KeysVerifyKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 
+	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
 	v2PortalCreateConfiguration "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_configuration"
@@ -111,7 +112,7 @@ import (
 // Conditional routes are registered based on [Services] configuration.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
-	withMetrics := zen.WithMetrics(svc.ApiRequests, info)
+	withMetrics := zen.WithMetrics(svc.ApiRequests, info, svc.Redactor)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withErrorHandling := middleware.WithErrorHandling()
@@ -686,6 +687,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
+		},
+	)
+
+	// v2/analytics.getRatelimits
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetRatelimits.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
 	)
 

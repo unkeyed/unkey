@@ -1,19 +1,29 @@
 import { getStripeClient } from "@/lib/stripe";
 import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import {
+  ratelimit,
+  requireWorkspaceAdmin,
+  withRatelimit,
+  workspaceProcedure,
+} from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
 
+// `client_secret` is intentionally omitted from the output. With Stripe.js it
+// can confirm the setup intent and attach or replace a payment method on the
+// workspace's Stripe customer, so it must not be handed to the client. No
+// caller needs it: the post-checkout flow (app/success/page.tsx) reads only
+// `payment_method` and attaches it through the admin-gated updateCustomer.
 const setupIntentSchema = z.object({
   id: z.string(),
-  client_secret: z.string().nullable(),
   payment_method: z.string().nullable(),
   status: z.string(),
   usage: z.string(),
 });
 
 export const getSetupIntent = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
@@ -21,7 +31,7 @@ export const getSetupIntent = workspaceProcedure
       // Optional sessionId path: needed for the post-checkout flow where the
       // workspace doesn't yet have a stripeCustomerId. The session must
       // belong to this workspace and reference the same setup intent.
-      sessionId: z.string().optional(),
+      sessionId: z.string().min(1, "Stripe checkout session ID is required").optional(),
     }),
   )
   .output(setupIntentSchema)
@@ -88,7 +98,6 @@ export const getSetupIntent = workspaceProcedure
 
       return {
         id: setupIntent.id,
-        client_secret: setupIntent.client_secret,
         payment_method: paymentMethodId,
         status: setupIntent.status,
         usage: setupIntent.usage,

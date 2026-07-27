@@ -12,7 +12,7 @@ import (
 
 const findIdentity = `-- name: FindIdentity :one
 SELECT
-    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -54,6 +54,7 @@ type FindIdentityRow struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
 	Environment string        `db:"environment"`
 	Meta        []byte        `db:"meta"`
 	Deleted     bool          `db:"deleted"`
@@ -65,7 +66,7 @@ type FindIdentityRow struct {
 // FindIdentity
 //
 //	SELECT
-//	    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -109,6 +110,7 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Environment,
 		&i.Meta,
 		&i.Deleted,

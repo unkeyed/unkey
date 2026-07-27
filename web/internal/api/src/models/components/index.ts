@@ -69,6 +69,8 @@ export * from "./security.js";
 export * from "./stringmatch.js";
 export * from "./updatekeycreditsdata.js";
 export * from "./updatekeycreditsrefill.js";
+export * from "./v2analyticsgetratelimitsrequestbody.js";
+export * from "./v2analyticsgetratelimitsresponsebody.js";
 export * from "./v2analyticsgetverificationsrequestbody.js";
 export * from "./v2analyticsgetverificationsresponsebody.js";
 export * from "./v2apiscreateapirequestbody.js";

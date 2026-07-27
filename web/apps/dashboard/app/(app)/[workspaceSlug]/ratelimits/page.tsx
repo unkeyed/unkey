@@ -1,13 +1,30 @@
 "use client";
 
+import {
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
+import { CreateNamespaceButton } from "./_components/create-namespace-button";
 import { NamespaceListClient } from "./_components/namespace-list-client";
-import { Navigation } from "./navigation";
 
 export default function RatelimitOverviewPage() {
   return (
-    <div>
-      <Navigation />
-      <NamespaceListClient />
-    </div>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Ratelimits</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <CreateNamespaceButton />
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
+        <NamespaceListClient />
+      </PageBody>
+    </PageContainer>
   );
 }
