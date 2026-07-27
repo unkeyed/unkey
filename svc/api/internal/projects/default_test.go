@@ -20,7 +20,7 @@ func TestEnsureDefaultProject(t *testing.T) {
 		h := testutil.NewHarness(t)
 		ctx := context.Background()
 		workspaceID := h.Resources().UserWorkspace.ID
-		existingID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RW(), workspaceID)
+		existingID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
 		require.NoError(t, err)
 
 		projectID, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
@@ -34,7 +34,6 @@ func TestEnsureDefaultProject(t *testing.T) {
 		h := testutil.NewHarness(t)
 		ctx := context.Background()
 		workspaceID := h.Resources().UserWorkspace.ID
-		deleteDefaultProject(t, ctx, h.DB, workspaceID)
 
 		projectID, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 			return projects.EnsureDefaultProject(ctx, tx, workspaceID)
@@ -53,7 +52,6 @@ func TestEnsureDefaultProject(t *testing.T) {
 		h := testutil.NewHarness(t)
 		ctx := context.Background()
 		workspaceID := h.Resources().UserWorkspace.ID
-		deleteDefaultProject(t, ctx, h.DB, workspaceID)
 
 		initialReadResult := make(chan error, 1)
 		concurrentCreateDone := make(chan struct{})
@@ -89,7 +87,6 @@ func TestEnsureDefaultProject(t *testing.T) {
 		h := testutil.NewHarness(t)
 		ctx := context.Background()
 		workspaceID := h.Resources().UserWorkspace.ID
-		deleteDefaultProject(t, ctx, h.DB, workspaceID)
 
 		err := db.Query.InsertProject(ctx, h.DB.RW(), db.InsertProjectParams{
 			ID:               uid.New(uid.ProjectPrefix),
@@ -107,12 +104,4 @@ func TestEnsureDefaultProject(t *testing.T) {
 		})
 		require.Error(t, err)
 	})
-}
-
-func deleteDefaultProject(t *testing.T, ctx context.Context, database db.Database, workspaceID string) {
-	t.Helper()
-
-	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, database.RW(), workspaceID)
-	require.NoError(t, err)
-	require.NoError(t, db.Query.DeleteProjectById(ctx, database.RW(), projectID))
 }
