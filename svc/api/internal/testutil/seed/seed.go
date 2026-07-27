@@ -66,14 +66,6 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
 	require.NoError(s.t, err)
 
-	s.CreateProject(ctx, CreateProjectRequest{
-		ID:               uid.New(uid.ProjectPrefix),
-		WorkspaceID:      params.ID,
-		Name:             "Default",
-		Slug:             "default",
-		DeleteProtection: true,
-	})
-
 	err = db.Query.UpsertQuota(ctx, s.DB.RW(), db.UpsertQuotaParams{
 		WorkspaceID:            params.ID,
 		LogsRetentionDays:      30,
