@@ -1,6 +1,21 @@
 import { and, createCommentedPool, drizzle, eq, schema, staticTagsFromEnv } from "@unkey/db";
 import { newId } from "@unkey/id";
 
+/**
+ * Creates missing exact-lowercase `default` projects and assigns them to owned
+ * resources whose `project_id` is empty. Workspaces and updates are paginated
+ * below Vitess limits, processed sequentially, and safe to rerun.
+ *
+ * Rollout sequence:
+ * 1. Deploy the `project_id` columns and indexes.
+ * 2. Run this migration once to create defaults and backfill existing rows.
+ * 3. Deploy project-owned writers and wait for all previous instances to stop.
+ * 4. Run this migration again to backfill rows created during the rollout.
+ * 5. Verify all owned tables have no empty project IDs before removing it.
+ *
+ * Run from the repository root with `DRIZZLE_DATABASE_URL` set:
+ * `mise exec -- pnpm --dir=web/tools/migrate project-ownership`
+ */
 const WORKSPACE_PAGE_SIZE = 1_000;
 const UPDATE_BATCH_SIZE = 10_000;
 
