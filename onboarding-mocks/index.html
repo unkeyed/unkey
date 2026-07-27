@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unkey · Projects rail explorations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="theme.js"></script>
+  <style>
+    body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; }
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: hsla(240 100% 9% / 0.15); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+  </style>
+</head>
+<body class="bg-white text-accent-12">
+  <!-- ============================ CHROME ============================ -->
+  <div class="h-dvh w-full flex flex-col overflow-hidden bg-white">
+    <!-- Top nav -->
+    <header class="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4" style="height:52px">
+      <a class="inline-flex items-center" href="#">
+        <span class="inline-flex size-6 shrink-0 items-center justify-center text-accent-12">
+          <svg viewBox="0 0 512 512" fill="currentColor" class="size-5"><path d="M170.8 115V340.6H341.2L284.4 397H170.8C139.418 397 114 371.761 114 340.6V115H170.8Z"/><path d="M398 284.2L341.2 340.6V115H398V284.2Z"/></svg>
+        </span>
+      </a>
+      <span class="select-none px-0.5 text-gray-7">/</span>
+      <div class="flex min-w-0 items-center gap-0.5">
+        <a href="#" class="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12">
+          <span class="size-4 rounded-sm border border-grayA-6 shrink-0 bg-gradient-to-br from-[#f97316] via-[#ec4899] to-[#8b5cf6]"></span>
+          <span class="truncate max-w-[180px]">acme-corp</span>
+        </a>
+        <button class="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:flex">
+          <svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9 4-4 4 4"/><path d="m16 15-4 4-4-4"/></svg>
+        </button>
+      </div>
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <button class="hidden md:inline-flex h-8 items-center gap-2 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>
+          Feedback
+        </button>
+        <button class="group w-8 h-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4">
+          <svg viewBox="0 0 24 24" class="size-5 text-gray-9 group-hover:text-gray-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        </button>
+        <button class="px-2 py-1 flex hover:bg-grayA-4 rounded-lg items-center h-8">
+          <span class="size-6 rounded-full border border-grayA-6 bg-gradient-to-br from-[#22d3ee] via-[#6366f1] to-[#a855f7]"></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Left workspace nav -->
+      <aside class="shrink-0 bg-gray-1 border-r border-grayA-4 flex flex-col justify-between py-2" style="width:13rem">
+        <nav class="px-2 flex flex-col gap-0.5">
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <span>Projects</span>
+          </a>
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+            <span>Root Keys</span>
+          </a>
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>Audit Log</span>
+          </a>
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Workspace Settings</span>
+          </a>
+        </nav>
+        <div class="px-2">
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4 -rotate-90" fill="none"><circle cx="12" cy="12" r="9" stroke="hsl(0 0% 91%)" stroke-width="3"/><circle cx="12" cy="12" r="9" stroke="#0A9B8B" stroke-width="3" stroke-dasharray="56.5" stroke-dashoffset="43" stroke-linecap="round"/></svg>
+            <span>Usage 24%</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Content region -->
+      <div class="flex-1 overflow-auto bg-white" style="scrollbar-gutter:stable">
+        <div class="mx-auto w-full max-w-[1200px] px-8 py-8">
+          <!-- Page header -->
+          <div class="flex items-center justify-between gap-4 mb-6">
+            <h1 class="text-[22px] font-semibold tracking-tight text-accent-12">Projects</h1>
+            <div class="flex items-center gap-2">
+              <div class="relative hidden sm:block">
+                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-9">
+                  <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+                <input placeholder="Search" class="h-9 w-48 rounded-lg border border-grayA-4 bg-white pl-9 pr-3 text-[13px] text-accent-12 placeholder:text-gray-9 outline-none focus:border-grayA-7" />
+              </div>
+              <button class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent-12 px-3 text-[13px] font-medium text-white hover:opacity-90">
+                <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Create project
+              </button>
+            </div>
+          </div>
+
+          <!-- Body: projects grid + rail -->
+          <div class="flex items-start gap-8">
+            <!-- Projects grid (constant) -->
+            <div class="flex-1 min-w-0">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- card: migrated default -->
+                <div class="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-lg gap-6 h-[132px] transition-all duration-300">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <div class="font-medium text-sm text-accent-12 truncate">acme-corp</div>
+                      <div class="text-xs text-gray-9 mt-0.5">Default project</div>
+                    </div>
+                    <button class="text-gray-9 hover:text-accent-12 shrink-0"><svg viewBox="0 0 24 24" class="size-4" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>
+                  </div>
+                  <div class="flex items-center">
+                    <span class="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-gray-12 first:ml-0"><svg viewBox="0 0 24 24" class="size-3.5" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg></span>
+                    <span class="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-[10px] font-medium text-gray-11 -ml-2">+2</span>
+                  </div>
+                </div>
+                <!-- card: deploy project -->
+                <div class="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-lg gap-6 h-[132px] transition-all duration-300">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <div class="font-medium text-sm text-accent-12 truncate">checkout-service</div>
+                      <div class="text-xs text-gray-9 mt-0.5">Deployed 2h ago · main</div>
+                    </div>
+                    <button class="text-gray-9 hover:text-accent-12 shrink-0"><svg viewBox="0 0 24 24" class="size-4" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>
+                  </div>
+                  <div class="flex items-center">
+                    <span class="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-gray-12"><svg viewBox="0 0 24 24" class="size-3.5" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg></span>
+                    <span class="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-gray-12 -ml-2"><svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RAIL (swapped by switcher) -->
+            <aside id="rail" class="w-[340px] shrink-0 flex flex-col gap-4"></aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ SWITCHER ============================ -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-grayA-6 bg-gray-1/95 backdrop-blur px-1.5 py-1.5 shadow-lg">
+    <button data-nav="prev" class="size-7 rounded-full flex items-center justify-center text-gray-11 hover:bg-grayA-3">
+      <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div id="tabs" class="flex items-center gap-1"></div>
+    <button data-nav="next" class="size-7 rounded-full flex items-center justify-center text-gray-11 hover:bg-grayA-3">
+      <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </div>
+
+  <script>
+    // ---- shared snippets --------------------------------------------------
+    const spark = (pts, color) =>
+      `<svg viewBox="0 0 100 32" class="w-16 h-7 shrink-0" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const teal = 'hsl(173 80% 36%)';
+    const dots = `<svg viewBox="0 0 24 24" class="size-4" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`;
+    const keyIcon = `<svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>`;
+    const gaugeIcon = `<svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>`;
+    const chev = `<svg viewBox="0 0 24 24" class="size-4 text-gray-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+
+    // usage card (reused, compact flag)
+    const usageCard = (compact) => `
+      <div class="rounded-lg border border-grayA-4 p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[13px] font-medium text-accent-12">Usage</span>
+          <a href="#" class="text-xs text-gray-9 hover:text-accent-12">Billing</a>
+        </div>
+        <div class="mt-0.5 text-xs text-gray-9">18 days left in cycle</div>
+        <div class="mt-4">
+          <div class="flex justify-between text-xs"><span class="text-gray-11">Requests</span><span class="text-accent-12 font-medium tabular-nums">2.41M / 10M</span></div>
+          <div class="mt-1.5 h-2 rounded-full bg-gray-3 overflow-hidden"><div class="h-full rounded-full bg-accent-12" style="width:24%"></div></div>
+        </div>
+        ${compact ? '' : `
+        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+          <div><div class="text-gray-9">Verifications</div><div class="text-accent-12 font-medium tabular-nums mt-0.5">1.90M</div></div>
+          <div><div class="text-gray-9">Ratelimits</div><div class="text-accent-12 font-medium tabular-nums mt-0.5">510K</div></div>
+        </div>
+        <button class="mt-4 w-full h-8 rounded-lg border border-grayA-4 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">Upgrade plan</button>`}
+      </div>`;
+
+    // keyspaces list card
+    const keyspaceRows = [
+      ['production', '1,284 keys', '0,26 12,22 24,24 36,15 48,18 60,10 72,13 84,7 96,9', '612K'],
+      ['partner-api', '96 keys', '0,20 12,22 24,16 36,18 48,12 60,15 72,9 84,13 96,8', '41K'],
+      ['staging', '312 keys', '0,14 12,18 24,12 36,20 48,15 60,22 72,17 84,24 96,19', '22K'],
+    ];
+    const keyspacesCard = (title) => `
+      <div class="rounded-lg border border-grayA-4">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-grayA-4">
+          <span class="text-[13px] font-medium text-accent-12">${title}</span>
+          <a href="#" class="text-xs text-gray-9 hover:text-accent-12">View all</a>
+        </div>
+        <div class="divide-y divide-grayA-4">
+          ${keyspaceRows.map(([name, keys, pts, req]) => `
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 hover:bg-grayA-2 group">
+              <span class="size-7 rounded-md bg-gray-3 flex items-center justify-center text-gray-11 shrink-0">${keyIcon}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-[13px] text-accent-12 truncate leading-4">${name}</div>
+                <div class="text-xs text-gray-9 mt-0.5">${keys}</div>
+              </div>
+              ${spark(pts, teal)}
+              <span class="text-xs text-gray-11 tabular-nums w-9 text-right">${req}</span>
+            </a>`).join('')}
+        </div>
+      </div>`;
+
+    // ratelimits card
+    const ratelimitsCard = () => `
+      <div class="rounded-lg border border-grayA-4">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-grayA-4">
+          <span class="text-[13px] font-medium text-accent-12">Ratelimits</span>
+          <a href="#" class="text-xs text-gray-9 hover:text-accent-12">View all</a>
+        </div>
+        <div class="divide-y divide-grayA-4">
+          ${[['auth.login', '128K checks · 24h', '3.2% blocked'], ['sms.send', '40K checks · 24h', '0.9% blocked']].map(([n, c, b]) => `
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 hover:bg-grayA-2">
+              <span class="size-7 rounded-md bg-gray-3 flex items-center justify-center text-gray-11 shrink-0">${gaugeIcon}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-[13px] text-accent-12 truncate leading-4">${n}</div>
+                <div class="text-xs text-gray-9 mt-0.5">${c}</div>
+              </div>
+              <span class="text-xs text-gray-11 tabular-nums">${b}</span>
+            </a>`).join('')}
+        </div>
+      </div>`;
+
+    // recent activity card
+    const activityCard = () => `
+      <div class="rounded-lg border border-grayA-4 p-4">
+        <span class="text-[13px] font-medium text-accent-12">Recent activity</span>
+        <div class="mt-3 flex flex-col gap-3">
+          ${[['Deployed checkout-service', '2h'], ['Key created in production', '5h'], ['Override added · sms.send', '1d'], ['Root key rotated', '2d']].map(([t, when]) => `
+            <div class="flex items-center gap-2.5 text-xs">
+              <span class="size-1.5 rounded-full bg-gray-8 shrink-0"></span>
+              <span class="text-gray-11 flex-1 truncate">${t}</span>
+              <span class="text-gray-9 tabular-nums">${when}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+    // agent handoff card
+    const agentCard = () => `
+      <div class="rounded-lg border border-grayA-4 bg-gray-1 p-4">
+        <div class="flex items-center gap-2">
+          <span class="size-7 rounded-md bg-accent-12 text-white flex items-center justify-center shrink-0"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg></span>
+          <span class="text-[13px] font-medium text-accent-12">Set up with your agent</span>
+        </div>
+        <p class="mt-2 text-xs text-gray-11 leading-5">Hand off to Claude Code, Cursor or Codex and Unkey wires itself into your project.</p>
+        <div class="mt-3 flex items-center gap-2 rounded-md border border-grayA-4 bg-white px-2.5 h-9">
+          <span class="text-gray-8 mono text-xs">$</span>
+          <code class="mono text-xs text-accent-12 flex-1 truncate">npx @unkey/agent init</code>
+          <button data-copy="npx @unkey/agent init" class="text-gray-9 hover:text-accent-12 shrink-0"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        </div>
+        <div class="mt-2 flex items-center gap-3 text-xs text-gray-9">
+          <a href="#" class="hover:text-accent-12">Read the docs</a>
+          <span class="text-gray-6">·</span>
+          <a href="#" class="hover:text-accent-12">Do it in the browser</a>
+        </div>
+      </div>`;
+
+    // ---- rail variants ----------------------------------------------------
+    const RAILS = [
+      { id: 'usage', label: 'Usage',
+        html: () => usageCard(false) },
+      { id: 'keyspaces', label: 'Keyspaces',
+        html: () => usageCard(true) + keyspacesCard('Keyspaces') },
+      { id: 'command', label: 'Command center',
+        html: () => usageCard(true) + keyspacesCard('Keyspaces') + ratelimitsCard() + activityCard() },
+      { id: 'getstarted', label: 'Get started',
+        html: () => agentCard() + usageCard(true) },
+    ];
+
+    const rail = document.getElementById('rail');
+    const tabs = document.getElementById('tabs');
+    let idx = 0;
+    function load(i) {
+      idx = (i + RAILS.length) % RAILS.length;
+      rail.innerHTML = RAILS[idx].html();
+      [...tabs.children].forEach((b, j) => {
+        b.className = j === idx
+          ? 'h-7 px-3 rounded-full text-[13px] font-medium bg-accent-12 text-white'
+          : 'h-7 px-3 rounded-full text-[13px] font-medium text-gray-11 hover:bg-grayA-3';
+      });
+      rail.querySelectorAll('[data-copy]').forEach(el => el.onclick = (e) => {
+        e.preventDefault(); navigator.clipboard?.writeText(el.getAttribute('data-copy'));
+      });
+    }
+    RAILS.forEach((v, i) => {
+      const b = document.createElement('button');
+      b.textContent = `${i + 1}. ${v.label}`;
+      b.onclick = () => load(i);
+      tabs.appendChild(b);
+    });
+    document.querySelector('[data-nav=prev]').onclick = () => load(idx - 1);
+    document.querySelector('[data-nav=next]').onclick = () => load(idx + 1);
+    addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') load(idx - 1);
+      else if (e.key === 'ArrowRight') load(idx + 1);
+      else if (/^[1-4]$/.test(e.key)) load(+e.key - 1);
+    });
+    load(0);
+  </script>
+</body>
+</html>

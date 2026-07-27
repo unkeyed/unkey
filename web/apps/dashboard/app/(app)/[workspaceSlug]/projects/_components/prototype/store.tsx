@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react";
 import { type KeyspaceStat, MOCK, type OverviewData, type Scenario } from "./mock-data";
 
 // The whole prototype dataset lives client-side in localStorage so the preview
@@ -203,7 +196,9 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
     setWorlds(fresh);
   }, []);
 
-  return <Context.Provider value={{ worlds, updateWorld, resetWorlds }}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={{ worlds, updateWorld, resetWorlds }}>{children}</Context.Provider>
+  );
 }
 
 export function usePrototypeWorlds(): PrototypeContext {

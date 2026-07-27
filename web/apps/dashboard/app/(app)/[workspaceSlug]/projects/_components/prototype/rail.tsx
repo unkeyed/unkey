@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
 import { AgentSetup, type AgentStyle } from "./agent-setup";
-import { type Mark, RowMark } from "./marks";
+import { type Bucket, type Mark, RowMark } from "./marks";
 import type { OverviewData, UsageStat } from "./mock-data";
 import type { RowVariant } from "./scenario";
-import { CubeIcon, fmtCompact, fmtInt, TrendArrow, trendPct } from "./ui";
+import { CubeIcon, TrendArrow, fmtCompact, fmtInt, trendPct } from "./ui";
 
 // Matches the valid/success bar color used by the real API and ratelimit
 // listing pages (components/stats-list-card).
@@ -21,6 +21,8 @@ export type RowItem = {
   project?: string;
   value: string;
   spark: number[];
+  /** Hourly valid/error pairs behind `spark`, when the caller has them. */
+  buckets?: Bucket[];
   errorRatio: number;
   stroke: string;
   kind: "keyspace" | "ratelimit";
@@ -97,10 +99,15 @@ export function Rail({
 export function RailListShell({
   title,
   variant,
+  subtitle,
+  viewAllHref,
   children,
 }: {
   title: string;
   variant: RowVariant;
+  /** States what the rows' numbers mean and over what window. */
+  subtitle?: string;
+  viewAllHref?: Route;
   children: React.ReactNode;
 }) {
   const headerBorder = variant !== "list";
@@ -108,10 +115,22 @@ export function RailListShell({
     <div className="rounded-lg border border-grayA-4 bg-background">
       <div
         className={cn(
+          "flex items-center justify-between gap-2",
           headerBorder ? "px-4 py-3 border-b border-grayA-4" : "px-3.5 pt-3 pb-1.5",
         )}
       >
-        <span className="text-[13px] font-medium text-accent-12">{title}</span>
+        <span className="flex min-w-0 items-baseline gap-1.5">
+          <span className="text-[13px] font-medium text-accent-12">{title}</span>
+          {subtitle && <span className="truncate text-xs text-gray-9">{subtitle}</span>}
+        </span>
+        {viewAllHref && (
+          <Link
+            href={viewAllHref}
+            className="text-xs text-gray-9 hover:text-accent-12 hover:underline"
+          >
+            View all
+          </Link>
+        )}
       </div>
       <div
         className={
@@ -143,7 +162,7 @@ function RowSubtitle({ item, className }: { item: RowItem; className?: string })
   );
 }
 
-function Delta({ spark }: { spark: number[] }) {
+export function Delta({ spark }: { spark: number[] }) {
   const pct = trendPct(spark);
   const up = pct >= 0;
   return (
@@ -210,11 +229,44 @@ export function RailRow({
           <RowMark
             mark={mark}
             points={item.spark}
+            buckets={item.buckets}
             errorRatio={item.errorRatio}
             stroke={item.stroke}
             className="w-20 h-9 shrink-0"
           />
         </div>
+      </Link>
+    );
+  }
+
+  // "metric" — Vercel's observability row: the name reads as the label, the
+  // value sits under it with its unit spelled out, and the chart takes the rest
+  // of the width. No delta: a bare percentage next to a bare number invites the
+  // question "since when?" and answers neither.
+  if (variant === "metric") {
+    return (
+      <Link
+        href={item.href}
+        className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-grayA-2"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            <span className="truncate text-[13px] text-gray-11">{item.title}</span>
+            <span className="shrink-0 text-xs text-gray-9">· {item.subtitle}</span>
+          </div>
+          <div className="mt-1 text-[15px] font-semibold leading-none tabular-nums text-accent-12">
+            {item.value}
+          </div>
+        </div>
+        <RowMark
+          mark={mark}
+          points={item.spark}
+          buckets={item.buckets}
+          errorRatio={item.errorRatio}
+          stroke={item.stroke}
+          className="h-8 w-[152px] shrink-0"
+          fill
+        />
       </Link>
     );
   }
@@ -240,6 +292,7 @@ export function RailRow({
           <RowMark
             mark="bars"
             points={item.spark}
+            buckets={item.buckets}
             errorRatio={item.errorRatio}
             stroke={item.stroke}
             className="h-6"
@@ -266,6 +319,7 @@ export function RailRow({
       <RowMark
         mark={mark}
         points={item.spark}
+        buckets={item.buckets}
         errorRatio={item.errorRatio}
         stroke={item.stroke}
         className="w-40 h-7 shrink-0"
@@ -302,9 +356,7 @@ export function UsageCard({
 }) {
   const pct = usage.quota > 0 ? Math.min(100, (usage.billableTotal / usage.quota) * 100) : 0;
   const computePct =
-    usage.computeCredits > 0
-      ? Math.min(100, (usage.computeSpend / usage.computeCredits) * 100)
-      : 0;
+    usage.computeCredits > 0 ? Math.min(100, (usage.computeSpend / usage.computeCredits) * 100) : 0;
   return (
     <div className="rounded-lg border border-grayA-4 bg-background p-4">
       <div className="flex items-center justify-between">

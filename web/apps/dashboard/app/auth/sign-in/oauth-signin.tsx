@@ -18,8 +18,7 @@ export const OAuthSignIn: React.FC = () => {
   const { getToken } = useRadarSignals();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams?.get("redirect");
-  const redirectUrlComplete =
-    rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/";
+  const redirectUrlComplete = rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/";
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {

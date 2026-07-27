@@ -6,7 +6,8 @@ import { CopyIcon, XIcon } from "./ui";
 
 export type AgentStyle = "minimal" | "stacked";
 
-const PROMPT = "Set up Unkey in my project — fetch https://unkey.com/agent/setup.md and follow it.";
+export const PROMPT =
+  "Set up Unkey in my project — fetch https://unkey.com/agent/setup.md and follow it.";
 
 function AgentLogos({
   tone = "light",

@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unkey · Project overview layouts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="theme.js"></script>
+  <style>
+    body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; }
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: hsla(240 100% 9% / 0.15); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+
+    /* The one piece of motion on this page: a build is genuinely in progress, so
+       its badge shimmers the way the real DeploymentStatusBadge does. */
+    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    .shimmer { animation: shimmer 2s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .shimmer { animation: none; } }
+
+    /* ---------------- picker (verbatim from PICKER.md) ---------------- */
+    .proto-picker {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2147483647;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(10, 10, 10, 0.82);
+      -webkit-backdrop-filter: blur(12px) saturate(1.4);
+      backdrop-filter: blur(12px) saturate(1.4);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 8px 24px rgba(0, 0, 0, 0.24),
+        0 2px 6px rgba(0, 0, 0, 0.12);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .proto-picker-highlight {
+      position: absolute;
+      top: 4px;
+      left: 0;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      will-change: transform;
+    }
+
+    .proto-picker[data-ready] .proto-picker-highlight {
+      transition:
+        transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+        width 250ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .proto-picker[data-ready] .proto-picker-highlight { transition: none; }
+    }
+
+    .proto-picker-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      font: inherit;
+      cursor: pointer;
+      transition: color 150ms ease-out;
+    }
+
+    .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); }
+    .proto-picker-item:active { transform: scale(0.97); }
+    .proto-picker-item:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.4);
+      outline-offset: 2px;
+    }
+    .proto-picker-item[data-active] { color: #fff; }
+
+    .proto-picker-divider {
+      width: 1px;
+      height: 16px;
+      margin: 0 4px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .proto-picker-replay { padding: 0 10px; font-size: 14px; }
+
+    .proto-picker[data-position="top"] { bottom: auto; top: 24px; }
+  </style>
+</head>
+<body class="bg-white text-accent-12">
+  <div class="h-dvh w-full flex flex-col overflow-hidden bg-white">
+    <header class="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4" style="height:52px">
+      <span class="inline-flex size-6 shrink-0 items-center justify-center text-accent-12">
+        <svg viewBox="0 0 512 512" fill="currentColor" class="size-5"><path d="M170.8 115V340.6H341.2L284.4 397H170.8C139.418 397 114 371.761 114 340.6V115H170.8Z"/><path d="M398 284.2L341.2 340.6V115H398V284.2Z"/></svg>
+      </span>
+      <span class="select-none px-0.5 text-gray-7">/</span>
+      <span class="flex min-w-0 items-center gap-1.5 px-1.5 py-1 text-[13px] font-medium text-accent-12">
+        <span class="size-4 rounded-sm border border-grayA-6 shrink-0 bg-gradient-to-br from-[#f97316] via-[#ec4899] to-[#8b5cf6]"></span>
+        test1202101
+      </span>
+      <span class="select-none px-0.5 text-gray-7">/</span>
+      <span class="px-1.5 py-1 text-[13px] font-medium text-accent-12">acme-corp</span>
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <button class="hidden md:inline-flex h-8 items-center gap-2 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">Feedback</button>
+        <span class="size-6 rounded-full border border-grayA-6 bg-gradient-to-br from-[#22d3ee] via-[#6366f1] to-[#a855f7]"></span>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="shrink-0 bg-gray-1 border-r border-grayA-4 flex flex-col py-2" style="width:13rem">
+        <nav id="projectNav" class="px-2 flex flex-col gap-0.5"></nav>
+      </aside>
+      <div class="flex-1 overflow-auto bg-white" style="scrollbar-gutter:stable">
+        <div id="stage" class="w-full max-w-[1240px] px-7 py-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="proto-picker" aria-label="Prototype variants">
+    <span class="proto-picker-highlight" aria-hidden="true"></span>
+    <button class="proto-picker-item" data-active aria-current="true">Current</button>
+    <button class="proto-picker-item">Column</button>
+    <button class="proto-picker-item">Wide</button>
+    <button class="proto-picker-item">Nextstep</button>
+    <button class="proto-picker-item">Collapse</button>
+  </nav>
+
+  <script>
+    // ---------------------------------------------------------------- icons
+    const s = (d, c = '') => `<svg viewBox="0 0 24 24" class="${c}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const I = {
+      pulse: (c) => s('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', c),
+      cube: (c) => s('<path d="m21 16-9 5-9-5V8l9-5 9 5z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', c),
+      key: (c) => s('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>', c),
+      gauge: (c) => s('<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', c),
+      shield: (c) => s('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>', c),
+      layers: (c) => s('<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>', c),
+      arrows: (c) => s('<path d="m7 3v18"/><path d="m3 7 4-4 4 4"/><path d="M17 21V3"/><path d="m13 17 4 4 4-4"/>', c),
+      cog: (c) => s('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 11 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 19.4 11a2 2 0 1 1 0 4z"/>', c),
+      fingerprint: (c) => s('<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>', c),
+      github: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>`,
+      terminal: (c) => s('<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>', c),
+      branch: (c) => s('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>', c),
+      plus: (c) => s('<path d="M5 12h14"/><path d="M12 5v14"/>', c),
+      check: (c) => s('<path d="M20 6 9 17l-5-5"/>', c),
+      circleCheck: (c) => s('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', c),
+      hammer: (c) => s('<path d="m15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.6 6.4 22 10.8"/><path d="m11.5 5.5 7 7 3-3-7-7z"/>', c),
+      dots: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`,
+      discord: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M20.32 4.57A19.8 19.8 0 0 0 15.44 3c-.2.37-.44.87-.6 1.27a14.9 14.9 0 0 0-4.45 0c-.16-.4-.4-.9-.62-1.27a19.7 19.7 0 0 0-4.88 1.58C1.78 9.07.95 13.42 1.36 17.7A19.9 19.9 0 0 0 7.4 20.8c.47-.65.9-1.35 1.25-2.08-.68-.26-1.34-.58-1.96-.95.16-.12.32-.25.47-.38a14.2 14.2 0 0 0 12.1 0c.16.14.32.26.48.38-.62.37-1.28.7-1.97.95.36.73.78 1.43 1.26 2.08a19.86 19.86 0 0 0 6.04-3.1c.5-4.96-.83-9.27-3.5-13.13zM8.68 15.1c-1.18 0-2.15-1.1-2.15-2.44 0-1.35.95-2.45 2.15-2.45s2.17 1.1 2.15 2.45c0 1.34-.95 2.44-2.15 2.44zm7.94 0c-1.18 0-2.15-1.1-2.15-2.44 0-1.35.95-2.45 2.15-2.45s2.16 1.1 2.14 2.45c0 1.34-.94 2.44-2.14 2.44z"/></svg>`,
+      chats: (c) => s('<path d="M8 10h8"/><path d="M8 14h5"/><path d="M21 12a8 8 0 0 1-8 8H8l-5 3v-6a8 8 0 0 1 8-8h2a8 8 0 0 1 8 3z"/>', c),
+      book: (c) => s('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>', c),
+      arrowRight: (c) => s('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>', c),
+      chevronDown: (c) => s('<path d="m6 9 6 6 6-6"/>', c),
+    };
+
+    // ---------------------------------------------------------------- data
+    const APPS = [
+      { name: 'api', source: 'code', message: 'feat: support multi-region key rotation', branch: 'main', age: '2h ago', status: 'ready' },
+      { name: 'web', source: 'github', message: 'feat: add dark mode toggle', branch: 'fix/webhook-retry', age: '4h ago', status: 'ready' },
+      { name: 'worker', source: 'code', message: 'chore: bump queue client version', branch: 'fix/webhook-retry', age: '6h ago', status: 'building' },
+    ];
+    const KEYSPACES = [['production', '2,140 keys', '612K'], ['partner-api', '96 keys', '41K']];
+    const RATELIMITS = [['auth.login', '3.2% blocked', '128K']];
+    const STEPS = [
+      ['Set up with your agent', 'Copy a prompt · Claude, Cursor, Codex', false],
+      ['Deploy an app', '3 apps deployed', true],
+      ['Create a keyspace', '2 keyspaces active', true],
+      ['Add a ratelimit', '1 namespace active', true],
+      ['Add a custom domain', 'Serve on your own hostname', false],
+      ['Invite your team', 'Invites sent', true],
+    ];
+    const DONE = STEPS.filter(([, , d]) => d).length;
+
+    let stepsOpen = false;
+
+    // --------------------------------------------------------- shared pieces
+    const statusBadge = (status) => {
+      if (status === 'building') {
+        return `<span class="relative inline-flex h-[22px] w-fit items-center gap-2 overflow-hidden rounded-md bg-info-3 p-1.5">
+          <span class="absolute inset-0 w-[150%] bg-gradient-to-r from-transparent via-white/40 to-transparent shimmer"></span>
+          ${I.hammer('size-3.5 relative z-[5] text-info-11')}
+          <span class="relative z-[5] text-xs text-info-11">Building</span>
+        </span>`;
+      }
+      return `<span class="inline-flex h-[22px] w-fit items-center gap-2 rounded-md bg-success-3 p-1.5">
+        ${I.circleCheck('size-3.5 text-success-11')}
+        <span class="text-xs text-success-11">Ready</span>
+      </span>`;
+    };
+
+    const COLLAPSED_ROWS = 2;
+    const ROW_HEIGHT_PX = 50;
+    const GRID_ROW_PX = 58;
+
+    const APP_GRID = 'grid grid-cols-[minmax(0,1fr)_120px_104px_76px_32px] items-center gap-3';
+    const appRow = (app) => `
+      <a href="#" class="${APP_GRID} px-4 py-2.5 hover:bg-grayA-2">
+        <span class="flex min-w-0 items-center gap-2.5">
+          <span class="shrink-0 text-gray-12">${app.source === 'github' ? I.github('size-[18px]') : I.terminal('size-[18px]')}</span>
+          <span class="shrink-0 text-[13px] font-medium text-accent-12">${app.name}</span>
+          <span class="truncate text-[13px] text-gray-9">${app.message}</span>
+        </span>
+        <span class="flex min-w-0 items-center gap-2">
+          ${I.branch('size-3 shrink-0 text-accent-12')}
+          <span class="mono truncate text-xs leading-4 text-accent-12">${app.branch}</span>
+        </span>
+        ${statusBadge(app.status)}
+        <span class="justify-self-end whitespace-nowrap text-xs tabular-nums text-gray-9">${app.age}</span>
+        <span class="flex justify-end text-gray-9">${I.dots('size-4')}</span>
+      </a>`;
+
+    const cardHeader = (title, count, right = '') => `
+      <div class="flex items-center justify-between gap-3 px-4 pt-3 pb-1.5">
+        <div class="flex items-center gap-2">
+          <span class="text-[13px] font-medium text-accent-12">${title}</span>
+          ${count !== null ? `<span class="rounded-full bg-grayA-3 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-gray-11">${count}</span>` : ''}
+        </div>
+        ${right}
+      </div>`;
+
+    const createAppBtn = `
+      <button class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-grayA-4 bg-white px-2.5 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+        ${I.plus('size-3.5')} Create app
+      </button>`;
+
+    const appsCard = () => `
+      <div class="rounded-lg border border-grayA-4 bg-white">
+        ${cardHeader('Apps', APPS.length, createAppBtn)}
+        <div class="divide-y divide-grayA-4">${APPS.map(appRow).join('')}</div>
+      </div>`;
+
+    const viewAll = `<a href="#" class="text-xs text-gray-9 hover:text-accent-12">View all</a>`;
+
+    // Rail-width resource card: name + sub + bar mark, as shipped.
+    const bars = (w) => `<span class="flex h-6 ${w} shrink-0 items-end gap-[2px]">
+      ${[28, 34, 30, 38, 33, 42, 36, 45, 39, 48, 41, 44, 38, 46, 42, 40].map((h) => `<span class="flex-1 rounded-[1px] bg-accent-4" style="height:${h * 2}%"></span>`).join('')}
+    </span>`;
+
+    const resourceCard = (title, rows, { wide = false } = {}) => `
+      <div class="rounded-lg border border-grayA-4 bg-white">
+        ${cardHeader(title, null, viewAll)}
+        <div class="divide-y divide-grayA-4">
+          ${rows.map(([name, sub, value]) => `
+            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 hover:bg-grayA-2">
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-[13px] leading-4 text-accent-12">${name}</span>
+                <span class="mt-0.5 block truncate text-xs text-gray-9">${sub}</span>
+              </span>
+              ${wide ? `<span class="shrink-0 text-[13px] tabular-nums text-accent-12">${value}</span>` : ''}
+              ${bars(wide ? 'w-32' : 'w-20')}
+            </a>`).join('')}
+        </div>
+      </div>`;
+
+    const HELP_LINKS = [
+      [I.discord, 'Ask in Discord', 'Community answers'],
+      [I.chats, 'Get support', 'Talk to an engineer'],
+      [I.layers, 'Templates', 'Start from an example'],
+      [I.book, 'Documentation', 'Guides and API reference'],
+    ];
+
+    // At rail width these are stacked rows in a card — the borderless header
+    // works because the rows run full-bleed underneath it. Splitting them into
+    // columns breaks that, so the wide version drops the card and becomes a
+    // labelled tile row instead, the same shape the old get-connected row used.
+    const helpCard = ({ columns = 1 } = {}) => {
+      if (columns === 4) {
+        return `
+          <div>
+            <span class="text-sm font-medium text-accent-12">Need help?</span>
+            <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              ${HELP_LINKS.map(([icon, label, sub]) => `
+                <a href="#" class="flex flex-col gap-2 rounded-lg border border-grayA-4 p-3 transition-colors hover:border-grayA-7">
+                  ${icon('size-4 text-gray-9')}
+                  <span class="min-w-0">
+                    <span class="block text-[13px] font-medium text-accent-12">${label}</span>
+                    <span class="mt-0.5 block truncate text-xs text-gray-9">${sub}</span>
+                  </span>
+                </a>`).join('')}
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="rounded-lg border border-grayA-4 bg-white">
+          ${cardHeader('Need help?', null)}
+          <div class="divide-y divide-grayA-4">
+            ${HELP_LINKS.map(([icon, label]) => `
+              <a href="#" class="flex items-center gap-2.5 px-3.5 py-3 hover:bg-grayA-2">
+                ${icon('size-3.5 shrink-0 text-gray-9')}
+                <span class="truncate text-[13px] text-gray-11">${label}</span>
+              </a>`).join('')}
+          </div>
+        </div>`;
+    };
+
+    // The checklist, either as a card of rows or wrapped into columns.
+    const checklistCard = ({ columns = 1, collapsible = false, open = false } = {}) => {
+      let n = 0;
+      const rows = STEPS.map(([label, hint, done]) => {
+        if (!done) n += 1;
+        return `
+          <a href="#" class="flex w-full items-center gap-2.5 px-3.5 py-3 hover:bg-grayA-2">
+            <span class="flex size-5 shrink-0 items-center justify-center rounded-full ${done ? 'bg-success-3 text-success-11' : 'bg-gray-3 text-[11px] font-medium text-gray-9'}">
+              ${done ? I.check('size-3') : n}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[13px] leading-4 ${done ? 'text-gray-9' : 'text-accent-12'}">${label}</span>
+              <span class="mt-0.5 block truncate text-xs text-gray-9">${hint}</span>
+            </span>
+          </a>`;
+      });
+      const body = columns > 1
+        ? `<div class="grid gap-x-4 px-2 pb-2 ${columns === 3 ? 'grid-cols-3' : 'grid-cols-2'}">${rows.join('')}</div>`
+        : `<div class="divide-y divide-grayA-4">${rows.join('')}</div>`;
+      const hidden = columns > 1 ? STEPS.length - columns : STEPS.length - COLLAPSED_ROWS;
+      return `
+        <div class="relative rounded-lg border border-grayA-4 bg-white">
+          <div class="px-3.5 pt-3 pb-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[13px] font-medium text-accent-12">Getting started</span>
+              <span class="shrink-0 text-xs tabular-nums text-gray-9">${DONE}/${STEPS.length}</span>
+            </div>
+            <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-gray-3">
+              <div class="h-full rounded-full bg-accent-12" style="width:${(DONE / STEPS.length) * 100}%"></div>
+            </div>
+          </div>
+          ${collapsible ? `
+            <div class="relative overflow-hidden rounded-b-lg" ${open ? '' : `style="max-height:${columns > 1 ? GRID_ROW_PX + 22 : COLLAPSED_ROWS * ROW_HEIGHT_PX}px"`}>
+              ${body}
+              <div
+                class="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/85 to-transparent transition-opacity duration-150 ease-out ${open ? 'opacity-0' : 'opacity-100'}"
+                aria-hidden="true"
+              ></div>
+            </div>
+            <button
+              type="button"
+              data-toggle-steps
+              aria-expanded="${open}"
+              aria-label="${open ? 'Collapse steps' : `Show ${hidden} more steps`}"
+              class="absolute -bottom-3.5 left-1/2 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-grayA-4 bg-white text-gray-11 shadow-sm transition-colors hover:text-accent-12"
+            >
+              <span class="block transition-transform duration-150 ease-out ${open ? 'rotate-180' : ''}">
+                ${I.chevronDown('size-3.5')}
+              </span>
+            </button>` : body}
+        </div>`;
+    };
+
+    // Vercel's disclosure: the list is clipped to the first couple of rows and
+    // faded out, with the chevron straddling the bottom edge. Collapsed is the
+    // default so the card can sit above the apps without pushing them down.
+    const collapsibleChecklist = (open) => {
+      let n = 0;
+      const rows = STEPS.map(([label, hint, done]) => {
+        if (!done) n += 1;
+        return `
+          <a href="#" class="flex w-full items-center gap-2.5 px-3.5 py-3 hover:bg-grayA-2">
+            <span class="flex size-5 shrink-0 items-center justify-center rounded-full ${done ? 'bg-success-3 text-success-11' : 'bg-gray-3 text-[11px] font-medium text-gray-9'}">
+              ${done ? I.check('size-3') : n}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[13px] leading-4 ${done ? 'text-gray-9' : 'text-accent-12'}">${label}</span>
+              <span class="mt-0.5 block truncate text-xs text-gray-9">${hint}</span>
+            </span>
+          </a>`;
+      }).join('');
+      const remaining = STEPS.length - COLLAPSED_ROWS;
+      return `
+        <div class="relative rounded-lg border border-grayA-4 bg-white">
+          <div class="px-3.5 pt-3 pb-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[13px] font-medium text-accent-12">Getting started</span>
+              <span class="shrink-0 text-xs tabular-nums text-gray-9">${DONE}/${STEPS.length}</span>
+            </div>
+            <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-gray-3">
+              <div class="h-full rounded-full bg-accent-12" style="width:${(DONE / STEPS.length) * 100}%"></div>
+            </div>
+          </div>
+          <div class="relative overflow-hidden rounded-b-lg" ${open ? '' : `style="max-height:${COLLAPSED_ROWS * ROW_HEIGHT_PX}px"`}>
+            <div class="divide-y divide-grayA-4">${rows}</div>
+            <div
+              class="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/85 to-transparent transition-opacity duration-150 ease-out ${open ? 'opacity-0' : 'opacity-100'}"
+              aria-hidden="true"
+            ></div>
+          </div>
+          <button
+            type="button"
+            data-toggle-steps
+            aria-expanded="${open}"
+            aria-label="${open ? 'Collapse steps' : `Show ${remaining} more steps`}"
+            class="absolute -bottom-3.5 left-1/2 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-grayA-4 bg-white text-gray-11 shadow-sm transition-colors hover:text-accent-12"
+          >
+            <span class="block transition-transform duration-150 ease-out ${open ? 'rotate-180' : ''}">
+              ${I.chevronDown('size-3.5')}
+            </span>
+          </button>
+        </div>`;
+    };
+
+    // Onboarding compressed to a single line: progress, the next action, dismiss.
+    const nextStepBar = () => {
+      const next = STEPS.find(([, , done]) => !done);
+      return `
+        <div class="flex items-center gap-3 rounded-lg border border-grayA-4 bg-gray-2 px-4 py-2.5">
+          <span class="flex items-center gap-2 shrink-0">
+            <span class="text-xs font-medium text-accent-12">Getting started</span>
+            <span class="text-xs tabular-nums text-gray-9">${DONE}/${STEPS.length}</span>
+          </span>
+          <span class="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-gray-4">
+            <span class="block h-full rounded-full bg-accent-12" style="width:${(DONE / STEPS.length) * 100}%"></span>
+          </span>
+          <span class="text-gray-7">·</span>
+          <span class="min-w-0 flex-1 truncate text-[13px] text-gray-11">
+            Next: <span class="text-accent-12">${next[0]}</span> — ${next[1].toLowerCase()}
+          </span>
+          <a href="#" class="shrink-0 text-xs font-medium text-accent-11 hover:text-accent-12">Continue →</a>
+          <span class="shrink-0 text-gray-9">${I.dots('size-4')}</span>
+        </div>`;
+    };
+
+    const pageHeader = (extra = '') => `
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="truncate text-[22px] font-semibold leading-tight tracking-tight text-accent-12">acme-corp</h1>
+        <div class="flex shrink-0 items-center gap-2">
+          ${extra}
+          <button class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            ${I.book('size-3.5 text-gray-9')} Documentation
+          </button>
+        </div>
+      </div>`;
+
+    // ------------------------------------------------------------- variants
+    // 1 — what ships today: right rail, apps then checklist in the main column.
+    const layoutCurrent = () => `
+      ${pageHeader()}
+      <div class="mt-6 flex items-start gap-5">
+        <div class="flex min-w-0 flex-1 flex-col gap-5">
+          ${appsCard()}
+          ${checklistCard()}
+        </div>
+        <aside class="flex w-[260px] shrink-0 flex-col gap-4">
+          ${resourceCard('Keyspaces', KEYSPACES)}
+          ${resourceCard('Ratelimits', RATELIMITS)}
+          ${helpCard()}
+        </aside>
+      </div>`;
+
+    // 2 — no rail. Every block gets the full width and the page reads top-down in
+    // priority order; resources pair up, help drops to the end.
+    const layoutColumn = () => `
+      ${pageHeader()}
+      <div class="mt-6 flex flex-col gap-6">
+        ${checklistCard({ columns: 3, collapsible: true, open: stepsOpen })}
+        ${appsCard()}
+        <div class="grid grid-cols-2 gap-5">
+          ${resourceCard('Keyspaces', KEYSPACES, { wide: true })}
+          ${resourceCard('Ratelimits', RATELIMITS, { wide: true })}
+        </div>
+        ${helpCard({ columns: 4 })}
+      </div>`;
+
+    // 3 — resources promoted to equals of apps: a full-width band under the table
+    // with room for the 24h number, and the onboarding/help pair in a slim rail.
+    const layoutWide = () => `
+      ${pageHeader()}
+      <div class="mt-6 flex items-start gap-5">
+        <div class="flex min-w-0 flex-1 flex-col gap-5">
+          ${appsCard()}
+          <div class="grid grid-cols-2 gap-5">
+            ${resourceCard('Keyspaces', KEYSPACES, { wide: true })}
+            ${resourceCard('Ratelimits', RATELIMITS, { wide: true })}
+          </div>
+        </div>
+        <aside class="flex w-[260px] shrink-0 flex-col gap-4">
+          ${checklistCard()}
+          ${helpCard()}
+        </aside>
+      </div>`;
+
+    // 4 — onboarding becomes chrome: one line under the header carrying progress
+    // and the next action, so the main column is nothing but apps.
+    const layoutNextstep = () => `
+      ${pageHeader()}
+      <div class="mt-5">${nextStepBar()}</div>
+      <div class="mt-5 flex items-start gap-5">
+        <div class="min-w-0 flex-1">
+          ${appsCard()}
+        </div>
+        <aside class="flex w-[260px] shrink-0 flex-col gap-4">
+          ${resourceCard('Keyspaces', KEYSPACES)}
+          ${resourceCard('Ratelimits', RATELIMITS)}
+          ${helpCard()}
+        </aside>
+      </div>`;
+
+    // 5 — the disclosure card, moved above the apps. Collapsed it costs ~150px,
+    // so onboarding leads the page without burying what you came for.
+    const layoutCollapse = () => `
+      ${pageHeader()}
+      <div class="mt-6 flex items-start gap-5">
+        <div class="flex min-w-0 flex-1 flex-col gap-6">
+          ${collapsibleChecklist(stepsOpen)}
+          ${appsCard()}
+        </div>
+        <aside class="flex w-[260px] shrink-0 flex-col gap-4">
+          ${resourceCard('Keyspaces', KEYSPACES)}
+          ${resourceCard('Ratelimits', RATELIMITS)}
+          ${helpCard()}
+        </aside>
+      </div>`;
+
+    const variants = [layoutCurrent, layoutColumn, layoutWide, layoutNextstep, layoutCollapse];
+
+    document.getElementById('projectNav').innerHTML = [
+      ['Overview', I.pulse, true], ['Apps', I.cube, false], ['Keyspaces', I.key, false],
+      ['Ratelimits', I.gauge, false], ['Authorization', I.shield, false],
+      ['Identities', I.fingerprint, false], ['Logs', I.layers, false],
+      ['Requests', I.arrows, false], ['Project Settings', I.cog, false],
+    ].map(([label, icon, active]) => `
+      <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 ${active ? 'bg-grayA-3' : 'hover:bg-grayA-3'}">
+        ${icon(`size-4 shrink-0 ${active ? '' : 'text-gray-9'}`)}<span class="truncate">${label}</span>
+      </a>`).join('');
+
+    // ------------------------------------- picker wiring (verbatim, PICKER.md)
+    const stage = document.getElementById('stage');
+    const picker = document.querySelector('.proto-picker');
+    const highlight = picker.querySelector('.proto-picker-highlight');
+    const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+    const replay = picker.querySelector('.proto-picker-replay');
+    let current = 0;
+
+    function moveHighlight() {
+      const el = items[current];
+      highlight.style.width = el.offsetWidth + 'px';
+      highlight.style.transform = `translateX(${el.offsetLeft}px)`;
+    }
+
+    function mount(i) {
+      stage.innerHTML = '';
+      requestAnimationFrame(() => { stage.innerHTML = variants[i](); });
+    }
+
+    function setActive(i) {
+      if (i < 0 || i >= variants.length) return;
+      current = i;
+      items.forEach((el, j) => {
+        el.toggleAttribute('data-active', j === i);
+        if (j === i) el.setAttribute('aria-current', 'true');
+        else el.removeAttribute('aria-current');
+      });
+      moveHighlight();
+      const url = new URL(location);
+      url.searchParams.set('v', i + 1);
+      history.replaceState(null, '', url);
+      mount(i);
+    }
+
+    items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+    replay?.addEventListener('click', () => mount(current));
+    window.addEventListener('resize', moveHighlight);
+
+    document.addEventListener('keydown', (e) => {
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= variants.length) setActive(num - 1);
+      else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+      else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+      else if (e.key === 'r' || e.key === 'R') mount(current);
+    });
+
+    stage.addEventListener('click', (e) => {
+      const toggle = e.target.closest('[data-toggle-steps]');
+      if (!toggle) return;
+      stepsOpen = !stepsOpen;
+      mount(current);
+    });
+
+    setActive((parseInt(new URLSearchParams(location.search).get('v'), 10) || 1) - 1);
+    requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+  </script>
+</body>
+</html>

@@ -10,25 +10,48 @@ function lastN(points: number[], n: number): number[] {
   return points.length > n ? points.slice(points.length - n) : points;
 }
 
+function lastN30Buckets(buckets: Bucket[]): Bucket[] {
+  return buckets.length > 30 ? buckets.slice(buckets.length - 30) : buckets;
+}
+
+export type Bucket = { valid: number; error: number };
+
 export function RowMark({
   mark,
   points,
+  buckets,
   errorRatio,
   stroke,
   className,
+  fill,
 }: {
   mark: Mark;
   points: number[];
+  /** Per-bucket valid/error split. Preferred over the flat errorRatio: a single
+   *  ratio applied to every bar draws an even orange rim, which no real error
+   *  data ever does. */
+  buckets?: Bucket[];
   errorRatio: number;
   stroke: string;
   className?: string;
+  /** Bars only: spread across the given width rather than packing them. */
+  fill?: boolean;
 }) {
   if (points.length === 0 && mark !== "ratio") {
     return <div className={cn("rounded bg-grayA-3", className)} />;
   }
   switch (mark) {
     case "bars":
-      return <BarsMark points={points} errorRatio={errorRatio} stroke={stroke} />;
+      return (
+        <BarsMark
+          points={points}
+          buckets={buckets}
+          errorRatio={errorRatio}
+          stroke={stroke}
+          className={className}
+          fill={fill}
+        />
+      );
     case "ratio":
       return <RatioMark errorRatio={errorRatio} stroke={stroke} className={className} />;
     case "heatmap":
@@ -149,27 +172,61 @@ function LineMark({
 // sit directly on the row background, no well, so the accent-4 fill stays visible.
 function BarsMark({
   points,
+  buckets,
   errorRatio,
   stroke,
+  className,
+  fill,
 }: {
   points: number[];
+  buckets?: Bucket[];
   errorRatio: number;
   stroke: string;
+  className?: string;
+  /** Spread buckets across the given width instead of packing them at 3px+2px. */
+  fill?: boolean;
 }) {
-  const data = lastN(points, 30);
+  const split = buckets ? lastN30Buckets(buckets) : undefined;
+  const data = split ? split.map((b) => b.valid + b.error) : lastN(points, 30);
   const H = 28;
   const max = Math.max(...data, 1) * 1.3;
   return (
-    <div className="relative inline-flex h-7 items-end gap-[2px]">
+    <div
+      className={cn(
+        "relative items-end",
+        // Default is the original packed layout: fixed 3px bars, 2px apart,
+        // shrink-wrapped. `fill` opts into equal bands that span the given width.
+        fill ? "flex h-7 gap-0" : "inline-flex h-7 gap-[2px]",
+        fill && className,
+      )}
+    >
       {data.map((v, i) => {
         const total = Math.min(Math.round((v / max) * H), H);
-        const top = errorRatio > 0 && v > 0 ? Math.max(Math.round(errorRatio * total), 1) : 0;
+        const ratio = split ? (v > 0 ? split[i].error / v : 0) : errorRatio;
+        // Per-bucket splits skip the 1px floor: at a fraction of a percent the
+        // cap rounds to sub-pixel, and forcing it to 1px paints a solid orange
+        // rim across every bar — "every bucket is failing" at ~6x the real rate.
+        // Flat-ratio callers keep the floor so a small error share stays visible.
+        const scaled = ratio * total;
+        const top = ratio > 0 && v > 0 ? (split ? Math.round(scaled) : Math.max(scaled, 1)) : 0;
         const bottom = Math.max(total - top, 0);
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: positional bars
-          <div key={i} className="flex w-[3px] shrink-0 flex-col justify-end">
-            <div className="w-full" style={{ height: `${top}px`, backgroundColor: ORANGE }} />
-            <div className="w-full" style={{ height: `${bottom}px`, backgroundColor: stroke }} />
+          <div
+            key={i}
+            className={cn(
+              "flex flex-col justify-end",
+              fill ? "min-w-px flex-1 items-center" : "w-[3px] shrink-0",
+            )}
+          >
+            <div
+              className={fill ? "w-[3px] max-w-full" : "w-full"}
+              style={{ height: `${top}px`, backgroundColor: ORANGE }}
+            />
+            <div
+              className={fill ? "w-[3px] max-w-full" : "w-full"}
+              style={{ height: `${bottom}px`, backgroundColor: stroke }}
+            />
           </div>
         );
       })}

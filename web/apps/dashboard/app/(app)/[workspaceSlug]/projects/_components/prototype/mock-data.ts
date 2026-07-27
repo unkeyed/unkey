@@ -52,9 +52,7 @@ export type OverviewData = {
 };
 
 const migrated: OverviewData = {
-  projects: [
-    { id: "p_1", name: "acme-corp", subtitle: "Default project", apps: [], appCount: 0 },
-  ],
+  projects: [{ id: "p_1", name: "acme-corp", subtitle: "Default project", apps: [], appCount: 0 }],
   keyspaces: [
     {
       id: "ks_1",

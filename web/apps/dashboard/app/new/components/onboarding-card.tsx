@@ -5,10 +5,7 @@ import type React from "react";
 export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <Card
-      className={cn(
-        "w-full max-w-[440px] rounded-xl  px-6 py-10 sm:px-12 bg-red-500",
-        className,
-      )}
+      className={cn("w-full max-w-[440px] rounded-xl  px-6 py-10 sm:px-12 bg-red-500", className)}
       {...props}
     />
   );

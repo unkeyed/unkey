@@ -110,8 +110,7 @@ function findKey(keyId: string): { ks: KeyspaceStat; key: MockKey } | null {
   return null;
 }
 
-const defaultPrefix = (ks: KeyspaceStat) =>
-  ks.name.replace(/[^a-z0-9]/gi, "").slice(0, 4) || "key";
+const defaultPrefix = (ks: KeyspaceStat) => ks.name.replace(/[^a-z0-9]/gi, "").slice(0, 4) || "key";
 
 type FakeProject = World["projects"][number];
 
@@ -128,7 +127,9 @@ function findFakeProject(projectId: string | undefined): FakeProject | null {
   return null;
 }
 
-function findFakeApp(appId: string): { project: FakeProject; app: FakeProject["apps"][number] } | null {
+function findFakeApp(
+  appId: string,
+): { project: FakeProject; app: FakeProject["apps"][number] } | null {
   for (const world of allWorlds()) {
     for (const project of world.projects) {
       const app = project.apps.find((a) => a.id === appId);

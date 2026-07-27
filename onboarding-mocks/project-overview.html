@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unkey · Project overview (apps-first)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="theme.js"></script>
+  <style>
+    body { font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; }
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: hsla(240 100% 9% / 0.15); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+  </style>
+</head>
+<body class="bg-white text-accent-12">
+  <div class="h-dvh w-full flex flex-col overflow-hidden bg-white">
+    <!-- Top nav -->
+    <header class="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4" style="height:52px">
+      <a class="inline-flex items-center" href="#">
+        <span class="inline-flex size-6 shrink-0 items-center justify-center text-accent-12">
+          <svg viewBox="0 0 512 512" fill="currentColor" class="size-5"><path d="M170.8 115V340.6H341.2L284.4 397H170.8C139.418 397 114 371.761 114 340.6V115H170.8Z"/><path d="M398 284.2L341.2 340.6V115H398V284.2Z"/></svg>
+        </span>
+      </a>
+      <span class="select-none px-0.5 text-gray-7">/</span>
+      <a href="#" class="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+        <span class="size-4 rounded-sm border border-grayA-6 shrink-0 bg-gradient-to-br from-[#f97316] via-[#ec4899] to-[#8b5cf6]"></span>
+        <span class="truncate max-w-[160px]">test1202101</span>
+        <svg viewBox="0 0 24 24" class="size-3 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9 4-4 4 4"/><path d="m16 15-4 4-4-4"/></svg>
+      </a>
+      <span class="select-none px-0.5 text-gray-7">/</span>
+      <a href="#" class="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+        <svg viewBox="0 0 24 24" class="size-3.5 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <span class="truncate max-w-[160px]">acme-corp</span>
+        <svg viewBox="0 0 24 24" class="size-3 text-gray-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9 4-4 4 4"/><path d="m16 15-4 4-4-4"/></svg>
+      </a>
+      <div class="ml-auto flex shrink-0 items-center gap-1">
+        <button class="hidden md:inline-flex h-8 items-center gap-2 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>
+          Feedback
+        </button>
+        <button class="group size-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4">
+          <svg viewBox="0 0 24 24" class="size-5 text-gray-9 group-hover:text-gray-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        </button>
+        <button class="px-2 py-1 flex hover:bg-grayA-4 rounded-lg items-center h-8">
+          <span class="size-6 rounded-full border border-grayA-6 bg-gradient-to-br from-[#22d3ee] via-[#6366f1] to-[#a855f7]"></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Project nav -->
+      <aside class="shrink-0 bg-gray-1 border-r border-grayA-4 flex flex-col justify-between py-2" style="width:13rem">
+        <nav id="projectNav" class="px-2 flex flex-col gap-0.5"></nav>
+        <div class="px-2">
+          <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            <svg viewBox="0 0 24 24" class="size-4 -rotate-90" fill="none"><circle cx="12" cy="12" r="9" stroke="hsl(0 0% 91%)" stroke-width="3"/><circle cx="12" cy="12" r="9" stroke="#0A9B8B" stroke-width="3" stroke-dasharray="56.5" stroke-dashoffset="43" stroke-linecap="round"/></svg>
+            <span>Usage 24%</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-auto bg-white" style="scrollbar-gutter:stable">
+        <div class="w-full max-w-[1240px] px-7 py-6">
+          <div id="page"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top-section switcher -->
+  <div class="fixed bottom-[68px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-grayA-6 bg-gray-1/95 backdrop-blur px-1.5 py-1.5 shadow-lg">
+    <span class="px-2 text-[11px] font-medium uppercase tracking-wide text-gray-9">Top</span>
+    <div id="topTabs" class="flex items-center gap-1"></div>
+  </div>
+
+  <!-- Scenario switcher -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-grayA-6 bg-gray-1/95 backdrop-blur px-1.5 py-1.5 shadow-lg">
+    <button data-nav="prev" class="size-7 rounded-full flex items-center justify-center text-gray-11 hover:bg-grayA-3">
+      <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div id="tabs" class="flex items-center gap-1"></div>
+    <button data-nav="next" class="size-7 rounded-full flex items-center justify-center text-gray-11 hover:bg-grayA-3">
+      <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------- icons
+    const s = (d, extra = '') => `<svg viewBox="0 0 24 24" class="${extra}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const I = {
+      pulse: (c) => s('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', c),
+      cube: (c) => s('<path d="m21 16-9 5-9-5V8l9-5 9 5z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', c),
+      key: (c) => s('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>', c),
+      gauge: (c) => s('<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>', c),
+      shield: (c) => s('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>', c),
+      fingerprint: (c) => s('<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>', c),
+      layers: (c) => s('<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>', c),
+      arrows: (c) => s('<path d="m7 3v18"/><path d="m3 7 4-4 4 4"/><path d="M17 21V3"/><path d="m13 17 4 4 4-4"/>', c),
+      cog: (c) => s('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 11 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 19.4 11a2 2 0 1 1 0 4z"/>', c),
+      github: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>`,
+      terminal: (c) => s('<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>', c),
+      globe: (c) => s('<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/>', c),
+      users: (c) => s('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', c),
+      book: (c) => s('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>', c),
+      branch: (c) => s('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>', c),
+      plus: (c) => s('<path d="M5 12h14"/><path d="M12 5v14"/>', c),
+      check: (c) => s('<path d="M20 6 9 17l-5-5"/>', c),
+      x: (c) => s('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>', c),
+      arrowRight: (c) => s('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>', c),
+      chevron: (c) => s('<path d="m9 18 6-6-6-6"/>', c),
+      dots: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`,
+      rocket: (c) => s('<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>', c),
+      discord: (c) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M20.32 4.57A19.8 19.8 0 0 0 15.44 3c-.2.37-.44.87-.6 1.27a14.9 14.9 0 0 0-4.45 0c-.16-.4-.4-.9-.62-1.27a19.7 19.7 0 0 0-4.88 1.58C1.78 9.07.95 13.42 1.36 17.7A19.9 19.9 0 0 0 7.4 20.8c.47-.65.9-1.35 1.25-2.08-.68-.26-1.34-.58-1.96-.95.16-.12.32-.25.47-.38a14.2 14.2 0 0 0 12.1 0c.16.14.32.26.48.38-.62.37-1.28.7-1.97.95.36.73.78 1.43 1.26 2.08a19.86 19.86 0 0 0 6.04-3.1c.5-4.96-.83-9.27-3.5-13.13zM8.68 15.1c-1.18 0-2.15-1.1-2.15-2.44 0-1.35.95-2.45 2.15-2.45s2.17 1.1 2.15 2.45c0 1.34-.95 2.44-2.15 2.44zm7.94 0c-1.18 0-2.15-1.1-2.15-2.44 0-1.35.95-2.45 2.15-2.45s2.16 1.1 2.14 2.45c0 1.34-.94 2.44-2.14 2.44z"/></svg>`,
+      headset: (c) => s('<path d="M3 11h3v8H4.5A1.5 1.5 0 0 1 3 17.5z"/><path d="M18 11h3v6.5a1.5 1.5 0 0 1-1.5 1.5H18z"/><path d="M4 11a8 8 0 0 1 16 0"/><path d="M18 19a3 3 0 0 1-3 3h-1"/>', c),
+      clock: (c) => s('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>', c),
+      copy: (c) => s('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', c),
+    };
+
+    // ---------------------------------------------------------------- nav
+    const NAV = [
+      ['Overview', I.pulse, true],
+      ['Apps', I.cube, false],
+      ['Keyspaces', I.key, false],
+      ['Ratelimits', I.gauge, false],
+      ['Authorization', I.shield, false],
+      ['Identities', I.fingerprint, false],
+      ['Logs', I.layers, false],
+      ['Requests', I.arrows, false],
+      ['Project Settings', I.cog, false],
+    ];
+    document.getElementById('projectNav').innerHTML = NAV.map(([label, icon, active]) => `
+      <a href="#" class="flex items-center gap-2 rounded-lg px-[10px] h-8 text-[13px] font-medium text-accent-12 ${active ? 'bg-grayA-3' : 'hover:bg-grayA-3'}">
+        ${icon(`size-4 shrink-0 ${active ? '' : 'text-gray-9'}`)}
+        <span class="truncate">${label}</span>
+      </a>`).join('');
+
+    // ---------------------------------------------------------------- data
+    const PROMPT = 'Set up Unkey in my project — fetch https://unkey.com/agent/setup.md and follow it.';
+
+    // reqs/errPct/spark are frontline_requests_per_hour_v1 territory: served HTTP
+    // per app per environment. Deliberately never added to verifications — one is
+    // traffic we serve, the other is calls from the customer's own infra.
+    const APPS = [
+      {
+        name: 'api-gateway', domain: 'api.acme.com', source: 'github',
+        commit: 'fix: retry key verification on 401', when: '2h ago', branch: 'main',
+        author: 'chronark', avatar: 'from-[#22d3ee] via-[#6366f1] to-[#a855f7]',
+        status: { label: 'Ready', dot: 'bg-success-9' },
+        reqs: 1100000, errPct: 0.2, spark: [30, 34, 31, 38, 35, 42, 39, 45, 41, 48, 44, 46],
+      },
+      {
+        name: 'checkout-service', domain: 'checkout.acme.com', source: 'github',
+        commit: 'chore: bump @unkey/api to 2.1.0', when: '1d ago', branch: 'main',
+        author: 'dave', avatar: 'from-[#f97316] via-[#ec4899] to-[#8b5cf6]',
+        status: { label: 'Ready', dot: 'bg-success-9' },
+        reqs: 126000, errPct: 0.5, spark: [18, 21, 19, 24, 22, 20, 26, 23, 27, 25, 22, 24],
+      },
+      {
+        name: 'internal-tools', domain: null, source: 'cli',
+        commit: 'feat: add admin ratelimit override', when: '6m ago', branch: 'feat/overrides',
+        author: 'oz', avatar: 'from-[#34d399] via-[#0ea5e9] to-[#6366f1]',
+        status: { label: 'Building', dot: 'bg-warning-9' },
+        reqs: 14000, errPct: 2.1, spark: [6, 8, 5, 9, 7, 11, 8, 14, 10, 16, 12, 9],
+      },
+    ];
+
+    // Every milestone is derivable from project data — no self-reported "have you
+    // read the docs" steps that can never tick. No separate repo step: connecting
+    // a repo *is* deploying an app.
+    // Done rows report the fact rather than repeating the pitch, so a finished
+    // step still tells you something.
+    const CHECKLIST = [
+      {
+        key: 'agent', label: 'Set up with your agent',
+        hint: 'Copy a prompt · Claude, Cursor, Codex',
+        copy: PROMPT, done: () => 'Prompt copied',
+      },
+      {
+        key: 'app', label: 'Deploy an app', hint: 'Bring code into this project',
+        done: (sc) => `${sc.apps.length} app${sc.apps.length === 1 ? '' : 's'} deployed`,
+      },
+      {
+        key: 'keyspace', label: 'Create a keyspace', hint: 'Issue and verify API keys',
+        done: (sc) => `${sc.keyspaces} keyspace${sc.keyspaces === 1 ? '' : 's'} active`,
+      },
+      {
+        key: 'ratelimit', label: 'Add a ratelimit', hint: 'Protect your API from abuse',
+        done: (sc) => `${sc.ratelimits} namespace${sc.ratelimits === 1 ? '' : 's'} active`,
+      },
+      {
+        key: 'domain', label: 'Add a custom domain', hint: 'Serve on your own hostname',
+        done: () => 'api.acme.com',
+      },
+      {
+        key: 'team', label: 'Invite your team', hint: 'Share this workspace',
+        done: () => '4 members',
+      },
+    ];
+
+    const SCENARIOS = {
+      new: {
+        label: 'Brand new', apps: [], keyspaces: 0, ratelimits: 0, done: [],
+        requests: null, successPct: null, keys: 0, deploy: null,
+        spark: null,
+        issues: [],
+        served: 0, servedErrPct: null,
+        verifications: 0, invalidPct: null,
+        checks: 0, blockedPct: null,
+        deploysThisWeek: 0, domains: { verified: 0, pending: 0 },
+        compute: null,
+        envs: null,
+      },
+      migrated: {
+        label: 'Migrated', apps: [], keyspaces: 3, ratelimits: 2,
+        done: ['keyspace', 'ratelimit', 'team'],
+        requests: 843000, successPct: 98.2, keys: 1692, deploy: null,
+        spark: [12, 18, 14, 22, 19, 28, 24, 31, 27, 34, 29, 26],
+        issues: [
+          { level: 'warn', text: 'No apps deployed — keys are verified, nothing is served', action: 'Deploy an app' },
+          { level: 'info', text: 'sms.send blocking 3.2% of checks · 24h', action: 'Inspect' },
+        ],
+        // The honest case: heavy key traffic, nothing served. A single "requests"
+        // number would read as either 843K or 0 depending which meter you picked.
+        served: 0, servedErrPct: null,
+        verifications: 843000, invalidPct: 1.8,
+        checks: 168000, blockedPct: 3.2,
+        deploysThisWeek: 0, domains: { verified: 0, pending: 0 },
+        compute: null,
+        envs: null,
+      },
+      active: {
+        label: 'Active', apps: APPS, keyspaces: 3, ratelimits: 2,
+        done: ['app', 'keyspace', 'ratelimit', 'team'],
+        requests: 1240000, successPct: 99.1, keys: 1692,
+        deploy: { sha: 'a3f9c21', app: 'api-gateway', when: '2h ago' },
+        spark: [22, 26, 24, 30, 27, 33, 38, 35, 41, 37, 44, 46],
+        issues: [
+          { level: 'error', text: 'internal-tools has been building for 6m', action: 'View logs' },
+          { level: 'warn', text: 'partner-api: 12% invalid keys · 24h', action: 'Inspect' },
+        ],
+        served: 1240000, servedErrPct: 0.4,
+        verifications: 843000, invalidPct: 1.8,
+        checks: 168000, blockedPct: 3.2,
+        deploysThisWeek: 12, domains: { verified: 2, pending: 1 },
+        compute: { spend: 12.4, credits: 50 },
+        envs: [
+          {
+            name: 'Production', served: 1222000, errPct: 0.2,
+            spark: [30, 34, 31, 38, 35, 42, 39, 45, 41, 48, 44, 46],
+            facts: '3 apps ready · 2 domains verified',
+          },
+          {
+            name: 'Preview', served: 18000, errPct: 1.9,
+            spark: [4, 7, 5, 9, 6, 11, 8, 7, 12, 9, 14, 10],
+            facts: '4 deployments · 1 building',
+          },
+        ],
+      },
+    };
+
+    // Worst app by 5xx rate — extremes survive aggregation, means don't.
+    const worstApp = (sc) =>
+      sc.apps.length ? sc.apps.reduce((w, a) => (a.errPct > w.errPct ? a : w)) : null;
+
+    const fmtCompact = (n) =>
+      n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`;
+
+    const sparkline = (points) => {
+      const max = Math.max(...points);
+      const step = 100 / (points.length - 1);
+      const path = points.map((p, i) => `${(i * step).toFixed(1)},${(32 - (p / max) * 28).toFixed(1)}`).join(' ');
+      return `<svg viewBox="0 0 100 32" class="h-7 w-20 shrink-0" preserveAspectRatio="none">
+        <polyline points="${path}" fill="none" stroke="hsl(173 80% 36%)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    };
+
+    // ---------------------------------------------------------------- blocks
+    // Tiles keep their slot in every state and re-label instead of appearing and
+    // disappearing, so the row never reflows as a project fills up.
+    const tiles = (sc) => {
+      const hasApps = sc.apps.length > 0;
+      return [
+        // Empty, it's a CTA — and never "Connect a repo", since repos attach at
+        // the app level and this really means "make an app". Populated, it reports
+        // its count like the other resource tiles.
+        hasApps
+          ? { icon: I.cube, label: 'Apps', sub: `${sc.apps.length} active` }
+          : { icon: I.github, label: 'Deploy an app', sub: 'Bring code into this project' },
+        {
+          icon: I.key, label: 'Keyspaces',
+          sub: sc.keyspaces ? `${sc.keyspaces} active` : 'Create a keyspace',
+        },
+        {
+          icon: I.gauge, label: 'Ratelimits',
+          sub: sc.ratelimits ? `${sc.ratelimits} active` : 'Create a ratelimit',
+        },
+      ].map((t) => `
+        <a href="#" class="group flex flex-col gap-2 rounded-lg border border-grayA-4 p-3 hover:border-grayA-7 transition-colors">
+          ${t.icon('size-4 text-gray-9')}
+          <div class="min-w-0">
+            <div class="text-[13px] font-medium text-accent-12">${t.label}</div>
+            <div class="mt-0.5 truncate text-xs text-gray-9">${t.sub}</div>
+          </div>
+        </a>`).join('');
+    };
+
+    // ------------------------------------------------- top section variants
+    // 0 — what we have now: resource names plus a count.
+    const topCounts = (sc) => `
+      <div>
+        <span class="text-sm font-medium text-accent-12">${sc.apps.length || sc.keyspaces || sc.ratelimits ? 'Resources' : 'Get connected'}</span>
+        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">${tiles(sc)}</div>
+      </div>`;
+
+    // 1 — nothing at all. The apps list becomes the first thing on the page.
+    const topNone = () => '';
+
+    // 2 — the fact strip from the api/ratelimit pages, answering "is this project
+    // alive and healthy" instead of "what does it contain".
+    const fact = (label, value, first) => `
+      <div class="flex flex-col ${first ? '' : 'border-l border-grayA-4 pl-6'}">
+        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-9">${label}</span>
+        <span class="mt-1 flex items-center gap-1.5 text-[13px] text-accent-12">${value}</span>
+      </div>`;
+
+    const topHealth = (sc) => {
+      if (!sc.verifications && !sc.served) {
+        return `
+          <div class="flex items-center gap-3 rounded-lg border border-grayA-4 px-5 py-4">
+            <span class="size-2 shrink-0 rounded-full bg-gray-8"></span>
+            <span class="text-[13px] text-gray-11">No traffic yet — this fills in once your first key is verified.</span>
+          </div>`;
+      }
+      const cells = [
+        [
+          'Served · 24h',
+          sc.served
+            ? `<span class="tabular-nums font-medium">${fmtCompact(sc.served)}</span>${sparkline(sc.spark)}`
+            : '<span class="text-gray-9">Nothing served</span>',
+        ],
+        ['Verifications · 24h', `<span class="tabular-nums font-medium">${fmtCompact(sc.verifications)}</span><span class="text-gray-9">· ${sc.invalidPct}% invalid</span>`],
+        ['Keys', `<span class="tabular-nums font-medium">${sc.keys.toLocaleString()}</span>`],
+        sc.deploy
+          ? ['Last deploy', `${I.branch('size-3.5 shrink-0 text-gray-9')}<span class="mono">${sc.deploy.sha}</span><span class="text-gray-9">· ${sc.deploy.when}</span>`]
+          : ['Last deploy', '<span class="text-gray-9">Never</span>'],
+        [
+          'Status',
+          sc.apps.some((a) => a.status.label === 'Building')
+            ? '<span class="size-2 shrink-0 rounded-full bg-warning-9"></span>Building'
+            : sc.apps.length
+              ? '<span class="size-2 shrink-0 rounded-full bg-success-9"></span>Healthy'
+              : '<span class="size-2 shrink-0 rounded-full bg-gray-8"></span>No apps',
+        ],
+      ];
+      return `
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-4 rounded-lg border border-grayA-4 px-5 py-4">
+          ${cells.map(([l, v], i) => fact(l, v, i === 0)).join('')}
+        </div>`;
+    };
+
+    // 3 — exceptions only. Earns its space when something is wrong and collapses
+    // to one quiet line when nothing is.
+    const DOT = { error: 'bg-error-9', warn: 'bg-warning-9', info: 'bg-info-9' };
+    const topAttention = (sc) => {
+      if (!sc.issues.length) {
+        return `
+          <div class="flex items-center gap-3 rounded-lg border border-grayA-4 px-5 py-3.5">
+            <span class="size-2 shrink-0 rounded-full bg-success-9"></span>
+            <span class="text-[13px] text-accent-12">Everything looks healthy</span>
+            <span class="text-[13px] text-gray-9">${sc.apps.length} apps ready · no failing checks</span>
+          </div>`;
+      }
+      return `
+        <div class="rounded-lg border border-grayA-4">
+          <div class="flex items-center gap-2 border-b border-grayA-4 px-4 py-3">
+            <span class="text-[13px] font-medium text-accent-12">Needs attention</span>
+            <span class="text-xs tabular-nums text-gray-9">${sc.issues.length}</span>
+          </div>
+          <div class="divide-y divide-grayA-4">
+            ${sc.issues.map((it) => `
+              <div class="flex items-center gap-2.5 px-4 py-2.5">
+                <span class="size-1.5 shrink-0 rounded-full ${DOT[it.level]}"></span>
+                <span class="min-w-0 flex-1 truncate text-[13px] text-gray-11">${it.text}</span>
+                <a href="#" class="shrink-0 text-xs font-medium text-accent-11 hover:text-accent-12">${it.action} →</a>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    };
+
+    // 4 — counts survive, but demoted into the rail where low-priority nav lives.
+    const resourcesRailCard = (sc) => `
+      <div class="rounded-lg border border-grayA-4">
+        <div class="border-b border-grayA-4 px-3.5 py-3">
+          <span class="text-[13px] font-medium text-accent-12">Resources</span>
+        </div>
+        <div class="divide-y divide-grayA-4">
+          ${[
+            [I.cube, 'Apps', sc.apps.length],
+            [I.key, 'Keyspaces', sc.keyspaces],
+            [I.gauge, 'Ratelimits', sc.ratelimits],
+          ].map(([icon, label, n]) => `
+            <a href="#" class="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-grayA-2">
+              ${icon('size-3.5 shrink-0 text-gray-9')}
+              <span class="flex-1 text-[13px] text-accent-12">${label}</span>
+              <span class="text-[13px] tabular-nums ${n ? 'text-gray-11' : 'text-gray-8'}">${n || '—'}</span>
+            </a>`).join('')}
+        </div>
+      </div>`;
+
+    // D — exact facts only. Every cell is a count, a status or an amount, so
+    // there is no meter to confuse and no average to hide an incident.
+    const topState = (sc) => {
+      const building = sc.apps.filter((a) => a.status.label === 'Building').length;
+      const cells = [
+        [
+          'Apps',
+          sc.apps.length
+            ? `<span class="tabular-nums font-medium">${sc.apps.length}</span>${building ? `<span class="text-gray-9">· ${building} building</span>` : '<span class="text-gray-9">· all ready</span>'}`
+            : '<span class="text-gray-9">None yet</span>',
+        ],
+        [
+          'Deploys · 7d',
+          sc.deploysThisWeek
+            ? `<span class="tabular-nums font-medium">${sc.deploysThisWeek}</span>`
+            : '<span class="text-gray-9">None</span>',
+        ],
+        [
+          'Domains',
+          sc.domains.verified || sc.domains.pending
+            ? `<span class="tabular-nums font-medium">${sc.domains.verified} verified</span>${sc.domains.pending ? `<span class="text-warning-11">· ${sc.domains.pending} pending</span>` : ''}`
+            : '<span class="text-gray-9">None</span>',
+        ],
+        [
+          'Compute',
+          sc.compute
+            ? `<span class="tabular-nums font-medium">$${sc.compute.spend.toFixed(2)}</span><span class="text-gray-9">of $${sc.compute.credits} credits</span>`
+            : '<span class="text-gray-9">No plan</span>',
+        ],
+        [
+          'Last deploy',
+          sc.deploy
+            ? `${I.branch('size-3.5 shrink-0 text-gray-9')}<span class="mono">${sc.deploy.sha}</span><span class="text-gray-9">· ${sc.deploy.when}</span>`
+            : '<span class="text-gray-9">Never</span>',
+        ],
+      ];
+      return `
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-4 rounded-lg border border-grayA-4 px-5 py-4">
+          ${cells.map(([l, v], i) => fact(l, v, i === 0)).join('')}
+        </div>`;
+    };
+
+    // B — split by environment. Environments belong to the project and every
+    // request row is keyed by environment_id, so this aggregates without lying.
+    const topEnv = (sc) => {
+      if (!sc.envs) {
+        return `
+          <div class="flex items-center gap-3 rounded-lg border border-grayA-4 px-5 py-4">
+            <span class="size-2 shrink-0 rounded-full bg-gray-8"></span>
+            <span class="text-[13px] text-gray-11">
+              ${sc.verifications ? `Nothing served yet — ${fmtCompact(sc.verifications)} key verifications came from your own infra.` : 'No environments serving traffic yet.'}
+            </span>
+          </div>`;
+      }
+      return `
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          ${sc.envs.map((env) => `
+            <div class="rounded-lg border border-grayA-4 px-5 py-4">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[10px] font-medium uppercase tracking-wide text-gray-9">${env.name}</span>
+                ${sparkline(env.spark)}
+              </div>
+              <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-lg font-semibold leading-none tabular-nums text-accent-12">${fmtCompact(env.served)}</span>
+                <span class="text-xs text-gray-9">served · 24h</span>
+              </div>
+              <div class="mt-2 flex items-center gap-1.5 text-xs">
+                <span class="${env.errPct > 1 ? 'text-warning-11' : 'text-gray-11'} tabular-nums">${env.errPct}% 5xx</span>
+                <span class="text-gray-7">·</span>
+                <span class="truncate text-gray-9">${env.facts}</span>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    };
+
+    // C — one familiar row, but the second line names the worst offender so the
+    // average can't hide a single broken app.
+    const topWorst = (sc) => {
+      const worst = worstApp(sc);
+      const cells = [
+        [
+          'Served · 24h',
+          sc.served
+            ? `<span class="tabular-nums font-medium">${fmtCompact(sc.served)}</span>${sparkline(sc.apps[0].spark)}`
+            : '<span class="text-gray-9">Nothing served</span>',
+          sc.served ? `across ${sc.apps.length} apps` : 'no apps deployed',
+        ],
+        [
+          '5xx rate',
+          sc.servedErrPct !== null
+            ? `<span class="tabular-nums font-medium">${sc.servedErrPct}%</span>`
+            : '<span class="text-gray-9">—</span>',
+          worst ? `worst ${worst.name} ${worst.errPct}%` : '',
+        ],
+        [
+          'Verifications · 24h',
+          sc.verifications
+            ? `<span class="tabular-nums font-medium">${fmtCompact(sc.verifications)}</span>`
+            : '<span class="text-gray-9">None</span>',
+          sc.invalidPct !== null ? `${sc.invalidPct}% invalid` : '',
+        ],
+        [
+          'Ratelimits · 24h',
+          sc.checks
+            ? `<span class="tabular-nums font-medium">${fmtCompact(sc.checks)}</span>`
+            : '<span class="text-gray-9">None</span>',
+          sc.blockedPct !== null ? `${sc.blockedPct}% blocked` : '',
+        ],
+        [
+          'Last deploy',
+          sc.deploy
+            ? `${I.branch('size-3.5 shrink-0 text-gray-9')}<span class="mono">${sc.deploy.sha}</span>`
+            : '<span class="text-gray-9">Never</span>',
+          sc.deploy ? `${sc.deploy.app} · ${sc.deploy.when}` : '',
+        ],
+      ];
+      return `
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-4 rounded-lg border border-grayA-4 px-5 py-4">
+          ${cells.map(([label, value, note], i) => `
+            <div class="flex flex-col ${i === 0 ? '' : 'border-l border-grayA-4 pl-6'}">
+              <span class="text-[10px] font-medium uppercase tracking-wide text-gray-9">${label}</span>
+              <span class="mt-1 flex items-center gap-1.5 text-[13px] text-accent-12">${value}</span>
+              <span class="mt-1 text-xs text-gray-9">${note || '&nbsp;'}</span>
+            </div>`).join('')}
+        </div>`;
+    };
+
+    const TOPS = [
+      { id: 'counts', label: 'Counts', html: topCounts },
+      { id: 'none', label: 'None', html: topNone },
+      { id: 'health', label: 'Facts', html: topHealth },
+      { id: 'attention', label: 'Attention', html: topAttention },
+      { id: 'rail', label: 'Rail', html: topNone, rail: true },
+      { id: 'ad', label: 'A+D', html: topState, appRows: 'health' },
+      { id: 'env', label: 'B envs', html: topEnv },
+      { id: 'worst', label: 'C worst', html: topWorst },
+    ];
+
+    const checklistCard = (sc) => {
+      const done = new Set([...sc.done, ...copied]);
+      const pct = (done.size / CHECKLIST.length) * 100;
+      // Number what's left, not the original position — otherwise a half-done
+      // list reads "1 ✓ ✓ 4 ✓" with holes in it.
+      let step = 0;
+      const rows = CHECKLIST.map((item) => {
+        const isDone = done.has(item.key);
+        if (!isDone) step += 1;
+        return `
+          <a href="#" ${item.copy ? `data-copy="${item.copy}" data-key="${item.key}"` : ''} class="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-grayA-2 transition-colors">
+            <span class="flex size-5 shrink-0 items-center justify-center rounded-full ${isDone ? 'bg-success-3 text-success-11' : 'bg-gray-3 text-[11px] font-medium text-gray-9'}">
+              ${isDone ? I.check('size-3') : step}
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-[13px] leading-4 ${isDone ? 'text-gray-9' : 'text-accent-12'}">${item.label}</div>
+              <div class="mt-0.5 truncate text-xs text-gray-9">${isDone ? item.done(sc) : item.hint}</div>
+            </div>
+            ${item.copy && !isDone ? I.copy('size-3.5 shrink-0 text-gray-9') : ''}
+          </a>`;
+      }).join('');
+      return `
+        <div class="rounded-lg border border-grayA-4">
+          <div class="border-b border-grayA-4 px-3.5 py-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[13px] font-medium text-accent-12">Getting started</span>
+              <div class="flex shrink-0 items-center gap-1.5">
+                <span class="text-xs tabular-nums text-gray-9">${done.size}/${CHECKLIST.length}</span>
+                <button data-dismiss class="-mr-1 flex size-5 items-center justify-center rounded text-gray-9 hover:bg-grayA-3 hover:text-accent-12" title="Dismiss">
+                  ${I.x('size-3.5')}
+                </button>
+              </div>
+            </div>
+            <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-gray-3">
+              <div class="h-full rounded-full bg-accent-12" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="divide-y divide-grayA-4">${rows}</div>
+          <a href="#" class="flex items-center gap-1.5 border-t border-grayA-4 px-3.5 py-2.5 text-xs text-gray-9 hover:text-accent-12">
+            Browse all guides ${I.arrowRight('size-3')}
+          </a>
+        </div>`;
+    };
+
+    // Always present — the checklist can be dismissed for good, this can't, so
+    // the rail never collapses to nothing.
+    const helpCard = () => `
+      <div class="rounded-lg border border-grayA-4">
+        <div class="px-3.5 py-3 border-b border-grayA-4">
+          <span class="text-[13px] font-medium text-accent-12">Need help?</span>
+        </div>
+        <div class="flex flex-col p-1.5">
+          ${[
+            [I.discord, 'Ask in Discord'],
+            [I.headset, 'Talk to an API expert'],
+          ].map(([icon, label]) => `
+            <a href="#" class="flex items-center gap-2.5 rounded-md px-2 py-2 hover:bg-grayA-2">
+              ${icon('size-3.5 shrink-0 text-gray-9')}
+              <span class="text-[13px] text-gray-11">${label}</span>
+            </a>`).join('')}
+        </div>
+      </div>`;
+
+    // Variant A: the rates move onto the row for the app they describe, replacing
+    // branch/author. Nothing is averaged across apps.
+    const appRowHealth = (app) => `
+      <a href="#" class="group flex items-center gap-3.5 px-4 py-3.5 hover:bg-grayA-2 transition-colors">
+        <span class="size-9 shrink-0 rounded-[10px] bg-gray-3 flex items-center justify-center text-gray-12">
+          ${app.source === 'github' ? I.github('size-[18px]') : I.terminal('size-[18px]')}
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="shrink-0 text-[13px] font-medium text-accent-12">${app.name}</span>
+            ${app.domain
+              ? `<span class="truncate text-xs text-gray-9">${app.domain}</span>`
+              : `<span class="text-xs text-gray-9">No domain</span>`}
+          </div>
+          <div class="mt-1 truncate text-[13px] text-gray-11">${app.commit}</div>
+        </div>
+        <div class="hidden shrink-0 items-center gap-4 text-xs sm:flex">
+          ${sparkline(app.spark)}
+          <div class="flex w-14 flex-col items-end">
+            <span class="tabular-nums text-[13px] text-accent-12">${fmtCompact(app.reqs)}</span>
+            <span class="text-gray-9">served</span>
+          </div>
+          <div class="flex w-14 flex-col items-end">
+            <span class="tabular-nums text-[13px] ${app.errPct > 1 ? 'text-warning-11' : 'text-accent-12'}">${app.errPct}%</span>
+            <span class="text-gray-9">5xx</span>
+          </div>
+          <span class="flex w-16 items-center gap-1.5 text-gray-11">
+            <span class="size-1.5 rounded-full ${app.status.dot}"></span>
+            ${app.status.label}
+          </span>
+        </div>
+        <button class="shrink-0 rounded-md p-1 text-gray-9 hover:bg-grayA-3 hover:text-accent-12">${I.dots('size-4')}</button>
+      </a>`;
+
+    const appRow = (app) => `
+      <a href="#" class="group flex items-center gap-3.5 px-4 py-3.5 hover:bg-grayA-2 transition-colors">
+        <span class="size-9 shrink-0 rounded-[10px] bg-gray-3 flex items-center justify-center text-gray-12">
+          ${app.source === 'github' ? I.github('size-[18px]') : I.terminal('size-[18px]')}
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="shrink-0 text-[13px] font-medium text-accent-12">${app.name}</span>
+            ${app.domain
+              ? `<span class="truncate text-xs text-gray-9">${app.domain}</span>`
+              : `<span class="text-xs text-gray-9">No domain</span>`}
+          </div>
+          <div class="mt-1 truncate text-[13px] text-gray-11">${app.commit}</div>
+        </div>
+        <div class="hidden shrink-0 items-center gap-3 text-xs text-gray-11 sm:flex">
+          <span class="flex items-center gap-1.5">
+            <span class="size-1.5 rounded-full ${app.status.dot}"></span>
+            ${app.status.label}
+          </span>
+          <span class="text-gray-7">·</span>
+          <span class="tabular-nums text-gray-9">${app.when}</span>
+          <span class="flex items-center gap-1">
+            ${I.branch('size-3 text-gray-9')}
+            <span class="max-w-[92px] truncate">${app.branch}</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="size-5 rounded-full border border-grayA-6 bg-gradient-to-br ${app.avatar}"></span>
+            <span class="max-w-[72px] truncate">${app.author}</span>
+          </span>
+        </div>
+        <button class="shrink-0 rounded-md p-1 text-gray-9 hover:bg-grayA-3 hover:text-accent-12">${I.dots('size-4')}</button>
+      </a>`;
+
+    const appsEmpty = () => `
+      <div class="flex flex-col items-center gap-1 px-6 py-16 text-center">
+        <span class="mb-3 flex size-10 items-center justify-center rounded-[10px] bg-gray-3 text-gray-9">${I.cube('size-5')}</span>
+        <span class="text-[13px] font-medium text-accent-12">No apps yet</span>
+        <span class="max-w-[300px] text-xs leading-5 text-gray-9">Deploy from a repo or from the CLI and your apps will land here.</span>
+        <div class="mt-4 flex items-center gap-2">
+          <button class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-12 px-3 text-[13px] font-medium text-white hover:opacity-90">
+            ${I.github('size-4')} Deploy an app
+          </button>
+          <button class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            ${I.terminal('size-4 text-gray-9')} Deploy from CLI
+          </button>
+        </div>
+      </div>`;
+
+    const appsCard = (sc, rows) => `
+      <div class="rounded-lg border border-grayA-4">
+        <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-grayA-4">
+          <div class="flex items-center gap-2">
+            <span class="text-[13px] font-medium text-accent-12">Apps</span>
+            ${sc.apps.length ? `<span class="rounded-full bg-grayA-3 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-gray-11">${sc.apps.length}</span>` : ''}
+            ${rows === 'health' && sc.apps.length ? '<span class="text-xs text-gray-9">· 24h</span>' : ''}
+          </div>
+          <button class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-grayA-4 bg-white px-2.5 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+            ${I.plus('size-3.5')} Create app
+          </button>
+        </div>
+        ${sc.apps.length
+          ? `<div class="divide-y divide-grayA-4">${sc.apps.map(rows === 'health' ? appRowHealth : appRow).join('')}</div>`
+          : appsEmpty()}
+      </div>`;
+
+    // ---------------------------------------------------------------- page
+    let dismissed = false;
+    // Taking the prompt is the only signal we have that the agent step happened,
+    // so copying it is what ticks the row.
+    const copied = new Set();
+
+    const page = (key, top) => {
+      const sc = SCENARIOS[key];
+      const topHtml = top.html(sc);
+      return `
+        <div class="flex flex-col gap-6">
+          <div class="flex items-center justify-between gap-4">
+            <h1 class="truncate text-[22px] font-semibold leading-tight tracking-tight text-accent-12">acme-corp</h1>
+            <a href="#" class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-grayA-4 bg-white px-3 text-[13px] font-medium text-accent-12 hover:bg-grayA-3">
+              ${I.book('size-3.5 text-gray-9')} Documentation
+            </a>
+          </div>
+
+          ${topHtml}
+
+          <div class="flex flex-col items-start gap-5 lg:flex-row">
+            <aside class="flex w-full shrink-0 flex-col gap-4 lg:w-[260px]">
+              ${dismissed ? '' : checklistCard(sc)}
+              ${top.rail ? resourcesRailCard(sc) : ''}
+              ${helpCard()}
+            </aside>
+            <div class="min-w-0 flex-1">${appsCard(sc, top.appRows)}</div>
+          </div>
+        </div>`;
+    };
+
+    const keys = Object.keys(SCENARIOS);
+    const pageEl = document.getElementById('page');
+    const tabs = document.getElementById('tabs');
+    const topTabs = document.getElementById('topTabs');
+    let idx = 0;
+    let topIdx = 0;
+
+    const pill = (on) => on
+      ? 'h-7 shrink-0 whitespace-nowrap px-3 rounded-full text-[13px] font-medium bg-accent-12 text-white'
+      : 'h-7 shrink-0 whitespace-nowrap px-3 rounded-full text-[13px] font-medium text-gray-11 hover:bg-grayA-3';
+
+    function load(i, t = topIdx) {
+      idx = (i + keys.length) % keys.length;
+      topIdx = (t + TOPS.length) % TOPS.length;
+      pageEl.innerHTML = page(keys[idx], TOPS[topIdx]);
+      [...tabs.children].forEach((b, j) => { b.className = pill(j === idx); });
+      [...topTabs.children].forEach((b, j) => { b.className = pill(j === topIdx); });
+      const x = pageEl.querySelector('[data-dismiss]');
+      if (x) x.onclick = (e) => { e.preventDefault(); dismissed = true; load(idx); };
+      pageEl.querySelectorAll('[data-copy]').forEach((el) => {
+        el.onclick = (e) => {
+          e.preventDefault();
+          navigator.clipboard?.writeText(el.getAttribute('data-copy'));
+          copied.add(el.getAttribute('data-key'));
+          load(idx);
+        };
+      });
+    }
+
+    keys.forEach((k, i) => {
+      const b = document.createElement('button');
+      b.textContent = `${i + 1}. ${SCENARIOS[k].label}`;
+      b.onclick = () => load(i);
+      tabs.appendChild(b);
+    });
+    TOPS.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.textContent = t.label;
+      b.onclick = () => load(idx, i);
+      topTabs.appendChild(b);
+    });
+    document.querySelector('[data-nav=prev]').onclick = () => load(idx - 1);
+    document.querySelector('[data-nav=next]').onclick = () => load(idx + 1);
+    addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') load(idx - 1);
+      else if (e.key === 'ArrowRight') load(idx + 1);
+      else if (e.key === 'ArrowUp') load(idx, topIdx - 1);
+      else if (e.key === 'ArrowDown') load(idx, topIdx + 1);
+      else if (/^[1-3]$/.test(e.key)) load(+e.key - 1);
+      else if (/^[qwertyui]$/.test(e.key)) load(idx, 'qwertyui'.indexOf(e.key));
+      else if (e.key === 'd') { dismissed = !dismissed; load(idx); }
+    });
+    load(2, 0);
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AgentStyle } from "./agent-setup";
@@ -9,9 +10,17 @@ import { SCENARIO_LABELS, type Scenario } from "./mock-data";
 
 const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
-export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid";
+export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid" | "metric";
 
-const ROW_VARIANTS: RowVariant[] = ["detailed", "graph", "flat", "list", "tile", "hybrid"];
+const ROW_VARIANTS: RowVariant[] = [
+  "detailed",
+  "graph",
+  "flat",
+  "list",
+  "tile",
+  "hybrid",
+  "metric",
+];
 const ROW_VARIANT_LABELS: Record<RowVariant, string> = {
   detailed: "Detailed",
   graph: "Graph",
@@ -19,6 +28,7 @@ const ROW_VARIANT_LABELS: Record<RowVariant, string> = {
   list: "List",
   tile: "Tile",
   hybrid: "Hybrid",
+  metric: "Metric",
 };
 
 const MARKS: Mark[] = ["line", "bars", "ratio", "heatmap"];
@@ -39,13 +49,6 @@ const AGENT_STYLE_LABELS: Record<AgentStyle, string> = {
 // shared as a link (e.g. ?scenario=migrated&row=list&mark=bars&agent=minimal),
 // and are mirrored to localStorage so they survive navigating away and back.
 // URL param wins; stored value fills in when the URL has none.
-function readParam(key: string): string | null {
-  try {
-    return new URLSearchParams(window.location.search).get(key);
-  } catch {
-    return null;
-  }
-}
 
 // Prefix matches SCENARIO_STORAGE_KEY in store.tsx: "scenario" lands on the
 // exact key the tRPC interceptor reads.
@@ -97,60 +100,75 @@ export function useCurrentSearch(): string {
   return search;
 }
 
-// Reads the param on mount (URL wins, then localStorage, then `initial`) and
-// writes the resolved value back to both, so the URL encodes the full config
-// even for defaults and the choice survives navigation.
+// URL wins whenever it carries a valid value, and stays authoritative across
+// CLIENT-SIDE navigations too (useSearchParams is reactive) — a mount-only read
+// left the page showing the previous config under a freshly pasted URL after a
+// soft navigation. localStorage fills in when the URL has no value and carries
+// the choice to pages the user reaches without params.
 function useUrlEnum<T extends string>(key: string, allowed: readonly T[], initial: T) {
-  const [value, setValue] = useState<T>(initial);
+  const searchParams = useSearchParams();
+  const raw = searchParams?.get(key) ?? null;
+  const urlValue = raw && (allowed as readonly string[]).includes(raw) ? (raw as T) : null;
+
+  // Only consulted while the URL has no valid value for this key.
+  const [fallback, setFallback] = useState<T>(initial);
 
   useEffect(() => {
-    const valid = (v: string | null) =>
-      v && (allowed as readonly string[]).includes(v) ? (v as T) : null;
-    const resolved = valid(readParam(key)) ?? valid(readStored(key)) ?? initial;
-    if (resolved !== initial) {
-      setValue(resolved);
+    if (urlValue) {
+      writeStored(key, urlValue);
+      return;
     }
+    const stored = readStored(key);
+    const resolved =
+      stored && (allowed as readonly string[]).includes(stored) ? (stored as T) : initial;
+    setFallback(resolved);
     writeParam(key, resolved);
     writeStored(key, resolved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [key, urlValue]);
 
   const set = useCallback(
     (next: T) => {
-      setValue(next);
+      setFallback(next);
       writeParam(key, next);
       writeStored(key, next);
     },
     [key],
   );
 
-  return [value, set] as const;
+  return [urlValue ?? fallback, set] as const;
 }
 
 function useUrlBool(key: string, initial: boolean) {
-  const [value, setValue] = useState(initial);
+  const searchParams = useSearchParams();
+  const raw = searchParams?.get(key) ?? null;
+  const urlValue = raw === "true" ? true : raw === "false" ? false : null;
+
+  const [fallback, setFallback] = useState(initial);
 
   useEffect(() => {
-    const param = readParam(key) ?? readStored(key);
-    const resolved = param == null ? initial : param === "true";
-    if (resolved !== initial) {
-      setValue(resolved);
+    if (urlValue !== null) {
+      writeStored(key, String(urlValue));
+      return;
     }
+    const stored = readStored(key);
+    const resolved = stored == null ? initial : stored === "true";
+    setFallback(resolved);
     writeParam(key, String(resolved));
     writeStored(key, String(resolved));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [key, urlValue]);
 
   const set = useCallback(
     (next: boolean) => {
-      setValue(next);
+      setFallback(next);
       writeParam(key, String(next));
       writeStored(key, String(next));
     },
     [key],
   );
 
-  return [value, set] as const;
+  return [urlValue ?? fallback, set] as const;
 }
 
 export function useScenario() {
@@ -177,35 +195,61 @@ export function useAgentDismissed() {
   return useUrlBool("agentHidden", false);
 }
 
-type Cmd = { id: string; group: string; label: string; active: boolean; run: () => void };
+export type OverviewOption = "hero" | "stats" | "hub" | "hybrid";
+export const OVERVIEW_OPTIONS: OverviewOption[] = ["hero", "stats", "hub", "hybrid"];
+export const OVERVIEW_OPTION_LABELS: Record<OverviewOption, string> = {
+  hero: "Deploy hero",
+  stats: "Stat tiles",
+  hub: "Apps + keys hub",
+  hybrid: "Hybrid rows",
+};
 
-// Single ⌘K palette that replaces the separate scenario/row-style/mark toggle
-// bars — prototype-only debug control.
-export function DebugCommand({
-  scenario,
-  onScenario,
-  variant,
-  onVariant,
-  mark,
-  onMark,
-  agentStyle,
-  onAgentStyle,
-  agentDismissed,
-  onToggleAgent,
-  onReset,
-}: {
-  scenario: Scenario;
-  onScenario: (s: Scenario) => void;
-  variant: RowVariant;
-  onVariant: (v: RowVariant) => void;
-  mark: Mark;
-  onMark: (m: Mark) => void;
-  agentStyle: AgentStyle;
-  onAgentStyle: (a: AgentStyle) => void;
-  agentDismissed: boolean;
-  onToggleAgent: () => void;
-  onReset: () => void;
-}) {
+export function useOverviewOption() {
+  const [option, setOption] = useUrlEnum<OverviewOption>(
+    "overviewOption",
+    OVERVIEW_OPTIONS,
+    "hero",
+  );
+  return { option, setOption };
+}
+
+// Two competing treatments for the hybrid option's metric rows: Andreas's
+// original full-bleed background chart vs the contained chart we settled on
+// for the rail. Kept as a toggle so both can be judged side by side.
+export type HybridStyle = "bleed" | "contained";
+export const HYBRID_STYLES: HybridStyle[] = ["bleed", "contained"];
+export const HYBRID_STYLE_LABELS: Record<HybridStyle, string> = {
+  bleed: "Full-bleed chart",
+  contained: "Contained chart",
+};
+
+export function useHybridStyle() {
+  const [hybridStyle, setHybridStyle] = useUrlEnum<HybridStyle>("hybrid", HYBRID_STYLES, "bleed");
+  return { hybridStyle, setHybridStyle };
+}
+
+// Two arrangements of the project overview: the shipped one, where a collapsed
+// checklist leads and resources sit in a right rail, versus a single column
+// where every block gets the full width and the rail disappears.
+export type OverviewLayout = "collapse" | "column";
+export const OVERVIEW_LAYOUTS: OverviewLayout[] = ["collapse", "column"];
+export const OVERVIEW_LAYOUT_LABELS: Record<OverviewLayout, string> = {
+  collapse: "Rail + collapsed checklist",
+  column: "Single column",
+};
+
+export function useOverviewLayout() {
+  const [layout, setLayout] = useUrlEnum<OverviewLayout>("layout", OVERVIEW_LAYOUTS, "collapse");
+  return { layout, setLayout };
+}
+
+export type Cmd = { id: string; group: string; label: string; active: boolean; run: () => void };
+export type CmdGroup = { name: string; items: Cmd[] };
+
+// Shared shell behind every "Prototype options" pill: a bottom-right trigger
+// plus a filterable command list, grouped by the caller. DebugCommand (below)
+// and the overview page's own switcher both just build `groups` and render this.
+export function PrototypeCommandPalette({ groups }: { groups: CmdGroup[] }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -236,51 +280,7 @@ export function DebugCommand({
     }
   }, [open]);
 
-  const cmds: Cmd[] = [
-    ...SCENARIOS.map((s) => ({
-      id: `sc-${s}`,
-      group: "Scenario",
-      label: SCENARIO_LABELS[s],
-      active: s === scenario,
-      run: () => onScenario(s),
-    })),
-    ...ROW_VARIANTS.map((v) => ({
-      id: `rv-${v}`,
-      group: "Row style",
-      label: ROW_VARIANT_LABELS[v],
-      active: v === variant,
-      run: () => onVariant(v),
-    })),
-    ...MARKS.map((m) => ({
-      id: `mk-${m}`,
-      group: "Mark",
-      label: MARK_LABELS[m],
-      active: m === mark,
-      run: () => onMark(m),
-    })),
-    ...AGENT_STYLES.map((a) => ({
-      id: `ag-${a}`,
-      group: "Agent style",
-      label: AGENT_STYLE_LABELS[a],
-      active: a === agentStyle,
-      run: () => onAgentStyle(a),
-    })),
-    {
-      id: "agent",
-      group: "Agent card",
-      label: agentDismissed ? "Restore agent card" : "Dismiss agent card",
-      active: false,
-      run: onToggleAgent,
-    },
-    {
-      id: "reset",
-      group: "Data",
-      label: "Reset prototype data",
-      active: false,
-      run: onReset,
-    },
-  ];
-
+  const cmds = groups.flatMap((g) => g.items);
   const q = query.trim().toLowerCase();
   const filtered = q ? cmds.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(q)) : cmds;
 
@@ -290,12 +290,12 @@ export function DebugCommand({
     setOpen(false);
   };
 
-  const groups: { name: string; items: Cmd[] }[] = [];
+  const filteredGroups: CmdGroup[] = [];
   for (const c of filtered) {
-    let g = groups.find((x) => x.name === c.group);
+    let g = filteredGroups.find((x) => x.name === c.group);
     if (!g) {
       g = { name: c.group, items: [] };
-      groups.push(g);
+      filteredGroups.push(g);
     }
     g.items.push(c);
   }
@@ -347,7 +347,7 @@ export function DebugCommand({
                 {filtered.length === 0 ? (
                   <div className="px-3 py-6 text-center text-xs text-gray-9">No matches</div>
                 ) : (
-                  groups.map((g) => (
+                  filteredGroups.map((g) => (
                     <div key={g.name} className="mb-1">
                       <div className="px-2 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-gray-9">
                         {g.name}
@@ -380,4 +380,95 @@ export function DebugCommand({
         )}
     </>
   );
+}
+
+// Groups the projects-list-specific toggles (scenario/row-style/mark/agent) and
+// renders them through the shared palette shell above.
+export function DebugCommand({
+  scenario,
+  onScenario,
+  variant,
+  onVariant,
+  mark,
+  onMark,
+  agentStyle,
+  onAgentStyle,
+  agentDismissed,
+  onToggleAgent,
+  onReset,
+}: {
+  scenario: Scenario;
+  onScenario: (s: Scenario) => void;
+  variant: RowVariant;
+  onVariant: (v: RowVariant) => void;
+  mark: Mark;
+  onMark: (m: Mark) => void;
+  agentStyle: AgentStyle;
+  onAgentStyle: (a: AgentStyle) => void;
+  agentDismissed: boolean;
+  onToggleAgent: () => void;
+  onReset: () => void;
+}) {
+  const groups: CmdGroup[] = [
+    {
+      name: "Scenario",
+      items: SCENARIOS.map((s) => ({
+        id: `sc-${s}`,
+        group: "Scenario",
+        label: SCENARIO_LABELS[s],
+        active: s === scenario,
+        run: () => onScenario(s),
+      })),
+    },
+    {
+      name: "Row style",
+      items: ROW_VARIANTS.map((v) => ({
+        id: `rv-${v}`,
+        group: "Row style",
+        label: ROW_VARIANT_LABELS[v],
+        active: v === variant,
+        run: () => onVariant(v),
+      })),
+    },
+    {
+      name: "Mark",
+      items: MARKS.map((m) => ({
+        id: `mk-${m}`,
+        group: "Mark",
+        label: MARK_LABELS[m],
+        active: m === mark,
+        run: () => onMark(m),
+      })),
+    },
+    {
+      name: "Agent style",
+      items: AGENT_STYLES.map((a) => ({
+        id: `ag-${a}`,
+        group: "Agent style",
+        label: AGENT_STYLE_LABELS[a],
+        active: a === agentStyle,
+        run: () => onAgentStyle(a),
+      })),
+    },
+    {
+      name: "Agent card",
+      items: [
+        {
+          id: "agent",
+          group: "Agent card",
+          label: agentDismissed ? "Restore agent card" : "Dismiss agent card",
+          active: false,
+          run: onToggleAgent,
+        },
+      ],
+    },
+    {
+      name: "Data",
+      items: [
+        { id: "reset", group: "Data", label: "Reset prototype data", active: false, run: onReset },
+      ],
+    },
+  ];
+
+  return <PrototypeCommandPalette groups={groups} />;
 }
