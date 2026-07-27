@@ -9,7 +9,7 @@ export const ratelimitNamespaces = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 256 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
+    projectId: varchar("project_id", { length: 64 }).notNull(),
     name: varchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
