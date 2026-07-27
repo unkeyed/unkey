@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
 
@@ -36,7 +37,7 @@ func RunRateLimitTest(
 	// Create a namespace for rate limiting
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := uid.New("test")
-	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), h.Resources().UserWorkspace.ID)
 	require.NoError(t, err)
 	err = db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
