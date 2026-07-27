@@ -5,6 +5,7 @@ required:
 properties:
   token:
     type: string
+    x-unkey-redact: true
     description: |
       The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
     example: ps_xyz789abc123

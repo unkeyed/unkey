@@ -206,3 +206,47 @@ export async function grantDeployCreditsForInvoice(
     periodTotalCents: periodTotalCents + fee.amountCents,
   };
 }
+
+/**
+ * The Deploy usage credit currently included for a customer, in cents: the sum
+ * of their active metered credit grants for the current plan period.
+ *
+ * This is the allowance the estimated bill nets usage against. Reading it from
+ * Stripe (rather than assuming it equals the catalog plan fee) is what makes
+ * the card's estimate match the invoice: a mid-cycle plan change grants only
+ * the prorated net fee ([[grantDeployCreditsForInvoice]]), so the catalog fee
+ * would overstate the credit and under-report the bill.
+ *
+ * A period's grants (baseline plus any upgrade top-ups) share one expires_at,
+ * and the current period's is the latest among unexpired grants. Summing only
+ * that group avoids double-counting a previous period's grant during the short
+ * post-period grace window, when both are briefly unexpired. Grants are roughly
+ * one per month, so this is a page or two even for long-tenured customers.
+ * Returns 0 when there is no active credit.
+ */
+export async function deployIncludedCreditCents(
+  stripe: Stripe,
+  customerId: string,
+): Promise<number> {
+  const nowSeconds = Date.now() / 1000;
+  const centsByExpiry = new Map<number, number>();
+  for await (const grant of stripe.billing.creditGrants.list({
+    customer: customerId,
+    limit: 100,
+  })) {
+    if (grant.applicability_config?.scope?.price_type !== "metered") {
+      continue;
+    }
+    const expiresAt = grant.expires_at;
+    if (expiresAt === null || expiresAt <= nowSeconds) {
+      continue;
+    }
+    const value = grant.amount.monetary?.value ?? 0;
+    centsByExpiry.set(expiresAt, (centsByExpiry.get(expiresAt) ?? 0) + value);
+  }
+  if (centsByExpiry.size === 0) {
+    return 0;
+  }
+  const currentPeriodExpiry = Math.max(...centsByExpiry.keys());
+  return centsByExpiry.get(currentPeriodExpiry) ?? 0;
+}
