@@ -1,4 +1,4 @@
-import { and, createCommentedPool, drizzle, eq, schema, staticTagsFromEnv } from "@unkey/db";
+import { and, count, createCommentedPool, drizzle, eq, schema, staticTagsFromEnv } from "@unkey/db";
 import { newId } from "@unkey/id";
 
 /**
@@ -32,9 +32,14 @@ async function main() {
   const db = drizzle(pool, { schema, mode: "default" });
 
   try {
+    const startedAt = Date.now();
+    const totals = await db.select({ workspaces: count() }).from(schema.workspaces);
+    const totalWorkspaces = totals[0]?.workspaces ?? 0;
     let failures = 0;
     let processed = 0;
     let cursor = 0;
+
+    console.info(`Starting project ownership migration for ${totalWorkspaces} workspaces`);
 
     while (true) {
       const workspaces = await db.query.workspaces.findMany({
@@ -48,9 +53,19 @@ async function main() {
         break;
       }
 
-      console.info(`Processing ${workspaces.length} workspaces after pk ${cursor}`);
+      console.info("Processing workspace page", {
+        cursor,
+        pageSize: workspaces.length,
+        processed,
+        totalWorkspaces,
+        failures,
+      });
 
-      for (const workspace of workspaces) {
+      for (const [workspaceIndex, workspace] of workspaces.entries()) {
+        const currentWorkspace = processed + workspaceIndex + 1;
+        console.info(
+          `Migrating workspace ${workspace.id} (${currentWorkspace}/${totalWorkspaces}, ${((currentWorkspace / totalWorkspaces) * 100).toFixed(1)}%)`,
+        );
         try {
           const project = await db.query.projects.findFirst({
             columns: { id: true, slug: true },
@@ -185,18 +200,29 @@ async function main() {
 
       processed += workspaces.length;
       cursor = workspaces[workspaces.length - 1].pk;
-      console.info(`Processed ${processed} workspaces`);
+      console.info("Completed workspace page", {
+        cursor,
+        processed,
+        totalWorkspaces,
+        progressPercent: Number(((processed / totalWorkspaces) * 100).toFixed(1)),
+        failures,
+      });
 
       if (workspaces.length < WORKSPACE_PAGE_SIZE) {
         break;
       }
     }
 
+    console.info("Project ownership migration finished", {
+      processed,
+      totalWorkspaces,
+      failures,
+      elapsedSeconds: Number(((Date.now() - startedAt) / 1_000).toFixed(1)),
+    });
+
     if (failures > 0) {
       throw new Error(`Failed to migrate ${failures} workspaces`);
     }
-
-    console.info("Project ownership migration complete");
   } finally {
     await pool.end();
   }
