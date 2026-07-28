@@ -2,6 +2,7 @@ CREATE TABLE `permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(64) NOT NULL DEFAULT '',
 	`name` varchar(512) NOT NULL,
 	`slug` varchar(128) NOT NULL,
 	`description` varchar(512),
@@ -11,4 +12,6 @@ CREATE TABLE `permissions` (
 	CONSTRAINT `permissions_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
 );
+
+CREATE INDEX `permissions_project_id_idx` ON `permissions` (`project_id`);
 

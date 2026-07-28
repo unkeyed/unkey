@@ -2,11 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import {
-  deployBillingConfig,
-  deployBillingConfigured,
-  findApiItem,
-} from "@/lib/stripe/deployBilling";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -89,26 +85,13 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    // Derive the current subscription item from the existing subscription
-    // rather than trusting a client-supplied `oldProductId`. The client should
-    // not be able to influence which item gets repriced. On a mixed
-    // subscription the Deploy items (plan-fee + meters) are skipped — items[0]
-    // would be one of them on a Compute-first subscription, and repricing it
-    // to an API price would destroy the Compute plan.
-    //
-    // Fail closed when Deploy is configured but its config can't be resolved:
-    // findApiItem(null) falls back to items[0], which on a Compute-first
-    // subscription is a Deploy item, so repricing under a transient resolution
-    // failure would destroy Compute. Unconfigured (no Deploy at all) still uses
-    // the items[0] fallback safely.
-    const deployConfig = await deployBillingConfig();
-    if (!deployConfig && deployBillingConfigured()) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Billing is temporarily unavailable. Please try again in a moment.",
-      });
-    }
-    const item = findApiItem(deployConfig, sub.items.data);
+    // Reprice the API plan item specifically. findApiItem skips any Deploy price
+    // (metered or plan-fee) the subscription might also carry, so we never
+    // reprice a Deploy line and charge a bad proration. Derived from the
+    // subscription, not a client-supplied product id, so the client cannot
+    // influence which item gets repriced.
+    const config = await deployBillingConfig();
+    const item = findApiItem(config, sub.items.data);
 
     if (!item) {
       throw new TRPCError({
@@ -129,12 +112,17 @@ export const updateSubscription = workspaceProcedure
      * be charged. We surface that to the user so they know to fix their payment method
      * before the plan switch is applied.
      */
+    let upgraded = false;
     try {
-      await stripe.subscriptionItems.update(item.id, {
+      const updatedItem = await stripe.subscriptionItems.update(item.id, {
         price: newProduct.default_price.toString(),
         proration_behavior: "always_invoice",
         payment_behavior: "error_if_incomplete",
       });
+      upgraded =
+        item.price.unit_amount !== null &&
+        updatedItem.price.unit_amount !== null &&
+        updatedItem.price.unit_amount > item.price.unit_amount;
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
@@ -161,6 +149,11 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
+    // Workspace API rate limits are manually applied safety limits, not plan
+    // quotas. Clear them when a customer pays for a higher tier, but preserve
+    // deliberate limits on same-price changes and downgrades.
+    const rateLimitReset = upgraded ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaceBilling)
@@ -177,6 +170,7 @@ export const updateSubscription = workspaceProcedure
           logsRetentionDays: newQuotas.logsRetentionDays,
           auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
           team: true,
+          ...rateLimitReset,
         })
         .onDuplicateKeyUpdate({
           set: {
@@ -184,6 +178,7 @@ export const updateSubscription = workspaceProcedure
             logsRetentionDays: newQuotas.logsRetentionDays,
             auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
             team: true,
+            ...rateLimitReset,
           },
         });
 

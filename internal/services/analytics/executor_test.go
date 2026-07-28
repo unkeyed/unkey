@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -12,11 +13,13 @@ import (
 
 type fakeConnection struct {
 	clickhouse.ClickHouse
-	query string
+	query    string
+	deadline time.Time
 }
 
-func (f *fakeConnection) QueryToMaps(_ context.Context, query string, _ ...any) ([]map[string]any, error) {
+func (f *fakeConnection) QueryToMaps(ctx context.Context, query string, _ ...any) ([]map[string]any, error) {
 	f.query = query
+	f.deadline, _ = ctx.Deadline()
 	return []map[string]any{{"ok": true}}, nil
 }
 
@@ -40,6 +43,7 @@ func (f *fakeManager) GetConnection(_ context.Context, workspaceID string) (clic
 func TestExecuteAppliesSecurityFilters(t *testing.T) {
 	connection := &fakeConnection{}
 	manager := &fakeManager{connection: connection}
+	startedAt := time.Now()
 	rows, err := Execute(context.Background(), manager, ExecuteRequest{
 		Query:           "SELECT * FROM events WHERE namespace_id = 'requested' OR 1 = 1",
 		WorkspaceID:     "ws_test",
@@ -52,6 +56,7 @@ func TestExecuteAppliesSecurityFilters(t *testing.T) {
 	require.Equal(t, []map[string]any{{"ok": true}}, rows)
 	require.Contains(t, connection.query, "events.namespace_id IN ('allowed')")
 	require.Contains(t, connection.query, "events.workspace_id = 'ws_test'")
+	require.WithinDuration(t, startedAt.Add(clickhouse.AnalyticsQueryTimeout), connection.deadline, time.Second)
 }
 
 func TestExecuteEmptySecurityFilterFailsClosed(t *testing.T) {

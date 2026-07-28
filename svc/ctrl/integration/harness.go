@@ -149,6 +149,14 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
+	// A workspace with a deployment is Deploy-entitled in production (the create
+	// gate requires a plan), and the spend-cap check now re-reads the plan before
+	// suspending, so give the shared workspace a plan. Idempotent across repeated
+	// CreateDeployment calls.
+	_, err = h.DB.RW().ExecContext(ctx,
+		"UPDATE workspace_billing SET plan = ? WHERE workspace_id = ?", "pro", workspaceID)
+	require.NoError(h.t, err)
+
 	// Update desired_state (insert doesn't set it, but it defaults to running)
 	if req.DesiredState != "" && req.DesiredState != dbtype.DeploymentsDesiredStateRunning {
 		_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET desired_state = ? WHERE id = ?", req.DesiredState, deploymentID)

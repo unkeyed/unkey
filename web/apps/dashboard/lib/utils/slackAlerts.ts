@@ -157,6 +157,7 @@ export async function alertSubscriptionCreation(
   product: string,
   price: string,
   email: string,
+  workspaceId: string,
   name?: string,
 ): Promise<void> {
   await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "subscription_created", {
@@ -165,6 +166,7 @@ export async function alertSubscriptionCreation(
       section(
         mrkdwn`A new subscription for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
       ),
+      section(mrkdwn`Workspace: ${workspaceId}`),
     ],
   });
 }
@@ -173,6 +175,7 @@ export async function alertSubscriptionUpdate(
   product: string,
   price: string,
   email: string,
+  workspaceId: string,
   name?: string,
   changeType?: string,
   previousTier?: string,
@@ -199,6 +202,7 @@ export async function alertSubscriptionUpdate(
       section(mrkdwn`${emoji} ${name} ${actionText}`),
       section(subscriptionText),
       section(mrkdwn`Here is their contact information: ${email}`),
+      section(mrkdwn`Workspace: ${workspaceId}`),
     ],
   });
 }

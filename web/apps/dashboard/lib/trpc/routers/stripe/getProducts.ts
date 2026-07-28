@@ -33,12 +33,13 @@ export const getProducts = workspaceProcedure
     let enterpriseProductId: string | undefined;
     if (ctx.workspace.stripeSubscriptionId) {
       try {
-        const subscription = await stripe.subscriptions.retrieve(
-          ctx.workspace.stripeSubscriptionId,
-        );
-        // The API item, skipping Deploy items (items[0] is a Deploy price on
-        // a Compute-first subscription); product via price, plan is legacy.
-        const apiItem = findApiItem(await deployBillingConfig(), subscription.items.data);
+        const [subscription, config] = await Promise.all([
+          stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId),
+          deployBillingConfig(),
+        ]);
+        // Resolve the API plan item specifically, skipping any Deploy price the
+        // subscription might carry; product via its price.
+        const apiItem = findApiItem(config, subscription.items.data);
         const product = apiItem?.price.product;
         const currentProductId = typeof product === "string" ? product : product?.id;
         if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {

@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertApi is the base query for bulk insert
-const bulkInsertApi = `INSERT INTO apis ( id, name, workspace_id, auth_type, ip_whitelist, key_auth_id, created_at_m, deleted_at_m ) VALUES %s`
+const bulkInsertApi = `INSERT INTO apis ( id, name, workspace_id, project_id, auth_type, ip_whitelist, key_auth_id, created_at_m, deleted_at_m ) VALUES %s`
 
 // InsertApis performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertApis(ctx context.Context, args []InsertApiParams) er
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, NULL )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, NULL )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertApi, strings.Join(valueClauses, ", "))
@@ -33,6 +33,7 @@ func (q *BulkQueries) InsertApis(ctx context.Context, args []InsertApiParams) er
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.AuthType)
 		allArgs = append(allArgs, arg.IpWhitelist)
 		allArgs = append(allArgs, arg.KeyAuthID)

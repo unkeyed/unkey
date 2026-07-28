@@ -3,6 +3,7 @@ CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
+	`project_id` varchar(64) NOT NULL DEFAULT '',
 	`ip_whitelist` varchar(512),
 	`auth_type` enum('key','jwt'),
 	`key_auth_id` varchar(256),
@@ -16,4 +17,6 @@ CREATE TABLE `apis` (
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
+
+CREATE INDEX `apis_project_id_idx` ON `apis` (`project_id`);
 

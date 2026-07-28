@@ -39,20 +39,18 @@ export const NamespaceList = () => {
 
   if (namespacesLoading) {
     return (
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
-          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-            <StatsListCardSkeleton key={i} />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+        {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
+          <StatsListCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
 
   if (namespaces.length === 0) {
     return (
-      <div className="w-full flex justify-center items-center h-full p-4">
+      <div className="w-full flex justify-center items-center h-full min-h-[300px]">
         <Empty className="w-[600px] flex items-start">
           <Empty.Icon />
           <Empty.Title>No Namespaces found</Empty.Title>
@@ -86,18 +84,16 @@ export const NamespaceList = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
-        {namespaces.map((namespace) => (
-          <NamespaceCard
-            namespace={namespace}
-            key={namespace.id}
-            timeseries={timeseriesByNamespace[namespace.id]}
-            isLoading={isLoading}
-            isError={isError}
-          />
-        ))}
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+      {namespaces.map((namespace) => (
+        <NamespaceCard
+          namespace={namespace}
+          key={namespace.id}
+          timeseries={timeseriesByNamespace[namespace.id]}
+          isLoading={isLoading}
+          isError={isError}
+        />
+      ))}
     </div>
   );
 };

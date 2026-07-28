@@ -12,6 +12,7 @@ export const apis = mysqlTable(
     id: varchar("id", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
     /**
      * comma separated ips
      */
@@ -22,7 +23,10 @@ export const apis = mysqlTable(
     ...lifecycleDatesMigration,
     ...deleteProtection,
   },
-  (table) => [index("workspace_id_idx").on(table.workspaceId)],
+  (table) => [
+    index("workspace_id_idx").on(table.workspaceId),
+    index("apis_project_id_idx").on(table.projectId),
+  ],
 );
 
 export const apisRelations = relations(apis, ({ one }) => ({

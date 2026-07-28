@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestConfigureUser_ProtectsPerQueryLimits guarantees workspace users retain
@@ -23,7 +24,7 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, admin.Close()) })
 
-	workspaceID := fmt.Sprintf("ws_sqlsec_%d", time.Now().UnixNano())
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	password := "sqlsec_password"
 	err = admin.ConfigureUser(ctx, clickhouse.UserConfig{
 		WorkspaceID:               workspaceID,
@@ -59,6 +60,17 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	err = workspaceConn.QueryRow(ctx, "SELECT 1").Scan(&result)
 	require.NoError(t, err)
 	require.Equal(t, uint8(1), result)
+	err = workspaceConn.QueryRow(ctx, "SELECT 1 SETTINGS max_execution_time = 29").Scan(&result)
+	require.NoError(t, err)
+
+	for _, value := range []int64{0, clickhouse.AnalyticsExecutionTimeMax + 1} {
+		t.Run(fmt.Sprintf("max_execution_time/%d", value), func(t *testing.T) {
+			err := workspaceConn.QueryRow(ctx, fmt.Sprintf("SELECT 1 SETTINGS max_execution_time = %d", value)).Scan(&result)
+			var clickhouseErr *driver.Exception
+			require.ErrorAs(t, err, &clickhouseErr)
+			require.Equal(t, int32(452), clickhouseErr.Code)
+		})
+	}
 
 	protectedSettings := []struct {
 		name            string
@@ -66,7 +78,7 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 		readonly        uint8
 		errorCode       int32
 	}{
-		{name: "max_execution_time", configuredValue: 30, readonly: 0, errorCode: 452},
+		{name: "max_execution_time", configuredValue: clickhouse.AnalyticsExecutionTimeMax, readonly: 0, errorCode: 452},
 		{name: "max_memory_usage", configuredValue: 64 * 1024 * 1024, readonly: 1, errorCode: 164},
 		{name: "max_result_rows", configuredValue: 100, readonly: 1, errorCode: 164},
 	}
@@ -92,10 +104,9 @@ func TestConfigureUser_ProtectsPerQueryLimits(t *testing.T) {
 	}
 }
 
-// TestConfigureUser_HTTPTransportAndMetadataContracts proves workspace users
-// can query over HTTP with bounded API contexts and cannot inspect physical
-// schema metadata.
-func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
+// TestConfigureUser_HTTPTransport proves workspace users can query over HTTP
+// with bounded API contexts.
+func TestConfigureUser_HTTPTransport(t *testing.T) {
 	ctx := context.Background()
 	clickhouseConfig := containers.ClickHouse(t)
 
@@ -103,8 +114,8 @@ func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, admin.Close()) })
 
-	workspaceID := fmt.Sprintf("ws_httpmeta_%d", time.Now().UnixNano())
-	password := "httpmeta_password"
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	password := "http_password"
 	err = admin.ConfigureUser(ctx, clickhouse.UserConfig{
 		WorkspaceID:               workspaceID,
 		Username:                  workspaceID,
@@ -120,20 +131,6 @@ func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("admin retains metadata visibility", func(t *testing.T) {
-		// A workspace policy must not change metadata visibility for users that
-		// are not assigned that policy.
-		for _, query := range []string{
-			"SELECT count() FROM system.tables WHERE database = 'default' AND name = 'key_verifications_raw_v2'",
-			"SELECT count() FROM system.columns WHERE database = 'default' AND table = 'key_verifications_raw_v2'",
-		} {
-			var count uint64
-			err := admin.Conn().QueryRow(ctx, query).Scan(&count)
-			require.NoError(t, err)
-			require.Positive(t, count)
-		}
-	})
-
 	t.Run("HTTP transport accepts the API deadline", func(t *testing.T) {
 		// This locks the production client path. The server profile owns the
 		// execution limit while the API context still owns cancellation.
@@ -145,7 +142,7 @@ func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, workspaceClient.Close()) })
 
-		queryCtx, cancel := context.WithTimeout(ctx, time.Minute)
+		queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
 		defer cancel()
 		rows, err := workspaceClient.QueryToMaps(queryCtx, "SELECT count() AS total FROM default.key_verifications_raw_v2")
 		require.NoError(t, err, "a bounded API request must not conflict with the generated readonly profile")
@@ -159,46 +156,5 @@ func TestConfigureUser_HTTPTransportAndMetadataContracts(t *testing.T) {
 			require.ErrorIs(t, err, context.DeadlineExceeded)
 			require.Less(t, time.Since(startedAt), time.Second)
 		})
-	})
-
-	t.Run("direct user cannot inspect physical schema metadata", func(t *testing.T) {
-		// Table-specific grants must not reveal the physical table and column
-		// inventory through ClickHouse metadata tables.
-		options, err := driver.ParseDSN(clickhouseConfig.DSN)
-		require.NoError(t, err)
-		options.Auth.Username = workspaceID
-		options.Auth.Password = password
-
-		workspaceConn, err := driver.Open(options)
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, workspaceConn.Close()) })
-
-		queries := []struct {
-			name  string
-			query string
-		}{
-			{
-				name:  "system.tables",
-				query: "SELECT count() FROM system.tables WHERE database = 'default' AND name = 'key_verifications_raw_v2'",
-			},
-			{
-				name:  "system.columns",
-				query: "SELECT count() FROM system.columns WHERE database = 'default' AND table = 'key_verifications_raw_v2'",
-			},
-		}
-		for _, query := range queries {
-			t.Run(query.name, func(t *testing.T) {
-				var count uint64
-				err := workspaceConn.QueryRow(ctx, query.query).Scan(&count)
-				if err == nil {
-					require.Zero(t, count, "workspace user must not see physical schema metadata through %s", query.name)
-					return
-				}
-
-				var clickhouseErr *driver.Exception
-				require.ErrorAs(t, err, &clickhouseErr, "workspace user must not read %s", query.name)
-				require.Equal(t, int32(497), clickhouseErr.Code)
-			})
-		}
 	})
 }

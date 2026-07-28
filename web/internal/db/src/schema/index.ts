@@ -7,6 +7,7 @@ export * from "./workspaces";
 export * from "./identity";
 export * from "./quota";
 export * from "./workspace_billing";
+export * from "./billing_subscriptions";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";

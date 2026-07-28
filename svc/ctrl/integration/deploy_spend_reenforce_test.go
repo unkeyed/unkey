@@ -11,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/email"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 )
@@ -40,7 +41,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 	setAppCurrent(t, h, dep.AppID, dep.ID)
 
@@ -77,7 +78,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 			return false
 		}
 		got, e := h.DB.FindDeploymentById(ctx, dep.ID)
-		return e == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 15*time.Second, 200*time.Millisecond, "re-enforcement should stop leaked compute")
 
 	// Re-enforcement is not a new suspension transition, so no email fires.
@@ -85,6 +86,54 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 		"re-enforcement must not resend the stopped email")
 	require.Equal(t, 0, sender.CountByTemplate(templateBudgetAlert),
 		"a suspended workspace gets no threshold warning")
+}
+
+// TestDeploySpendCheck_SkipsSuspendAfterCancel covers the cancel race: a spend
+// check dispatched from a pre-cancel snapshot (stop set, over budget, not yet
+// suspended) can arrive after cancelDeploy already cleared the plan and the
+// spend-suspended flag. Suspending then would re-set the flag on a plan-less
+// workspace and strand it so a later resubscribe starts blocked. The check
+// re-reads the live entitlement and skips enforcement when the plan is gone.
+func TestDeploySpendCheck_SkipsSuspendAfterCancel(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+
+	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
+		Region:       "us-east-1",
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
+	}).Deployment
+	setAppCurrent(t, h, dep.AppID, dep.ID)
+
+	// Simulate the cancel that raced ahead of this check: deprovisionCompute
+	// clears the plan, so the workspace is no longer Deploy-entitled.
+	require.NoError(t, h.DB.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
+		ID:        dep.WorkspaceID,
+		UpdatedAt: sql.NullInt64{Valid: true, Int64: h.Now()},
+	}))
+
+	tEnv := startSpendCheck(t, h.DB)
+	client := hydrav1.NewDeploySpendCheckServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
+	period := time.Now().UTC().Format("2006-01")
+
+	// The stale snapshot's willSuspend condition: over budget, stop set, not yet
+	// suspended. Pre-fix this suspended a plan-less workspace.
+	resp, err := client.CheckWorkspaceSpend().Request(ctx, &hydrav1.CheckWorkspaceSpendRequest{
+		Period:             period,
+		BudgetCents:        1,
+		Stop:               true,
+		OrgId:              "org_test",
+		WorkspaceName:      "test",
+		WorkspaceSlug:      "test",
+		SpendMicroCents:    200 * deploybilling.MicroCentsPerCent,
+		CurrentlySuspended: false,
+	})
+	require.NoError(t, err)
+	require.False(t, resp.GetSuspended(), "a cancelled (plan-less) workspace must not be spend-suspended")
+
+	// The flag stays cleared in the database, so a later resubscribe is not blocked.
+	billing, err := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
+	require.NoError(t, err)
+	require.False(t, billing.SpendSuspended, "spend-suspended must stay cleared for a plan-less workspace")
 }
 
 // TestDeploySpendCheck_ReEnforceMergesSuspensionRecord is the critical half of
@@ -101,7 +150,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	// App 1, running and current.
 	dep1 := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 	setAppCurrent(t, h, dep1.AppID, dep1.ID)
 
@@ -132,14 +181,14 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 			return false
 		}
 		got, e := h.DB.FindDeploymentById(ctx, dep1.ID)
-		return e == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 15*time.Second, 200*time.Millisecond, "first suspend should stop app1")
 
 	// 2) Leaked compute: a deployment in a second app, created after the first
 	//    teardown's snapshot (the gate-read to row-insert race).
 	dep2 := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 	require.NotEqual(t, dep1.AppID, dep2.AppID, "second deployment must be a distinct app")
 	setAppCurrent(t, h, dep2.AppID, dep2.ID)
@@ -155,7 +204,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 			return false
 		}
 		got, e := h.DB.FindDeploymentById(ctx, dep2.ID)
-		return e == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 15*time.Second, 200*time.Millisecond, "re-enforcement should stop the leaked app2")
 
 	// 4) Resume with the budget raised above spend. The merged record restores
@@ -194,7 +243,7 @@ func TestDeploySpendCheck_StalePeriodNoOp(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
-		DesiredState: db.DeploymentsDesiredStateRunning,
+		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	}).Deployment
 	setAppCurrent(t, h, dep.AppID, dep.ID)
 
@@ -220,7 +269,7 @@ func TestDeploySpendCheck_StalePeriodNoOp(t *testing.T) {
 	// No teardown was dispatched, so compute keeps running.
 	require.Never(t, func() bool {
 		got, e := h.DB.FindDeploymentById(ctx, dep.ID)
-		return e == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 2*time.Second, 200*time.Millisecond, "a stale-period tick must not dispatch a teardown")
 
 	billing, err := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)

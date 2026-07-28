@@ -60,10 +60,13 @@ func TestSuccess(t *testing.T) {
 		// Verify role was created in database
 		role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
 		require.NoError(t, err)
+		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), workspace.ID)
+		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.RoleId, role.ID)
 		require.Equal(t, req.Name, role.Name)
 		require.Equal(t, description, role.Description.String)
 		require.Equal(t, workspace.ID, role.WorkspaceID)
+		require.Equal(t, projectID, role.ProjectID)
 
 		// Verify the audit log was queued in clickhouse_outbox.
 		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.RoleId)

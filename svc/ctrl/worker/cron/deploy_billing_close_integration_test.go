@@ -139,20 +139,27 @@ func (f *fakeCloser) didFinalize(invoiceID string) bool {
 	return false
 }
 
-// seedBillableWorkspace marks a workspace as an active Deploy customer.
+// seedBillableWorkspace marks a workspace as an active Deploy customer. The
+// Deploy subscription id lives on billing_subscriptions, not
+// workspace_billing, so it is only inserted there, and only when non-empty
+// (some tests exercise the no-subscription-id defer path).
 func seedBillableWorkspace(t *testing.T, h *harness.Harness, customerID, subscriptionID string) string {
 	t.Helper()
 	ws := h.Seed.CreateWorkspace(h.Ctx)
-	var sub any = subscriptionID
-	if subscriptionID == "" {
-		sub = nil
-	}
 	_, err := h.DB.RW().ExecContext(
 		h.Ctx,
-		"UPDATE workspace_billing SET plan = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE workspace_id = ?",
-		"pro", customerID, sub, ws.ID,
+		"UPDATE workspace_billing SET plan = ?, stripe_customer_id = ? WHERE workspace_id = ?",
+		"pro", customerID, ws.ID,
 	)
 	require.NoError(t, err)
+	if subscriptionID != "" {
+		_, err = h.DB.RW().ExecContext(
+			h.Ctx,
+			"INSERT INTO billing_subscriptions (workspace_id, product, stripe_subscription_id) VALUES (?, 'compute', ?)",
+			ws.ID, subscriptionID,
+		)
+		require.NoError(t, err)
+	}
 	return ws.ID
 }
 
