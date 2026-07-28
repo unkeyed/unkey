@@ -25,13 +25,13 @@ func (v V1) String() string {
 	return fmt.Sprintf("%s:%s:%s:%s", prefix, version, v.WorkspaceID, v.Resource)
 }
 
-// Covers reports whether the receiver, treated as a resource-name pattern,
-// covers the target resource name. The workspace must match exactly. In the
-// resource path, "*" matches exactly one path segment and a trailing "**"
-// matches the base path and all descendants. A concrete resource name covers
-// only itself. The standalone path "**" is the global pattern covering every
-// resource in the workspace; the standalone path "*" covers only resources
-// with single-segment paths.
+// Covers reports whether every resource represented by the target scope is
+// also represented by the receiver. The workspace must match exactly. In each
+// resource path, "*" represents any one path segment and a trailing "**"
+// represents the base path and all descendants. A concrete resource name
+// covers only itself. The standalone path "**" is the global scope covering
+// every resource in the workspace; the standalone path "*" covers all
+// single-segment resource names.
 //
 // These patterns cover unkey:v1:ws_1:keyspaces/ks_1/keys/k_1:
 //
@@ -50,24 +50,42 @@ func (v V1) Covers(target V1) bool {
 	if v.WorkspaceID != target.WorkspaceID {
 		return false
 	}
-	patternSegments := strings.Split(v.Resource, "/")
+	coveringSegments := strings.Split(v.Resource, "/")
 	targetSegments := strings.Split(target.Resource, "/")
+	coveringDescendants := coveringSegments[len(coveringSegments)-1] == "**"
+	targetDescendants := targetSegments[len(targetSegments)-1] == "**"
 
-	if len(patternSegments) > 0 && patternSegments[len(patternSegments)-1] == "**" {
-		patternSegments = patternSegments[:len(patternSegments)-1]
-		return len(targetSegments) >= len(patternSegments) &&
-			segmentsMatch(patternSegments, targetSegments[:len(patternSegments)])
+	if coveringDescendants {
+		coveringSegments = coveringSegments[:len(coveringSegments)-1]
+		// Resource paths are non-empty, so */** and ** denote the same scope.
+		if len(coveringSegments) == 1 && coveringSegments[0] == "*" {
+			coveringSegments = coveringSegments[:0]
+		}
+	}
+	if targetDescendants {
+		targetSegments = targetSegments[:len(targetSegments)-1]
+		if len(targetSegments) == 1 && targetSegments[0] == "*" {
+			targetSegments = targetSegments[:0]
+		}
 	}
 
-	return len(patternSegments) == len(targetSegments) &&
-		segmentsMatch(patternSegments, targetSegments)
+	if targetDescendants && !coveringDescendants {
+		return false
+	}
+	if coveringDescendants {
+		return len(targetSegments) >= len(coveringSegments) &&
+			segmentsCover(coveringSegments, targetSegments[:len(coveringSegments)])
+	}
+
+	return len(coveringSegments) == len(targetSegments) &&
+		segmentsCover(coveringSegments, targetSegments)
 }
 
-// segmentsMatch compares equal-length segment slices, treating "*" in the
-// pattern as matching any single target segment.
-func segmentsMatch(pattern []string, target []string) bool {
-	for i := range pattern {
-		if pattern[i] != "*" && pattern[i] != target[i] {
+// segmentsCover compares equal-length scope prefixes. A covering "*" contains
+// every target segment, while a concrete segment cannot contain target "*".
+func segmentsCover(covering []string, target []string) bool {
+	for i := range covering {
+		if covering[i] != "*" && covering[i] != target[i] {
 			return false
 		}
 	}

@@ -62,6 +62,25 @@ func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 	require.True(t, typedResult.Valid)
 }
 
+// TestStringQuery_PreservesExactMatchingProvenance guarantees canonical-looking
+// strings only receive URN parsing and containment semantics when created by U.
+func TestStringQuery_PreservesExactMatchingProvenance(t *testing.T) {
+	t.Parallel()
+
+	malformed := "unkey:v1:ws_123:projects/**/apps/*#create_app"
+	result, err := New().EvaluatePermissions(S(malformed), []string{malformed})
+	require.NoError(t, err)
+	require.True(t, result.Valid)
+
+	wildcard := "unkey:v1:ws_123:projects/*#create_app"
+	result, err = New().EvaluatePermissions(S(wildcard), []string{
+		"unkey:v1:ws_123:projects/proj_123#create_app",
+		"unkey:v1:ws_123:projects/**#create_app",
+	})
+	require.NoError(t, err)
+	require.False(t, result.Valid)
+}
+
 // TestParseUrnPermission_AcceptsOnlySupportedGrammar guarantees malformed
 // permission strings cannot accidentally participate in wildcard matching.
 func TestParseUrnPermission_AcceptsOnlySupportedGrammar(t *testing.T) {
@@ -247,6 +266,154 @@ func TestPermissionCovers_GrantedWildcardCoversExactRequiredResource(t *testing.
 			require.Equal(t, tt.want, permissionCovers(required, tt.granted))
 		})
 	}
+}
+
+// TestPermissionCovers_RequiresDirectionalScopeContainment guarantees a grant
+// covers every resource and action represented by a wildcard requirement.
+func TestPermissionCovers_RequiresDirectionalScopeContainment(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		granted  string
+		required string
+		want     bool
+	}{
+		{
+			name:     "collection grant covers same collection requirement",
+			granted:  "unkey:v1:ws_123:projects/*#read_project",
+			required: "unkey:v1:ws_123:projects/*#read_project",
+			want:     true,
+		},
+		{
+			name:     "concrete grant does not cover collection requirement",
+			granted:  "unkey:v1:ws_123:projects/proj_123#read_project",
+			required: "unkey:v1:ws_123:projects/*#read_project",
+			want:     false,
+		},
+		{
+			name:     "collection grant does not cover descendant requirement",
+			granted:  "unkey:v1:ws_123:projects/*#read_project",
+			required: "unkey:v1:ws_123:projects/**#read_project",
+			want:     false,
+		},
+		{
+			name:     "descendant grant covers collection requirement",
+			granted:  "unkey:v1:ws_123:projects/**#read_project",
+			required: "unkey:v1:ws_123:projects/*#read_project",
+			want:     true,
+		},
+		{
+			name:     "narrow descendant grant does not cover broad descendant requirement",
+			granted:  "unkey:v1:ws_123:projects/*/apps/**#read_app",
+			required: "unkey:v1:ws_123:projects/**#read_app",
+			want:     false,
+		},
+		{
+			name:     "concrete action does not cover all actions",
+			granted:  "unkey:v1:ws_123:**#read_project",
+			required: "unkey:v1:ws_123:**#*",
+			want:     false,
+		},
+		{
+			name:     "all actions cover concrete action",
+			granted:  "unkey:v1:ws_123:**#*",
+			required: "unkey:v1:ws_123:projects/**#read_project",
+			want:     true,
+		},
+		{
+			name:     "wildcard descendant alias covers global requirement",
+			granted:  "unkey:v1:ws_123:*/**#read_project",
+			required: "unkey:v1:ws_123:**#read_project",
+			want:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			granted, err := parseUrnPermission(tt.granted)
+			require.NoError(t, err)
+			required, err := parseUrnPermission(tt.required)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, permissionCovers(required, granted))
+		})
+	}
+}
+
+// TestUnkeyPermissionQuery_RequiresScopeContainment guarantees the public
+// evaluator does not treat wildcard requirements as concrete target text.
+func TestUnkeyPermissionQuery_RequiresScopeContainment(t *testing.T) {
+	t.Parallel()
+
+	collectionQuery := U(urn.New().Workspace("ws_123").Project("*"), permissions.CreateApp{})
+	descendantQuery := U(urn.New().Workspace("ws_123").Project("*").Any(), permissions.CreatePermission{})
+
+	tests := []struct {
+		name   string
+		query  PermissionQuery
+		grants []string
+		want   bool
+	}{
+		{
+			name:   "concrete grant does not cover collection requirement",
+			query:  collectionQuery,
+			grants: []string{"unkey:v1:ws_123:projects/proj_123#create_app"},
+			want:   false,
+		},
+		{
+			name:   "collection grant covers collection requirement",
+			query:  collectionQuery,
+			grants: []string{"unkey:v1:ws_123:projects/*#create_app"},
+			want:   true,
+		},
+		{
+			name:  "multiple concrete grants do not collectively cover collection requirement",
+			query: collectionQuery,
+			grants: []string{
+				"unkey:v1:ws_123:projects/proj_123#create_app",
+				"unkey:v1:ws_123:projects/proj_456#create_app",
+			},
+			want: false,
+		},
+		{
+			name:   "collection grant does not cover descendant requirement",
+			query:  descendantQuery,
+			grants: []string{"unkey:v1:ws_123:projects/*#create_permission"},
+			want:   false,
+		},
+		{
+			name:   "descendant grant covers descendant requirement",
+			query:  descendantQuery,
+			grants: []string{"unkey:v1:ws_123:projects/*/**#create_permission"},
+			want:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := New().EvaluatePermissions(tt.query, tt.grants)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, result.Valid, result.Message)
+		})
+	}
+}
+
+// TestUnkeyPermissionQuery_RejectsMalformedExactRequirement guarantees the U
+// marker cannot let an invalid canonical requirement bypass parsing through an
+// identical malformed grant.
+func TestUnkeyPermissionQuery_RejectsMalformedExactRequirement(t *testing.T) {
+	t.Parallel()
+
+	query := U(urn.New().Workspace("ws_123").Project("proj_123"), permissions.CreateApp{})
+	query.Value = "unkey:v1:ws_123:projects/**/apps/*#create_app"
+
+	result, err := New().EvaluatePermissions(query, []string{query.Value})
+	require.NoError(t, err)
+	require.False(t, result.Valid)
 }
 
 // TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator guarantees the public

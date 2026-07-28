@@ -2,7 +2,6 @@ package rbac
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -150,14 +149,15 @@ func FormatPermissionQuery(query PermissionQuery) string {
 }
 
 // evaluateLeafPermission is the shared leaf evaluator for the boolean query
-// tree. Exact string matching is always available. Unkey wildcard matching is
-// an explicit opt-in carried by U(), not a behavior inferred from string shape.
+// tree. U() leaves are parsed and matched as canonical Unkey permissions;
+// other leaves retain exact string matching.
 func evaluateLeafPermission(query PermissionQuery, permissions []string) bool {
-	if slices.Contains(permissions, query.Value) {
-		return true
-	}
-
 	if !query.matchUnkeyPermission {
+		for _, permission := range permissions {
+			if permission == query.Value {
+				return true
+			}
+		}
 		return false
 	}
 

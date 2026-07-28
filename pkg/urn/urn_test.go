@@ -240,9 +240,9 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/**", workspace.Portal("portal_123").Any().String())
 }
 
-// TestV1Covers_OnlySupportedWildcardsExpandScope guarantees "*" matches one
-// path segment, trailing "**" is the only descendant wildcard, and workspaces
-// must match exactly.
+// TestV1Covers_OnlySupportedWildcardsExpandScope guarantees Covers performs
+// directional scope containment for concrete, collection, and descendant
+// resource scopes.
 func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 	t.Parallel()
 
@@ -254,17 +254,39 @@ func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 	}{
 		{name: "global wildcard", pattern: "**", target: "ratelimits/namespaces/ns_123", want: true},
 		{name: "global wildcard covers single segment", pattern: "**", target: "settings", want: true},
+		{name: "wildcard descendant alias covers global wildcard", pattern: "*/**", target: "**", want: true},
+		{name: "global wildcard covers wildcard descendant alias", pattern: "**", target: "*/**", want: true},
+		{name: "two segment descendant scope does not cover global wildcard", pattern: "*/*/**", target: "**", want: false},
 		{name: "single segment wildcard matches one segment", pattern: "*", target: "settings", want: true},
 		{name: "single segment wildcard does not match nested paths", pattern: "*", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "exact", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/ns_123", want: true},
 		{name: "segment wildcard", pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/ns_123", want: true},
+		{name: "equal segment wildcard scopes", pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/*", want: true},
+		{name: "concrete does not cover segment wildcard scope", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/*", want: false},
 		{name: "descendant wildcard", pattern: "ratelimits/**", target: "ratelimits/namespaces/ns_123", want: true},
+		{name: "descendant wildcard covers narrower wildcard scope", pattern: "ratelimits/**", target: "ratelimits/namespaces/*", want: true},
+		{name: "descendant wildcard covers narrower descendant scope", pattern: "ratelimits/**", target: "ratelimits/namespaces/**", want: true},
+		{name: "segment wildcard does not cover descendant scope", pattern: "ratelimits/*", target: "ratelimits/**", want: false},
+		{name: "narrow descendant scope does not cover broader descendant scope", pattern: "ratelimits/namespaces/**", target: "ratelimits/**", want: false},
 		{name: "descendant wildcard covers base", pattern: "ratelimits/**", target: "ratelimits", want: true},
 		{name: "descendant wildcard target shorter than base", pattern: "ratelimits/namespaces/**", target: "ratelimits", want: false},
 		{name: "descendant wildcard wrong prefix", pattern: "identities/**", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "segment wildcard does not cross segments", pattern: "ratelimits/*", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "exact shorter", pattern: "ratelimits", target: "ratelimits/namespaces/ns_123", want: false},
 		{name: "exact longer", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits", want: false},
+		{name: "descendant covers sibling collection", pattern: "a/b/**", target: "a/b/*", want: true},
+		{name: "sibling collection does not cover descendant", pattern: "a/b/*", target: "a/b/**", want: false},
+		{name: "wildcard parent descendant covers concrete parent descendant", pattern: "a/*/**", target: "a/b/**", want: true},
+		{name: "concrete parent descendant does not cover wildcard parent descendant", pattern: "a/b/**", target: "a/*/**", want: false},
+		{name: "wildcard parent descendant covers parent collection", pattern: "a/*/**", target: "a/*", want: true},
+		{name: "concrete parent descendant does not cover wildcard collection", pattern: "a/b/**", target: "a/*", want: false},
+		{name: "nested wildcard descendant covers concrete nested collection", pattern: "a/*/c/**", target: "a/b/c/*", want: true},
+		{name: "concrete nested descendant does not cover wildcard nested collection", pattern: "a/b/c/**", target: "a/*/c/*", want: false},
+		{name: "equal nested wildcard collections", pattern: "a/*/c/*", target: "a/*/c/*", want: true},
+		{name: "nested collection does not cover nested descendant", pattern: "a/*/c/*", target: "a/*/c/**", want: false},
+		{name: "wrong prefix descendant scopes", pattern: "a/**", target: "b/**", want: false},
+		{name: "reverse wrong prefix descendant scopes", pattern: "b/**", target: "a/**", want: false},
+		{name: "single segment wildcard does not cover global descendant", pattern: "*", target: "**", want: false},
 	}
 
 	for _, tt := range tests {

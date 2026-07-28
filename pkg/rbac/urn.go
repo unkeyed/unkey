@@ -11,11 +11,11 @@ import (
 
 var errInvalidURNPermission = errors.New("invalid urn permission")
 
-// UnkeyPermission represents an RBAC permission requirement for a Unkey resource.
+// UnkeyPermission represents an RBAC permission scope for Unkey resources.
 //
 // The resource name itself belongs to [urn.V1]. RBAC only adds the action
-// suffix and evaluates whether a principal's granted permissions cover this
-// concrete requirement.
+// suffix. Its resource may identify one concrete resource, a collection scope,
+// or a descendant scope.
 type UnkeyPermission struct {
 	// Resource is the canonical v1 resource name being protected.
 	Resource urn.V1
@@ -31,9 +31,9 @@ func (u UnkeyPermission) String() string {
 
 // U creates a leaf query for a typed action on a canonical resource name.
 //
-// Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
-// evaluation, not by writing wildcard-heavy queries at call sites.
+// The resource may be concrete or may contain canonical "*" and trailing "**"
+// scopes. Evaluation succeeds only when one granted permission covers every
+// resource and action represented by this requirement.
 func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
@@ -114,8 +114,8 @@ func parseUrnPermission(value string) (UnkeyPermission, error) {
 }
 
 // permissionCovers reports whether a granted permission satisfies a required
-// permission. Required permissions should be concrete; granted permissions may
-// use resource wildcards or "*" as the action. Resource matching, including
+// permission. Containment is directional: one grant must cover every resource
+// and action represented by the requirement. Resource containment, including
 // workspace equality, is delegated to [urn.V1.Covers].
 func permissionCovers(required UnkeyPermission, granted UnkeyPermission) bool {
 	if granted.Action != "*" && granted.Action != required.Action {
