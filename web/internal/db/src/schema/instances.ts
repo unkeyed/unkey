@@ -49,13 +49,13 @@ export const instances = mysqlTable(
   "instances",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 32 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
 
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
     k8sName: caseSensitiveVarchar("k8s_name", { length: 255 }).notNull(),

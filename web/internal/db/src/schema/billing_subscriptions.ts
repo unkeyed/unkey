@@ -26,7 +26,7 @@ export const billingSubscriptions = mysqlTable(
      * The workspace this subscription belongs to. Both products share the
      * workspace's single Stripe customer (workspace_billing.stripe_customer_id).
      */
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
 
     /**
      * Which Unkey product the subscription bills. "api" is the legacy API tier

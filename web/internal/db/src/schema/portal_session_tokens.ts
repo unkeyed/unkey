@@ -8,9 +8,9 @@ export const portalSessionTokens = mysqlTable(
   "portal_session_tokens",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 64 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 32 }).notNull(),
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     permissions: json("permissions").$type<string[]>().notNull(),
     preview: boolean("preview").notNull().default(false),

@@ -10,9 +10,9 @@ export const keyAuth = mysqlTable(
   "key_auth",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
 
     ...lifecycleDatesMigration,
 

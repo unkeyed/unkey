@@ -13,16 +13,16 @@ export const apps = mysqlTable(
   "apps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()
       .default("main"),
-    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),
+    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 32 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,

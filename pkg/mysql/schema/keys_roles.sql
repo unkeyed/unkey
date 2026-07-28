@@ -1,8 +1,8 @@
 CREATE TABLE `keys_roles` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`key_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`role_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`key_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`role_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `keys_roles_pk` PRIMARY KEY(`pk`),

@@ -10,7 +10,7 @@ export const githubAppInstallations = mysqlTable(
   "github_app_installations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     installationId: bigint("installation_id", { mode: "number" }).notNull(),
     ...lifecycleDates,
   },
@@ -30,9 +30,9 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull().unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),

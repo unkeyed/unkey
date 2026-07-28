@@ -9,11 +9,11 @@ export const frontlineRoutes = mysqlTable(
   "frontline_routes",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 32 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,
     })

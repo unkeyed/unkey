@@ -17,7 +17,7 @@ export const quotas = mysqlTable("quota", {
    * workspaceId is the primary identifier for the quota record,
    * matching the ID of the workspace it belongs to.
    */
-  workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+  workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull().unique(),
 
   /**
    * requestsPerMonth specifies the maximum number of billable API requests

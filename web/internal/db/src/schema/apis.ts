@@ -10,16 +10,16 @@ export const apis = mysqlTable(
   "apis",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
     /**
      * comma separated ips
      */
     ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
-    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).unique(),
+    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 32 }).unique(),
 
     ...lifecycleDatesMigration,
     ...deleteProtection,

@@ -10,11 +10,11 @@ export const deploymentSteps = mysqlTable(
   "deployment_steps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 128 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 128 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
 
     step: mysqlEnum("step", [
       "queued",

@@ -19,16 +19,16 @@ export const appRegionalSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull(),
 
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
     horizontalAutoscalingPolicyId: caseSensitiveVarchar("horizontal_autoscaling_policy_id", {
-      length: 64,
+      length: 32,
     }),
 
     ...lifecycleDates,

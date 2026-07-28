@@ -23,11 +23,11 @@ export const customDomains = mysqlTable(
   "custom_domains",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,

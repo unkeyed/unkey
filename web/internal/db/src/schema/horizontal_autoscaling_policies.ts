@@ -14,9 +14,9 @@ export const horizontalAutoscalingPolicies = mysqlTable(
   "horizontal_autoscaling_policies",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
 
     replicasMin: int("replicas_min").notNull(),
     replicasMax: int("replicas_max").notNull(),

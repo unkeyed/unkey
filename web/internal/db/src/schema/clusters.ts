@@ -10,8 +10,8 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-  id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-  regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull().unique(),
+  id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+  regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",

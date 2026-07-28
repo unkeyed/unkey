@@ -34,8 +34,8 @@ export const clickhouseOutbox = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     version: varchar("version", { length: 64 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    eventId: caseSensitiveVarchar("event_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    eventId: caseSensitiveVarchar("event_id", { length: 32 }).notNull(),
     payload: json("payload").notNull(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()

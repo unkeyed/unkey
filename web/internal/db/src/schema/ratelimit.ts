@@ -8,9 +8,9 @@ export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
@@ -38,9 +38,9 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    namespaceId: caseSensitiveVarchar("namespace_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    namespaceId: caseSensitiveVarchar("namespace_id", { length: 32 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
@@ -92,10 +92,8 @@ export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // workspaceId is varchar(191) instead of the project-wide 256 because the
-    // unique index spans six columns (the four key fields plus sequence and
-    // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
+    // Keep workspaceId narrow because the unique index spans six columns.
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),

@@ -1,7 +1,7 @@
 CREATE TABLE `acme_challenges` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`domain_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`domain_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`token` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`authorization` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,

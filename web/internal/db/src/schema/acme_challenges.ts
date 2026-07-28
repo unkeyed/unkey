@@ -12,8 +12,8 @@ export const acmeChallenges = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    domainId: caseSensitiveVarchar("domain_id", { length: 255 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    domainId: caseSensitiveVarchar("domain_id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     token: caseSensitiveVarchar("token", { length: 255 }).notNull(),
     type: challengeType,
     authorization: caseSensitiveVarchar("authorization", { length: 255 }).notNull(),

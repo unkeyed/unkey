@@ -10,7 +10,7 @@ import { workspaces } from "./workspaces";
  */
 export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_settings", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+  workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull().unique(),
 
   // Authentication
   username: caseSensitiveVarchar("username", { length: 256 }).notNull().unique(),

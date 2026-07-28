@@ -10,8 +10,8 @@ export const deploymentChanges = mysqlTable(
       "sentinel",
       "cilium_network_policy",
     ]).notNull(),
-    resourceId: caseSensitiveVarchar("resource_id", { length: 64 }).notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    resourceId: caseSensitiveVarchar("resource_id", { length: 32 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => [

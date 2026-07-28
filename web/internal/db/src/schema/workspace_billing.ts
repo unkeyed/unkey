@@ -24,7 +24,7 @@ export const workspaceBilling = mysqlTable(
      * workspaceId is the primary identifier for the billing record,
      * matching the ID of the workspace it belongs to.
      */
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull().unique(),
 
     /**
      * tier is the legacy API-product tier (Free/Pro/…), synced from Stripe by

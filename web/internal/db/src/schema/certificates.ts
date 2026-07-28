@@ -7,8 +7,8 @@ export const certificates = mysqlTable(
   "certificates",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     hostname: varchar("hostname", { length: 255 }).notNull(),
     certificate: text("certificate").notNull(),
     encryptedPrivateKey: text("encrypted_private_key").notNull(),

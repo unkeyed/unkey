@@ -7,8 +7,8 @@ export const acmeUsers = mysqlTable(
   "acme_users",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     encryptedKey: text("encrypted_key").notNull(),
     registrationURI: text("registration_uri"),
     ...lifecycleDates,

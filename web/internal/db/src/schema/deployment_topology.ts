@@ -17,9 +17,9 @@ export const deploymentTopology = mysqlTable(
   "deployment_topology",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 64 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 64 }).notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 32 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull(),
 
     // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
     // Minimum number of pod replicas the HPA will maintain.

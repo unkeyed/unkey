@@ -19,7 +19,7 @@ import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+  id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
 
   orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
