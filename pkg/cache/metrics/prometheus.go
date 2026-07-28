@@ -100,6 +100,19 @@ var (
 		[]string{"resource"},
 	)
 
+	// CacheRevalidationsDropped counts revalidations skipped because the
+	// background queue was saturated. Requests continue using stale data rather
+	// than blocking on queue capacity.
+	CacheRevalidationsDropped = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "revalidations_dropped_total",
+			Help:      "Total number of cache revalidations dropped because the background queue was full.",
+		},
+		[]string{"resource"},
+	)
+
 	// CacheReadsErrorsTotal tracks the total number of cache read errors,
 	// labeled by resource type. Use this counter to monitor cache read error rates.
 	//
