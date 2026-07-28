@@ -13,7 +13,7 @@ import {
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { Badge, InfoTooltip, TimestampInfo, toast } from "@unkey/ui";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
@@ -78,6 +78,7 @@ export function ActiveDeploymentCard({
   const cpu = formatCpuParts(deployment.cpuMillicores);
   const mem = formatMemoryParts(deployment.memoryMib);
   const storage = deployment.storageMib > 0 ? formatStorageParts(deployment.storageMib) : null;
+  const sourceImage = deployment.image;
   const actualInstances = deployment.instances ?? [];
   const hasActualInstances = actualInstances.length > 0;
   const runningCount = actualInstances.filter((i) => i.status === "running").length;
@@ -152,15 +153,30 @@ export function ActiveDeploymentCard({
                   image reference as the source instead. */}
               {!deployment.gitBranch && !deployment.gitCommitSha && (
                 <InfoTooltip
-                  content={deployment.image ?? "No source info"}
+                  content={sourceImage ?? "No source info"}
                   variant="inverted"
                   position={{ side: "top", align: "start" }}
                 >
                   <span className="flex items-center gap-1 min-w-0">
                     <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                    <span className="font-mono text-xs text-accent-12 truncate max-w-48">
-                      {deployment.image ?? "unknown"}
-                    </span>
+                    {sourceImage ? (
+                      <button
+                        type="button"
+                        className="font-mono text-xs text-accent-12 truncate max-w-48"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(sourceImage);
+                            toast.success("Source copied to clipboard");
+                          } catch {
+                            toast.error("Failed to copy source");
+                          }
+                        }}
+                      >
+                        {sourceImage}
+                      </button>
+                    ) : (
+                      <span className="font-mono text-xs text-accent-12">unknown</span>
+                    )}
                   </span>
                 </InfoTooltip>
               )}
