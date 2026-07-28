@@ -149,7 +149,12 @@ function usePendingSubscribe() {
             if (result.status === "payment_required") {
               window.location.assign(
                 result.paymentUrl ??
-                  routes.settings.stripe.portal({ workspaceSlug: workspace.slug }),
+                  routes.settings.stripe.checkout({
+                    workspaceSlug: workspace.slug,
+                    intent: "deploy",
+                    plan: pending.plan,
+                    from: pending.from,
+                  }),
               );
               return;
             }

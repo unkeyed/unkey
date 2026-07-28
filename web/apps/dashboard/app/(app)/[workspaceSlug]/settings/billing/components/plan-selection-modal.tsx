@@ -66,7 +66,7 @@ export const PlanSelectionModal = ({
     onSuccess: async (result) => {
       if (result.status === "payment_required") {
         window.location.assign(
-          result.paymentUrl ?? routes.settings.stripe.portal({ workspaceSlug }),
+          result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
         );
         return;
       }
@@ -82,12 +82,7 @@ export const PlanSelectionModal = ({
         toast.error(err.message);
         return;
       }
-      toast.error(err.message, {
-        action: {
-          label: "Fix payment",
-          onClick: () => router.push(routes.settings.stripe.portal({ workspaceSlug })),
-        },
-      });
+      router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }));
     },
   });
 

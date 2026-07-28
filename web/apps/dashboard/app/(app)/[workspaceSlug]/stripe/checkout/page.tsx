@@ -110,6 +110,11 @@ export default async function StripeRedirect(props: {
     });
     devClockedCustomerId = customer.id;
   }
+  // Keep API and Compute subscriptions on the workspace's existing Stripe
+  // customer. This path is also used to replace a bad vaulted card; creating a
+  // new customer there would strand the existing API subscription on the old
+  // customer and make the portal appear to lose one of the products.
+  const checkoutCustomerId = devClockedCustomerId ?? ws.billing?.stripeCustomerId ?? undefined;
 
   // For the Compute-plan gate's no-card path, create the subscription in
   // Checkout itself (mode: "subscription") so Stripe shows the plan name and
@@ -181,9 +186,10 @@ export default async function StripeRedirect(props: {
         proration_behavior: "create_prorations",
       },
       ...(submitMessage ? { custom_text: { submit: { message: submitMessage } } } : {}),
-      // Subscription mode always creates a customer (so customer_creation is
-      // invalid here) and infers currency from the line-item prices.
-      ...(devClockedCustomerId ? { customer: devClockedCustomerId } : {}),
+      // Subscription mode creates a customer when this is omitted and rejects
+      // customer_creation. Reuse the workspace customer when one is already
+      // bound so this Compute subscription sits beside its API subscription.
+      ...(checkoutCustomerId ? { customer: checkoutCustomerId } : {}),
       success_url: successUrl,
     };
 
@@ -240,8 +246,8 @@ export default async function StripeRedirect(props: {
       mode: "setup",
       success_url: successUrl,
       currency: "USD",
-      ...(devClockedCustomerId
-        ? { customer: devClockedCustomerId }
+      ...(checkoutCustomerId
+        ? { customer: checkoutCustomerId }
         : { customer_creation: "always" as const }),
     });
   }
