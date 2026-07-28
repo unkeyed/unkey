@@ -252,6 +252,8 @@ export const createSubscription = workspaceProcedure
           logsRetentionDays: quotas.logsRetentionDays,
           auditLogsRetentionDays: quotas.auditLogsRetentionDays,
           team: true,
+          ratelimitApiLimit: null,
+          ratelimitApiDuration: null,
         })
         .onDuplicateKeyUpdate({
           set: {
@@ -259,6 +261,8 @@ export const createSubscription = workspaceProcedure
             logsRetentionDays: quotas.logsRetentionDays,
             auditLogsRetentionDays: quotas.auditLogsRetentionDays,
             team: true,
+            ratelimitApiLimit: null,
+            ratelimitApiDuration: null,
           },
         });
 
