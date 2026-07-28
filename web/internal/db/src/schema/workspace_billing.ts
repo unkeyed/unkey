@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -31,7 +31,7 @@ export const workspaceBilling = mysqlTable(
      * the customer.subscription.* webhook. Distinct from plan, which is the
      * Compute (Deploy) plan.
      */
-    tier: caseSensitiveVarchar("tier", { length: 256 }).default("Free"),
+    tier: varchar("tier", { length: 256 }).default("Free"),
 
     // stripe. Per-product subscription ids live in billing_subscriptions now;
     // only the shared customer id remains on the billing row.
@@ -44,7 +44,7 @@ export const workspaceBilling = mysqlTable(
      * calling Stripe in the hot path. Stripe stays source of truth; this is a
      * cache. Distinct from tier, which is the legacy API-product tier.
      */
-    plan: caseSensitiveVarchar("plan", { length: 64 }),
+    plan: varchar("plan", { length: 64 }),
 
     /**
      * Manual Deploy entitlement override for internal / comped workspaces, owned
@@ -53,7 +53,7 @@ export const workspaceBilling = mysqlTable(
      * without a paid plan. Kept separate from plan so that stays a pure Stripe
      * mirror.
      */
-    planOverride: caseSensitiveVarchar("plan_override", { length: 64 }),
+    planOverride: varchar("plan_override", { length: 64 }),
 
     /**
      * Monthly Compute (Deploy) spend budget in USD cents, set by workspace
