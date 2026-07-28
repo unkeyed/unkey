@@ -2,13 +2,14 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
   "permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
@@ -43,7 +44,7 @@ export const keysPermissions = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     keyId: caseInsensitiveVarchar("key_id", { length: 256 }).notNull(),
-    permissionId: caseInsensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -114,7 +115,7 @@ export const rolesPermissions = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     roleId: caseInsensitiveVarchar("role_id", { length: 256 }).notNull(),
-    permissionId: caseInsensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
