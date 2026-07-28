@@ -22,7 +22,9 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
   const config: Record<string, { label: string; color: string }> = {
     success: {
       label: formatOutcomeName("VALID"),
-      color: cssVarToChartColor("accent-4"),
+      // Valid verifications follow the chart scheme so this page matches the
+      // apis list card and the project rails, which show the same series.
+      color: cssVarToChartColor("chart-verify-ok"),
     },
   };
 

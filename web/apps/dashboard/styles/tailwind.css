@@ -572,6 +572,24 @@
     color-scheme: light;
     --chart-selection: var(--accent-6);
 
+    /* Chart series colours, named by what the series MEANS rather than by hue,
+       so a scheme swap can't accidentally recolour borders or backgrounds the
+       way overriding --accent-4 would. These defaults are the `semantic` scheme:
+       each data type gets its own hue. `data-chart` on <html> selects another. */
+    --chart-verify-ok: var(--success-9);
+    --chart-verify-ok-active: var(--success-11);
+    --chart-verify-bad: var(--error-9);
+    --chart-verify-bad-active: var(--error-11);
+    --chart-limit-ok: var(--info-9);
+    --chart-limit-ok-active: var(--info-11);
+    --chart-limit-bad: var(--warning-9);
+    --chart-limit-bad-active: var(--warning-11);
+    --chart-req-ok: var(--feature-9);
+    --chart-req-ok-active: var(--feature-11);
+    --chart-req-bad: var(--error-9);
+    --chart-req-bad-active: var(--error-11);
+    --chart-keys: var(--success-11);
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
 
@@ -614,6 +632,20 @@
     color-scheme: dark;
     --chart-selection: var(--accent-9);
 
+    --chart-verify-ok: var(--success-9);
+    --chart-verify-ok-active: var(--success-11);
+    --chart-verify-bad: var(--error-9);
+    --chart-verify-bad-active: var(--error-11);
+    --chart-limit-ok: var(--info-9);
+    --chart-limit-ok-active: var(--info-11);
+    --chart-limit-bad: var(--warning-9);
+    --chart-limit-bad-active: var(--warning-11);
+    --chart-req-ok: var(--feature-9);
+    --chart-req-ok-active: var(--feature-11);
+    --chart-req-bad: var(--error-9);
+    --chart-req-bad-active: var(--error-11);
+    --chart-keys: var(--success-11);
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
 
@@ -650,6 +682,75 @@
     --toast-border: 12, 6%, 15%;
     --toast-fg: 240 10% 90%;
   }
+
+  /* Prototype chart schemes, selected by `data-chart` on <html>. `semantic` and
+     `bold` give each data type its own hue; `activity` deliberately does the
+     opposite — one traffic colour everywhere — so the two answers to "should
+     charts differ by data type" can be compared directly. */
+  [data-chart="current"] {
+    --chart-verify-ok: var(--accent-4);
+    --chart-verify-ok-active: var(--accent-7);
+    --chart-verify-bad: var(--orange-9);
+    --chart-verify-bad-active: var(--orange-10);
+    --chart-limit-ok: var(--accent-4);
+    --chart-limit-ok-active: var(--accent-7);
+    --chart-limit-bad: var(--orange-9);
+    --chart-limit-bad-active: var(--orange-10);
+    --chart-req-ok: var(--accent-4);
+    --chart-req-ok-active: var(--accent-7);
+    --chart-req-bad: var(--orange-9);
+    --chart-req-bad-active: var(--orange-10);
+    --chart-keys: var(--success-11);
+  }
+
+  [data-chart="semantic"] {
+    --chart-verify-ok: var(--success-9);
+    --chart-verify-ok-active: var(--success-11);
+    --chart-verify-bad: var(--error-9);
+    --chart-verify-bad-active: var(--error-11);
+    --chart-limit-ok: var(--info-9);
+    --chart-limit-ok-active: var(--info-11);
+    --chart-limit-bad: var(--warning-9);
+    --chart-limit-bad-active: var(--warning-11);
+    --chart-req-ok: var(--feature-9);
+    --chart-req-ok-active: var(--feature-11);
+    --chart-req-bad: var(--error-9);
+    --chart-req-bad-active: var(--error-11);
+    --chart-keys: var(--success-11);
+  }
+
+  [data-chart="bold"] {
+    --chart-verify-ok: var(--success-11);
+    --chart-verify-ok-active: var(--success-12);
+    --chart-verify-bad: var(--error-11);
+    --chart-verify-bad-active: var(--error-12);
+    --chart-limit-ok: var(--info-11);
+    --chart-limit-ok-active: var(--info-12);
+    --chart-limit-bad: var(--warning-11);
+    --chart-limit-bad-active: var(--warning-12);
+    --chart-req-ok: var(--feature-11);
+    --chart-req-ok-active: var(--feature-12);
+    --chart-req-bad: var(--error-11);
+    --chart-req-bad-active: var(--error-12);
+    --chart-keys: var(--success-12);
+  }
+
+  [data-chart="activity"] {
+    --chart-verify-ok: var(--activity);
+    --chart-verify-ok-active: var(--info-11);
+    --chart-verify-bad: var(--error-9);
+    --chart-verify-bad-active: var(--error-11);
+    --chart-limit-ok: var(--activity);
+    --chart-limit-ok-active: var(--info-11);
+    --chart-limit-bad: var(--error-9);
+    --chart-limit-bad-active: var(--error-11);
+    --chart-req-ok: var(--activity);
+    --chart-req-ok-active: var(--info-11);
+    --chart-req-bad: var(--error-9);
+    --chart-req-bad-active: var(--error-11);
+    --chart-keys: var(--activity);
+  }
+
 }
 
 @layer base {

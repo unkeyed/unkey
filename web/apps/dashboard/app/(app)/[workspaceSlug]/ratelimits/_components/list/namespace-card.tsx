@@ -33,6 +33,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
         namespaceId: namespace.id,
       })}
       ariaLabel={`View ${namespace.name} ratelimit namespace`}
+      palette="limit"
       title={namespace.name}
       buckets={timeseries}
       isLoading={isLoading}

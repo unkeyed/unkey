@@ -6,6 +6,7 @@ import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Route } from "next";
 
+import { PrototypeChartScheme } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/chart-scheme";
 import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -112,6 +113,9 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
+      {/* Mounted here rather than on the prototype pages so the chart scheme
+          also applies to the real api and ratelimit pages. */}
+      <PrototypeChartScheme />
       <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
         <TopNav />
         <MobileNavDrawer />

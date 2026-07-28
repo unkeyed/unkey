@@ -96,11 +96,11 @@ export const RatelimitOverviewLogsCharts = ({
   const sharedConfig = {
     success: {
       label: "Passed",
-      color: "hsl(var(--accent-4))",
+      color: "hsl(var(--chart-limit-ok))",
     },
     error: {
       label: "Blocked",
-      color: "hsl(var(--orange-9))",
+      color: "hsl(var(--chart-limit-bad))",
     },
   };
 

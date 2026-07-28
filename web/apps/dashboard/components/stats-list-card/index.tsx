@@ -30,7 +30,12 @@ type ChartState =
   | { type: "empty"; buckets: number }
   | { type: "data"; points: StatsListCardBucket[] };
 
+/** Which family of `--chart-*` tokens the series should paint with. Named by the
+ *  data, not the colour, so a scheme swap can keep the meaning intact. */
+export type StatsListCardPalette = "verify" | "limit" | "req";
+
 export type StatsListCardProps = {
+  palette?: StatsListCardPalette;
   href: Route;
   ariaLabel: string;
   title: string;
@@ -52,7 +57,10 @@ export function StatsListCard({
   isError,
   labels,
   footerLeft,
+  palette = "verify",
 }: StatsListCardProps) {
+  const colors = paletteColors(palette);
+  const { ok, bad } = colors;
   const success = buckets?.reduce((acc, point) => acc + point.success, 0) ?? 0;
   const error = buckets?.reduce((acc, point) => acc + point.error, 0) ?? 0;
 
@@ -86,20 +94,20 @@ export function StatsListCard({
       </div>
 
       <div className="mt-auto flex flex-col gap-3">
-        <ChartWell chart={chart} labels={labels} />
+        <ChartWell chart={chart} labels={labels} colors={colors} />
         <div className="flex gap-3 items-center min-w-0 text-xs text-gray-11">
           {footerLeft}
           {chart.type === "data" ? (
             <div className="ml-auto flex items-center gap-3">
               <span className="flex items-center gap-1.5">
-                <span className="bg-accent-4 rounded h-[10px] w-1 shrink-0" />
+                <span className="rounded h-[10px] w-1 shrink-0" style={{ backgroundColor: ok }} />
                 <span>
                   <span className="tabular-nums">{formatNumber(success)}</span>{" "}
                   <span className="lowercase">{labels.success}</span>
                 </span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="bg-orange-9 rounded h-[10px] w-1 shrink-0" />
+                <span className="rounded h-[10px] w-1 shrink-0" style={{ backgroundColor: bad }} />
                 <span>
                   <span className="tabular-nums">{formatNumber(error)}</span>{" "}
                   <span className="lowercase">{labels.error}</span>
@@ -113,7 +121,26 @@ export function StatsListCard({
   );
 }
 
-function ChartWell({ chart, labels }: { chart: ChartState; labels: StatsListCardLabels }) {
+type SeriesColors = { ok: string; okActive: string; bad: string; badActive: string };
+
+function paletteColors(palette: StatsListCardPalette): SeriesColors {
+  return {
+    ok: `hsl(var(--chart-${palette}-ok))`,
+    okActive: `hsl(var(--chart-${palette}-ok-active))`,
+    bad: `hsl(var(--chart-${palette}-bad))`,
+    badActive: `hsl(var(--chart-${palette}-bad-active))`,
+  };
+}
+
+function ChartWell({
+  chart,
+  labels,
+  colors,
+}: {
+  chart: ChartState;
+  labels: StatsListCardLabels;
+  colors: SeriesColors;
+}) {
   return (
     <div className="relative h-12 w-full">
       {chart.type === "loading" ? (
@@ -132,7 +159,7 @@ function ChartWell({ chart, labels }: { chart: ChartState; labels: StatsListCard
           </div>
         </>
       ) : (
-        <StatsSparkline data={chart.points} labels={labels} />
+        <StatsSparkline data={chart.points} labels={labels} colors={colors} />
       )}
       {/* Painted last so the dashed baseline reads in front of the bar bases. */}
       <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
@@ -180,10 +207,13 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
 function StatsSparkline({
   data,
   labels,
+  colors,
 }: {
   data: StatsListCardBucket[];
   labels: StatsListCardLabels;
+  colors: SeriesColors;
 }) {
+  const { ok, okActive, bad, badActive } = colors;
   const realMax = Math.max(1, ...data.map((d) => d.success + d.error));
   const minVisible = realMax * MIN_VISIBLE_BAR_RATIO;
   // Keep success/error on the datum so the tooltip still reports real counts for
@@ -261,14 +291,14 @@ function StatsSparkline({
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="bg-accent-4 w-1 h-2.5 rounded-sm" />
+                        <span className="w-1 h-2.5 rounded-sm" style={{ backgroundColor: ok }} />
                         <span>{labels.success}</span>
                       </span>
                       <span className="tabular-nums">{formatNumber(point.success)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="bg-orange-9 w-1 h-2.5 rounded-sm" />
+                        <span className="w-1 h-2.5 rounded-sm" style={{ backgroundColor: bad }} />
                         <span>{labels.error}</span>
                       </span>
                       <span className="tabular-nums">{formatNumber(point.error)}</span>
@@ -287,16 +317,16 @@ function StatsSparkline({
           <Bar
             dataKey="barSuccess"
             stackId="a"
-            fill="hsl(var(--accent-4))"
-            activeBar={{ fill: "hsl(var(--accent-7))" }}
+            fill={ok}
+            activeBar={{ fill: okActive }}
             maxBarSize={8}
             isAnimationActive={false}
           />
           <Bar
             dataKey="barError"
             stackId="a"
-            fill="hsl(var(--orange-9))"
-            activeBar={{ fill: "hsl(var(--orange-10))" }}
+            fill={bad}
+            activeBar={{ fill: badActive }}
             maxBarSize={8}
             isAnimationActive={false}
           />

@@ -243,6 +243,22 @@ export function useOverviewLayout() {
   return { layout, setLayout };
 }
 
+// Chart colour scheme, applied by writing `data-chart` on <html> so it reaches
+// real pages (api/ratelimit detail) that live outside the prototype tree.
+export type ChartScheme = "current" | "semantic" | "bold" | "activity";
+export const CHART_SCHEMES: ChartScheme[] = ["current", "semantic", "bold", "activity"];
+export const CHART_SCHEME_LABELS: Record<ChartScheme, string> = {
+  current: "Old (accent + orange)",
+  semantic: "Semantic per data type (default)",
+  bold: "Bold per data type",
+  activity: "One traffic colour",
+};
+
+export function useChartScheme() {
+  const [chartScheme, setChartScheme] = useUrlEnum<ChartScheme>("chart", CHART_SCHEMES, "semantic");
+  return { chartScheme, setChartScheme };
+}
+
 export type Cmd = { id: string; group: string; label: string; active: boolean; run: () => void };
 export type CmdGroup = { name: string; items: Cmd[] };
 
@@ -395,6 +411,8 @@ export function DebugCommand({
   onAgentStyle,
   agentDismissed,
   onToggleAgent,
+  chartScheme,
+  onChartScheme,
   onReset,
 }: {
   scenario: Scenario;
@@ -407,9 +425,21 @@ export function DebugCommand({
   onAgentStyle: (a: AgentStyle) => void;
   agentDismissed: boolean;
   onToggleAgent: () => void;
+  chartScheme: ChartScheme;
+  onChartScheme: (c: ChartScheme) => void;
   onReset: () => void;
 }) {
   const groups: CmdGroup[] = [
+    {
+      name: "Chart colors",
+      items: CHART_SCHEMES.map((c) => ({
+        id: `ch-${c}`,
+        group: "Chart colors",
+        label: CHART_SCHEME_LABELS[c],
+        active: c === chartScheme,
+        run: () => onChartScheme(c),
+      })),
+    },
     {
       name: "Scenario",
       items: SCENARIOS.map((s) => ({
