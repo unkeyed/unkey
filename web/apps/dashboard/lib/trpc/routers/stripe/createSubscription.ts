@@ -1,10 +1,9 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
-import { upsertBillingSubscription } from "@/lib/stripe/billingSubscriptions";
+import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
+import { getBaseUrl } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -58,6 +57,8 @@ export const createSubscription = workspaceProcedure
         message: `Could not find product default price ${input.productId}.`,
       });
     }
+    const defaultPriceId =
+      typeof product.default_price === "string" ? product.default_price : product.default_price.id;
 
     const quotas = validateAndParseQuotas(product);
     if (
@@ -87,7 +88,7 @@ export const createSubscription = workspaceProcedure
     // not a 500; anything else propagates so a transient failure never silently
     // downgrades a live subscription to "absent".
     if (ctx.workspace.stripeSubscriptionId) {
-      const recorded = await stripe.subscriptions
+      let recorded = await stripe.subscriptions
         .retrieve(ctx.workspace.stripeSubscriptionId, { expand: ["latest_invoice"] })
         .catch((err: unknown) => {
           if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
@@ -96,10 +97,14 @@ export const createSubscription = workspaceProcedure
           throw err;
         });
       if (recorded?.status === "incomplete") {
-        return {
-          status: "payment_required" as const,
-          paymentUrl: hostedInvoiceUrl(recorded),
-        };
+        const paymentUrl = hostedInvoiceUrl(recorded);
+        if (paymentUrl) {
+          return {
+            status: "payment_required" as const,
+            paymentUrl,
+          };
+        }
+        recorded = await stripe.subscriptions.cancel(recorded.id);
       }
       if (recorded && !isDeadSubscription(recorded)) {
         throw new TRPCError({
@@ -117,98 +122,23 @@ export const createSubscription = workspaceProcedure
       });
     }
 
-    // Resolve an explicit default payment method. subscriptions.create only
-    // consults the customer's DEFAULT payment method, and a card that arrived
-    // via subscription-mode Checkout is attached but recorded as the (now
-    // possibly cancelled) subscription's default, not the customer's — so a
-    // cancel-then-resubscribe would die with "no attached payment source" while
-    // the user sees a card on file. Use the customer default when set, else the
-    // most recently attached method.
-    let defaultPaymentMethod: string | undefined;
-    {
-      const hasCustomerDefault =
-        !customer.deleted &&
-        Boolean(customer.invoice_settings?.default_payment_method || customer.default_source);
-      if (!hasCustomerDefault) {
-        const attached = await stripe.customers.listPaymentMethods(ctx.workspace.stripeCustomerId, {
-          limit: 1,
-        });
-        defaultPaymentMethod = attached.data[0]?.id;
-        if (!defaultPaymentMethod) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "No payment method on file. Add one to subscribe.",
-          });
-        }
-      }
-    }
-
-    /**
-     * `allow_incomplete` attempts the vaulted card immediately, while giving a
-     * failed first payment a recoverable Stripe subscription and hosted invoice.
-     * We record that subscription below but keep the workspace on Free until
-     * invoice.paid activates it. This handles both a declined card and customer
-     * actions such as 3DS without trusting a setup-only card check.
-     */
-    let sub: Stripe.Subscription;
+    // First payment belongs in Checkout even when a card is already vaulted:
+    // Stripe can show the selected API plan, recollect CVC, replace the card, or
+    // complete 3DS in one product-specific flow. The paid subscription is linked
+    // and granted quotas by /success and checkout.session.completed.
+    const successUrl = `${getBaseUrl()}/success?session_id={CHECKOUT_SESSION_ID}&intent=api-subscription`;
+    let checkoutUrl: string | null;
     try {
-      const createParams: Stripe.SubscriptionCreateParams = {
-        customer: customer.id,
-        items: [
-          {
-            price: product.default_price.toString(),
-          },
-        ],
-        ...(defaultPaymentMethod ? { default_payment_method: defaultPaymentMethod } : {}),
-        // Anchor at midnight UTC on the 1st, not just the 1st: the month-end
-        // closing flow and the "last"-formula meters require billing periods
-        // to be exact calendar months. Without the time fields the anchor
-        // keeps the creation time-of-day, and the renewal invoice's usage
-        // window would swallow the next month's early meter events.
-        billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
-        // Stripe API 2025-09-30 (clover) and later default new
-        // subscriptions to the "flexible" billing mode, which itemizes
-        // prorations differently and would change the Deploy
-        // credit-grant net-fee math. Stay on classic.
-        billing_mode: { type: "classic" },
-        proration_behavior: "always_invoice",
-        payment_behavior: "allow_incomplete",
-        payment_settings: { save_default_payment_method: "on_subscription" },
-        expand: ["latest_invoice"],
-      };
-
-      // Deterministic idempotency key: if Stripe created (and charged) the
-      // subscription but the workspace write below failed, or two admins click
-      // concurrently, a retry replays the SAME subscription instead of charging
-      // a second one. There is no webhook backstop for this create —
-      // customer.subscription.created resolves the workspace by
-      // stripeSubscriptionId, which is only written after this succeeds. Keyed
-      // by product so a genuine switch to a different plan is not blocked.
-      //
-      // Stripe's idempotency layer replays the CREATION-TIME response, so after
-      // a full subscribe→cancel cycle inside the key window a replay hands back
-      // the canceled subscription still claiming to be active. Re-retrieve the
-      // live status and, on a corpse, chain a fresh key off its id and mint a
-      // new subscription (a retry of THIS request replays that same fresh
-      // subscription) — mirroring subscribeDeploy and stripe/checkout/page.tsx.
-      let idempotencyKey = `api-subscribe:${ctx.workspace.id}:${input.productId}`;
-      sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const live = await stripe.subscriptions.retrieve(sub.id, { expand: ["latest_invoice"] });
-        if (!isDeadSubscription(live)) {
-          sub = live;
-          break;
-        }
-        idempotencyKey = `${idempotencyKey}:${live.id}`;
-        sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
-      }
+      const destination = await createSubscriptionCheckout(stripe, {
+        workspaceId: ctx.workspace.id,
+        product: "api",
+        customerId: customer.id,
+        lineItems: [{ price: defaultPriceId, quantity: 1 }],
+        successUrl,
+        idempotencyKey: `api-checkout:${ctx.workspace.id}:${input.productId}:${customer.id}`,
+      });
+      checkoutUrl = destination.kind === "success" ? destination.url : destination.session.url;
     } catch (err) {
-      if (err instanceof Stripe.errors.StripeCardError) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Your card was declined. Please update your payment method and try again.",
-        });
-      }
       if (err instanceof Stripe.errors.StripeError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -218,90 +148,12 @@ export const createSubscription = workspaceProcedure
       throw err;
     }
 
-    if (sub.status === "incomplete") {
-      // Link the pending subscription before sending the customer to Stripe.
-      // This makes the invoice.paid webhook authoritative even if they never
-      // return to the dashboard after completing payment.
-      await upsertBillingSubscription(db, {
-        workspaceId: ctx.workspace.id,
-        product: "api",
-        stripeSubscriptionId: sub.id,
-      });
-
-      return {
-        status: "payment_required" as const,
-        paymentUrl: hostedInvoiceUrl(sub),
-      };
-    }
-
-    if (sub.status !== "active" && sub.status !== "trialing") {
-      // Never grant tier access for any unexpected unpaid state. Incomplete is
-      // handled above; other states cannot be completed through this flow.
-      try {
-        await stripe.subscriptions.cancel(sub.id);
-      } catch (cancelErr) {
-        console.error(
-          `Failed to cancel non-active subscription ${sub.id} after creation:`,
-          cancelErr,
-        );
-      }
+    if (!checkoutUrl) {
       throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Subscription was created but is not active (ID: ${sub.id}). Please contact support.`,
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Stripe did not return a payment URL. Please try again.",
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.workspaceBilling)
-        .set({
-          tier: product.name,
-        })
-        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-
-      await upsertBillingSubscription(tx, {
-        workspaceId: ctx.workspace.id,
-        product: "api",
-        stripeSubscriptionId: sub.id,
-      });
-
-      await tx
-        .insert(schema.quotas)
-        .values({
-          workspaceId: ctx.workspace.id,
-          requestsPerMonth: quotas.requestsPerMonth,
-          logsRetentionDays: quotas.logsRetentionDays,
-          auditLogsRetentionDays: quotas.auditLogsRetentionDays,
-          team: true,
-          ratelimitApiLimit: null,
-          ratelimitApiDuration: null,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            requestsPerMonth: quotas.requestsPerMonth,
-            logsRetentionDays: quotas.logsRetentionDays,
-            auditLogsRetentionDays: quotas.auditLogsRetentionDays,
-            team: true,
-            ratelimitApiLimit: null,
-            ratelimitApiDuration: null,
-          },
-        });
-
-      await insertAuditLogs(tx, {
-        workspaceId: ctx.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "workspace.update",
-        description: `Subscribed to ${product.name} plan`,
-        resources: [],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-    });
-
-    return { status: "active" as const };
+    return { status: "checkout" as const, checkoutUrl };
   });

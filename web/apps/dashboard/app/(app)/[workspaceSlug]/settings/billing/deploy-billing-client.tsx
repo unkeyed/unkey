@@ -137,10 +137,7 @@ export const DeployBillingClient: React.FC = () => {
     <Shell>
       <div className="flex w-full flex-col gap-4 pt-4 pb-16">
         {subscription ? (
-          <SubscriptionStatus
-            isAdmin={isAdmin}
-            status={subscription.status as Stripe.Subscription.Status}
-          />
+          <SubscriptionStatus status={subscription.status as Stripe.Subscription.Status} />
         ) : null}
 
         <BillingSummary

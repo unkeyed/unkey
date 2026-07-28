@@ -64,6 +64,10 @@ export const PlanSelectionModal = ({
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
     onSuccess: async (result) => {
+      if (result.status === "checkout") {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
       if (result.status === "payment_required") {
         window.location.assign(
           result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
@@ -78,16 +82,16 @@ export const PlanSelectionModal = ({
     },
     onError: (err) => {
       setIsLoading(false);
-      if (err.data?.code !== "BAD_REQUEST") {
-        toast.error(err.message);
-        return;
-      }
-      router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }));
+      toast.error(err.message);
     },
   });
 
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       handleOpenChange(false);
       setIsLoading(false);
       toast.success("Plan changed successfully!");
@@ -95,16 +99,7 @@ export const PlanSelectionModal = ({
     },
     onError: (err) => {
       setIsLoading(false);
-      if (err.data?.code !== "BAD_REQUEST") {
-        toast.error(err.message);
-        return;
-      }
-      toast.error(err.message, {
-        action: {
-          label: "Fix payment",
-          onClick: () => router.push(routes.settings.stripe.portal({ workspaceSlug })),
-        },
-      });
+      toast.error(err.message);
     },
   });
 

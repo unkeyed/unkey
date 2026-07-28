@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -6,9 +5,10 @@ import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { subscriptionIdsByProduct } from "@/lib/stripe/billingSubscriptions";
+import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
 import { deployBillingConfig, deployCheckoutLineItems } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
+import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
 import type { Route } from "next";
@@ -117,9 +117,9 @@ export default async function StripeRedirect(props: {
   // customer and make the portal appear to lose one of the products.
   const checkoutCustomerId = devClockedCustomerId ?? ws.billing?.stripeCustomerId ?? undefined;
 
-  // For the Compute-plan gate's no-card path, create the subscription in
-  // Checkout itself (mode: "subscription") so Stripe shows the plan name and
-  // monthly price and charges at checkout. Every other intent — and a
+  // Create a selected Compute plan in subscription-mode Checkout even when the
+  // customer already has a saved card, so Stripe shows the plan and can handle
+  // CVC, replacement cards, or 3DS. Every other intent — and a
   // workspace that already has a LIVE Deploy subscription, to avoid creating a
   // second one — falls through to the card-vault setup session below. A dead
   // recorded subscription (cancelDeploy cancels the Compute subscription
@@ -132,14 +132,21 @@ export default async function StripeRedirect(props: {
     // "dead recorded subscription counts as absent" case, not a 500; mirrors
     // linkDeploySubscription. Anything else propagates — a transient failure
     // must not silently downgrade a live subscription to "absent".
-    const recorded = await stripe.subscriptions
-      .retrieve(stripeDeploySubscriptionId)
+    let recorded = await stripe.subscriptions
+      .retrieve(stripeDeploySubscriptionId, { expand: ["latest_invoice"] })
       .catch((err: unknown) => {
         if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
           return null;
         }
         throw err;
       });
+    if (recorded?.status === "incomplete") {
+      const paymentUrl = hostedInvoiceUrl(recorded);
+      if (paymentUrl) {
+        return redirect(paymentUrl as Route);
+      }
+      recorded = await stripe.subscriptions.cancel(recorded.id);
+    }
     hasLiveSubscription = recorded !== null && !isDeadSubscription(recorded);
   }
   const deployConfig =
@@ -166,91 +173,23 @@ export default async function StripeRedirect(props: {
       // Non-fatal: proceed without the credits message.
     }
 
-    // billing_cycle_anchor_config on Checkout requires API version
-    // 2026-06-24.dahlia or later, which is the version getStripeClient pins
-    // (stripe-node types the constructor apiVersion as exactly the bundled
-    // version, so the whole client is on 2026-06-24.dahlia).
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      client_reference_id: ws.id,
-      billing_address_collection: "auto",
-      mode: "subscription",
-      line_items: deployCheckoutLineItems(deployConfig, plan),
-      // Cards collected by older setup flows can be marked limited or have no
-      // redisplay preference. They are still valid workspace payment methods,
-      // so show them while also letting the customer choose a replacement.
-      saved_payment_method_options: {
-        allow_redisplay_filters: ["always", "limited", "unspecified"],
-      },
-      subscription_data: {
-        // Match subscribeDeploy's shape so a Checkout-created Compute
-        // subscription is the same as one it creates: day-1 anchor and classic
-        // billing mode. subscribeDeploy pins proration_behavior "always_invoice",
-        // which Checkout does not accept; "create_prorations" is the closest
-        // Checkout-valid behavior and still collects the prorated partial period
-        // on the first invoice at checkout.
-        billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
-        billing_mode: { type: "classic" },
-        proration_behavior: "create_prorations",
-      },
-      ...(submitMessage ? { custom_text: { submit: { message: submitMessage } } } : {}),
-      // Subscription mode creates a customer when this is omitted and rejects
-      // customer_creation. Reuse the workspace customer when one is already
-      // bound so this Compute subscription sits beside its API subscription.
-      ...(checkoutCustomerId ? { customer: checkoutCustomerId } : {}),
-      success_url: successUrl,
-    };
-
-    if (devClockedCustomerId) {
-      // No idempotency key under the dev test clock, which mints a fresh
-      // customer per request (params differ every time and the key would
-      // conflict).
-      session = await stripe.checkout.sessions.create(sessionParams);
-    } else {
-      // Idempotency key so a retry within Stripe's window returns the SAME
-      // session instead of creating a second live, charged subscription — the
-      // race where the user pays, abandons before the link is written, then
-      // re-opens the gate (stripeDeploySubscriptionId still null). Keyed by workspace
-      // + plan + origin plus a compact request fingerprint. The fingerprint
-      // prevents Stripe rejecting the key when the bound customer or Checkout
-      // parameters change, while retries of the same request still reuse it.
-      //
-      // Stripe's idempotency layer replays the CREATION-TIME response, so a
-      // replayed session always reads status "open" with a working-looking url
-      // even if it has since been paid or expired — redirecting to it then
-      // shows Stripe's "this checkout session has timed out" dead end. So
-      // re-retrieve for the live status and branch:
-      //  - open:     the normal redirect below.
-      //  - complete with a LIVE subscription: it was PAID (the
-      //    abandon-before-link race) — hand off to /success for this session,
-      //    which links the subscription instead of charging a second time.
-      //  - expired, or complete with a dead subscription (a finished
-      //    subscribe→cancel cycle): nothing to resume; chain a new
-      //    deterministic key off the stale session id and mint a fresh session
-      //    (a retry of THIS request replays the same fresh session rather than
-      //    double-creating).
-      const requestFingerprint = createHash("sha256")
-        .update(JSON.stringify(sessionParams))
-        .digest("hex")
-        .slice(0, 16);
-      let idempotencyKey = `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${requestFingerprint}`;
-      session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const live = await stripe.checkout.sessions.retrieve(session.id);
-        if (live.status === "open") {
-          break;
-        }
-        if (live.status === "complete") {
-          const paidSubId =
-            typeof live.subscription === "string" ? live.subscription : live.subscription?.id;
-          const paidSub = paidSubId ? await stripe.subscriptions.retrieve(paidSubId) : null;
-          if (paidSub && !isDeadSubscription(paidSub)) {
-            return redirect(successUrl.replace("{CHECKOUT_SESSION_ID}", live.id) as Route);
-          }
-        }
-        idempotencyKey = `${idempotencyKey}:${session.id}`;
-        session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
-      }
+    const destination = await createSubscriptionCheckout(stripe, {
+      workspaceId: ws.id,
+      product: "compute",
+      customerId: checkoutCustomerId,
+      lineItems: deployCheckoutLineItems(deployConfig, plan),
+      successUrl,
+      ...(submitMessage ? { customText: { submit: { message: submitMessage } } } : {}),
+      ...(devClockedCustomerId
+        ? {}
+        : {
+            idempotencyKey: `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${checkoutCustomerId ?? "new"}`,
+          }),
+    });
+    if (destination.kind === "success") {
+      return redirect(destination.url as Route);
     }
+    session = destination.session;
   } else {
     session = await stripe.checkout.sessions.create({
       client_reference_id: ws.id,

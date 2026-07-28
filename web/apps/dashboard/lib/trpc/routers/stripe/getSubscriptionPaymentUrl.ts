@@ -2,14 +2,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { hostedInvoiceUrl } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
-import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
-
-const recoverableStatuses = new Set<Stripe.Subscription.Status>([
-  "incomplete",
-  "past_due",
-  "unpaid",
-]);
 
 export async function resolveSubscriptionPaymentUrl(
   stripe: Stripe,
@@ -39,7 +32,11 @@ export async function resolveSubscriptionPaymentUrl(
       message: "The pending subscription payment could not be found.",
     });
   }
-  if (!recoverableStatuses.has(subscription.status)) {
+  if (
+    !(["incomplete", "past_due", "unpaid"] as Stripe.Subscription.Status[]).includes(
+      subscription.status,
+    )
+  ) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: "This subscription does not have a payment requiring action.",
@@ -57,32 +54,21 @@ export async function resolveSubscriptionPaymentUrl(
   return paymentUrl;
 }
 
-/**
- * Returns the bearer URL for the recorded subscription's open invoice. This is
- * intentionally admin-gated and separate from member-visible billing queries.
- */
+/** Returns the admin-only bearer URL for the API subscription's open invoice. */
 export const getSubscriptionPaymentUrl = workspaceProcedure
   .use(requireWorkspaceAdmin)
-  .input(z.object({ product: z.enum(["api", "compute"]) }))
-  .output(z.object({ paymentUrl: z.string().url() }))
-  .mutation(async ({ ctx, input }) => {
-    const subscriptionId =
-      input.product === "api"
-        ? ctx.workspace.stripeSubscriptionId
-        : ctx.workspace.stripeDeploySubscriptionId;
-    if (!subscriptionId || !ctx.workspace.stripeCustomerId) {
+  .mutation(async ({ ctx }) => {
+    if (!ctx.workspace.stripeSubscriptionId || !ctx.workspace.stripeCustomerId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "No pending subscription payment was found.",
       });
     }
 
-    const stripe = getStripeClient();
     const paymentUrl = await resolveSubscriptionPaymentUrl(
-      stripe,
-      subscriptionId,
+      getStripeClient(),
+      ctx.workspace.stripeSubscriptionId,
       ctx.workspace.stripeCustomerId,
     );
-
     return { paymentUrl };
   });

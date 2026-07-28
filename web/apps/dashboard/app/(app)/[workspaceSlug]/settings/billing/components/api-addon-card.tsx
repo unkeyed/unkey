@@ -17,7 +17,6 @@ import { UsageMeter } from "./usage-meter";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 const FREE_TIER_QUOTA = 150_000;
-const PAYMENT_REQUIRED_STATUSES = ["incomplete", "unpaid", "past_due"];
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
@@ -68,6 +67,10 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
     onSuccess: async (result) => {
+      if (result.status === "checkout") {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
       if (result.status === "payment_required") {
         window.location.assign(
           result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
@@ -78,38 +81,19 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       toast.success("Plan activated");
       await revalidate();
     },
-    onError: (err) => {
-      if (err.data?.code !== "BAD_REQUEST") {
-        toast.error(err.message);
-        return;
-      }
-      router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }));
-    },
-  });
-  const completePayment = trpc.stripe.getSubscriptionPaymentUrl.useMutation({
-    onSuccess: ({ paymentUrl }) => window.location.assign(paymentUrl),
-    onError: () => {
-      toast.error("Could not open the pending payment. Please try again or contact support.");
-    },
+    onError: (err) => toast.error(err.message),
   });
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       setShowPlanModal(false);
       toast.success("API plan changed");
       await revalidate();
     },
-    onError: (err) => {
-      if (err.data?.code !== "BAD_REQUEST") {
-        toast.error(err.message);
-        return;
-      }
-      toast.error(err.message, {
-        action: {
-          label: "Fix payment",
-          onClick: () => router.push(routes.settings.stripe.portal({ workspaceSlug })),
-        },
-      });
-    },
+    onError: (err) => toast.error(err.message),
   });
 
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
@@ -141,9 +125,6 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   const currentProduct = hasPaidSubscription
     ? products.find((p) => p.id === currentProductId)
     : undefined;
-  const paymentRequired = Boolean(
-    subscription && PAYMENT_REQUIRED_STATUSES.includes(subscription.status),
-  );
   const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
   // A scheduled cancellation can only ever affect the API plan: Compute is
   // cancelled immediately, never at period end, and cancelSubscription
@@ -173,21 +154,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
             : `Key verifications and ratelimits, ${formatNumber(FREE_TIER_QUOTA)} requests free per month`
         }
         action={
-          paymentRequired ? (
-            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-              <span>
-                <Button
-                  variant="primary"
-                  size="md"
-                  disabled={!isAdmin || completePayment.isLoading}
-                  loading={completePayment.isLoading}
-                  onClick={() => completePayment.mutate({ product: "api" })}
-                >
-                  Complete payment
-                </Button>
-              </span>
-            </InfoTooltip>
-          ) : currentProduct ? (
+          currentProduct ? (
             <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
               <span>
                 <Button

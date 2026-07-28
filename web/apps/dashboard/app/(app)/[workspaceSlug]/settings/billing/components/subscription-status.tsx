@@ -4,14 +4,11 @@ import { Button, SettingCard, toast } from "@unkey/ui";
 import type { Stripe } from "stripe";
 
 export const SubscriptionStatus: React.FC<{
-  isAdmin: boolean;
   status: Stripe.Subscription.Status;
 }> = (props) => {
   const completePayment = trpc.stripe.getSubscriptionPaymentUrl.useMutation({
     onSuccess: ({ paymentUrl }) => window.location.assign(paymentUrl),
-    onError: () => {
-      toast.error("Could not open the pending payment. Please try again or contact support.");
-    },
+    onError: (error) => toast.error(error.message),
   });
 
   const statusList = ["incomplete", "incomplete_expired", "unpaid", "past_due"];
@@ -33,9 +30,8 @@ export const SubscriptionStatus: React.FC<{
             <Button
               variant="primary"
               size="lg"
-              disabled={!props.isAdmin || completePayment.isLoading}
               loading={completePayment.isLoading}
-              onClick={() => completePayment.mutate({ product: "api" })}
+              onClick={() => completePayment.mutate()}
             >
               Complete payment
             </Button>

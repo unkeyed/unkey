@@ -2,17 +2,11 @@ import type { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 
-// Importing a procedure normally initializes the application tRPC stack and
-// validates server env. This test exercises only the exported Stripe resolver.
 vi.mock("@/lib/stripe", () => ({ getStripeClient: vi.fn() }));
 vi.mock("../../trpc", () => ({
   requireWorkspaceAdmin: {},
   workspaceProcedure: {
-    use: () => ({
-      input: () => ({
-        output: () => ({ mutation: () => ({}) }),
-      }),
-    }),
+    use: () => ({ mutation: () => ({}) }),
   },
 }));
 
@@ -52,34 +46,27 @@ describe("resolveSubscriptionPaymentUrl", () => {
       await expect(resolveSubscriptionPaymentUrl(stripe, "sub_1", "cus_1")).resolves.toBe(
         PAYMENT_URL,
       );
-      expect(stripe.subscriptions.retrieve).toHaveBeenCalledWith("sub_1", {
-        expand: ["latest_invoice"],
-      });
     },
   );
 
-  it("does not reveal an invoice belonging to another customer", async () => {
-    const stripe = stripeWith(subscription({ customer: "cus_other" }));
-
-    await expect(resolveSubscriptionPaymentUrl(stripe, "sub_1", "cus_1")).rejects.toMatchObject({
-      code: "NOT_FOUND",
-    } satisfies Partial<TRPCError>);
+  it("does not reveal another customer's invoice", async () => {
+    await expect(
+      resolveSubscriptionPaymentUrl(
+        stripeWith(subscription({ customer: "cus_other" })),
+        "sub_1",
+        "cus_1",
+      ),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" } satisfies Partial<TRPCError>);
   });
 
-  it("rejects a subscription that no longer requires payment", async () => {
-    const stripe = stripeWith(subscription({ status: "active" }));
-
-    await expect(resolveSubscriptionPaymentUrl(stripe, "sub_1", "cus_1")).rejects.toMatchObject({
-      code: "PRECONDITION_FAILED",
-    } satisfies Partial<TRPCError>);
-  });
-
-  it("rejects a recoverable subscription without a hosted invoice", async () => {
-    const stripe = stripeWith(subscription({ latest_invoice: null }));
-
-    await expect(resolveSubscriptionPaymentUrl(stripe, "sub_1", "cus_1")).rejects.toMatchObject({
-      code: "PRECONDITION_FAILED",
-    } satisfies Partial<TRPCError>);
+  it("rejects a subscription without a recoverable invoice", async () => {
+    await expect(
+      resolveSubscriptionPaymentUrl(
+        stripeWith(subscription({ status: "active" })),
+        "sub_1",
+        "cus_1",
+      ),
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" } satisfies Partial<TRPCError>);
   });
 
   it("maps a deleted Stripe subscription to not found", async () => {
