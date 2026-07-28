@@ -5,7 +5,7 @@ CREATE TABLE `github_repo_connections` (
 	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`installation_id` bigint NOT NULL,
 	`repository_id` bigint NOT NULL,
-	`repository_full_name` varchar(500) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`repository_full_name` varchar(500) NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),

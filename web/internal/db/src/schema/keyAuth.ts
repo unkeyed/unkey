@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, int, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, int, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -17,7 +17,7 @@ export const keyAuth = mysqlTable(
     ...lifecycleDatesMigration,
 
     storeEncryptedKeys: boolean("store_encrypted_keys").notNull().default(false),
-    defaultPrefix: caseSensitiveVarchar("default_prefix", { length: 8 }),
+    defaultPrefix: varchar("default_prefix", { length: 8 }),
     defaultBytes: int("default_bytes").default(16),
 
     /**

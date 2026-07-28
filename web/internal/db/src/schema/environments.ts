@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -18,7 +18,7 @@ export const environments = mysqlTable(
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
-    description: caseSensitiveVarchar("description", { length: 255 }).notNull().default(""),
+    description: varchar("description", { length: 255 }).notNull().default(""),
 
     ...deleteProtection,
     ...lifecycleDates,

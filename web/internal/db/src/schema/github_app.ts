@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { projects } from "./projects";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -37,7 +37,7 @@ export const githubRepoConnections = mysqlTable(
       mode: "number",
     }).notNull(),
     repositoryId: bigint("repository_id", { mode: "number" }).notNull(),
-    repositoryFullName: caseSensitiveVarchar("repository_full_name", {
+    repositoryFullName: varchar("repository_full_name", {
       length: 500,
     }).notNull(),
     ...lifecycleDates,

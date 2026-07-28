@@ -8,7 +8,7 @@ CREATE TABLE `deployment_steps` (
 	`step` enum('queued','starting','building','deploying','network','finalizing') NOT NULL DEFAULT 'queued',
 	`started_at` bigint unsigned NOT NULL,
 	`ended_at` bigint unsigned,
-	`error` varchar(512) COLLATE utf8mb4_0900_as_cs,
+	`error` varchar(512),
 	CONSTRAINT `deployment_steps_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `unique_step_per_deployment` UNIQUE(`deployment_id`,`step`)
 );

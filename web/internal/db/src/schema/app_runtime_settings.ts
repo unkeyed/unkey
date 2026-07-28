@@ -1,5 +1,13 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, int, json, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 
@@ -45,7 +53,7 @@ export const appRuntimeSettings = mysqlTable(
     sentinelConfig: longblob("sentinel_config").notNull(),
 
     // null = scraping disabled; non-null path (e.g. /openapi.yaml) enables scraping
-    openapiSpecPath: caseSensitiveVarchar("openapi_spec_path", { length: 512 }),
+    openapiSpecPath: varchar("openapi_spec_path", { length: 512 }),
 
     ...lifecycleDates,
   },

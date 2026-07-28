@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlEnum, mysqlTable, text, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -29,7 +29,7 @@ export const appEnvironmentVariables = mysqlTable(
     // - writeonly: cannot be read back after creation
     type: mysqlEnum("type", ["recoverable", "writeonly"]).notNull(),
 
-    description: caseSensitiveVarchar("description", { length: 255 }),
+    description: varchar("description", { length: 255 }),
 
     ...deleteProtection,
     ...lifecycleDates,

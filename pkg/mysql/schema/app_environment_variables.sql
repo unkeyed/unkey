@@ -7,7 +7,7 @@ CREATE TABLE `app_environment_variables` (
 	`key` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`value` text NOT NULL,
 	`type` enum('recoverable','writeonly') NOT NULL,
-	`description` varchar(255) COLLATE utf8mb4_0900_as_cs,
+	`description` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

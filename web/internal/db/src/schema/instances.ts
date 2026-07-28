@@ -7,6 +7,7 @@ import {
   mysqlEnum,
   mysqlTable,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
@@ -60,7 +61,7 @@ export const instances = mysqlTable(
     k8sName: caseSensitiveVarchar("k8s_name", { length: 255 }).notNull(),
     // The kubernetes pod dns address. Not uniquely constrained per region because
     // Kubernetes recycles pod IPs across deployments.
-    address: caseSensitiveVarchar("address", { length: 255 }).notNull(),
+    address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),

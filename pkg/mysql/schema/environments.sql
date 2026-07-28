@@ -5,7 +5,7 @@ CREATE TABLE `environments` (
 	`project_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`slug` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`description` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
+	`description` varchar(255) NOT NULL DEFAULT '',
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

@@ -5,7 +5,7 @@ CREATE TABLE `permissions` (
 	`project_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
 	`name` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`slug` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`description` varchar(512) COLLATE utf8mb4_0900_as_cs,
+	`description` varchar(512),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_pk` PRIMARY KEY(`pk`),

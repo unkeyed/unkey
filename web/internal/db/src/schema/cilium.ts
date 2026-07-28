@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -17,7 +17,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
     k8sName: caseSensitiveVarchar("k8s_name", { length: 64 }).notNull(),
-    k8sNamespace: caseSensitiveVarchar("k8s_namespace", { length: 255 }).notNull(),
+    k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // json representation of the policy

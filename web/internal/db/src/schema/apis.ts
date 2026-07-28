@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
@@ -11,13 +11,13 @@ export const apis = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    name: varchar("name", { length: 256 }).notNull(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     /**
      * comma separated ips
      */
-    ipWhitelist: caseSensitiveVarchar("ip_whitelist", { length: 512 }),
+    ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).unique(),
 

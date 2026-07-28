@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { billingSubscriptions } from "./billing_subscriptions";
 import { certificates } from "./certificates";
@@ -22,7 +22,7 @@ export const workspaces = mysqlTable("workspaces", {
   id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
   orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
-  name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+  name: varchar("name", { length: 256 }).notNull(),
 
   // slug is used for the workspace URL
   slug: caseSensitiveVarchar("slug", { length: 64 }).notNull().unique(),

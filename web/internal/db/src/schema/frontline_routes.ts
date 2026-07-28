@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -14,7 +14,7 @@ export const frontlineRoutes = mysqlTable(
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
-    fullyQualifiedDomainName: caseSensitiveVarchar("fully_qualified_domain_name", {
+    fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,
     })
       .notNull()

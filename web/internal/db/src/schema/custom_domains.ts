@@ -6,6 +6,7 @@ import {
   mysqlEnum,
   mysqlTable,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -28,7 +29,7 @@ export const customDomains = mysqlTable(
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
 
-    domain: caseSensitiveVarchar("domain", { length: 256 }).notNull(),
+    domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,
 
     // Verification fields
@@ -42,13 +43,13 @@ export const customDomains = mysqlTable(
     cnameVerified: boolean("cname_verified").notNull().default(false),
     // Unique CNAME target for this domain (e.g., "k3n5p8x2")
     // Combined with base domain to form full target like "k3n5p8x2.cname.unkey.local"
-    targetCname: caseSensitiveVarchar("target_cname", { length: 256 }).notNull().unique(),
+    targetCname: varchar("target_cname", { length: 256 }).notNull().unique(),
     lastCheckedAt: bigint("last_checked_at", { mode: "number" }),
     checkAttempts: int("check_attempts").notNull().default(0),
-    verificationError: caseSensitiveVarchar("verification_error", { length: 512 }),
-    domainConnectProvider: caseSensitiveVarchar("domain_connect_provider", { length: 256 }),
-    domainConnectUrl: caseSensitiveVarchar("domain_connect_url", { length: 2048 }),
-    invocationId: caseSensitiveVarchar("invocation_id", { length: 256 }),
+    verificationError: varchar("verification_error", { length: 512 }),
+    domainConnectProvider: varchar("domain_connect_provider", { length: 256 }),
+    domainConnectUrl: varchar("domain_connect_url", { length: 2048 }),
+    invocationId: varchar("invocation_id", { length: 256 }),
 
     ...lifecycleDates,
   },

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { projects } from "./projects";
@@ -32,7 +32,7 @@ export const deploymentSteps = mysqlTable(
       unsigned: true,
     }).notNull(),
     endedAt: bigint("ended_at", { mode: "number", unsigned: true }),
-    error: caseSensitiveVarchar("error", { length: 512 }),
+    error: varchar("error", { length: 512 }),
   },
   (table) => [
     index("workspace_idx").on(table.workspaceId),

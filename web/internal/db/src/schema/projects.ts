@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -17,10 +17,10 @@ export const projects = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
-    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    name: varchar("name", { length: 256 }).notNull(),
     slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
-    depotProjectId: caseSensitiveVarchar("depot_project_id", { length: 255 }),
+    depotProjectId: varchar("depot_project_id", { length: 255 }),
 
     ...deleteProtection,
     ...lifecycleDates,

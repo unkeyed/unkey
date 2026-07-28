@@ -1,5 +1,14 @@
 import { relations, sql } from "drizzle-orm";
-import { bigint, index, int, json, mysqlEnum, mysqlTable, text } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  index,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
@@ -28,17 +37,17 @@ export const deployments = mysqlTable(
 
     // the docker image
     // null until the build is done
-    image: caseSensitiveVarchar("image", { length: 256 }),
+    image: varchar("image", { length: 256 }),
     buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information
-    gitCommitSha: caseSensitiveVarchar("git_commit_sha", { length: 40 }),
+    gitCommitSha: varchar("git_commit_sha", { length: 40 }),
     gitBranch: caseSensitiveVarchar("git_branch", { length: 256 }),
     gitCommitMessage: text("git_commit_message"),
-    gitCommitAuthorHandle: caseSensitiveVarchar("git_commit_author_handle", {
+    gitCommitAuthorHandle: varchar("git_commit_author_handle", {
       length: 256,
     }),
-    gitCommitAuthorAvatarUrl: caseSensitiveVarchar("git_commit_author_avatar_url", {
+    gitCommitAuthorAvatarUrl: varchar("git_commit_author_avatar_url", {
       length: 512,
     }),
     gitCommitTimestamp: bigint("git_commit_timestamp", { mode: "number" }), // Unix epoch milliseconds
@@ -76,7 +85,7 @@ export const deployments = mysqlTable(
     prNumber: bigint("pr_number", { mode: "number" }),
 
     // Fork repository full name (e.g. "contributor/repo") for linking to the fork
-    forkRepositoryFullName: caseSensitiveVarchar("fork_repository_full_name", { length: 256 }),
+    forkRepositoryFullName: varchar("fork_repository_full_name", { length: 256 }),
 
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
@@ -84,7 +93,7 @@ export const deployments = mysqlTable(
     // Restate invocation ID for the Deploy workflow.
     // Captured when the workflow is started, used to cancel the invocation
     // when a user manually aborts the deployment.
-    invocationId: caseSensitiveVarchar("invocation_id", { length: 256 }),
+    invocationId: varchar("invocation_id", { length: 256 }),
 
     // Deployment status
     status: mysqlEnum("status", [
@@ -118,11 +127,11 @@ export const deployments = mysqlTable(
     //                stored separately in git_commit_author_handle)
     //   unkey     -> internal user_id
     //   unknown   -> null
-    triggeredBy: caseSensitiveVarchar("triggered_by", { length: 256 }),
+    triggeredBy: varchar("triggered_by", { length: 256 }),
 
     // Free-form reason, populated mostly for trigger=unkey
     // (e.g. "rebuild after image loss").
-    triggerReason: caseSensitiveVarchar("trigger_reason", { length: 512 }),
+    triggerReason: varchar("trigger_reason", { length: 512 }),
     ...lifecycleDates,
   },
   (table) => [

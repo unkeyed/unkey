@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -16,7 +16,7 @@ export const apps = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
-    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    name: varchar("name", { length: 256 }).notNull(),
     slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })

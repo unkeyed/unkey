@@ -11,11 +11,12 @@ import (
 
 const caseSensitiveCollation = "COLLATE utf8mb4_0900_as_cs"
 
-func TestSchemaCaseSensitiveVarchars(t *testing.T) {
+func TestSchemaVarcharCollations(t *testing.T) {
 	entries, err := os.ReadDir("schema")
 	require.NoError(t, err)
 
-	varcharCount := 0
+	caseSensitiveCount := 0
+	inheritedCount := 0
 
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
@@ -31,11 +32,48 @@ func TestSchemaCaseSensitiveVarchars(t *testing.T) {
 				continue
 			}
 
-			varcharCount++
+			collationCount := strings.Count(strings.ToUpper(line), " COLLATE ")
+			require.LessOrEqual(t, collationCount, 1, "%s:%d", path, lineNumber+1)
+
+			if collationCount == 0 {
+				inheritedCount++
+				continue
+			}
+
+			caseSensitiveCount++
 			require.Equal(t, 1, strings.Count(line, caseSensitiveCollation), "%s:%d", path, lineNumber+1)
-			require.Equal(t, 1, strings.Count(strings.ToUpper(line), " COLLATE "), "%s:%d", path, lineNumber+1)
 		}
 	}
 
-	require.Positive(t, varcharCount, "schema must contain at least one VARCHAR column")
+	require.Positive(t, caseSensitiveCount, "schema must contain case-sensitive VARCHAR columns")
+	require.Positive(t, inheritedCount, "schema must leave non-compared VARCHAR columns uncollated")
+}
+
+func TestComparedVarcharsAreCaseSensitive(t *testing.T) {
+	comparedColumns := map[string][]string{
+		"acme_challenges.sql": {"domain_id", "workspace_id", "token", "authorization"},
+		"apps.sql":            {"id", "workspace_id", "project_id", "slug", "default_branch"},
+		"deployments.sql":     {"id", "workspace_id", "project_id", "git_branch"},
+		"keys.sql":            {"id", "key_auth_id", "hash", "workspace_id", "owner_id"},
+		"permissions.sql":     {"id", "workspace_id", "name", "slug"},
+		"ratelimit_overrides.sql": {
+			"id", "workspace_id", "namespace_id", "identifier",
+		},
+		"roles.sql": {"id", "workspace_id", "name"},
+	}
+
+	for file, columns := range comparedColumns {
+		data, err := os.ReadFile(filepath.Join("schema", file))
+		require.NoError(t, err)
+
+		ddl := string(data)
+		for _, column := range columns {
+			require.Contains(t, ddl, "`"+column+"` varchar(", "%s.%s must be VARCHAR", file, column)
+
+			lineStart := strings.Index(ddl, "`"+column+"` varchar(")
+			lineEnd := strings.Index(ddl[lineStart:], "\n")
+			require.NotEqual(t, -1, lineEnd, "%s.%s must end with a newline", file, column)
+			require.Contains(t, ddl[lineStart:lineStart+lineEnd], caseSensitiveCollation, "%s.%s", file, column)
+		}
+	}
 }

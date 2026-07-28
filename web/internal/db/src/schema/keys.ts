@@ -10,6 +10,7 @@ import {
   tinyint,
   unique,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/mysql-core";
 import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
@@ -27,7 +28,7 @@ export const keys = mysqlTable(
 
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
-    start: caseSensitiveVarchar("start", { length: 256 }).notNull(),
+    start: varchar("start", { length: 256 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
@@ -80,7 +81,7 @@ export const keys = mysqlTable(
      * A schema for enums or other enforcements should happen at the keyAuth level instead, where
      * common settings can be configured by the user.
      */
-    environment: caseSensitiveVarchar("environment", { length: 256 }),
+    environment: varchar("environment", { length: 256 }),
 
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
 

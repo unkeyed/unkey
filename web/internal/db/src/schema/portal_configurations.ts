@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portalBranding } from "./portal_branding";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -15,7 +15,7 @@ export const portalConfigurations = mysqlTable(
     appId: caseSensitiveVarchar("app_id", { length: 64 }),
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 64 }),
     enabled: boolean("enabled").notNull().default(true),
-    returnUrl: caseSensitiveVarchar("return_url", { length: 500 }),
+    returnUrl: varchar("return_url", { length: 500 }),
     ...lifecycleDates,
   },
   (table) => [

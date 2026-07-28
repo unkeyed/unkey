@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  json,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -17,7 +25,7 @@ export const identities = mysqlTable(
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
-    environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
+    environment: varchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
     ...lifecycleDates,
