@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -174,6 +175,12 @@ export default async function StripeRedirect(props: {
       billing_address_collection: "auto",
       mode: "subscription",
       line_items: deployCheckoutLineItems(deployConfig, plan),
+      // Cards collected by older setup flows can be marked limited or have no
+      // redisplay preference. They are still valid workspace payment methods,
+      // so show them while also letting the customer choose a replacement.
+      saved_payment_method_options: {
+        allow_redisplay_filters: ["always", "limited", "unspecified"],
+      },
       subscription_data: {
         // Match subscribeDeploy's shape so a Checkout-created Compute
         // subscription is the same as one it creates: day-1 anchor and classic
@@ -203,8 +210,9 @@ export default async function StripeRedirect(props: {
       // session instead of creating a second live, charged subscription — the
       // race where the user pays, abandons before the link is written, then
       // re-opens the gate (stripeDeploySubscriptionId still null). Keyed by workspace
-      // + plan + origin, since success_url varies by `from` and a differing
-      // param under the same key would trip an idempotency mismatch.
+      // + plan + origin plus a compact request fingerprint. The fingerprint
+      // prevents Stripe rejecting the key when the bound customer or Checkout
+      // parameters change, while retries of the same request still reuse it.
       //
       // Stripe's idempotency layer replays the CREATION-TIME response, so a
       // replayed session always reads status "open" with a working-looking url
@@ -220,7 +228,11 @@ export default async function StripeRedirect(props: {
       //    deterministic key off the stale session id and mint a fresh session
       //    (a retry of THIS request replays the same fresh session rather than
       //    double-creating).
-      let idempotencyKey = `deploy-checkout:${ws.id}:${plan}:${from ?? ""}`;
+      const requestFingerprint = createHash("sha256")
+        .update(JSON.stringify(sessionParams))
+        .digest("hex")
+        .slice(0, 16);
+      let idempotencyKey = `deploy-checkout:${ws.id}:${plan}:${from ?? ""}:${requestFingerprint}`;
       session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
       for (let attempt = 0; attempt < 3; attempt++) {
         const live = await stripe.checkout.sessions.retrieve(session.id);
