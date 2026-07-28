@@ -139,17 +139,11 @@ export async function queryApiKeys({
       }
       const escaped = escapeLikePattern(value);
       if (f.operator === "contains") {
-        conditions.push(
-          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`,
-        );
+        conditions.push(sql`LOWER(${keys.name}) LIKE LOWER(${`%${escaped}%`}) ESCAPE '!'`);
       } else if (f.operator === "startsWith") {
-        conditions.push(
-          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`,
-        );
+        conditions.push(sql`LOWER(${keys.name}) LIKE LOWER(${`${escaped}%`}) ESCAPE '!'`);
       } else if (f.operator === "endsWith") {
-        conditions.push(
-          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`,
-        );
+        conditions.push(sql`LOWER(${keys.name}) LIKE LOWER(${`%${escaped}`}) ESCAPE '!'`);
       }
     }
   }
@@ -168,7 +162,7 @@ export async function queryApiKeys({
       }
       if (f.operator === "contains") {
         conditions.push(
-          sql`${keys.id} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '!'`,
+          sql`LOWER(${keys.id}) LIKE LOWER(${`%${escapeLikePattern(value)}%`}) ESCAPE '!'`,
         );
       }
     }
@@ -187,16 +181,16 @@ export async function queryApiKeys({
       const escaped = escapeLikePattern(value);
       switch (filter.operator) {
         case "contains":
-          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`;
+          externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${escaped}%`}) ESCAPE '!'`;
+          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`%${escaped}%`}) ESCAPE '!'`;
           break;
         case "startsWith":
-          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`;
+          externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`${escaped}%`}) ESCAPE '!'`;
+          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`${escaped}%`}) ESCAPE '!'`;
           break;
         case "endsWith":
-          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`;
+          externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${escaped}`}) ESCAPE '!'`;
+          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`%${escaped}`}) ESCAPE '!'`;
           break;
         default:
           externalMatch = sql`${identities.externalId} = ${value}`;

@@ -59,7 +59,7 @@ export const queryRootKeys = workspaceProcedure
           return eq(schema.keys.name, filter.value);
         }
         if (filter.operator === "contains") {
-          return sql`${schema.keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`;
+          return sql`LOWER(${schema.keys.name}) LIKE LOWER(${`%${filter.value}%`})`;
         }
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -81,7 +81,7 @@ export const queryRootKeys = workspaceProcedure
           return eq(schema.keys.start, filter.value);
         }
         if (filter.operator === "contains") {
-          return sql`${schema.keys.start} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`;
+          return sql`LOWER(${schema.keys.start}) LIKE LOWER(${`%${filter.value}%`})`;
         }
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -111,7 +111,7 @@ export const queryRootKeys = workspaceProcedure
               .where(
                 and(
                   eq(schema.keysPermissions.keyId, schema.keys.id),
-                  sql`${schema.permissions.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`,
+                  sql`LOWER(${schema.permissions.name}) LIKE LOWER(${`%${filter.value}%`})`,
                 ),
               ),
           );

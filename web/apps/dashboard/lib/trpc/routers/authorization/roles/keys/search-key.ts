@@ -27,8 +27,8 @@ export const searchKeys = workspaceProcedure
             eq(key.workspaceId, workspaceId),
             isNull(key.deletedAtM), // Only non-deleted keys
             or(
-              sql`${key.id} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${key.name} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
+              sql`LOWER(${key.id}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${key.name}) LIKE LOWER(${searchTerm})`,
             ),
           );
         },

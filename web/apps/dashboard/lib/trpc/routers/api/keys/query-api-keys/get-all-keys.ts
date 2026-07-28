@@ -175,19 +175,13 @@ export async function getAllKeys({
               nameConditions.push(helpers.eq(key.name, value));
               break;
             case "contains":
-              nameConditions.push(
-                helpers.sql`${key.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`,
-              );
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}%`})`);
               break;
             case "startsWith":
-              nameConditions.push(
-                helpers.sql`${key.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`,
-              );
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`${value}%`})`);
               break;
             case "endsWith":
-              nameConditions.push(
-                helpers.sql`${key.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`,
-              );
+              nameConditions.push(helpers.sql`LOWER(${key.name}) LIKE LOWER(${`%${value}`})`);
               break;
           }
         }
@@ -209,19 +203,13 @@ export async function getAllKeys({
               keyIdConditions.push(helpers.eq(key.id, value));
               break;
             case "contains":
-              keyIdConditions.push(
-                helpers.sql`${key.id} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`,
-              );
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}%`})`);
               break;
             case "startsWith":
-              keyIdConditions.push(
-                helpers.sql`${key.id} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`,
-              );
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`${value}%`})`);
               break;
             case "endsWith":
-              keyIdConditions.push(
-                helpers.sql`${key.id} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`,
-              );
+              keyIdConditions.push(helpers.sql`LOWER(${key.id}) LIKE LOWER(${`%${value}`})`);
               break;
           }
         }
@@ -244,13 +232,13 @@ export async function getAllKeys({
               ownerIdCondition = helpers.eq(key.ownerId, value);
               break;
             case "contains":
-              ownerIdCondition = helpers.sql`${key.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`;
+              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`%${value}%`})`;
               break;
             case "startsWith":
-              ownerIdCondition = helpers.sql`${key.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`;
+              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`${value}%`})`;
               break;
             case "endsWith":
-              ownerIdCondition = helpers.sql`${key.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`;
+              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`%${value}`})`;
               break;
             default:
               ownerIdCondition = helpers.eq(key.ownerId, value);
@@ -268,11 +256,11 @@ export async function getAllKeys({
                       case "is":
                         return helpers.sql`${rawExternalIdColumn} = ${value}`;
                       case "contains":
-                        return helpers.sql`${rawExternalIdColumn} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}%`})`;
                       case "startsWith":
-                        return helpers.sql`${rawExternalIdColumn} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`${value}%`})`;
                       case "endsWith":
-                        return helpers.sql`${rawExternalIdColumn} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`;
+                        return helpers.sql`LOWER(${rawExternalIdColumn}) LIKE LOWER(${`%${value}`})`;
                       default:
                         return helpers.sql`${rawExternalIdColumn} = ${value}`;
                     }

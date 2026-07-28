@@ -24,10 +24,10 @@ export const searchRolesPermissions = workspaceProcedure
           return and(
             eq(permission.workspaceId, workspaceId),
             or(
-              sql`${permission.id} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${permission.slug} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${permission.name} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${permission.description} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
+              sql`LOWER(${permission.id}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${permission.slug}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${permission.name}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${permission.description}) LIKE LOWER(${searchTerm})`,
             ),
           );
         },

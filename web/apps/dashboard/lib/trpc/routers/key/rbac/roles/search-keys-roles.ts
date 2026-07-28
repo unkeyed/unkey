@@ -31,9 +31,9 @@ export const searchKeysRoles = workspaceProcedure
           return and(
             eq(role.workspaceId, workspaceId),
             or(
-              sql`${role.id} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${role.name} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
-              sql`${role.description} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
+              sql`LOWER(${role.id}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${role.name}) LIKE LOWER(${searchTerm})`,
+              sql`LOWER(${role.description}) LIKE LOWER(${searchTerm})`,
             ),
           );
         },
