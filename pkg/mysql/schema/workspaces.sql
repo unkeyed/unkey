@@ -3,7 +3,7 @@ CREATE TABLE `workspaces` (
 	`id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`org_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`slug` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`slug` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`beta_features` json NOT NULL,
 	`subscriptions` json,

@@ -11,7 +11,7 @@ export const portalConfigurations = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    slug: caseSensitiveVarchar("slug", { length: 64 }).notNull(),
+    slug: varchar("slug", { length: 64 }).notNull(),
     appId: caseSensitiveVarchar("app_id", { length: 64 }),
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 64 }),
     enabled: boolean("enabled").notNull().default(true),

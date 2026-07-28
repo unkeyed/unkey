@@ -17,7 +17,7 @@ export const environments = mysqlTable(
     projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
+    slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
 
     ...deleteProtection,

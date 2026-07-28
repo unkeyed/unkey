@@ -3,7 +3,7 @@ CREATE TABLE `projects` (
 	`id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`slug` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`slug` varchar(256) NOT NULL,
 	`depot_project_id` varchar(255),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,

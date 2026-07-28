@@ -17,7 +17,7 @@ export const apps = mysqlTable(
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
-    slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(),
+    slug: varchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()

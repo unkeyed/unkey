@@ -25,7 +25,7 @@ export const workspaces = mysqlTable("workspaces", {
   name: varchar("name", { length: 256 }).notNull(),
 
   // slug is used for the workspace URL
-  slug: caseSensitiveVarchar("slug", { length: 64 }).notNull().unique(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
 
   k8sNamespace: caseSensitiveVarchar("k8s_namespace", { length: 256 }).unique(),
 

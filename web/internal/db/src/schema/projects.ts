@@ -18,7 +18,7 @@ export const projects = mysqlTable(
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
-    slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
+    slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
 
     depotProjectId: varchar("depot_project_id", { length: 255 }),
 
