@@ -175,19 +175,28 @@ type Querier interface {
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
-	// into deployment_topology at deploy time.
+	// into deployment_topology at deploy time. Schedulability requires at least
+	// one active cluster; regions without clusters remain visible but disabled.
 	//
 	//  SELECT
 	//  	ars.region_id,
 	//  	r.name AS region_name,
 	//  	ars.replicas,
-	//  	r.can_schedule AS region_can_schedule,
+	//  	COALESCE(c.can_schedule, false) AS region_can_schedule,
 	//  	hap.replicas_min AS autoscaling_replicas_min,
 	//  	hap.replicas_max AS autoscaling_replicas_max,
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON r.id = ars.region_id
+	//  LEFT JOIN (
+	//  	SELECT
+	//  		region_id,
+	//  		(MAX(state = 'active') > 0) AS can_schedule
+	//  	FROM clusters
+	//  	WHERE platform <> '' AND region <> ''
+	//  	GROUP BY region_id
+	//  ) c ON c.region_id = ars.region_id
 	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
@@ -248,6 +257,18 @@ type Querier interface {
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	// FindClusterRegionByPlatformAndName resolves the logical region shared by one
+	// or more clusters. Cluster metadata is identical within a logical region.
+	//
+	//  SELECT
+	//  	region_id AS id,
+	//  	region AS name,
+	//  	platform
+	//  FROM clusters
+	//  WHERE platform = ? AND region = ?
+	//  GROUP BY region_id, region, platform
+	//  LIMIT 1
+	FindClusterRegionByPlatformAndName(ctx context.Context, arg FindClusterRegionByPlatformAndNameParams) (FindClusterRegionByPlatformAndNameRow, error)
 	//FindCustomDomainByDomain
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
@@ -1381,9 +1402,17 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
-	//ListRegions
+	// ListRegions derives each logical region from its clusters. A region remains
+	// schedulable while at least one cluster in it is active.
 	//
-	//  SELECT id, name, platform, can_schedule FROM regions
+	//  SELECT
+	//  	region_id AS id,
+	//  	region AS name,
+	//  	platform,
+	//  	(MAX(state = 'active') > 0) AS can_schedule
+	//  FROM clusters
+	//  WHERE platform <> '' AND region <> ''
+	//  GROUP BY region_id, region, platform
 	ListRegions(ctx context.Context) ([]ListRegionsRow, error)
 	//ListRepoConnectionDeployContexts
 	//

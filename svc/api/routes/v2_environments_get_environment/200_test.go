@@ -151,6 +151,14 @@ func TestGetEnvironment(t *testing.T) {
 		})
 		require.NoError(t, err)
 		regionID := region.ID
+		require.NoError(t, db.Query.UpsertCluster(ctx, h.DB.RW(), db.UpsertClusterParams{
+			ID:              uid.New(uid.ClusterPrefix),
+			RegionID:        regionID,
+			Platform:        platform,
+			Region:          "us-east-1",
+			State:           db.ClustersStateActive,
+			LastHeartbeatAt: 1,
+		}))
 
 		now := time.Now().UnixMilli()
 

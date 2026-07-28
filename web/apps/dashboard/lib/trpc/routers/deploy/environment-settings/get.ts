@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { appBuildSettings, appRegionalSettings, appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
+import { listClusterRegions } from "./region-catalog";
 
 export const getEnvironmentSettings = workspaceProcedure
   .input(z.object({ environmentId: z.string() }))
@@ -36,10 +37,25 @@ export const getEnvironmentSettings = workspaceProcedure
         }),
       ]);
 
+      const clusterRegions = await listClusterRegions(
+        regionalSettings.map((setting) => setting.regionId),
+      );
+      const schedulableByRegionID = new Map(
+        clusterRegions.map((region) => [region.id, region.canSchedule]),
+      );
+
       return {
         buildSettings: buildSettings ?? null,
         runtimeSettings: runtimeSettings ?? null,
-        regionalSettings,
+        regionalSettings: regionalSettings.map((setting) => ({
+          ...setting,
+          region: setting.region
+            ? {
+                ...setting.region,
+                canSchedule: schedulableByRegionID.get(setting.regionId) ?? false,
+              }
+            : null,
+        })),
       };
     } catch (err) {
       console.error(err);

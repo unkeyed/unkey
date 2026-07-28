@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -67,10 +66,24 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 func seedRegions(t *testing.T, h *testutil.Harness, names ...string) {
 	t.Helper()
 	for _, name := range names {
-		require.NoError(t, db.Query.UpsertRegion(context.Background(), h.DB.RW(), db.UpsertRegionParams{
-			ID:       uid.New(uid.RegionPrefix),
+		regionID := uid.New(uid.RegionPrefix)
+		require.NoError(t, db.Query.UpsertRegion(t.Context(), h.DB.RW(), db.UpsertRegionParams{
+			ID:       regionID,
 			Name:     name,
 			Platform: "aws",
+		}))
+		region, err := db.Query.FindRegionByPlatformAndName(t.Context(), h.DB.RO(), db.FindRegionByPlatformAndNameParams{
+			Platform: "aws",
+			Name:     name,
+		})
+		require.NoError(t, err)
+		require.NoError(t, db.Query.UpsertCluster(t.Context(), h.DB.RW(), db.UpsertClusterParams{
+			ID:              uid.New(uid.ClusterPrefix),
+			RegionID:        region.ID,
+			Platform:        "aws",
+			Region:          name,
+			State:           db.ClustersStateActive,
+			LastHeartbeatAt: 1,
 		}))
 	}
 }
@@ -79,10 +92,24 @@ func seedRegions(t *testing.T, h *testutil.Harness, names ...string) {
 // UpsertRegion query has no can_schedule arg, so write it directly.
 func seedUnschedulableRegion(t *testing.T, h *testutil.Harness, name string) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(context.Background(),
+	regionID := uid.New(uid.RegionPrefix)
+	_, err := h.DB.RW().ExecContext(t.Context(),
 		"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'aws', false) ON DUPLICATE KEY UPDATE can_schedule = false",
-		uid.New(uid.RegionPrefix), name)
+		regionID, name)
 	require.NoError(t, err)
+	region, err := db.Query.FindRegionByPlatformAndName(t.Context(), h.DB.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: "aws",
+		Name:     name,
+	})
+	require.NoError(t, err)
+	require.NoError(t, db.Query.UpsertCluster(t.Context(), h.DB.RW(), db.UpsertClusterParams{
+		ID:              uid.New(uid.ClusterPrefix),
+		RegionID:        region.ID,
+		Platform:        "aws",
+		Region:          name,
+		State:           db.ClustersStateDisabled,
+		LastHeartbeatAt: 1,
+	}))
 }
 
 func authHeaders(rootKey string) http.Header {

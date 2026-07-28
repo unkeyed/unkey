@@ -10,7 +10,14 @@ import (
 )
 
 const listRegions = `-- name: ListRegions :many
-SELECT id, name, platform, can_schedule FROM regions
+SELECT
+	region_id AS id,
+	region AS name,
+	platform,
+	(MAX(state = 'active') > 0) AS can_schedule
+FROM clusters
+WHERE platform <> '' AND region <> ''
+GROUP BY region_id, region, platform
 `
 
 type ListRegionsRow struct {
@@ -20,9 +27,17 @@ type ListRegionsRow struct {
 	CanSchedule bool   `db:"can_schedule"`
 }
 
-// ListRegions
+// ListRegions derives each logical region from its clusters. A region remains
+// schedulable while at least one cluster in it is active.
 //
-//	SELECT id, name, platform, can_schedule FROM regions
+//	SELECT
+//		region_id AS id,
+//		region AS name,
+//		platform,
+//		(MAX(state = 'active') > 0) AS can_schedule
+//	FROM clusters
+//	WHERE platform <> '' AND region <> ''
+//	GROUP BY region_id, region, platform
 func (q *Queries) ListRegions(ctx context.Context) ([]ListRegionsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listRegions)
 	if err != nil {

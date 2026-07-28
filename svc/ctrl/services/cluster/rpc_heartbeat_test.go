@@ -130,3 +130,39 @@ func TestHeartbeatPopulatesClusterRegionMetadata(t *testing.T) {
 		require.Equal(t, db.ClustersStateDisabled, cluster.State)
 	})
 }
+
+// TestFindClusterRegionByPlatformAndNameUsesClusterMetadata guarantees agent
+// region resolution no longer depends on the legacy region catalog values.
+func TestFindClusterRegionByPlatformAndNameUsesClusterMetadata(t *testing.T) {
+	h := newHeartbeatTestHarness(t)
+	platform := uid.New("platform")
+	regionName := uid.New("region")
+	h.heartbeat(t, platform, regionName)
+
+	_, err := h.database.RW().ExecContext(t.Context(), `
+		UPDATE regions
+		SET name = ?, platform = ?
+		WHERE name = ? AND platform = ?
+	`, uid.New("legacy-region"), uid.New("legacy-platform"), regionName, platform)
+	require.NoError(t, err)
+
+	region, err := h.database.FindClusterRegionByPlatformAndName(t.Context(), db.FindClusterRegionByPlatformAndNameParams{
+		Platform: platform,
+		Name:     regionName,
+	})
+	require.NoError(t, err)
+	require.Equal(t, regionName, region.Name)
+	require.Equal(t, platform, region.Platform)
+
+	regions, err := h.database.ListRegions(t.Context())
+	require.NoError(t, err)
+	regionsByID := make(map[string]db.ListRegionsRow, len(regions))
+	for _, listedRegion := range regions {
+		regionsByID[listedRegion.ID] = listedRegion
+	}
+	listedRegion, ok := regionsByID[region.ID]
+	require.True(t, ok)
+	require.Equal(t, regionName, listedRegion.Name)
+	require.Equal(t, platform, listedRegion.Platform)
+	require.True(t, listedRegion.CanSchedule)
+}

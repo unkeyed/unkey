@@ -1,10 +1,11 @@
-import { and, db, eq, inArray, notInArray } from "@/lib/db";
+import { and, db, eq, notInArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRegionalSettings, environments, regions } from "@unkey/db/src/schema";
+import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
+import { listClusterRegions } from "../region-catalog";
 
-// Per-id length matches the regions.id varchar(64); the array cap bounds the
+// Per-id length matches the logical region ID varchar(64); the array cap bounds the
 // delete/insert fanout per request. No deployment targets anywhere near 50
 // regions, so this is an abuse bound rather than a functional limit.
 const MAX_REGIONS_PER_REQUEST = 50;
@@ -34,10 +35,7 @@ export const updateRegions = workspaceProcedure
         ),
         columns: { appId: true },
       }),
-      db.query.regions.findMany({
-        where: inArray(regions.id, requestedRegionIds),
-        columns: { id: true, canSchedule: true },
-      }),
+      listClusterRegions(requestedRegionIds),
       db.query.appRegionalSettings.findMany({
         where: and(
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
@@ -52,8 +50,8 @@ export const updateRegions = workspaceProcedure
     const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
 
     // A region already assigned to this environment is always allowed to remain,
-    // even if it has since gone unschedulable or been removed from the regions
-    // table entirely. There is no FK from app_regional_settings.region_id, so a
+    // even if it has since gone unschedulable or lost all cluster records. There
+    // is no FK from app_regional_settings.region_id, so a
     // decommissioned region can linger here; the UI keeps such regions selected
     // (with a warning), and rejecting them would lock the user out of region
     // management. Newly added regions must both exist and be schedulable, which

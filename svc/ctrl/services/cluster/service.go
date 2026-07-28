@@ -22,8 +22,8 @@ import (
 const notifiedReadyTTL = 5 * time.Minute
 
 // Region lookups are on the hot path of every region-scoped RPC but the
-// underlying row is effectively immutable (regions.id never changes once a
-// platform/name pair exists), so we cache aggressively. Fresh=5m keeps the
+// logical region ID never changes once a platform/name pair exists, so we
+// cache aggressively. Fresh=5m keeps the
 // cache hot for steady-state traffic; Stale=15m lets us tolerate a brief DB
 // hiccup without synchronous re-fetch storms.
 const (
@@ -54,9 +54,9 @@ type Service struct {
 	// deploy_status=progressing gate + DB flip as its idempotency
 	// mechanism instead (see maybeNotifySentinelReady).
 	notifiedReady *expiringSet[string]
-	// regionCache memoizes (platform, name) → [db.Region] lookups via SWR so
+	// regionCache memoizes (platform, name) → [resolvedRegion] lookups via SWR so
 	// region-scoped RPCs don't hit the DB on every request.
-	regionCache cache.Cache[regionCacheKey, db.Region]
+	regionCache cache.Cache[regionCacheKey, resolvedRegion]
 	// topologyCache caches FindDeploymentTopologyMinReplicas lookups
 	// keyed by deployment_id. Topology is written once at deploy time,
 	// then read on every instance status report, so caching removes an
@@ -113,7 +113,7 @@ func New(cfg Config) (*Service, error) {
 	if clk == nil {
 		clk = clock.New()
 	}
-	regionCache, err := cache.New(cache.Config[regionCacheKey, db.Region]{
+	regionCache, err := cache.New(cache.Config[regionCacheKey, resolvedRegion]{
 		Fresh:    regionCacheFresh,
 		Stale:    regionCacheStale,
 		MaxSize:  regionCacheMaxSize,
