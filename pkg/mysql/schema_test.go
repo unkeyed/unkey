@@ -51,11 +51,16 @@ func TestSchemaVarcharCollations(t *testing.T) {
 
 func TestComparedVarcharsAreCaseSensitive(t *testing.T) {
 	comparedColumns := map[string][]string{
-		"acme_challenges.sql": {"domain_id", "workspace_id", "token", "authorization"},
-		"apps.sql":            {"id", "workspace_id", "project_id", "default_branch"},
-		"deployments.sql":     {"id", "workspace_id", "project_id", "git_branch"},
-		"keys.sql":            {"id", "key_auth_id", "hash", "workspace_id", "owner_id"},
-		"permissions.sql":     {"id", "workspace_id", "name"},
+		"acme_challenges.sql":   {"domain_id", "workspace_id", "token", "authorization"},
+		"apps.sql":              {"id", "workspace_id", "project_id", "default_branch"},
+		"clickhouse_outbox.sql": {"workspace_id", "event_id"},
+		"deployment_changes.sql": {
+			"resource_id", "region_id",
+		},
+		"deployments.sql": {"id", "workspace_id", "project_id", "git_branch"},
+		"identities.sql":  {"id", "external_id", "workspace_id", "environment"},
+		"keys.sql":        {"id", "key_auth_id", "hash", "workspace_id", "owner_id"},
+		"permissions.sql": {"id", "workspace_id", "name"},
 		"ratelimit_overrides.sql": {
 			"id", "workspace_id", "namespace_id", "identifier",
 		},
