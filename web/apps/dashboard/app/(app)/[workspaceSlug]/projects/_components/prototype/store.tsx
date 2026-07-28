@@ -32,8 +32,9 @@ export type Worlds = Record<Scenario, World>;
 export const SCENARIO_STORAGE_KEY = "unkey.projects-prototype.scenario";
 
 const STORAGE_KEY = "unkey.projects-prototype";
-// Bump when the seed shape changes so stale localStorage copies get replaced.
-const VERSION = 3;
+// Bump when the generated shape around MOCK changes (key generation, new World
+// fields). Edits to MOCK itself don't need it — the stamp below covers those.
+const VERSION = 5;
 
 export function mulberry32(seed: number) {
   let a = seed;
@@ -121,6 +122,13 @@ export function seedWorlds(): Worlds {
   return worlds;
 }
 
+// Stored copies are keyed on the mock data they came from, so adding a keyspace
+// or ratelimit to MOCK replaces them without anyone remembering to bump VERSION.
+// Cheap enough to compute on load: MOCK is a few KB of literals.
+function seedStamp(): string {
+  return `${VERSION}:${hashCode(JSON.stringify(MOCK))}`;
+}
+
 type PrototypeContext = {
   worlds: Worlds;
   updateWorld: (scenario: Scenario, update: (world: World) => World) => void;
@@ -131,7 +139,7 @@ const Context = createContext<PrototypeContext | null>(null);
 
 function save(worlds: Worlds) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: VERSION, worlds }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: seedStamp(), worlds }));
   } catch {
     // storage unavailable — stay in-memory
   }
@@ -144,8 +152,8 @@ export function loadWorlds(): Worlds {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { v?: number; worlds?: Worlds };
-        if (parsed.v === VERSION && parsed.worlds) {
+        const parsed = JSON.parse(raw) as { v?: string; worlds?: Worlds };
+        if (parsed.v === seedStamp() && parsed.worlds) {
           return parsed.worlds;
         }
       }
@@ -165,8 +173,8 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { v?: number; worlds?: Worlds };
-        if (parsed.v === VERSION && parsed.worlds) {
+        const parsed = JSON.parse(raw) as { v?: string; worlds?: Worlds };
+        if (parsed.v === seedStamp() && parsed.worlds) {
           setWorlds(parsed.worlds);
           return;
         }

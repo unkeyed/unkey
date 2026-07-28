@@ -119,6 +119,18 @@ const migrated: OverviewData = {
         "7d": [38, 44, 40, 48, 42, 46, 41],
       },
     },
+    {
+      id: "rl_3",
+      projectId: "p_1",
+      name: "search.query",
+      projectName: "acme-corp",
+      checks: { "24h": 74_000, "7d": 520_000 },
+      blockedPct: 5.4,
+      spark: {
+        "24h": [20, 26, 19, 28, 24, 32, 27, 36, 30, 34, 26, 38],
+        "7d": [64, 78, 70, 86, 74, 82, 76],
+      },
+    },
   ],
   usage: {
     billableTotal: 2_410_000,
@@ -142,8 +154,12 @@ const active: OverviewData = {
         { id: "app_a1", source: "github", name: "web" },
         { id: "app_a2", source: "code", name: "api" },
         { id: "app_a3", source: "code", name: "worker" },
+        { id: "app_a8", source: "github", name: "docs" },
+        { id: "app_a9", source: "github", name: "billing" },
+        { id: "app_a10", source: "code", name: "events" },
+        { id: "app_a11", source: "code", name: "cron" },
       ],
-      appCount: 3,
+      appCount: 7,
     },
     {
       id: "p_a2",
@@ -227,6 +243,18 @@ const active: OverviewData = {
       spark: {
         "24h": [18, 22, 16, 24, 20, 26, 22, 30, 24, 28, 22, 32],
         "7d": [58, 66, 60, 72, 64, 70, 62],
+      },
+    },
+    {
+      id: "rl_a3",
+      projectId: "p_a1",
+      name: "sms.send",
+      projectName: "acme-corp",
+      checks: { "24h": 57_000, "7d": 396_000 },
+      blockedPct: 6.8,
+      spark: {
+        "24h": [14, 18, 13, 20, 17, 22, 19, 26, 21, 24, 18, 27],
+        "7d": [48, 58, 52, 64, 55, 61, 56],
       },
     },
   ],

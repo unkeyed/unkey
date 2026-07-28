@@ -1,4 +1,4 @@
-import { Card, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
+import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
 import { AuthSwitchButton } from "./auth-switch-button";
