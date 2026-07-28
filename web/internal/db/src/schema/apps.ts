@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -7,19 +7,22 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 export const apps = mysqlTable(
   "apps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
-    name: varchar("name", { length: 256 }).notNull(),
-    slug: varchar("slug", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
+    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(),
 
-    defaultBranch: varchar("default_branch", { length: 256 }).notNull().default("main"),
-    currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
+    defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
+      .notNull()
+      .default("main"),
+    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,

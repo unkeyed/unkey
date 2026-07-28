@@ -1,19 +1,20 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const frontlineRoutes = mysqlTable(
   "frontline_routes",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-    projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
-    environmentId: varchar("environment_id", { length: 255 }).notNull(),
-    fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
+    fullyQualifiedDomainName: caseSensitiveVarchar("fully_qualified_domain_name", {
       length: 256,
     })
       .notNull()

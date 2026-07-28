@@ -31,6 +31,6 @@ WHERE i.workspace_id = sqlc.arg(workspace_id)
 AND i.deleted = sqlc.arg(deleted)
 AND i.id >= sqlc.arg(id_cursor)
 -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-AND (sqlc.narg(search) IS NULL OR i.id LIKE sqlc.narg(search) OR i.external_id LIKE sqlc.narg(search))
+AND (sqlc.narg(search) IS NULL OR LOWER(i.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(i.external_id) LIKE LOWER(sqlc.narg(search)))
 ORDER BY i.id ASC
 LIMIT ?

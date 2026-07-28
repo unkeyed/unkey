@@ -226,7 +226,7 @@ function buildRoleCondition(
         FROM roles_permissions rp
         JOIN roles r ON rp.role_id = r.id
         WHERE rp.workspace_id = ${workspaceId}
-          AND ${columnFragment} LIKE ${`%${value}%`}
+          AND ${columnFragment} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}
       )`;
     case "startsWith":
       return sql`id IN (
@@ -234,7 +234,7 @@ function buildRoleCondition(
         FROM roles_permissions rp
         JOIN roles r ON rp.role_id = r.id
         WHERE rp.workspace_id = ${workspaceId}
-          AND ${columnFragment} LIKE ${`${value}%`}
+          AND ${columnFragment} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}
       )`;
     case "endsWith":
       return sql`id IN (
@@ -242,7 +242,7 @@ function buildRoleCondition(
         FROM roles_permissions rp
         JOIN roles r ON rp.role_id = r.id
         WHERE rp.workspace_id = ${workspaceId}
-          AND ${columnFragment} LIKE ${`%${value}`}
+          AND ${columnFragment} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}
       )`;
     default:
       throw new Error(`Invalid operator: ${operator}`);
@@ -289,11 +289,11 @@ function buildFilterConditions(
       case "is":
         return sql`${sql.identifier(columnName)} = ${value}`;
       case "contains":
-        return sql`${sql.identifier(columnName)} LIKE ${`%${value}%`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`;
       case "startsWith":
-        return sql`${sql.identifier(columnName)} LIKE ${`${value}%`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`;
       case "endsWith":
-        return sql`${sql.identifier(columnName)} LIKE ${`%${value}`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`;
       default:
         throw new Error(`Invalid operator: ${filter.operator}`);
     }

@@ -1,5 +1,5 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
-import { and, asc, count, db, desc, eq, exists, gt, isNull, like, or, schema } from "@/lib/db";
+import { and, asc, count, db, desc, eq, exists, gt, isNull, or, schema, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -59,7 +59,7 @@ export const queryRootKeys = workspaceProcedure
           return eq(schema.keys.name, filter.value);
         }
         if (filter.operator === "contains") {
-          return like(schema.keys.name, `%${filter.value}%`);
+          return sql`${schema.keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`;
         }
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -81,7 +81,7 @@ export const queryRootKeys = workspaceProcedure
           return eq(schema.keys.start, filter.value);
         }
         if (filter.operator === "contains") {
-          return like(schema.keys.start, `%${filter.value}%`);
+          return sql`${schema.keys.start} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`;
         }
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -111,7 +111,7 @@ export const queryRootKeys = workspaceProcedure
               .where(
                 and(
                   eq(schema.keysPermissions.keyId, schema.keys.id),
-                  like(schema.permissions.name, `%${filter.value}%`),
+                  sql`${schema.permissions.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${filter.value}%`}`,
                 ),
               ),
           );

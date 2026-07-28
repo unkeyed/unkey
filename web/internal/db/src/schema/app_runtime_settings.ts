@@ -1,13 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import {
-  bigint,
-  int,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, int, json, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 
@@ -19,6 +11,7 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -28,9 +21,9 @@ export const appRuntimeSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
     // CPU allocation in millicores (1000 millicores = 1 CPU).
@@ -52,7 +45,7 @@ export const appRuntimeSettings = mysqlTable(
     sentinelConfig: longblob("sentinel_config").notNull(),
 
     // null = scraping disabled; non-null path (e.g. /openapi.yaml) enables scraping
-    openapiSpecPath: varchar("openapi_spec_path", { length: 512 }),
+    openapiSpecPath: caseSensitiveVarchar("openapi_spec_path", { length: 512 }),
 
     ...lifecycleDates,
   },

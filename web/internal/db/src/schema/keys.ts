@@ -10,11 +10,11 @@ import {
   tinyint,
   unique,
   uniqueIndex,
-  varchar,
 } from "drizzle-orm/mysql-core";
 import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -23,16 +23,16 @@ export const keys = mysqlTable(
   "keys",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
-    hash: varchar("hash", { length: 256 }).notNull(),
-    start: varchar("start", { length: 256 }).notNull(),
+    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
+    hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
+    start: caseSensitiveVarchar("start", { length: 256 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -42,10 +42,10 @@ export const keys = mysqlTable(
      *
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
-    forWorkspaceId: varchar("for_workspace_id", { length: 256 }),
-    name: varchar("name", { length: 256 }),
-    ownerId: varchar("owner_id", { length: 256 }),
-    identityId: varchar("identity_id", { length: 256 }),
+    forWorkspaceId: caseSensitiveVarchar("for_workspace_id", { length: 256 }),
+    name: caseSensitiveVarchar("name", { length: 256 }),
+    ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
+    identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
@@ -80,11 +80,11 @@ export const keys = mysqlTable(
      * A schema for enums or other enforcements should happen at the keyAuth level instead, where
      * common settings can be configured by the user.
      */
-    environment: varchar("environment", { length: 256 }),
+    environment: caseSensitiveVarchar("environment", { length: 256 }),
 
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
 
-    pendingMigrationId: varchar("pending_migration_id", { length: 256 }),
+    pendingMigrationId: caseSensitiveVarchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -147,8 +147,8 @@ export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
     ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },
@@ -172,8 +172,8 @@ export const keyMigrations = mysqlTable(
   "key_migrations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],

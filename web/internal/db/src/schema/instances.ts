@@ -7,11 +7,11 @@ import {
   mysqlEnum,
   mysqlTable,
   uniqueIndex,
-  varchar,
 } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { regions } from "./regions";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 //id, deplyoment_id, health, kube_dns_addr, mem, cpu, region
 
@@ -48,19 +48,19 @@ export const instances = mysqlTable(
   "instances",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
-    projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    regionId: varchar("region_id", { length: 64 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
-    k8sName: varchar("k8s_name", { length: 255 }).notNull(),
+    k8sName: caseSensitiveVarchar("k8s_name", { length: 255 }).notNull(),
     // The kubernetes pod dns address. Not uniquely constrained per region because
     // Kubernetes recycles pod IPs across deployments.
-    address: varchar("address", { length: 255 }).notNull(),
+    address: caseSensitiveVarchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),

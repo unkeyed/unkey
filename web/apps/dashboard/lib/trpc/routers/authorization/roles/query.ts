@@ -183,7 +183,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.name LIKE ${`%${value}%`}
+              AND k.name COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
@@ -191,7 +191,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.name LIKE ${`${value}%`}
+              AND k.name COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
@@ -199,7 +199,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.name LIKE ${`%${value}`}
+              AND k.name COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}
           )`;
         default:
           throw new Error(`Invalid operator: ${filter.operator}`);
@@ -226,7 +226,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.id LIKE ${`%${value}%`}
+              AND k.id COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
@@ -234,7 +234,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.id LIKE ${`${value}%`}
+              AND k.id COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
@@ -242,7 +242,7 @@ function buildKeyFilter(
             FROM keys_roles kr
             JOIN \`keys\` k ON kr.key_id = k.id
             WHERE kr.workspace_id = ${workspaceId}
-              AND k.id LIKE ${`%${value}`}
+              AND k.id COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}
           )`;
         default:
           throw new Error(`Invalid operator: ${filter.operator}`);
@@ -278,11 +278,11 @@ function buildFilterConditions(
       case "is":
         return sql`${sql.identifier(columnName)} = ${value}`;
       case "contains":
-        return sql`${sql.identifier(columnName)} LIKE ${`%${value}%`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}`;
       case "startsWith":
-        return sql`${sql.identifier(columnName)} LIKE ${`${value}%`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}`;
       case "endsWith":
-        return sql`${sql.identifier(columnName)} LIKE ${`%${value}`}`;
+        return sql`${sql.identifier(columnName)} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}`;
       default:
         throw new Error(`Invalid operator: ${filter.operator}`);
     }
@@ -328,7 +328,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.name LIKE ${`%${value}%`}
+              AND p.name COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
@@ -336,7 +336,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.name LIKE ${`${value}%`}
+              AND p.name COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
@@ -344,7 +344,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.name LIKE ${`%${value}`}
+              AND p.name COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}
           )`;
         default:
           throw new Error(`Invalid operator: ${filter.operator}`);
@@ -371,7 +371,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.slug LIKE ${`%${value}%`}
+              AND p.slug COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}%`}
           )`;
         case "startsWith":
           return sql`id IN (
@@ -379,7 +379,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.slug LIKE ${`${value}%`}
+              AND p.slug COLLATE utf8mb4_0900_ai_ci LIKE ${`${value}%`}
           )`;
         case "endsWith":
           return sql`id IN (
@@ -387,7 +387,7 @@ function buildPermissionFilter(
             FROM roles_permissions rp
             JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.workspace_id = ${workspaceId}
-              AND p.slug LIKE ${`%${value}`}
+              AND p.slug COLLATE utf8mb4_0900_ai_ci LIKE ${`%${value}`}
           )`;
         default:
           throw new Error(`Invalid operator: ${filter.operator}`);

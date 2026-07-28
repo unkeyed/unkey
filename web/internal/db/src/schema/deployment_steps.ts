@@ -1,19 +1,20 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 export const deploymentSteps = mysqlTable(
   "deployment_steps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: varchar("workspace_id", { length: 128 }).notNull(),
-    projectId: varchar("project_id", { length: 128 }).notNull(),
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
-    deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 128 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     step: mysqlEnum("step", [
       "queued",
@@ -31,7 +32,7 @@ export const deploymentSteps = mysqlTable(
       unsigned: true,
     }).notNull(),
     endedAt: bigint("ended_at", { mode: "number", unsigned: true }),
-    error: varchar("error", { length: 512 }),
+    error: caseSensitiveVarchar("error", { length: 512 }),
   },
   (table) => [
     index("workspace_idx").on(table.workspaceId),

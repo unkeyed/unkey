@@ -139,11 +139,17 @@ export async function queryApiKeys({
       }
       const escaped = escapeLikePattern(value);
       if (f.operator === "contains") {
-        conditions.push(sql`${keys.name} LIKE ${`%${escaped}%`} ESCAPE '!'`);
+        conditions.push(
+          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`,
+        );
       } else if (f.operator === "startsWith") {
-        conditions.push(sql`${keys.name} LIKE ${`${escaped}%`} ESCAPE '!'`);
+        conditions.push(
+          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`,
+        );
       } else if (f.operator === "endsWith") {
-        conditions.push(sql`${keys.name} LIKE ${`%${escaped}`} ESCAPE '!'`);
+        conditions.push(
+          sql`${keys.name} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`,
+        );
       }
     }
   }
@@ -161,7 +167,9 @@ export async function queryApiKeys({
         continue;
       }
       if (f.operator === "contains") {
-        conditions.push(sql`${keys.id} LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '!'`);
+        conditions.push(
+          sql`${keys.id} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '!'`,
+        );
       }
     }
   }
@@ -179,16 +187,16 @@ export async function queryApiKeys({
       const escaped = escapeLikePattern(value);
       switch (filter.operator) {
         case "contains":
-          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}%`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}%`} ESCAPE '!'`;
+          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}%`} ESCAPE '!'`;
           break;
         case "startsWith":
-          externalMatch = sql`${identities.externalId} LIKE ${`${escaped}%`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`${escaped}%`} ESCAPE '!'`;
+          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`${escaped}%`} ESCAPE '!'`;
           break;
         case "endsWith":
-          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}`} ESCAPE '!'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}`} ESCAPE '!'`;
+          externalMatch = sql`${identities.externalId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} COLLATE utf8mb4_0900_ai_ci LIKE ${`%${escaped}`} ESCAPE '!'`;
           break;
         default:
           externalMatch = sql`${identities.externalId} = ${value}`;

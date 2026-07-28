@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -27,13 +27,13 @@ export const searchKeysRoles = workspaceProcedure
       const searchTerm = `%${query}%`;
 
       const rolesQuery = await db.query.roles.findMany({
-        where: (role, { and, eq, or, like }) => {
+        where: (role, { and, eq, or }) => {
           return and(
             eq(role.workspaceId, workspaceId),
             or(
-              like(role.id, searchTerm),
-              like(role.name, searchTerm),
-              like(role.description, searchTerm),
+              sql`${role.id} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
+              sql`${role.name} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
+              sql`${role.description} COLLATE utf8mb4_0900_ai_ci LIKE ${searchTerm}`,
             ),
           );
         },

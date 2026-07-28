@@ -2369,7 +2369,7 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
@@ -2601,7 +2601,7 @@ type Querier interface {
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
-	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
+	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
@@ -2876,7 +2876,7 @@ type Querier interface {
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
 	//    -- because sqlc types each param after the compared column, and description's
 	//    -- dbtype.NullString override conflicts with the plain string columns.
-	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
+	//    AND (? IS NULL OR LOWER(p.id) LIKE LOWER(?) OR LOWER(p.name) LIKE LOWER(?) OR LOWER(p.slug) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?))
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
@@ -2946,7 +2946,7 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
@@ -3033,7 +3033,7 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
-	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
+	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)

@@ -1,19 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  text,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, int, json, mysqlEnum, mysqlTable, text } from "drizzle-orm/mysql-core";
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
 import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -22,31 +14,31 @@ export const deployments = mysqlTable(
   "deployments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-    k8sName: varchar("k8s_name", { length: 255 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    k8sName: caseSensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     // App this deployment belongs to
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     // the docker image
     // null until the build is done
-    image: varchar("image", { length: 256 }),
-    buildId: varchar("build_id", { length: 128 }).unique(),
+    image: caseSensitiveVarchar("image", { length: 256 }),
+    buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information
-    gitCommitSha: varchar("git_commit_sha", { length: 40 }),
-    gitBranch: varchar("git_branch", { length: 256 }),
+    gitCommitSha: caseSensitiveVarchar("git_commit_sha", { length: 40 }),
+    gitBranch: caseSensitiveVarchar("git_branch", { length: 256 }),
     gitCommitMessage: text("git_commit_message"),
-    gitCommitAuthorHandle: varchar("git_commit_author_handle", {
+    gitCommitAuthorHandle: caseSensitiveVarchar("git_commit_author_handle", {
       length: 256,
     }),
-    gitCommitAuthorAvatarUrl: varchar("git_commit_author_avatar_url", {
+    gitCommitAuthorAvatarUrl: caseSensitiveVarchar("git_commit_author_avatar_url", {
       length: 512,
     }),
     gitCommitTimestamp: bigint("git_commit_timestamp", { mode: "number" }), // Unix epoch milliseconds
@@ -84,7 +76,7 @@ export const deployments = mysqlTable(
     prNumber: bigint("pr_number", { mode: "number" }),
 
     // Fork repository full name (e.g. "contributor/repo") for linking to the fork
-    forkRepositoryFullName: varchar("fork_repository_full_name", { length: 256 }),
+    forkRepositoryFullName: caseSensitiveVarchar("fork_repository_full_name", { length: 256 }),
 
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
@@ -92,7 +84,7 @@ export const deployments = mysqlTable(
     // Restate invocation ID for the Deploy workflow.
     // Captured when the workflow is started, used to cancel the invocation
     // when a user manually aborts the deployment.
-    invocationId: varchar("invocation_id", { length: 256 }),
+    invocationId: caseSensitiveVarchar("invocation_id", { length: 256 }),
 
     // Deployment status
     status: mysqlEnum("status", [
@@ -126,11 +118,11 @@ export const deployments = mysqlTable(
     //                stored separately in git_commit_author_handle)
     //   unkey     -> internal user_id
     //   unknown   -> null
-    triggeredBy: varchar("triggered_by", { length: 256 }),
+    triggeredBy: caseSensitiveVarchar("triggered_by", { length: 256 }),
 
     // Free-form reason, populated mostly for trigger=unkey
     // (e.g. "rebuild after image loss").
-    triggerReason: varchar("trigger_reason", { length: 512 }),
+    triggerReason: caseSensitiveVarchar("trigger_reason", { length: 512 }),
     ...lifecycleDates,
   },
   (table) => [

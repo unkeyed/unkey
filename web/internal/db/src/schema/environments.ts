@@ -1,23 +1,24 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const environments = mysqlTable(
   "environments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
-    description: varchar("description", { length: 255 }).notNull().default(""),
+    slug: caseSensitiveVarchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
+    description: caseSensitiveVarchar("description", { length: 255 }).notNull().default(""),
 
     ...deleteProtection,
     ...lifecycleDates,

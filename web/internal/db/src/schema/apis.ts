@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -9,16 +10,16 @@ export const apis = mysqlTable(
   "apis",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    name: varchar("name", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     /**
      * comma separated ips
      */
-    ipWhitelist: varchar("ip_whitelist", { length: 512 }),
+    ipWhitelist: caseSensitiveVarchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
-    keyAuthId: varchar("key_auth_id", { length: 256 }).unique(),
+    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).unique(),
 
     ...lifecycleDatesMigration,
     ...deleteProtection,

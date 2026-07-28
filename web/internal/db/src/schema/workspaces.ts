@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlTable } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { billingSubscriptions } from "./billing_subscriptions";
 import { certificates } from "./certificates";
@@ -12,21 +12,22 @@ import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  id: varchar("id", { length: 256 }).notNull().unique(),
+  id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-  orgId: varchar("org_id", { length: 256 }).notNull().unique(),
-  name: varchar("name", { length: 256 }).notNull(),
+  orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
+  name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
 
   // slug is used for the workspace URL
-  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  slug: caseSensitiveVarchar("slug", { length: 64 }).notNull().unique(),
 
-  k8sNamespace: varchar("k8s_namespace", { length: 256 }).unique(),
+  k8sNamespace: caseSensitiveVarchar("k8s_namespace", { length: 256 }).unique(),
 
   /**
    * feature flags
