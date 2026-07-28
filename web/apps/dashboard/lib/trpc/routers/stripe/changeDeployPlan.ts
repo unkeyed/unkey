@@ -3,6 +3,7 @@ import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -109,6 +110,7 @@ export const changeDeployPlan = workspaceProcedure
         .update(schema.workspaceBilling)
         .set({ plan: input.plan })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
+      await setComputeQuotas(tx, { workspaceId: ctx.workspace.id, plan: input.plan });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
