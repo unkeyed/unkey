@@ -12,10 +12,7 @@ import {
   RailRow,
   type RowItem,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/rail";
-import type {
-  OverviewLayout,
-  RowVariant,
-} from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/scenario";
+import type { RowVariant } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/scenario";
 import {
   keyspaceSeries,
   ratelimitSeries,
@@ -57,6 +54,9 @@ const APP_GRID = "grid grid-cols-[minmax(0,1fr)_120px_104px_76px_32px] items-cen
 // Matches the projects rail: divided rows with a bar mark, and the same
 // valid/success bar color the api and ratelimit list pages use.
 const ROW_VARIANT: RowVariant = "list";
+// Full-width cards have room for the 24h volume, so resource rows use the metric
+// treatment rather than the rail's compact list row.
+const ROW_METRIC_VARIANT: RowVariant = "metric";
 const ROW_MARK: Mark = "bars";
 // Series colours per data type: keyspaces read as verifications, ratelimits as
 // checks, both following the chart scheme.
@@ -78,13 +78,7 @@ function useProjectScope(): { workspaceSlug: string; projectId: string } {
 // Apps are the page. No resource-count strip on top: the apps section already
 // says how many apps there are, and the rail lists the actual keyspaces and
 // ratelimits rather than counting them.
-export function ProjectOverview({
-  data,
-  layout = "collapse",
-}: {
-  data: OverviewProjectData;
-  layout?: OverviewLayout;
-}) {
+export function ProjectOverview({ data }: { data: OverviewProjectData }) {
   const { workspaceSlug, project, keyspaces, ratelimits, deployments } = data;
   const [dismissed, setDismissed] = useState(false);
   const scope = { workspaceSlug, projectId: project.id };
@@ -105,42 +99,27 @@ export function ProjectOverview({
       projectId={project.id}
       keyspaces={keyspaces}
       ratelimits={ratelimits}
-      wide={layout === "column"}
     />
   );
 
-  if (layout === "column") {
-    // The checklist shares the resource row rather than leading the page, so the
-    // column count follows how many cards actually have something to show.
-    const cardCount =
-      (keyspaces.length > 0 ? 1 : 0) + (ratelimits.length > 0 ? 1 : 0) + (dismissed ? 0 : 1);
-    return (
-      <div className="flex flex-col gap-6">
-        {apps}
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-5",
-            cardCount >= 3 ? "lg:grid-cols-3" : cardCount === 2 ? "lg:grid-cols-2" : "",
-          )}
-        >
-          {!dismissed && <GettingStarted data={data} onDismiss={() => setDismissed(true)} />}
-          {resources}
-        </div>
-        <HelpCard wide />
-      </div>
-    );
-  }
+  // The checklist shares the resource row rather than leading the page, so the
+  // column count follows how many cards actually have something to show.
+  const cardCount =
+    (keyspaces.length > 0 ? 1 : 0) + (ratelimits.length > 0 ? 1 : 0) + (dismissed ? 0 : 1);
 
   return (
-    <div className="flex items-start gap-6 max-lg:flex-col">
-      <div className="flex min-w-0 flex-1 flex-col gap-6 max-lg:order-2 max-lg:w-full">
+    <div className="flex flex-col gap-6">
+      {apps}
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-5",
+          cardCount >= 3 ? "lg:grid-cols-3" : cardCount === 2 ? "lg:grid-cols-2" : "",
+        )}
+      >
         {!dismissed && <GettingStarted data={data} onDismiss={() => setDismissed(true)} />}
-        {apps}
-      </div>
-      <aside className="flex w-full shrink-0 flex-col gap-4 max-lg:order-1 lg:w-[260px]">
         {resources}
-        <HelpCard />
-      </aside>
+      </div>
+      <HelpCard wide />
     </div>
   );
 }
@@ -159,17 +138,12 @@ function ResourceLists({
   projectId,
   keyspaces,
   ratelimits,
-  wide = false,
 }: {
   workspaceSlug: string;
   projectId: string;
   keyspaces: OverviewProjectData["keyspaces"];
   ratelimits: OverviewProjectData["ratelimits"];
-  /** Full-width cards have room for the 24h volume; rail width does not. */
-  wide?: boolean;
 }) {
-  const rowVariant: RowVariant = wide ? "metric" : ROW_VARIANT;
-
   const keyspaceRows: RowItem[] = keyspaces.map((ks) => {
     const series = keyspaceSeries(ks);
     return {
@@ -215,7 +189,7 @@ function ResourceLists({
           viewAllHref={routes.projects.keyspaces({ workspaceSlug, projectId })}
         >
           {keyspaceRows.map((item) => (
-            <RailRow key={item.id} item={item} variant={rowVariant} mark={ROW_MARK} />
+            <RailRow key={item.id} item={item} variant={ROW_METRIC_VARIANT} mark={ROW_MARK} />
           ))}
         </RailListShell>
       )}
@@ -227,7 +201,7 @@ function ResourceLists({
           viewAllHref={routes.projects.ratelimits({ workspaceSlug, projectId })}
         >
           {ratelimitRows.map((item) => (
-            <RailRow key={item.id} item={item} variant={rowVariant} mark={ROW_MARK} />
+            <RailRow key={item.id} item={item} variant={ROW_METRIC_VARIANT} mark={ROW_MARK} />
           ))}
         </RailListShell>
       )}
@@ -664,7 +638,7 @@ function AppRow({ deployment }: { deployment: DeploymentMock }) {
         <span className="shrink-0 text-[13px] font-medium text-accent-12">
           {deployment.appName}
         </span>
-        <span className="truncate text-[13px] text-gray-9" title={deployment.message}>
+        <span className="ml-1 truncate text-[13px] text-accent-12" title={deployment.message}>
           {deployment.message}
         </span>
       </span>

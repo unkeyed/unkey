@@ -4,7 +4,7 @@ import { CodeBranch, Cube } from "@unkey/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { type DeploymentMock, deploymentsForApps, fmtTimeAgo } from "./deployments-mock";
-import type { KeyspaceStat, ProjectMock, RatelimitStat } from "./mock-data";
+import type { ProjectMock } from "./mock-data";
 import { DotsIcon } from "./ui";
 
 export function ProjectsEmptyCard({ children }: { children?: ReactNode }) {
@@ -24,25 +24,15 @@ export function ProjectsEmptyCard({ children }: { children?: ReactNode }) {
 
 export function ProjectGrid({
   projects,
-  keyspaces,
-  ratelimits,
   workspaceSlug,
 }: {
   projects: ProjectMock[];
-  keyspaces: KeyspaceStat[];
-  ratelimits: RatelimitStat[];
   workspaceSlug: string;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {projects.map((p) => (
-        <ProjectCard
-          key={p.id}
-          project={p}
-          keyspaceCount={keyspaces.filter((ks) => ks.projectId === p.id).length}
-          ratelimitCount={ratelimits.filter((rl) => rl.projectId === p.id).length}
-          workspaceSlug={workspaceSlug}
-        />
+        <ProjectCard key={p.id} project={p} workspaceSlug={workspaceSlug} />
       ))}
     </div>
   );
@@ -54,15 +44,8 @@ function latestDeployment(project: ProjectMock): DeploymentMock | undefined {
   return deploymentsForApps(project.apps).sort((a, b) => a.timeAgoMin - b.timeAgoMin)[0];
 }
 
-function inventory(project: ProjectMock, keyspaceCount: number, ratelimitCount: number): string {
-  const parts = [`${project.appCount} ${project.appCount === 1 ? "app" : "apps"}`];
-  if (keyspaceCount > 0) {
-    parts.push(`${keyspaceCount} ${keyspaceCount === 1 ? "keyspace" : "keyspaces"}`);
-  }
-  if (ratelimitCount > 0) {
-    parts.push(`${ratelimitCount} ${ratelimitCount === 1 ? "ratelimit" : "ratelimits"}`);
-  }
-  return parts.join(" · ");
+function inventory(project: ProjectMock): string {
+  return `${project.appCount} ${project.appCount === 1 ? "app" : "apps"}`;
 }
 
 // The latest deployment leads: it is the only thing on the card that changes on
@@ -70,13 +53,9 @@ function inventory(project: ProjectMock, keyspaceCount: number, ratelimitCount: 
 // and the sha is dropped — the commit message says what shipped.
 function ProjectCard({
   project,
-  keyspaceCount,
-  ratelimitCount,
   workspaceSlug,
 }: {
   project: ProjectMock;
-  keyspaceCount: number;
-  ratelimitCount: number;
   workspaceSlug: string;
 }) {
   const deployment = latestDeployment(project);
@@ -108,7 +87,7 @@ function ProjectCard({
             </div>
             <div className="flex min-w-0 items-center gap-2 text-xs text-gray-9">
               <DeploymentStatusBadge status={deployment.status} />
-              <span className="truncate">{inventory(project, keyspaceCount, ratelimitCount)}</span>
+              <span className="truncate">{inventory(project)}</span>
             </div>
           </>
         ) : (

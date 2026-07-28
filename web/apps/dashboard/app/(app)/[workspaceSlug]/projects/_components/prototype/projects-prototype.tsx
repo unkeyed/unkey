@@ -12,16 +12,12 @@ import {
 import { CreateProjectButton } from "../create-project-button";
 import { ProjectGrid, ProjectsEmptyCard } from "./project-grid";
 import { Rail } from "./rail";
-import {
-  DebugCommand,
-  useAgentDismissed,
-  useAgentStyle,
-  useChartScheme,
-  useMark,
-  useRowVariant,
-  useScenario,
-} from "./scenario";
+import type { RowVariant } from "./scenario";
+import { DebugCommand, useAgentDismissed, useAgentStyle, useMark, useScenario } from "./scenario";
 import { PrototypeProvider, usePrototypeWorlds } from "./store";
+
+// The row treatment is settled: divided list rows with a bar mark.
+const ROW_VARIANT: RowVariant = "list";
 
 export function ProjectsPrototype() {
   return (
@@ -34,9 +30,7 @@ export function ProjectsPrototype() {
 function ProjectsPrototypeInner() {
   const workspace = useWorkspaceNavigation();
   const { scenario, setScenario } = useScenario();
-  const { variant, setVariant } = useRowVariant();
   const { mark, setMark } = useMark();
-  const { chartScheme, setChartScheme } = useChartScheme();
   const { agentStyle, setAgentStyle } = useAgentStyle();
   const [agentDismissed, setAgentDismissed] = useAgentDismissed();
   const { worlds, resetWorlds } = usePrototypeWorlds();
@@ -61,17 +55,12 @@ function ProjectsPrototypeInner() {
                 <CreateProjectButton workspaceSlug={workspace.slug} variant="outline" />
               </ProjectsEmptyCard>
             ) : (
-              <ProjectGrid
-                projects={world.projects}
-                keyspaces={world.keyspaces}
-                ratelimits={world.ratelimits}
-                workspaceSlug={workspace.slug}
-              />
+              <ProjectGrid projects={world.projects} workspaceSlug={workspace.slug} />
             )}
           </div>
           <Rail
             data={world}
-            variant={variant}
+            variant={ROW_VARIANT}
             mark={mark}
             agentStyle={agentStyle}
             workspaceSlug={workspace.slug}
@@ -83,16 +72,12 @@ function ProjectsPrototypeInner() {
       <DebugCommand
         scenario={scenario}
         onScenario={setScenario}
-        variant={variant}
-        onVariant={setVariant}
         mark={mark}
         onMark={setMark}
         agentStyle={agentStyle}
         onAgentStyle={setAgentStyle}
         agentDismissed={agentDismissed}
         onToggleAgent={() => setAgentDismissed(!agentDismissed)}
-        chartScheme={chartScheme}
-        onChartScheme={setChartScheme}
         onReset={resetWorlds}
       />
     </PageContainer>

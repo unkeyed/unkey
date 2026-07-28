@@ -12,25 +12,6 @@ const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
 export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid" | "metric";
 
-const ROW_VARIANTS: RowVariant[] = [
-  "detailed",
-  "graph",
-  "flat",
-  "list",
-  "tile",
-  "hybrid",
-  "metric",
-];
-const ROW_VARIANT_LABELS: Record<RowVariant, string> = {
-  detailed: "Detailed",
-  graph: "Graph",
-  flat: "Flat",
-  list: "List",
-  tile: "Tile",
-  hybrid: "Hybrid",
-  metric: "Metric",
-};
-
 const MARKS: Mark[] = ["line", "bars", "ratio", "heatmap"];
 const MARK_LABELS: Record<Mark, string> = {
   line: "Line",
@@ -46,7 +27,7 @@ const AGENT_STYLE_LABELS: Record<AgentStyle, string> = {
 };
 
 // All prototype choices live in the URL query string so a configuration can be
-// shared as a link (e.g. ?scenario=migrated&row=list&mark=bars&agent=minimal),
+// shared as a link (e.g. ?scenario=migrated&mark=bars&agent=minimal),
 // and are mirrored to localStorage so they survive navigating away and back.
 // URL param wins; stored value fills in when the URL has none.
 
@@ -176,11 +157,6 @@ export function useScenario() {
   return { scenario, setScenario };
 }
 
-export function useRowVariant() {
-  const [variant, setVariant] = useUrlEnum<RowVariant>("row", ROW_VARIANTS, "list");
-  return { variant, setVariant };
-}
-
 export function useMark() {
   const [mark, setMark] = useUrlEnum<Mark>("mark", MARKS, "bars");
   return { mark, setMark };
@@ -226,37 +202,6 @@ export const HYBRID_STYLE_LABELS: Record<HybridStyle, string> = {
 export function useHybridStyle() {
   const [hybridStyle, setHybridStyle] = useUrlEnum<HybridStyle>("hybrid", HYBRID_STYLES, "bleed");
   return { hybridStyle, setHybridStyle };
-}
-
-// Two arrangements of the project overview: the shipped one, where a collapsed
-// checklist leads and resources sit in a right rail, versus a single column
-// where every block gets the full width and the rail disappears.
-export type OverviewLayout = "collapse" | "column";
-export const OVERVIEW_LAYOUTS: OverviewLayout[] = ["collapse", "column"];
-export const OVERVIEW_LAYOUT_LABELS: Record<OverviewLayout, string> = {
-  collapse: "Rail + collapsed checklist",
-  column: "Single column",
-};
-
-export function useOverviewLayout() {
-  const [layout, setLayout] = useUrlEnum<OverviewLayout>("layout", OVERVIEW_LAYOUTS, "collapse");
-  return { layout, setLayout };
-}
-
-// Chart colour scheme, applied by writing `data-chart` on <html> so it reaches
-// real pages (api/ratelimit detail) that live outside the prototype tree.
-export type ChartScheme = "current" | "semantic" | "bold" | "activity";
-export const CHART_SCHEMES: ChartScheme[] = ["current", "semantic", "bold", "activity"];
-export const CHART_SCHEME_LABELS: Record<ChartScheme, string> = {
-  current: "Old (accent + orange)",
-  semantic: "Semantic per data type (default)",
-  bold: "Bold per data type",
-  activity: "One traffic colour",
-};
-
-export function useChartScheme() {
-  const [chartScheme, setChartScheme] = useUrlEnum<ChartScheme>("chart", CHART_SCHEMES, "semantic");
-  return { chartScheme, setChartScheme };
 }
 
 export type Cmd = { id: string; group: string; label: string; active: boolean; run: () => void };
@@ -356,7 +301,7 @@ export function PrototypeCommandPalette({ groups }: { groups: CmdGroup[] }) {
                     run(filtered[activeIndex]);
                   }
                 }}
-                placeholder="Set scenario, row style, mark…"
+                placeholder="Set scenario, mark…"
                 className="w-full border-b border-grayA-4 bg-transparent px-4 py-3 text-sm text-accent-12 outline-none placeholder:text-gray-9"
               />
               <div className="max-h-[50vh] overflow-y-auto p-1.5">
@@ -398,48 +343,30 @@ export function PrototypeCommandPalette({ groups }: { groups: CmdGroup[] }) {
   );
 }
 
-// Groups the projects-list-specific toggles (scenario/row-style/mark/agent) and
+// Groups the projects-list-specific toggles (scenario/mark/agent) and
 // renders them through the shared palette shell above.
 export function DebugCommand({
   scenario,
   onScenario,
-  variant,
-  onVariant,
   mark,
   onMark,
   agentStyle,
   onAgentStyle,
   agentDismissed,
   onToggleAgent,
-  chartScheme,
-  onChartScheme,
   onReset,
 }: {
   scenario: Scenario;
   onScenario: (s: Scenario) => void;
-  variant: RowVariant;
-  onVariant: (v: RowVariant) => void;
   mark: Mark;
   onMark: (m: Mark) => void;
   agentStyle: AgentStyle;
   onAgentStyle: (a: AgentStyle) => void;
   agentDismissed: boolean;
   onToggleAgent: () => void;
-  chartScheme: ChartScheme;
-  onChartScheme: (c: ChartScheme) => void;
   onReset: () => void;
 }) {
   const groups: CmdGroup[] = [
-    {
-      name: "Chart colors",
-      items: CHART_SCHEMES.map((c) => ({
-        id: `ch-${c}`,
-        group: "Chart colors",
-        label: CHART_SCHEME_LABELS[c],
-        active: c === chartScheme,
-        run: () => onChartScheme(c),
-      })),
-    },
     {
       name: "Scenario",
       items: SCENARIOS.map((s) => ({
@@ -448,16 +375,6 @@ export function DebugCommand({
         label: SCENARIO_LABELS[s],
         active: s === scenario,
         run: () => onScenario(s),
-      })),
-    },
-    {
-      name: "Row style",
-      items: ROW_VARIANTS.map((v) => ({
-        id: `rv-${v}`,
-        group: "Row style",
-        label: ROW_VARIANT_LABELS[v],
-        active: v === variant,
-        run: () => onVariant(v),
       })),
     },
     {

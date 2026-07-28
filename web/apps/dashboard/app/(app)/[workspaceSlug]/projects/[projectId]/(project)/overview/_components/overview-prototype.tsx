@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useChartScheme,
-  useOverviewLayout,
-  useScenario,
-} from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/scenario";
+import { useScenario } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/scenario";
 import {
   PrototypeProvider,
   usePrototypeWorlds,
@@ -36,8 +32,6 @@ export function OverviewPrototype() {
 
 function OverviewPrototypeInner() {
   const { scenario, setScenario } = useScenario();
-  const { layout, setLayout } = useOverviewLayout();
-  const { chartScheme, setChartScheme } = useChartScheme();
   const { resetWorlds } = usePrototypeWorlds();
   const data = useOverviewProjectData();
 
@@ -59,17 +53,9 @@ function OverviewPrototypeInner() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <ProjectOverview data={data} layout={layout} />
+        <ProjectOverview data={data} />
       </PageBody>
-      <OverviewDebugCommand
-        scenario={scenario}
-        onScenario={setScenario}
-        layout={layout}
-        onLayout={setLayout}
-        chartScheme={chartScheme}
-        onChartScheme={setChartScheme}
-        onReset={resetWorlds}
-      />
+      <OverviewDebugCommand scenario={scenario} onScenario={setScenario} onReset={resetWorlds} />
     </PageContainer>
   );
 }
