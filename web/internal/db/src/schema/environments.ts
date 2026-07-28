@@ -6,16 +6,16 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 export const environments = mysqlTable(
   "environments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    id: caseInsensitiveVarchar("id", { length: 128 }).notNull().unique(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),
+    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),

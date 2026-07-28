@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { workspaces } from "./workspaces";
 
 /**
@@ -26,7 +26,7 @@ export const billingSubscriptions = mysqlTable(
      * The workspace this subscription belongs to. Both products share the
      * workspace's single Stripe customer (workspace_billing.stripe_customer_id).
      */
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     /**
      * Which Unkey product the subscription bills. "api" is the legacy API tier
@@ -40,7 +40,7 @@ export const billingSubscriptions = mysqlTable(
      * resolve any incoming subscription event straight to its (workspace,
      * product) without inspecting the subscription's items.
      */
-    stripeSubscriptionId: caseSensitiveVarchar("stripe_subscription_id", { length: 256 })
+    stripeSubscriptionId: caseInsensitiveVarchar("stripe_subscription_id", { length: 256 })
       .notNull()
       .unique(),
 

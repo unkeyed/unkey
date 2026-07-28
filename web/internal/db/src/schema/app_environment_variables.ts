@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -11,12 +11,12 @@ export const appEnvironmentVariables = mysqlTable(
   "app_environment_variables",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    id: caseInsensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
-    key: caseSensitiveVarchar("key", { length: 256 }).notNull(),
+    key: caseInsensitiveVarchar("key", { length: 256 }).notNull(),
 
     // Always encrypted via vault (contains keyId, nonce, ciphertext in the blob).
     // TEXT (65,535-byte capacity) so a 16 KiB plaintext cap fits its base64

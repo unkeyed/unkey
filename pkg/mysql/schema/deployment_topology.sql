@@ -1,8 +1,8 @@
 CREATE TABLE `deployment_topology` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`deployment_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`region_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(64) NOT NULL,
+	`deployment_id` varchar(64) NOT NULL,
+	`region_id` varchar(64) NOT NULL,
 	`autoscaling_replicas_min` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_threshold_cpu` tinyint unsigned,

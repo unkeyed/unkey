@@ -1,8 +1,8 @@
 CREATE TABLE `deployment_changes` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`resource_type` enum('deployment_topology','sentinel','cilium_network_policy') NOT NULL,
-	`resource_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`region_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`resource_id` varchar(64) NOT NULL,
+	`region_id` varchar(64) NOT NULL,
 	`created_at` bigint NOT NULL,
 	CONSTRAINT `deployment_changes_pk` PRIMARY KEY(`pk`)
 );

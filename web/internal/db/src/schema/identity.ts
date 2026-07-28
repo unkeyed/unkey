@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -9,15 +9,15 @@ export const identities = mysqlTable(
   "identities",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
     /**
      * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
      */
-    externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
-    environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
+    externalId: caseInsensitiveVarchar("external_id", { length: 256 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    environment: caseInsensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
     ...lifecycleDates,
@@ -48,22 +48,22 @@ export const ratelimits = mysqlTable(
   "ratelimits",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
     /**
      * The name is used to reference this limit when verifying a key.
      */
-    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
+    name: caseInsensitiveVarchar("name", { length: 256 }).notNull(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     ...lifecycleDates,
     /**
      * Either keyId or identityId may be defined, not both
      */
-    keyId: caseSensitiveVarchar("key_id", { length: 256 }),
+    keyId: caseInsensitiveVarchar("key_id", { length: 256 }),
     /**
      * Either keyId or identityId may be defined, not both
      */
-    identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
+    identityId: caseInsensitiveVarchar("identity_id", { length: 256 }),
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     // milliseconds
     duration: bigint("duration", { mode: "number", unsigned: true }).notNull(),
