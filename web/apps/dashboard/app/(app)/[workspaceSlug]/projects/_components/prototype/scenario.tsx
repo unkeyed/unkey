@@ -4,30 +4,14 @@ import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { AgentStyle } from "./agent-setup";
-import type { Mark } from "./marks";
 import { SCENARIO_LABELS, type Scenario } from "./mock-data";
 
 const SCENARIOS: Scenario[] = ["new", "migrated", "active"];
 
 export type RowVariant = "detailed" | "graph" | "flat" | "list" | "tile" | "hybrid" | "metric";
 
-const MARKS: Mark[] = ["line", "bars", "ratio", "heatmap"];
-const MARK_LABELS: Record<Mark, string> = {
-  line: "Line",
-  bars: "Bars",
-  ratio: "Ratio",
-  heatmap: "Heatmap",
-};
-
-const AGENT_STYLES: AgentStyle[] = ["minimal", "stacked"];
-const AGENT_STYLE_LABELS: Record<AgentStyle, string> = {
-  minimal: "Minimal",
-  stacked: "Stacked",
-};
-
 // All prototype choices live in the URL query string so a configuration can be
-// shared as a link (e.g. ?scenario=migrated&mark=bars&agent=minimal),
+// shared as a link (e.g. ?scenario=migrated),
 // and are mirrored to localStorage so they survive navigating away and back.
 // URL param wins; stored value fills in when the URL has none.
 
@@ -120,55 +104,9 @@ function useUrlEnum<T extends string>(key: string, allowed: readonly T[], initia
   return [urlValue ?? fallback, set] as const;
 }
 
-function useUrlBool(key: string, initial: boolean) {
-  const searchParams = useSearchParams();
-  const raw = searchParams?.get(key) ?? null;
-  const urlValue = raw === "true" ? true : raw === "false" ? false : null;
-
-  const [fallback, setFallback] = useState(initial);
-
-  useEffect(() => {
-    if (urlValue !== null) {
-      writeStored(key, String(urlValue));
-      return;
-    }
-    const stored = readStored(key);
-    const resolved = stored == null ? initial : stored === "true";
-    setFallback(resolved);
-    writeParam(key, String(resolved));
-    writeStored(key, String(resolved));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, urlValue]);
-
-  const set = useCallback(
-    (next: boolean) => {
-      setFallback(next);
-      writeParam(key, String(next));
-      writeStored(key, String(next));
-    },
-    [key],
-  );
-
-  return [urlValue ?? fallback, set] as const;
-}
-
 export function useScenario() {
   const [scenario, setScenario] = useUrlEnum<Scenario>("scenario", SCENARIOS, "migrated");
   return { scenario, setScenario };
-}
-
-export function useMark() {
-  const [mark, setMark] = useUrlEnum<Mark>("mark", MARKS, "bars");
-  return { mark, setMark };
-}
-
-export function useAgentStyle() {
-  const [agentStyle, setAgentStyle] = useUrlEnum<AgentStyle>("agent", AGENT_STYLES, "minimal");
-  return { agentStyle, setAgentStyle };
-}
-
-export function useAgentDismissed() {
-  return useUrlBool("agentHidden", false);
 }
 
 export type OverviewOption = "hero" | "stats" | "hub" | "hybrid";
@@ -301,7 +239,7 @@ export function PrototypeCommandPalette({ groups }: { groups: CmdGroup[] }) {
                     run(filtered[activeIndex]);
                   }
                 }}
-                placeholder="Set scenario, mark…"
+                placeholder="Set scenario…"
                 className="w-full border-b border-grayA-4 bg-transparent px-4 py-3 text-sm text-accent-12 outline-none placeholder:text-gray-9"
               />
               <div className="max-h-[50vh] overflow-y-auto p-1.5">
@@ -343,27 +281,16 @@ export function PrototypeCommandPalette({ groups }: { groups: CmdGroup[] }) {
   );
 }
 
-// Groups the projects-list-specific toggles (scenario/mark/agent) and
-// renders them through the shared palette shell above.
+// The projects list keeps one choice — which scenario's data to show — plus a
+// reset. Mark, row style, agent style and chart colours are settled and live as
+// constants at their call sites.
 export function DebugCommand({
   scenario,
   onScenario,
-  mark,
-  onMark,
-  agentStyle,
-  onAgentStyle,
-  agentDismissed,
-  onToggleAgent,
   onReset,
 }: {
   scenario: Scenario;
   onScenario: (s: Scenario) => void;
-  mark: Mark;
-  onMark: (m: Mark) => void;
-  agentStyle: AgentStyle;
-  onAgentStyle: (a: AgentStyle) => void;
-  agentDismissed: boolean;
-  onToggleAgent: () => void;
   onReset: () => void;
 }) {
   const groups: CmdGroup[] = [
@@ -376,38 +303,6 @@ export function DebugCommand({
         active: s === scenario,
         run: () => onScenario(s),
       })),
-    },
-    {
-      name: "Mark",
-      items: MARKS.map((m) => ({
-        id: `mk-${m}`,
-        group: "Mark",
-        label: MARK_LABELS[m],
-        active: m === mark,
-        run: () => onMark(m),
-      })),
-    },
-    {
-      name: "Agent style",
-      items: AGENT_STYLES.map((a) => ({
-        id: `ag-${a}`,
-        group: "Agent style",
-        label: AGENT_STYLE_LABELS[a],
-        active: a === agentStyle,
-        run: () => onAgentStyle(a),
-      })),
-    },
-    {
-      name: "Agent card",
-      items: [
-        {
-          id: "agent",
-          group: "Agent card",
-          label: agentDismissed ? "Restore agent card" : "Dismiss agent card",
-          active: false,
-          run: onToggleAgent,
-        },
-      ],
     },
     {
       name: "Data",

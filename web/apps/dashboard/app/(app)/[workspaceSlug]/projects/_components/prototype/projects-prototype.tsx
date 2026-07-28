@@ -9,15 +9,20 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
 } from "@unkey/ui";
+import { useState } from "react";
 import { CreateProjectButton } from "../create-project-button";
+import type { AgentStyle } from "./agent-setup";
+import type { Mark } from "./marks";
 import { ProjectGrid, ProjectsEmptyCard } from "./project-grid";
 import { Rail } from "./rail";
 import type { RowVariant } from "./scenario";
-import { DebugCommand, useAgentDismissed, useAgentStyle, useMark, useScenario } from "./scenario";
+import { DebugCommand, useScenario } from "./scenario";
 import { PrototypeProvider, usePrototypeWorlds } from "./store";
 
-// The row treatment is settled: divided list rows with a bar mark.
+// Settled treatments: divided list rows, bar charts, the compact agent strip.
 const ROW_VARIANT: RowVariant = "list";
+const ROW_MARK: Mark = "bars";
+const AGENT_STYLE: AgentStyle = "minimal";
 
 export function ProjectsPrototype() {
   return (
@@ -30,9 +35,9 @@ export function ProjectsPrototype() {
 function ProjectsPrototypeInner() {
   const workspace = useWorkspaceNavigation();
   const { scenario, setScenario } = useScenario();
-  const { mark, setMark } = useMark();
-  const { agentStyle, setAgentStyle } = useAgentStyle();
-  const [agentDismissed, setAgentDismissed] = useAgentDismissed();
+  // Dismissal is the card's own behaviour, not a shared setting, so it stops at
+  // component state — no URL param, no localStorage.
+  const [agentDismissed, setAgentDismissed] = useState(false);
   const { worlds, resetWorlds } = usePrototypeWorlds();
 
   const world = worlds[scenario];
@@ -61,25 +66,15 @@ function ProjectsPrototypeInner() {
           <Rail
             data={world}
             variant={ROW_VARIANT}
-            mark={mark}
-            agentStyle={agentStyle}
+            mark={ROW_MARK}
+            agentStyle={AGENT_STYLE}
             workspaceSlug={workspace.slug}
             agentDismissed={agentDismissed}
             onDismissAgent={() => setAgentDismissed(true)}
           />
         </div>
       </PageBody>
-      <DebugCommand
-        scenario={scenario}
-        onScenario={setScenario}
-        mark={mark}
-        onMark={setMark}
-        agentStyle={agentStyle}
-        onAgentStyle={setAgentStyle}
-        agentDismissed={agentDismissed}
-        onToggleAgent={() => setAgentDismissed(!agentDismissed)}
-        onReset={resetWorlds}
-      />
+      <DebugCommand scenario={scenario} onScenario={setScenario} onReset={resetWorlds} />
     </PageContainer>
   );
 }
