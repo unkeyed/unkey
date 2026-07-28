@@ -5,6 +5,7 @@ import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -27,7 +28,7 @@ export const appRegionalSettings = mysqlTable(
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
-    horizontalAutoscalingPolicyId: caseInsensitiveVarchar("horizontal_autoscaling_policy_id", {
+    horizontalAutoscalingPolicyId: caseSensitiveVarchar("horizontal_autoscaling_policy_id", {
       length: 64,
     }),
 
