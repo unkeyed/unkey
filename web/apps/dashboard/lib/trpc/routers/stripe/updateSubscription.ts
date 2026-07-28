@@ -127,16 +127,13 @@ export const updateSubscription = workspaceProcedure
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message:
-            err.message ||
-            "Your card was declined. Please update your payment method and try again.",
+          message: "Your card was declined. Please update your payment method and try again.",
         });
       }
       if (err instanceof Stripe.errors.StripeError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            err.message ||
             "Payment could not be completed. Please update your payment method and try again.",
         });
       }

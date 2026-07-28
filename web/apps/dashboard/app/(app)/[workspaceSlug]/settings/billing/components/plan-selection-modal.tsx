@@ -63,7 +63,13 @@ export const PlanSelectionModal = ({
   }, [trpcUtils]);
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.status === "payment_required") {
+        window.location.assign(
+          result.paymentUrl ?? routes.settings.stripe.portal({ workspaceSlug }),
+        );
+        return;
+      }
       handleOpenChange(false);
       setIsLoading(false);
       toast.success("Plan activated successfully!");
@@ -72,7 +78,16 @@ export const PlanSelectionModal = ({
     },
     onError: (err) => {
       setIsLoading(false);
-      toast.error(err.message);
+      if (err.data?.code !== "BAD_REQUEST") {
+        toast.error(err.message);
+        return;
+      }
+      toast.error(err.message, {
+        action: {
+          label: "Fix payment",
+          onClick: () => router.push(routes.settings.stripe.portal({ workspaceSlug })),
+        },
+      });
     },
   });
 
@@ -85,7 +100,16 @@ export const PlanSelectionModal = ({
     },
     onError: (err) => {
       setIsLoading(false);
-      toast.error(err.message);
+      if (err.data?.code !== "BAD_REQUEST") {
+        toast.error(err.message);
+        return;
+      }
+      toast.error(err.message, {
+        action: {
+          label: "Fix payment",
+          onClick: () => router.push(routes.settings.stripe.portal({ workspaceSlug })),
+        },
+      });
     },
   });
 

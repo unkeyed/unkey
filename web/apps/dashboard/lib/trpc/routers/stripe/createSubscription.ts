@@ -4,7 +4,7 @@ import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { upsertBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
+import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -88,13 +88,19 @@ export const createSubscription = workspaceProcedure
     // downgrades a live subscription to "absent".
     if (ctx.workspace.stripeSubscriptionId) {
       const recorded = await stripe.subscriptions
-        .retrieve(ctx.workspace.stripeSubscriptionId)
+        .retrieve(ctx.workspace.stripeSubscriptionId, { expand: ["latest_invoice"] })
         .catch((err: unknown) => {
           if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
             return null;
           }
           throw err;
         });
+      if (recorded?.status === "incomplete") {
+        return {
+          status: "payment_required" as const,
+          paymentUrl: hostedInvoiceUrl(recorded),
+        };
+      }
       if (recorded && !isDeadSubscription(recorded)) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
@@ -138,10 +144,11 @@ export const createSubscription = workspaceProcedure
     }
 
     /**
-     * `error_if_incomplete` makes Stripe reject the call with a 402 if the first
-     * invoice cannot be paid (e.g. card declined). We rely on this to keep the workspace
-     * on the Free tier when a first-time signup's payment fails — no DB writes happen
-     * unless the subscription is fully active.
+     * `allow_incomplete` attempts the vaulted card immediately, while giving a
+     * failed first payment a recoverable Stripe subscription and hosted invoice.
+     * We record that subscription below but keep the workspace on Free until
+     * invoice.paid activates it. This handles both a declined card and customer
+     * actions such as 3DS without trusting a setup-only card check.
      */
     let sub: Stripe.Subscription;
     try {
@@ -165,7 +172,9 @@ export const createSubscription = workspaceProcedure
         // credit-grant net-fee math. Stay on classic.
         billing_mode: { type: "classic" },
         proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
+        payment_behavior: "allow_incomplete",
+        payment_settings: { save_default_payment_method: "on_subscription" },
+        expand: ["latest_invoice"],
       };
 
       // Deterministic idempotency key: if Stripe created (and charged) the
@@ -185,7 +194,7 @@ export const createSubscription = workspaceProcedure
       let idempotencyKey = `api-subscribe:${ctx.workspace.id}:${input.productId}`;
       sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
       for (let attempt = 0; attempt < 3; attempt++) {
-        const live = await stripe.subscriptions.retrieve(sub.id);
+        const live = await stripe.subscriptions.retrieve(sub.id, { expand: ["latest_invoice"] });
         if (!isDeadSubscription(live)) {
           sub = live;
           break;
@@ -197,25 +206,37 @@ export const createSubscription = workspaceProcedure
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message:
-            err.message ||
-            "Your card was declined. Please update your payment method and try again.",
+          message: "Your card was declined. Please update your payment method and try again.",
         });
       }
       if (err instanceof Stripe.errors.StripeError) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message:
-            err.message ||
-            "Payment could not be completed. Please update your payment method and try again.",
+          message: "Payment could not be started. Please try again or update your payment method.",
         });
       }
       throw err;
     }
 
+    if (sub.status === "incomplete") {
+      // Link the pending subscription before sending the customer to Stripe.
+      // This makes the invoice.paid webhook authoritative even if they never
+      // return to the dashboard after completing payment.
+      await upsertBillingSubscription(db, {
+        workspaceId: ctx.workspace.id,
+        product: "api",
+        stripeSubscriptionId: sub.id,
+      });
+
+      return {
+        status: "payment_required" as const,
+        paymentUrl: hostedInvoiceUrl(sub),
+      };
+    }
+
     if (sub.status !== "active" && sub.status !== "trialing") {
-      // Defensive guard: error_if_incomplete should make this unreachable, but never
-      // grant tier access to a subscription that isn't actually paid.
+      // Never grant tier access for any unexpected unpaid state. Incomplete is
+      // handled above; other states cannot be completed through this flow.
       try {
         await stripe.subscriptions.cancel(sub.id);
       } catch (cancelErr) {
@@ -281,4 +302,6 @@ export const createSubscription = workspaceProcedure
         },
       });
     });
+
+    return { status: "active" as const };
   });

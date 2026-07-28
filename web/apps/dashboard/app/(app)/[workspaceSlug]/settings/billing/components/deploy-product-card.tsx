@@ -2,6 +2,7 @@
 
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
@@ -27,6 +28,7 @@ function formatRenewalDate(millis: number): string {
 type DeployProductCardProps = {
   isAdmin: boolean;
   hasPaymentMethod: boolean;
+  workspaceSlug: string;
   /** Open the plan picker on mount (post-checkout intent hand-off). */
   autoOpenPlanModal?: boolean;
 };
@@ -40,6 +42,7 @@ type DeployProductCardProps = {
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
   hasPaymentMethod,
+  workspaceSlug,
   autoOpenPlanModal = false,
 }) => {
   const trpcUtils = trpc.useUtils();
@@ -91,13 +94,36 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   };
 
   const subscribe = trpc.stripe.subscribeDeploy.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.status === "payment_required") {
+        window.location.assign(
+          result.paymentUrl ?? routes.settings.stripe.portal({ workspaceSlug }),
+        );
+        return;
+      }
       setPendingPlan(null);
       setPlanModalOpen(false);
       toast.success("Subscribed to Compute");
       await revalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => {
+      if (err.data?.code !== "BAD_REQUEST") {
+        toast.error(err.message);
+        return;
+      }
+      toast.error(err.message, {
+        action: {
+          label: "Fix payment",
+          onClick: () => window.location.assign(routes.settings.stripe.portal({ workspaceSlug })),
+        },
+      });
+    },
+  });
+  const completePayment = trpc.stripe.getSubscriptionPaymentUrl.useMutation({
+    onSuccess: ({ paymentUrl }) => window.location.assign(paymentUrl),
+    onError: () => {
+      toast.error("Could not open the pending payment. Please try again or contact support.");
+    },
   });
   const change = trpc.stripe.changeDeployPlan.useMutation({
     onSuccess: async () => {
@@ -106,7 +132,18 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       toast.success("Compute plan changed");
       await revalidate();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => {
+      if (err.data?.code !== "BAD_REQUEST") {
+        toast.error(err.message);
+        return;
+      }
+      toast.error(err.message, {
+        action: {
+          label: "Fix payment",
+          onClick: () => window.location.assign(routes.settings.stripe.portal({ workspaceSlug })),
+        },
+      });
+    },
   });
   const cancel = trpc.stripe.cancelDeploy.useMutation({
     onSuccess: async () => {
@@ -128,6 +165,9 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
 
   const plans = plansData?.plans ?? [];
   const currentPlanOption = plans.find((p) => p.plan === currentPlan);
+  const paymentRequired = Boolean(
+    subscription?.status && ["incomplete", "unpaid", "past_due"].includes(subscription.status),
+  );
 
   // Gross month-to-date usage in cents, priced the same way the spend-cap
   // worker prices it, so the budget bar tracks what the cap enforces.
@@ -291,7 +331,21 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             : "Run and scale your projects. Every plan includes usage credits equal to its fee."
         }
         action={
-          currentPlan ? (
+          paymentRequired ? (
+            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+              <span>
+                <Button
+                  variant="primary"
+                  size="md"
+                  disabled={!isAdmin || completePayment.isLoading}
+                  loading={completePayment.isLoading}
+                  onClick={() => completePayment.mutate({ product: "compute" })}
+                >
+                  Complete payment
+                </Button>
+              </span>
+            </InfoTooltip>
+          ) : currentPlan ? (
             <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
               <span>
                 <Button

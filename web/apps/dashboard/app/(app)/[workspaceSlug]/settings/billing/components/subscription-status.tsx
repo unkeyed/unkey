@@ -1,14 +1,18 @@
 "use client";
-import { routes } from "@/lib/navigation/routes";
-import { Button, SettingCard } from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/trpc/client";
+import { Button, SettingCard, toast } from "@unkey/ui";
 import type { Stripe } from "stripe";
 
 export const SubscriptionStatus: React.FC<{
+  isAdmin: boolean;
   status: Stripe.Subscription.Status;
-  workspaceSlug: string;
 }> = (props) => {
-  const router = useRouter();
+  const completePayment = trpc.stripe.getSubscriptionPaymentUrl.useMutation({
+    onSuccess: ({ paymentUrl }) => window.location.assign(paymentUrl),
+    onError: () => {
+      toast.error("Could not open the pending payment. Please try again or contact support.");
+    },
+  });
 
   const statusList = ["incomplete", "incomplete_expired", "unpaid", "past_due"];
 
@@ -16,21 +20,27 @@ export const SubscriptionStatus: React.FC<{
     return (
       <SettingCard
         title="Payment Required"
-        description="There is a problem with your payment. Please resolve it."
+        description={
+          props.status === "incomplete_expired"
+            ? "The previous payment attempt expired. Choose your plan again to retry."
+            : "Complete the payment in Stripe to activate or restore your plan."
+        }
         border="both"
         className="border-error-7 bg-error-3"
       >
-        <div className="flex justify-end w-full">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() =>
-              router.push(routes.settings.stripe.portal({ workspaceSlug: props.workspaceSlug }))
-            }
-          >
-            Open Portal
-          </Button>
-        </div>
+        {props.status !== "incomplete_expired" ? (
+          <div className="flex justify-end w-full">
+            <Button
+              variant="primary"
+              size="lg"
+              disabled={!props.isAdmin || completePayment.isLoading}
+              loading={completePayment.isLoading}
+              onClick={() => completePayment.mutate({ product: "api" })}
+            >
+              Complete payment
+            </Button>
+          </div>
+        ) : null}
       </SettingCard>
     );
   }

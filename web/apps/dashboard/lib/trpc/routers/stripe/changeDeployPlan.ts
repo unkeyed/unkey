@@ -95,7 +95,6 @@ export const changeDeployPlan = workspaceProcedure
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            err.message ||
             "Payment could not be completed. Please update your payment method and try again.",
         });
       }

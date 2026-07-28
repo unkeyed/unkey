@@ -74,10 +74,10 @@ export default function ProjectsPage() {
  *   workspace is entitled and the entitlement check short-circuits to the
  *   toast/dialog with no subscribeDeploy call.
  *
- * subscribeDeploy and its BAD_REQUEST decline-recovery stay for the has-card
- * path and the setup-mode fallback (workspace already has a subscription, so it
- * vaults a card and attaches Compute items on return). Params are stripped
- * after capture so a refresh doesn't re-fire, and a ref guards double-firing.
+ * subscribeDeploy returns a Hosted Invoice recovery URL when a vaulted card is
+ * declined or needs customer action. BAD_REQUEST remains the no-payment-method
+ * fallback into Checkout. Params are stripped after capture so a refresh
+ * doesn't re-fire, and a ref guards double-firing.
  *
  * The params must be read reactively, not captured at mount: the has-card path
  * pushes ?pendingPlan&from while the user is ALREADY on the projects page (the
@@ -145,7 +145,16 @@ function usePendingSubscribe() {
       subscribe.mutate(
         { plan: pending.plan },
         {
-          onSuccess: markActive,
+          onSuccess: async (result) => {
+            if (result.status === "payment_required") {
+              window.location.assign(
+                result.paymentUrl ??
+                  routes.settings.stripe.portal({ workspaceSlug: workspace.slug }),
+              );
+              return;
+            }
+            await markActive();
+          },
           onError: async (error) => {
             if (await isEntitled()) {
               await markActive();
@@ -157,9 +166,9 @@ function usePendingSubscribe() {
               toast.error("Only workspace admins can manage billing.");
               return;
             }
-            // Payment failure: the workspace has a Stripe customer but no usable
-            // card, so the charge fails. Send them to Stripe to add one — /success
-            // returns to this landing and re-subscribes.
+            // No usable payment method was available before Stripe could create
+            // a recoverable invoice. Send them through Checkout to add one;
+            // /success returns to this landing and re-subscribes.
             if (error.data?.code === "BAD_REQUEST") {
               router.push(
                 routes.settings.stripe.checkout({

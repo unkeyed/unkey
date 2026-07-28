@@ -16,7 +16,11 @@ import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
-import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
+import {
+  invoiceSubscriptionId,
+  isPaymentRecovery,
+  isPaymentRecoveryUpdate,
+} from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import {
@@ -52,13 +56,16 @@ import Stripe from "stripe";
  * resubscribe (subscribeDeploy requires plan IS NULL). A resume clears cancel_at
  * and the next update re-mirrors the live plan. This mirrors the API side, whose
  * updated handler already returns early on a cancelling subscription.
- **/
+ * An incomplete first charge is also unentitled, while past_due keeps its
+ * existing dunning grace and remains mirrored until Stripe ends it.
+ */
 async function mirrorDeployPlan(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
 ): Promise<void> {
   const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
-  const plan = cancelling ? null : detectDeployPlan(sub);
+  const neverActivated = sub.status === "incomplete" || sub.status === "incomplete_expired";
+  const plan = cancelling || neverActivated ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
     await db.transaction(async (tx) => {
@@ -283,6 +290,134 @@ async function resolveApiSubscriptionContext(
   return { unitAmount: price.unit_amount, customer, product };
 }
 
+/** A recovered Hosted Invoice payment should replace the known-bad customer default. */
+async function promoteSubscriptionPaymentMethod(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  workspaceId: string,
+): Promise<void> {
+  const paymentMethod =
+    typeof sub.default_payment_method === "string"
+      ? sub.default_payment_method
+      : sub.default_payment_method?.id;
+  const customerId =
+    typeof sub.customer === "string" ? sub.customer : (sub.customer?.id ?? undefined);
+  if (!paymentMethod || !customerId) {
+    return;
+  }
+
+  await stripe.customers
+    .update(customerId, { invoice_settings: { default_payment_method: paymentMethod } })
+    .catch((error: unknown) => {
+      console.error("Failed to update customer default after recovered subscription payment", {
+        workspaceId,
+        subscriptionId: sub.id,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+}
+
+/**
+ * Reconciles a first subscription after the customer completes a recoverable
+ * Hosted Invoice payment. Immediate successful signups still write inline;
+ * plan changes and renewals have different billing reasons and must not race
+ * their owning paths.
+ */
+async function reconcilePaidInitialSubscription(
+  stripe: Stripe,
+  invoice: Stripe.Invoice,
+  eventId: string,
+): Promise<void> {
+  if (invoice.billing_reason !== "subscription_create") {
+    return;
+  }
+
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId) {
+    return;
+  }
+
+  const subscription = await db.query.billingSubscriptions.findFirst({
+    where: (table, { eq }) => eq(table.stripeSubscriptionId, subscriptionId),
+    with: { workspace: { with: { billing: true } } },
+  });
+  const ws = subscription?.workspace;
+  const billing = ws?.billing;
+  if (!subscription || !ws || !billing || ws.deletedAtM !== null) {
+    return;
+  }
+
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  if (sub.status !== "active" && sub.status !== "trialing") {
+    throw new Error(`Paid subscription ${subscriptionId} is not active yet.`);
+  }
+
+  await promoteSubscriptionPaymentMethod(stripe, sub, ws.id);
+  if (subscription.product === "compute") {
+    await mirrorDeployPlan(billing, sub);
+    return;
+  }
+
+  const apiContext = await resolveApiSubscriptionContext(stripe, sub);
+  if (!apiContext) {
+    throw new Error(`Could not resolve paid API subscription ${subscriptionId}.`);
+  }
+  const { product } = apiContext;
+  if (billing.tier === product.name) {
+    return;
+  }
+
+  const quotas = validateAndParseQuotas(product);
+  if (!quotas.valid) {
+    console.error("Paid API subscription activation skipped: invalid product quota metadata", {
+      productId: product.id,
+      productName: product.name,
+      subscriptionId,
+      eventId,
+    });
+    await alertInvalidProductQuotaMetadata({
+      productId: product.id,
+      productName: product.name,
+      subscriptionId,
+      eventId,
+    });
+    throw new Error(`Paid API subscription ${subscriptionId} has invalid quota metadata.`);
+  }
+
+  const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.workspaceBilling)
+      .set({ tier: product.name })
+      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+    await tx
+      .insert(schema.quotas)
+      .values({
+        workspaceId: ws.id,
+        requestsPerMonth,
+        logsRetentionDays,
+        auditLogsRetentionDays,
+        team: true,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          requestsPerMonth,
+          logsRetentionDays,
+          auditLogsRetentionDays,
+          team: true,
+        },
+      });
+    await insertAuditLogs(tx, {
+      workspaceId: ws.id,
+      actor: { type: "system", id: "stripe" },
+      event: "workspace.update",
+      description: `Activated ${product.name} plan after payment.`,
+      resources: [],
+      context: { location: "", userAgent: undefined },
+    });
+  });
+}
+
 /**
  * Deactivates every active membership in `orgId` except the earliest one (the original
  * creator). Determining the creator from membership createdAt avoids storing extra DB
@@ -434,10 +569,21 @@ export const POST = async (req: Request): Promise<Response> => {
             sub,
             computeUpdatedAlert(deployConfig, sub, previousAttributes),
           );
+          if (
+            previousAttributes?.status === "incomplete" &&
+            (sub.status === "active" || sub.status === "trialing")
+          ) {
+            await promoteSubscriptionPaymentMethod(stripe, sub, ws.id);
+          }
           return new Response("OK", { status: 200 });
         }
 
         // API-matched from here: reconcile tier/quotas from the API plan item.
+        // An incomplete first invoice has been linked for recovery, not paid;
+        // invoice.paid is the only path allowed to grant its tier and quotas.
+        if (sub.status === "incomplete" || sub.status === "incomplete_expired") {
+          return new Response("OK", { status: 200 });
+        }
 
         // Skip heuristics correlate the event snapshot with previous_attributes,
         // so they read eventSub (what the event reported), not the re-retrieved
@@ -1083,6 +1229,11 @@ export const POST = async (req: Request): Promise<Response> => {
         if (!invoice || typeof invoice !== "object" || !invoice.customer) {
           return new Response("OK", { status: 200 });
         }
+
+        // Recoverable first payments deliberately record the incomplete
+        // subscription without granting API quotas or a Compute plan. Payment
+        // is the only event that can activate it; reconciliation is idempotent.
+        await reconcilePaidInitialSubscription(stripe, invoice, event.id);
 
         try {
           const grant = await grantDeployCreditsForInvoice(stripe, invoice);

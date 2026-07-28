@@ -106,7 +106,7 @@ export const Client: React.FC = () => {
       <div className="flex w-full flex-col items-center gap-6">
         {subscription ? (
           <SubscriptionStatus
-            workspaceSlug={workspace.slug}
+            isAdmin={isAdmin}
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}

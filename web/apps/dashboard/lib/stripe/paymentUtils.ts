@@ -5,7 +5,7 @@ import type { PreviousAttributes } from "./subscriptionUtils";
  * The subscription an invoice belongs to:
  * invoice.parent.subscription_details.subscription.
  */
-function invoiceSubscriptionId(invoice: Stripe.Invoice): string | undefined {
+export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | undefined {
   if (invoice.parent?.type !== "subscription_details") {
     return undefined;
   }

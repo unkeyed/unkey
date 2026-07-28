@@ -9,7 +9,7 @@ import {
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
-import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
+import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -102,13 +102,13 @@ export const subscribeDeploy = workspaceProcedure
 
     try {
       // Columns to write once the Stripe mutation below succeeds, set in whichever
-      // branch runs. Written optimistically so the UI reflects the new plan now;
-      // the customer.subscription.* webhook reconciles them (a no-op, since it
-      // derives the same value from the subscription we just mutated).
-      let workspaceUpdate: { plan: string };
+      // branch runs. A recoverable incomplete subscription releases the optimistic
+      // plan claim until its invoice is paid; the webhook then activates it.
+      let workspaceUpdate: { plan: string | null };
       // Set only on the create path: the new subscription id to record against
       // this workspace's Deploy product once the plan write commits.
       let createdDeploySubscriptionId: string | undefined;
+      let paymentUrl: string | null | undefined;
 
       // The recorded Deploy subscription can be a corpse (cancelDeploy cancels it
       // outright, and the deleted-webhook that clears the column may not have
@@ -118,13 +118,17 @@ export const subscribeDeploy = workspaceProcedure
       if (ctx.workspace.stripeDeploySubscriptionId) {
         const recorded = await stripe.subscriptions.retrieve(
           ctx.workspace.stripeDeploySubscriptionId,
+          { expand: ["latest_invoice"] },
         );
         if (!isDeadSubscription(recorded)) {
           existingSub = recorded;
         }
       }
 
-      if (existingSub) {
+      if (existingSub?.status === "incomplete") {
+        workspaceUpdate = { plan: null };
+        paymentUrl = hostedInvoiceUrl(existingSub);
+      } else if (existingSub) {
         // A live Deploy subscription already exists. The only supported path is
         // resuming one that is cancelling this period (a Deploy-only cancel keeps
         // every item and just sets cancel_at_period_end); a live, non-cancelling
@@ -170,7 +174,10 @@ export const subscribeDeploy = workspaceProcedure
         workspaceUpdate = { plan: input.plan };
       } else {
         // Free tier: create a subscription whose initial items are the Deploy set.
-        // error_if_incomplete keeps us off a half-paid state if the card declines.
+        // allow_incomplete charges a valid vaulted card immediately and gives a
+        // failed first payment a hosted recovery page.
+        // The subscription id is recorded, but the plan remains unentitled until
+        // Stripe confirms payment and the subscription webhook activates it.
         //
         // subscriptions.create only consults the customer's DEFAULT payment
         // method, and a card that arrived via subscription-mode Checkout is
@@ -211,7 +218,9 @@ export const subscribeDeploy = workspaceProcedure
           // pin in createSubscription.
           billing_mode: { type: "classic" },
           proration_behavior: "always_invoice",
-          payment_behavior: "error_if_incomplete",
+          payment_behavior: "allow_incomplete",
+          payment_settings: { save_default_payment_method: "on_subscription" },
+          expand: ["latest_invoice"],
         };
 
         let sub: Stripe.Subscription;
@@ -238,7 +247,9 @@ export const subscribeDeploy = workspaceProcedure
           let idempotencyKey = `deploy-subscribe:${ctx.workspace.id}`;
           sub = await stripe.subscriptions.create(createParams, { idempotencyKey });
           for (let attempt = 0; attempt < 3; attempt++) {
-            const live = await stripe.subscriptions.retrieve(sub.id);
+            const live = await stripe.subscriptions.retrieve(sub.id, {
+              expand: ["latest_invoice"],
+            });
             if (!isDeadSubscription(live)) {
               sub = live;
               break;
@@ -250,7 +261,11 @@ export const subscribeDeploy = workspaceProcedure
           throw toBillingError(err);
         }
 
-        if (sub.status !== "active" && sub.status !== "trialing") {
+        if (sub.status === "incomplete") {
+          workspaceUpdate = { plan: null };
+          createdDeploySubscriptionId = sub.id;
+          paymentUrl = hostedInvoiceUrl(sub);
+        } else if (sub.status !== "active" && sub.status !== "trialing") {
           try {
             await stripe.subscriptions.cancel(sub.id);
           } catch (cancelErr) {
@@ -263,16 +278,17 @@ export const subscribeDeploy = workspaceProcedure
             code: "BAD_REQUEST",
             message: `Subscription was created but is not active (ID: ${sub.id}). Please contact support.`,
           });
+        } else {
+          // Link the new subscription so the customer.subscription.* webhook can
+          // resolve this workspace.
+          workspaceUpdate = { plan: input.plan };
+          createdDeploySubscriptionId = sub.id;
         }
-
-        // Link the new subscription so the customer.subscription.* webhook can
-        // resolve this workspace.
-        workspaceUpdate = { plan: input.plan };
-        createdDeploySubscriptionId = sub.id;
       }
 
-      // One transaction so the plan write and its audit log commit together; a
-      // failure in either rolls back the other.
+      // One transaction so the subscription link and entitlement state cannot
+      // diverge. Pending payment deliberately writes plan=null and no activation
+      // audit; invoice.paid/customer.subscription.updated own activation later.
       await db.transaction(async (tx) => {
         await tx
           .update(schema.workspaceBilling)
@@ -286,15 +302,21 @@ export const subscribeDeploy = workspaceProcedure
             stripeSubscriptionId: createdDeploySubscriptionId,
           });
         }
-        await insertAuditLogs(tx, {
-          workspaceId: ctx.workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "workspace.update",
-          description: `Subscribed to Compute ${input.plan} plan.`,
-          resources: [],
-          context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
-        });
+        if (workspaceUpdate.plan) {
+          await insertAuditLogs(tx, {
+            workspaceId: ctx.workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "workspace.update",
+            description: `Subscribed to Compute ${input.plan} plan.`,
+            resources: [],
+            context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          });
+        }
       });
+
+      return paymentUrl !== undefined
+        ? { status: "payment_required" as const, paymentUrl }
+        : { status: "active" as const };
     } catch (err) {
       await releaseClaim().catch((releaseErr) => {
         console.error("Failed to release Compute plan claim after subscribe error", {
@@ -311,12 +333,16 @@ export const subscribeDeploy = workspaceProcedure
  * else so genuine bugs are not masked as a card problem.
  */
 function toBillingError(err: unknown): TRPCError {
-  if (err instanceof Stripe.errors.StripeCardError || err instanceof Stripe.errors.StripeError) {
+  if (err instanceof Stripe.errors.StripeCardError) {
     return new TRPCError({
       code: "BAD_REQUEST",
-      message:
-        err.message ||
-        "Payment could not be completed. Please update your payment method and try again.",
+      message: "Your card was declined. Please update your payment method and try again.",
+    });
+  }
+  if (err instanceof Stripe.errors.StripeError) {
+    return new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Payment could not be started. Please try again or update your payment method.",
     });
   }
   throw err;
