@@ -26,6 +26,7 @@ import (
 	sf "github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -234,12 +235,18 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 	key := principal.WorkspaceID + ":" + name
 	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
+			projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+			if resolveErr != nil {
+				return db.FindRatelimitNamespace{}, resolveErr //nolint:exhaustruct
+			}
+
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
 
 			insertErr := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
 				ID:          id,
 				WorkspaceID: principal.WorkspaceID,
+				ProjectID:   projectID,
 				Name:        name,
 				CreatedAt:   now,
 			})
@@ -251,15 +258,9 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			}
 
 			if db.IsDuplicateKeyError(insertErr) {
-				// Another request created it first — re-fetch using the write connection
-				row, fetchErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
-					WorkspaceID: principal.WorkspaceID,
-					Namespace:   name,
-				})
-				if fetchErr != nil {
-					return db.FindRatelimitNamespace{}, fetchErr //nolint:exhaustruct
-				}
-				return namespace.ParseNamespaceRow(row), nil
+				// Re-fetch after this transaction closes so a snapshot established by
+				// EnsureDefaultProject cannot hide the concurrently committed row.
+				return db.FindRatelimitNamespace{}, nil //nolint:exhaustruct
 			}
 
 			result := db.FindRatelimitNamespace{
@@ -304,6 +305,19 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 		})
 		if err != nil {
 			return ns, err
+		}
+		if ns.ID == "" {
+			row, fetchErr := db.Query.FindRatelimitNamespace(ctx, h.DB.RW(), db.FindRatelimitNamespaceParams{
+				WorkspaceID: principal.WorkspaceID,
+				Namespace:   name,
+			})
+			if fetchErr != nil {
+				return ns, fault.Wrap(fetchErr,
+					fault.Code(codes.App.Internal.UnexpectedError.URN()),
+					fault.Public("Failed to fetch namespace after race condition."),
+				)
+			}
+			ns = namespace.ParseNamespaceRow(row)
 		}
 
 		// Warm cache by both name and ID after the transaction has committed

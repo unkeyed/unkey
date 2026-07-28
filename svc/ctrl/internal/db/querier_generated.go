@@ -195,7 +195,7 @@ type Querier interface {
 	FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
-	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
@@ -317,6 +317,15 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
@@ -497,7 +506,7 @@ type Querier interface {
 	FindKeyIDByHash(ctx context.Context, hash string) (string, error)
 	//FindKeySpaceByID
 	//
-	//  SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+	//  SELECT pk, id, workspace_id, project_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, id string) (KeyAuth, error)
 	//FindLatestReadyDeploymentByAppAndEnv
 	//
@@ -516,7 +525,7 @@ type Querier interface {
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -536,7 +545,7 @@ type Querier interface {
 	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -599,7 +608,7 @@ type Querier interface {
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project- and
@@ -698,12 +707,14 @@ type Querier interface {
 	//      id,
 	//      name,
 	//      workspace_id,
+	//      project_id,
 	//      auth_type,
 	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1039,10 +1050,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1184,6 +1197,7 @@ type Querier interface {
 	//  INSERT INTO `key_auth` (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      store_encrypted_keys,
 	//      default_prefix,
@@ -1193,7 +1207,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//        ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1206,12 +1221,14 @@ type Querier interface {
 	//  INSERT INTO permissions (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1239,11 +1256,13 @@ type Querier interface {
 	//  INSERT INTO roles (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1274,7 +1293,6 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      created_at_m,
-	//      tier,
 	//      beta_features,
 	//      enabled,
 	//      delete_protection,
@@ -1286,7 +1304,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      'Free',
 	//      '{}',
 	//      true,
 	//      true,

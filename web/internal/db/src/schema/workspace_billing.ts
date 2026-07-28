@@ -32,9 +32,9 @@ export const workspaceBilling = mysqlTable(
      */
     tier: varchar("tier", { length: 256 }).default("Free"),
 
-    // stripe
+    // stripe. Per-product subscription ids live in billing_subscriptions now;
+    // only the shared customer id remains on the billing row.
     stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
-    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
 
     /**
      * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by

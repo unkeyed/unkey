@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertWorkspace is the base query for bulk insert
-const bulkUpsertWorkspace = `INSERT INTO workspaces ( id, org_id, name, slug, created_at_m, tier, beta_features, enabled, delete_protection ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertWorkspace = `INSERT INTO workspaces ( id, org_id, name, slug, created_at_m, beta_features, enabled, delete_protection ) VALUES %s ON DUPLICATE KEY UPDATE
     beta_features = VALUES(beta_features),
     name = VALUES(name)`
 
@@ -23,7 +23,7 @@ func (q *BulkQueries) UpsertWorkspace(ctx context.Context, db DBTX, args []Upser
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, true, false)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, true, false)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertWorkspace, strings.Join(valueClauses, ", "))
@@ -36,7 +36,6 @@ func (q *BulkQueries) UpsertWorkspace(ctx context.Context, db DBTX, args []Upser
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.CreatedAtM)
-		allArgs = append(allArgs, arg.Tier)
 		allArgs = append(allArgs, arg.BetaFeatures)
 	}
 

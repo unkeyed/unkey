@@ -209,6 +209,14 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	require.True(t, key.Name.Valid)
 	require.Equal(t, name, key.Name.String)
 	require.True(t, key.Enabled)
+
+	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ExternalID:  externalID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, api.ProjectID, identity.ProjectID)
 }
 
 func TestCreateKeyWithEncryption(t *testing.T) {

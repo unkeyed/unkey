@@ -3,8 +3,19 @@ export function formatNumber(n: number): string {
 }
 
 /** Grouped number with up to one decimal: 1234.5 -> "1,234.5". For usage quantities. */
-export function formatQuantity(value: number): string {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
+/**
+ * Compact quantity for dense usage readouts, kept to ~3 significant figures so
+ * big meters stay legible: 10,386.7 -> "10.4k", 2,596.7 -> "2.6k", while small
+ * values like 43.3 are unchanged. SI-style lowercase "k" for thousands; larger
+ * magnitudes keep Intl's uppercase M/B/T.
+ */
+export function formatCompactQuantity(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  })
+    .format(value)
+    .replace(/K$/, "k");
 }
 
 export function formatPrice(price: number) {

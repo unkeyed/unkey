@@ -35,6 +35,10 @@ type Session struct {
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
+	// Replaced per request, never refilled in place. WithMetrics logs these as
+	// strings that alias the slices rather than copying, and the row sits in a
+	// batch buffer until it flushes, so reusing the backing array for the next
+	// request would overwrite a body that has already been logged.
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
