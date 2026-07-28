@@ -1,7 +1,7 @@
 CREATE TABLE `keys_roles` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`key_id` varchar(256) NOT NULL,
-	`role_id` varchar(256) NOT NULL,
+	`role_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
