@@ -32,10 +32,6 @@ type Caches struct {
 	// Keys are string (workspace ID) and values are db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow.
 	ClickhouseSetting cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 
-	// KeyAuthToApiRow caches key_auth_id to api row mappings.
-	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByKeyAuthIdsRow (has both KeyAuthID and ApiID).
-	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]
-
 	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
@@ -129,17 +125,6 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	keyAuthToApiRow, err := cache.New(cache.Config[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]{
-		Fresh:    10 * time.Minute,
-		Stale:    24 * time.Hour,
-		MaxSize:  1_000_000,
-		Resource: "key_auth_to_api_row",
-		Clock:    config.Clock,
-	})
-	if err != nil {
-		return Caches{}, err
-	}
-
 	apiToKeyAuthRow, err := cache.New(cache.Config[cache.ScopedKey, db.FindKeyAuthsByIdsRow]{
 		Fresh:    10 * time.Minute,
 		Stale:    24 * time.Hour,
@@ -189,7 +174,6 @@ func New(config Config) (Caches, error) {
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
-		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
 		PortalSession:         middleware.WithTracing(portalSession),
