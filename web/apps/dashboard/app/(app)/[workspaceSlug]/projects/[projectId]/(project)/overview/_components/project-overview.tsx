@@ -2,7 +2,10 @@
 
 import { AppActions } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/apps-list/app-actions";
 import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
-import { PROMPT } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/agent-setup";
+import {
+  AgentLogos,
+  PROMPT,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/agent-setup";
 import type { Mark } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/marks";
 import {
   RailListShell,
@@ -13,6 +16,10 @@ import type {
   OverviewLayout,
   RowVariant,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/scenario";
+import {
+  keyspaceSeries,
+  ratelimitSeries,
+} from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/series";
 import { fmtCompact, fmtInt } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/ui";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -22,13 +29,11 @@ import {
   BookBookmark,
   Chats,
   Check,
-  ChevronDown,
   CodeBranch,
   Cube,
   Discord,
   Dots,
   Github,
-  Layers2,
   Plus,
   Terminal,
   XMark,
@@ -40,11 +45,9 @@ import { useParams } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { type DeploymentMock, fmtTimeAgo } from "./deployments-mock";
 import type { OverviewProjectData } from "./overview-data";
-import { projectRequestSeries } from "./overview-mocks";
 
 const DISCORD_URL = "https://unkey.com/discord";
 const SUPPORT_URL = "https://unkey.com/support";
-const TEMPLATES_URL = "https://unkey.com/templates";
 const DOCS_URL = "https://unkey.com/docs";
 
 // One template for the header and the rows — the whole point of the table
@@ -55,33 +58,16 @@ const APP_GRID = "grid grid-cols-[minmax(0,1fr)_120px_104px_76px_32px] items-cen
 // valid/success bar color the api and ratelimit list pages use.
 const ROW_VARIANT: RowVariant = "list";
 const ROW_MARK: Mark = "bars";
-const CHART_STROKE = "hsl(var(--accent-4))";
-const HOURS_IN_DAY = 24;
+// Series colours per data type: keyspaces read as verifications, ratelimits as
+// checks, both following the chart scheme.
+const KEYSPACE_OK = "hsl(var(--chart-verify-ok))";
+const KEYSPACE_BAD = "hsl(var(--chart-verify-bad))";
+const RATELIMIT_OK = "hsl(var(--chart-limit-ok))";
+const RATELIMIT_BAD = "hsl(var(--chart-limit-bad))";
 
-// One generated series per resource, seeded on its id: the chart, the value and
-// the trend all come from the same 24 hourly buckets, so they can't contradict
-// each other the way a hand-written spark array and a separate total did.
-function hourlySeries(seed: string, total24h: number, errorPct: number) {
-  const pct = Math.min(100, Math.max(0, errorPct)) / 100;
-  const raw = projectRequestSeries(seed, HOURS_IN_DAY, Math.max(1, total24h / HOURS_IN_DAY));
-  const volume = raw.reduce((sum, b) => sum + b.valid + b.error, 0);
-  const generatedErrors = raw.reduce((sum, b) => sum + b.error, 0) || 1;
-  // Scale the generator's error series so its total lands on the resource's real
-  // invalid/blocked rate. Re-deriving each bucket from the flat rate instead
-  // paints an identical orange cap on every bar, which is the giveaway that no
-  // real error data was involved.
-  const scale = (volume * pct) / generatedErrors;
-  const buckets = raw.map(({ valid, error }) => {
-    const total = valid + error;
-    const errored = Math.min(total, Math.round(error * scale));
-    return { valid: Math.max(0, total - errored), error: errored };
-  });
-  return {
-    buckets,
-    totals: buckets.map((b) => b.valid + b.error),
-    total: buckets.reduce((sum, b) => sum + b.valid + b.error, 0),
-  };
-}
+// The overview shows the most recent handful; the apps page is where the full
+// list lives, so a footer link goes there rather than growing this card.
+const MAX_APP_ROWS = 5;
 
 function useProjectScope(): { workspaceSlug: string; projectId: string } {
   const workspace = useWorkspaceNavigation();
@@ -102,16 +88,12 @@ export function ProjectOverview({
   const { workspaceSlug, project, keyspaces, ratelimits, deployments } = data;
   const [dismissed, setDismissed] = useState(false);
   const scope = { workspaceSlug, projectId: project.id };
-  const hasApps = project.apps.length > 0;
 
   const apps = (
     <AppsCard
       appsHref={routes.projects.apps.list(scope)}
       newAppHref={routes.projects.apps.new(scope)}
       deployments={deployments}
-      hasApps={hasApps}
-      keyspaceCount={keyspaces.length}
-      ratelimitCount={ratelimits.length}
     />
   );
 
@@ -128,13 +110,22 @@ export function ProjectOverview({
   );
 
   if (layout === "column") {
+    // The checklist shares the resource row rather than leading the page, so the
+    // column count follows how many cards actually have something to show.
+    const cardCount =
+      (keyspaces.length > 0 ? 1 : 0) + (ratelimits.length > 0 ? 1 : 0) + (dismissed ? 0 : 1);
     return (
       <div className="flex flex-col gap-6">
-        {!dismissed && (
-          <GettingStarted data={data} onDismiss={() => setDismissed(true)} columns={3} />
-        )}
         {apps}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">{resources}</div>
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-5",
+            cardCount >= 3 ? "lg:grid-cols-3" : cardCount === 2 ? "lg:grid-cols-2" : "",
+          )}
+        >
+          {!dismissed && <GettingStarted data={data} onDismiss={() => setDismissed(true)} />}
+          {resources}
+        </div>
         <HelpCard wide />
       </div>
     );
@@ -159,6 +150,10 @@ export function ProjectOverview({
 // One card per resource type with a row per keyspace / namespace, using the
 // same shell and row the projects rail uses. No project name in the subtitle:
 // on a project page it would repeat on every row.
+//
+// TODO: cap both cards at the 3 most active (by 24h volume) with a "View all"
+// footer, matching AppsCard below. The projects rail needs the same cap — see
+// Rail in projects/_components/prototype/rail.tsx.
 function ResourceLists({
   workspaceSlug,
   projectId,
@@ -176,7 +171,7 @@ function ResourceLists({
   const rowVariant: RowVariant = wide ? "metric" : ROW_VARIANT;
 
   const keyspaceRows: RowItem[] = keyspaces.map((ks) => {
-    const series = hourlySeries(`keyspace-${ks.id}`, ks.requests["24h"], 100 - ks.validPct);
+    const series = keyspaceSeries(ks);
     return {
       id: ks.id,
       title: ks.name,
@@ -185,13 +180,15 @@ function ResourceLists({
       spark: series.totals,
       buckets: series.buckets,
       errorRatio: (100 - ks.validPct) / 100,
-      stroke: CHART_STROKE,
+      stroke: KEYSPACE_OK,
+      errorStroke: KEYSPACE_BAD,
+      labels: { ok: "valid", bad: "invalid" },
       kind: "keyspace",
       href: routes.apis.detail({ workspaceSlug, apiId: ks.id }),
     };
   });
   const ratelimitRows: RowItem[] = ratelimits.map((rl) => {
-    const series = hourlySeries(`ratelimit-${rl.id}`, rl.checks["24h"], rl.blockedPct);
+    const series = ratelimitSeries(rl);
     return {
       id: rl.id,
       title: rl.name,
@@ -200,7 +197,9 @@ function ResourceLists({
       spark: series.totals,
       buckets: series.buckets,
       errorRatio: rl.blockedPct / 100,
-      stroke: CHART_STROKE,
+      stroke: RATELIMIT_OK,
+      errorStroke: RATELIMIT_BAD,
+      labels: { ok: "passed", bad: "blocked" },
       kind: "ratelimit",
       href: routes.ratelimits.detail({ workspaceSlug, namespaceId: rl.id }),
     };
@@ -243,43 +242,45 @@ type Step = {
   label: string;
   hint: string;
   /** Shown instead of the hint once complete — the fact, not the pitch. */
-  done: (data: OverviewProjectData) => string;
+  done: (data: OverviewProjectData, deployments: DeploymentMock[]) => string;
   href?: (scope: { workspaceSlug: string; projectId: string }) => Route;
-  /** Copies to the clipboard instead of navigating. */
-  copy?: string;
 };
 
+// The path to a deployed project, in order. Repo and deploy stay separate on
+// purpose: a repo can be connected while every build fails, and that gap is
+// exactly what someone stuck needs to see.
 const STEPS: Step[] = [
   {
-    key: "agent",
-    label: "Set up with your agent",
-    hint: "Copy a prompt · Claude, Cursor, Codex",
-    done: () => "Prompt copied",
-    copy: PROMPT,
-  },
-  {
-    key: "app",
-    label: "Deploy an app",
-    hint: "Bring code into this project",
-    done: ({ project }) =>
-      `${fmtInt(project.apps.length)} app${project.apps.length === 1 ? "" : "s"} deployed`,
+    key: "github",
+    label: "Install the GitHub app",
+    hint: "Let Unkey read your repositories",
+    done: () => "Installed",
     href: (scope) => routes.projects.apps.new(scope),
   },
   {
-    key: "keyspace",
-    label: "Create a keyspace",
-    hint: "Issue and verify API keys",
-    done: ({ keyspaces }) =>
-      `${fmtInt(keyspaces.length)} keyspace${keyspaces.length === 1 ? "" : "s"} active`,
-    href: (scope) => routes.projects.keyspaces(scope),
+    key: "repo",
+    label: "Connect a repo",
+    hint: "Point an app at a branch",
+    done: ({ project }) => {
+      const connected = project.apps.filter((app) => app.source === "github");
+      return connected.length === 1
+        ? `unkey/${connected[0].name}`
+        : `${fmtInt(connected.length)} repos connected`;
+    },
+    href: (scope) => routes.projects.apps.new(scope),
   },
   {
-    key: "ratelimit",
-    label: "Add a ratelimit",
-    hint: "Protect your API from abuse",
-    done: ({ ratelimits }) =>
-      `${fmtInt(ratelimits.length)} namespace${ratelimits.length === 1 ? "" : "s"} active`,
-    href: (scope) => routes.projects.ratelimits(scope),
+    key: "deploy",
+    label: "Deploy",
+    hint: "Ship it to production",
+    // The commit message says what shipped; a sha says only that something did.
+    done: (_data, deployments) => {
+      const ready = deployments
+        .filter((d) => d.status === "ready")
+        .sort((a, b) => a.timeAgoMin - b.timeAgoMin)[0];
+      return ready?.message ?? "Live";
+    },
+    href: (scope) => routes.projects.apps.list(scope),
   },
   {
     key: "domain",
@@ -288,84 +289,73 @@ const STEPS: Step[] = [
     done: () => "Configured",
     href: (scope) => routes.projects.settings(scope),
   },
-  {
-    key: "team",
-    label: "Invite your team",
-    hint: "Share this workspace",
-    done: () => "Invites sent",
-    href: ({ workspaceSlug }) => routes.settings.team({ workspaceSlug }),
-  },
 ];
 
-// Every step reads its state off real project data, so nothing here is a
-// self-reported "have you read the docs" that could never tick. The agent step
-// is the exception: copying the prompt is the only signal we get.
-function completedSteps(data: OverviewProjectData, copied: Set<string>): Set<string> {
-  const done = new Set(copied);
-  if (data.project.apps.length > 0) {
-    done.add("app");
+// A CLI-first project can never satisfy the two GitHub steps, and a checklist
+// with permanently unreachable rows teaches people to ignore it — so they drop
+// out entirely once the project has deployed without a repo.
+function stepsFor(data: OverviewProjectData): Step[] {
+  const hasApps = data.project.apps.length > 0;
+  const anyRepo = data.project.apps.some((app) => app.source === "github");
+  if (hasApps && !anyRepo) {
+    return STEPS.filter((step) => step.key !== "github" && step.key !== "repo");
   }
-  if (data.keyspaces.length > 0) {
-    done.add("keyspace");
+  return STEPS;
+}
+
+// Every step reads off real project data — nothing here is self-reported, so no
+// row can sit ticked while the thing it claims isn't true.
+function completedSteps(data: OverviewProjectData, deployments: DeploymentMock[]): Set<string> {
+  const done = new Set<string>();
+  // Installing the app is workspace-level and the prototype store has no
+  // installation record, so only the fully set-up scenario is treated as
+  // having it — a migrated workspace had keys/ratelimits already but never
+  // touched GitHub or deploy, so it can't be assumed here.
+  if (data.scenario === "active") {
+    done.add("github");
   }
-  if (data.ratelimits.length > 0) {
-    done.add("ratelimit");
+  if (data.project.apps.some((app) => app.source === "github")) {
+    done.add("repo");
   }
-  if (data.scenario !== "new") {
-    done.add("team");
+  if (deployments.some((d) => d.status === "ready")) {
+    done.add("deploy");
+  }
+  // No domain field on the mocks yet, so this only ticks for the fully set-up
+  // scenario rather than being derived.
+  if (data.scenario === "active") {
+    done.add("domain");
   }
   return done;
 }
-
-// Collapsed height: one row of content plus a sliver of the next, so the fade
-// says "there is more" instead of cutting into a row you were reading.
-const COLLAPSED_ROWS_PX = 106;
-// Cuts partway through the first row's hint line. Landing on a row boundary
-// leaves the gradient with nothing to act on, so the card just looks like it
-// ends; biting into the text is what makes it read as clipped.
-const COLLAPSED_GRID_PX = 46;
 
 function GettingStarted({
   data,
   onDismiss,
   columns = 1,
+  className,
 }: {
   data: OverviewProjectData;
   onDismiss: () => void;
   /** Wide layouts wrap the steps into columns instead of one tall stack. */
   columns?: 1 | 3;
+  className?: string;
 }) {
-  const [copied, setCopied] = useState<Set<string>>(new Set());
-  const [open, setOpen] = useState(false);
-  const done = completedSteps(data, copied);
+  const steps = stepsFor(data);
+  const done = completedSteps(data, data.deployments);
   const scope = { workspaceSlug: data.workspaceSlug, projectId: data.project.id };
-  const pct = (done.size / STEPS.length) * 100;
-  const hidden = STEPS.length - (columns === 3 ? columns : 2);
+  const allDone = steps.every((step) => done.has(step.key));
 
   // Numbers count what's left, not the original position — otherwise a
   // half-finished list reads "1 ✓ ✓ 4 ✓" with holes in it.
   let step = 0;
 
   return (
-    <div className="group relative">
-      <Card>
-        <div className="px-3.5 pt-3 pb-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] font-medium text-accent-12">Getting started</span>
-            <span className="shrink-0 text-xs tabular-nums text-gray-9">
-              {done.size}/{STEPS.length}
-            </span>
-          </div>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-gray-3">
-            <div className="h-full rounded-full bg-accent-12" style={{ width: `${pct}%` }} />
-          </div>
+    <div className={cn("group relative h-full", className)}>
+      <Card className="flex h-full flex-col">
+        <div className="px-3.5 pt-3 pb-1.5">
+          <span className="text-[13px] font-medium text-accent-12">Getting started</span>
         </div>
-        <div
-          className="relative overflow-hidden rounded-b-lg"
-          style={
-            open ? undefined : { maxHeight: columns === 3 ? COLLAPSED_GRID_PX : COLLAPSED_ROWS_PX }
-          }
-        >
+        <div className="rounded-b-lg">
           <div
             className={cn(
               columns === 3
@@ -373,7 +363,7 @@ function GettingStarted({
                 : "divide-y divide-grayA-4",
             )}
           >
-            {STEPS.map((item) => {
+            {steps.map((item) => {
               const isDone = done.has(item.key);
               if (!isDone) {
                 step += 1;
@@ -400,7 +390,7 @@ function GettingStarted({
                       {item.label}
                     </div>
                     <div className="mt-0.5 truncate text-xs text-gray-9">
-                      {isDone ? item.done(data) : item.hint}
+                      {isDone ? item.done(data, data.deployments) : item.hint}
                     </div>
                   </div>
                 </>
@@ -410,21 +400,6 @@ function GettingStarted({
                 columns === 3 && "rounded-md",
               );
 
-              if (item.copy) {
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={rowClass}
-                    onClick={() => {
-                      navigator.clipboard?.writeText(item.copy ?? "");
-                      setCopied((prev) => new Set(prev).add(item.key));
-                    }}
-                  >
-                    {body}
-                  </button>
-                );
-              }
               return (
                 <Link
                   key={item.key}
@@ -436,43 +411,20 @@ function GettingStarted({
               );
             })}
           </div>
-          <div
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/85 to-transparent transition-opacity duration-150 ease-out",
-              // Shorter mask on the wide grid: at 62px of visible content an
-              // h-12 gradient washes out the labels it is meant to reveal.
-              columns === 3 ? "h-6" : "h-12",
-              open ? "opacity-0" : "opacity-100",
-            )}
-          />
         </div>
       </Card>
-      {/* Vercel's disclosure: the chevron straddles the bottom edge so the card
-          reads as clipped rather than finished. */}
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-label={open ? "Collapse steps" : `Show ${hidden} more steps`}
-        className="absolute -bottom-3.5 left-1/2 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-grayA-4 bg-background text-gray-11 shadow-sm transition-colors hover:text-accent-12"
-      >
-        <span
-          className={cn("block transition-transform duration-150 ease-out", open && "rotate-180")}
+      {/* Dismiss only appears once every step is done — while anything is
+          outstanding the card is the nudge, so there's nothing to dismiss. */}
+      {allDone && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="absolute -right-1.5 -top-1.5 hidden size-5 items-center justify-center rounded-full border border-grayA-4 bg-background text-gray-9 shadow-sm hover:text-accent-12 group-hover:flex"
         >
-          <ChevronDown iconSize="sm-regular" />
-        </span>
-      </button>
-      {/* Same treatment as the agent setup card: the dismiss sits off the corner
-          and only appears on hover, so it never competes with the progress. */}
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="absolute -right-1.5 -top-1.5 hidden size-5 items-center justify-center rounded-full border border-grayA-4 bg-background text-gray-9 shadow-sm hover:text-accent-12 group-hover:flex"
-      >
-        <XMark iconSize="sm-regular" />
-      </button>
+          <XMark iconSize="sm-regular" />
+        </button>
+      )}
     </div>
   );
 }
@@ -484,32 +436,22 @@ function GettingStarted({
 const HELP_LINKS = [
   { href: DISCORD_URL, label: "Ask in Discord", sub: "Community answers", icon: Discord },
   { href: SUPPORT_URL, label: "Get support", sub: "Talk to an engineer", icon: Chats },
-  { href: TEMPLATES_URL, label: "Templates", sub: "Start from an example", icon: Layers2 },
   { href: DOCS_URL, label: "Documentation", sub: "Guides and API reference", icon: BookBookmark },
 ];
 
 // The borderless card header only works above full-bleed stacked rows, so the
-// wide version drops the card and becomes a labelled tile row instead.
+// wide version drops the card and becomes a labelled tile row instead. The
+// agent tile sits where a link would, but copies the setup prompt instead of
+// navigating — same interaction as the rail's AgentSetup card.
 function HelpCard({ wide = false }: { wide?: boolean }) {
   if (wide) {
     return (
       <div>
         <span className="text-sm font-medium text-accent-12">Need help?</span>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <AgentHelpTile />
           {HELP_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noreferrer"
-              className="flex flex-col gap-2 rounded-lg border border-grayA-4 p-3 transition-colors hover:border-grayA-7"
-            >
-              <link.icon iconSize="lg-regular" className="text-gray-9" />
-              <div className="min-w-0">
-                <div className="text-[13px] font-medium text-accent-12">{link.label}</div>
-                <div className="mt-0.5 truncate text-xs text-gray-9">{link.sub}</div>
-              </div>
-            </a>
+            <HelpTile key={link.label} {...link} />
           ))}
         </div>
       </div>
@@ -521,6 +463,7 @@ function HelpCard({ wide = false }: { wide?: boolean }) {
         <span className="text-[13px] font-medium text-accent-12">Need help?</span>
       </div>
       <div className="divide-y divide-grayA-4">
+        <AgentHelpRow />
         {HELP_LINKS.map((link) => (
           <HelpRow key={link.label} href={link.href} icon={<link.icon iconSize="md-regular" />}>
             {link.label}
@@ -528,6 +471,78 @@ function HelpCard({ wide = false }: { wide?: boolean }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+function HelpTile({
+  href,
+  icon: Icon,
+  label,
+  sub,
+}: {
+  href: string;
+  icon: typeof BookBookmark;
+  label: string;
+  sub: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex flex-col gap-2 rounded-lg border border-grayA-4 p-3 transition-colors hover:border-grayA-7"
+    >
+      <Icon iconSize="lg-regular" className="text-gray-9" />
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium text-accent-12">{label}</div>
+        <div className="mt-0.5 truncate text-xs text-gray-9">{sub}</div>
+      </div>
+    </a>
+  );
+}
+
+function useCopyPrompt() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(PROMPT);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  return { copied, copy };
+}
+
+function AgentHelpTile() {
+  const { copied, copy } = useCopyPrompt();
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="flex flex-col gap-2 rounded-lg border border-grayA-4 p-3 text-left transition-colors hover:border-grayA-7"
+    >
+      <AgentLogos />
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium text-accent-12">
+          {copied ? "Copied" : "Set up with your agent"}
+        </div>
+        <div className="mt-0.5 truncate text-xs text-gray-9">Claude, Cursor, Codex</div>
+      </div>
+    </button>
+  );
+}
+
+function AgentHelpRow() {
+  const { copied, copy } = useCopyPrompt();
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left transition-colors hover:bg-grayA-2"
+    >
+      <AgentLogos />
+      <span className="min-w-0 flex-1 truncate text-[13px] text-gray-11">
+        {copied ? "Copied" : "Set up with your agent"}
+      </span>
+    </button>
   );
 }
 
@@ -559,16 +574,10 @@ function AppsCard({
   appsHref,
   newAppHref,
   deployments,
-  hasApps,
-  keyspaceCount,
-  ratelimitCount,
 }: {
   appsHref: Route;
   newAppHref: Route;
   deployments: DeploymentMock[];
-  hasApps: boolean;
-  keyspaceCount: number;
-  ratelimitCount: number;
 }) {
   // One row per app: its latest deployment carries the commit, branch, actor and
   // status, so the row says what shipped rather than just naming the app.
@@ -579,7 +588,10 @@ function AppsCard({
       latestPerApp.set(deployment.appId, deployment);
     }
   }
+  // Most recently deployed first, so the list answers "what just shipped".
   const rows = [...latestPerApp.values()].sort((a, b) => a.timeAgoMin - b.timeAgoMin);
+  const visible = rows.slice(0, MAX_APP_ROWS);
+  const overflow = rows.length - visible.length;
 
   return (
     <Card className="overflow-hidden">
@@ -600,18 +612,27 @@ function AppsCard({
         </Button>
       </div>
       {rows.length > 0 ? (
-        <div className="divide-y divide-grayA-4">
-          {rows.map((deployment) => (
-            <AppRow key={deployment.appId} deployment={deployment} />
-          ))}
-        </div>
+        <>
+          <div className="divide-y divide-grayA-4">
+            {visible.map((deployment) => (
+              <AppRow key={deployment.appId} deployment={deployment} />
+            ))}
+          </div>
+          {overflow > 0 && (
+            <div className="p-1.5">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full text-gray-11 hover:text-accent-12"
+                render={<Link href={appsHref} />}
+              >
+                View all
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
-        <AppsEmpty
-          newAppHref={newAppHref}
-          hasApps={hasApps}
-          keyspaceCount={keyspaceCount}
-          ratelimitCount={ratelimitCount}
-        />
+        <AppsEmpty newAppHref={newAppHref} />
       )}
     </Card>
   );
@@ -671,33 +692,18 @@ function AppRow({ deployment }: { deployment: DeploymentMock }) {
   );
 }
 
-function AppsEmpty({
-  newAppHref,
-  hasApps,
-  keyspaceCount,
-  ratelimitCount,
-}: {
-  newAppHref: Route;
-  hasApps: boolean;
-  keyspaceCount: number;
-  ratelimitCount: number;
-}) {
-  // A migrated project already verifies keys, so the empty state says what is
-  // missing (nothing served) instead of implying the project is unused.
-  const migrated = !hasApps && (keyspaceCount > 0 || ratelimitCount > 0);
+function AppsEmpty({ newAppHref }: { newAppHref: Route }) {
   return (
     <div className="mx-4 mb-4 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-grayA-4 px-4 py-10 text-center">
       <Cube iconSize="xl-thin" className="text-gray-9" />
       <div className="mt-3 text-[13px] font-medium text-accent-12">No apps yet</div>
       <p className="max-w-xs text-[13px] text-gray-9">
-        {migrated
-          ? "Your keys are being verified, but nothing is served yet."
-          : "Deploy from a repo or from the CLI and your apps land here."}
+        Deploy from a repo or the CLI to add your first app.
       </p>
       <div className="mt-4 flex shrink-0 items-center gap-2">
-        <Button size="md" variant="primary" render={<Link href={newAppHref} />}>
+        <Button size="md" variant="outline" render={<Link href={newAppHref} />}>
           <Github iconSize="sm-regular" />
-          Deploy an app
+          Deploy from GitHub
         </Button>
         <Button size="md" variant="outline" render={<Link href={newAppHref} />}>
           <Terminal iconSize="sm-regular" />

@@ -5,14 +5,18 @@ import { cn } from "@/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
 import { AgentSetup, type AgentStyle } from "./agent-setup";
-import { type Bucket, type Mark, RowMark } from "./marks";
+import { type Bucket, type Mark, RowMark, type SeriesLabels } from "./marks";
 import type { OverviewData, UsageStat } from "./mock-data";
 import type { RowVariant } from "./scenario";
+import { keyspaceSeries, ratelimitSeries } from "./series";
 import { CubeIcon, TrendArrow, fmtCompact, fmtInt, trendPct } from "./ui";
 
-// Matches the valid/success bar color used by the real API and ratelimit
-// listing pages (components/stats-list-card).
-const CHART_GRAY = "hsl(var(--accent-4))";
+// Series colours per data type, so a keyspace row and a ratelimit row are
+// distinguishable and both follow the chart scheme.
+const KEYSPACE_OK = "hsl(var(--chart-verify-ok))";
+const KEYSPACE_BAD = "hsl(var(--chart-verify-bad))";
+const RATELIMIT_OK = "hsl(var(--chart-limit-ok))";
+const RATELIMIT_BAD = "hsl(var(--chart-limit-bad))";
 
 export type RowItem = {
   id: string;
@@ -24,6 +28,10 @@ export type RowItem = {
   /** Hourly valid/error pairs behind `spark`, when the caller has them. */
   buckets?: Bucket[];
   errorRatio: number;
+  /** Colour for the error share; pairs with `stroke`. */
+  errorStroke?: string;
+  /** Series names for the chart's hover readout. */
+  labels?: SeriesLabels;
   stroke: string;
   kind: "keyspace" | "ratelimit";
   href: Route;
@@ -48,31 +56,50 @@ export function Rail({
   agentDismissed: boolean;
   onDismissAgent: () => void;
 }) {
-  const keyspaceItems: RowItem[] = data.keyspaces.map((ks) => ({
-    id: ks.id,
-    title: ks.name,
-    subtitle: `${fmtInt(ks.keyCount)} keys`,
-    project: ks.projectName,
-    value: fmtCompact(ks.requests["24h"]),
-    spark: ks.spark["24h"],
-    errorRatio: (100 - ks.validPct) / 100,
-    stroke: CHART_GRAY,
-    kind: "keyspace",
-    // The real API detail page, fed by the prototype tRPC interceptor.
-    href: routes.apis.detail({ workspaceSlug, apiId: ks.id }),
-  }));
-  const ratelimitItems: RowItem[] = data.ratelimits.map((rl) => ({
-    id: rl.id,
-    title: rl.name,
-    subtitle: `${rl.blockedPct}% blocked`,
-    project: rl.projectName,
-    value: fmtCompact(rl.checks["24h"]),
-    spark: rl.spark["24h"],
-    errorRatio: rl.blockedPct / 100,
-    stroke: CHART_GRAY,
-    kind: "ratelimit",
-    href: routes.ratelimits.detail({ workspaceSlug, namespaceId: rl.id }),
-  }));
+  // TODO: cap both lists at the 3 most active (by 24h volume) with a "View all"
+  // footer, the same treatment the overview's apps card uses. Applies to the
+  // project overview's resource cards too — see ResourceLists in
+  // projects/[projectId]/(project)/overview/_components/project-overview.tsx.
+  //
+  // Same generated series the project overview draws, so a keyspace's chart and
+  // hover numbers match wherever you see it.
+  const keyspaceItems: RowItem[] = data.keyspaces.map((ks) => {
+    const series = keyspaceSeries(ks);
+    return {
+      id: ks.id,
+      title: ks.name,
+      subtitle: `${fmtInt(ks.keyCount)} keys`,
+      project: ks.projectName,
+      value: fmtCompact(series.total),
+      spark: series.totals,
+      buckets: series.buckets,
+      errorRatio: (100 - ks.validPct) / 100,
+      stroke: KEYSPACE_OK,
+      errorStroke: KEYSPACE_BAD,
+      labels: { ok: "valid", bad: "invalid" },
+      kind: "keyspace",
+      // The real API detail page, fed by the prototype tRPC interceptor.
+      href: routes.apis.detail({ workspaceSlug, apiId: ks.id }),
+    };
+  });
+  const ratelimitItems: RowItem[] = data.ratelimits.map((rl) => {
+    const series = ratelimitSeries(rl);
+    return {
+      id: rl.id,
+      title: rl.name,
+      subtitle: `${rl.blockedPct}% blocked`,
+      project: rl.projectName,
+      value: fmtCompact(series.total),
+      spark: series.totals,
+      buckets: series.buckets,
+      errorRatio: rl.blockedPct / 100,
+      stroke: RATELIMIT_OK,
+      errorStroke: RATELIMIT_BAD,
+      labels: { ok: "passed", bad: "blocked" },
+      kind: "ratelimit",
+      href: routes.ratelimits.detail({ workspaceSlug, namespaceId: rl.id }),
+    };
+  });
 
   return (
     <aside className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
@@ -232,6 +259,8 @@ export function RailRow({
             buckets={item.buckets}
             errorRatio={item.errorRatio}
             stroke={item.stroke}
+            errorStroke={item.errorStroke}
+            labels={item.labels}
             className="w-20 h-9 shrink-0"
           />
         </div>
@@ -264,6 +293,8 @@ export function RailRow({
           buckets={item.buckets}
           errorRatio={item.errorRatio}
           stroke={item.stroke}
+          errorStroke={item.errorStroke}
+          labels={item.labels}
           className="h-8 w-[152px] shrink-0"
           fill
         />
@@ -295,6 +326,8 @@ export function RailRow({
             buckets={item.buckets}
             errorRatio={item.errorRatio}
             stroke={item.stroke}
+            errorStroke={item.errorStroke}
+            labels={item.labels}
             className="h-6"
           />
         </div>
@@ -322,6 +355,8 @@ export function RailRow({
         buckets={item.buckets}
         errorRatio={item.errorRatio}
         stroke={item.stroke}
+        errorStroke={item.errorStroke}
+        labels={item.labels}
         className="w-40 h-7 shrink-0"
       />
     </Link>

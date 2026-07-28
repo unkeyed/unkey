@@ -9,7 +9,7 @@ export type AgentStyle = "minimal" | "stacked";
 export const PROMPT =
   "Set up Unkey in my project — fetch https://unkey.com/agent/setup.md and follow it.";
 
-function AgentLogos({
+export function AgentLogos({
   tone = "light",
   size = "sm",
 }: {

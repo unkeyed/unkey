@@ -17,46 +17,9 @@ export type ActivityEvent = {
 
 const ACTIVITY_ACTORS = ["dave@unkey.com", "andreas@unkey.com", "james@unkey.com", "oz@unkey.com"];
 
-// Hourly {valid, error} pairs shaped like real traffic: a business-hours hump,
-// per-point noise, rare short spikes, and errors as a small share of valid
-// traffic with occasional blips. `points[i]` is `points - 1 - i` hours ago.
-export function projectRequestSeries(
-  seedKey: string,
-  points: number,
-  baseMagnitude: number,
-): { valid: number; error: number }[] {
-  const rand = mulberry32(hashCode(seedKey));
-  const series: { valid: number; error: number }[] = [];
-
-  const diurnalMultiplier = (i: number) => {
-    const hourOfDay = (points - 1 - i) % 24;
-    const phase = ((hourOfDay - 14) / 24) * Math.PI * 2;
-    return 0.35 + 0.65 * (0.5 + 0.5 * Math.cos(phase));
-  };
-
-  let spikeCooldown = 0;
-
-  for (let i = 0; i < points; i++) {
-    const noise = 0.85 + rand() * 0.3;
-    let magnitude = baseMagnitude * diurnalMultiplier(i) * noise;
-
-    if (spikeCooldown > 0) {
-      spikeCooldown--;
-    } else if (rand() < 0.03) {
-      magnitude *= 1.8 + rand() * 1.4;
-      spikeCooldown = 1 + Math.floor(rand() * 2);
-    }
-
-    const valid = Math.max(0, Math.round(magnitude));
-    const errorBlip = rand() < 0.05;
-    const errorRate = errorBlip ? 0.04 + rand() * 0.08 : 0.005 + rand() * 0.035;
-    const error = Math.max(0, Math.round(valid * errorRate));
-
-    series.push({ valid, error });
-  }
-
-  return series;
-}
+// The generator lives in the prototype folder now: the projects rail draws the
+// same resources, so both surfaces have to seed their charts identically.
+export { projectRequestSeries } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/series";
 
 // 6-10 plausible events referencing the project's real apps/keyspaces/
 // ratelimits, newest first. Deterministic from project.id so it's stable

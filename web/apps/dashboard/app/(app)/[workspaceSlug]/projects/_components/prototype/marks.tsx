@@ -1,10 +1,38 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { type MouseEvent, useState } from "react";
 
 export type Mark = "line" | "bars" | "ratio" | "heatmap";
 
-// Matches the error/invalid bar color used by the real API and ratelimit
-// listing pages (components/stats-list-card).
-const ORANGE = "hsl(var(--orange-9))";
+/** Names for the two series in a hover readout, e.g. Valid / Invalid. */
+export type SeriesLabels = { ok: string; bad: string };
+
+const DEFAULT_LABELS: SeriesLabels = { ok: "ok", bad: "errors" };
+
+function fmtCount(n: number): string {
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+  }
+  if (n >= 1_000) {
+    return `${Math.round(n / 1_000)}K`;
+  }
+  return String(n);
+}
+
+// Buckets are hourly and the last one is the current hour, so the index is
+// enough to label a point without threading timestamps through every caller.
+function hoursAgoLabel(index: number, total: number): string {
+  const hoursAgo = total - 1 - index;
+  if (hoursAgo === 0) {
+    return "This hour";
+  }
+  return `${hoursAgo}h ago`;
+}
+
+// Default error colour when a caller doesn't name one. Rows that know their data
+// type pass their own so ratelimits don't paint with the verification family.
+const DEFAULT_ERROR = "hsl(var(--chart-verify-bad))";
 
 function lastN(points: number[], n: number): number[] {
   return points.length > n ? points.slice(points.length - n) : points;
@@ -22,6 +50,8 @@ export function RowMark({
   buckets,
   errorRatio,
   stroke,
+  errorStroke,
+  labels,
   className,
   fill,
 }: {
@@ -33,6 +63,10 @@ export function RowMark({
   buckets?: Bucket[];
   errorRatio: number;
   stroke: string;
+  /** Colour for the error share; defaults to the verification family. */
+  errorStroke?: string;
+  /** Series names for the hover readout. */
+  labels?: SeriesLabels;
   className?: string;
   /** Bars only: spread across the given width rather than packing them. */
   fill?: boolean;
@@ -48,12 +82,21 @@ export function RowMark({
           buckets={buckets}
           errorRatio={errorRatio}
           stroke={stroke}
+          errorStroke={errorStroke}
+          labels={labels}
           className={className}
           fill={fill}
         />
       );
     case "ratio":
-      return <RatioMark errorRatio={errorRatio} stroke={stroke} className={className} />;
+      return (
+        <RatioMark
+          errorRatio={errorRatio}
+          stroke={stroke}
+          errorStroke={errorStroke}
+          className={className}
+        />
+      );
     case "heatmap":
       return <HeatmapMark points={points} stroke={stroke} className={className} />;
     default:
@@ -175,6 +218,8 @@ function BarsMark({
   buckets,
   errorRatio,
   stroke,
+  errorStroke = DEFAULT_ERROR,
+  labels,
   className,
   fill,
 }: {
@@ -182,6 +227,8 @@ function BarsMark({
   buckets?: Bucket[];
   errorRatio: number;
   stroke: string;
+  errorStroke?: string;
+  labels?: SeriesLabels;
   className?: string;
   /** Spread buckets across the given width instead of packing them at 3px+2px. */
   fill?: boolean;
@@ -190,6 +237,21 @@ function BarsMark({
   const data = split ? split.map((b) => b.valid + b.error) : lastN(points, 30);
   const H = 28;
   const max = Math.max(...data, 1) * 1.3;
+  // Hover readouts need real per-bucket numbers, so only charts fed by buckets
+  // get them — a bare `spark` array carries magnitudes with no valid/error split.
+  const [hovered, setHovered] = useState<number | null>(null);
+  const series = labels ?? DEFAULT_LABELS;
+  const active = split && hovered !== null ? split[hovered] : undefined;
+  // Anchor the readout over its bucket, then slide it back by the same fraction
+  // so the near edge never leaves the chart — no clipping at either end.
+  const anchorPct = hovered === null ? 0 : ((hovered + 0.5) / data.length) * 100;
+  // Tracked on the container rather than per-band: the bands are ~6px wide, and
+  // enter/leave on targets that small drops events as the pointer crosses them.
+  const track = (event: MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const index = Math.floor(((event.clientX - rect.left) / rect.width) * data.length);
+    setHovered(Math.min(data.length - 1, Math.max(0, index)));
+  };
   return (
     <div
       className={cn(
@@ -199,7 +261,41 @@ function BarsMark({
         fill ? "flex h-7 gap-0" : "inline-flex h-7 gap-[2px]",
         fill && className,
       )}
+      onMouseMove={split ? track : undefined}
+      onMouseLeave={split ? () => setHovered(null) : undefined}
     >
+      {active && hovered !== null && (
+        <div
+          className="pointer-events-none absolute bottom-full z-20 mb-1.5 whitespace-nowrap rounded-md border border-grayA-4 bg-gray-1 px-2 py-1.5 shadow-lg dark:bg-black"
+          style={{ left: `${anchorPct}%`, transform: `translateX(-${anchorPct}%)` }}
+        >
+          <div className="text-[11px] text-gray-9">{hoursAgoLabel(hovered, data.length)}</div>
+          <div className="mt-1 flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-1 shrink-0 rounded"
+                style={{ backgroundColor: stroke }}
+                aria-hidden
+              />
+              <span className="text-[11px] tabular-nums text-accent-12">
+                {fmtCount(active.valid)}
+              </span>
+              <span className="text-[11px] lowercase text-gray-9">{series.ok}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-1 shrink-0 rounded"
+                style={{ backgroundColor: errorStroke }}
+                aria-hidden
+              />
+              <span className="text-[11px] tabular-nums text-accent-12">
+                {fmtCount(active.error)}
+              </span>
+              <span className="text-[11px] lowercase text-gray-9">{series.bad}</span>
+            </span>
+          </div>
+        </div>
+      )}
       {data.map((v, i) => {
         const total = Math.min(Math.round((v / max) * H), H);
         const ratio = split ? (v > 0 ? split[i].error / v : 0) : errorRatio;
@@ -211,29 +307,38 @@ function BarsMark({
         const top = ratio > 0 && v > 0 ? (split ? Math.round(scaled) : Math.max(scaled, 1)) : 0;
         const bottom = Math.max(total - top, 0);
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: positional bars
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: positional bars
             key={i}
             className={cn(
-              "flex flex-col justify-end",
-              fill ? "min-w-px flex-1 items-center" : "w-[3px] shrink-0",
+              // h-full so the hover wash spans the chart, not just the bar.
+              "relative flex h-full flex-col items-center justify-end",
+              fill ? "min-w-px flex-1" : "w-[3px] shrink-0",
             )}
           >
+            {/* The band is only as wide as its bar, so the hover wash has to
+                bleed into the gaps to be visible at all. It stays under the
+                bars by painting first — both are positioned, so DOM order wins
+                (a negative z-index would drop it behind the card background). */}
+            {hovered === i && (
+              <div className="pointer-events-none absolute -left-px -right-px bottom-0 top-0 bg-grayA-5" />
+            )}
             <div
-              className={fill ? "w-[3px] max-w-full" : "w-full"}
-              style={{ height: `${top}px`, backgroundColor: ORANGE }}
+              className="relative w-[3px] max-w-full"
+              style={{ height: `${top}px`, backgroundColor: errorStroke }}
             />
             <div
-              className={fill ? "w-[3px] max-w-full" : "w-full"}
+              className="relative w-[3px] max-w-full"
               style={{ height: `${bottom}px`, backgroundColor: stroke }}
             />
+            {/* One tick per bucket instead of a dashed rule across the whole
+                width: a continuous line breaks against every bar base, and
+                because the tick lives inside the band it lines up with its bar
+                by construction rather than by luck. */}
+            <div className={cn("relative h-px bg-gray-5", fill ? "w-[5px]" : "w-[4px]")} />
           </div>
         );
       })}
-      {/* Painted last so the dashed baseline reads in front of the bar bases.
-          gray-7 (not the real component's gray-5) since bars touch the line
-          directly here and need more contrast against the accent-4 fill. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-dashed border-gray-7" />
     </div>
   );
 }
@@ -241,10 +346,12 @@ function BarsMark({
 function RatioMark({
   errorRatio,
   stroke,
+  errorStroke = DEFAULT_ERROR,
   className,
 }: {
   errorRatio: number;
   stroke: string;
+  errorStroke?: string;
   className?: string;
 }) {
   const validPct = Math.max(0, Math.min(100, (1 - errorRatio) * 100));
@@ -252,7 +359,10 @@ function RatioMark({
     <div className={cn("flex items-center", className)}>
       <div className="w-full h-2 rounded-full overflow-hidden flex bg-grayA-3">
         <div style={{ width: `${validPct}%`, backgroundColor: stroke }} className="h-full" />
-        <div style={{ width: `${100 - validPct}%`, backgroundColor: ORANGE }} className="h-full" />
+        <div
+          style={{ width: `${100 - validPct}%`, backgroundColor: errorStroke }}
+          className="h-full"
+        />
       </div>
     </div>
   );
