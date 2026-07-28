@@ -1,10 +1,11 @@
+import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
 import { routes } from "@/lib/navigation/routes";
-import { cn } from "@/lib/utils";
-import { Cube } from "@unkey/icons";
+import { CodeBranch, Cube } from "@unkey/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { AppMock, ProjectMock } from "./mock-data";
-import { DotsIcon, GithubIcon, TerminalIcon } from "./ui";
+import { type DeploymentMock, deploymentsForApps, fmtTimeAgo } from "./deployments-mock";
+import type { KeyspaceStat, ProjectMock, RatelimitStat } from "./mock-data";
+import { DotsIcon } from "./ui";
 
 export function ProjectsEmptyCard({ children }: { children?: ReactNode }) {
   return (
@@ -23,51 +24,95 @@ export function ProjectsEmptyCard({ children }: { children?: ReactNode }) {
 
 export function ProjectGrid({
   projects,
+  keyspaces,
+  ratelimits,
   workspaceSlug,
 }: {
   projects: ProjectMock[];
+  keyspaces: KeyspaceStat[];
+  ratelimits: RatelimitStat[];
   workspaceSlug: string;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {projects.map((p) => (
-        <ProjectCard key={p.id} project={p} workspaceSlug={workspaceSlug} />
+        <ProjectCard
+          key={p.id}
+          project={p}
+          keyspaceCount={keyspaces.filter((ks) => ks.projectId === p.id).length}
+          ratelimitCount={ratelimits.filter((rl) => rl.projectId === p.id).length}
+          workspaceSlug={workspaceSlug}
+        />
       ))}
     </div>
   );
 }
 
+// The most recent deployment across the project's apps — the project shipped
+// when any of its apps did.
+function latestDeployment(project: ProjectMock): DeploymentMock | undefined {
+  return deploymentsForApps(project.apps).sort((a, b) => a.timeAgoMin - b.timeAgoMin)[0];
+}
+
+function inventory(project: ProjectMock, keyspaceCount: number, ratelimitCount: number): string {
+  const parts = [`${project.appCount} ${project.appCount === 1 ? "app" : "apps"}`];
+  if (keyspaceCount > 0) {
+    parts.push(`${keyspaceCount} ${keyspaceCount === 1 ? "keyspace" : "keyspaces"}`);
+  }
+  if (ratelimitCount > 0) {
+    parts.push(`${ratelimitCount} ${ratelimitCount === 1 ? "ratelimit" : "ratelimits"}`);
+  }
+  return parts.join(" · ");
+}
+
+// The latest deployment leads: it is the only thing on the card that changes on
+// its own. The status badge carries deployment state, so the title needs no dot,
+// and the sha is dropped — the commit message says what shipped.
 function ProjectCard({
   project,
+  keyspaceCount,
+  ratelimitCount,
   workspaceSlug,
 }: {
   project: ProjectMock;
+  keyspaceCount: number;
+  ratelimitCount: number;
   workspaceSlug: string;
 }) {
-  const overflow = project.appCount - project.apps.length;
+  const deployment = latestDeployment(project);
   return (
     <div className="relative">
       <Link
         href={routes.projects.detail({ workspaceSlug, projectId: project.id })}
-        className="p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-lg gap-6 h-[132px] transition-all duration-300"
+        // A floor, not a fixed height: a card with no deployment shouldn't hold
+        // open 148px of nothing, but it still stretches to match its row.
+        className="flex h-full min-h-[124px] flex-col justify-between gap-4 rounded-lg border border-grayA-4 p-5 transition-all duration-300 hover:border-grayA-7"
       >
         <div className="min-w-0 pr-8">
-          <div className="font-medium text-sm text-accent-12 truncate">{project.name}</div>
-          <div className="text-xs text-gray-9 mt-0.5 truncate">{project.subtitle}</div>
+          <div className="truncate text-sm font-medium text-accent-12">{project.name}</div>
         </div>
-        {project.apps.length === 0 ? (
-          <span className="text-xs text-gray-11">No apps yet</span>
+        {deployment ? (
+          <>
+            <div className="min-w-0">
+              <div className="truncate text-[13px] leading-5 text-accent-12">
+                {deployment.message}
+              </div>
+              <div className="mt-1.5 flex min-w-0 items-center gap-2 text-xs text-gray-9">
+                <span className="flex min-w-0 items-center gap-1">
+                  <CodeBranch className="size-3 shrink-0" />
+                  <span className="truncate font-mono">{deployment.branch}</span>
+                </span>
+                <span className="text-gray-7">·</span>
+                <span className="shrink-0">{fmtTimeAgo(deployment.timeAgoMin)}</span>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center gap-2 text-xs text-gray-9">
+              <DeploymentStatusBadge status={deployment.status} />
+              <span className="truncate">{inventory(project, keyspaceCount, ratelimitCount)}</span>
+            </div>
+          </>
         ) : (
-          <div className="flex items-center">
-            {project.apps.map((app, i) => (
-              <AppBlob key={app.id} app={app} first={i === 0} />
-            ))}
-            {overflow > 0 && (
-              <span className="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-[10px] font-medium text-gray-11 -ml-2">
-                +{overflow}
-              </span>
-            )}
-          </div>
+          <span className="text-[13px] text-gray-9">No deployments yet</span>
         )}
       </Link>
       <button
@@ -78,19 +123,5 @@ function ProjectCard({
         <DotsIcon className="size-4" />
       </button>
     </div>
-  );
-}
-
-function AppBlob({ app, first }: { app: AppMock; first: boolean }) {
-  const Icon = app.source === "github" ? GithubIcon : TerminalIcon;
-  return (
-    <span
-      className={cn(
-        "size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center text-gray-12",
-        first ? "ml-0" : "-ml-2",
-      )}
-    >
-      <Icon className="size-3.5" />
-    </span>
   );
 }
