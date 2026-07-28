@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
@@ -106,6 +107,11 @@ export const CreateDeploymentButton = ({
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const { projectId, environments, deployments } = useProjectData();
   const appId = useAppId();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+
+  // Without a Compute plan the trigger opens the paywall instead of the create
+  // dialog; the backend still rejects the mutation either way.
+  const openDeploymentDialog = () => (gated ? openPaywall() : setIsOpen(true));
 
   // Repo connections are per-app, not per-project; the project-level
   // repositoryFullName is just some app's connection in this project.
@@ -225,18 +231,19 @@ export const CreateDeploymentButton = ({
   return (
     <>
       {renderTrigger ? (
-        renderTrigger({ onClick: () => setIsOpen(true) })
+        renderTrigger({ onClick: openDeploymentDialog })
       ) : (
         <NavbarActionButton
           {...rest}
           color="default"
           variant="outline"
           className="size-7"
-          onClick={() => setIsOpen(true)}
+          onClick={openDeploymentDialog}
         >
           <Plus iconSize="sm-regular" />
         </NavbarActionButton>
       )}
+      {planGate}
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
