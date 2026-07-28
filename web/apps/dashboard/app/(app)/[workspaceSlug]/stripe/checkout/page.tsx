@@ -86,6 +86,7 @@ export default async function StripeRedirect(props: {
   // Use the shared `getBaseUrl()` helper so previews resolve to the stable
   // VERCEL_BRANCH_URL rather than a deployment-specific VERCEL_URL.
   const baseUrl = getBaseUrl();
+  const existingCustomerId = ws.billing?.stripeCustomerId ?? undefined;
 
   const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}${
     intent ? `&intent=${intent}` : ""
@@ -98,9 +99,11 @@ export default async function StripeRedirect(props: {
   // up front and hand it to the session. That makes every workspace set up
   // through the UI time-travelable: advance the clock and its invoices
   // finalize for real (PDF included). One clock per customer, since a clock
-  // carries at most a handful of customers and advances them together.
+  // carries at most a handful of customers and advances them together. Reuse
+  // an existing workspace customer first so Checkout can show its saved cards
+  // and API and Compute remain under the same Stripe customer.
   let devClockedCustomerId: string | undefined;
-  if (stripeEnv()?.STRIPE_DEV_TEST_CLOCK === "true") {
+  if (!existingCustomerId && stripeEnv()?.STRIPE_DEV_TEST_CLOCK === "true") {
     const clock = await stripe.testHelpers.testClocks.create({
       frozen_time: Math.floor(Date.now() / 1000),
       name: ws.slug,
@@ -115,7 +118,7 @@ export default async function StripeRedirect(props: {
   // customer. This path is also used to replace a bad vaulted card; creating a
   // new customer there would strand the existing API subscription on the old
   // customer and make the portal appear to lose one of the products.
-  const checkoutCustomerId = devClockedCustomerId ?? ws.billing?.stripeCustomerId ?? undefined;
+  const checkoutCustomerId = existingCustomerId ?? devClockedCustomerId;
 
   // Create a selected Compute plan in subscription-mode Checkout even when the
   // customer already has a saved card, so Stripe shows the plan and can handle
