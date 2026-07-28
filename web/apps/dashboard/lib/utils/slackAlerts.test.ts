@@ -150,7 +150,8 @@ describe("alerts escape attacker-controlled fields", () => {
   const cases: Array<{ name: string; send: () => Promise<void> }> = [
     {
       name: "alertSubscriptionCreation",
-      send: () => alertSubscriptionCreation(HOSTILE_TIER, "$25", HOSTILE_EMAIL, HOSTILE_NAME),
+      send: () =>
+        alertSubscriptionCreation(HOSTILE_TIER, "$25", HOSTILE_EMAIL, "ws_test", HOSTILE_NAME),
     },
     {
       name: "alertSubscriptionUpdate",
@@ -159,6 +160,7 @@ describe("alerts escape attacker-controlled fields", () => {
           HOSTILE_TIER,
           "$25",
           HOSTILE_EMAIL,
+          "ws_test",
           HOSTILE_NAME,
           "upgraded",
           HOSTILE_TIER,
@@ -210,11 +212,18 @@ describe("alerts escape attacker-controlled fields", () => {
    * billing name of `http://evil.example/rotate` from becoming a live link.
    */
   it("does not let a bare-url billing name become a link", async () => {
-    await alertSubscriptionCreation("Pro", "$25", "jane@acme.com", "http://evil.example/rotate");
+    await alertSubscriptionCreation(
+      "Pro",
+      "$25",
+      "jane@acme.com",
+      "ws_123",
+      "http://evil.example/rotate",
+    );
 
     const text = sentText();
     // The value survives as plain text (nothing to escape) but verbatim keeps it unlinked.
     expect(text).toContain("http://evil.example/rotate");
+    expect(text).toContain("Workspace: ws_123");
     for (const obj of sentTextObjects()) {
       expect(obj.verbatim).toBe(true);
     }
@@ -263,31 +272,56 @@ describe("alertSubscriptionUpdate", () => {
   };
 
   it("describes the tier change when a previous tier is known", async () => {
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "upgraded", "Free");
+    await alertSubscriptionUpdate(
+      "Pro",
+      "$25",
+      "jane@acme.com",
+      "ws_123",
+      "Jane",
+      "upgraded",
+      "Free",
+    );
 
     expect(blockText(0)).toBe(":stonks: Jane upgraded their subscription");
     expect(blockText(1)).toBe(
       "Jane's subscription upgraded from Free to Pro tier, they are now paying $25. ",
     );
     expect(blockText(2)).toBe("Here is their contact information: jane@acme.com");
+    expect(blockText(3)).toBe("Workspace: ws_123");
   });
 
   it("falls back to the plain message when the previous tier is unknown", async () => {
     // changeType is "upgraded", so only the missing previousTier can select the fallback.
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "upgraded");
+    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "ws_123", "Jane", "upgraded");
 
     expect(blockText(1)).toBe("Subscription upgraded to the Pro tier");
   });
 
   it("falls back to the plain message for a plain update", async () => {
-    await alertSubscriptionUpdate("Pro", "$25", "jane@acme.com", "Jane", "updated", "Free");
+    await alertSubscriptionUpdate(
+      "Pro",
+      "$25",
+      "jane@acme.com",
+      "ws_123",
+      "Jane",
+      "updated",
+      "Free",
+    );
 
     expect(blockText(0)).toBe(":stonks: Jane updated their subscription");
     expect(blockText(1)).toBe("Subscription updated to the Pro tier");
   });
 
   it("marks downgrades with a different emoji", async () => {
-    await alertSubscriptionUpdate("Free", "$0", "jane@acme.com", "Jane", "downgraded", "Pro");
+    await alertSubscriptionUpdate(
+      "Free",
+      "$0",
+      "jane@acme.com",
+      "ws_123",
+      "Jane",
+      "downgraded",
+      "Pro",
+    );
 
     expect(blockText(0)).toBe(":notstonks: Jane downgraded their subscription");
   });

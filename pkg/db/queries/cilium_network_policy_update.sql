@@ -1,7 +1,0 @@
--- name: UpdateCiliumNetworkPolicyByEnvironmentRegionAndName :exec
-UPDATE cilium_network_policies
-SET policy = sqlc.arg(policy),
-    updated_at = sqlc.arg(updated_at)
-WHERE environment_id = sqlc.arg(environment_id)
-  AND region_id = sqlc.arg(region_id)
-  AND k8s_name = sqlc.arg(k8s_name);
