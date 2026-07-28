@@ -4,7 +4,7 @@ CREATE TABLE `workspaces` (
 	`org_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
-	`k8s_namespace` varchar(256) COLLATE utf8mb4_0900_as_cs,
+	`k8s_namespace` varchar(256),
 	`beta_features` json NOT NULL,
 	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,
