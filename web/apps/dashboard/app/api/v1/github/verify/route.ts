@@ -4,10 +4,18 @@ import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { verifyGitSignature } from "./verify-signature";
 
 export const runtime = "nodejs";
+
+// The notification work (WorkOS + Resend + Slack) runs in Next.js `after()` so
+// GitHub gets its 201 immediately. `after()` work still counts against the
+// function's `maxDuration`, so keep it long enough to cover the notifications.
+// Post-response execution requires the platform to keep the instance alive after
+// the response flushes (Fluid Compute on Vercel); the callback below is
+// instrumented so we can confirm from logs whether it actually runs here.
+export const maxDuration = 60;
 
 // A single secret reported by GitHub's secret-scanning webhook.
 type ReportedToken = {
@@ -157,23 +165,42 @@ export async function POST(request: Request) {
     };
   });
 
-  // Notify inline before responding. This previously ran in a Next.js `after()`
-  // callback so GitHub got its response sooner, but on Vercel that deferred
-  // callback never delivered the emails/Slack alerts, so it runs on the request
-  // path again. Notifications are deduplicated within this request so a single
-  // leaked key produces at most one email per user and one Slack alert. Emails
-  // are additionally deduplicated across GitHub webhook retries via a Resend
-  // idempotency key; Slack alerts are not, so a retried delivery can still post
-  // a duplicate Slack alert.
+  // Ack GitHub as fast as possible, then notify off the request path via
+  // `after()`. GitHub retries the webhook when the response is slow, and each
+  // retry re-runs the WorkOS/Resend/Slack work, so the slow notifications must
+  // not block the 201.
   //
-  // A notification failure must not fail the webhook: we still return 201 so
-  // GitHub marks the secret handled, and the error is reported to Sentry.
+  // This route previously used `after()` and the notifications never delivered
+  // on Vercel, so the callback is instrumented to prove whether it actually
+  // runs. Reading the logs for one leaked key:
+  //   - "scheduling" logs on the request path (always).
+  //   - "callback started" logs only if `after()` runs post-response. If this is
+  //     missing, `after()` is genuinely not executing here (needs Fluid Compute).
+  //   - "callback finished" logs only if the notifications complete. Started but
+  //     not finished => the instance was frozen/killed mid-run, or it threw.
+  //
+  // Notifications are deduplicated within a single invocation so one leaked key
+  // produces at most one email per user and one Slack alert. Emails are also
+  // deduplicated across GitHub retries via a Resend idempotency key; Slack has
+  // no such key, so a retried delivery that still gets through can post a
+  // duplicate Slack alert.
+  //
+  // A notification failure must not fail the webhook: the 201 is already sent,
+  // and the error is reported to Sentry.
   const found = classified.filter((key) => key.isFound);
   if (found.length > 0) {
-    console.info("[github-verify] notifying leaked keys", { keys: found.length });
-    await notifyLeakedKeys(RESEND_API_KEY, found).catch((err) => {
-      console.error("Failed to send leaked key notifications", err);
-      Sentry.captureException(err);
+    console.info("[github-verify] scheduling leaked-key notifications via after()", {
+      keys: found.length,
+    });
+    after(async () => {
+      console.info("[github-verify] after(): callback started", { keys: found.length });
+      try {
+        await notifyLeakedKeys(RESEND_API_KEY, found);
+        console.info("[github-verify] after(): callback finished", { keys: found.length });
+      } catch (err) {
+        console.error("[github-verify] after(): leaked-key notifications failed", err);
+        Sentry.captureException(err);
+      }
     });
   } else {
     console.info("[github-verify] no matching keys, skipping notifications");

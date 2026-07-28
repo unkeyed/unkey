@@ -5,13 +5,18 @@ import type { NextRequest } from "next/server";
 import { getAuth } from "../auth/get-auth";
 import { getClientIp } from "../client-ip";
 import { db } from "../db";
+import { subscriptionIdsByProduct } from "../stripe/billingSubscriptions";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
   const authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
   let ws: Awaited<
-    ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true; billing: true } }>>
+    ReturnType<
+      typeof db.query.workspaces.findFirst<{
+        with: { quotas: true; billing: true; billingSubscriptions: true };
+      }>
+    >
   > = undefined;
 
   // Only attempt workspace query if we have both userId and orgId
@@ -24,6 +29,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         with: {
           quotas: true,
           billing: true,
+          billingSubscriptions: true,
         },
       });
     } catch (_error) {
@@ -48,16 +54,18 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           profile: authResult.user ?? null,
         }
       : null,
-    // Billing state now lives on the workspace_billing relation. Surface it under
-    // the legacy workspace field names so existing ctx.workspace.<field> reads
-    // keep working and read the fresh values from the billing row rather than the
-    // stale columns still on workspaces. Writers target workspaceBilling directly.
+    // Billing state lives on the workspace_billing relation (the columns were
+    // dropped from workspaces). Surface it under the legacy workspace field names
+    // so existing ctx.workspace.<field> reads keep working against the billing
+    // row. Writers target workspaceBilling directly.
     workspace: ws
       ? {
           ...ws,
           tier: ws.billing?.tier ?? "Free",
           stripeCustomerId: ws.billing?.stripeCustomerId ?? null,
-          stripeSubscriptionId: ws.billing?.stripeSubscriptionId ?? null,
+          // Subscription ids now live one-per-product in billing_subscriptions;
+          // flatten them back to the two legacy field names read across the app.
+          ...subscriptionIdsByProduct(ws.billingSubscriptions ?? []),
           deployPlan: ws.billing?.plan ?? null,
           deployPlanOverride: ws.billing?.planOverride ?? null,
           deploySpendBudgetCents: ws.billing?.spendBudgetCents ?? null,

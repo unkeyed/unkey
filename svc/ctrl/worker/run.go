@@ -441,16 +441,15 @@ func Run(ctx context.Context, cfg Config) error {
 	// which can take 5-10 minutes for DNS propagation
 	var certHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
 	if cfg.Heartbeat.CertRenewalURL != "" {
-		certHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.CertRenewalURL)
+		certHeartbeat = healthcheck.NewHTTPHeartbeat(cfg.Heartbeat.CertRenewalURL)
 	}
 	restateSrv.Bind(hydrav1.NewCertificateServiceServer(certificate.New(certificate.Config{
-		DB:            database,
-		Vault:         vaultClient,
-		EmailDomain:   cfg.Acme.EmailDomain,
-		DefaultDomain: cfg.DefaultDomain,
-		DNSProvider:   dnsProvider,
-		HTTPProvider:  httpProvider,
-		Heartbeat:     certHeartbeat,
+		DB:           database,
+		Vault:        vaultClient,
+		EmailDomain:  cfg.Acme.EmailDomain,
+		DNSProvider:  dnsProvider,
+		HTTPProvider: httpProvider,
+		Heartbeat:    certHeartbeat,
 	}), restate.WithInactivityTimeout(15*time.Minute)))
 
 	// ClickHouse user provisioning service (optional - requires admin URL and vault)
@@ -530,35 +529,55 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// Ratelimit global-counters cleanup keeps the pre-consolidation
-	// 5-attempt / 100ms-5s policy with PauseOnMaxAttempts: stateless
-	// DELETE that the hot path doesn't depend on, so pausing for an
-	// operator to inspect a real failure is better than killing silently.
+	// Ratelimit global-counters cleanup: stateless, cutoff-bounded DELETE
+	// that re-derives its work from the clock on every tick. Kill (not
+	// Pause) on exhaustion — a paused invocation parks the fixed
+	// "ratelimit-global-counters-cleanup" key and every later tick queues
+	// behind it, so one bad run silently stops the sweep until an operator
+	// cancels it. There is no compensation to re-enter for, and the handler
+	// drains in batches, so killing just means the next hourly tick picks
+	// up where this one stopped.
 	cronRatelimitGCCRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy: a
-	// stateless, cutoff-bounded DELETE the hot path doesn't depend on, so
-	// pausing for an operator to inspect a real failure beats killing
-	// silently. The daily cadence means a paused run is caught well before
-	// the next tick.
+	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy for the
+	// same reasons: a stateless, cutoff-bounded, batched DELETE with no
+	// compensation, on a fixed singleton key that a paused invocation would
+	// wedge. Kill on exhaustion and let the next daily tick retry.
 	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogExport runs every minute and is idempotent: any failure is
-	// recovered by the next tick, not by replaying journals from
-	// yesterday. 1h journal retention keeps enough debugging headroom for
-	// an oncall to inspect a recent failure without bloating the journal
-	// store with ~1440 dead invocations/day. No retry override — SDK
-	// default behavior was the pre-consolidation contract.
+	// AuditLogExport drains the outbox every minute on the fixed singleton
+	// key "audit-log-export", so a stuck invocation blocks every later tick.
+	// The SDK default retries forever, which is the same wedge as pausing
+	// with no attempt cap — and the drainer has a known permanent failure
+	// mode (a malformed payload fails its batch until someone fixes the
+	// writer), so retrying it for eternity buys nothing while the outbox
+	// grows unbounded behind a key nobody is watching.
+	//
+	// Kill after 5 attempts instead. The drain is fully idempotent: rows are
+	// soft-deleted only after their ClickHouse insert commits, so a dropped
+	// run leaves them unmarked and the next tick re-reads the same set in
+	// the same order (ClickHouse block dedup collapses any duplicate write).
+	// Failure surfaces through the missing end-of-run heartbeat. The retry
+	// window stays inside a few seconds on purpose: with a tick every minute
+	// the meaningful retry is the next tick, not a longer in-invocation
+	// backoff that would still be running when that tick queues up.
+	cronAuditLogExportRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	// DeployBillingClose is idempotent and cron-backed; per-workspace
 	// failures are journaled as deferred so one bad customer cannot wedge
 	// the period VO. Kill on exhaustion so the backup cron can retry with
@@ -613,7 +632,10 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
-		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
+		// 1h journal retention keeps debugging headroom for an oncall to
+		// inspect a recent failure without bloating the journal store with
+		// ~1440 dead invocations/day.
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
@@ -766,12 +788,12 @@ func Run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-// cronHeartbeat returns a Checkly heartbeat for url, or a noop if url is
-// empty. Used to wire each cron task's monitoring URL without scattering
-// nil-or-noop branches through the cron service.
+// cronHeartbeat returns an HTTP heartbeat for url, or a noop if url is empty.
+// Used to wire each cron task's monitoring URL without scattering nil-or-noop
+// branches through the cron service.
 func cronHeartbeat(url string) healthcheck.Heartbeat {
 	if url == "" {
 		return healthcheck.NewNoop()
 	}
-	return healthcheck.NewChecklyHeartbeat(url)
+	return healthcheck.NewHTTPHeartbeat(url)
 }

@@ -12,21 +12,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// validateTimeRange ensures the query doesn't access data older than QueryRangeDaysMax.
+// validateTimeRange rejects explicit lower bounds older than QueryRangeDaysMax.
+// Queries without a lower bound are constrained by ClickHouse row policies.
 func (p *Parser) validateTimeRange() error {
 	if p.config.QueryRangeDaysMax <= 0 {
-		// No restriction configured
 		return nil
 	}
 
-	// Calculate the earliest allowed timestamp
 	earliestAllowed := time.Now().AddDate(0, 0, -int(p.config.QueryRangeDaysMax))
-
-	// Walk the query to find time-based WHERE conditions
-	hasTimeFilter := false
 	var validationErr error
 
-	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
+	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok {
 			return true
@@ -36,7 +32,7 @@ func (p *Parser) validateTimeRange() error {
 			return true
 		}
 
-		err := p.validateWhereClause(selectQuery.Where.Expr, earliestAllowed, &hasTimeFilter)
+		err := p.validateWhereClause(selectQuery.Where.Expr, earliestAllowed)
 		if err != nil {
 			validationErr = err
 			return false
@@ -45,75 +41,52 @@ func (p *Parser) validateTimeRange() error {
 		return true
 	})
 
-	if validationErr != nil {
-		return validationErr
-	}
-
-	// If querying tables with time columns but no time filter, auto-add one for the full retention period
-	if !hasTimeFilter && p.queryAccessesTimeBasedTables() {
-		return p.injectDefaultTimeFilter()
-	}
-
-	return nil
+	return validationErr
 }
 
 // validateWhereClause recursively validates time conditions in WHERE clause
-func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.Time, hasLowerBoundTimeFilter *bool) error {
+func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.Time) error {
 	switch e := expr.(type) {
 	case *clickhouse.BinaryOperation:
-		// Check if this is a time comparison
 		info := p.analyzeTimeComparison(e)
 		if info.isTimeComparison {
-			hasLowerBound, err := p.validateTimeComparison(e, earliestAllowed, info)
-			if err != nil {
+			if err := p.validateTimeComparison(e, earliestAllowed, info); err != nil {
 				return err
-			}
-			// Only set hasLowerBoundTimeFilter if this comparison establishes a lower bound
-			if hasLowerBound {
-				*hasLowerBoundTimeFilter = true
 			}
 		}
 
-		// Recursively check left and right expressions
 		if e.LeftExpr != nil {
-			if err := p.validateWhereClause(e.LeftExpr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+			if err := p.validateWhereClause(e.LeftExpr, earliestAllowed); err != nil {
 				return err
 			}
 		}
 
 		if e.RightExpr != nil {
-			if err := p.validateWhereClause(e.RightExpr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+			if err := p.validateWhereClause(e.RightExpr, earliestAllowed); err != nil {
 				return err
 			}
 		}
 
 	case *clickhouse.BetweenClause:
-		// Check if this is a time BETWEEN comparison
-		// BETWEEN always establishes a lower bound
 		if p.isTimeColumn(e.Expr) {
-			*hasLowerBoundTimeFilter = true
 			if err := p.validateBetweenClause(e, earliestAllowed); err != nil {
 				return err
 			}
 		}
 
 	case *clickhouse.ParamExprList:
-		// A parenthesized group. The filter injector wraps the caller's WHERE in
-		// one to preserve AND/OR precedence, and users may write explicit parens
-		// too. Recurse into the contents so time comparisons inside are still
-		// validated rather than silently skipped.
+		// Recurse into explicit parenthesized expressions.
 		if e.Items != nil {
 			for _, item := range e.Items.Items {
-				if err := p.validateWhereClause(item, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+				if err := p.validateWhereClause(item, earliestAllowed); err != nil {
 					return err
 				}
 			}
 		}
 
 	case *clickhouse.ColumnExpr:
-		// Grouped expressions can appear wrapped in a ColumnExpr; unwrap it.
 		if e.Expr != nil {
-			if err := p.validateWhereClause(e.Expr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+			if err := p.validateWhereClause(e.Expr, earliestAllowed); err != nil {
 				return err
 			}
 		}
@@ -144,16 +117,12 @@ func (p *Parser) analyzeTimeComparison(op *clickhouse.BinaryOperation) timeCompa
 	return timeComparisonInfo{isTimeComparison: false, timeOnLeft: false}
 }
 
-// validateTimeComparison validates that a time comparison doesn't access data beyond retention.
-// Returns (hasLowerBound, error) - hasLowerBound indicates if this comparison establishes a lower bound on time.
-func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliestAllowed time.Time, info timeComparisonInfo) (bool, error) {
+// validateTimeComparison validates parseable lower bounds against retention.
+func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliestAllowed time.Time, info timeComparisonInfo) error {
 	// Extract the timestamp being compared
 	timestamp, err := p.extractTimestamp(op)
 	if err != nil {
-		// If we can't parse the timestamp, allow it and let ClickHouse handle it
-		// But we don't know if it's a lower bound, so return false to be safe
-		// (this will cause default time filter injection if no other lower bound exists)
-		return false, nil
+		return nil
 	}
 
 	// Normalize the operator to always be from the perspective of "time <op> value"
@@ -173,24 +142,20 @@ func (p *Parser) validateTimeComparison(op *clickhouse.BinaryOperation, earliest
 	// Upper bounds: time <= X, time < X (these don't establish a lower bound)
 	switch operation {
 	case ">=", ">":
-		// time >= X or time > X - this establishes a lower bound
 		if timestamp.Before(earliestAllowed) {
-			return true, p.retentionExceededError(timestamp, earliestAllowed)
+			return p.retentionExceededError(timestamp, earliestAllowed)
 		}
-		return true, nil
+		return nil
 	case "=":
-		// time = X - this establishes both bounds (exact match)
 		if timestamp.Before(earliestAllowed) {
-			return true, p.retentionExceededError(timestamp, earliestAllowed)
+			return p.retentionExceededError(timestamp, earliestAllowed)
 		}
-		return true, nil
+		return nil
 	case "<=", "<":
-		// time <= X or time < X - upper bound only, does NOT establish a lower bound
-		return false, nil
+		return nil
 	}
 
-	// Unknown operator - don't treat as lower bound
-	return false, nil
+	return nil
 }
 
 // flipOperator flips a comparison operator (for when time is on the right side)
@@ -437,63 +402,6 @@ func (p *Parser) parseIntervalExpression(expr clickhouse.Expr) (time.Duration, e
 
 // isTimeColumn checks if an expression is the 'time' column
 func (p *Parser) isTimeColumn(expr clickhouse.Expr) bool {
-	if ident, ok := expr.(*clickhouse.NestedIdentifier); ok {
-		return ident.Ident != nil && strings.EqualFold(ident.Ident.Name, "time")
-	}
-
-	if ident, ok := expr.(*clickhouse.Ident); ok {
-		return strings.EqualFold(ident.Name, "time")
-	}
-
-	return false
-}
-
-// queryAccessesTimeBasedTables checks if the query accesses tables that have time columns
-func (p *Parser) queryAccessesTimeBasedTables() bool {
-	// All analytics tables in the allowed list have time columns
-	// We can check if any table is being accessed
-	return len(p.config.AllowedTables) > 0
-}
-
-// injectDefaultTimeFilter adds a default time filter for the full retention period
-func (p *Parser) injectDefaultTimeFilter() error {
-	// Create the time filter: time >= now() - INTERVAL N DAY
-	timeFilter := &clickhouse.BinaryOperation{
-		LeftExpr:  &clickhouse.Ident{Name: "time"},
-		Operation: clickhouse.TokenKindGE,
-		RightExpr: &clickhouse.BinaryOperation{
-			LeftExpr: &clickhouse.FunctionExpr{
-				Name: &clickhouse.Ident{Name: "now"},
-				Params: &clickhouse.ParamExprList{
-					Items: &clickhouse.ColumnExprList{
-						Items: []clickhouse.Expr{},
-					},
-				},
-			},
-			Operation: clickhouse.TokenKindMinus,
-			RightExpr: &clickhouse.IntervalExpr{
-				IntervalPos: 1, // Non-zero value required for String() to output "INTERVAL"
-				Expr: &clickhouse.NumberLiteral{
-					Literal: fmt.Sprintf("%d", p.config.QueryRangeDaysMax),
-				},
-				Unit: &clickhouse.Ident{Name: "DAY"},
-			},
-		},
-	}
-
-	// Add to WHERE clause or create new one
-	if p.stmt.Where == nil {
-		p.stmt.Where = &clickhouse.WhereClause{
-			Expr: timeFilter,
-		}
-	} else {
-		// Combine with existing WHERE using AND
-		p.stmt.Where.Expr = &clickhouse.BinaryOperation{
-			LeftExpr:  p.stmt.Where.Expr,
-			Operation: "AND",
-			RightExpr: timeFilter,
-		}
-	}
-
-	return nil
+	ident, ok := terminalIdentifier(expr)
+	return ok && strings.EqualFold(ident.Name, "time")
 }

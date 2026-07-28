@@ -93,6 +93,7 @@
                       "platform/analytics/getting-started",
                       "platform/analytics/quick-reference",
                       "platform/analytics/query-examples",
+                      "platform/analytics/get-ratelimits",
                       "platform/analytics/schema-reference",
                       "platform/analytics/query-restrictions",
                       "platform/analytics/troubleshooting"
@@ -822,7 +823,7 @@
     {
       "destination": "/platform/apis/features/authorization/introduction",
       "source": "/security/roles"
-    } 
+    }
   ],
   "styling": {
     "codeblocks": {

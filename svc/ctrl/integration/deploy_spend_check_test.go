@@ -53,8 +53,11 @@ func startSpendCheck(t *testing.T, database db.Database) *restatetest.TestEnviro
 
 // TestDeploySpendCheck_SuspendThenResume exercises the enforcement trigger
 // end-to-end: an overage at/over budget with stop set suspends compute (the
-// check dispatches Teardown(SUSPEND)), and a later run with a budget raised
-// above the frozen overage resumes it (the check dispatches Resume).
+// check dispatches Teardown(SUSPEND)), and a budget raised above the frozen
+// overage resumes it (the check dispatches Resume). The spend-driven resume is
+// debounced, so it takes two consecutive under-budget ticks: the first only
+// records the streak (a lone ClickHouse underread looks identical), the second
+// confirms and resumes.
 func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
@@ -111,9 +114,10 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, billing.SpendSuspended, "suspend should set spend_suspended")
 
-	// A later run with a budget raised above the frozen overage resumes compute.
-	// The orchestrator would now pass CurrentlySuspended=true from the column.
-	resumeResp, err := client.CheckWorkspaceSpend().Request(ctx, &hydrav1.CheckWorkspaceSpendRequest{
+	// A budget raised above the frozen overage puts gross under budget: the
+	// spend-driven resume path, which is debounced. The orchestrator passes
+	// CurrentlySuspended=true from the column on both ticks.
+	raisedBudget := &hydrav1.CheckWorkspaceSpendRequest{
 		Period:             period,
 		BudgetCents:        1_000_000,
 		Stop:               true,
@@ -122,9 +126,22 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 		WorkspaceSlug:      "test",
 		SpendMicroCents:    200 * deploybilling.MicroCentsPerCent,
 		CurrentlySuspended: true,
-	})
+	}
+
+	// First under-budget tick must NOT resume: a single ClickHouse underread is
+	// indistinguishable from this, so the check only records the streak.
+	firstResp, err := client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
 	require.NoError(t, err)
-	require.False(t, resumeResp.GetSuspended(), "overage under raised budget should resume")
+	require.True(t, firstResp.GetSuspended(), "one under-budget tick must not resume (hysteresis)")
+
+	billing, err = h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
+	require.NoError(t, err)
+	require.True(t, billing.SpendSuspended, "one under-budget tick must leave spend_suspended set")
+
+	// Second consecutive under-budget tick confirms the drop and resumes.
+	resumeResp, err := client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
+	require.NoError(t, err)
+	require.False(t, resumeResp.GetSuspended(), "second under-budget tick should resume")
 
 	// Resume restores current_deployment_id and brings desired_state back to
 	// running (the latter via the DeploymentService VO, asynchronously).

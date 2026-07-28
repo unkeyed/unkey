@@ -14,11 +14,13 @@ const insertKeyAuth = `-- name: InsertKeyAuth :exec
 INSERT INTO key_auth (
     id,
     workspace_id,
+    project_id,
     created_at_m,
     default_prefix,
     default_bytes,
     store_encrypted_keys
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -31,6 +33,7 @@ INSERT INTO key_auth (
 type InsertKeyAuthParams struct {
 	ID            string         `db:"id"`
 	WorkspaceID   string         `db:"workspace_id"`
+	ProjectID     string         `db:"project_id"`
 	CreatedAtM    int64          `db:"created_at_m"`
 	DefaultPrefix sql.NullString `db:"default_prefix"`
 	DefaultBytes  sql.NullInt32  `db:"default_bytes"`
@@ -41,11 +44,13 @@ type InsertKeyAuthParams struct {
 //	INSERT INTO key_auth (
 //	    id,
 //	    workspace_id,
+//	    project_id,
 //	    created_at_m,
 //	    default_prefix,
 //	    default_bytes,
 //	    store_encrypted_keys
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -57,6 +62,7 @@ func (q *Queries) InsertKeyAuth(ctx context.Context, db DBTX, arg InsertKeyAuthP
 	_, err := db.ExecContext(ctx, insertKeyAuth,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.CreatedAtM,
 		arg.DefaultPrefix,
 		arg.DefaultBytes,

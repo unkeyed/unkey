@@ -176,6 +176,15 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	// Returns the challenge row for a domain, if one exists. domain_id is unique on
+	// acme_challenges, so there is at most one. Used as the idempotency check for
+	// infra certificate provisioning: once a challenge exists the renewal cron owns
+	// issuance, so provisioning is a no-op.
+	//
+	//  SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
+	//  JOIN custom_domains cd ON ac.domain_id = cd.id
+	//  WHERE cd.domain = ?
+	FindAcmeChallengeByDomain(ctx context.Context, domain string) (AcmeChallenge, error)
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -186,7 +195,7 @@ type Querier interface {
 	FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
-	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
+	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
@@ -317,16 +326,27 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
+	//
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
-	// finalization.
+	// finalization. The Deploy subscription id now lives on billing_subscriptions.
 	//
 	//  SELECT
 	//     w.id,
-	//     b.stripe_subscription_id
+	//     bs.stripe_subscription_id AS stripe_deploy_subscription_id
 	//  FROM `workspace_billing` b
 	//  JOIN `workspaces` w ON w.id = b.workspace_id
+	//  LEFT JOIN `billing_subscriptions` bs
+	//     ON bs.workspace_id = b.workspace_id AND bs.product = 'compute'
 	//  WHERE b.stripe_customer_id = ?
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
@@ -495,7 +515,7 @@ type Querier interface {
 	FindKeyIDByHash(ctx context.Context, hash string) (string, error)
 	//FindKeySpaceByID
 	//
-	//  SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
+	//  SELECT pk, id, workspace_id, project_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, id string) (KeyAuth, error)
 	//FindLatestReadyDeploymentByAppAndEnv
 	//
@@ -514,7 +534,7 @@ type Querier interface {
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 	//  FROM permissions
 	//  WHERE name = ?
 	//  AND workspace_id = ?
@@ -534,7 +554,7 @@ type Querier interface {
 	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
+	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -570,14 +590,34 @@ type Querier interface {
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being
 	// fetched, prefer joining workspace_billing in that query over a second round
-	// trip.
+	// trip. Stripe subscription ids now live on billing_subscriptions, one row per
+	// (workspace, product).
 	//
-	//  SELECT pk, workspace_id, tier, stripe_customer_id, stripe_subscription_id, plan, plan_override, spend_budget_cents, spend_budget_stop, spend_suspended, created_at_m, updated_at_m, deleted_at_m FROM `workspace_billing`
-	//  WHERE workspace_id = ?
-	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (WorkspaceBilling, error)
+	//  SELECT
+	//     b.pk,
+	//     b.workspace_id,
+	//     b.tier,
+	//     b.stripe_customer_id,
+	//     bs_api.stripe_subscription_id AS stripe_subscription_id,
+	//     bs_deploy.stripe_subscription_id AS stripe_deploy_subscription_id,
+	//     b.plan,
+	//     b.plan_override,
+	//     b.spend_budget_cents,
+	//     b.spend_budget_stop,
+	//     b.spend_suspended,
+	//     b.created_at_m,
+	//     b.updated_at_m,
+	//     b.deleted_at_m
+	//  FROM `workspace_billing` b
+	//  LEFT JOIN `billing_subscriptions` bs_api
+	//     ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+	//  LEFT JOIN `billing_subscriptions` bs_deploy
+	//     ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+	//  WHERE b.workspace_id = ?
+	FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, deploy_spend_suspended, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project- and
@@ -676,12 +716,14 @@ type Querier interface {
 	//      id,
 	//      name,
 	//      workspace_id,
+	//      project_id,
 	//      auth_type,
 	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1017,10 +1059,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1162,6 +1206,7 @@ type Querier interface {
 	//  INSERT INTO `key_auth` (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      store_encrypted_keys,
 	//      default_prefix,
@@ -1171,7 +1216,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//        ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1184,12 +1230,14 @@ type Querier interface {
 	//  INSERT INTO permissions (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1217,11 +1265,13 @@ type Querier interface {
 	//  INSERT INTO roles (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1252,7 +1302,6 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      created_at_m,
-	//      tier,
 	//      beta_features,
 	//      enabled,
 	//      delete_protection,
@@ -1264,7 +1313,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      'Free',
 	//      '{}',
 	//      true,
 	//      true,
@@ -1341,9 +1389,11 @@ type Querier interface {
 	//  SELECT
 	//     w.id,
 	//     b.stripe_customer_id,
-	//     b.stripe_subscription_id
+	//     bs.stripe_subscription_id AS stripe_deploy_subscription_id
 	//  FROM `workspaces` w
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  LEFT JOIN `billing_subscriptions` bs
+	//     ON bs.workspace_id = w.id AND bs.product = 'compute'
 	//  WHERE b.plan IS NOT NULL
 	//    AND b.stripe_customer_id IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
@@ -2107,7 +2157,8 @@ type Querier interface {
 	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
 	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, arg UpsertQuotaParams) error
-	// Inserts a region or does nothing if it already exists.
+	// Inserts a region or does nothing if it already exists (keyed by the
+	// (name, platform) unique index).
 	//
 	//  INSERT INTO regions (
 	//  	id,

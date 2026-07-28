@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertRole is the base query for bulk insert
-const bulkInsertRole = `INSERT INTO roles ( id, workspace_id, name, description, created_at_m ) VALUES %s`
+const bulkInsertRole = `INSERT INTO roles ( id, workspace_id, project_id, name, description, created_at_m ) VALUES %s`
 
 // InsertRoles performs bulk insert in a single query
 func (q *BulkQueries) InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertRoles(ctx context.Context, db DBTX, args []InsertRol
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertRole, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertRoles(ctx context.Context, db DBTX, args []InsertRol
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.RoleID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Description)
 		allArgs = append(allArgs, arg.CreatedAt)

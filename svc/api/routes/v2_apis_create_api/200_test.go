@@ -66,8 +66,11 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		// Verify the API in the database
 		api, err := db.Query.FindApiByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
 		require.NoError(t, err)
+		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+		require.NoError(t, err)
 		require.Equal(t, apiName, api.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, api.WorkspaceID)
+		require.Equal(t, projectID, api.ProjectID)
 		require.True(t, api.AuthType.Valid)
 		require.Equal(t, db.ApisAuthTypeKey, api.AuthType.ApisAuthType)
 		require.True(t, api.KeyAuthID.Valid)
@@ -78,6 +81,7 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 		require.NoError(t, err)
 		require.Equal(t, h.Resources().UserWorkspace.ID, keySpace.WorkspaceID)
+		require.Equal(t, projectID, keySpace.ProjectID)
 		require.False(t, keySpace.DeletedAtM.Valid)
 
 		// Verify the audit log was queued in clickhouse_outbox

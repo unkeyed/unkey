@@ -9,6 +9,7 @@ export type PortalBranding = {
 
 export type PortalConfig = {
   id: string;
+  slug: string;
   enabled: boolean;
   returnUrl: string | null;
   branding: PortalBranding | null;
@@ -23,6 +24,7 @@ export async function loadPortalConfig(portalConfigId: string): Promise<PortalCo
     where: eq(schema.portalConfigurations.id, portalConfigId),
     columns: {
       id: true,
+      slug: true,
       enabled: true,
       returnUrl: true,
     },
@@ -42,6 +44,7 @@ export async function loadPortalConfig(portalConfigId: string): Promise<PortalCo
 
   return {
     id: config.id,
+    slug: config.slug,
     enabled: config.enabled,
     returnUrl: config.returnUrl,
     branding: config.branding ?? null,

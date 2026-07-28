@@ -7,6 +7,19 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import {
+  DeploymentAction,
+  DeploymentAction$inboundSchema,
+} from "./deploymentaction.js";
+import {
+  DeploymentDocker,
+  DeploymentDocker$inboundSchema,
+} from "./deploymentdocker.js";
+import {
+  DeploymentError,
+  DeploymentError$inboundSchema,
+} from "./deploymenterror.js";
+import { DeploymentGit, DeploymentGit$inboundSchema } from "./deploymentgit.js";
+import {
   DeploymentRuntime,
   DeploymentRuntime$inboundSchema,
 } from "./deploymentruntime.js";
@@ -30,6 +43,50 @@ export type Deployment = {
    * or cancelled.
    */
   status: DeploymentStatus;
+  /**
+   * True when this is the production deployment currently serving traffic, i.e.
+   *
+   * @remarks
+   * on api.acme.com. Only production deployments can be current, and at most one
+   * deployment is current. Rollbacks and promotions change which deployment is
+   * current and serves requests to api.acme.com.
+   */
+  isCurrent: boolean;
+  /**
+   * Slug of the environment this deployment belongs to.
+   */
+  environment: string;
+  /**
+   * Slug of the app this deployment belongs to.
+   */
+  app: string;
+  /**
+   * Slug of the project this deployment belongs to.
+   */
+  project: string;
+  git?: DeploymentGit | undefined;
+  docker?: DeploymentDocker | undefined;
+  /**
+   * Lifecycle operations you are allowed to call on this deployment right now.
+   *
+   * @remarks
+   * Empty when none apply (e.g. while building or in a terminal state).
+   */
+  availableActions: Array<DeploymentAction>;
+  /**
+   * Regions this deployment is configured to run in. Empty while the deployment
+   *
+   * @remarks
+   * has no scheduled regions yet.
+   */
+  regions: Array<string>;
+  error?: DeploymentError | undefined;
+  /**
+   * Public hostnames this deployment is reachable at.
+   *
+   * @remarks
+   */
+  domains?: Array<string> | undefined;
   runtime: DeploymentRuntime;
   /**
    * Unix timestamp in milliseconds when the deployment was created.
@@ -54,6 +111,16 @@ export const Deployment$inboundSchema: z.ZodType<
 > = z.object({
   id: z.string(),
   status: DeploymentStatus$inboundSchema,
+  isCurrent: z.boolean(),
+  environment: z.string(),
+  app: z.string(),
+  project: z.string(),
+  git: DeploymentGit$inboundSchema.optional(),
+  docker: DeploymentDocker$inboundSchema.optional(),
+  availableActions: z.array(DeploymentAction$inboundSchema),
+  regions: z.array(z.string()),
+  error: DeploymentError$inboundSchema.optional(),
+  domains: z.array(z.string()).optional(),
   runtime: DeploymentRuntime$inboundSchema,
   createdAt: z.number().int(),
   updatedAt: z.number().int().optional(),

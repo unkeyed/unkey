@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertKeyAuth is the base query for bulk insert
-const bulkInsertKeyAuth = `INSERT INTO key_auth ( id, workspace_id, created_at_m, default_prefix, default_bytes, store_encrypted_keys ) VALUES %s`
+const bulkInsertKeyAuth = `INSERT INTO key_auth ( id, workspace_id, project_id, created_at_m, default_prefix, default_bytes, store_encrypted_keys ) VALUES %s`
 
 // InsertKeyAuths performs bulk insert in a single query
 func (q *BulkQueries) InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertKeyAuths(ctx context.Context, db DBTX, args []Insert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, false )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, false )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertKeyAuth, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertKeyAuths(ctx context.Context, db DBTX, args []Insert
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.CreatedAtM)
 		allArgs = append(allArgs, arg.DefaultPrefix)
 		allArgs = append(allArgs, arg.DefaultBytes)

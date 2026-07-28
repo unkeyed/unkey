@@ -9,7 +9,7 @@ description: "Your query requests data older than your workspace's retention per
 
 This error occurs when your analytics query attempts to access data older than your workspace's configured data retention period. By default, Unkey retains analytics data for **30 days**.
 
-**Note**: If you don't provide a time filter in your query, the system automatically adds one to scope your query to the full retention period (e.g., `time >= now() - INTERVAL 30 DAY`). This error only occurs when you explicitly specify a time range that goes beyond the retention period.
+**Note**: If you don't provide a time filter in your query, Unkey automatically constrains results to your workspace retention period. This error only occurs when you explicitly specify a time range that goes beyond the retention period.
 
 ## Common causes
 

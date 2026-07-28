@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -97,55 +98,34 @@ func IsUserQueryError(err error) bool {
 	return false
 }
 
-// ExtractUserFriendlyError extracts a user-friendly error message from ClickHouse error.
-// It preserves the key information like unknown identifiers, suggestions, and error context.
+// ExtractUserFriendlyError maps ClickHouse errors to stable public messages
+// without exposing rewritten SQL, physical table names, or injected filters.
 func ExtractUserFriendlyError(err error) string {
 	if err == nil {
-		return "Query failed"
+		return "Invalid analytics query"
 	}
 
-	errMsg := err.Error()
-
-	// ClickHouse errors from HTTP interface often contain the actual DB::Exception message
-	// Format: "Code: 47. DB::Exception: <actual error message>. (ERROR_NAME)"
-	if idx := strings.Index(errMsg, "DB::Exception: "); idx != -1 {
-		errMsg = errMsg[idx+15:] // Skip "DB::Exception: "
-
-		// Find the end marker (usually the error code in parentheses at the end)
-		if endIdx := strings.LastIndex(errMsg, " (version "); endIdx != -1 {
-			errMsg = errMsg[:endIdx]
-		}
-
-		// Remove the final error code if present like ". (UNKNOWN_IDENTIFIER)"
-		if endIdx := strings.LastIndex(errMsg, ". ("); endIdx != -1 {
-			errMsg = errMsg[:endIdx]
-		}
-
-		return strings.TrimSpace(errMsg)
+	errMsg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(errMsg, "unknown function"),
+		strings.Contains(errMsg, "no matching signature"):
+		return "Unknown function in analytics query"
+	case strings.Contains(errMsg, "unknown identifier"),
+		strings.Contains(errMsg, "unknown expression"),
+		strings.Contains(errMsg, "unknown column"),
+		strings.Contains(errMsg, "missing columns"),
+		strings.Contains(errMsg, "there is no column"),
+		strings.Contains(errMsg, "no such column"),
+		strings.Contains(errMsg, "cannot find column"):
+		return "Unknown identifier in analytics query"
+	case strings.Contains(errMsg, "syntax error"),
+		strings.Contains(errMsg, "unexpected token"),
+		strings.Contains(errMsg, "unrecognized token"),
+		strings.Contains(errMsg, "cannot parse"):
+		return "Invalid SQL syntax"
+	default:
+		return "Invalid analytics query"
 	}
-
-	// Try to extract from exception object
-	var chErr *ch.Exception
-	if errors.As(err, &chErr) {
-		return chErr.Message
-	}
-
-	// Clean up common prefixes for other formats
-	errMsg = strings.TrimPrefix(errMsg, "clickhouse: ")
-	errMsg = strings.TrimPrefix(errMsg, "sendQuery: ")
-	errMsg = strings.TrimPrefix(errMsg, "[HTTP 404] response body: ")
-	errMsg = strings.Trim(errMsg, "\"")
-
-	// If the message is too long, try to extract the first sentence
-	if len(errMsg) > 500 {
-		if idx := strings.Index(errMsg, ". "); idx != -1 && idx < 500 {
-			errMsg = errMsg[:idx+1]
-		} else {
-			errMsg = errMsg[:500] + "..."
-		}
-	}
-
-	return strings.TrimSpace(errMsg)
 }
 
 // errorResponse defines a structured error response with code and message
@@ -239,6 +219,12 @@ var resourceLimitNames = map[string]errorResponse{
 func WrapClickHouseError(err error) error {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return fault.Wrap(err,
+			fault.Code(codes.User.UnprocessableEntity.QueryExecutionTimeout.URN()),
+			fault.Public("Query execution was canceled or timed out."),
+		)
 	}
 
 	errMsg := strings.ToLower(err.Error())

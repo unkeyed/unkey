@@ -10,7 +10,7 @@ import (
 )
 
 const findPermissionByNameAndWorkspaceID = `-- name: FindPermissionByNameAndWorkspaceID :one
-SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 FROM permissions
 WHERE name = ?
 AND workspace_id = ?
@@ -24,7 +24,7 @@ type FindPermissionByNameAndWorkspaceIDParams struct {
 
 // FindPermissionByNameAndWorkspaceID
 //
-//	SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 //	FROM permissions
 //	WHERE name = ?
 //	AND workspace_id = ?
@@ -36,6 +36,7 @@ func (q *Queries) FindPermissionByNameAndWorkspaceID(ctx context.Context, db DBT
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Slug,
 		&i.Description,

@@ -269,6 +269,48 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type BillingSubscriptionsProduct string
+
+const (
+	BillingSubscriptionsProductApi     BillingSubscriptionsProduct = "api"
+	BillingSubscriptionsProductCompute BillingSubscriptionsProduct = "compute"
+)
+
+func (e *BillingSubscriptionsProduct) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingSubscriptionsProduct(s)
+	case string:
+		*e = BillingSubscriptionsProduct(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingSubscriptionsProduct: %T", src)
+	}
+	return nil
+}
+
+type NullBillingSubscriptionsProduct struct {
+	BillingSubscriptionsProduct BillingSubscriptionsProduct
+	Valid                       bool // Valid is true if BillingSubscriptionsProduct is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingSubscriptionsProduct) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingSubscriptionsProduct, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingSubscriptionsProduct.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingSubscriptionsProduct) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingSubscriptionsProduct), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -872,6 +914,7 @@ type Api struct {
 	ID               string           `db:"id"`
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
 	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
@@ -954,6 +997,15 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
+}
+
+type BillingSubscription struct {
+	Pk                   uint64                      `db:"pk"`
+	WorkspaceID          string                      `db:"workspace_id"`
+	Product              BillingSubscriptionsProduct `db:"product"`
+	StripeSubscriptionID string                      `db:"stripe_subscription_id"`
+	CreatedAt            int64                       `db:"created_at"`
+	UpdatedAt            sql.NullInt64               `db:"updated_at"`
 }
 
 type Certificate struct {
@@ -1187,6 +1239,7 @@ type Identity struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
 	Environment string        `db:"environment"`
 	Meta        []byte        `db:"meta"`
 	Deleted     bool          `db:"deleted"`
@@ -1241,6 +1294,7 @@ type KeyAuth struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
 	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
@@ -1291,6 +1345,7 @@ type Permission struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Slug        string         `db:"slug"`
 	Description sql.NullString `db:"description"`
@@ -1407,6 +1462,7 @@ type RatelimitNamespace struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
 	Name        string        `db:"name"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
@@ -1438,6 +1494,7 @@ type Role struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
@@ -1464,41 +1521,32 @@ type SharedSecret struct {
 }
 
 type Workspace struct {
-	Pk                     uint64          `db:"pk"`
-	ID                     string          `db:"id"`
-	OrgID                  string          `db:"org_id"`
-	Name                   string          `db:"name"`
-	Slug                   string          `db:"slug"`
-	K8sNamespace           sql.NullString  `db:"k8s_namespace"`
-	Tier                   sql.NullString  `db:"tier"`
-	StripeCustomerID       sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID   sql.NullString  `db:"stripe_subscription_id"`
-	DeployPlan             sql.NullString  `db:"deploy_plan"`
-	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
-	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
-	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
-	DeploySpendSuspended   bool            `db:"deploy_spend_suspended"`
-	BetaFeatures           json.RawMessage `db:"beta_features"`
-	Subscriptions          []byte          `db:"subscriptions"`
-	Enabled                bool            `db:"enabled"`
-	DeleteProtection       sql.NullBool    `db:"delete_protection"`
-	CreatedAtM             int64           `db:"created_at_m"`
-	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
+	Pk               uint64          `db:"pk"`
+	ID               string          `db:"id"`
+	OrgID            string          `db:"org_id"`
+	Name             string          `db:"name"`
+	Slug             string          `db:"slug"`
+	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	BetaFeatures     json.RawMessage `db:"beta_features"`
+	Subscriptions    []byte          `db:"subscriptions"`
+	Enabled          bool            `db:"enabled"`
+	DeleteProtection sql.NullBool    `db:"delete_protection"`
+	CreatedAtM       int64           `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64   `db:"deleted_at_m"`
 }
 
 type WorkspaceBilling struct {
-	Pk                   uint64         `db:"pk"`
-	WorkspaceID          string         `db:"workspace_id"`
-	Tier                 sql.NullString `db:"tier"`
-	StripeCustomerID     sql.NullString `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id"`
-	Plan                 sql.NullString `db:"plan"`
-	PlanOverride         sql.NullString `db:"plan_override"`
-	SpendBudgetCents     sql.NullInt64  `db:"spend_budget_cents"`
-	SpendBudgetStop      bool           `db:"spend_budget_stop"`
-	SpendSuspended       bool           `db:"spend_suspended"`
-	CreatedAtM           int64          `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64  `db:"deleted_at_m"`
+	Pk               uint64         `db:"pk"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Tier             sql.NullString `db:"tier"`
+	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
+	Plan             sql.NullString `db:"plan"`
+	PlanOverride     sql.NullString `db:"plan_override"`
+	SpendBudgetCents sql.NullInt64  `db:"spend_budget_cents"`
+	SpendBudgetStop  bool           `db:"spend_budget_stop"`
+	SpendSuspended   bool           `db:"spend_suspended"`
+	CreatedAtM       int64          `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64  `db:"deleted_at_m"`
 }

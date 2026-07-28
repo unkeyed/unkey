@@ -1,48 +1,36 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { deriveVisibleTabs } from "~/lib/permissions";
-
 type PortalHeaderProps = {
-  permissions: string[];
   logoUrl?: string;
+  returnUrl?: string;
+  appName?: string;
 };
 
 /**
- * Branded portal header with permission-derived navigation tabs.
+ * Branded portal header: a colored bar (customer's primary color, dark
+ * fallback) carrying the logo on the left and a return-to-application link on
+ * the right. Tabbed navigation was removed while Analytics and Docs are
+ * deferred to v2; the portal currently exposes only the Keys page.
  */
-export function PortalHeader({ permissions, logoUrl }: PortalHeaderProps) {
-  const location = useLocation();
-  const tabs = deriveVisibleTabs(permissions);
-
+export function PortalHeader({ logoUrl, returnUrl, appName }: PortalHeaderProps) {
   return (
-    <header className="border-gray-6 border-b bg-background">
-      <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
-        {logoUrl && <img src={logoUrl} alt="" className="h-8 w-auto" aria-hidden="true" />}
-        <nav className="flex items-center gap-1" aria-label="Portal navigation">
-          {tabs.map((tab) => {
-            const isActive = location.pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.id}
-                to={tab.href}
-                aria-current={isActive ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 font-medium text-sm transition-colors ${
-                  isActive ? "text-gray-12" : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
-                }`}
-                style={
-                  isActive
-                    ? {
-                        backgroundColor:
-                          "color-mix(in srgb, var(--portal-primary, #6366f1) 10%, transparent)",
-                        color: "var(--portal-primary, #6366f1)",
-                      }
-                    : undefined
-                }
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
+    <header
+      className="w-full text-[var(--portal-primary-foreground,#ffffff)]"
+      style={{ backgroundColor: "var(--portal-primary, var(--color-gray-12))" }}
+    >
+      <div className="flex h-14 items-center justify-between gap-6 px-4 sm:px-8">
+        {(logoUrl || appName) && (
+          <div className="flex items-center gap-2.5">
+            {logoUrl && <img src={logoUrl} alt="" className="h-6 w-auto" aria-hidden="true" />}
+            {appName && <span className="font-medium text-sm">{appName}</span>}
+          </div>
+        )}
+        {returnUrl && (
+          <a
+            href={returnUrl}
+            className="whitespace-nowrap text-[color-mix(in_srgb,var(--portal-primary-foreground,#ffffff)_85%,transparent)] text-sm transition-colors hover:text-[var(--portal-primary-foreground,#ffffff)]"
+          >
+            ← Return to {appName ?? "application"}
+          </a>
+        )}
       </div>
     </header>
   );

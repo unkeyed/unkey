@@ -2,6 +2,7 @@
 INSERT INTO `key_auth` (
     id,
     workspace_id,
+    project_id,
     created_at_m,
     store_encrypted_keys,
     default_prefix,
@@ -11,7 +12,8 @@ INSERT INTO `key_auth` (
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
-      sqlc.arg(created_at_m),
+    sqlc.arg(project_id),
+    sqlc.arg(created_at_m),
     sqlc.arg(store_encrypted_keys),
     sqlc.arg(default_prefix),
     sqlc.arg(default_bytes),
