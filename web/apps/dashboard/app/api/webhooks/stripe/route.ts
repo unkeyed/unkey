@@ -15,6 +15,7 @@ import {
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
+import { linkApiSubscription } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
@@ -26,14 +27,11 @@ import {
 } from "@/lib/stripe/subscriptionUtils";
 import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
 import {
+  alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
-  alertIsCancellingSubscription,
   alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
-  alertSubscriptionCancelled,
-  alertSubscriptionCreation,
-  alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
@@ -52,7 +50,7 @@ import Stripe from "stripe";
  * resubscribe (subscribeDeploy requires plan IS NULL). A resume clears cancel_at
  * and the next update re-mirrors the live plan. This mirrors the API side, whose
  * updated handler already returns early on a cancelling subscription.
- **/
+ */
 async function mirrorDeployPlan(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
@@ -83,6 +81,7 @@ async function sendComputeAlert(
   stripe: Stripe,
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
+  ws: { id: string; name: string } | null,
 ): Promise<void> {
   if (!alert || !sub.customer) {
     return;
@@ -104,31 +103,102 @@ async function sendComputeAlert(
   if (customer.deleted || !customer.email) {
     return;
   }
-  const name = customer.name || "Unknown";
+
+  // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
+  // created event races ahead of the checkout link that writes the billing_subscriptions row;
+  // the workspace fields are simply omitted from the alert in that case.
+  const base = {
+    name: customer.name || "Unknown",
+    email: customer.email,
+    workspaceId: ws?.id,
+    workspaceName: ws?.name,
+    stripeCustomerId: customer.id,
+    livemode: customer.livemode,
+  };
 
   switch (alert.type) {
     case "created":
-      await alertSubscriptionCreation(alert.product, alert.price, customer.email, name);
+      await alertCustomerLifecycle({
+        ...base,
+        action: "signup",
+        product: alert.product,
+        price: alert.price,
+      });
       break;
     case "cancelling":
-      await alertIsCancellingSubscription(alert.product, alert.price, customer.email, name);
+      await alertCustomerLifecycle({
+        ...base,
+        action: "cancelling",
+        product: alert.product,
+        price: alert.price,
+      });
       break;
     case "updated":
-      await alertSubscriptionUpdate(
-        alert.product,
-        alert.price,
-        customer.email,
-        name,
-        alert.changeType,
-        alert.previousTier,
-      );
+      await alertCustomerLifecycle({
+        ...base,
+        action: alert.changeType === "downgraded" ? "downgrade" : "upgrade",
+        product: alert.product,
+        previousProduct: alert.previousTier,
+        price: alert.price,
+      });
       break;
   }
 }
 
 /**
- * Links a subscription-mode Compute checkout to its workspace via the shared
- * linker, shared by the `checkout.session.completed` and
+ * Whether a subscription Stripe told us about is still capable of billing.
+ *
+ * Used to decide whether an unresolvable workspace is a real orphan or just a
+ * redelivered terminal event. `canceled` and `incomplete_expired` are Stripe's
+ * end states: nothing further is charged, so losing the local link is untidy but
+ * costs nothing. Any other status on a subscription we cannot resolve is money
+ * moving with no workspace attached, which is worth waking someone for.
+ */
+function subscriptionStillBilling(sub: Stripe.Subscription): boolean {
+  return sub.status !== "canceled" && sub.status !== "incomplete_expired";
+}
+
+/**
+ * Tears down Compute when a subscription becomes cancelling, before
+ * [[mirrorDeployPlan]] clears the plan.
+ *
+ * Ordering is load-bearing. ctrl's DeprovisionCompute keys its idempotency guard
+ * on `workspace_billing.plan` still being set, and deliberately tears down
+ * before clearing it. mirrorDeployPlan writes that same column to null on any
+ * cancelling subscription, which is correct for the dashboard flow (cancelDeploy
+ * has already deprovisioned, so the null is just the mirror catching up) but not
+ * for a cancel made on the Stripe side, in the customer portal or the Stripe
+ * dashboard. There our tRPC endpoint never runs, so the plan went to null with no
+ * teardown, and by the time `customer.subscription.deleted` arrived its
+ * `if (billing.plan)` gate saw null and skipped teardown for good. Workloads kept
+ * running with no subscription, and nothing billed them, because every billable
+ * query and the spend cap all require plan IS NOT NULL.
+ *
+ * Calling deprovision here restores the invariant those guards assume: by the
+ * time plan is null, teardown has been dispatched. On the dashboard path this is
+ * a no-op, since the plan is already null and ctrl returns early. Cancel means
+ * immediate teardown either way, which is the semantics cancelDeploy already
+ * chose (billing runs to the period boundary, no refund).
+ *
+ * Failures propagate so the caller returns 500 and Stripe redelivers: dropping
+ * this is how compute ends up running unbilled.
+ */
+async function deprovisionOnCancel(
+  billing: { workspaceId: string; plan: string | null },
+  sub: Stripe.Subscription,
+): Promise<void> {
+  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+  if (!cancelling || !billing.plan) {
+    return;
+  }
+
+  const ctrl = createCtrlClient(DeployService);
+  await ctrl.deprovisionCompute({ workspaceId: billing.workspaceId });
+}
+
+/**
+ * Links a subscription-mode API or Compute checkout to its workspace via the
+ * product's shared linker. Called by `checkout.session.completed` and
  * `checkout.session.async_payment_succeeded` events (the latter fires when a
  * delayed-notification payment clears after `completed` reported it unpaid).
  *
@@ -139,7 +209,7 @@ async function sendComputeAlert(
  * that will never link (a race minted a duplicate) — it bills until an operator
  * intervenes, so page a human rather than only logging.
  */
-async function linkComputeCheckoutSession(
+async function linkCheckoutSession(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
   eventId: string,
@@ -147,12 +217,17 @@ async function linkComputeCheckoutSession(
   if (session.mode !== "subscription" || !session.subscription) {
     return new Response("OK", { status: 200 });
   }
+  const productTag = session.metadata?.unkey_product;
+  if (productTag !== "api" && productTag !== "compute") {
+    return new Response("OK", { status: 200 });
+  }
   const subscriptionId =
     typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+  const product = productTag === "api" ? "API" : "Compute";
   if (!session.client_reference_id) {
     // A paid checkout with no workspace ref can never be linked and bills
     // forever; no retry fixes it, so page a human.
-    console.error("Compute checkout link event missing client_reference_id", {
+    console.error(`${product} checkout link event missing client_reference_id`, {
       sessionId: session.id,
       eventId,
     });
@@ -161,31 +236,47 @@ async function linkComputeCheckoutSession(
       sessionId: session.id,
       eventId,
       reason: "missing_client_reference_id",
+      product,
     });
     return new Response("OK", { status: 200 });
   }
 
-  const result = await linkDeploySubscription(stripe, {
+  const linkInput = {
     sessionId: session.id,
     expectedWorkspaceId: session.client_reference_id,
-    audit: { actor: { type: "system", id: "stripe" }, location: "", userAgent: undefined },
-  });
+    audit: {
+      actor: { type: "system" as const, id: "stripe" },
+      location: "",
+      userAgent: undefined,
+    },
+  };
+  const result =
+    productTag === "api"
+      ? await linkApiSubscription(stripe, linkInput)
+      : await linkDeploySubscription(stripe, linkInput);
 
   if (!result.ok) {
-    console.error("Failed to link Compute checkout subscription", {
+    console.error(`Failed to link ${product} checkout subscription`, {
       sessionId: session.id,
       eventId,
       reason: result.reason,
     });
     // Either way a paid subscription bills with no workspace attached and
     // no retry fixes it; page a human.
-    if (result.reason === "subscription_conflict" || result.reason === "workspace_not_found") {
+    if (
+      result.reason === "subscription_conflict" ||
+      result.reason === "workspace_not_found" ||
+      result.reason === "invalid_api_product" ||
+      result.reason === "no_api_plan" ||
+      result.reason === "no_deploy_plan"
+    ) {
       await alertOrphanedDeploySubscription({
         workspaceId: session.client_reference_id,
         subscriptionId,
         sessionId: session.id,
         eventId,
         reason: result.reason,
+        product,
       });
     }
   }
@@ -333,6 +424,18 @@ export const POST = async (req: Request): Promise<Response> => {
         const ws = subscription?.workspace ?? null;
         const billing = ws?.billing ?? null;
         if (!subscription || !ws || !billing || ws.deletedAtM !== null) {
+          // Checkout can emit subscription.updated before
+          // checkout.session.completed links the new subscription. Suppress
+          // only this short, metadata-proven ordering window; the completed
+          // event owns the durable link and orphan alert.
+          const product = eventSub.metadata?.unkey_product;
+          const isRecentCheckoutSubscription =
+            (product === "api" || product === "compute") &&
+            Boolean(eventSub.metadata?.workspace_id) &&
+            eventSub.created * 1000 > Date.now() - 30 * 60 * 1000;
+          if (isRecentCheckoutSubscription) {
+            return new Response("OK", { status: 200 });
+          }
           console.error("Workspace not found for subscription:", {
             subscriptionId: eventSub.id,
             eventId: event.id,
@@ -375,17 +478,17 @@ export const POST = async (req: Request): Promise<Response> => {
         // from the Stripe event (a DB plan diff is unreliable because the
         // dashboard mutations write the plan optimistically before this fires).
         if (column === "compute") {
+          await deprovisionOnCancel(billing, sub);
           await mirrorDeployPlan(billing, sub);
           const deployConfig = await deployBillingConfig();
           await sendComputeAlert(
             stripe,
             sub,
             computeUpdatedAlert(deployConfig, sub, previousAttributes),
+            ws,
           );
           return new Response("OK", { status: 200 });
         }
-
-        // API-matched from here: reconcile tier/quotas from the API plan item.
 
         // Skip heuristics correlate the event snapshot with previous_attributes,
         // so they read eventSub (what the event reported), not the re-retrieved
@@ -437,13 +540,17 @@ export const POST = async (req: Request): Promise<Response> => {
           // and quota update below is for active plan changes, never a cancelling
           // subscription.
           if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = formatPrice(unitAmount);
-            await alertIsCancellingSubscription(
-              product.name,
-              formattedPrice,
-              customer.email,
-              customer.name || "Unknown",
-            );
+            await alertCustomerLifecycle({
+              action: "cancelling",
+              name: customer.name || "Unknown",
+              email: customer.email,
+              workspaceId: ws.id,
+              workspaceName: ws.name,
+              product: product.name,
+              price: formatPrice(unitAmount),
+              stripeCustomerId: customer.id,
+              livemode: customer.livemode,
+            });
           }
           return new Response("OK");
         }
@@ -566,17 +673,23 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
-          const formattedPrice = formatPrice(unitAmount);
-
-          await alertSubscriptionUpdate(
-            product.name,
-            formattedPrice,
-            customer.email,
-            ws.id,
-            customer.name || "Unknown",
-            changeType,
-            previousTier,
-          );
+          await alertCustomerLifecycle({
+            action:
+              changeType === "upgraded"
+                ? "upgrade"
+                : changeType === "downgraded"
+                  ? "downgrade"
+                  : "update",
+            name: customer.name || "Unknown",
+            email: customer.email,
+            workspaceId: ws.id,
+            workspaceName: ws.name,
+            product: product.name,
+            previousProduct: previousTier,
+            price: formatPrice(unitAmount),
+            stripeCustomerId: customer.id,
+            livemode: customer.livemode,
+          });
         }
       } catch (error) {
         console.error("Subscription update webhook error:", {
@@ -613,13 +726,22 @@ export const POST = async (req: Request): Promise<Response> => {
             subscriptionId: sub.id,
             eventId: event.id,
           });
-          // No ongoing billing on a terminated subscription, but the lost billing
-          // link needs a human to reconcile.
-          await alertOrphanedDeploySubscription({
-            subscriptionId: sub.id,
-            eventId: event.id,
-            reason: "workspace_not_found",
-          });
+          // Only page when this is genuinely a lost billing link, not the second
+          // delivery of a cancel we already processed. This handler deletes the
+          // billing_subscriptions row it looks itself up by, and Stripe delivers
+          // at-least-once, so a perfectly successful cancel used to page on
+          // redelivery — as did any `updated` arriving after the `deleted`. That
+          // trained the one alert meaning "a paid subscription is billing with no
+          // workspace attached" to be ignored, which is exactly the signal a
+          // Stripe-side cancel needs. A subscription Stripe reports as fully
+          // ended has no ongoing billing, so silence is correct for it.
+          if (subscriptionStillBilling(sub)) {
+            await alertOrphanedDeploySubscription({
+              subscriptionId: sub.id,
+              eventId: event.id,
+              reason: "workspace_not_found",
+            });
+          }
           return new Response("OK", { status: 200 });
         }
         const column = subscription.product;
@@ -695,7 +817,15 @@ export const POST = async (req: Request): Promise<Response> => {
                 typeof sub.customer === "string" ? sub.customer : sub.customer.id,
               );
               if (!customer.deleted && customer.email) {
-                await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+                await alertCustomerLifecycle({
+                  action: "cancelled",
+                  name: customer.name || "Unknown",
+                  email: customer.email,
+                  workspaceId: ws.id,
+                  workspaceName: ws.name,
+                  stripeCustomerId: customer.id,
+                  livemode: customer.livemode,
+                });
               }
             } catch (customerError) {
               console.error("Failed to retrieve customer for Compute cancellation alert:", {
@@ -768,7 +898,15 @@ export const POST = async (req: Request): Promise<Response> => {
             );
 
             if (customer && !customer.deleted && customer.email) {
-              await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+              await alertCustomerLifecycle({
+                action: "cancelled",
+                name: customer.name || "Unknown",
+                email: customer.email,
+                workspaceId: ws.id,
+                workspaceName: ws.name,
+                stripeCustomerId: customer.id,
+                livemode: customer.livemode,
+              });
             }
           } catch (customerError) {
             console.error("Failed to retrieve customer for subscription cancellation alert:", {
@@ -832,7 +970,7 @@ export const POST = async (req: Request): Promise<Response> => {
           if (billing) {
             await mirrorDeployPlan(billing, sub);
           }
-          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub));
+          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
           return new Response("OK");
         }
 
@@ -855,15 +993,17 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        const formattedPrice = formatPrice(unitAmount);
-
-        await alertSubscriptionCreation(
-          product.name,
-          formattedPrice,
-          customer.email,
-          ws.id,
-          customer.name || "Unknown",
-        );
+        await alertCustomerLifecycle({
+          action: "signup",
+          name: customer.name || "Unknown",
+          email: customer.email,
+          workspaceId: ws.id,
+          workspaceName: ws.name,
+          product: product.name,
+          price: formatPrice(unitAmount),
+          stripeCustomerId: customer.id,
+          livemode: customer.livemode,
+        });
         // Return rather than break so this case can never fall through into
         // invoice.payment_failed below; every other terminus in this case
         // returns too.
@@ -885,7 +1025,7 @@ export const POST = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Guaranteed server-side link for the no-card Compute flow: fires even if
+    // Guaranteed server-side link for paid API and Compute flows: fires even if
     // the user never returns to /success. `completed` covers the immediate
     // (card) case; `async_payment_succeeded` covers delayed-notification
     // methods that reported unpaid at `completed` and only clear later. Both
@@ -895,7 +1035,7 @@ export const POST = async (req: Request): Promise<Response> => {
     case "checkout.session.async_payment_succeeded": {
       try {
         const session = event.data.object as Stripe.Checkout.Session;
-        return await linkComputeCheckoutSession(stripe, session, event.id);
+        return await linkCheckoutSession(stripe, session, event.id);
       } catch (error) {
         console.error("Checkout session link webhook error:", {
           error:
@@ -957,9 +1097,8 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
-        const currency = invoice.currency || "usd";
 
-        // Validate amount and currency
+        // Validate amount
         if (amount < 0) {
           console.warn("Payment failed event with negative amount", {
             amount,
@@ -970,14 +1109,15 @@ export const POST = async (req: Request): Promise<Response> => {
 
         try {
           // Send payment failure alert without triggering subscription updates
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (customerEmail) {
-            await alertPaymentFailed(
-              customerEmail,
-              (customer as Stripe.Customer).name || "Unknown",
+          const paymentCustomer = customer as Stripe.Customer;
+          if (paymentCustomer.email) {
+            await alertPaymentFailed({
+              email: paymentCustomer.email,
+              name: paymentCustomer.name || "Unknown",
               amount,
-              currency,
-            );
+              stripeCustomerId: paymentCustomer.id,
+              livemode: paymentCustomer.livemode,
+            });
           }
         } catch (alertError) {
           console.error("Failed to send payment failure alert:", {
@@ -1153,9 +1293,8 @@ export const POST = async (req: Request): Promise<Response> => {
         // Send recovery alert only when appropriate (after previous failures)
         if (isRecovery) {
           const amount = invoice.amount_paid || 0;
-          const currency = invoice.currency || "usd";
 
-          // Validate amount and currency
+          // Validate amount
           if (amount < 0) {
             console.warn("Payment success event with negative amount", {
               amount,
@@ -1164,19 +1303,19 @@ export const POST = async (req: Request): Promise<Response> => {
             });
           }
 
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (customerEmail) {
+          const paymentCustomer = customer as Stripe.Customer;
+          if (paymentCustomer.email) {
             try {
-              await alertPaymentRecovered(
-                customerEmail,
-                (customer as Stripe.Customer).name || "Unknown",
+              await alertPaymentRecovered({
+                email: paymentCustomer.email,
+                name: paymentCustomer.name || "Unknown",
                 amount,
-                currency,
-              );
+                stripeCustomerId: paymentCustomer.id,
+                livemode: paymentCustomer.livemode,
+              });
             } catch (alertError) {
               console.error("Failed to send payment recovery alert:", {
                 error: alertError,
-                customerEmail,
                 invoiceId: invoice.id,
                 eventId: event.id,
               });

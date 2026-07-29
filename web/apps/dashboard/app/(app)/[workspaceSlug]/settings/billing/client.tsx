@@ -105,10 +105,7 @@ export const Client: React.FC = () => {
     <BillingContainer>
       <div className="flex w-full flex-col items-center gap-6">
         {subscription ? (
-          <SubscriptionStatus
-            workspaceSlug={workspace.slug}
-            status={subscription.status as Stripe.Subscription.Status}
-          />
+          <SubscriptionStatus status={subscription.status as Stripe.Subscription.Status} />
         ) : null}
 
         {isFreeTier ? <FreeTierAlert /> : null}
