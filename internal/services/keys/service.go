@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 )
 
 // Config holds the configuration for creating a new keys service instance.
@@ -34,6 +35,10 @@ type service struct {
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
+
+	// Coalesce concurrent cache misses for the same key so they share one
+	// database query and parsing pass.
+	loadFlight singleflight.Group[db.CachedKeyData]
 }
 
 // New creates a new keys service instance with the provided configuration.
@@ -46,6 +51,7 @@ func New(config Config) (*service, error) {
 		region:       config.Region,
 		source:       config.Source,
 		keyCache:     config.KeyCache,
+		loadFlight:   singleflight.Group[db.CachedKeyData]{},
 	}, nil
 }
 
