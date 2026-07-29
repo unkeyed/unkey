@@ -1,6 +1,6 @@
 CREATE TABLE `portal_configurations` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(64) NOT NULL,
+	`id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
 	`app_id` varchar(64),

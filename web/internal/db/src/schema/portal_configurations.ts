@@ -10,7 +10,7 @@ export const portalConfigurations = mysqlTable(
   "portal_configurations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 64 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }),
