@@ -413,14 +413,19 @@ func (r *linuxReader) Detach(uid types.UID) {
 // Read returns the current cumulative byte counters for the pod. One map
 // lookup by POD_KEY (== pod netns cookie).
 //
-// Returns zeros (no error) when the pod isn't attached or hasn't seen any
-// packets yet - indistinguishable from all-zero.
+// Returns ErrNotAttached when this process has no attach record, which is not
+// the same as zero bytes: the counter map is pinned so a restarted heimdall
+// still faces a kernel counter holding the pod's month-to-date total. Reporting
+// zero there made the following tick's delta the whole cumulative counter.
+//
+// A pod that is attached but has no map entry yet genuinely has seen no packets,
+// so that path still returns zeros.
 func (r *linuxReader) Read(uid types.UID) (Counters, error) {
 	r.mu.Lock()
 	p, ok := r.attached[uid]
 	r.mu.Unlock()
 	if !ok {
-		return zeroCounters, nil
+		return zeroCounters, ErrNotAttached
 	}
 
 	var c bpfCounters
