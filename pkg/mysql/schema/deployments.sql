@@ -7,7 +7,7 @@ CREATE TABLE `deployments` (
 	`environment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`image` varchar(256),
-	`build_id` varchar(128),
+	`build_id` varchar(128) COLLATE utf8mb4_0900_as_cs,
 	`git_commit_sha` varchar(40),
 	`git_branch` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`git_commit_message` text,

@@ -8,7 +8,7 @@ CREATE TABLE `custom_domains` (
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',
-	`verification_token` varchar(64) NOT NULL,
+	`verification_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`ownership_verified` boolean NOT NULL DEFAULT false,
 	`cname_verified` boolean NOT NULL DEFAULT false,
 	`target_cname` varchar(256) NOT NULL,

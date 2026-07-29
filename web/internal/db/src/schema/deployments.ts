@@ -39,7 +39,7 @@ export const deployments = mysqlTable(
     // the docker image
     // null until the build is done
     image: varchar("image", { length: 256 }),
-    buildId: caseInsensitiveVarchar("build_id", { length: 128 }).unique(),
+    buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
