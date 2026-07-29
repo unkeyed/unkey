@@ -189,7 +189,7 @@ function ResourceLists({
         <RailListShell
           title="Keyspaces"
           variant={ROW_VARIANT}
-          subtitle="24h"
+          count={keyspaceRows.length}
           viewAllHref={routes.projects.keyspaces({ workspaceSlug, projectId })}
         >
           {keyspaceRows.map((item) => (
@@ -201,7 +201,7 @@ function ResourceLists({
         <RailListShell
           title="Ratelimits"
           variant={ROW_VARIANT}
-          subtitle="24h"
+          count={ratelimitRows.length}
           viewAllHref={routes.projects.ratelimits({ workspaceSlug, projectId })}
         >
           {ratelimitRows.map((item) => (

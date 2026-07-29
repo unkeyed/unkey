@@ -127,6 +127,7 @@ export function RailListShell({
   title,
   variant,
   subtitle,
+  count,
   viewAllHref,
   children,
 }: {
@@ -134,6 +135,8 @@ export function RailListShell({
   variant: RowVariant;
   /** States what the rows' numbers mean and over what window. */
   subtitle?: string;
+  /** How many rows the list has, shown as a pill beside the title. */
+  count?: number;
   viewAllHref?: Route;
   children: React.ReactNode;
 }) {
@@ -146,8 +149,13 @@ export function RailListShell({
           headerBorder ? "px-4 py-3 border-b border-grayA-4" : "px-3.5 pt-3 pb-1.5",
         )}
       >
-        <span className="flex min-w-0 items-baseline gap-1.5">
+        <span className="flex min-w-0 items-center gap-2">
           <span className="text-[13px] font-medium text-accent-12">{title}</span>
+          {count !== undefined && (
+            <span className="rounded-full bg-grayA-3 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-gray-11">
+              {count}
+            </span>
+          )}
           {subtitle && <span className="truncate text-xs text-gray-9">{subtitle}</span>}
         </span>
         {viewAllHref && (
