@@ -5,7 +5,8 @@ import {
   PrototypeProvider,
   usePrototypeWorlds,
 } from "@/app/(app)/[workspaceSlug]/projects/_components/prototype/store";
-import { BookBookmark } from "@unkey/icons";
+import { routes } from "@/lib/navigation/routes";
+import { Plus } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -19,8 +20,6 @@ import Link from "next/link";
 import { useOverviewProjectData } from "./overview-data";
 import { OverviewDebugCommand } from "./overview-debug-command";
 import { ProjectOverview } from "./project-overview";
-
-const DOCS_URL = "https://unkey.com/docs";
 
 export function OverviewPrototype() {
   return (
@@ -44,11 +43,17 @@ function OverviewPrototypeInner() {
         <PageHeaderActions>
           <Button
             size="md"
-            variant="outline"
-            render={<Link href={DOCS_URL} target="_blank" rel="noopener noreferrer" />}
+            render={
+              <Link
+                href={routes.projects.apps.new({
+                  workspaceSlug: data.workspaceSlug,
+                  projectId: data.project.id,
+                })}
+              />
+            }
           >
-            <BookBookmark iconSize="sm-regular" />
-            Documentation
+            <Plus iconSize="sm-regular" />
+            Create app
           </Button>
         </PageHeaderActions>
       </PageHeader>

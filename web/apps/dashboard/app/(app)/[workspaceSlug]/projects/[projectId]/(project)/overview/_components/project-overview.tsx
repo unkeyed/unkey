@@ -32,7 +32,6 @@ import {
   Discord,
   Dots,
   Github,
-  Plus,
   Terminal,
   XMark,
 } from "@unkey/icons";
@@ -603,7 +602,6 @@ function AppsCard({
   // Most recently deployed first, so the list answers "what just shipped".
   const rows = [...latestPerApp.values()].sort((a, b) => a.timeAgoMin - b.timeAgoMin);
   const visible = rows.slice(0, MAX_APP_ROWS);
-  const overflow = rows.length - visible.length;
 
   return (
     <Card className="overflow-hidden">
@@ -618,31 +616,21 @@ function AppsCard({
             </span>
           )}
         </div>
-        <Button size="sm" variant="outline" render={<Link href={newAppHref} />}>
-          <Plus iconSize="sm-regular" />
-          Create app
-        </Button>
+        {rows.length > 0 && (
+          <Link
+            href={appsHref}
+            className="text-xs text-gray-9 hover:text-accent-12 hover:underline"
+          >
+            View all
+          </Link>
+        )}
       </div>
       {rows.length > 0 ? (
-        <>
-          <div className="divide-y divide-grayA-4">
-            {visible.map((deployment) => (
-              <AppRow key={deployment.appId} deployment={deployment} />
-            ))}
-          </div>
-          {overflow > 0 && (
-            <div className="p-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="w-full text-gray-11 hover:text-accent-12"
-                render={<Link href={appsHref} />}
-              >
-                View all
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="divide-y divide-grayA-4">
+          {visible.map((deployment) => (
+            <AppRow key={deployment.appId} deployment={deployment} />
+          ))}
+        </div>
       ) : (
         <AppsEmpty newAppHref={newAppHref} />
       )}
