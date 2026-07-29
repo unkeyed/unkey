@@ -10,8 +10,6 @@ import (
 )
 
 func TestVerifyKey_ReturnsValidResult(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -24,8 +22,6 @@ func TestVerifyKey_ReturnsValidResult(t *testing.T) {
 }
 
 func TestVerifyKey_EnforcesPermissions(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -43,8 +39,6 @@ func TestVerifyKey_EnforcesPermissions(t *testing.T) {
 }
 
 func TestVerifyKey_ReturnsMetadataAndIdentity(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	identity := createIdentity(t, ctx, client)
@@ -65,8 +59,6 @@ func TestVerifyKey_ReturnsMetadataAndIdentity(t *testing.T) {
 }
 
 func TestVerifyKey_ReturnsAutoAppliedRatelimit(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 10, Duration: 60_000, AutoApply: ptr.P(true)}

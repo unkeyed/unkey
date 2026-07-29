@@ -8,8 +8,6 @@ import (
 )
 
 func TestGetPermission_ReturnsCreatedPermission(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	permission := createPermission(t, ctx, client)
 	response, err := client.Permissions.GetPermission(ctx, components.V2PermissionsGetPermissionRequestBody{Permission: permission.ID})

@@ -10,8 +10,6 @@ import (
 )
 
 func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	original := createKey(t, ctx, client, api.APIID)
@@ -43,8 +41,6 @@ func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
 }
 
 func TestRerollKey_PreservesConfiguration(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	identity := createIdentity(t, ctx, client)

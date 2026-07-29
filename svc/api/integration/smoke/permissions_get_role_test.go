@@ -8,8 +8,6 @@ import (
 )
 
 func TestGetRole_ReturnsCreatedRole(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	role := createRole(t, ctx, client)
 	response, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{Role: role.ID})

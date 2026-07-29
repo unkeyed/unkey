@@ -9,8 +9,6 @@ import (
 )
 
 func TestDeleteKey_InvalidatesVerification(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Enabled: ptr.P(true)})

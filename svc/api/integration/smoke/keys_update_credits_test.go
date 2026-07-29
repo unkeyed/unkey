@@ -9,8 +9,6 @@ import (
 )
 
 func TestUpdateCredits_SetsRemainingCredits(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -33,8 +31,6 @@ func TestUpdateCredits_SetsRemainingCredits(t *testing.T) {
 }
 
 func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -59,8 +55,6 @@ func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
 }
 
 func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -85,8 +79,6 @@ func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
 }
 
 func TestUpdateCredits_CanMakeKeyUnlimited(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)

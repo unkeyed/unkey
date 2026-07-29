@@ -9,8 +9,6 @@ import (
 )
 
 func TestListRoles_ReturnsCreatedRole(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	createRole(t, ctx, client)
 	response, err := client.Permissions.ListRoles(ctx, components.V2PermissionsListRolesRequestBody{Limit: ptr.P(int64(10))})

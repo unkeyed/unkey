@@ -10,8 +10,6 @@ import (
 )
 
 func TestWhoami_ReturnsKeyConfiguration(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	identity := createIdentity(t, ctx, client)

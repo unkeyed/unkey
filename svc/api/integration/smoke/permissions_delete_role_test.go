@@ -9,8 +9,6 @@ import (
 )
 
 func TestDeleteRole_DeletesRole(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	created, err := client.Permissions.CreateRole(ctx, components.V2PermissionsCreateRoleRequestBody{Name: uid.DNS1035()})
 	require.NoError(t, err)

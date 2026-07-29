@@ -9,8 +9,6 @@ import (
 )
 
 func TestDeleteIdentity_DeletesIdentity(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	created, err := client.Identities.CreateIdentity(ctx, components.V2IdentitiesCreateIdentityRequestBody{ExternalID: uid.DNS1035()})
 	require.NoError(t, err)

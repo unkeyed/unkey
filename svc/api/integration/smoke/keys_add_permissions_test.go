@@ -8,8 +8,6 @@ import (
 )
 
 func TestAddPermissions_PersistsAssignment(t *testing.T) {
-	t.Parallel()
-
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
