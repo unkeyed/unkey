@@ -13,22 +13,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-// Run against production:
-//
-//	UNKEY_ROOT_KEY=... mise exec -- go test -v ./svc/api/integration/smoke
-//
-// Run against canary or another deployment:
-//
-//	UNKEY_ROOT_KEY=... UNKEY_API_BASE_URL=https://... mise exec -- go test -v ./svc/api/integration/smoke
-//
-// Each test creates uniquely named resources and deletes them when it finishes.
-
 func externalClient(t *testing.T) (context.Context, *unkey.Unkey) {
 	t.Helper()
 
 	rootKey := os.Getenv("UNKEY_ROOT_KEY")
 	if rootKey == "" {
-		t.Skip("set UNKEY_ROOT_KEY to run the external API tests")
+		t.Skip("set UNKEY_ROOT_KEY to run the API smoke tests")
 	}
 
 	options := []unkey.SDKOption{unkey.WithSecurity(rootKey)}
