@@ -11,6 +11,10 @@ post:
     external identity; any other key returns 404.
   operationId: portal.rerollKey
   x-speakeasy-name-override: rerollKey
+  # Unlaunched: kept out of the published docs (Mintlify honors
+  # x-excluded). Deliberately no x-speakeasy-ignore, so the operation still
+  # generates into the SDK that web/apps/portal builds against.
+  x-excluded: true
   security:
     - portalSession: []
   requestBody:

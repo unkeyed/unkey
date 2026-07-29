@@ -11917,6 +11917,7 @@ paths:
             summary: Create portal configuration
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: createConfiguration
     /v2/portal.createSession:
         post:
@@ -11999,6 +12000,7 @@ paths:
             summary: Create portal session
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: createSession
     /v2/portal.deleteConfiguration:
         post:
@@ -12066,6 +12068,7 @@ paths:
             summary: Delete portal configuration
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: deleteConfiguration
     /v2/portal.exchangeSession:
         post:
@@ -12133,6 +12136,7 @@ paths:
             summary: Exchange session token
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: exchangeSession
     /v2/portal.getVerifications:
         post:
@@ -12201,6 +12205,7 @@ paths:
             summary: Get portal verifications
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: getVerifications
     /v2/portal.listKeys:
         post:
@@ -12269,6 +12274,7 @@ paths:
             summary: List portal keys
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: listKeys
             x-speakeasy-pagination:
                 inputs:
@@ -12343,6 +12349,7 @@ paths:
             summary: Reroll portal key
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: rerollKey
     /v2/portal.updateConfiguration:
         post:
@@ -12423,6 +12430,7 @@ paths:
             summary: Update portal configuration
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: updateConfiguration
     /v2/projects.createProject:
         post:

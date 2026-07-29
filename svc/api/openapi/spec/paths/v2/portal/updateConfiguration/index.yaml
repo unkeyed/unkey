@@ -19,6 +19,10 @@ post:
     updated.
   operationId: portal.updateConfiguration
   x-speakeasy-name-override: updateConfiguration
+  # Unlaunched: kept out of the published docs (Mintlify honors
+  # x-excluded). Deliberately no x-speakeasy-ignore, so the operation still
+  # generates into the SDK that web/apps/portal builds against.
+  x-excluded: true
   security:
     - bearer: []
   requestBody:
