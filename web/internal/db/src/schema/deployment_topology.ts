@@ -9,7 +9,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -18,7 +17,7 @@ export const deploymentTopology = mysqlTable(
   "deployment_topology",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 64 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 64 }).notNull(),
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 

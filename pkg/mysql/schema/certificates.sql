@@ -1,7 +1,7 @@
 CREATE TABLE `certificates` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(255) NOT NULL,
+	`workspace_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`hostname` varchar(255) NOT NULL,
 	`certificate` text NOT NULL,
 	`encrypted_private_key` text NOT NULL,

@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
@@ -12,7 +11,7 @@ export const openapiSpecs = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }),
     portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 256 }),
     content: longblob("content").notNull(),

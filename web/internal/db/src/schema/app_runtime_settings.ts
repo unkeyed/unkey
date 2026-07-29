@@ -19,7 +19,6 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
@@ -30,7 +29,7 @@ export const appRuntimeSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 

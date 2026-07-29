@@ -1,6 +1,6 @@
 CREATE TABLE `deployment_steps` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(128) NOT NULL,
+	`workspace_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`project_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`environment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`deployment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
