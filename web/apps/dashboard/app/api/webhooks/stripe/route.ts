@@ -27,14 +27,11 @@ import {
 } from "@/lib/stripe/subscriptionUtils";
 import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
 import {
+  alertCustomerLifecycle,
   alertInvalidProductQuotaMetadata,
-  alertIsCancellingSubscription,
   alertOrphanedDeploySubscription,
   alertPaymentFailed,
   alertPaymentRecovered,
-  alertSubscriptionCancelled,
-  alertSubscriptionCreation,
-  alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
@@ -84,6 +81,7 @@ async function sendComputeAlert(
   stripe: Stripe,
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
+  ws: { id: string; name: string } | null,
 ): Promise<void> {
   if (!alert || !sub.customer) {
     return;
@@ -105,24 +103,44 @@ async function sendComputeAlert(
   if (customer.deleted || !customer.email) {
     return;
   }
-  const name = customer.name || "Unknown";
+
+  // Common customer/workspace facts every Compute lifecycle alert renders. ws is null when a
+  // created event races ahead of the checkout link that writes the billing_subscriptions row;
+  // the workspace fields are simply omitted from the alert in that case.
+  const base = {
+    name: customer.name || "Unknown",
+    email: customer.email,
+    workspaceId: ws?.id,
+    workspaceName: ws?.name,
+    stripeCustomerId: customer.id,
+    livemode: customer.livemode,
+  };
 
   switch (alert.type) {
     case "created":
-      await alertSubscriptionCreation(alert.product, alert.price, customer.email, name);
+      await alertCustomerLifecycle({
+        ...base,
+        action: "signup",
+        product: alert.product,
+        price: alert.price,
+      });
       break;
     case "cancelling":
-      await alertIsCancellingSubscription(alert.product, alert.price, customer.email, name);
+      await alertCustomerLifecycle({
+        ...base,
+        action: "cancelling",
+        product: alert.product,
+        price: alert.price,
+      });
       break;
     case "updated":
-      await alertSubscriptionUpdate(
-        alert.product,
-        alert.price,
-        customer.email,
-        name,
-        alert.changeType,
-        alert.previousTier,
-      );
+      await alertCustomerLifecycle({
+        ...base,
+        action: alert.changeType === "downgraded" ? "downgrade" : "upgrade",
+        product: alert.product,
+        previousProduct: alert.previousTier,
+        price: alert.price,
+      });
       break;
   }
 }
@@ -467,6 +485,7 @@ export const POST = async (req: Request): Promise<Response> => {
             stripe,
             sub,
             computeUpdatedAlert(deployConfig, sub, previousAttributes),
+            ws,
           );
           return new Response("OK", { status: 200 });
         }
@@ -521,13 +540,17 @@ export const POST = async (req: Request): Promise<Response> => {
           // and quota update below is for active plan changes, never a cancelling
           // subscription.
           if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = formatPrice(unitAmount);
-            await alertIsCancellingSubscription(
-              product.name,
-              formattedPrice,
-              customer.email,
-              customer.name || "Unknown",
-            );
+            await alertCustomerLifecycle({
+              action: "cancelling",
+              name: customer.name || "Unknown",
+              email: customer.email,
+              workspaceId: ws.id,
+              workspaceName: ws.name,
+              product: product.name,
+              price: formatPrice(unitAmount),
+              stripeCustomerId: customer.id,
+              livemode: customer.livemode,
+            });
           }
           return new Response("OK");
         }
@@ -650,17 +673,23 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
-          const formattedPrice = formatPrice(unitAmount);
-
-          await alertSubscriptionUpdate(
-            product.name,
-            formattedPrice,
-            customer.email,
-            ws.id,
-            customer.name || "Unknown",
-            changeType,
-            previousTier,
-          );
+          await alertCustomerLifecycle({
+            action:
+              changeType === "upgraded"
+                ? "upgrade"
+                : changeType === "downgraded"
+                  ? "downgrade"
+                  : "update",
+            name: customer.name || "Unknown",
+            email: customer.email,
+            workspaceId: ws.id,
+            workspaceName: ws.name,
+            product: product.name,
+            previousProduct: previousTier,
+            price: formatPrice(unitAmount),
+            stripeCustomerId: customer.id,
+            livemode: customer.livemode,
+          });
         }
       } catch (error) {
         console.error("Subscription update webhook error:", {
@@ -788,7 +817,15 @@ export const POST = async (req: Request): Promise<Response> => {
                 typeof sub.customer === "string" ? sub.customer : sub.customer.id,
               );
               if (!customer.deleted && customer.email) {
-                await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+                await alertCustomerLifecycle({
+                  action: "cancelled",
+                  name: customer.name || "Unknown",
+                  email: customer.email,
+                  workspaceId: ws.id,
+                  workspaceName: ws.name,
+                  stripeCustomerId: customer.id,
+                  livemode: customer.livemode,
+                });
               }
             } catch (customerError) {
               console.error("Failed to retrieve customer for Compute cancellation alert:", {
@@ -861,7 +898,15 @@ export const POST = async (req: Request): Promise<Response> => {
             );
 
             if (customer && !customer.deleted && customer.email) {
-              await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+              await alertCustomerLifecycle({
+                action: "cancelled",
+                name: customer.name || "Unknown",
+                email: customer.email,
+                workspaceId: ws.id,
+                workspaceName: ws.name,
+                stripeCustomerId: customer.id,
+                livemode: customer.livemode,
+              });
             }
           } catch (customerError) {
             console.error("Failed to retrieve customer for subscription cancellation alert:", {
@@ -925,7 +970,7 @@ export const POST = async (req: Request): Promise<Response> => {
           if (billing) {
             await mirrorDeployPlan(billing, sub);
           }
-          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub));
+          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
           return new Response("OK");
         }
 
@@ -948,15 +993,17 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        const formattedPrice = formatPrice(unitAmount);
-
-        await alertSubscriptionCreation(
-          product.name,
-          formattedPrice,
-          customer.email,
-          ws.id,
-          customer.name || "Unknown",
-        );
+        await alertCustomerLifecycle({
+          action: "signup",
+          name: customer.name || "Unknown",
+          email: customer.email,
+          workspaceId: ws.id,
+          workspaceName: ws.name,
+          product: product.name,
+          price: formatPrice(unitAmount),
+          stripeCustomerId: customer.id,
+          livemode: customer.livemode,
+        });
         // Return rather than break so this case can never fall through into
         // invoice.payment_failed below; every other terminus in this case
         // returns too.
@@ -1050,9 +1097,8 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Extract payment failure details with validation
         const amount = invoice.amount_due || 0;
-        const currency = invoice.currency || "usd";
 
-        // Validate amount and currency
+        // Validate amount
         if (amount < 0) {
           console.warn("Payment failed event with negative amount", {
             amount,
@@ -1063,14 +1109,15 @@ export const POST = async (req: Request): Promise<Response> => {
 
         try {
           // Send payment failure alert without triggering subscription updates
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (customerEmail) {
-            await alertPaymentFailed(
-              customerEmail,
-              (customer as Stripe.Customer).name || "Unknown",
+          const paymentCustomer = customer as Stripe.Customer;
+          if (paymentCustomer.email) {
+            await alertPaymentFailed({
+              email: paymentCustomer.email,
+              name: paymentCustomer.name || "Unknown",
               amount,
-              currency,
-            );
+              stripeCustomerId: paymentCustomer.id,
+              livemode: paymentCustomer.livemode,
+            });
           }
         } catch (alertError) {
           console.error("Failed to send payment failure alert:", {
@@ -1246,9 +1293,8 @@ export const POST = async (req: Request): Promise<Response> => {
         // Send recovery alert only when appropriate (after previous failures)
         if (isRecovery) {
           const amount = invoice.amount_paid || 0;
-          const currency = invoice.currency || "usd";
 
-          // Validate amount and currency
+          // Validate amount
           if (amount < 0) {
             console.warn("Payment success event with negative amount", {
               amount,
@@ -1257,19 +1303,19 @@ export const POST = async (req: Request): Promise<Response> => {
             });
           }
 
-          const customerEmail = (customer as Stripe.Customer).email;
-          if (customerEmail) {
+          const paymentCustomer = customer as Stripe.Customer;
+          if (paymentCustomer.email) {
             try {
-              await alertPaymentRecovered(
-                customerEmail,
-                (customer as Stripe.Customer).name || "Unknown",
+              await alertPaymentRecovered({
+                email: paymentCustomer.email,
+                name: paymentCustomer.name || "Unknown",
                 amount,
-                currency,
-              );
+                stripeCustomerId: paymentCustomer.id,
+                livemode: paymentCustomer.livemode,
+              });
             } catch (alertError) {
               console.error("Failed to send payment recovery alert:", {
                 error: alertError,
-                customerEmail,
                 invoiceId: invoice.id,
                 eventId: event.id,
               });
