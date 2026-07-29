@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
@@ -46,6 +47,7 @@ export function ProductionDeploymentCard() {
   } = useProjectData();
   const appId = useAppId();
   const workspace = useWorkspaceNavigation();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
@@ -209,8 +211,9 @@ export function ProductionDeploymentCard() {
     pulse: buildPulse(metrics.data),
     isChartLoading: metrics.isLoading,
     isChartError: metrics.isError,
-    openRollback: () => setRollbackOpen(true),
-    openUndo: () => setUndoOpen(true),
+    // Without a Compute plan these open the paywall instead of switching traffic.
+    openRollback: () => (gated ? openPaywall() : setRollbackOpen(true)),
+    openUndo: () => (gated ? openPaywall() : setUndoOpen(true)),
   };
 
   return (
@@ -248,6 +251,7 @@ export function ProductionDeploymentCard() {
           currentDeploymentId={deployment.id}
         />
       )}
+      {planGate}
     </ProductionCardProvider>
   );
 }

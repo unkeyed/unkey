@@ -196,7 +196,7 @@ function usePendingSubscribe() {
   return { createDialogOpen, setCreateDialogOpen };
 }
 
-const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing"];
+const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing", "deploy"];
 
 function planLabel(plan: string): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);

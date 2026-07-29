@@ -14,92 +14,6 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
-type AcmeChallengesChallengeType string
-
-const (
-	AcmeChallengesChallengeTypeHTTP01 AcmeChallengesChallengeType = "HTTP-01"
-	AcmeChallengesChallengeTypeDNS01  AcmeChallengesChallengeType = "DNS-01"
-)
-
-func (e *AcmeChallengesChallengeType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = AcmeChallengesChallengeType(s)
-	case string:
-		*e = AcmeChallengesChallengeType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for AcmeChallengesChallengeType: %T", src)
-	}
-	return nil
-}
-
-type NullAcmeChallengesChallengeType struct {
-	AcmeChallengesChallengeType AcmeChallengesChallengeType
-	Valid                       bool // Valid is true if AcmeChallengesChallengeType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullAcmeChallengesChallengeType) Scan(value interface{}) error {
-	if value == nil {
-		ns.AcmeChallengesChallengeType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.AcmeChallengesChallengeType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullAcmeChallengesChallengeType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.AcmeChallengesChallengeType), nil
-}
-
-type AcmeChallengesStatus string
-
-const (
-	AcmeChallengesStatusWaiting  AcmeChallengesStatus = "waiting"
-	AcmeChallengesStatusPending  AcmeChallengesStatus = "pending"
-	AcmeChallengesStatusVerified AcmeChallengesStatus = "verified"
-	AcmeChallengesStatusFailed   AcmeChallengesStatus = "failed"
-)
-
-func (e *AcmeChallengesStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = AcmeChallengesStatus(s)
-	case string:
-		*e = AcmeChallengesStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for AcmeChallengesStatus: %T", src)
-	}
-	return nil
-}
-
-type NullAcmeChallengesStatus struct {
-	AcmeChallengesStatus AcmeChallengesStatus
-	Valid                bool // Valid is true if AcmeChallengesStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullAcmeChallengesStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.AcmeChallengesStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.AcmeChallengesStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullAcmeChallengesStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.AcmeChallengesStatus), nil
-}
-
 type ApisAuthType string
 
 const (
@@ -354,49 +268,6 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CustomDomainsVerificationStatus), nil
-}
-
-type DeploymentChangesResourceType string
-
-const (
-	DeploymentChangesResourceTypeDeploymentTopology  DeploymentChangesResourceType = "deployment_topology"
-	DeploymentChangesResourceTypeSentinel            DeploymentChangesResourceType = "sentinel"
-	DeploymentChangesResourceTypeCiliumNetworkPolicy DeploymentChangesResourceType = "cilium_network_policy"
-)
-
-func (e *DeploymentChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentChangesResourceType(s)
-	case string:
-		*e = DeploymentChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentChangesResourceType struct {
-	DeploymentChangesResourceType DeploymentChangesResourceType
-	Valid                         bool // Valid is true if DeploymentChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentChangesResourceType), nil
 }
 
 type DeploymentStepsStep string
@@ -664,50 +535,6 @@ func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 	return string(ns.FrontlineRoutesSticky), nil
 }
 
-type InstancesStatus string
-
-const (
-	InstancesStatusInactive InstancesStatus = "inactive"
-	InstancesStatusPending  InstancesStatus = "pending"
-	InstancesStatusRunning  InstancesStatus = "running"
-	InstancesStatusFailed   InstancesStatus = "failed"
-)
-
-func (e *InstancesStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = InstancesStatus(s)
-	case string:
-		*e = InstancesStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for InstancesStatus: %T", src)
-	}
-	return nil
-}
-
-type NullInstancesStatus struct {
-	InstancesStatus InstancesStatus
-	Valid           bool // Valid is true if InstancesStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullInstancesStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.InstancesStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.InstancesStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullInstancesStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.InstancesStatus), nil
-}
-
 type KeyMigrationsAlgorithm string
 
 const (
@@ -748,29 +575,6 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.KeyMigrationsAlgorithm), nil
-}
-
-type AcmeChallenge struct {
-	Pk            uint64                      `db:"pk"`
-	DomainID      string                      `db:"domain_id"`
-	WorkspaceID   string                      `db:"workspace_id"`
-	Token         string                      `db:"token"`
-	ChallengeType AcmeChallengesChallengeType `db:"challenge_type"`
-	Authorization string                      `db:"authorization"`
-	Status        AcmeChallengesStatus        `db:"status"`
-	ExpiresAt     int64                       `db:"expires_at"`
-	CreatedAt     int64                       `db:"created_at"`
-	UpdatedAt     sql.NullInt64               `db:"updated_at"`
-}
-
-type AcmeUser struct {
-	Pk              uint64         `db:"pk"`
-	ID              string         `db:"id"`
-	WorkspaceID     string         `db:"workspace_id"`
-	EncryptedKey    string         `db:"encrypted_key"`
-	RegistrationUri sql.NullString `db:"registration_uri"`
-	CreatedAt       int64          `db:"created_at"`
-	UpdatedAt       sql.NullInt64  `db:"updated_at"`
 }
 
 type Api struct {
@@ -834,33 +638,6 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
-}
-
-type Certificate struct {
-	Pk                  uint64        `db:"pk"`
-	ID                  string        `db:"id"`
-	WorkspaceID         string        `db:"workspace_id"`
-	Hostname            string        `db:"hostname"`
-	Certificate         string        `db:"certificate"`
-	EncryptedPrivateKey string        `db:"encrypted_private_key"`
-	CreatedAt           int64         `db:"created_at"`
-	UpdatedAt           sql.NullInt64 `db:"updated_at"`
-}
-
-type CiliumNetworkPolicy struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	EnvironmentID string          `db:"environment_id"`
-	DeploymentID  string          `db:"deployment_id"`
-	K8sName       string          `db:"k8s_name"`
-	K8sNamespace  string          `db:"k8s_namespace"`
-	RegionID      string          `db:"region_id"`
-	Policy        json.RawMessage `db:"policy"`
-	CreatedAt     int64           `db:"created_at"`
-	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
 type ClickhouseWorkspaceSetting struct {
@@ -941,14 +718,6 @@ type Deployment struct {
 	UpdatedAt                     sql.NullInt64                     `db:"updated_at"`
 }
 
-type DeploymentChange struct {
-	Pk           uint64                        `db:"pk"`
-	ResourceType DeploymentChangesResourceType `db:"resource_type"`
-	ResourceID   string                        `db:"resource_id"`
-	RegionID     string                        `db:"region_id"`
-	CreatedAt    int64                         `db:"created_at"`
-}
-
 type DeploymentStep struct {
 	Pk            uint64              `db:"pk"`
 	WorkspaceID   string              `db:"workspace_id"`
@@ -960,20 +729,6 @@ type DeploymentStep struct {
 	StartedAt     uint64              `db:"started_at"`
 	EndedAt       sql.NullInt64       `db:"ended_at"`
 	Error         sql.NullString      `db:"error"`
-}
-
-type DeploymentTopology struct {
-	Pk                         uint64                          `db:"pk"`
-	WorkspaceID                string                          `db:"workspace_id"`
-	DeploymentID               string                          `db:"deployment_id"`
-	RegionID                   string                          `db:"region_id"`
-	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt                  int64                           `db:"created_at"`
-	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -1037,23 +792,6 @@ type Identity struct {
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
-type Instance struct {
-	Pk              uint64                 `db:"pk"`
-	ID              string                 `db:"id"`
-	DeploymentID    string                 `db:"deployment_id"`
-	WorkspaceID     string                 `db:"workspace_id"`
-	ProjectID       string                 `db:"project_id"`
-	AppID           string                 `db:"app_id"`
-	RegionID        string                 `db:"region_id"`
-	K8sName         string                 `db:"k8s_name"`
-	Address         string                 `db:"address"`
-	CpuMillicores   int32                  `db:"cpu_millicores"`
-	MemoryMib       int32                  `db:"memory_mib"`
-	StorageMib      uint32                 `db:"storage_mib"`
-	Status          InstancesStatus        `db:"status"`
-	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
-}
-
 type Key struct {
 	Pk                 uint64         `db:"pk"`
 	ID                 string         `db:"id"`
@@ -1102,17 +840,6 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-}
-
-type OpenapiSpec struct {
-	Pk             uint64         `db:"pk"`
-	ID             string         `db:"id"`
-	WorkspaceID    string         `db:"workspace_id"`
-	DeploymentID   sql.NullString `db:"deployment_id"`
-	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Content        []byte         `db:"content"`
-	CreatedAt      int64          `db:"created_at"`
-	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {

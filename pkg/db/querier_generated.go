@@ -10,30 +10,6 @@ import (
 )
 
 type Querier interface {
-	//ClearAcmeChallengeTokens
-	//
-	//  UPDATE acme_challenges
-	//  SET token = ?, authorization = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
-	//CompareAndSwapDeploymentStatus
-	//
-	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
-	//  WHERE id = ?
-	//  AND status = ?
-	CompareAndSwapDeploymentStatus(ctx context.Context, db DBTX, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
-	//CountInstancesByAppId
-	//
-	//  SELECT COUNT(*) as count
-	//  FROM instances i
-	//  JOIN deployments d ON i.deployment_id = d.id
-	//  WHERE d.app_id = ?
-	CountInstancesByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
-	//DeleteAcmeChallengeByDomainID
-	//
-	//  DELETE FROM acme_challenges WHERE domain_id = ?
-	DeleteAcmeChallengeByDomainID(ctx context.Context, db DBTX, domainID string) error
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -48,10 +24,6 @@ type Querier interface {
 	//
 	//  DELETE FROM app_build_settings WHERE environment_id = ?
 	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteAppById
-	//
-	//  DELETE FROM apps WHERE id = ?
-	DeleteAppById(ctx context.Context, db DBTX, id string) error
 	// Deletes an environment's variables whose key is in the provided set.
 	//
 	//  DELETE FROM app_environment_variables
@@ -59,10 +31,6 @@ type Querier interface {
 	//    AND environment_id = ?
 	//    AND `key` IN (/*SLICE:env_keys*/?)
 	DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error
-	//DeleteAppRegionalSettingsByEnvironmentId
-	//
-	//  DELETE FROM app_regional_settings WHERE environment_id = ?
-	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	// Deletes an environment's regional rows whose region is not in the desired set,
 	// reconciling the stored set to exactly the provided regions in one statement.
 	//
@@ -75,60 +43,6 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteCiliumNetworkPoliciesByEnvironmentId
-	//
-	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
-	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteCustomDomainByID
-	//
-	//  DELETE FROM custom_domains WHERE id = ?
-	DeleteCustomDomainByID(ctx context.Context, db DBTX, id string) error
-	//DeleteCustomDomainsByEnvironmentId
-	//
-	//  DELETE FROM custom_domains WHERE environment_id = ?
-	DeleteCustomDomainsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteCustomDomainsByProjectId
-	//
-	//  DELETE FROM custom_domains WHERE project_id = ?
-	DeleteCustomDomainsByProjectId(ctx context.Context, db DBTX, projectID string) error
-	// DeleteDeploymentChangesBefore removes old deployment_changes entries for TTL-based cleanup.
-	//
-	//  DELETE FROM `deployment_changes`
-	//  WHERE created_at < ?
-	//  LIMIT 10000
-	DeleteDeploymentChangesBefore(ctx context.Context, db DBTX, before int64) error
-	//DeleteDeploymentInstances
-	//
-	//  DELETE FROM instances
-	//  WHERE deployment_id = ? AND region_id = ?
-	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
-	//DeleteDeploymentStepsByEnvironmentId
-	//
-	//  DELETE ds FROM deployment_steps ds
-	//  JOIN deployments d ON ds.deployment_id = d.id
-	//  WHERE d.environment_id = ?
-	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteDeploymentTopologiesByEnvironmentId
-	//
-	//  DELETE dt FROM deployment_topology dt
-	//  JOIN deployments d ON dt.deployment_id = d.id
-	//  WHERE d.environment_id = ?
-	DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteDeploymentTopologyByDeploymentId
-	//
-	//  DELETE FROM `deployment_topology`
-	//  WHERE deployment_id = ?
-	DeleteDeploymentTopologyByDeploymentId(ctx context.Context, db DBTX, deploymentID string) error
-	//DeleteDeploymentTopologyByDeploymentRegion
-	//
-	//  DELETE FROM `deployment_topology`
-	//  WHERE deployment_id = ?
-	//    AND region_id = ?
-	DeleteDeploymentTopologyByDeploymentRegion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionParams) error
-	//DeleteDeploymentsByEnvironmentId
-	//
-	//  DELETE FROM deployments WHERE environment_id = ?
-	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	//DeleteEnvVarsByEnvironmentId
 	//
 	//  DELETE FROM app_environment_variables
@@ -142,80 +56,18 @@ type Querier interface {
 	//    AND environment_id = ?
 	//    AND `key` IN (/*SLICE:env_keys*/?)
 	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
-	//DeleteEnvironmentById
-	//
-	//  DELETE FROM environments WHERE id = ?
-	DeleteEnvironmentById(ctx context.Context, db DBTX, id string) error
-	// DeleteExportedClickhouseOutbox hard-deletes a bounded batch of outbox rows
-	// that were already exported to ClickHouse (deleted_at stamped) before the
-	// retention cutoff, and returns the number of rows deleted so the caller can
-	// loop until the table is drained of expired rows.
-	//
-	// deleted_at < cutoff implicitly skips pending rows: deleted_at IS NULL never
-	// satisfies the comparison, so unprocessed events are never touched. The
-	// drainer_pending_idx (deleted_at, version, pk) leading on deleted_at turns
-	// this into a range seek rather than a full scan.
-	//
-	// LIMIT bounds each DELETE so locks stay short and replication lag stays
-	// bounded; the cron loops until a batch deletes fewer than the limit. Marked
-	// rows are kept until this cutoff so ops can re-queue (clear deleted_at) or
-	// audit recently-exported events.
-	//
-	//  DELETE FROM clickhouse_outbox
-	//  WHERE deleted_at < ?
-	//  LIMIT ?
-	DeleteExportedClickhouseOutbox(ctx context.Context, db DBTX, arg DeleteExportedClickhouseOutboxParams) (int64, error)
-	//DeleteFrontlineRouteByFQDN
-	//
-	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
-	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
-	//DeleteFrontlineRouteByFQDNAndProject
-	//
-	//  DELETE FROM frontline_routes
-	//  WHERE fully_qualified_domain_name = ?
-	//    AND project_id = ?
-	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, db DBTX, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
-	//DeleteFrontlineRoutesByEnvironmentId
-	//
-	//  DELETE FROM frontline_routes WHERE environment_id = ?
-	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteFrontlineRoutesByProjectId
-	//
-	//  DELETE FROM frontline_routes WHERE project_id = ?
-	DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID string) error
-	//DeleteGithubRepoConnectionsByAppId
-	//
-	//  DELETE FROM github_repo_connections WHERE app_id = ?
-	DeleteGithubRepoConnectionsByAppId(ctx context.Context, db DBTX, appID string) error
-	//DeleteGithubRepoConnectionsByProjectId
-	//
-	//  DELETE FROM github_repo_connections WHERE project_id = ?
-	DeleteGithubRepoConnectionsByProjectId(ctx context.Context, db DBTX, projectID string) error
-	//DeleteIdentity
-	//
-	//  DELETE FROM identities
-	//  WHERE id = ?
-	//    AND workspace_id = ?
-	DeleteIdentity(ctx context.Context, db DBTX, arg DeleteIdentityParams) error
-	//DeleteInstance
-	//
-	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
-	DeleteInstance(ctx context.Context, db DBTX, arg DeleteInstanceParams) error
-	//DeleteKeyByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  DELETE k, kp, kr, rl, ek
 	//  FROM `keys` k
-	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
-	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
-	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  LEFT JOIN keys_permissions kp ON (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
+	//  LEFT JOIN keys_roles kr ON (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
+	//  LEFT JOIN ratelimits rl ON (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
-	//DeleteKeyPermissionByKeyAndPermissionID
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE key_id = ? AND permission_id = ?
-	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, db DBTX, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions
@@ -231,11 +83,6 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
 	DeleteManyKeyRolesByKeyAndRoleIDs(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyAndRoleIDsParams) error
-	//DeleteManyKeyRolesByKeyID
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE key_id = ? AND role_id = ?
-	DeleteManyKeyRolesByKeyID(ctx context.Context, db DBTX, arg DeleteManyKeyRolesByKeyIDParams) error
 	//DeleteManyKeyRolesByRoleID
 	//
 	//  DELETE FROM keys_roles
@@ -245,10 +92,6 @@ type Querier interface {
 	//
 	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
 	DeleteManyRatelimitsByIDs(ctx context.Context, db DBTX, ids []string) error
-	//DeleteManyRatelimitsByIdentityID
-	//
-	//  DELETE FROM ratelimits WHERE identity_id = ?
-	DeleteManyRatelimitsByIdentityID(ctx context.Context, db DBTX, identityID sql.NullString) error
 	//DeleteManyRolePermissionsByPermissionID
 	//
 	//  DELETE FROM roles_permissions
@@ -259,25 +102,18 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteOldIdentityByExternalID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  DELETE i, rl
 	//  FROM identities i
-	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  LEFT JOIN ratelimits rl ON (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//  WHERE i.workspace_id = ?
 	//    AND i.external_id = ?
 	//    AND i.id != ?
 	//    AND i.deleted = true
 	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
-	//DeleteOldIdentityWithRatelimits
-	//
-	//  DELETE i, rl
-	//  FROM identities i
-	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
-	//  WHERE i.workspace_id = ?
-	//    AND (i.id = ? OR i.external_id = ?)
-	//    AND i.deleted = true
-	DeleteOldIdentityWithRatelimits(ctx context.Context, db DBTX, arg DeleteOldIdentityWithRatelimitsParams) error
 	//DeletePermission
 	//
 	//  DELETE FROM permissions
@@ -295,20 +131,6 @@ type Querier interface {
 	//  DELETE FROM portal_configurations
 	//  WHERE id = ? AND workspace_id = ?
 	DeletePortalConfig(ctx context.Context, db DBTX, arg DeletePortalConfigParams) error
-	//DeleteProjectById
-	//
-	//  DELETE FROM projects WHERE id = ?
-	DeleteProjectById(ctx context.Context, db DBTX, id string) error
-	//DeleteRatelimit
-	//
-	//  DELETE FROM `ratelimits` WHERE id = ?
-	DeleteRatelimit(ctx context.Context, db DBTX, id string) error
-	//DeleteRatelimitNamespace
-	//
-	//  UPDATE `ratelimit_namespaces`
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	DeleteRatelimitNamespace(ctx context.Context, db DBTX, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
 	//DeleteRoleByID
 	//
 	//  DELETE FROM roles
@@ -319,18 +141,6 @@ type Querier interface {
 	//
 	//  DELETE FROM `billing_subscriptions` WHERE workspace_id = ?
 	DeleteWorkspaceBillingSubscriptions(ctx context.Context, db DBTX, id string) error
-	//EndActiveDeploymentStepsForDeployments
-	//
-	//  UPDATE `deployment_steps`
-	//  SET ended_at = ?, error = ?
-	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?) AND ended_at IS NULL
-	EndActiveDeploymentStepsForDeployments(ctx context.Context, db DBTX, arg EndActiveDeploymentStepsForDeploymentsParams) error
-	//EndActiveDeploymentStepsWithError
-	//
-	//  UPDATE `deployment_steps`
-	//  SET ended_at = ?, error = ?
-	//  WHERE deployment_id = ? AND ended_at IS NULL
-	EndActiveDeploymentStepsWithError(ctx context.Context, db DBTX, arg EndActiveDeploymentStepsWithErrorParams) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
@@ -345,14 +155,6 @@ type Querier interface {
 	//    AND exchanged_at IS NULL
 	//    AND expires_at > ?
 	ExchangePortalSessionToken(ctx context.Context, db DBTX, arg ExchangePortalSessionTokenParams) (sql.Result, error)
-	//FindAcmeChallengeByToken
-	//
-	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
-	FindAcmeChallengeByToken(ctx context.Context, db DBTX, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error)
-	//FindAcmeUserByWorkspaceID
-	//
-	//  SELECT pk, id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
-	FindAcmeUserByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -370,11 +172,13 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
-	//FindAppByProjectAndIdOrSlug
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
-	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
 	//  WHERE a.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
@@ -387,11 +191,13 @@ type Querier interface {
 	//  WHERE apps.project_id = ?
 	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
-	//FindAppByWorkspaceAndSlugs
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
-	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN projects p ON (a.project_id = p.id COLLATE utf8mb4_0900_ai_ci AND a.project_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE p.workspace_id = ?
 	//    AND p.slug = ?
 	//    AND a.slug = ?
@@ -406,6 +212,9 @@ type Querier interface {
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//  	ars.region_id,
@@ -417,8 +226,8 @@ type Querier interface {
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
-	//  JOIN regions r ON r.id = ars.region_id
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -433,122 +242,27 @@ type Querier interface {
 	// workspace. Used by portal.createSession to resolve the keyspaces an
 	// app-mapped portal config grants access to (the keyauth policies carry the
 	// keySpaceIds verified at the gateway).
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT d.sentinel_config
 	//  FROM apps a
-	//  JOIN deployments d ON d.id = a.current_deployment_id
+	//  JOIN deployments d ON (a.current_deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND a.current_deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE a.id = ?
 	//    AND a.workspace_id = ?
 	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
-	//FindAppWithSettings
-	//
-	//  SELECT
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
-	//  FROM apps a
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.id = ?
-	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
-	//FindCertificateByHostname
-	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
-	FindCertificateByHostname(ctx context.Context, db DBTX, hostname string) (Certificate, error)
-	//FindCertificatesByHostnames
-	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
-	FindCertificatesByHostnames(ctx context.Context, db DBTX, hostnames []string) ([]Certificate, error)
-	//FindCiliumNetworkPoliciesByDeploymentID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
-	FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPoliciesByEnvironmentID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
-	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPolicyByEnvironmentRegionAndName
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE environment_id = ? AND region_id = ? AND k8s_name = ?
-	//  LIMIT 1
-	FindCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByEnvironmentRegionAndNameParams) (CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPolicyByIDAndRegion
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE region_id = ? AND id = ?
-	//  LIMIT 1
-	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
-	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
-	// rows for a known set of payload versions. Must be called inside a
-	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
-	// (if Restate VO serialization ever fails) silently skips them rather than
-	// re-processing the same set. The lock is released when the caller commits
-	// or rolls back. Ordered by pk so retries see a deterministic row set,
-	// which lets CH's block-level deduplication collapse re-inserts after a
-	// partial failure.
-	//
-	// The version filter means a drainer never reads a payload it can't
-	// decode. Unknown versions stay in the table until a drainer with the
-	// matching handler ships.
-	//
-	// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
-	// stay in the table for re-processing (clear deleted_at to re-queue) and
-	// as an ops audit trail; there's no sweep job today.
-	//
-	//  SELECT pk, version, workspace_id, event_id, payload, created_at
-	//  FROM clickhouse_outbox
-	//  WHERE version IN (/*SLICE:versions*/?)
-	//    AND deleted_at IS NULL
-	//  ORDER BY pk
-	//  LIMIT ?
-	//  FOR UPDATE SKIP LOCKED
-	FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
-	//FindClickhouseWorkspaceSettingsByWorkspaceID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
 	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  JOIN `quota` q ON (c.workspace_id COLLATE utf8mb4_0900_ai_ci = q.workspace_id AND c.workspace_id COLLATE utf8mb4_0900_as_cs = q.workspace_id)
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
-	//FindCustomDomainByDomain
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
-	//  FROM custom_domains
-	//  WHERE domain = ?
-	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
-	//FindCustomDomainByDomainOrWildcard
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
-	//  WHERE domain IN (?, ?)
-	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
-	//  LIMIT 1
-	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
-	//FindCustomDomainById
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
-	//  FROM custom_domains
-	//  WHERE id = ?
-	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
-	//FindCustomDomainByWorkspaceAndDomain
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
-	//  WHERE workspace_id = ? AND domain = ?
-	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
-	//FindCustomDomainWithCertByDomain
-	//
-	//  SELECT
-	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.domain_connect_provider, cd.domain_connect_url, cd.invocation_id, cd.created_at, cd.updated_at,
-	//      c.id AS certificate_id
-	//  FROM custom_domains cd
-	//  LEFT JOIN certificates c ON c.hostname = cd.domain
-	//  WHERE cd.domain = ?
-	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -562,50 +276,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
-	//FindDeploymentByK8sName
-	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
-	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
-	// Returns all regions where a deployment is configured.
-	// Used for fan-out: when a deployment changes, emit state_change to each region.
-	//
-	//  SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  WHERE dt.deployment_id = ?
-	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
-	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
-	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
-	//
-	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
-	//      w.k8s_namespace,
-	//      e.slug AS environment_slug,
-	//      r.name AS region_name,
-	//      grc.repository_full_name AS git_repo
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `environments` e ON d.environment_id = e.id
-	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
-	//  LIMIT 1
-	FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error)
-	// Returns the per-region minimum replica requirement for a deployment.
-	// Used by deploy and wake workflows to compute whether enough regions are
-	// healthy before a deployment is considered ready.
-	//
-	//  SELECT region_id, autoscaling_replicas_min
-	//  FROM deployment_topology
-	//  WHERE deployment_id = ?
-	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
-	//FindDeploymentWithEnvironment
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug
 	//  FROM deployments d
-	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
 	//  WHERE d.id = ?
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
@@ -619,72 +296,24 @@ type Querier interface {
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
-	//FindEnvironmentByIdentifiers
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 	//  FROM environments e
-	//  JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
-	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  JOIN apps a ON (e.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND e.app_id COLLATE utf8mb4_0900_as_cs = a.id) AND (e.workspace_id COLLATE utf8mb4_0900_ai_ci = a.workspace_id AND e.workspace_id COLLATE utf8mb4_0900_as_cs = a.workspace_id)
+	//  JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
 	//  WHERE e.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
-	//FindEnvironmentByProjectIdAndSlug
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
-	//  FROM environments
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND slug = ?
-	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
-	//FindFrontlineRouteByDeploymentIDAndSticky
-	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
-	FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, db DBTX, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error)
-	//FindFrontlineRouteByFQDN
-	//
-	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
-	FindFrontlineRouteByFQDN(ctx context.Context, db DBTX, fullyQualifiedDomainName string) (FrontlineRoute, error)
-	//FindFrontlineRouteForPromotion
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      fully_qualified_domain_name,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM frontline_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindFrontlineRouteForPromotion(ctx context.Context, db DBTX, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error)
-	//FindFrontlineRoutesForRollback
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      fully_qualified_domain_name,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM frontline_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindFrontlineRoutesForRollback(ctx context.Context, db DBTX, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
 	//FindGithubRepoConnectionByAppId
 	//
 	//  SELECT
@@ -700,35 +329,15 @@ type Querier interface {
 	//  FROM github_repo_connections
 	//  WHERE app_id = ?
 	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
-	//FindGithubRepoConnectionByProjectId
-	//
-	//  SELECT
-	//      pk,
-	//      workspace_id,
-	//      project_id,
-	//      installation_id,
-	//      repository_id,
-	//      repository_full_name,
-	//      created_at,
-	//      updated_at
-	//  FROM github_repo_connections
-	//  WHERE project_id = ?
-	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (FindGithubRepoConnectionByProjectIdRow, error)
-	//FindIdentities
-	//
-	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//   AND deleted = ?
-	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
-	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
 	//FindIdentitiesByExternalId
 	//
 	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
-	//FindIdentity
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
@@ -744,7 +353,7 @@ type Querier interface {
 	//                  'auto_apply', rl.auto_apply = 1
 	//              )
 	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          FROM ratelimits rl WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//  FROM identities i
@@ -758,7 +367,7 @@ type Querier interface {
 	//      WHERE id2.workspace_id = ?
 	//        AND id2.external_id = ?
 	//        AND id2.deleted = ?
-	//  ) AS identity_lookup ON i.id = identity_lookup.id
+	//  ) AS identity_lookup ON (identity_lookup.id COLLATE utf8mb4_0900_ai_ci = i.id AND identity_lookup.id COLLATE utf8mb4_0900_as_cs = i.id)
 	//  LIMIT 1
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
@@ -777,32 +386,13 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindInstanceByPodName
-	//
-	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
-	//  FROM instances
-	//    WHERE k8s_name = ? AND region_id = ?
-	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
-	//FindInstancesByDeploymentId
-	//
-	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
-	//  FROM instances
-	//  WHERE deployment_id = ?
-	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
-	//FindInstancesByDeploymentIdAndRegionID
-	//
-	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
-	//  FROM instances
-	//  WHERE deployment_id = ? AND region_id = ?
-	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
-	//FindKeyAuthsByIds
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
 	//  FROM apis a
-	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = a.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = a.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE a.workspace_id = ?
 	//      AND a.id IN (/*SLICE:api_ids*/?)
 	//      AND ka.deleted_at_m IS NULL
@@ -816,16 +406,6 @@ type Querier interface {
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
 	FindKeyAuthsByIdsAndWorkspace(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsAndWorkspaceParams) ([]string, error)
-	//FindKeyAuthsByKeyAuthIds
-	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
-	//  FROM key_auth as ka
-	//  JOIN apis a ON a.key_auth_id = ka.id
-	//  WHERE a.workspace_id = ?
-	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
-	//      AND ka.deleted_at_m IS NULL
-	//      AND a.deleted_at_m IS NULL
-	FindKeyAuthsByKeyAuthIds(ctx context.Context, db DBTX, arg FindKeyAuthsByKeyAuthIdsParams) ([]FindKeyAuthsByKeyAuthIdsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
@@ -870,28 +450,21 @@ type Querier interface {
 	//
 	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
-	//FindLatestReadyDeploymentByAppAndEnv
-	//
-	//  SELECT id
-	//  FROM deployments
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	//    AND status = 'ready'
-	//    AND id != ?
-	//  ORDER BY created_at DESC
-	//  LIMIT 1
-	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, db DBTX, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
-	//FindLiveApiByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 	//  FROM apis
-	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = apis.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = apis.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE apis.id = ?
 	//      AND ka.deleted_at_m IS NULL
 	//      AND apis.deleted_at_m IS NULL
 	//  LIMIT 1
 	FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error)
-	//FindLiveKeyByHash
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -914,8 +487,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
 	//
@@ -930,8 +503,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
 	//
@@ -946,9 +519,9 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
 	//
@@ -968,28 +541,30 @@ type Querier interface {
 	//          FROM (
 	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//              FROM ratelimits rl
-	//              WHERE rl.key_id = k.id
+	//              WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//              UNION ALL
 	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//              FROM ratelimits rl
-	//              WHERE rl.identity_id = i.id
+	//              WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//          ) AS combined_rl),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
+	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.hash = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error)
-	//FindLiveKeyByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -1012,8 +587,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
 	//
@@ -1028,8 +603,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
 	//
@@ -1044,9 +619,9 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
 	//
@@ -1064,24 +639,26 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id
-	//              OR rl.identity_id = i.id),
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
+	//              OR (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
+	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.id = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
-	//FindManyRatelimitNamespaces
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
@@ -1093,14 +670,16 @@ type Querier interface {
 	//                                         'duration', ro.duration
 	//                                 )
 	//                         )
-	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                  from ratelimit_overrides ro where (ns.id COLLATE utf8mb4_0900_ai_ci = ro.namespace_id AND ns.id COLLATE utf8mb4_0900_as_cs = ro.namespace_id) AND ro.deleted_at_m IS NULL),
 	//                 json_array()
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByIdOrNameWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1113,40 +692,13 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
-	//      r.id IN (/*SLICE:search*/?)
-	//      OR r.name IN (/*SLICE:search*/?)
-	//  )
-	FindManyRolesByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByIdOrNameWithPermsParams) ([]FindManyRolesByIdOrNameWithPermsRow, error)
-	//FindManyRolesByNamesWithPerms
-	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
-	//FindOpenApiSpecByDeploymentID
-	//
-	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
-	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -1203,7 +755,9 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
-	//FindProjectByIdOrSlug
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      p.id,
@@ -1222,7 +776,7 @@ type Querier interface {
 	//      SELECT p2.id
 	//      FROM projects p2
 	//      WHERE p2.slug = ? AND p2.workspace_id = ?
-	//  ) AS project_lookup ON p.id = project_lookup.id
+	//  ) AS project_lookup ON (project_lookup.id COLLATE utf8mb4_0900_ai_ci = p.id AND project_lookup.id COLLATE utf8mb4_0900_as_cs = p.id)
 	//  LIMIT 1
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
@@ -1232,13 +786,9 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindQuotaByWorkspaceID
-	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
-	//  FROM `quota`
-	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
-	//FindRatelimitNamespace
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
@@ -1250,32 +800,19 @@ type Querier interface {
 	//                                         'duration', ro.duration
 	//                                 )
 	//                         )
-	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                  from ratelimit_overrides ro where (ns.id COLLATE utf8mb4_0900_ai_ci = ro.namespace_id AND ns.id COLLATE utf8mb4_0900_as_cs = ro.namespace_id) AND ro.deleted_at_m IS NULL),
 	//                 json_array()
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
 	//  AND (ns.id = ? OR ns.name = ?)
 	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
-	//FindRatelimitNamespaceByID
-	//
-	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
-	//  WHERE id = ?
-	FindRatelimitNamespaceByID(ctx context.Context, db DBTX, id string) (RatelimitNamespace, error)
 	//FindRatelimitNamespaceByName
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
 	//  WHERE name = ?
 	//  AND workspace_id = ?
 	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
-	// FindRatelimitNamespacesByIDs scopes matches to one workspace and intentionally
-	// includes soft-deleted namespaces so historical analytics remain authorized.
-	//
-	//  SELECT id
-	//  FROM ratelimit_namespaces
-	//  WHERE workspace_id = ?
-	//    AND id IN (/*SLICE:namespace_ids*/?)
-	FindRatelimitNamespacesByIDs(ctx context.Context, db DBTX, arg FindRatelimitNamespacesByIDsParams) ([]string, error)
 	//FindRatelimitOverrideByID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -1291,13 +828,6 @@ type Querier interface {
 	//      AND namespace_id = ?
 	//      AND identifier = ?
 	FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
-	//FindRegionById
-	//
-	//  SELECT
-	//   pk, id, name, platform, can_schedule
-	//  FROM regions
-	//  WHERE id = ? LIMIT 1
-	FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error)
 	//FindRegionByPlatformAndName
 	//
 	//  SELECT
@@ -1313,7 +843,9 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1326,8 +858,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -1376,19 +908,14 @@ type Querier interface {
 	//  ORDER BY created_at ASC, id ASC
 	//  LIMIT 1
 	FindVerifiedCustomDomainByAppID(ctx context.Context, db DBTX, appID string) (CustomDomain, error)
-	//FindVerifiedCustomDomainByDomainExcludingWorkspace
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
-	//  WHERE domain = ?
-	//    AND workspace_id != ?
-	//    AND verification_status = 'verified'
-	//  LIMIT 1
-	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
 	// that query rather than a second round trip. Stripe subscription ids now live
 	// on billing_subscriptions, one row per (workspace, product).
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//     b.pk,
@@ -1407,9 +934,9 @@ type Querier interface {
 	//     b.deleted_at_m
 	//  FROM `workspace_billing` b
 	//  LEFT JOIN `billing_subscriptions` bs_api
-	//     ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+	//     ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_api.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_api.workspace_id) AND bs_api.product = 'api'
 	//  LEFT JOIN `billing_subscriptions` bs_deploy
-	//     ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+	//     ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_deploy.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_deploy.workspace_id) AND bs_deploy.product = 'compute'
 	//  WHERE b.workspace_id = ?
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
@@ -1423,27 +950,6 @@ type Querier interface {
 	//  WHERE org_id = ?
 	//  AND deleted_at_m IS NULL
 	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
-	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
-	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
-	// deploy_plan_override (manual comp for internal workspaces). The gate treats
-	// either being set as entitled. Read by ctrl-api outside the billing hot path,
-	// so a single lookup by id is fine. Explicit columns (not SELECT *) so the read
-	// is insensitive to workspace column ordering.
-	//
-	//  SELECT
-	//     b.plan,
-	//     b.plan_override
-	//  FROM `workspaces` w
-	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
-	//  WHERE w.id = ?
-	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
-	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
-	// Used during full sync to establish the starting version for incremental polling.
-	//
-	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_version
-	//  FROM `deployment_changes`
-	//  WHERE region_id = ?
-	GetDeploymentChangesMaxVersion(ctx context.Context, db DBTX, regionID string) (int64, error)
 	//GetKeyAuthByID
 	//
 	//  SELECT
@@ -1457,77 +963,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
-	//GetWorkspacesForQuotaCheckByIDs
-	//
-	//  SELECT
-	//     w.id,
-	//     w.org_id,
-	//     w.name,
-	//     b.stripe_customer_id,
-	//     b.tier,
-	//     w.enabled,
-	//     q.requests_per_month
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
-	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
-	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
-	//HardDeleteWorkspace
-	//
-	//  DELETE FROM `workspaces`
-	//  WHERE id = ?
-	//  AND delete_protection = false
-	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
-	// Check whether a newer deployment exists for the same (app, env, branch) that
-	// makes building this one pointless. Matches any non-terminal status including
-	// 'ready' — if a newer commit is already deployed there is no reason to build
-	// an older one.
-	//
-	// Uses MySQL's NULL-safe equal (<=>) on git_branch so docker-image-only
-	// deployments (where git_branch IS NULL on both rows) still detect each other
-	// as siblings. Standard `=` returns UNKNOWN for NULL=NULL, which would silently
-	// bypass the guardrail for non-git apps.
-	//
-	//  SELECT EXISTS (
-	//      SELECT 1 FROM deployments
-	//      WHERE app_id = ?
-	//        AND environment_id = ?
-	//        AND git_branch <=> ?
-	//        AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-	//        AND created_at > ?
-	//        AND id != ?
-	//  ) AS has_newer
-	HasNewerActiveDeployment(ctx context.Context, db DBTX, arg HasNewerActiveDeploymentParams) (bool, error)
-	//InsertAcmeChallenge
-	//
-	//  INSERT INTO acme_challenges (
-	//      workspace_id,
-	//      domain_id,
-	//      token,
-	//      authorization,
-	//      status,
-	//      challenge_type,
-	//      created_at,
-	//      updated_at,
-	//      expires_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertAcmeChallenge(ctx context.Context, db DBTX, arg InsertAcmeChallengeParams) error
-	//InsertAcmeUser
-	//
-	//
-	//  INSERT INTO acme_users (id, workspace_id, encrypted_key, created_at)
-	//  VALUES (?,?,?,?)
-	InsertAcmeUser(ctx context.Context, db DBTX, arg InsertAcmeUserParams) error
 	//InsertApi
 	//
 	//  INSERT INTO apis (
@@ -1581,44 +1016,6 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
-	//InsertCertificate
-	//
-	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
-	//  workspace_id = VALUES(workspace_id),
-	//  hostname = VALUES(hostname),
-	//  certificate = VALUES(certificate),
-	//  encrypted_private_key = VALUES(encrypted_private_key),
-	//  updated_at = ?
-	InsertCertificate(ctx context.Context, db DBTX, arg InsertCertificateParams) error
-	//InsertCiliumNetworkPolicy
-	//
-	//  INSERT INTO cilium_network_policies (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      app_id,
-	//      environment_id,
-	//      deployment_id,
-	//      k8s_name,
-	//      k8s_namespace,
-	//      region_id,
-	//      policy,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1671,14 +1068,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
-	//InsertCustomDomain
-	//
-	//  INSERT INTO custom_domains (
-	//      id, workspace_id, project_id, app_id, environment_id, domain,
-	//      challenge_type, verification_status, verification_token, target_cname,
-	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1746,20 +1135,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, db DBTX, arg InsertDeploymentParams) error
-	//InsertDeploymentChange
-	//
-	//  INSERT INTO `deployment_changes` (
-	//      resource_type,
-	//      resource_id,
-	//      region_id,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertDeploymentChange(ctx context.Context, db DBTX, arg InsertDeploymentChangeParams) error
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO `deployment_steps` (
@@ -1976,26 +1351,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, db DBTX, arg InsertKeyParams) error
-	//InsertKeyAuth
-	//
-	//  INSERT INTO key_auth (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      created_at_m,
-	//      default_prefix,
-	//      default_bytes,
-	//      store_encrypted_keys
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      false
-	//  )
-	InsertKeyAuth(ctx context.Context, db DBTX, arg InsertKeyAuthParams) error
 	//InsertKeyEncryption
 	//
 	//  INSERT INTO encrypted_keys
@@ -2305,50 +1660,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
-	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
-	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
-	// is safe to call after InsertWorkspace/UpsertWorkspace without a prior check.
-	// New workspaces start on the Free tier with no Stripe linkage and no plan.
-	//
-	//  INSERT INTO `workspace_billing` (
-	//      workspace_id,
-	//      tier,
-	//      created_at_m
-	//  ) VALUES (
-	//      ?,
-	//      'Free',
-	//      ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE workspace_id = workspace_id
-	InsertWorkspaceBilling(ctx context.Context, db DBTX, arg InsertWorkspaceBillingParams) error
-	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
-	// Used during full sync (version=0) to bootstrap krane agents with current state.
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM `cilium_network_policies`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListAllCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListAllCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error)
-	// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
-	// Used by SyncDesiredState to reconcile krane agents with current desired state.
-	//
-	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
-	//      w.k8s_namespace,
-	//      e.slug AS environment_slug,
-	//      r.name AS region_name,
-	//      grc.repository_full_name AS git_repo
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `environments` e ON d.environment_id = e.id
-	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
-	//  ORDER BY dt.pk ASC
-	//  LIMIT ?
-	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
 	// Returns the build settings for every environment in an app, for callers
 	// that build multiple environments at once and group by environment_id.
 	//
@@ -2366,12 +1677,11 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarsByAppAndEnvParams) ([]ListAppEnvVarsByAppAndEnvRow, error)
-	//ListAppIdsByProject
-	//
-	//  SELECT id FROM apps WHERE project_id = ?
-	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
 	// Returns per-region settings for every environment in an app, including the
 	// autoscaling policy bounds (if attached). Callers group by environment_id.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//  	ars.environment_id,
@@ -2384,8 +1694,8 @@ type Querier interface {
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
-	//  JOIN regions r ON r.id = ars.region_id
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
 	// Returns the current regional rows for reconciliation, including the
@@ -2413,7 +1723,7 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
@@ -2427,27 +1737,13 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListCustomDomainsByProjectID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
-	//  FROM custom_domains
-	//  WHERE project_id = ?
-	//  ORDER BY created_at DESC
-	ListCustomDomainsByProjectID(ctx context.Context, db DBTX, projectID string) ([]CustomDomain, error)
-	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
-	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
-	//
-	//  SELECT pk, resource_type, resource_id, region_id, created_at
-	//  FROM `deployment_changes`
-	//  WHERE pk > ? AND region_id = ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
-	//ListDeploymentDomains
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  JOIN deployments d ON d.id = r.deployment_id
+	//  JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE d.workspace_id = ?
 	//    AND r.deployment_id = ?
 	//  ORDER BY r.fully_qualified_domain_name
@@ -2456,12 +1752,14 @@ type Querier interface {
 	//
 	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  JOIN deployments d ON d.id = r.deployment_id
+	//  JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE d.workspace_id = ?
 	//    AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
 	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error)
-	//ListDeploymentEnvAndAppState
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//    d.id AS deployment_id,
@@ -2471,17 +1769,19 @@ type Querier interface {
 	//    a.current_deployment_id AS app_current_deployment_id,
 	//    a.is_rolled_back AS app_is_rolled_back
 	//  FROM deployments d
-	//  JOIN projects p ON p.id = d.project_id
-	//  JOIN environments e ON e.id = d.environment_id
-	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN projects p ON (d.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND d.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+	//  JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+	//  JOIN apps a ON (d.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND d.app_id COLLATE utf8mb4_0900_as_cs = a.id)
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
-	//ListDeploymentRegions
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT DISTINCT r.name AS region
 	//  FROM deployment_topology dt
-	//  JOIN regions r ON r.id = dt.region_id
+	//  JOIN regions r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 	//  WHERE dt.workspace_id = ?
 	//    AND dt.deployment_id = ?
 	//  ORDER BY r.name
@@ -2490,7 +1790,7 @@ type Querier interface {
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 	//  FROM deployment_topology dt
-	//  JOIN regions r ON r.id = dt.region_id
+	//  JOIN regions r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 	//  WHERE dt.workspace_id = ?
 	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
@@ -2511,67 +1811,16 @@ type Querier interface {
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?
 	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
-	//ListDeploymentsByEnvironmentIdAndStatus
-	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
-	//  WHERE environment_id = ?
-	//    AND status = ?
-	//    AND created_at < ?
-	//    AND (updated_at IS null OR updated_at < ? )
-	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, db DBTX, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
-	// Used during bootstrap to stream all running deployments to krane.
-	//
-	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
-	//      w.k8s_namespace
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  WHERE (? = '' OR r.name = ?)
-	//      AND d.desired_state = ?
-	//      AND dt.deployment_id > ?
-	//  ORDER BY dt.deployment_id ASC
-	//  LIMIT ?
-	ListDesiredDeploymentTopology(ctx context.Context, db DBTX, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
-	//ListDesiredNetworkPolicies
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE (? = '' OR region_id = ?) AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error)
-	//ListDirectPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM keys_permissions kp
-	//  JOIN permissions p ON kp.permission_id = p.id
+	//  JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
-	//ListEnvVarsForRepoConnections
-	//
-	//  SELECT aev.app_id, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON a.id = aev.app_id
-	//  INNER JOIN environments e ON e.app_id = a.id AND e.id = aev.environment_id
-	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	//    AND e.slug = CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN 'production'
-	//      ELSE 'preview'
-	//    END
-	ListEnvVarsForRepoConnections(ctx context.Context, db DBTX, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
-	//ListEnvironmentIdsByApp
-	//
-	//  SELECT id FROM environments WHERE app_id = ?
-	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
@@ -2580,14 +1829,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC
 	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
-	//ListExecutableChallenges
-	//
-	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
-	//  JOIN custom_domains d ON dc.domain_id = d.id
-	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
-	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
-	//  ORDER BY d.created_at ASC
-	ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
 	//ListFailedDeploymentStepsByIds
 	//
 	//  SELECT pk, workspace_id, project_id, environment_id, deployment_id, app_id, step, started_at, ended_at, error FROM deployment_steps
@@ -2596,26 +1837,13 @@ type Querier interface {
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
 	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
-	//ListGithubRepoConnections
-	//
-	//  SELECT
-	//      pk,
-	//      workspace_id,
-	//      project_id,
-	//      app_id,
-	//      installation_id,
-	//      repository_id,
-	//      repository_full_name,
-	//      created_at,
-	//      updated_at
-	//  FROM github_repo_connections
-	//  WHERE installation_id = ?
-	//    AND repository_id = ?
-	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
 	// ListIdentities returns one page of a workspace's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 	// pages deterministic, and the empty-string cursor starts from the first row.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
@@ -2638,14 +1866,14 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM ratelimits r
-	//          WHERE r.identity_id = i.id),
+	//          WHERE (i.id COLLATE utf8mb4_0900_ai_ci = r.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = r.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//  FROM identities i
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
-	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
+	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
@@ -2660,58 +1888,9 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
-	//ListIdentityRatelimitsByIDs
-	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
-	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
-	//ListKeysByKeySpaceID
-	//
-	//  SELECT
-	//    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//    i.id as identity_id,
-	//    i.external_id as external_id,
-	//    i.meta as identity_meta,
-	//    ek.encrypted as encrypted_key,
-	//    ek.encryption_key_id as encryption_key_id
-	//
-	//  FROM `keys` k
-	//  LEFT JOIN `identities` i ON k.identity_id = i.id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.key_auth_id = ?
-	//  AND k.id >= ?
-	//  AND (? IS NULL OR k.identity_id = ?)
-	//  AND k.deleted_at_m IS NULL
-	//  ORDER BY k.id ASC
-	//  LIMIT ?
-	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
-	// ListKeysForRefill returns keys that need their remaining_requests refilled.
-	// Uses a deferred join on pk for stable cursor-based pagination that avoids
-	// OFFSET drift when rows are mutated between batches.
-	// Keys are selected if:
-	//   - refill_day is NULL (daily refill)
-	//   - refill_day matches today's day of month
-	//   - refill_day > today's day AND today is the last day of month (catch-up for short months)
-	// Keys are skipped if remaining_requests >= refill_amount (already full).
-	//
-	//  SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
-	//  FROM `keys` k
-	//  INNER JOIN (
-	//      SELECT ki.pk
-	//      FROM `keys` ki
-	//      WHERE ki.refill_amount IS NOT NULL
-	//        AND ki.deleted_at_m IS NULL
-	//        AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
-	//        AND (
-	//            ki.refill_day IS NULL
-	//            OR ki.refill_day = ?
-	//            OR (? = 1 AND ki.refill_day > ?)
-	//        )
-	//        AND ki.pk > ?
-	//      ORDER BY pk
-	//      LIMIT ?
-	//  ) AS batch ON batch.pk = k.pk
-	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
-	//ListLiveKeysByKeySpaceID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -2729,8 +1908,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
 	//         )                    as roles,
@@ -2745,8 +1924,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
-	//                  WHERE kp.key_id = k.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as permissions,
@@ -2761,9 +1940,9 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as role_permissions,
@@ -2783,18 +1962,18 @@ type Querier interface {
 	//                  FROM (
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.key_id = k.id
+	//                      WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//                      UNION ALL
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.identity_id = i.id
+	//                      WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id = ?
 	//    AND k.id >= ?
 	//    AND (? IS NULL OR k.identity_id = ?)
@@ -2803,7 +1982,9 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
-	//ListLiveKeysByKeySpaceIDs
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -2821,8 +2002,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
 	//         )                    as roles,
@@ -2837,8 +2018,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
-	//                  WHERE kp.key_id = k.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as permissions,
@@ -2853,9 +2034,9 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as role_permissions,
@@ -2875,18 +2056,18 @@ type Querier interface {
 	//                  FROM (
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.key_id = k.id
+	//                      WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//                      UNION ALL
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.identity_id = i.id
+	//                      WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id IN (/*SLICE:key_space_ids*/?)
 	//    AND k.id >= ?
 	//    AND (? IS NULL OR k.identity_id = ?)
@@ -2895,21 +2076,6 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
-	// Only deployments still in the queue (haven't acquired a build slot yet)
-	// are eligible for supersession. Once a deployment transitions to `starting`
-	// (after slot acquisition) it's committed — we don't cancel work that's
-	// already running.
-	//
-	//  SELECT id, invocation_id
-	//  FROM deployments
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	//    AND git_branch = ?
-	//    AND status IN ('pending', 'awaiting_approval')
-	//    AND created_at < ?
-	//    AND id != ?
-	//  ORDER BY created_at ASC
-	ListOlderActiveDeploymentsForDedup(ctx context.Context, db DBTX, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2920,23 +2086,25 @@ type Querier interface {
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
 	//    -- because sqlc types each param after the compared column, and description's
 	//    -- dbtype.NullString override conflicts with the plain string columns.
-	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
+	//    AND (? IS NULL OR LOWER(p.id) LIKE LOWER(?) OR LOWER(p.name) LIKE LOWER(?) OR LOWER(p.slug) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?))
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
-	//ListPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  WITH direct_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
+	//      JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kp.key_id = ?
 	//  ),
 	//  role_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
+	//      JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//      JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kr.key_id = ?
 	//  )
 	//  SELECT DISTINCT permission_slug
@@ -2946,14 +2114,6 @@ type Querier interface {
 	//      SELECT permission_slug FROM role_permissions
 	//  ) all_permissions
 	ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error)
-	//ListPermissionsByRoleID
-	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM permissions p
-	//  JOIN roles_permissions rp ON p.id = rp.permission_id
-	//  WHERE rp.role_id = ?
-	//  ORDER BY p.slug
-	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	// Lists every portal configuration in a workspace, left-joining its 1:1
 	// branding row. Branding columns are null when a config has no branding. The
 	// WHERE clause scopes the listing to the caller's workspace.
@@ -2967,28 +2127,6 @@ type Querier interface {
 	//  WHERE pc.workspace_id = ?
 	//  ORDER BY pc.created_at DESC
 	ListPortalConfigsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListPortalConfigsByWorkspaceRow, error)
-	//ListPreviewEnvironments
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
-	//  FROM environments
-	//  WHERE slug = 'preview'
-	//  AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListPreviewEnvironments(ctx context.Context, db DBTX, arg ListPreviewEnvironmentsParams) ([]Environment, error)
-	// Returns deployments in a non-terminal (progressing) status for an
-	// environment. The environment delete workflow uses this to cancel
-	// in-flight Restate invocations before the cascade drops deployment
-	// rows. Callers pass db.ProgressingDeploymentStatuses so the
-	// progressing set has a single source of truth; new statuses default
-	// to NOT progressing, so unknown states are skipped rather than
-	// accidentally cancelled.
-	//
-	//  SELECT id, invocation_id
-	//  FROM deployments
-	//  WHERE environment_id = ?
-	//    AND status IN (/*SLICE:progressing_statuses*/?)
-	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
 	//ListProjectsByWorkspaceId
 	//
 	//  SELECT
@@ -3003,7 +2141,7 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
@@ -3029,47 +2167,13 @@ type Querier interface {
 	//  FROM ratelimits
 	//  WHERE key_id = ?
 	ListRatelimitsByKeyID(ctx context.Context, db DBTX, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error)
-	//ListRatelimitsByKeyIDs
-	//
-	//  SELECT
-	//    id,
-	//    key_id,
-	//    name,
-	//    `limit`,
-	//    duration,
-	//    auto_apply
-	//  FROM ratelimits
-	//  WHERE key_id IN (/*SLICE:key_ids*/?)
-	//  ORDER BY key_id, id
-	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
 	//ListRegions
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
-	//ListRepoConnectionDeployContexts
-	//
-	//  SELECT
-	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
-	//  FROM github_repo_connections gc
-	//  INNER JOIN apps a ON a.id = gc.app_id
-	//  INNER JOIN projects p ON p.id = gc.project_id
-	//  INNER JOIN environments e ON e.app_id = a.id
-	//    AND e.slug = CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
-	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN 'production'
-	//      ELSE 'preview'
-	//    END
-	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -3083,18 +2187,20 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
-	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
+	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
-	//ListRolesByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -3107,74 +2213,33 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM keys_roles kr
-	//  JOIN roles r ON kr.role_id = r.id
+	//  JOIN roles r ON (kr.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = r.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
-	// ListRunningDeploymentsByBranch returns deployments in the same app,
-	// environment, and branch whose desired state is running, excluding one
-	// deployment id. Used to find sibling running deployments without including
-	// the caller's own deployment or unrelated deployments from another scope.
-	//
-	//  SELECT id
-	//  FROM deployments
-	//  WHERE git_branch = ?
-	//    AND workspace_id = ?
-	//    AND project_id = ?
-	//    AND app_id = ?
-	//    AND environment_id = ?
-	//    AND desired_state = 'running'
-	//    AND id != ?
-	//  ORDER BY created_at ASC
-	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
-	//ListWorkspaces
-	//
-	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  WHERE w.id > ?
-	//  ORDER BY w.id ASC
-	//  LIMIT 100
-	ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
 	// stripe_customer_id, so that (not a subscription or price) is all the push
 	// needs. Batched by ID (never per-workspace) so the push stays a single round
 	// trip regardless of how many workspaces had usage.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//     w.id,
 	//     b.stripe_customer_id,
 	//     w.enabled
 	//  FROM `workspaces` w
-	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  LEFT JOIN `workspace_billing` b ON (w.id COLLATE utf8mb4_0900_ai_ci = b.workspace_id AND w.id COLLATE utf8mb4_0900_as_cs = b.workspace_id)
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
-	//ListWorkspacesForQuotaCheck
-	//
-	//  SELECT
-	//     w.id,
-	//     w.org_id,
-	//     w.name,
-	//     b.stripe_customer_id,
-	//     b.tier,
-	//     w.enabled,
-	//     q.requests_per_month
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
-	//  WHERE w.id > ?
-	//  ORDER BY w.id ASC
-	//  LIMIT 100
-	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
 	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
 	// observe a default project created after its repeatable-read snapshot.
 	//
@@ -3206,110 +2271,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
-	// insert is confirmed. Called inside the same transaction that selected
-	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
-	// part of commit. A crash between the CH insert and this UPDATE leaves the
-	// rows with deleted_at IS NULL; the next batch picks them up and CH's
-	// non_replicated_deduplication_window collapses the identical re-insert
-	// into a noop.
-	//
-	// We mark instead of hard-delete so ops can re-queue events (clear
-	// deleted_at) without re-reading the original payload from somewhere else,
-	// and so the table doubles as an audit trail of what was exported. There's
-	// no sweep job today; the table grows monotonically.
-	//
-	//  UPDATE clickhouse_outbox
-	//  SET deleted_at = ?
-	//  WHERE pk IN (/*SLICE:pks*/?)
-	//    AND deleted_at IS NULL
-	MarkClickhouseOutboxBatchDeleted(ctx context.Context, db DBTX, arg MarkClickhouseOutboxBatchDeletedParams) error
-	//ReassignFrontlineRoute
-	//
-	//  UPDATE frontline_routes
-	//  SET
-	//    deployment_id = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
-	// Records that kubelet has put a container into CrashLoopBackOff by setting
-	// container_status.waiting.reason. The lastTerminationState carries the
-	// most recent exit info and is left untouched — the dashboard renders both
-	// the underlying exit and the "currently throttling" indicator together.
-	//
-	// Called once per (pod_uid, container_name, restart_count) when krane sees
-	// the waiting container reach the BackOff state. The next terminated event
-	// (or a successful start) will remove $.waiting via RecordInstanceExit.
-	//
-	// Out-of-order events are dropped via the restartCount guard: a delayed
-	// crashloop RPC from an earlier container life cannot flip the waiting
-	// reason back after RecordInstanceExit has already advanced restartCount
-	// and removed $.waiting.
-	//
-	//  UPDATE instances
-	//  SET container_status = JSON_SET(
-	//  	container_status,
-	//  	'$.waiting', JSON_OBJECT('reason', 'CrashLoopBackOff')
-	//  )
-	//  WHERE k8s_name = ?
-	//  	AND region_id = ?
-	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
-	RecordInstanceCrashLoopBackOff(ctx context.Context, db DBTX, arg RecordInstanceCrashLoopBackOffParams) error
-	// Denormalizes the most recent container exit info onto the instances row's
-	// container_status JSON. Called by ctrl when krane reports an
-	// event_kind='terminated' event.
-	//
-	// The caller computes the full new ContainerStatus value (restartCount,
-	// lastTerminationState, no waiting) and passes it in one typed param. The
-	// WHERE clause inspects the row's *existing* container_status to drop
-	// delayed events; once the guard passes, the new value fully replaces the
-	// old (including clearing $.waiting, since a fresh exit ends any prior
-	// crashloop window).
-	//
-	// Out-of-order events from krane are dropped via a lexicographic
-	// (restartCount, finishedAt) tuple comparison: an incoming row only wins
-	// if its (restartCount, finishedAt) pair is strictly greater than the
-	// pair already on the row. The previous OR-of-clauses formulation let a
-	// delayed terminated event from restart_count-1 sneak past via the
-	// finishedAt branch and regress the row after restart_count had already
-	// advanced.
-	//
-	//  UPDATE instances
-	//  SET container_status = ?
-	//  WHERE k8s_name = ?
-	//  	AND region_id = ?
-	//  	AND (
-	//  		CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  		OR (
-	//  			CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) = CAST(? AS UNSIGNED)
-	//  			AND (
-	//  				JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') IS NULL
-	//  				OR CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED) < CAST(? AS UNSIGNED)
-	//  			)
-	//  		)
-	//  	)
-	RecordInstanceExit(ctx context.Context, db DBTX, arg RecordInstanceExitParams) error
-	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
-	// This is a bulk operation to minimize database round trips.
-	//
-	//  UPDATE `keys`
-	//  SET remaining_requests = refill_amount,
-	//      last_refill_at = NOW(3),
-	//      updated_at_m = ?
-	//  WHERE id IN (/*SLICE:ids*/?)
-	//    AND deleted_at_m IS NULL
-	RefillKeysByIDs(ctx context.Context, db DBTX, arg RefillKeysByIDsParams) error
-	//ResetCustomDomainVerification
-	//
-	//  UPDATE custom_domains
-	//  SET verification_status = ?,
-	//      check_attempts = ?,
-	//      verification_error = NULL,
-	//      last_checked_at = NULL,
-	//      invocation_id = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -3329,6 +2290,9 @@ type Querier interface {
 	// Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
 	// can't use both indexes and would scan the workspace. app/environment keep the OR
 	// since the parent-id join already narrows them to a few rows.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      p.id AS project_id,
@@ -3345,21 +2309,15 @@ type Querier interface {
 	//      LIMIT 1
 	//  ) p
 	//  LEFT JOIN apps a
-	//      ON a.project_id = p.id
-	//      AND a.workspace_id = p.workspace_id
+	//      ON (a.project_id = p.id COLLATE utf8mb4_0900_ai_ci AND a.project_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//      AND (a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_ai_ci AND a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//      AND (a.id = ? OR a.slug = ?)
 	//  LEFT JOIN environments e
-	//      ON e.app_id = a.id
-	//      AND e.workspace_id = a.workspace_id
+	//      ON (e.app_id = a.id COLLATE utf8mb4_0900_ai_ci AND e.app_id = a.id COLLATE utf8mb4_0900_as_cs)
+	//      AND (e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_ai_ci AND e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
-	//SetWorkspaceK8sNamespace
-	//
-	//  UPDATE `workspaces`
-	//  SET k8s_namespace = ?
-	//  WHERE id = ? AND k8s_namespace IS NULL
-	SetWorkspaceK8sNamespace(ctx context.Context, db DBTX, arg SetWorkspaceK8sNamespaceParams) error
 	//SoftDeleteApi
 	//
 	//  UPDATE apis
@@ -3377,13 +2335,6 @@ type Querier interface {
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, db DBTX, arg SoftDeleteKeyByIDParams) error
-	//SoftDeleteManyKeysByKeySpaceID
-	//
-	//  UPDATE `keys`
-	//  SET deleted_at_m = ?
-	//  WHERE key_auth_id = ?
-	//  AND deleted_at_m IS NULL
-	SoftDeleteManyKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteManyKeysByKeySpaceIDParams) error
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -3398,63 +2349,6 @@ type Querier interface {
 	//      deleted_at_m =  ?
 	//  WHERE id = ?
 	SoftDeleteRatelimitOverride(ctx context.Context, db DBTX, arg SoftDeleteRatelimitOverrideParams) error
-	//SoftDeleteWorkspace
-	//
-	//  UPDATE `workspaces`
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	//  AND delete_protection = false
-	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
-	// reported that no instances remain. The desired_state guard prevents stale
-	// delete reports from marking a deployment stopped after it has been woken.
-	//
-	//  UPDATE deployments d
-	//  LEFT JOIN instances i ON i.deployment_id = d.id
-	//  SET d.status = 'stopped', d.updated_at = ?
-	//  WHERE d.id = ?
-	//    AND d.desired_state = 'stopped'
-	//    AND i.deployment_id IS NULL
-	StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error
-	//SumAllocatedResourcesByWorkspaceID
-	//
-	//  SELECT
-	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
-	//    CAST(COALESCE(SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_memory_mib`,
-	//    CAST(COALESCE(SUM(d.`storage_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_storage_mib`
-	//  FROM `deployment_topology` dt
-	//  JOIN `deployments` d ON d.`id` = dt.`deployment_id`
-	//  WHERE dt.`workspace_id` = ?
-	//    AND dt.`desired_status` = 'running'
-	SumAllocatedResourcesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
-	//UpdateAcmeChallengePending
-	//
-	//  UPDATE acme_challenges
-	//  SET status = ?, token = ?, authorization = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	UpdateAcmeChallengePending(ctx context.Context, db DBTX, arg UpdateAcmeChallengePendingParams) error
-	//UpdateAcmeChallengeStatus
-	//
-	//  UPDATE acme_challenges
-	//  SET status = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	UpdateAcmeChallengeStatus(ctx context.Context, db DBTX, arg UpdateAcmeChallengeStatusParams) error
-	//UpdateAcmeChallengeTryClaiming
-	//
-	//  UPDATE acme_challenges
-	//  SET status = ?, updated_at = ?
-	//  WHERE domain_id = ? AND status = 'waiting'
-	UpdateAcmeChallengeTryClaiming(ctx context.Context, db DBTX, arg UpdateAcmeChallengeTryClaimingParams) error
-	//UpdateAcmeChallengeVerifiedWithExpiry
-	//
-	//  UPDATE acme_challenges
-	//  SET status = ?, expires_at = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	UpdateAcmeChallengeVerifiedWithExpiry(ctx context.Context, db DBTX, arg UpdateAcmeChallengeVerifiedWithExpiryParams) error
-	//UpdateAcmeUserRegistrationURI
-	//
-	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
-	UpdateAcmeUserRegistrationURI(ctx context.Context, db DBTX, arg UpdateAcmeUserRegistrationURIParams) error
 	//UpdateApiDeleteProtection
 	//
 	//  UPDATE apis
@@ -3571,149 +2465,18 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
-	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
-	//
-	//  UPDATE cilium_network_policies
-	//  SET policy = ?,
-	//      updated_at = ?
-	//  WHERE environment_id = ?
-	//    AND region_id = ?
-	//    AND k8s_name = ?
-	UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error
-	//UpdateClickhouseWorkspaceSettingsLimits
-	//
-	//  UPDATE `clickhouse_workspace_settings`
-	//  SET
-	//      quota_duration_seconds = ?,
-	//      max_queries_per_window = ?,
-	//      max_execution_time_per_window = ?,
-	//      max_query_execution_time = ?,
-	//      max_query_memory_bytes = ?,
-	//      max_query_result_rows = ?,
-	//      updated_at = ?
-	//  WHERE workspace_id = ?
-	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, db DBTX, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
-	//UpdateCustomDomainCheckAttempt
-	//
-	//  UPDATE custom_domains
-	//  SET check_attempts = ?,
-	//      last_checked_at = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainCheckAttempt(ctx context.Context, db DBTX, arg UpdateCustomDomainCheckAttemptParams) error
-	//UpdateCustomDomainFailed
-	//
-	//  UPDATE custom_domains
-	//  SET verification_status = ?,
-	//      verification_error = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainFailed(ctx context.Context, db DBTX, arg UpdateCustomDomainFailedParams) error
-	//UpdateCustomDomainInvocationID
-	//
-	//  UPDATE custom_domains
-	//  SET invocation_id = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainInvocationID(ctx context.Context, db DBTX, arg UpdateCustomDomainInvocationIDParams) error
-	//UpdateCustomDomainOwnership
-	//
-	//  UPDATE custom_domains
-	//  SET ownership_verified = ?, cname_verified = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainOwnership(ctx context.Context, db DBTX, arg UpdateCustomDomainOwnershipParams) error
-	//UpdateCustomDomainVerificationStatus
-	//
-	//  UPDATE custom_domains
-	//  SET verification_status = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateCustomDomainVerificationStatus(ctx context.Context, db DBTX, arg UpdateCustomDomainVerificationStatusParams) error
-	//UpdateDeploymentBuildID
-	//
-	//  UPDATE deployments
-	//  SET build_id = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentBuildID(ctx context.Context, db DBTX, arg UpdateDeploymentBuildIDParams) error
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
-	//UpdateDeploymentForkRepository
-	//
-	//  UPDATE deployments
-	//  SET fork_repository_full_name = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentForkRepository(ctx context.Context, db DBTX, arg UpdateDeploymentForkRepositoryParams) error
-	//UpdateDeploymentGitMetadata
-	//
-	//  UPDATE deployments
-	//  SET
-	//      git_commit_sha = ?,
-	//      git_branch = ?,
-	//      git_commit_message = ?,
-	//      git_commit_author_handle = ?,
-	//      git_commit_author_avatar_url = ?,
-	//      git_commit_timestamp = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentGitMetadata(ctx context.Context, db DBTX, arg UpdateDeploymentGitMetadataParams) error
-	//UpdateDeploymentGithubDeploymentId
-	//
-	//  UPDATE deployments
-	//  SET github_deployment_id = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentGithubDeploymentId(ctx context.Context, db DBTX, arg UpdateDeploymentGithubDeploymentIdParams) error
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
 	//  SET image = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
-	//UpdateDeploymentInvocationID
-	//
-	//  UPDATE deployments
-	//  SET invocation_id = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentInvocationID(ctx context.Context, db DBTX, arg UpdateDeploymentInvocationIDParams) error
-	//UpdateDeploymentStatus
-	//
-	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
-	//
-	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
-	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, db DBTX, arg UpdateDeploymentStatusBatchParams) error
-	// Transition a deployment's status only when its current status is still
-	// "active" (non-terminal). Prevents the Deploy handler's compensation
-	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready). Callers
-	// pass db.TerminalDeploymentStatuses so the terminal set has a single
-	// source of truth.
-	//
-	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
-	//  WHERE id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
-	UpdateDeploymentStatusIfActive(ctx context.Context, db DBTX, arg UpdateDeploymentStatusIfActiveParams) error
-	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
-	//
-	//  UPDATE `deployment_topology`
-	//  SET desired_status = ?, updated_at = ?
-	//  WHERE deployment_id = ? AND region_id = ?
-	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
-	//UpdateFrontlineRouteDeploymentId
-	//
-	//  UPDATE frontline_routes
-	//  SET deployment_id = ?
-	//  WHERE id = ?
-	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
 	//UpdateHorizontalAutoscalingPolicy
 	//
 	//  UPDATE horizontal_autoscaling_policies
@@ -3800,13 +2563,6 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
-	//UpdateKeysLastUsed
-	//
-	//  UPDATE `keys`
-	//  SET last_used_at = ?
-	//  WHERE id IN (/*SLICE:key_ids*/?)
-	//    AND last_used_at < ?
-	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
 	// Updates a portal configuration's mutable fields, scoped to the workspace so
 	// one workspace can never mutate another's config. A dedicated scoped UPDATE
 	// (rather than an upsert) is used because portal_configurations has four unique
@@ -3847,14 +2603,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
-	//UpdateProjectDepotID
-	//
-	//  UPDATE projects
-	//  SET
-	//      depot_project_id = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
 	// Overwrites every column of a workspace's quota row (team included, unlike
 	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
 	// full set of values, so it fits full resets like `unkey dev stripe reset`:
@@ -3890,15 +2638,6 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateRatelimit(ctx context.Context, db DBTX, arg UpdateRatelimitParams) error
-	//UpdateRatelimitOverride
-	//
-	//  UPDATE `ratelimit_overrides`
-	//  SET
-	//      `limit` = ?,
-	//      duration = ?,
-	//      updated_at_m= ?
-	//  WHERE id = ?
-	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -4034,50 +2773,6 @@ type Querier interface {
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
-	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
-	//
-	//  INSERT INTO clusters (
-	//  	id,
-	//  	region_id,
-	//  	last_heartbeat_at
-	//  )
-	//  VALUES (
-	//  	?,
-	//  	?,
-	//  	?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//  	last_heartbeat_at = ?
-	UpsertCluster(ctx context.Context, db DBTX, arg UpsertClusterParams) error
-	//UpsertCustomDomain
-	//
-	//  INSERT INTO custom_domains (
-	//      id, workspace_id, project_id, app_id, environment_id, domain,
-	//      challenge_type, verification_status, verification_token, target_cname, created_at
-	//  )
-	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      workspace_id = VALUES(workspace_id),
-	//      project_id = VALUES(project_id),
-	//      app_id = VALUES(app_id),
-	//      environment_id = VALUES(environment_id),
-	//      challenge_type = VALUES(challenge_type),
-	//      verification_status = VALUES(verification_status),
-	//      target_cname = VALUES(target_cname),
-	//      updated_at = ?
-	UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCustomDomainParams) error
-	//UpsertEnvironment
-	//
-	//  INSERT INTO environments (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      app_id,
-	//      slug,
-	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
-	UpsertEnvironment(ctx context.Context, db DBTX, arg UpsertEnvironmentParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
 	// Use FindIdentityByExternalID after this to get the actual ID.
 	//
@@ -4100,40 +2795,6 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE external_id = external_id
 	UpsertIdentity(ctx context.Context, db DBTX, arg UpsertIdentityParams) error
-	//UpsertInstance
-	//
-	//  INSERT INTO instances (
-	//  	id,
-	//  	deployment_id,
-	//  	workspace_id,
-	//  	project_id,
-	//  	app_id,
-	//  	region_id,
-	//  	k8s_name,
-	//  	address,
-	//  	cpu_millicores,
-	//  	memory_mib,
-	//  	status
-	//  )
-	//  VALUES (
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?,
-	//  	?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//  	address = ?,
-	//  	cpu_millicores = ?,
-	//  	memory_mib = ?,
-	//  	status = ?
-	UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanceParams) error
 	//UpsertKeySpace
 	//
 	//  INSERT INTO key_auth (
@@ -4149,15 +2810,6 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
-	//UpsertOpenApiSpec
-	//
-	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
-	//  VALUES (?,?, ?, ?,
-	//          ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      content = VALUES(content),
-	//      updated_at = VALUES(updated_at)
-	UpsertOpenApiSpec(ctx context.Context, db DBTX, arg UpsertOpenApiSpecParams) error
 	//UpsertPortalBranding
 	//
 	//  INSERT INTO portal_branding (

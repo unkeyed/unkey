@@ -14,7 +14,7 @@ SELECT
     c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 FROM ` + "`" + `clickhouse_workspace_settings` + "`" + ` c
-JOIN ` + "`" + `quota` + "`" + ` q ON c.workspace_id = q.workspace_id
+JOIN ` + "`" + `quota` + "`" + ` q ON (q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_as_cs)
 WHERE c.workspace_id = ?
 `
 
@@ -23,13 +23,15 @@ type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
 	Quotas                     Quotas                     `db:"quotas"`
 }
 
-// FindClickhouseWorkspaceSettingsByWorkspaceID
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
 //	    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 //	FROM `clickhouse_workspace_settings` c
-//	JOIN `quota` q ON c.workspace_id = q.workspace_id
+//	JOIN `quota` q ON (q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_as_cs)
 //	WHERE c.workspace_id = ?
 func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)

@@ -29,14 +29,25 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/db", () => ({
-  db: { query: { workspaces: { findFirst: h.findFirst } }, transaction: h.transaction },
+  db: {
+    query: { workspaces: { findFirst: h.findFirst } },
+    transaction: h.transaction,
+    insert: h.insert,
+  },
   eq: vi.fn(),
-  schema: { workspaces: { id: {} }, workspaceBilling: { workspaceId: {} } },
+  schema: {
+    workspaces: { id: {} },
+    workspaceBilling: { workspaceId: {} },
+    quotas: { workspaceId: {} },
+  },
 }));
 vi.mock("@unkey/db", () => ({
   and: vi.fn(),
   eq: vi.fn(),
-  schema: { billingSubscriptions: { workspaceId: {}, product: {} } },
+  schema: {
+    billingSubscriptions: { workspaceId: {}, product: {} },
+    quotas: { workspaceId: {} },
+  },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
 
@@ -254,10 +265,15 @@ describe("linkDeploySubscription", () => {
       product: "compute",
       stripeSubscriptionId: "sub_1",
     });
+    expect(h.values).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      maxCpuMillicoresPerInstance: 2_000,
+      maxMemoryMibPerInstance: 2_048,
+    });
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
 
-  it("is an idempotent no-op when the same subscription+plan is already linked", async () => {
+  it("repairs quotas without relinking when the same subscription and plan are linked", async () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
@@ -272,6 +288,11 @@ describe("linkDeploySubscription", () => {
     });
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: true });
     expect(h.transaction).not.toHaveBeenCalled();
+    expect(h.values).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE_ID,
+      maxCpuMillicoresPerInstance: 2_000,
+      maxMemoryMibPerInstance: 2_048,
+    });
   });
 
   it("hard-fails rather than repoint a workspace with a different LIVE subscription", async () => {

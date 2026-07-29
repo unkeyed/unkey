@@ -1,3 +1,5 @@
+import { freeTierQuotas } from "@/lib/quotas";
+import type { Quotas } from "@unkey/db";
 import type Stripe from "stripe";
 
 /**
@@ -11,6 +13,32 @@ import type Stripe from "stripe";
  */
 export const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
 export type DeployPlan = (typeof DEPLOY_PLANS)[number];
+
+type ComputeQuotas = Pick<Quotas, "maxCpuMillicoresPerInstance" | "maxMemoryMibPerInstance">;
+
+const COMPUTE_PLAN_QUOTAS = {
+  starter: {
+    maxCpuMillicoresPerInstance: 2_000,
+    maxMemoryMibPerInstance: 2_048,
+  },
+  pro: {
+    maxCpuMillicoresPerInstance: 8_000,
+    maxMemoryMibPerInstance: 8_192,
+  },
+  business: {
+    maxCpuMillicoresPerInstance: 16_000,
+    maxMemoryMibPerInstance: 32_768,
+  },
+} satisfies Record<DeployPlan, ComputeQuotas>;
+
+const DEFAULT_COMPUTE_QUOTAS = {
+  maxCpuMillicoresPerInstance: freeTierQuotas.maxCpuMillicoresPerInstance,
+  maxMemoryMibPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+} satisfies ComputeQuotas;
+
+export function computeQuotasForPlan(plan: DeployPlan | null): ComputeQuotas {
+  return plan ? COMPUTE_PLAN_QUOTAS[plan] : DEFAULT_COMPUTE_QUOTAS;
+}
 
 function isDeployPlan(value: string): value is DeployPlan {
   return (DEPLOY_PLANS as readonly string[]).includes(value);
