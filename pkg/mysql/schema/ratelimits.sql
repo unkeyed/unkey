@@ -6,7 +6,7 @@ CREATE TABLE `ratelimits` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	`key_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
-	`identity_id` varchar(256),
+	`identity_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`limit` bigint unsigned NOT NULL,
 	`duration` bigint unsigned NOT NULL,
 	`auto_apply` boolean NOT NULL DEFAULT false,

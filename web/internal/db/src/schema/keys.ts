@@ -47,7 +47,7 @@ export const keys = mysqlTable(
     forWorkspaceId: caseInsensitiveVarchar("for_workspace_id", { length: 256 }),
     name: caseInsensitiveVarchar("name", { length: 256 }),
     ownerId: caseInsensitiveVarchar("owner_id", { length: 256 }),
-    identityId: caseInsensitiveVarchar("identity_id", { length: 256 }),
+    identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,

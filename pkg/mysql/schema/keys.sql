@@ -8,7 +8,7 @@ CREATE TABLE `keys` (
 	`for_workspace_id` varchar(256),
 	`name` varchar(256),
 	`owner_id` varchar(256),
-	`identity_id` varchar(256),
+	`identity_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`meta` text,
 	`expires` datetime(3),
 	`created_at_m` bigint NOT NULL DEFAULT 0,

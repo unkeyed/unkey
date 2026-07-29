@@ -10,7 +10,7 @@ export const identities = mysqlTable(
   "identities",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     /**
      * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
@@ -66,7 +66,7 @@ export const ratelimits = mysqlTable(
     /**
      * Either keyId or identityId may be defined, not both
      */
-    identityId: caseInsensitiveVarchar("identity_id", { length: 256 }),
+    identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     // milliseconds
     duration: bigint("duration", { mode: "number", unsigned: true }).notNull(),
