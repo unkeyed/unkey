@@ -3,7 +3,7 @@ CREATE TABLE `deployment_steps` (
 	`workspace_id` varchar(128) NOT NULL,
 	`project_id` varchar(128) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
-	`deployment_id` varchar(128) NOT NULL,
+	`deployment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`step` enum('queued','starting','building','deploying','network','finalizing') NOT NULL DEFAULT 'queued',
 	`started_at` bigint unsigned NOT NULL,

@@ -4,6 +4,7 @@ import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 export const deploymentSteps = mysqlTable(
@@ -13,7 +14,7 @@ export const deploymentSteps = mysqlTable(
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 128 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 128 }).notNull(),
     environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
-    deploymentId: caseInsensitiveVarchar("deployment_id", { length: 128 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     step: mysqlEnum("step", [

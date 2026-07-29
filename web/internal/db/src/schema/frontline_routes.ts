@@ -3,6 +3,7 @@ import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const frontlineRoutes = mysqlTable(
@@ -12,7 +13,7 @@ export const frontlineRoutes = mysqlTable(
     id: caseInsensitiveVarchar("id", { length: 128 }).notNull().unique(),
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    deploymentId: caseInsensitiveVarchar("deployment_id", { length: 255 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
     environmentId: caseInsensitiveVarchar("environment_id", { length: 255 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,

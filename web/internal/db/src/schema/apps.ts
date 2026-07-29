@@ -8,6 +8,7 @@ import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 export const apps = mysqlTable(
   "apps",
@@ -22,7 +23,7 @@ export const apps = mysqlTable(
     defaultBranch: caseInsensitiveVarchar("default_branch", { length: 256 })
       .notNull()
       .default("main"),
-    currentDeploymentId: caseInsensitiveVarchar("current_deployment_id", { length: 256 }),
+    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,

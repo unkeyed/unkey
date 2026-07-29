@@ -19,7 +19,7 @@ export const deploymentTopology = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 64 }).notNull(),
-    deploymentId: caseInsensitiveVarchar("deployment_id", { length: 64 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 64 }).notNull(),
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
