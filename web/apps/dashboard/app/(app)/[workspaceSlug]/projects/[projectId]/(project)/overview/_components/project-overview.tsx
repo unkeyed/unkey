@@ -26,6 +26,7 @@ import {
   BookBookmark,
   Chats,
   Check,
+  ChevronDown,
   CodeBranch,
   Cube,
   Discord,
@@ -68,6 +69,10 @@ const RATELIMIT_BAD = "hsl(var(--chart-limit-bad))";
 // The overview shows the most recent handful; the apps page is where the full
 // list lives, so a footer link goes there rather than growing this card.
 const MAX_APP_ROWS = 5;
+
+// Two rows of content plus a sliver of the third, so the fade says "there is
+// more" instead of cutting into a row you were reading.
+const COLLAPSED_ROWS_PX = 132;
 
 function useProjectScope(): { workspaceSlug: string; projectId: string } {
   const workspace = useWorkspaceNavigation();
@@ -318,18 +323,24 @@ function GettingStarted({
   const done = completedSteps(data, data.deployments);
   const scope = { workspaceSlug: data.workspaceSlug, projectId: data.project.id };
   const allDone = steps.every((step) => done.has(step.key));
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = columns === 1 && steps.length > 2;
+  const collapsed = collapsible && !expanded;
 
   // Numbers count what's left, not the original position — otherwise a
   // half-finished list reads "1 ✓ ✓ 4 ✓" with holes in it.
   let step = 0;
 
   return (
-    <div className={cn("group relative h-full", className)}>
-      <Card className="flex h-full flex-col">
+    <div className={cn("group relative self-start", className)}>
+      <Card className="flex flex-col">
         <div className="px-3.5 pt-3 pb-1.5">
           <span className="text-[13px] font-medium text-accent-12">Getting started</span>
         </div>
-        <div className="rounded-b-lg">
+        <div
+          className="relative overflow-hidden rounded-b-lg"
+          style={collapsed ? { maxHeight: COLLAPSED_ROWS_PX } : undefined}
+        >
           <div
             className={cn(
               columns === 3
@@ -385,8 +396,35 @@ function GettingStarted({
               );
             })}
           </div>
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 h-9 bg-gradient-to-t from-background via-background/80 to-transparent transition-opacity duration-150 ease-out",
+              collapsed ? "opacity-100" : "opacity-0",
+            )}
+          />
         </div>
       </Card>
+      {/* Vercel's disclosure: the chevron straddles the bottom edge so the card
+          reads as clipped rather than finished. */}
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse steps" : `Show ${steps.length - 2} more steps`}
+          className="absolute -bottom-3.5 left-1/2 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-grayA-4 bg-background text-gray-11 shadow-sm transition-colors hover:text-accent-12"
+        >
+          <span
+            className={cn(
+              "block transition-transform duration-150 ease-out",
+              expanded && "rotate-180",
+            )}
+          >
+            <ChevronDown iconSize="sm-regular" />
+          </span>
+        </button>
+      )}
       {/* Dismiss only appears once every step is done — while anything is
           outstanding the card is the nudge, so there's nothing to dismiss. */}
       {allDone && (
