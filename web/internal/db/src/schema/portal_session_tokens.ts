@@ -9,7 +9,7 @@ export const portalSessionTokens = mysqlTable(
   "portal_session_tokens",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 64 }).notNull(),
     externalId: caseInsensitiveVarchar("external_id", { length: 256 }).notNull(),
