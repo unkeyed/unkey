@@ -294,6 +294,7 @@ export async function alertOrphanedDeploySubscription(details: {
   sessionId?: string;
   eventId?: string;
   reason: string;
+  product?: "API" | "Compute";
 }): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
@@ -318,7 +319,7 @@ export async function alertOrphanedDeploySubscription(details: {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `:rotating_light: Orphaned Compute subscription needs manual reconciliation (${details.reason})`,
+              text: `:rotating_light: Orphaned ${details.product ?? "Compute"} subscription needs manual reconciliation (${details.reason})`,
             },
           },
           {

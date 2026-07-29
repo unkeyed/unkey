@@ -15,6 +15,7 @@ import {
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
+import { linkApiSubscription } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
@@ -52,7 +53,7 @@ import Stripe from "stripe";
  * resubscribe (subscribeDeploy requires plan IS NULL). A resume clears cancel_at
  * and the next update re-mirrors the live plan. This mirrors the API side, whose
  * updated handler already returns early on a cancelling subscription.
- **/
+ */
 async function mirrorDeployPlan(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
@@ -178,8 +179,8 @@ async function deprovisionOnCancel(
 }
 
 /**
- * Links a subscription-mode Compute checkout to its workspace via the shared
- * linker, shared by the `checkout.session.completed` and
+ * Links a subscription-mode API or Compute checkout to its workspace via the
+ * product's shared linker. Called by `checkout.session.completed` and
  * `checkout.session.async_payment_succeeded` events (the latter fires when a
  * delayed-notification payment clears after `completed` reported it unpaid).
  *
@@ -190,7 +191,7 @@ async function deprovisionOnCancel(
  * that will never link (a race minted a duplicate) — it bills until an operator
  * intervenes, so page a human rather than only logging.
  */
-async function linkComputeCheckoutSession(
+async function linkCheckoutSession(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
   eventId: string,
@@ -198,12 +199,17 @@ async function linkComputeCheckoutSession(
   if (session.mode !== "subscription" || !session.subscription) {
     return new Response("OK", { status: 200 });
   }
+  const productTag = session.metadata?.unkey_product;
+  if (productTag !== "api" && productTag !== "compute") {
+    return new Response("OK", { status: 200 });
+  }
   const subscriptionId =
     typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+  const product = productTag === "api" ? "API" : "Compute";
   if (!session.client_reference_id) {
     // A paid checkout with no workspace ref can never be linked and bills
     // forever; no retry fixes it, so page a human.
-    console.error("Compute checkout link event missing client_reference_id", {
+    console.error(`${product} checkout link event missing client_reference_id`, {
       sessionId: session.id,
       eventId,
     });
@@ -212,31 +218,47 @@ async function linkComputeCheckoutSession(
       sessionId: session.id,
       eventId,
       reason: "missing_client_reference_id",
+      product,
     });
     return new Response("OK", { status: 200 });
   }
 
-  const result = await linkDeploySubscription(stripe, {
+  const linkInput = {
     sessionId: session.id,
     expectedWorkspaceId: session.client_reference_id,
-    audit: { actor: { type: "system", id: "stripe" }, location: "", userAgent: undefined },
-  });
+    audit: {
+      actor: { type: "system" as const, id: "stripe" },
+      location: "",
+      userAgent: undefined,
+    },
+  };
+  const result =
+    productTag === "api"
+      ? await linkApiSubscription(stripe, linkInput)
+      : await linkDeploySubscription(stripe, linkInput);
 
   if (!result.ok) {
-    console.error("Failed to link Compute checkout subscription", {
+    console.error(`Failed to link ${product} checkout subscription`, {
       sessionId: session.id,
       eventId,
       reason: result.reason,
     });
     // Either way a paid subscription bills with no workspace attached and
     // no retry fixes it; page a human.
-    if (result.reason === "subscription_conflict" || result.reason === "workspace_not_found") {
+    if (
+      result.reason === "subscription_conflict" ||
+      result.reason === "workspace_not_found" ||
+      result.reason === "invalid_api_product" ||
+      result.reason === "no_api_plan" ||
+      result.reason === "no_deploy_plan"
+    ) {
       await alertOrphanedDeploySubscription({
         workspaceId: session.client_reference_id,
         subscriptionId,
         sessionId: session.id,
         eventId,
         reason: result.reason,
+        product,
       });
     }
   }
@@ -384,6 +406,18 @@ export const POST = async (req: Request): Promise<Response> => {
         const ws = subscription?.workspace ?? null;
         const billing = ws?.billing ?? null;
         if (!subscription || !ws || !billing || ws.deletedAtM !== null) {
+          // Checkout can emit subscription.updated before
+          // checkout.session.completed links the new subscription. Suppress
+          // only this short, metadata-proven ordering window; the completed
+          // event owns the durable link and orphan alert.
+          const product = eventSub.metadata?.unkey_product;
+          const isRecentCheckoutSubscription =
+            (product === "api" || product === "compute") &&
+            Boolean(eventSub.metadata?.workspace_id) &&
+            eventSub.created * 1000 > Date.now() - 30 * 60 * 1000;
+          if (isRecentCheckoutSubscription) {
+            return new Response("OK", { status: 200 });
+          }
           console.error("Workspace not found for subscription:", {
             subscriptionId: eventSub.id,
             eventId: event.id,
@@ -436,8 +470,6 @@ export const POST = async (req: Request): Promise<Response> => {
           );
           return new Response("OK", { status: 200 });
         }
-
-        // API-matched from here: reconcile tier/quotas from the API plan item.
 
         // Skip heuristics correlate the event snapshot with previous_attributes,
         // so they read eventSub (what the event reported), not the re-retrieved
@@ -946,7 +978,7 @@ export const POST = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Guaranteed server-side link for the no-card Compute flow: fires even if
+    // Guaranteed server-side link for paid API and Compute flows: fires even if
     // the user never returns to /success. `completed` covers the immediate
     // (card) case; `async_payment_succeeded` covers delayed-notification
     // methods that reported unpaid at `completed` and only clear later. Both
@@ -956,7 +988,7 @@ export const POST = async (req: Request): Promise<Response> => {
     case "checkout.session.async_payment_succeeded": {
       try {
         const session = event.data.object as Stripe.Checkout.Session;
-        return await linkComputeCheckoutSession(stripe, session, event.id);
+        return await linkCheckoutSession(stripe, session, event.id);
       } catch (error) {
         console.error("Checkout session link webhook error:", {
           error:

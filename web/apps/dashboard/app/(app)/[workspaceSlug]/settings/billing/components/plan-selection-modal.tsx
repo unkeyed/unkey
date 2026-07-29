@@ -63,7 +63,17 @@ export const PlanSelectionModal = ({
   }, [trpcUtils]);
 
   const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.status === "checkout") {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+      if (result.status === "payment_required") {
+        window.location.assign(
+          result.paymentUrl ?? routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
+        );
+        return;
+      }
       handleOpenChange(false);
       setIsLoading(false);
       toast.success("Plan activated successfully!");
@@ -77,7 +87,11 @@ export const PlanSelectionModal = ({
   });
 
   const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (result.kind === "payment_required") {
+        window.location.assign(result.paymentUrl);
+        return;
+      }
       handleOpenChange(false);
       setIsLoading(false);
       toast.success("Plan changed successfully!");
