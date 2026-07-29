@@ -111,11 +111,19 @@ func createRole(t *testing.T, ctx context.Context, client *unkey.Unkey) componen
 	require.NoError(t, err)
 	require.NotNil(t, response.V2PermissionsCreateRoleResponseBody)
 	roleID := response.V2PermissionsCreateRoleResponseBody.Data.RoleID
-	getResponse, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{
-		Role: roleID,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, getResponse.V2PermissionsGetRoleResponseBody)
+
+	var role components.Role
+	// Role reads can lag behind creation while regional caches converge.
+	require.Eventually(t, func() bool {
+		getResponse, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{
+			Role: roleID,
+		})
+		if err != nil || getResponse.V2PermissionsGetRoleResponseBody == nil {
+			return false
+		}
+		role = getResponse.V2PermissionsGetRoleResponseBody.Data
+		return true
+	}, 30*time.Second, time.Second)
 
 	t.Cleanup(func() {
 		_, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{
@@ -124,7 +132,7 @@ func createRole(t *testing.T, ctx context.Context, client *unkey.Unkey) componen
 		require.NoError(t, err)
 	})
 
-	return getResponse.V2PermissionsGetRoleResponseBody.Data
+	return role
 }
 
 func createIdentity(t *testing.T, ctx context.Context, client *unkey.Unkey) components.Identity {
