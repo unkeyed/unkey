@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -115,6 +116,9 @@ func TestScanInstanceEvents(t *testing.T) {
 		if len(got) != 2 {
 			t.Fatalf("expected 2 events (Running for current life, Terminated for prior), got %d", len(got))
 		}
+		if got[0].GetTerminated() == nil || got[1].GetRunning() == nil {
+			t.Fatalf("prior termination must be emitted before running, got %T then %T", got[0].GetState(), got[1].GetState())
+		}
 		var term, running *ctrlv1.InstanceEvent
 		for _, ev := range got {
 			switch ev.GetState().(type) {
@@ -177,6 +181,67 @@ func TestScanInstanceEvents(t *testing.T) {
 		if !sawTerm || !sawWaiting {
 			t.Errorf("missing kinds: term=%v waiting=%v", sawTerm, sawWaiting)
 		}
+	})
+
+	t.Run("image pull error includes the kubelet message", func(t *testing.T) {
+		t.Parallel()
+		pod := makePod("uid-image-pull", []corev1.ContainerStatus{{
+			Name: "app",
+			State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{
+				Reason:  "ErrImagePull",
+				Message: "pull access denied: repository does not exist or may require authorization",
+			}},
+		}})
+
+		got := scanInstanceEvents(pod)
+		require.Len(t, got, 1)
+		require.Equal(t, "ErrImagePull", got[0].GetWaiting().GetReason())
+		require.Contains(t, got[0].GetWaiting().GetMessage(), "require authorization")
+	})
+
+	t.Run("routine container startup states are skipped", func(t *testing.T) {
+		t.Parallel()
+		pod := makePod("uid-starting", []corev1.ContainerStatus{{
+			Name:  "app",
+			State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}},
+		}})
+
+		require.Empty(t, scanInstanceEvents(pod))
+	})
+
+	t.Run("pod eviction uses the pod-level storage message", func(t *testing.T) {
+		t.Parallel()
+		now := time.UnixMilli(1700000000000)
+		pod := makePod("uid-evicted", []corev1.ContainerStatus{{
+			Name:  "app",
+			State: corev1.ContainerState{Terminated: terminated("Error", 137, now)},
+		}})
+		pod.Status.Phase = corev1.PodFailed
+		pod.Status.Reason = "Evicted"
+		pod.Status.Message = "Pod ephemeral local storage usage exceeds the total limit of containers 128Mi."
+
+		got := scanInstanceEvents(pod)
+		require.Len(t, got, 2)
+		require.Equal(t, "Error", got[0].GetTerminated().GetReason())
+		require.Equal(t, "Evicted", got[1].GetWaiting().GetReason())
+		require.Contains(t, got[1].GetWaiting().GetMessage(), "128Mi")
+	})
+
+	t.Run("unschedulable pod includes the scheduler message", func(t *testing.T) {
+		t.Parallel()
+		pod := makePod("uid-unschedulable", nil)
+		pod.Status.Phase = corev1.PodPending
+		pod.Status.Conditions = []corev1.PodCondition{{
+			Type:    corev1.PodScheduled,
+			Status:  corev1.ConditionFalse,
+			Reason:  corev1.PodReasonUnschedulable,
+			Message: "0/3 nodes are available: insufficient memory",
+		}}
+
+		got := scanInstanceEvents(pod)
+		require.Len(t, got, 1)
+		require.Equal(t, corev1.PodReasonUnschedulable, got[0].GetWaiting().GetReason())
+		require.Contains(t, got[0].GetWaiting().GetMessage(), "insufficient memory")
 	})
 
 	t.Run("restart_count zero does not synthesize a phantom prior life", func(t *testing.T) {
@@ -350,5 +415,15 @@ func TestDedupKeyIncludesState(t *testing.T) {
 	}
 	if dedupKey(term) == dedupKey(waiting) {
 		t.Fatalf("dedup key should distinguish state: both produced %q", dedupKey(term))
+	}
+
+	imagePull := &ctrlv1.InstanceEvent{
+		PodUid:        "uid-1",
+		ContainerName: "app",
+		RestartCount:  3,
+		State:         &ctrlv1.InstanceEvent_Waiting{Waiting: &ctrlv1.Waiting{Reason: "ImagePullBackOff"}},
+	}
+	if dedupKey(waiting) == dedupKey(imagePull) {
+		t.Fatalf("dedup key should distinguish waiting reasons: both produced %q", dedupKey(waiting))
 	}
 }

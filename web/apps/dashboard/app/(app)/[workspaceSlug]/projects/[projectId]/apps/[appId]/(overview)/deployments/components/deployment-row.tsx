@@ -1,6 +1,9 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import {
+  LastExitBadge,
+  shouldShowLastExit,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
@@ -52,10 +55,7 @@ export function DeploymentRow({
   const isCurrent = currentDeployment?.id === deployment.id;
   const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
   const statusLabel = DEPLOYMENT_STATUS_LABELS[deployment.status];
-  const showLastExit =
-    deployment.lastExit !== null &&
-    deployment.status !== "ready" &&
-    deployment.status !== "superseded";
+  const showLastExit = shouldShowLastExit(deployment);
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
