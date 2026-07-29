@@ -99,6 +99,8 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 environment.ID,
+		Source:                        db.DeploymentsSourceUnknown,
+		RequestedImage:                sql.NullString{Valid: false},
 		SentinelConfig:                sentinelConfig,
 		EncryptedEnvironmentVariables: []byte{},
 		Status:                        mysqltype.DeploymentsStatusReady,

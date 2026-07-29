@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listEnvVarsForRepoConnections = `-- name: ListEnvVarsForRepoConnections :many
@@ -19,17 +20,21 @@ WHERE gc.installation_id = ?
   AND gc.repository_id = ?
   AND e.slug = CASE
     WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
-    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN ? = CASE
+      WHEN gc.default_branch IS NOT NULL AND gc.default_branch <> '' THEN gc.default_branch
+      WHEN a.default_branch <> '' THEN a.default_branch
+      ELSE 'main'
+    END
     THEN 'production'
     ELSE 'preview'
   END
 `
 
 type ListEnvVarsForRepoConnectionsParams struct {
-	InstallationID int64  `db:"installation_id"`
-	RepositoryID   int64  `db:"repository_id"`
-	IsForkPr       int64  `db:"is_fork_pr"`
-	Branch         string `db:"branch"`
+	InstallationID int64          `db:"installation_id"`
+	RepositoryID   int64          `db:"repository_id"`
+	IsForkPr       int64          `db:"is_fork_pr"`
+	Branch         sql.NullString `db:"branch"`
 }
 
 type ListEnvVarsForRepoConnectionsRow struct {
@@ -49,7 +54,11 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //	  AND gc.repository_id = ?
 //	  AND e.slug = CASE
 //	    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
-//	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+//	    WHEN ? = CASE
+//	      WHEN gc.default_branch IS NOT NULL AND gc.default_branch <> '' THEN gc.default_branch
+//	      WHEN a.default_branch <> '' THEN a.default_branch
+//	      ELSE 'main'
+//	    END
 //	    THEN 'production'
 //	    ELSE 'preview'
 //	  END

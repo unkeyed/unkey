@@ -51,6 +51,7 @@ require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-acme/lego/v4 v4.31.0
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/google/go-containerregistry v0.20.7
 	github.com/maypok86/otter v1.2.4
 	github.com/moby/buildkit v0.26.3
 	github.com/oapi-codegen/nullable v1.1.0
@@ -211,7 +212,6 @@ require (
 	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-containerregistry v0.20.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gordonklaus/ineffassign v0.2.0 // indirect

@@ -12,7 +12,11 @@ INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND e.slug = CASE
     WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN 'preview'
-    WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN sqlc.arg(branch) = CASE
+      WHEN gc.default_branch IS NOT NULL AND gc.default_branch <> '' THEN gc.default_branch
+      WHEN a.default_branch <> '' THEN a.default_branch
+      ELSE 'main'
+    END
     THEN 'production'
     ELSE 'preview'
   END

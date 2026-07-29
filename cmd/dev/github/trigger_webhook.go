@@ -271,6 +271,7 @@ func (s *Service) ensureGithubConnection(ctx context.Context, workspaceID, proje
 		InstallationID:     installationID,
 		RepositoryID:       repositoryID,
 		RepositoryFullName: repository,
+		DefaultBranch:      sql.NullString{Valid: false},
 		CreatedAt:          time.Now().UnixMilli(),
 		UpdatedAt:          sql.NullInt64{Valid: false, Int64: 0},
 	})

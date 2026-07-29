@@ -40,6 +40,7 @@ export const githubRepoConnections = mysqlTable(
     repositoryFullName: varchar("repository_full_name", {
       length: 500,
     }).notNull(),
+    defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 }),
     ...lifecycleDates,
   },
   (table) => [index("installation_id_idx").on(table.installationId)],

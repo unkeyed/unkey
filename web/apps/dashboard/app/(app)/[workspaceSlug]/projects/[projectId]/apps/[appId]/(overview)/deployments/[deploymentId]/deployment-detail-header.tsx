@@ -10,6 +10,7 @@ import {
   Ban,
   Layers3,
 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   PageHeader,
@@ -55,7 +56,14 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const canCancel = isCancellableDeploymentStatus(derivedStatus) && !cancelled;
   const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
-  const title = deployment.gitCommitMessage || shortenId(deployment.id);
+  const title = match(deployment.source)
+    .with("git_build", () => deployment.gitCommitMessage || shortenId(deployment.id))
+    .with(
+      "docker_image",
+      () => deployment.requestedImage ?? deployment.image ?? shortenId(deployment.id),
+    )
+    .with("unknown", () => shortenId(deployment.id))
+    .exhaustive();
 
   const deploymentScope = {
     workspaceSlug: workspace.slug,

@@ -13,6 +13,8 @@ export const deploymentSchema = z.object({
   projectId: z.string(),
   appId: z.string(),
   environmentId: z.string(),
+  source: z.enum(["unknown", "git_build", "docker_image"]),
+  requestedImage: z.string().nullable(),
   gitCommitSha: z.string().nullable(),
   gitBranch: z.string(),
   gitCommitMessage: z.string().nullable(),

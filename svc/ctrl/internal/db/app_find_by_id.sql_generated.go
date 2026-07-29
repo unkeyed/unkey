@@ -10,14 +10,14 @@ import (
 )
 
 const findAppById = `-- name: FindAppById :one
-SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, name, slug, source_type, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 FROM apps
 WHERE id = ?
 `
 
 // FindAppById
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, name, slug, source_type, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
 //	FROM apps
 //	WHERE id = ?
 func (q *Queries) FindAppById(ctx context.Context, id string) (App, error) {
@@ -30,6 +30,7 @@ func (q *Queries) FindAppById(ctx context.Context, id string) (App, error) {
 		&i.ProjectID,
 		&i.Name,
 		&i.Slug,
+		&i.SourceType,
 		&i.DefaultBranch,
 		&i.CurrentDeploymentID,
 		&i.IsRolledBack,

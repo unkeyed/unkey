@@ -36,9 +36,18 @@ export const deployments = mysqlTable(
     // App this deployment belongs to
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    // the docker image
-    // null until the build is done
-    image: varchar("image", { length: 256 }),
+    // How the deployment artifact was produced. "unknown" is retained for
+    // historical rows whose provenance cannot be reconstructed safely.
+    source: mysqlEnum("source", ["unknown", "git_build", "docker_image"])
+      .notNull()
+      .default("unknown"),
+
+    // The mutable tag or immutable digest requested for a Docker deployment.
+    requestedImage: varchar("requested_image", { length: 512 }),
+
+    // The immutable Docker digest deployed to Kubernetes. Git builds populate
+    // this after the build completes; Docker sources populate it after resolve.
+    image: varchar("image", { length: 512 }),
     buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information

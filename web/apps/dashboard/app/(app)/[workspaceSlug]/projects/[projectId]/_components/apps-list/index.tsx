@@ -8,7 +8,8 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Github, Plus, Terminal } from "@unkey/icons";
+import { Docker, Dots, Github, Plus, Terminal } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
@@ -62,48 +63,77 @@ export const AppsList = () => {
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          {apps.data.map((app) => (
-            <ResourceCard
-              key={app.id}
-              href={appHomeHref({
-                workspaceSlug: workspace.slug,
-                projectId,
-                appId: app.id,
-              })}
-              icon={
+          {apps.data.map((app) => {
+            const icon = match(app.sourceType)
+              .with("github", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("docker_image", () => (
+                <Docker iconSize="xl-medium" className="shrink-0 size-5" />
+              ))
+              .with("legacy", () =>
                 app.repositoryFullName ? (
                   <Github iconSize="xl-medium" className="shrink-0 size-5" />
                 ) : (
                   <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
-                )
-              }
-              name={app.name}
-              domain={app.domain}
-              commitTitle={app.commitTitle}
-              sourceUrl={githubUrl.deployment({
-                repoFullName: app.repositoryFullName,
-                forkRepoFullName: app.forkRepositoryFullName,
-                prNumber: app.prNumber,
-                sha: app.commitSha,
-              })}
-              commitTimestamp={app.commitTimestamp}
-              branch={app.branch}
-              author={app.author}
-              authorAvatar={app.authorAvatar}
-              actions={
-                <AppActions projectId={projectId} appId={app.id}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mb-auto shrink-0"
-                    title="App actions"
-                  >
-                    <Dots iconSize="sm-regular" />
-                  </Button>
-                </AppActions>
-              }
-            />
-          ))}
+                ),
+              )
+              .exhaustive();
+            const sourceUrl = match(app.sourceType)
+              .with("github", () =>
+                githubUrl.deployment({
+                  repoFullName: app.repositoryFullName,
+                  forkRepoFullName: app.forkRepositoryFullName,
+                  prNumber: app.prNumber,
+                  sha: app.commitSha,
+                }),
+              )
+              .with("docker_image", () => undefined)
+              .with("legacy", () =>
+                app.repositoryFullName
+                  ? githubUrl.deployment({
+                      repoFullName: app.repositoryFullName,
+                      forkRepoFullName: app.forkRepositoryFullName,
+                      prNumber: app.prNumber,
+                      sha: app.commitSha,
+                    })
+                  : undefined,
+              )
+              .exhaustive();
+
+            return (
+              <ResourceCard
+                key={app.id}
+                href={appHomeHref({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                  appId: app.id,
+                })}
+                icon={icon}
+                name={app.name}
+                domain={app.domain}
+                sourceType={app.sourceType}
+                imageReference={app.imageReference}
+                repositoryFullName={app.repositoryFullName}
+                commitTitle={app.commitTitle}
+                sourceUrl={sourceUrl}
+                commitTimestamp={app.commitTimestamp}
+                branch={app.branch}
+                author={app.author}
+                authorAvatar={app.authorAvatar}
+                actions={
+                  <AppActions projectId={projectId} appId={app.id}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mb-auto shrink-0"
+                      title="App actions"
+                    >
+                      <Dots iconSize="sm-regular" />
+                    </Button>
+                  </AppActions>
+                }
+              />
+            );
+          })}
         </div>
       )}
       {planGate}

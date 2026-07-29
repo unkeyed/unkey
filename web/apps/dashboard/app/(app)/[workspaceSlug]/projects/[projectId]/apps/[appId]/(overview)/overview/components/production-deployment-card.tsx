@@ -188,12 +188,7 @@ export function ProductionDeploymentCard() {
     status,
     isCurrent,
     isRolledBack,
-    rolledBackFrom: rolledBackFromDeployment
-      ? {
-          commitSha: rolledBackFromDeployment.gitCommitSha,
-          commitMessage: rolledBackFromDeployment.gitCommitMessage,
-        }
-      : null,
+    rolledBackFrom: rolledBackFromDeployment ?? null,
     sourceRepo,
     primaryDomain: primary ? { hostname: primary.hostname, url: primary.url } : null,
     additionalDomains: additional.map((d) => ({ hostname: d.hostname, url: d.url })),

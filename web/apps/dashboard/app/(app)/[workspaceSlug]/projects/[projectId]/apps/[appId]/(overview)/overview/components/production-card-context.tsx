@@ -13,7 +13,7 @@ export type ProductionCardContextValue = {
   status: DeploymentDisplayStatus;
   isCurrent: boolean;
   isRolledBack: boolean;
-  rolledBackFrom: { commitSha: string | null; commitMessage: string | null } | null;
+  rolledBackFrom: Deployment | null;
   sourceRepo: string | null;
   primaryDomain: CardDomain | null;
   additionalDomains: CardDomain[];

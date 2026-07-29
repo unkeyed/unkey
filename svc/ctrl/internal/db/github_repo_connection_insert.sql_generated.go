@@ -18,10 +18,12 @@ INSERT INTO github_repo_connections (
     installation_id,
     repository_id,
     repository_full_name,
+    default_branch,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -34,14 +36,15 @@ VALUES (
 `
 
 type InsertGithubRepoConnectionParams struct {
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	AppID              string        `db:"app_id"`
-	InstallationID     int64         `db:"installation_id"`
-	RepositoryID       int64         `db:"repository_id"`
-	RepositoryFullName string        `db:"repository_full_name"`
-	CreatedAt          int64         `db:"created_at"`
-	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
+	AppID              string         `db:"app_id"`
+	InstallationID     int64          `db:"installation_id"`
+	RepositoryID       int64          `db:"repository_id"`
+	RepositoryFullName string         `db:"repository_full_name"`
+	DefaultBranch      sql.NullString `db:"default_branch"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
 }
 
 // InsertGithubRepoConnection
@@ -53,10 +56,12 @@ type InsertGithubRepoConnectionParams struct {
 //	    installation_id,
 //	    repository_id,
 //	    repository_full_name,
+//	    default_branch,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -74,6 +79,7 @@ func (q *Queries) InsertGithubRepoConnection(ctx context.Context, arg InsertGith
 		arg.InstallationID,
 		arg.RepositoryID,
 		arg.RepositoryFullName,
+		arg.DefaultBranch,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

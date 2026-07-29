@@ -6,6 +6,7 @@ CREATE TABLE `github_repo_connections` (
 	`installation_id` bigint NOT NULL,
 	`repository_id` bigint NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,
+	`default_branch` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),

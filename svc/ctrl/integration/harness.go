@@ -35,6 +35,9 @@ func New(t *testing.T) *Harness {
 
 	database, err := db.New(mysqlHostDSN, sqlcomment.Disabled())
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, database.Close())
+	})
 
 	h := &Harness{
 		t:    t,
@@ -44,10 +47,6 @@ func New(t *testing.T) *Harness {
 	}
 
 	h.Seed.Seed(ctx)
-
-	t.Cleanup(func() {
-		require.NoError(t, database.Close())
-	})
 
 	return h
 }
@@ -122,6 +121,8 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
+		Source:                        db.DeploymentsSourceUnknown,
+		RequestedImage:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
 		SentinelConfig:                []byte("{}"),

@@ -1,7 +1,13 @@
 import type { App } from "@/lib/collections/deploy/apps";
 import { and, db, desc, eq, inArray, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { apps, deployments, frontlineRoutes, githubRepoConnections } from "@unkey/db/src/schema";
+import {
+  appDockerSources,
+  apps,
+  deployments,
+  frontlineRoutes,
+  githubRepoConnections,
+} from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const listApps = workspaceProcedure
@@ -16,6 +22,7 @@ export const listApps = workspaceProcedure
         projectId: apps.projectId,
         name: apps.name,
         slug: apps.slug,
+        sourceType: apps.sourceType,
         defaultBranch: apps.defaultBranch,
         currentDeploymentId: apps.currentDeploymentId,
         isRolledBack: apps.isRolledBack,
@@ -64,56 +71,70 @@ export const listApps = workspaceProcedure
       new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
     );
 
-    const [latestDeploymentRows, routeRows, repoRows, currentDeploymentRows] = await Promise.all([
-      db
-        .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
-        .from(rankedDeployments)
-        .where(eq(rankedDeployments.rn, 1)),
-      db
-        .select({
-          appId: rankedRoutes.appId,
-          fullyQualifiedDomainName: rankedRoutes.fullyQualifiedDomainName,
-        })
-        .from(rankedRoutes)
-        .where(eq(rankedRoutes.rn, 1)),
-      db
-        .select({
-          appId: githubRepoConnections.appId,
-          repositoryFullName: githubRepoConnections.repositoryFullName,
-        })
-        .from(githubRepoConnections)
-        .where(
-          and(
-            eq(githubRepoConnections.workspaceId, workspaceId),
-            inArray(githubRepoConnections.appId, appIds),
+    const [latestDeploymentRows, routeRows, repoRows, dockerSourceRows, currentDeploymentRows] =
+      await Promise.all([
+        db
+          .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
+          .from(rankedDeployments)
+          .where(eq(rankedDeployments.rn, 1)),
+        db
+          .select({
+            appId: rankedRoutes.appId,
+            fullyQualifiedDomainName: rankedRoutes.fullyQualifiedDomainName,
+          })
+          .from(rankedRoutes)
+          .where(eq(rankedRoutes.rn, 1)),
+        db
+          .select({
+            appId: githubRepoConnections.appId,
+            repositoryFullName: githubRepoConnections.repositoryFullName,
+          })
+          .from(githubRepoConnections)
+          .where(
+            and(
+              eq(githubRepoConnections.workspaceId, workspaceId),
+              inArray(githubRepoConnections.appId, appIds),
+            ),
           ),
-        ),
-      currentDeploymentIds.length
-        ? db
-            .select({
-              id: deployments.id,
-              gitCommitMessage: deployments.gitCommitMessage,
-              gitCommitSha: deployments.gitCommitSha,
-              gitBranch: deployments.gitBranch,
-              gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-              gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-              gitCommitTimestamp: deployments.gitCommitTimestamp,
-              prNumber: deployments.prNumber,
-              forkRepositoryFullName: deployments.forkRepositoryFullName,
-            })
-            .from(deployments)
-            .where(
-              and(
-                eq(deployments.workspaceId, workspaceId),
-                inArray(deployments.id, currentDeploymentIds),
-              ),
-            )
-        : Promise.resolve([]),
-    ]);
+        db
+          .select({
+            appId: appDockerSources.appId,
+            imageReference: appDockerSources.imageReference,
+          })
+          .from(appDockerSources)
+          .where(
+            and(
+              eq(appDockerSources.workspaceId, workspaceId),
+              inArray(appDockerSources.appId, appIds),
+            ),
+          ),
+        currentDeploymentIds.length
+          ? db
+              .select({
+                id: deployments.id,
+                gitCommitMessage: deployments.gitCommitMessage,
+                gitCommitSha: deployments.gitCommitSha,
+                gitBranch: deployments.gitBranch,
+                gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
+                gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
+                gitCommitTimestamp: deployments.gitCommitTimestamp,
+                prNumber: deployments.prNumber,
+                forkRepositoryFullName: deployments.forkRepositoryFullName,
+              })
+              .from(deployments)
+              .where(
+                and(
+                  eq(deployments.workspaceId, workspaceId),
+                  inArray(deployments.id, currentDeploymentIds),
+                ),
+              )
+          : Promise.resolve([]),
+      ]);
 
     const latestDeploymentByApp = new Map(latestDeploymentRows.map((r) => [r.appId, r]));
     const domainByApp = new Map(routeRows.map((r) => [r.appId, r]));
     const repoByApp = new Map(repoRows.map((r) => [r.appId, r]));
+    const dockerSourceByApp = new Map(dockerSourceRows.map((r) => [r.appId, r]));
 
     const currentDeploymentById = new Map(currentDeploymentRows.map((d) => [d.id, d]));
 
@@ -131,6 +152,8 @@ export const listApps = workspaceProcedure
         projectId: app.projectId,
         name: app.name,
         slug: app.slug,
+        sourceType: app.sourceType,
+        imageReference: dockerSourceByApp.get(app.id)?.imageReference ?? null,
         defaultBranch: app.defaultBranch,
         currentDeploymentId: app.currentDeploymentId ?? null,
         isRolledBack: Boolean(app.isRolledBack),
