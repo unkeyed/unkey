@@ -2,7 +2,7 @@ CREATE TABLE `key_auth` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(64) NOT NULL DEFAULT '',
+	`project_id` varchar(64) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,

@@ -3,7 +3,7 @@ CREATE TABLE `apis` (
 	`id` varchar(256) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(64) NOT NULL DEFAULT '',
+	`project_id` varchar(64) NOT NULL,
 	`ip_whitelist` varchar(512),
 	`auth_type` enum('key','jwt'),
 	`key_auth_id` varchar(256),

@@ -2,7 +2,7 @@ CREATE TABLE `permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`project_id` varchar(64) NOT NULL DEFAULT '',
+	`project_id` varchar(64) NOT NULL,
 	`name` varchar(512) NOT NULL,
 	`slug` varchar(128) NOT NULL,
 	`description` varchar(512),
