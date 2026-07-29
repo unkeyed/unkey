@@ -52,9 +52,9 @@ export const instances = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 

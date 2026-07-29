@@ -10,8 +10,8 @@ export const ratelimitNamespaces = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
