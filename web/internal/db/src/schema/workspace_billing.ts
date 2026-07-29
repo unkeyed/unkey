@@ -1,6 +1,5 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -25,7 +24,7 @@ export const workspaceBilling = mysqlTable(
      * workspaceId is the primary identifier for the billing record,
      * matching the ID of the workspace it belongs to.
      */
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
 
     /**
      * tier is the legacy API-product tier (Free/Pro/…), synced from Stripe by

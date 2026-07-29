@@ -34,7 +34,7 @@ export const keys = mysqlTable(
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -44,7 +44,7 @@ export const keys = mysqlTable(
      *
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
-    forWorkspaceId: caseInsensitiveVarchar("for_workspace_id", { length: 256 }),
+    forWorkspaceId: caseSensitiveVarchar("for_workspace_id", { length: 256 }),
     name: caseInsensitiveVarchar("name", { length: 256 }),
     ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
     identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
