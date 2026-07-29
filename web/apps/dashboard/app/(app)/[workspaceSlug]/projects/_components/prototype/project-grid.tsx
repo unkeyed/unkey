@@ -14,7 +14,7 @@ export function ProjectsEmptyCard({ children }: { children?: ReactNode }) {
       <div>
         <h3 className="text-[15px] font-semibold leading-6 text-accent-12">Create a project</h3>
         <p className="text-[13px] leading-5 text-gray-11">
-          Build, deploy and scale your API inside Unkey.
+          Build, deploy and scale your Apps inside Unkey.
         </p>
       </div>
       {children}
