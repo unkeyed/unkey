@@ -8,7 +8,7 @@ CREATE TABLE `cilium_network_policies` (
 	`deployment_id` varchar(128) NOT NULL,
 	`k8s_name` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(255) NOT NULL,
-	`region_id` varchar(64) NOT NULL,
+	`region_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`policy` json NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

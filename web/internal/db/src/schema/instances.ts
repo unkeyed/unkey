@@ -13,6 +13,7 @@ import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { regions } from "./regions";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 //id, deplyoment_id, health, kube_dns_addr, mem, cpu, region
 
@@ -55,7 +56,7 @@ export const instances = mysqlTable(
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    regionId: caseInsensitiveVarchar("region_id", { length: 64 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull(),
