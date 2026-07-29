@@ -245,6 +245,11 @@ function BarsMark({
   // Anchor the readout over its bucket, then slide it back by the same fraction
   // so the near edge never leaves the chart — no clipping at either end.
   const anchorPct = hovered === null ? 0 : ((hovered + 0.5) / data.length) * 100;
+  // Each series reserves the width of its own widest value across every bucket,
+  // so moving along the chart doesn't resize the readout as counts cross a digit
+  // boundary. Reserved rather than zero-padded: a padded number is a lie.
+  const okWidth = split ? Math.max(...split.map((b) => fmtCount(b.valid).length)) : 0;
+  const badWidth = split ? Math.max(...split.map((b) => fmtCount(b.error).length)) : 0;
   // Tracked on the container rather than per-band: the bands are ~6px wide, and
   // enter/leave on targets that small drops events as the pointer crosses them.
   const track = (event: MouseEvent<HTMLDivElement>) => {
@@ -269,7 +274,9 @@ function BarsMark({
           className="pointer-events-none absolute bottom-full z-20 mb-1.5 whitespace-nowrap rounded-md border border-grayA-4 bg-gray-1 px-2 py-1.5 shadow-lg dark:bg-black"
           style={{ left: `${anchorPct}%`, transform: `translateX(-${anchorPct}%)` }}
         >
-          <div className="text-[11px] text-gray-9">{hoursAgoLabel(hovered, data.length)}</div>
+          <div className="text-[11px] tabular-nums text-gray-9">
+            {hoursAgoLabel(hovered, data.length)}
+          </div>
           <div className="mt-1 flex items-center gap-3">
             <span className="flex items-center gap-1.5">
               <span
@@ -277,7 +284,10 @@ function BarsMark({
                 style={{ backgroundColor: stroke }}
                 aria-hidden
               />
-              <span className="text-[11px] tabular-nums text-accent-12">
+              <span
+                className="text-[11px] tabular-nums text-accent-12"
+                style={{ minWidth: `${okWidth}ch` }}
+              >
                 {fmtCount(active.valid)}
               </span>
               <span className="text-[11px] lowercase text-gray-9">{series.ok}</span>
@@ -288,7 +298,10 @@ function BarsMark({
                 style={{ backgroundColor: errorStroke }}
                 aria-hidden
               />
-              <span className="text-[11px] tabular-nums text-accent-12">
+              <span
+                className="text-[11px] tabular-nums text-accent-12"
+                style={{ minWidth: `${badWidth}ch` }}
+              >
                 {fmtCount(active.error)}
               </span>
               <span className="text-[11px] lowercase text-gray-9">{series.bad}</span>
