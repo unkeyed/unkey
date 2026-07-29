@@ -14,7 +14,7 @@ export const appEnvironmentVariables = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     key: caseSensitiveVarchar("key", { length: 256 }).notNull(),

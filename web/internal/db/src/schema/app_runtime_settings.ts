@@ -31,7 +31,7 @@ export const appRuntimeSettings = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),

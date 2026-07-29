@@ -1,7 +1,7 @@
 CREATE TABLE `app_build_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
+	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`environment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`dockerfile` varchar(500),
 	`docker_context` varchar(500) NOT NULL DEFAULT '.',
