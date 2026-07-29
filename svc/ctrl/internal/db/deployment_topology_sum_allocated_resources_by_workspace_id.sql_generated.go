@@ -15,7 +15,7 @@ SELECT
   CAST(COALESCE(SUM(d.` + "`" + `memory_mib` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_memory_mib` + "`" + `,
   CAST(COALESCE(SUM(d.` + "`" + `storage_mib` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_storage_mib` + "`" + `
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
-JOIN ` + "`" + `deployments` + "`" + ` d ON d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + `
+JOIN ` + "`" + `deployments` + "`" + ` d ON (d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + ` COLLATE utf8mb4_0900_ai_ci AND d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + ` COLLATE utf8mb4_0900_as_cs)
 WHERE dt.` + "`" + `workspace_id` + "`" + ` = ?
   AND dt.` + "`" + `desired_status` + "`" + ` = 'running'
 `
@@ -26,14 +26,16 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 	TotalStorageMib    int64 `db:"total_storage_mib"`
 }
 
-// SumAllocatedResourcesByWorkspaceID
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	  CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
 //	  CAST(COALESCE(SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_memory_mib`,
 //	  CAST(COALESCE(SUM(d.`storage_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_storage_mib`
 //	FROM `deployment_topology` dt
-//	JOIN `deployments` d ON d.`id` = dt.`deployment_id`
+//	JOIN `deployments` d ON (d.`id` = dt.`deployment_id` COLLATE utf8mb4_0900_ai_ci AND d.`id` = dt.`deployment_id` COLLATE utf8mb4_0900_as_cs)
 //	WHERE dt.`workspace_id` = ?
 //	  AND dt.`desired_status` = 'running'
 func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error) {

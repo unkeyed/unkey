@@ -17,7 +17,7 @@ SELECT
    b.stripe_customer_id,
    w.enabled
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -33,13 +33,16 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 // stripe_customer_id, so that (not a subscription or price) is all the push
 // needs. Batched by ID (never per-workspace) so the push stays a single round
 // trip regardless of how many workspaces had usage.
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	   w.id,
 //	   b.stripe_customer_id,
 //	   w.enabled
 //	FROM `workspaces` w
-//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs
