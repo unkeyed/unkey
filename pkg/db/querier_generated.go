@@ -215,7 +215,7 @@ type Querier interface {
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -374,11 +374,13 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindKeyAuthsByIds
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
 	//  FROM apis a
-	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = a.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = a.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE a.workspace_id = ?
 	//      AND a.id IN (/*SLICE:api_ids*/?)
 	//      AND ka.deleted_at_m IS NULL
@@ -436,11 +438,13 @@ type Querier interface {
 	//
 	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
-	//FindLiveApiByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 	//  FROM apis
-	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = apis.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = apis.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE apis.id = ?
 	//      AND ka.deleted_at_m IS NULL
 	//      AND apis.deleted_at_m IS NULL
@@ -471,7 +475,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
@@ -487,7 +491,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
@@ -503,8 +507,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
@@ -535,8 +539,8 @@ type Querier interface {
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
 	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
@@ -571,7 +575,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
@@ -587,7 +591,7 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
@@ -603,8 +607,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
@@ -629,8 +633,8 @@ type Querier interface {
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
 	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
 	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
@@ -661,7 +665,9 @@ type Querier interface {
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByNamesWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -674,8 +680,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -814,7 +820,9 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -827,8 +835,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -1662,7 +1670,7 @@ type Querier interface {
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
 	// Returns the current regional rows for reconciliation, including the
@@ -1778,11 +1786,13 @@ type Querier interface {
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?
 	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
-	//ListDirectPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM keys_permissions kp
-	//  JOIN permissions p ON kp.permission_id = p.id
+	//  JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
@@ -1873,7 +1883,7 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
@@ -1889,7 +1899,7 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
@@ -1905,8 +1915,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
@@ -1936,7 +1946,7 @@ type Querier interface {
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id = ?
@@ -1967,7 +1977,7 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
@@ -1983,7 +1993,7 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
@@ -1999,8 +2009,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
@@ -2030,7 +2040,7 @@ type Querier interface {
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
 	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id IN (/*SLICE:key_space_ids*/?)
@@ -2055,19 +2065,21 @@ type Querier interface {
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
-	//ListPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  WITH direct_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
+	//      JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kp.key_id = ?
 	//  ),
 	//  role_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
+	//      JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//      JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kr.key_id = ?
 	//  )
 	//  SELECT DISTINCT permission_slug
@@ -2121,6 +2133,9 @@ type Querier interface {
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -2134,8 +2149,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -2145,7 +2160,9 @@ type Querier interface {
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
-	//ListRolesByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -2158,12 +2175,12 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM keys_roles kr
-	//  JOIN roles r ON kr.role_id = r.id
+	//  JOIN roles r ON (kr.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = r.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)

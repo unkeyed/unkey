@@ -31,7 +31,7 @@ select k.id,
                (SELECT JSON_ARRAYAGG(name)
                 FROM (SELECT name
                       FROM keys_roles kr
-                               JOIN roles r ON r.id = kr.role_id
+                               JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
                       WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as roles),
                JSON_ARRAY()
        )               as roles,
@@ -40,15 +40,15 @@ select k.id,
                (SELECT JSON_ARRAYAGG(slug)
                 FROM (SELECT slug
                       FROM keys_permissions kp
-                               JOIN permissions p ON kp.permission_id = p.id
+                               JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
                       WHERE (kp.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kp.key_id = k.id COLLATE utf8mb4_0900_as_cs)
 
                       UNION ALL
 
                       SELECT slug
                       FROM keys_roles kr
-                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
-                               JOIN permissions p ON rp.permission_id = p.id
+                               JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+                               JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
                       WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as combined_perms),
                JSON_ARRAY()
        )               as permissions,
@@ -84,8 +84,8 @@ select k.id,
        ws.enabled      as workspace_enabled,
        fws.enabled     as for_workspace_enabled
 from `keys` k
-         JOIN apis a USING (key_auth_id)
-         JOIN key_auth ka ON ka.id = k.key_auth_id
+         JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+         JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
          JOIN workspaces ws ON (ws.id = k.workspace_id COLLATE utf8mb4_0900_ai_ci AND ws.id = k.workspace_id COLLATE utf8mb4_0900_as_cs)
          LEFT JOIN workspaces fws ON (fws.id = k.for_workspace_id COLLATE utf8mb4_0900_ai_ci AND fws.id = k.for_workspace_id COLLATE utf8mb4_0900_as_cs)
          LEFT JOIN identities i ON (i.id = k.identity_id COLLATE utf8mb4_0900_ai_ci AND i.id = k.identity_id COLLATE utf8mb4_0900_as_cs) AND i.deleted = 0

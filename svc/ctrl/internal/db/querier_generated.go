@@ -180,13 +180,16 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
 	// issuance, so provisioning is a no-op.
 	//
 	//  SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
-	//  JOIN custom_domains cd ON ac.domain_id = cd.id
+	//  JOIN custom_domains cd ON (ac.domain_id = cd.id COLLATE utf8mb4_0900_ai_ci AND ac.domain_id = cd.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE cd.domain = ?
 	FindAcmeChallengeByDomain(ctx context.Context, domain string) (AcmeChallenge, error)
 	//FindAcmeChallengeByToken
@@ -239,7 +242,7 @@ type Querier interface {
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON (r.id = ars.region_id COLLATE utf8mb4_0900_ai_ci AND r.id = ars.region_id COLLATE utf8mb4_0900_as_cs)
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -1466,10 +1469,12 @@ type Querier interface {
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, appID string) ([]string, error)
-	//ListExecutableChallenges
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
-	//  JOIN custom_domains d ON dc.domain_id = d.id
+	//  JOIN custom_domains d ON (dc.domain_id = d.id COLLATE utf8mb4_0900_ai_ci AND dc.domain_id = d.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC

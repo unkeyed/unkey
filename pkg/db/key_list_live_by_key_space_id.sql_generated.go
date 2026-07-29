@@ -27,7 +27,7 @@ SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspa
                                )
                        )
                 FROM keys_roles kr
-                         JOIN roles r ON r.id = kr.role_id
+                         JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
                 WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
                 ORDER BY r.name),
                JSON_ARRAY()
@@ -43,7 +43,7 @@ SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspa
                                )
                        )
                 FROM keys_permissions kp
-                         JOIN permissions p ON kp.permission_id = p.id
+                         JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
                 WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
                 ORDER BY p.slug),
                JSON_ARRAY()
@@ -59,8 +59,8 @@ SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspa
                                )
                        )
                 FROM keys_roles kr
-                         JOIN roles_permissions rp ON kr.role_id = rp.role_id
-                         JOIN permissions p ON rp.permission_id = p.id
+                         JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+                         JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
                 WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
                 ORDER BY p.slug),
                JSON_ARRAY()
@@ -90,7 +90,7 @@ SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspa
                JSON_ARRAY()
        )                    AS ratelimits
 FROM ` + "`" + `keys` + "`" + ` k
-         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+         STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
          LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
          LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 WHERE k.key_auth_id = ?
@@ -164,7 +164,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	                               )
 //	                       )
 //	                FROM keys_roles kr
-//	                         JOIN roles r ON r.id = kr.role_id
+//	                         JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
 //	                WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 //	                ORDER BY r.name),
 //	               JSON_ARRAY()
@@ -180,7 +180,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	                               )
 //	                       )
 //	                FROM keys_permissions kp
-//	                         JOIN permissions p ON kp.permission_id = p.id
+//	                         JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 //	                WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 //	                ORDER BY p.slug),
 //	               JSON_ARRAY()
@@ -196,8 +196,8 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	                               )
 //	                       )
 //	                FROM keys_roles kr
-//	                         JOIN roles_permissions rp ON kr.role_id = rp.role_id
-//	                         JOIN permissions p ON rp.permission_id = p.id
+//	                         JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+//	                         JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 //	                WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 //	                ORDER BY p.slug),
 //	               JSON_ARRAY()
@@ -227,7 +227,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 //	               JSON_ARRAY()
 //	       )                    AS ratelimits
 //	FROM `keys` k
-//	         STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+//	         STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
 //	         LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
 //	         LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 //	WHERE k.key_auth_id = ?

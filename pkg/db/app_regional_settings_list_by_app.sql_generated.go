@@ -23,7 +23,7 @@ SELECT
 	hap.memory_threshold AS autoscaling_threshold_memory
 FROM app_regional_settings ars
 JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
-LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 WHERE ars.app_id = ?
 `
 
@@ -57,7 +57,7 @@ type ListAppRegionalSettingsByAppRow struct {
 //		hap.memory_threshold AS autoscaling_threshold_memory
 //	FROM app_regional_settings ars
 //	JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
-//	LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+//	LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 //	WHERE ars.app_id = ?
 func (q *Queries) ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error) {
 	rows, err := db.QueryContext(ctx, listAppRegionalSettingsByApp, appID)

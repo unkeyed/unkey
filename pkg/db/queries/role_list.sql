@@ -1,4 +1,7 @@
 -- name: ListRoles :many
+-- Temporary staged-collation bridge: the native-collation term preserves
+-- index lookup while the as_cs term enforces exact ID equality. Remove after
+-- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT r.*, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
@@ -10,8 +13,8 @@ SELECT r.*, COALESCE(
         )
          FROM (SELECT name, id, slug, description
                FROM roles_permissions rp
-                        JOIN permissions p ON p.id = rp.permission_id
-               WHERE rp.role_id = r.id) as permission),
+                        JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+               WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
         JSON_ARRAY()
 ) as permissions
 FROM roles r
