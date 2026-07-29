@@ -1,5 +1,6 @@
 "use client";
 
+import { formatNumber } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { cn } from "@/lib/utils";
 import type { Route } from "next";
@@ -386,10 +387,52 @@ export function RowSkeleton({ isTile }: { isTile: boolean }) {
   );
 }
 
-function fmtDollars(n: number): string {
-  return `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+function usd(n: number): string {
+  return `$${n.toFixed(2)}`;
 }
 
+function usageFillClass(fraction: number): string {
+  if (fraction >= 1) {
+    return "bg-error-9";
+  }
+  if (fraction >= 0.8) {
+    return "bg-warning-9";
+  }
+  return "bg-accent-12";
+}
+
+function UsageMeterRow({
+  label,
+  value,
+  fraction,
+}: {
+  label: string;
+  value: string;
+  fraction: number | null;
+}) {
+  const pct = fraction === null ? 0 : Math.min(100, Math.max(0, fraction * 100));
+  return (
+    <div className="flex w-full flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13px] text-gray-11">{label}</span>
+        <span className="text-[13px] font-medium text-accent-12 tabular-nums">{value}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-grayA-3">
+        {fraction !== null && (
+          <div
+            className={cn("h-full rounded-full", usageFillClass(fraction))}
+            style={{ width: `${pct}%` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// "Ledger" treatment (picked 2026-07-29): the two products as two labelled
+// meters, using the billing page's own vocabulary — "Valid key verifications
+// and ratelimits" / formatNumber pair for API management, "Usage this period"
+// / "$X of $Y credits" for Compute. Never "requests", never activity metrics.
 export function UsageCard({
   usage,
   workspaceSlug,
@@ -397,9 +440,8 @@ export function UsageCard({
   usage: UsageStat;
   workspaceSlug: string;
 }) {
-  const pct = usage.quota > 0 ? Math.min(100, (usage.billableTotal / usage.quota) * 100) : 0;
-  const computePct =
-    usage.computeCredits > 0 ? Math.min(100, (usage.computeSpend / usage.computeCredits) * 100) : 0;
+  const fraction = usage.quota > 0 ? usage.billableTotal / usage.quota : 0;
+  const pct = Math.round(fraction * 100);
   return (
     <div className="rounded-lg border border-grayA-4 bg-background p-4">
       <div className="flex items-center justify-between">
@@ -411,55 +453,42 @@ export function UsageCard({
           Billing
         </Link>
       </div>
-      <div className="mt-0.5 text-xs text-gray-9">{usage.daysLeft} days left in cycle</div>
       <div className="mt-4">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-11">Requests</span>
-          <span className="text-accent-12 font-medium tabular-nums">
-            {fmtCompact(usage.billableTotal)} / {fmtCompact(usage.quota)}
-          </span>
+        <div className="text-[11px] font-medium uppercase tracking-wide text-gray-9">
+          API management
         </div>
-        <div className="mt-1.5 h-2 rounded-full bg-gray-3 overflow-hidden">
-          <div className="h-full rounded-full bg-accent-12" style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-      {usage.hasComputePlan ? (
-        <div className="mt-3">
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-11">Compute</span>
-            <span className="text-accent-12 font-medium tabular-nums">
-              {fmtDollars(usage.computeSpend)} / {fmtDollars(usage.computeCredits)} credits
-            </span>
-          </div>
-          <div className="mt-1.5 h-2 rounded-full bg-gray-3 overflow-hidden">
-            <div className="h-full rounded-full bg-accent-12" style={{ width: `${computePct}%` }} />
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 flex items-center justify-between text-xs">
-          <span className="text-gray-11">Compute</span>
-          <Link
-            href={routes.settings.billing({ workspaceSlug })}
-            className="font-medium text-accent-11 hover:text-accent-12"
-          >
-            Add a plan →
-          </Link>
-        </div>
-      )}
-      <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <div className="text-gray-9">Verifications</div>
-          <div className="text-accent-12 font-medium tabular-nums mt-0.5">
-            {fmtCompact(usage.verifications)}
-          </div>
-        </div>
-        <div>
-          <div className="text-gray-9">Ratelimits</div>
-          <div className="text-accent-12 font-medium tabular-nums mt-0.5">
-            {fmtCompact(usage.ratelimits)}
-          </div>
+        <div className="mt-2">
+          <UsageMeterRow
+            label="Verifications & ratelimits"
+            value={`${formatNumber(usage.billableTotal)} / ${formatNumber(usage.quota)} (${pct}%)`}
+            fraction={fraction}
+          />
         </div>
       </div>
+      <div className="my-4 border-t border-grayA-3" />
+      <div>
+        <div className="text-[11px] font-medium uppercase tracking-wide text-gray-9">Compute</div>
+        <div className="mt-2">
+          {usage.hasComputePlan ? (
+            <UsageMeterRow
+              label="Usage this period"
+              value={`${usd(usage.computeSpend)} of ${usd(usage.computeCredits)} credits`}
+              fraction={usage.computeCredits > 0 ? usage.computeSpend / usage.computeCredits : null}
+            />
+          ) : (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] text-gray-11">No active plan</span>
+              <Link
+                href={routes.settings.billing({ workspaceSlug })}
+                className="text-[13px] font-medium text-accent-11 hover:text-accent-12"
+              >
+                Choose a plan →
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="mt-4 text-xs text-gray-9">{usage.daysLeft} days left in cycle</p>
     </div>
   );
 }
