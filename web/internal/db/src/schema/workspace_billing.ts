@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -35,7 +36,7 @@ export const workspaceBilling = mysqlTable(
 
     // stripe. Per-product subscription ids live in billing_subscriptions now;
     // only the shared customer id remains on the billing row.
-    stripeCustomerId: caseInsensitiveVarchar("stripe_customer_id", { length: 256 }),
+    stripeCustomerId: caseSensitiveVarchar("stripe_customer_id", { length: 256 }),
 
     /**
      * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by

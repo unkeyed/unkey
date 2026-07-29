@@ -1,5 +1,4 @@
 import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 export const deploymentChanges = mysqlTable(
@@ -11,7 +10,7 @@ export const deploymentChanges = mysqlTable(
       "sentinel",
       "cilium_network_policy",
     ]).notNull(),
-    resourceId: caseInsensitiveVarchar("resource_id", { length: 64 }).notNull(),
+    resourceId: caseSensitiveVarchar("resource_id", { length: 64 }).notNull(),
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },

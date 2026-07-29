@@ -15,12 +15,10 @@ export const identities = mysqlTable(
      * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
      */
-    externalId: caseInsensitiveVarchar("external_id", { length: 256 }).notNull(),
+    externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
-    environment: caseInsensitiveVarchar("environment", { length: 256 })
-      .notNull()
-      .default("default"),
+    environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
     ...lifecycleDates,

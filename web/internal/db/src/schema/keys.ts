@@ -28,7 +28,7 @@ export const keys = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
-    hash: caseInsensitiveVarchar("hash", { length: 256 }).notNull(),
+    hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
     /**
@@ -46,7 +46,7 @@ export const keys = mysqlTable(
      */
     forWorkspaceId: caseInsensitiveVarchar("for_workspace_id", { length: 256 }),
     name: caseInsensitiveVarchar("name", { length: 256 }),
-    ownerId: caseInsensitiveVarchar("owner_id", { length: 256 }),
+    ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
     identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
@@ -86,7 +86,7 @@ export const keys = mysqlTable(
 
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
 
-    pendingMigrationId: caseInsensitiveVarchar("pending_migration_id", { length: 256 }),
+    pendingMigrationId: caseSensitiveVarchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -174,8 +174,8 @@ export const keyMigrations = mysqlTable(
   "key_migrations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],

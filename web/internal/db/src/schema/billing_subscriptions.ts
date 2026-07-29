@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 /**
@@ -40,7 +41,7 @@ export const billingSubscriptions = mysqlTable(
      * resolve any incoming subscription event straight to its (workspace,
      * product) without inspecting the subscription's items.
      */
-    stripeSubscriptionId: caseInsensitiveVarchar("stripe_subscription_id", { length: 256 })
+    stripeSubscriptionId: caseSensitiveVarchar("stripe_subscription_id", { length: 256 })
       .notNull()
       .unique(),
 

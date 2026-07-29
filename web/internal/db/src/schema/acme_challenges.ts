@@ -15,9 +15,9 @@ export const acmeChallenges = mysqlTable(
 
     domainId: caseSensitiveVarchar("domain_id", { length: 255 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
-    token: caseInsensitiveVarchar("token", { length: 255 }).notNull(),
+    token: caseSensitiveVarchar("token", { length: 255 }).notNull(),
     type: challengeType,
-    authorization: caseInsensitiveVarchar("authorization", { length: 255 }).notNull(),
+    authorization: caseSensitiveVarchar("authorization", { length: 255 }).notNull(),
     status: mysqlEnum("status", ["waiting", "pending", "verified", "failed"]).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 

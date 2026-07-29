@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, int, mysqlTable, text } from "drizzle-orm/mysql-core";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -13,7 +14,7 @@ export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_sett
   workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
 
   // Authentication
-  username: caseInsensitiveVarchar("username", { length: 256 }).notNull().unique(),
+  username: caseSensitiveVarchar("username", { length: 256 }).notNull().unique(),
   passwordEncrypted: text("password_encrypted").notNull(),
 
   // Quota window configuration

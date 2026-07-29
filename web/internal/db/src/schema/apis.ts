@@ -11,7 +11,7 @@ export const apis = mysqlTable(
   "apis",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
