@@ -45,12 +45,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
 
@@ -231,6 +233,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
+
+	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
+	// field set means every annotated secret would be persisted in the clear.
+	// Refuse to start rather than log plaintext keys.
+	redactedPaths, err := redaction.PathsFromSpec(openapi.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to load redaction paths: %w", err)
+	}
+	if len(redactedPaths) == 0 {
+		return fmt.Errorf("openapi spec declares no %s properties, refusing to log request bodies unredacted", redaction.Extension)
+	}
+	redactor := redaction.New(redactedPaths)
+	logger.Info("request body redaction enabled", "paths", redactor.Paths())
 
 	var ctr counter.Counter
 	if cfg.Test.Counter != nil {
@@ -459,6 +474,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auth:                 authSvc,
 		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
+		Redactor:             redactor,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,
 		Caches:               caches,

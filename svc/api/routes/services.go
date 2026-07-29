@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
 
@@ -55,6 +56,10 @@ type Services struct {
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator
+
+	// Redactor strips values marked x-unkey-redact in the OpenAPI spec out of
+	// the request and response bodies before they are logged to ClickHouse.
+	Redactor *redaction.Redactor
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service

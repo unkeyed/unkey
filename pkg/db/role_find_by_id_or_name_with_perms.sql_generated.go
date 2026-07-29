@@ -11,7 +11,7 @@ import (
 )
 
 const findRoleByIdOrNameWithPerms = `-- name: FindRoleByIdOrNameWithPerms :one
-SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -22,8 +22,8 @@ SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COAL
         )
          FROM (SELECT name, id, slug, description
                FROM roles_permissions rp
-                        JOIN permissions p ON p.id = rp.permission_id
-               WHERE rp.role_id = r.id) as permission),
+                        JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+               WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
         JSON_ARRAY()
 ) as permissions
 FROM roles r
@@ -42,6 +42,7 @@ type FindRoleByIdOrNameWithPermsRow struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	ProjectID   string         `db:"project_id"`
 	Name        string         `db:"name"`
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
@@ -49,9 +50,11 @@ type FindRoleByIdOrNameWithPermsRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// FindRoleByIdOrNameWithPerms
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
-//	SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
+//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            json_object(
 //	                'id', permission.id,
@@ -62,8 +65,8 @@ type FindRoleByIdOrNameWithPermsRow struct {
 //	        )
 //	         FROM (SELECT name, id, slug, description
 //	               FROM roles_permissions rp
-//	                        JOIN permissions p ON p.id = rp.permission_id
-//	               WHERE rp.role_id = r.id) as permission),
+//	                        JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+//	               WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 //	        JSON_ARRAY()
 //	) as permissions
 //	FROM roles r
@@ -78,6 +81,7 @@ func (q *Queries) FindRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg 
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAtM,

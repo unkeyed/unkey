@@ -18,6 +18,7 @@ import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
@@ -60,10 +61,13 @@ async function mirrorDeployPlan(
   const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
-    await db
-      .update(schema.workspaceBilling)
-      .set({ plan })
-      .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.workspaceBilling)
+        .set({ plan })
+        .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
+      await setComputeQuotas(tx, { workspaceId: billing.workspaceId, plan });
+    });
   }
 }
 
@@ -466,49 +470,6 @@ export const POST = async (req: Request): Promise<Response> => {
 
         const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
 
-        // Update quotas and workspace tier
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaceBilling)
-            .set({
-              tier: product.name,
-            })
-            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
-
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-              },
-            });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription updated to ${product.name} plan.`,
-            resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
-          });
-        });
-
         /**
          * To make the updates more useful, we detect if they are downgrading or upgrading their subscription
          * We can then send a good or bad update based upon it.
@@ -552,6 +513,57 @@ export const POST = async (req: Request): Promise<Response> => {
           }
         }
 
+        // The tRPC mutation clears these synchronously. Repeat it here because
+        // Stripe is the source of truth and subscriptions can also be changed
+        // outside the dashboard.
+        const rateLimitReset =
+          changeType === "upgraded" ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+
+        // Update quotas and workspace tier
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaceBilling)
+            .set({
+              tier: product.name,
+            })
+            .where(eq(schema.workspaceBilling.workspaceId, ws.id));
+
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              requestsPerMonth,
+              logsRetentionDays,
+              auditLogsRetentionDays,
+              team: true,
+              ...rateLimitReset,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                requestsPerMonth,
+                logsRetentionDays,
+                auditLogsRetentionDays,
+                team: true,
+                ...rateLimitReset,
+              },
+            });
+
+          await insertAuditLogs(tx, {
+            workspaceId: ws.id,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: `Subscription updated to ${product.name} plan.`,
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
+          });
+        });
+
         // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
           const formattedPrice = formatPrice(unitAmount);
@@ -560,6 +572,7 @@ export const POST = async (req: Request): Promise<Response> => {
             product.name,
             formattedPrice,
             customer.email,
+            ws.id,
             customer.name || "Unknown",
             changeType,
             previousTier,
@@ -648,9 +661,11 @@ export const POST = async (req: Request): Promise<Response> => {
               .where(eq(schema.workspaceBilling.workspaceId, ws.id));
             await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "compute" });
 
-            // Only reset quotas when nothing paid remains; a paid API tier keeps
-            // its own quotas, so leave them untouched.
-            if (!keepsTeam) {
+            // Reset the Compute-owned ceilings even when a paid API plan remains;
+            // in that case the API-owned quota fields and team access stay intact.
+            if (keepsTeam) {
+              await setComputeQuotas(tx, { workspaceId: ws.id, plan: null });
+            } else {
               await tx
                 .insert(schema.quotas)
                 .values({ workspaceId: ws.id, ...freeTierQuotas })
@@ -799,11 +814,10 @@ export const POST = async (req: Request): Promise<Response> => {
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
           with: { workspace: { with: { billing: true } } },
         });
-        const billing = subscription?.workspace?.billing ?? null;
+        const ws = subscription?.workspace ?? null;
+        const billing = ws?.billing ?? null;
         const column =
-          subscription && billing && subscription.workspace?.deletedAtM == null
-            ? subscription.product
-            : null;
+          subscription && ws && billing && ws.deletedAtM == null ? subscription.product : null;
 
         // Compute created: a created subscription carrying a recognized Compute
         // plan is a new Compute subscription. Detect it from the subscription's
@@ -826,7 +840,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // tRPC/link write). No-op: the inline write set the plan and a later
         // subscription.updated resyncs. Only an API-matched create alerts, so we
         // never misfire a Compute create as an API subscription alert.
-        if (column !== "api") {
+        if (column !== "api" || !ws) {
           return new Response("OK");
         }
 
@@ -847,6 +861,7 @@ export const POST = async (req: Request): Promise<Response> => {
           product.name,
           formattedPrice,
           customer.email,
+          ws.id,
           customer.name || "Unknown",
         );
         // Return rather than break so this case can never fall through into

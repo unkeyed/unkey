@@ -1,9 +1,11 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, int, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -18,15 +20,15 @@ export const appRegionalSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
-    regionId: varchar("region_id", { length: 64 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    regionId: caseInsensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
-    horizontalAutoscalingPolicyId: varchar("horizontal_autoscaling_policy_id", {
+    horizontalAutoscalingPolicyId: caseSensitiveVarchar("horizontal_autoscaling_policy_id", {
       length: 64,
     }),
 

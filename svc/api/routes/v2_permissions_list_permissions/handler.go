@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -73,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID:       principal.WorkspaceID,
 			IDCursor:          p.Cursor,
 			Search:            search,
-			DescriptionSearch: dbtype.NullString(search),
+			DescriptionSearch: search,
 			Limit:             p.FetchLimit(),
 		},
 	)

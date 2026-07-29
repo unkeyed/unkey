@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { detectDeployPlan } from "./deployPlan";
+import { computeQuotasForPlan, detectDeployPlan } from "./deployPlan";
 
 // Minimal subscription stub. detectDeployPlan reads items[].price.metadata.plan.
 function subWithItems(...items: Array<{ id?: string; plan?: string }>): Stripe.Subscription {
@@ -52,5 +52,29 @@ describe("detectDeployPlan", () => {
     expect(detectDeployPlan(subWithItems({ plan: "enterprise" }))).toBeNull();
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+});
+
+describe("computeQuotasForPlan", () => {
+  it("returns the advertised per-instance CPU and memory limits", () => {
+    expect(computeQuotasForPlan("starter")).toEqual({
+      maxCpuMillicoresPerInstance: 2_000,
+      maxMemoryMibPerInstance: 2_048,
+    });
+    expect(computeQuotasForPlan("pro")).toEqual({
+      maxCpuMillicoresPerInstance: 8_000,
+      maxMemoryMibPerInstance: 8_192,
+    });
+    expect(computeQuotasForPlan("business")).toEqual({
+      maxCpuMillicoresPerInstance: 16_000,
+      maxMemoryMibPerInstance: 32_768,
+    });
+  });
+
+  it("returns the default Compute limits without a plan", () => {
+    expect(computeQuotasForPlan(null)).toEqual({
+      maxCpuMillicoresPerInstance: 2_000,
+      maxMemoryMibPerInstance: 4_096,
+    });
   });
 });

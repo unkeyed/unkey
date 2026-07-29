@@ -4,6 +4,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 512 # Reasonable upper bound for API key strings
+    x-unkey-redact: true
     description: |
       The complete API key string provided by you, including any prefix.
       Never log, cache, or store API keys in your system as they provide full access to user resources.

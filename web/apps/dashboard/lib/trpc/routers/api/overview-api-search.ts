@@ -16,8 +16,8 @@ export const overviewApiSearch = workspaceProcedure
         and(
           eq(table.workspaceId, ctx.workspace.id),
           or(
-            sql`${table.name} LIKE ${`%${input.query}%`}`,
-            sql`${table.id} LIKE ${`%${input.query}%`}`,
+            sql`LOWER(${table.name}) LIKE LOWER(${`%${input.query}%`})`,
+            sql`LOWER(${table.id}) LIKE LOWER(${`%${input.query}%`})`,
           ),
           isNull(table.deletedAtM),
         ),

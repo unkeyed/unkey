@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertIdentity is the base query for bulk insert
-const bulkUpsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, external_id, workspace_id, environment, created_at, meta ) VALUES %s ON DUPLICATE KEY UPDATE external_id = external_id`
+const bulkUpsertIdentity = `INSERT INTO ` + "`" + `identities` + "`" + ` ( id, external_id, workspace_id, project_id, environment, created_at, meta ) VALUES %s ON DUPLICATE KEY UPDATE external_id = external_id`
 
 // UpsertIdentity performs bulk insert in a single query
 func (q *BulkQueries) UpsertIdentity(ctx context.Context, db DBTX, args []UpsertIdentityParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) UpsertIdentity(ctx context.Context, db DBTX, args []Upsert
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, CAST(? AS JSON) )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, CAST(? AS JSON) )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertIdentity, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) UpsertIdentity(ctx context.Context, db DBTX, args []Upsert
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.ExternalID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Environment)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.Meta)

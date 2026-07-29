@@ -112,12 +112,17 @@ export const updateSubscription = workspaceProcedure
      * be charged. We surface that to the user so they know to fix their payment method
      * before the plan switch is applied.
      */
+    let upgraded = false;
     try {
-      await stripe.subscriptionItems.update(item.id, {
+      const updatedItem = await stripe.subscriptionItems.update(item.id, {
         price: newProduct.default_price.toString(),
         proration_behavior: "always_invoice",
         payment_behavior: "error_if_incomplete",
       });
+      upgraded =
+        item.price.unit_amount !== null &&
+        updatedItem.price.unit_amount !== null &&
+        updatedItem.price.unit_amount > item.price.unit_amount;
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
@@ -144,6 +149,11 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
+    // Workspace API rate limits are manually applied safety limits, not plan
+    // quotas. Clear them when a customer pays for a higher tier, but preserve
+    // deliberate limits on same-price changes and downgrades.
+    const rateLimitReset = upgraded ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaceBilling)
@@ -160,6 +170,7 @@ export const updateSubscription = workspaceProcedure
           logsRetentionDays: newQuotas.logsRetentionDays,
           auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
           team: true,
+          ...rateLimitReset,
         })
         .onDuplicateKeyUpdate({
           set: {
@@ -167,6 +178,7 @@ export const updateSubscription = workspaceProcedure
             logsRetentionDays: newQuotas.logsRetentionDays,
             auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
             team: true,
+            ...rateLimitReset,
           },
         });
 

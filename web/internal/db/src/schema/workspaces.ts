@@ -12,64 +12,22 @@ import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  id: varchar("id", { length: 256 }).notNull().unique(),
+  id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-  orgId: varchar("org_id", { length: 256 }).notNull().unique(),
+  orgId: caseInsensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
 
   // slug is used for the workspace URL
   slug: varchar("slug", { length: 64 }).notNull().unique(),
 
   k8sNamespace: varchar("k8s_namespace", { length: 256 }).unique(),
-
-  tier: varchar("tier", { length: 256 }).default("Free"),
-
-  // stripe
-  stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
-  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
-
-  /**
-   * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by the
-   * customer.subscription.* webhook. NULL means no Deploy plan (cannot use
-   * Deploy). Lets the deploy gate and dashboard read entitlement without calling
-   * Stripe in the hot path. Stripe stays source of truth; this is a cache.
-   */
-  deployPlan: varchar("deploy_plan", { length: 64 }),
-
-  /**
-   * Manual Deploy entitlement override for internal / comped workspaces, owned
-   * by us and never touched by the Stripe webhook. NULL = no override. When set
-   * (to a plan value), the deploy gate treats the workspace as entitled even
-   * without a paid deploy_plan. Kept separate from deployPlan so that stays a
-   * pure Stripe mirror.
-   */
-  deployPlanOverride: varchar("deploy_plan_override", { length: 64 }),
-
-  /**
-   * Monthly Compute (Deploy) spend budget in USD cents, set by workspace
-   * admins in the dashboard. NULL = no budget. Email alerts fire at fixed
-   * percentages of the budget (50/75/100); deploySpendBudgetStop additionally
-   * stops workloads when month-to-date usage spend reaches it.
-   */
-  deploySpendBudgetCents: bigint("deploy_spend_budget_cents", {
-    mode: "number",
-    unsigned: true,
-  }),
-  deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
-
-  /**
-   * Written by the spend-cap check when it suspends or resumes a workspace's
-   * compute. The dashboard reads it to show a "suspended by spend cap" state.
-   * Lets the orchestrator find suspended workspaces even after their budget is
-   * removed, so they still resume.
-   */
-  deploySpendSuspended: boolean("deploy_spend_suspended").notNull().default(false),
 
   /**
    * feature flags
@@ -92,9 +50,12 @@ export const workspaces = mysqlTable("workspaces", {
     }>()
     .notNull(),
   /**
-   * deprecated, most customers are on stripe subscriptions instead
+   * Legacy usage-based billing state for the handful of workspaces still on
+   * custom JSON pricing that the modern tier model cannot represent. Kept until
+   * those customers are migrated to workspace_billing; NULL / {} means the
+   * workspace is on the current billing path.
    */
-  // biome-ignore lint/suspicious/noExplicitAny: legacy field, will be removed
+  // biome-ignore lint/suspicious/noExplicitAny: legacy free-form billing blob
   subscriptions: json("subscriptions").$type<any>(),
   /**
    * if the workspace is disabled, all API requests will be rejected

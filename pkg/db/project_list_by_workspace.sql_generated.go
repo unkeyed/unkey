@@ -23,7 +23,7 @@ FROM projects
 WHERE workspace_id = ?
   AND id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 ORDER BY id ASC
 LIMIT ?
 `
@@ -59,7 +59,7 @@ type ListProjectsByWorkspaceIdRow struct {
 //	WHERE workspace_id = ?
 //	  AND id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-//	  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+//	  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error) {

@@ -7,19 +7,22 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 
 export const apps = mysqlTable(
   "apps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull(),
+    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
-    defaultBranch: varchar("default_branch", { length: 256 }).notNull().default("main"),
-    currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
+    defaultBranch: caseInsensitiveVarchar("default_branch", { length: 256 })
+      .notNull()
+      .default("main"),
+    currentDeploymentId: caseInsensitiveVarchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,
