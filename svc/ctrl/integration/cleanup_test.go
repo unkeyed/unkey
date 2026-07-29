@@ -16,6 +16,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
@@ -36,19 +37,22 @@ import (
 func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
+	auditlogsService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 
 	// The environment delete handler only calls Admin to cancel a deployment's
 	// in-flight Restate invocation, and seeded deployments have no invocation id,
 	// so Admin is never exercised here. It just has to be non-nil.
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:    h.DB,
-		Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		DB:        h.DB,
+		Admin:     restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		Auditlogs: auditlogsService,
 	})
 	require.NoError(t, err)
 
-	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB})
+	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB, Auditlogs: auditlogsService})
 	require.NoError(t, err)
-	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB})
+	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB, Auditlogs: auditlogsService})
 	require.NoError(t, err)
 
 	// Start Restate with all three deletion VOs bound.
@@ -166,8 +170,19 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		InstallationID:     12345,
 		RepositoryID:       67890,
 		RepositoryFullName: "unkeyed/test-repo",
+		DefaultBranch:      sql.NullString{Valid: false},
 		CreatedAt:          now,
 		UpdatedAt:          sql.NullInt64{Valid: false},
+	})
+	require.NoError(t, err)
+
+	// Docker image source
+	err = h.DB.InsertAppDockerSource(ctx, db.InsertAppDockerSourceParams{
+		WorkspaceID:    workspaceID,
+		AppID:          app.ID,
+		ImageReference: "index.docker.io/library/nginx:1.27",
+		CreatedAt:      now,
+		UpdatedAt:      sql.NullInt64{Valid: false},
 	})
 	require.NoError(t, err)
 
@@ -221,6 +236,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID},
+		{"SELECT COUNT(*) FROM app_docker_sources WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM deployment_steps WHERE deployment_id = ?", deployment.ID},
 		{"SELECT COUNT(*) FROM app_build_settings WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM app_runtime_settings WHERE app_id = ?", app.ID},

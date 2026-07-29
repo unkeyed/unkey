@@ -9,6 +9,9 @@ service AppService {
   // Create a new app within a project
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {}
 
+  // Change the default image reference for a Docker-sourced app.
+  rpc UpdateDockerImageSource(UpdateDockerImageSourceRequest) returns (UpdateDockerImageSourceResponse) {}
+
   // Delete an app and all associated resources
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {}
 }
@@ -19,11 +22,31 @@ message CreateAppRequest {
   string name = 3;
   string slug = 4;
   ActorInfo actor = 5;
+
+  oneof source {
+    GitHubSource github = 6;
+    DockerImageSource docker_image = 7;
+  }
 }
 
 message CreateAppResponse {
   string id = 1;
 }
+
+message GitHubSource {}
+
+message DockerImageSource {
+  string image_reference = 1;
+}
+
+message UpdateDockerImageSourceRequest {
+  string workspace_id = 1;
+  string app_id = 2;
+  string image_reference = 3;
+  ActorInfo actor = 4;
+}
+
+message UpdateDockerImageSourceResponse {}
 
 message DeleteAppRequest {
   string app_id = 1;

@@ -14,7 +14,7 @@ const schema = z.object({
     z.object({
       id: z.string(),
       name: z.string(),
-      source: z.enum(["github", "code"]),
+      source: z.enum(["github", "docker", "code"]),
       repository: z.string().nullable(),
     }),
   ),

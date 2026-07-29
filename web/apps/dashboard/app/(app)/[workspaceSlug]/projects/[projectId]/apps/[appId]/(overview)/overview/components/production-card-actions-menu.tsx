@@ -4,6 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
 import { Ban, Bolt, Clone, Dots, Github, Hammer2 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
@@ -33,6 +34,22 @@ export function ProductionCardActionsMenu({
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
     const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
+    const sourceItems = match(deployment.source)
+      .returnType<MenuItem[]>()
+      .with("git_build", () =>
+        commitUrl
+          ? [
+              {
+                id: "view-commit",
+                label: "View commit on GitHub",
+                icon: <Github iconSize="md-regular" />,
+                onClick: () => window.open(commitUrl, "_blank", "noopener,noreferrer"),
+              },
+            ]
+          : [],
+      )
+      .with("docker_image", "unknown", () => [])
+      .exhaustive();
     return [
       {
         id: "stop-wake",
@@ -67,17 +84,7 @@ export function ProductionCardActionsMenu({
             .catch(() => toast.error("Failed to copy to clipboard"));
         },
       },
-      {
-        id: "view-commit",
-        label: "View commit on GitHub",
-        icon: <Github iconSize="md-regular" />,
-        disabled: !commitUrl,
-        onClick: () => {
-          if (commitUrl) {
-            window.open(commitUrl, "_blank", "noopener,noreferrer");
-          }
-        },
-      },
+      ...sourceItems,
     ];
   }, [deployment, status, commitUrl, gated, openPaywall]);
 

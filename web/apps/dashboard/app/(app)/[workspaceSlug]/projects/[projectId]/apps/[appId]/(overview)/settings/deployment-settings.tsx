@@ -1,8 +1,16 @@
 "use client";
 
+import { collection } from "@/lib/collections";
+import { dockerImageReferenceSchema } from "@/lib/collections/deploy/apps";
 import { trpc } from "@/lib/trpc/client";
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
-import { SettingCardGroup } from "@unkey/ui";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { CircleHalfDottedClock, Docker, Gear } from "@unkey/icons";
+import { match } from "@unkey/match";
+import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
+import { useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
 import { useAppId, useProjectData } from "../data-provider";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
@@ -23,6 +31,8 @@ import { Storage } from "./components/runtime-settings/storage";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
+import { SettingField } from "./components/shared/form-blocks";
+import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -41,25 +51,63 @@ export const DeploymentSettings = ({
 }: DeploymentSettingsProps) => {
   const { projectId } = useProjectData();
   const appId = useAppId();
-  const { data } = trpc.github.getInstallations.useQuery({ projectId, appId });
+  const appQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  const app = appQuery.data?.[0];
+  const shouldLoadGitHub = app
+    ? match(app.sourceType)
+        .with("github", () => true)
+        .with("docker_image", () => false)
+        // Legacy apps retain the old connect/disconnect flow until every
+        // caller creates an app with an explicit source.
+        .with("legacy", () => true)
+        .exhaustive()
+    : false;
+  const { data } = trpc.github.getInstallations.useQuery(
+    { projectId, appId },
+    { enabled: shouldLoadGitHub },
+  );
 
-  // An app's source is fixed at creation: a repo connection means git, its
-  // absence means a published image. Nothing here can switch between them, so
-  // the whole group is hidden for image apps rather than offering a repo.
-  const isGitSourced = !data || Boolean(data.repoConnection?.repositoryFullName);
+  const sourceSettings = app
+    ? match(app.sourceType)
+        .with("docker_image", () => (
+          <DockerImage appId={appId} imageReference={app.imageReference ?? ""} />
+        ))
+        .with("github", () => (
+          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+        ))
+        .with("legacy", () => (
+          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+        ))
+        .exhaustive()
+    : null;
+  const showBuildSettings = app
+    ? match(app.sourceType)
+        .with("docker_image", () => false)
+        .with("github", () => !data || Boolean(data.repoConnection?.repositoryFullName))
+        .with("legacy", () => Boolean(data?.repoConnection?.repositoryFullName))
+        .exhaustive()
+    : false;
 
   return (
     <div className="flex flex-col gap-6">
-      {isGitSourced ? (
-        <SettingCardGroup>
-          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-          <RootDirectory />
-          <Dockerfile />
-          <BuildCommand />
-          <WatchPaths />
-          <AutoDeploy />
-        </SettingCardGroup>
-      ) : null}
+      <SettingCardGroup>
+        {sourceSettings}
+        {showBuildSettings ? (
+          <>
+            <RootDirectory />
+            <Dockerfile />
+            <BuildCommand />
+            <WatchPaths />
+            <AutoDeploy />
+          </>
+        ) : null}
+      </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
         title="Runtime settings"
@@ -92,5 +140,71 @@ export const DeploymentSettings = ({
         </SettingCardGroup>
       </SettingsGroup>
     </div>
+  );
+};
+
+const dockerImageFormSchema = z.object({
+  imageReference: dockerImageReferenceSchema,
+});
+
+const DockerImage = ({ appId, imageReference }: { appId: string; imageReference: string }) => {
+  const updateImage = trpc.deploy.app.updateDockerImageSource.useMutation();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<z.infer<typeof dockerImageFormSchema>>({
+    resolver: zodResolver(dockerImageFormSchema),
+    mode: "onChange",
+    defaultValues: { imageReference },
+  });
+
+  useEffect(() => {
+    reset({ imageReference });
+  }, [imageReference, reset]);
+
+  const currentImageReference = useWatch({ control, name: "imageReference" });
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [
+      currentImageReference === imageReference,
+      { status: "disabled", reason: "No changes to save" },
+    ],
+  ]);
+
+  const onSubmit = async (values: z.infer<typeof dockerImageFormSchema>) => {
+    try {
+      await updateImage.mutateAsync({ appId, imageReference: values.imageReference });
+      reset(values);
+      await collection.apps.utils.refetch();
+      toast.success("Docker image updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update Docker image");
+    }
+  };
+
+  return (
+    <FormSettingCard
+      icon={<Docker className="text-gray-12" iconSize="xl-regular" />}
+      title="Image"
+      description="Default image reference for new deployments"
+      displayValue={<span className="font-mono text-xs">{imageReference}</span>}
+      onSubmit={handleSubmit(onSubmit)}
+      saveState={saveState}
+    >
+      <SettingField>
+        <FormInput
+          label="Image reference"
+          requirement="required"
+          description="Include a tag or digest. Saving changes the default for future deployments; it does not replace the running deployment."
+          placeholder="ghcr.io/acme/app:v1.2.3"
+          error={errors.imageReference?.message}
+          {...register("imageReference")}
+        />
+      </SettingField>
+    </FormSettingCard>
   );
 };

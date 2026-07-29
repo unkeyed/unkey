@@ -250,6 +250,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid build platform: %w", err)
 	}
+	registryConfig := deploy.RegistryConfig(cfg.GetRegistryConfig())
+	imageResolver, err := deploy.NewImageResolver(registryConfig)
+	if err != nil {
+		return fmt.Errorf("configure image resolver: %w", err)
+	}
 
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
 		DB:            database,
@@ -257,12 +262,13 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:         vaultClient,
 
 		GitHub:                          ghClient,
-		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		RegistryConfig:                  registryConfig,
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
+		ImageResolver:                   imageResolver,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
