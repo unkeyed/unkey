@@ -1,6 +1,6 @@
 CREATE TABLE `ratelimits` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(256) NOT NULL,
+	`id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at` bigint NOT NULL,

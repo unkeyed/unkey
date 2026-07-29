@@ -51,7 +51,7 @@ export const ratelimits = mysqlTable(
   "ratelimits",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     /**
      * The name is used to reference this limit when verifying a key.
      */

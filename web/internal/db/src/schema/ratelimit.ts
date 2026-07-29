@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -8,7 +9,7 @@ export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
@@ -38,9 +39,9 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    namespaceId: caseInsensitiveVarchar("namespace_id", { length: 256 }).notNull(),
+    namespaceId: caseSensitiveVarchar("namespace_id", { length: 256 }).notNull(),
     identifier: caseInsensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
