@@ -54,7 +54,7 @@ func TestUpdateConfigurationConflict(t *testing.T) {
 		CreatedAt:   now + 1000,
 	}))
 
-	req := handler.Request{ConfigId: otherID, Slug: "occupied", DisplayName: "Mover", KeyspaceId: &otherKeyspace}
+	req := handler.Request{ConfigId: otherID, Slug: "occupied", KeyspaceId: &otherKeyspace}
 	res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 	require.Equal(t, 409, res.Status, "expected 409, received: %s", res.RawBody)
 }

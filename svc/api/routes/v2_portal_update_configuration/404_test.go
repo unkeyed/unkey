@@ -33,7 +33,7 @@ func TestUpdateConfigurationNotFound(t *testing.T) {
 	keyspaceID := uid.New(uid.KeySpacePrefix)
 
 	t.Run("nonexistent id", func(t *testing.T) {
-		req := handler.Request{ConfigId: uid.New(uid.PortalConfigPrefix), Slug: "does-not-exist", DisplayName: "Does Not Exist", KeyspaceId: &keyspaceID}
+		req := handler.Request{ConfigId: uid.New(uid.PortalConfigPrefix), Slug: "does-not-exist", KeyspaceId: &keyspaceID}
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
@@ -69,7 +69,7 @@ func TestUpdateConfigurationNotFoundWrongWorkspace(t *testing.T) {
 	}
 
 	keyspaceID := uid.New(uid.KeySpacePrefix)
-	req := handler.Request{ConfigId: configID, Slug: "cross-ws-update", DisplayName: "Cross WS", KeyspaceId: &keyspaceID}
+	req := handler.Request{ConfigId: configID, Slug: "cross-ws-update", KeyspaceId: &keyspaceID}
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 

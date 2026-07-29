@@ -43,13 +43,13 @@ func TestCreateConfigurationConflict(t *testing.T) {
 
 	t.Run("duplicate slug", func(t *testing.T) {
 		keyspaceID := uid.New(uid.KeySpacePrefix)
-		req := handler.Request{Slug: "taken-slug", DisplayName: "Taken Slug", KeyspaceId: &keyspaceID}
+		req := handler.Request{Slug: "taken-slug", KeyspaceId: &keyspaceID}
 		res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 		require.Equal(t, 409, res.Status, "expected 409, received: %s", res.RawBody)
 	})
 
 	t.Run("duplicate keyspace", func(t *testing.T) {
-		req := handler.Request{Slug: "fresh-slug", DisplayName: "Fresh Slug", KeyspaceId: &existingKeyspace}
+		req := handler.Request{Slug: "fresh-slug", KeyspaceId: &existingKeyspace}
 		res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 		require.Equal(t, 409, res.Status, "expected 409, received: %s", res.RawBody)
 	})

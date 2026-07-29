@@ -56,15 +56,14 @@ func ToResponse(cfg db.PortalConfiguration, logoUrl, primaryColor sql.NullString
 	}
 
 	return openapi.PortalConfiguration{
-		Id:          cfg.ID,
-		Slug:        cfg.Slug,
-		DisplayName: cfg.DisplayName,
-		AppId:       cfg.AppID.String,
-		KeyspaceId:  cfg.KeyAuthID.String,
-		Enabled:     cfg.Enabled,
-		ReturnUrl:   cfg.ReturnUrl.String,
-		Branding:    branding,
-		CreatedAt:   cfg.CreatedAt,
-		UpdatedAt:   cfg.UpdatedAt.Int64,
+		Id:         cfg.ID,
+		Slug:       cfg.Slug,
+		AppId:      cfg.AppID.String,
+		KeyspaceId: cfg.KeyAuthID.String,
+		Enabled:    cfg.Enabled,
+		ReturnUrl:  cfg.ReturnUrl.String,
+		Branding:   branding,
+		CreatedAt:  cfg.CreatedAt,
+		UpdatedAt:  cfg.UpdatedAt.Int64,
 	}
 }

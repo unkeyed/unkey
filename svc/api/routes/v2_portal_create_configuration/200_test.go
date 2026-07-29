@@ -34,10 +34,9 @@ func TestCreateConfigurationSuccess(t *testing.T) {
 		logo := "https://cdn.example.com/logo.png"
 		color := "#4f46e5"
 		req := handler.Request{
-			Slug:        "portal-keyspace",
-			DisplayName: "Portal Keyspace",
-			KeyspaceId:  &keyspaceID,
-			Branding:    &openapi.PortalBranding{LogoUrl: logo, PrimaryColor: color},
+			Slug:       "portal-keyspace",
+			KeyspaceId: &keyspaceID,
+			Branding:   &openapi.PortalBranding{LogoUrl: logo, PrimaryColor: color},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -46,7 +45,6 @@ func TestCreateConfigurationSuccess(t *testing.T) {
 
 		require.NotEmpty(t, res.Body.Data.Id)
 		require.Equal(t, "portal-keyspace", res.Body.Data.Slug)
-		require.Equal(t, "Portal Keyspace", res.Body.Data.DisplayName)
 		require.Equal(t, keyspaceID, res.Body.Data.KeyspaceId)
 		require.Empty(t, res.Body.Data.AppId)
 		require.True(t, res.Body.Data.Enabled)
@@ -73,15 +71,13 @@ func TestCreateConfigurationSuccess(t *testing.T) {
 		appID := uid.New(uid.AppPrefix)
 		enabled := false
 		req := handler.Request{
-			Slug:        "portal-app",
-			DisplayName: "Portal App",
-			AppId:       &appID,
-			Enabled:     &enabled,
+			Slug:    "portal-app",
+			AppId:   &appID,
+			Enabled: &enabled,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		require.Equal(t, "Portal App", res.Body.Data.DisplayName)
 		require.Equal(t, appID, res.Body.Data.AppId)
 		require.Empty(t, res.Body.Data.KeyspaceId)
 		require.False(t, res.Body.Data.Enabled)

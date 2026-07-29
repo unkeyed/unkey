@@ -12,7 +12,6 @@ export const portalConfigurations = mysqlTable(
     id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 64 }).notNull(),
-    displayName: varchar("display_name", { length: 256 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }),
     keyAuthId: caseInsensitiveVarchar("key_auth_id", { length: 64 }),
     enabled: boolean("enabled").notNull().default(true),

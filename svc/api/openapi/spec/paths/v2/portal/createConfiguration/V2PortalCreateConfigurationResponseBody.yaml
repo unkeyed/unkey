@@ -18,7 +18,6 @@ examples:
       data:
         id: pc_1234abcd
         slug: my-portal
-        displayName: Acme Corp
         keyspaceId: ks_1234abcd
         enabled: true
         branding:

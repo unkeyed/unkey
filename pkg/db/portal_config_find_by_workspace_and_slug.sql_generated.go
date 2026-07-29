@@ -10,7 +10,7 @@ import (
 )
 
 const findPortalConfigByWorkspaceAndSlug = `-- name: FindPortalConfigByWorkspaceAndSlug :one
-SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 WHERE workspace_id = ? AND slug = ?
 `
 
@@ -21,7 +21,7 @@ type FindPortalConfigByWorkspaceAndSlugParams struct {
 
 // FindPortalConfigByWorkspaceAndSlug
 //
-//	SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+//	SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 //	WHERE workspace_id = ? AND slug = ?
 func (q *Queries) FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error) {
 	row := db.QueryRowContext(ctx, findPortalConfigByWorkspaceAndSlug, arg.WorkspaceID, arg.Slug)
@@ -31,7 +31,6 @@ func (q *Queries) FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBT
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Slug,
-		&i.DisplayName,
 		&i.AppID,
 		&i.KeyAuthID,
 		&i.Enabled,

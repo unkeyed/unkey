@@ -10,7 +10,6 @@
 UPDATE portal_configurations
 SET
     slug = sqlc.arg(slug),
-    display_name = sqlc.arg(display_name),
     app_id = sqlc.narg(app_id),
     key_auth_id = sqlc.narg(key_auth_id),
     enabled = sqlc.arg(enabled),

@@ -26,13 +26,6 @@ export type V2PortalUpdateConfigurationRequestBody = {
    */
   slug: string;
   /**
-   * Free-form human-readable name for the portal, shown to end users in the
-   *
-   * @remarks
-   * portal UI (header, page titles).
-   */
-  displayName: string;
-  /**
    * The keyspace the configuration maps to. Provide exactly one of
    *
    * @remarks
@@ -71,7 +64,6 @@ export type V2PortalUpdateConfigurationRequestBody = {
 export type V2PortalUpdateConfigurationRequestBody$Outbound = {
   configId: string;
   slug: string;
-  displayName: string;
   keyspaceId?: string | undefined;
   appId?: string | undefined;
   enabled: boolean;
@@ -87,7 +79,6 @@ export const V2PortalUpdateConfigurationRequestBody$outboundSchema: z.ZodType<
 > = z.object({
   configId: z.string(),
   slug: z.string(),
-  displayName: z.string(),
   keyspaceId: z.string().optional(),
   appId: z.string().optional(),
   enabled: z.boolean().default(true),

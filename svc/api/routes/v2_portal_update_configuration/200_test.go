@@ -51,18 +51,16 @@ func TestUpdateConfigurationSuccess(t *testing.T) {
 
 		enabled := false
 		req := handler.Request{
-			ConfigId:    id,
-			Slug:        "after-rename",
-			DisplayName: "After Rename",
-			KeyspaceId:  &keyspaceID,
-			Enabled:     &enabled,
-			Branding:    &openapi.PortalBranding{LogoUrl: "https://cdn.example.com/l.png", PrimaryColor: "#010203"},
+			ConfigId:   id,
+			Slug:       "after-rename",
+			KeyspaceId: &keyspaceID,
+			Enabled:    &enabled,
+			Branding:   &openapi.PortalBranding{LogoUrl: "https://cdn.example.com/l.png", PrimaryColor: "#010203"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "after-rename", res.Body.Data.Slug)
-		require.Equal(t, "After Rename", res.Body.Data.DisplayName)
 		require.False(t, res.Body.Data.Enabled)
 		require.NotZero(t, res.Body.Data.UpdatedAt)
 		require.NotNil(t, res.Body.Data.Branding)
@@ -71,7 +69,6 @@ func TestUpdateConfigurationSuccess(t *testing.T) {
 		stored, err := db.Query.FindPortalConfigByID(ctx, h.DB.RO(), db.FindPortalConfigByIDParams{ID: id, WorkspaceID: workspaceID})
 		require.NoError(t, err)
 		require.Equal(t, "after-rename", stored.Slug)
-		require.Equal(t, "After Rename", stored.DisplayName)
 		require.False(t, stored.Enabled)
 	})
 
@@ -81,10 +78,9 @@ func TestUpdateConfigurationSuccess(t *testing.T) {
 
 		appID := uid.New(uid.AppPrefix)
 		req := handler.Request{
-			ConfigId:    id,
-			Slug:        "remap-me",
-			DisplayName: "Remap Me",
-			AppId:       &appID,
+			ConfigId: id,
+			Slug:     "remap-me",
+			AppId:    &appID,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

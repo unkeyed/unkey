@@ -741,12 +741,12 @@ type Querier interface {
 	// update/delete to verify the caller owns the config before mutating it, so a
 	// config can never be read or mutated across workspace boundaries.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 	//  WHERE id = ? AND workspace_id = ?
 	FindPortalConfigByID(ctx context.Context, db DBTX, arg FindPortalConfigByIDParams) (PortalConfiguration, error)
 	//FindPortalConfigByWorkspaceAndSlug
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 	//  WHERE workspace_id = ? AND slug = ?
 	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
 	//FindProjectById
@@ -1475,7 +1475,6 @@ type Querier interface {
 	//      id,
 	//      workspace_id,
 	//      slug,
-	//      display_name,
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
@@ -1483,7 +1482,6 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2119,7 +2117,7 @@ type Querier interface {
 	// WHERE clause scopes the listing to the caller's workspace.
 	//
 	//  SELECT
-	//      pc.pk, pc.id, pc.workspace_id, pc.slug, pc.display_name, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
+	//      pc.pk, pc.id, pc.workspace_id, pc.slug, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
 	//      b.logo_url AS logo_url,
 	//      b.primary_color AS primary_color
 	//  FROM portal_configurations pc
@@ -2575,7 +2573,6 @@ type Querier interface {
 	//  UPDATE portal_configurations
 	//  SET
 	//      slug = ?,
-	//      display_name = ?,
 	//      app_id = ?,
 	//      key_auth_id = ?,
 	//      enabled = ?,
