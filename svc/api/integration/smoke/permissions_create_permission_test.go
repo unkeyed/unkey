@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreatePermission_ReturnsPermissionID(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	name := uid.DNS1035()
 	response, err := client.Permissions.CreatePermission(ctx, components.V2PermissionsCreatePermissionRequestBody{Name: name, Slug: name})

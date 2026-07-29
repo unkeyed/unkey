@@ -10,6 +10,8 @@ import (
 )
 
 func TestDeleteOverride_RemovesOverride(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	namespace := "smoke"
 	identifier := uid.DNS1035()

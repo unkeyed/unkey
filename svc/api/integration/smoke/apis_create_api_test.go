@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreateAPI_ReturnsAPIID(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	name := uid.DNS1035()
 	response, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{Name: name})

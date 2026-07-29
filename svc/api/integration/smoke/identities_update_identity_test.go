@@ -9,6 +9,8 @@ import (
 )
 
 func TestUpdateIdentity_PersistsMetadata(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	identity := createIdentity(t, ctx, client)
 	meta := map[string]any{"smokeTest": uid.DNS1035()}

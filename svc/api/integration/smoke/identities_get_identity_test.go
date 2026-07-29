@@ -8,6 +8,8 @@ import (
 )
 
 func TestGetIdentity_ReturnsCreatedIdentity(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	identity := createIdentity(t, ctx, client)
 	response, err := client.Identities.GetIdentity(ctx, components.V2IdentitiesGetIdentityRequestBody{Identity: identity.ID})

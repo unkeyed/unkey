@@ -9,6 +9,8 @@ import (
 )
 
 func TestMultiLimit_ReturnsEveryLimit(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	response, err := client.Ratelimit.MultiLimit(ctx, []components.V2RatelimitLimitRequestBody{
 		{

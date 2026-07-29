@@ -8,6 +8,8 @@ import (
 )
 
 func TestGetAPI_ReturnsCreatedAPI(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	response, err := client.Apis.GetAPI(ctx, components.V2ApisGetAPIRequestBody{APIID: api.APIID})
