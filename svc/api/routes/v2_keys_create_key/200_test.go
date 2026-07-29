@@ -331,9 +331,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 }
 
 // TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation
-// with the same externalId doesn't deadlock. This was previously possible due to
-// gap locks when inserting identities. The fix uses INSERT ... ON DUPLICATE KEY
-// UPDATE (upsert) to avoid gap lock deadlocks.
+// with the same externalId recovers from the identity unique-key race.
 func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
@@ -363,6 +361,11 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	numConcurrent := 20
 	externalID := "user_concurrent_test"
 
+	// Warm the validator's schema cache without creating the shared identity so
+	// the burst below isolates the database race this test covers.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusOK, warmup.Status, warmup.RawBody)
+
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)
 
@@ -375,7 +378,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if res.Status != 200 {
-				return fmt.Errorf("unexpected status code: %d", res.Status)
+				return fmt.Errorf("unexpected status code %d: %s", res.Status, res.RawBody)
 			}
 			mu.Lock()
 			keyIDs = append(keyIDs, res.Body.Data.KeyId)

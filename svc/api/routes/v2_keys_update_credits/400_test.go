@@ -1,12 +1,16 @@
 package handler_test
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -120,5 +124,31 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
+	})
+
+	t.Run("increment cannot overflow the supported credit balance", func(t *testing.T) {
+		_, err := db.Query.UpdateKeyCreditsSet(context.Background(), h.DB.RW(), db.UpdateKeyCreditsSetParams{
+			ID:                keyID,
+			Credits:           sql.NullInt64{Int64: math.MaxInt64, Valid: true},
+			ClearRefillAmount: 0,
+			ClearRefillDay:    0,
+		})
+		require.NoError(t, err)
+
+		req := handler.Request{
+			KeyId:     keyID,
+			Operation: openapi.Increment,
+			Value:     nullable.NewNullableWithValue(int64(1)),
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status)
+		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "exceeds the maximum supported value")
+
+		key, err := db.Query.FindKeyByID(context.Background(), h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.True(t, key.RemainingRequests.Valid)
+		require.Equal(t, int64(math.MaxInt64), key.RemainingRequests.Int64)
 	})
 }

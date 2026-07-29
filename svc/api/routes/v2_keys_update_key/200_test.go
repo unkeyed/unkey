@@ -96,6 +96,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
 		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
 		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
+		ratelimitID := ratelimits[0].ID
 
 		ratelimit = openapi.RatelimitRequest{
 			AutoApply: true,
@@ -117,10 +118,34 @@ func TestUpdateKeySuccess(t *testing.T) {
 		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
 		require.NoError(t, err)
 		require.Len(t, ratelimits, 1)
+		require.Equal(t, ratelimitID, ratelimits[0].ID)
 		require.Equal(t, ratelimit.Name, ratelimits[0].Name)
 		require.Equal(t, ratelimit.AutoApply, ratelimits[0].AutoApply)
 		require.EqualValues(t, ratelimit.Duration, ratelimits[0].Duration)
 		require.EqualValues(t, ratelimit.Limit, ratelimits[0].Limit)
+
+		replacement := ratelimit
+		replacement.Name = "replacement"
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:      keyResponse.KeyID,
+			Ratelimits: ptr.P([]openapi.RatelimitRequest{replacement}),
+		})
+		require.Equal(t, http.StatusOK, res.Status)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Len(t, ratelimits, 1)
+		require.Equal(t, replacement.Name, ratelimits[0].Name)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:      keyResponse.KeyID,
+			Ratelimits: ptr.P([]openapi.RatelimitRequest{}),
+		})
+		require.Equal(t, http.StatusOK, res.Status)
+
+		ratelimits, err = db.Query.ListRatelimitsByKeyID(ctx, h.DB.RO(), sql.NullString{String: keyResponse.KeyID, Valid: true})
+		require.NoError(t, err)
+		require.Empty(t, ratelimits)
 	})
 }
 
@@ -248,6 +273,25 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 
 	h.CreateRole(seed.CreateRoleRequest{WorkspaceID: api.WorkspaceID, Name: "admin"})
 	h.CreateRole(seed.CreateRoleRequest{WorkspaceID: api.WorkspaceID, Name: "user"})
+	oldRole := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: api.WorkspaceID, Name: "old-role"})
+	oldPermission := h.CreatePermission(seed.CreatePermissionRequest{
+		WorkspaceID: api.WorkspaceID,
+		Name:        "old-permission",
+		Slug:        "old-permission",
+	})
+	require.NoError(t, db.Query.InsertKeyRole(ctx, h.DB.RW(), db.InsertKeyRoleParams{
+		KeyID:       keyResponse.KeyID,
+		RoleID:      oldRole.ID,
+		WorkspaceID: api.WorkspaceID,
+		CreatedAtM:  time.Now().UnixMilli(),
+	}))
+	require.NoError(t, db.Query.InsertKeyPermission(ctx, h.DB.RW(), db.InsertKeyPermissionParams{
+		KeyID:        keyResponse.KeyID,
+		PermissionID: oldPermission.ID,
+		WorkspaceID:  api.WorkspaceID,
+		CreatedAt:    time.Now().UnixMilli(),
+		UpdatedAt:    sql.NullInt64{},
+	}))
 
 	req := handler.Request{
 		KeyId:      keyResponse.KeyID,
@@ -287,6 +331,22 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "newExternalId", identity.ExternalID)
+
+	directPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	directPermissionSlugs := make([]string, len(directPermissions))
+	for i, permission := range directPermissions {
+		directPermissionSlugs[i] = permission.Slug
+	}
+	require.ElementsMatch(t, []string{"read", "write"}, directPermissionSlugs)
+
+	roles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	roleNames := make([]string, len(roles))
+	for i, role := range roles {
+		roleNames[i] = role.Name
+	}
+	require.ElementsMatch(t, []string{"admin", "user"}, roleNames)
 }
 
 func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
@@ -368,9 +428,8 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 }
 
 // TestUpdateKeyConcurrentWithSameExternalId tests that concurrent updates
-// to different keys with the same new externalId don't deadlock.
-// This was previously possible due to gap locks when inserting identities.
-// The fix uses INSERT ... ON DUPLICATE KEY UPDATE (upsert) to avoid deadlocks.
+// to different keys with the same new externalId recover from the identity
+// unique-key race.
 func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	t.Parallel()
 
@@ -463,9 +522,77 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	require.Equal(t, sharedIdentityID, identity.ID)
 }
 
+// TestUpdateKeyConcurrentWithSameNewPermission verifies that concurrent
+// auto-creation of one permission slug recovers from the unique-key race and
+// assigns the winning permission row to every key.
+func TestUpdateKeyConcurrentWithSameNewPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+
+	const numKeys = 10
+	keyIDs := make([]string, numKeys)
+	for i := range numKeys {
+		keyResponse := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspaceID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Name:        ptr.P(fmt.Sprintf("permission-race-key-%d", i)),
+		})
+		keyIDs[i] = keyResponse.KeyID
+	}
+
+	rootKey := h.CreateRootKey(workspaceID, "api.*.update_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	permissionSlug := "documents.read"
+	g := errgroup.Group{}
+	for _, keyID := range keyIDs {
+		g.Go(func() error {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				KeyId:       keyID,
+				Permissions: ptr.P([]string{permissionSlug}),
+			})
+			if res.Status != http.StatusOK {
+				return fmt.Errorf("key %s: unexpected status %d: %s", keyID, res.Status, res.RawBody)
+			}
+			return nil
+		})
+	}
+	require.NoError(t, g.Wait())
+
+	permissionRows, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
+		WorkspaceID: workspaceID,
+		Slugs:       []string{permissionSlug},
+	})
+	require.NoError(t, err)
+	require.Len(t, permissionRows, 1, "only the winning permission row should exist")
+
+	for _, keyID := range keyIDs {
+		keyPermissions, listErr := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, listErr)
+		require.Len(t, keyPermissions, 1)
+		require.Equal(t, permissionRows[0].ID, keyPermissions[0].ID)
+	}
+}
+
 // TestUpdateKeyConcurrentRatelimits tests that concurrent updates to the
-// same key's ratelimits don't deadlock. The handler uses SELECT ... FOR UPDATE
-// on the key row to serialize concurrent modifications.
+// same key's ratelimits don't deadlock. Updating the key row serializes the
+// replacement statements that follow.
 func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 	t.Parallel()
 
