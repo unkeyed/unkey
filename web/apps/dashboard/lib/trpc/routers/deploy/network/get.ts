@@ -117,6 +117,7 @@ export const getDeploymentTree = workspaceProcedure
                         signal: instance.containerStatus.lastTerminationState?.signal ?? null,
                         reason: instance.containerStatus.lastTerminationState?.reason ?? null,
                         statusReason: instance.containerStatus.waiting?.reason ?? null,
+                        statusMessage: instance.containerStatus.waiting?.message ?? null,
                         finishedAt:
                           instance.containerStatus.lastTerminationState?.finishedAt ?? null,
                       }

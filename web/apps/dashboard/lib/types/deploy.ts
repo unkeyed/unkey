@@ -16,4 +16,5 @@ export type LastExit = {
   reason: ExitReason | null;
   finishedAt: number | null;
   statusReason: StatusReason | null;
+  statusMessage: string | null;
 };

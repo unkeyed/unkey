@@ -88,9 +88,10 @@ export function ActiveDeploymentCard({
     ? [...new Map(actualInstances.map((i) => [i.region.id, i])).values()]
     : deployment.desiredRegions;
   // Hide the badge once the deployment has converged on ready: an old
-  // OOMKill that was resolved by the next push isn't useful context here.
-  const showLastExit =
-    deployment.lastExit && deployment.status !== "ready" && deployment.status !== "superseded";
+  // process exit that was resolved by the next push isn't useful context.
+  // Active kubelet errors remain visible because evictions commonly happen
+  // after a deployment first reaches ready.
+  const showLastExit = shouldShowLastExit(deployment);
 
   return (
     <Card className="flex flex-col">
@@ -272,16 +273,29 @@ export function ActiveDeploymentCard({
   );
 }
 
-// LastExitBadge renders a compact "OOMKilled · exit=137" pill.
-// CrashLoopBackOff is warning, terminations are error.
+export function shouldShowLastExit({ lastExit, status }: Pick<Deployment, "lastExit" | "status">) {
+  return Boolean(
+    lastExit && (lastExit.statusReason !== null || (status !== "ready" && status !== "superseded")),
+  );
+}
+
+// LastExitBadge renders a compact "OOMKilled · exit=137" or Kubernetes
+// status pill. Current kubelet errors take precedence over the previous
+// process exit because they explain why the instance cannot recover.
 // Exported so the deployments list row + network instance card can reuse
 // it next to the status badge — same surface, same data, different page.
 export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   const isCrashloop = lastExit.statusReason === "CrashLoopBackOff";
-  const reason = isCrashloop ? "CrashLoopBackOff" : (lastExit.reason ?? "Error");
+  const reason = lastExit.statusReason ?? lastExit.reason ?? "Error";
   const variant = isCrashloop ? "warning" : "error";
 
-  const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
+  const tooltip = explainExit(
+    reason,
+    lastExit.exitCode,
+    lastExit.signal,
+    lastExit.statusMessage,
+    lastExit.statusReason !== null,
+  );
 
   return (
     <InfoTooltip content={tooltip} variant="inverted" position={{ side: "top", align: "end" }}>
@@ -289,7 +303,7 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
         {reason}
         {(() => {
           const showExitCode =
-            !isCrashloop && lastExit.exitCode !== null && lastExit.exitCode !== 0;
+            lastExit.statusReason === null && lastExit.exitCode !== null && lastExit.exitCode !== 0;
           return (
             showExitCode && (
               <span className="ml-1 font-mono tabular-nums">· exit={lastExit.exitCode}</span>
@@ -306,6 +320,8 @@ function explainExit(
   reason: string,
   exitCode: number | null,
   signal: number | null,
+  statusMessage: string | null,
+  isRuntimeStatus: boolean,
 ): React.ReactNode {
   // CrashLoopBackOff: point users at the exit code for diagnosis.
   if (reason === "CrashLoopBackOff") {
@@ -320,6 +336,12 @@ function explainExit(
           Check the recent crash entries below for the exit code that's causing the loop, and your
           logs for the underlying error.
         </div>
+        {statusMessage && (
+          <div className="break-words">
+            <span className="font-medium">Kubernetes: </span>
+            {statusMessage}
+          </div>
+        )}
       </div>
     );
   }
@@ -339,6 +361,26 @@ function explainExit(
       label: "Couldn't start your app",
       body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check the command and build settings of your app.",
     }))
+    .with("ErrImagePull", "ImagePullBackOff", () => ({
+      label: "Couldn't pull your image",
+      body: "Kubernetes could not download the configured image. Check that the image exists and that its registry credentials allow access.",
+    }))
+    .with("InvalidImageName", () => ({
+      label: "Invalid image name",
+      body: "Kubernetes rejected the configured image reference. Check the registry, repository, and tag.",
+    }))
+    .with("CreateContainerConfigError", "CreateContainerError", () => ({
+      label: "Couldn't create your container",
+      body: "Kubernetes could not create the container from its runtime configuration.",
+    }))
+    .with("Evicted", () => ({
+      label: "Instance was evicted",
+      body: "Kubernetes removed this instance because a node or pod resource limit was exceeded.",
+    }))
+    .with("Unschedulable", () => ({
+      label: "Couldn't schedule your instance",
+      body: "Kubernetes could not find a node with enough compatible resources for this instance.",
+    }))
     .with("Completed", () => ({
       label: "Exited cleanly",
       body: "Your app shut down without an error. Normal for one-off jobs; unusual for a service that's supposed to keep running. Check whether your main loop returned early.",
@@ -347,13 +389,19 @@ function explainExit(
       (r) => Boolean(r),
       (r) => ({
         label: r,
-        body: "Your app exited. The exit code below has more detail.",
+        body: isRuntimeStatus
+          ? "Kubernetes reported an error while running this instance."
+          : "Your app exited. The exit code below has more detail.",
       }),
     )
     .otherwise(() => null);
 
   if (reasonLine) {
     lines.push(reasonLine);
+  }
+
+  if (statusMessage) {
+    lines.push({ label: "Kubernetes message", body: statusMessage });
   }
 
   if (exitCode !== null && exitCode !== 0) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+const statusObservedAtAttribute = "status_observed_at_unix_nano"
 
 // ReportInstanceEvents persists container lifecycle events captured by a
 // krane agent. The handler does two writes per event:
@@ -70,6 +73,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		}
 
 		when := eventTime(event)
+		observedAtUnixNano := eventObservedAtUnixNano(event)
 		row := schema.InstanceEventV1{
 			Time:          when,
 			WorkspaceID:   event.GetWorkspaceId(),
@@ -104,9 +108,26 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		case *ctrlv1.InstanceEvent_Running:
 			// Running carries no exit metadata — the row is identity +
 			// time + attributes, written for the dashboard's "container
-			// booted" timeline divider. No MySQL denormalization: the live
-			// instance row is already tracked via reportDeploymentStatus.
+			// booted" timeline divider. Also clear a prior waiting failure:
+			// this running state is kubelet's authoritative recovery signal.
 			row.EventKind = "running"
+			err := s.db.ClearInstanceWaiting(ctx, db.ClearInstanceWaitingParams{
+				K8sName:            event.GetPodName(),
+				RegionID:           cluster.Region.ID,
+				RestartCount:       int64(event.GetRestartCount()),
+				RestartCount_2:     int64(event.GetRestartCount()),
+				StatusObservedAt:   observedAtUnixNano,
+				StatusObservedAt_2: observedAtUnixNano,
+			})
+			if err != nil {
+				logger.Error("report instance events: clear waiting failed",
+					"error", err.Error(),
+					"pod_name", event.GetPodName(),
+				)
+				if firstDenormErr == nil {
+					firstDenormErr = err
+				}
+			}
 		case *ctrlv1.InstanceEvent_Terminated:
 			t := event.GetTerminated()
 			row.EventKind = "terminated"
@@ -142,7 +163,8 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 					Reason:     t.GetReason(),
 					FinishedAt: when,
 				},
-				Waiting: nil,
+				Waiting:          nil,
+				StatusObservedAt: observedAtUnixNano,
 			}
 			err := s.db.RecordInstanceExit(ctx, db.RecordInstanceExitParams{
 				ContainerStatus: newStatus,
@@ -171,25 +193,27 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = w.GetReason()
 			row.Message = w.GetMessage()
 
-			// Only CrashLoopBackOff drives the MySQL "instance is in
-			// crashloop" denormalization. Other waiting reasons (image
-			// pull errors, ContainerCreating, …) flow into CH as raw rows
-			// for the timeline but don't change the live instance summary
-			// the dashboard header reads.
-			if w.GetReason() == "CrashLoopBackOff" {
-				err := s.db.RecordInstanceCrashLoopBackOff(ctx, db.RecordInstanceCrashLoopBackOffParams{
-					K8sName:      event.GetPodName(),
-					RegionID:     cluster.Region.ID,
-					RestartCount: int64(event.GetRestartCount()),
-				})
-				if err != nil {
-					logger.Error("report instance events: record crashloop failed",
-						"error", err.Error(),
-						"pod_name", event.GetPodName(),
-					)
-					if firstDenormErr == nil {
-						firstDenormErr = err
-					}
+			// Denormalize every actionable reason so the deployment summary
+			// can show image-pull, config, scheduling, and pod-eviction errors
+			// without querying ClickHouse.
+			err := s.db.RecordInstanceWaiting(ctx, db.RecordInstanceWaitingParams{
+				K8sName:            event.GetPodName(),
+				RegionID:           cluster.Region.ID,
+				RestartCount:       int64(event.GetRestartCount()),
+				RestartCount_2:     int64(event.GetRestartCount()),
+				StatusObservedAt:   observedAtUnixNano,
+				StatusObservedAt_2: observedAtUnixNano,
+				Reason:             w.GetReason(),
+				Message:            w.GetMessage(),
+			})
+			if err != nil {
+				logger.Error("report instance events: record waiting failed",
+					"error", err.Error(),
+					"pod_name", event.GetPodName(),
+					"reason", w.GetReason(),
+				)
+				if firstDenormErr == nil {
+					firstDenormErr = err
 				}
 			}
 		default:
@@ -222,6 +246,18 @@ func eventTime(event *ctrlv1.InstanceEvent) int64 {
 		return t
 	}
 	return time.Now().UnixMilli()
+}
+
+// eventObservedAtUnixNano returns the krane watch-delivery sequence used to
+// reject stale concurrent pod snapshots. Older krane versions do not send the
+// attribute, so their lifecycle timestamp remains a compatible fallback.
+func eventObservedAtUnixNano(event *ctrlv1.InstanceEvent) int64 {
+	if raw := event.GetAttributes()[statusObservedAtAttribute]; raw != "" {
+		if observedAtUnixNano, err := strconv.ParseInt(raw, 10, 64); err == nil && observedAtUnixNano > 0 {
+			return observedAtUnixNano
+		}
+	}
+	return eventTime(event) * int64(time.Millisecond)
 }
 
 // marshalAttributes serializes the proto map into a JSON string for the CH

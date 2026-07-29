@@ -57,7 +57,9 @@ function LastExitSection({
         <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
           <TriangleWarning2 iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">Last exit</span>
+        <span className="text-gray-11 text-xs">
+          {lastExit.statusReason ? "Runtime error" : "Last exit"}
+        </span>
         <div className="ml-auto">
           <LastExitBadge lastExit={lastExit} />
         </div>
