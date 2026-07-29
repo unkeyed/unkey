@@ -1,7 +1,9 @@
 package smoke_test
 
 import (
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
@@ -32,13 +34,12 @@ func TestVerifyKey_EnforcesPermissions(t *testing.T) {
 	permission := createPermission(t, ctx, client)
 	_, err := client.Keys.AddPermissions(ctx, components.V2KeysAddPermissionsRequestBody{KeyID: key.KeyID, Permissions: []string{permission.Slug}})
 	require.NoError(t, err)
-	waitForPropagation()
-	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &permission.Slug})
-	require.NoError(t, err)
-	require.True(t, response.V2KeysVerifyKeyResponseBody.Data.Valid)
-	require.Contains(t, response.V2KeysVerifyKeyResponseBody.Data.Permissions, permission.Slug)
+	require.Eventually(t, func() bool {
+		response, verifyErr := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &permission.Slug})
+		return verifyErr == nil && response.V2KeysVerifyKeyResponseBody != nil && response.V2KeysVerifyKeyResponseBody.Data.Valid && slices.Contains(response.V2KeysVerifyKeyResponseBody.Data.Permissions, permission.Slug)
+	}, 30*time.Second, time.Second, "verification did not observe permission %q", permission.Slug)
 	missing := uid.DNS1035()
-	response, err = client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &missing})
+	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &missing})
 	require.NoError(t, err)
 	require.False(t, response.V2KeysVerifyKeyResponseBody.Data.Valid)
 }

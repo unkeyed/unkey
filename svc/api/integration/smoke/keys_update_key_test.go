@@ -2,7 +2,9 @@ package smoke_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -20,13 +22,13 @@ func TestUpdateKey_PersistsNameAndMetadata(t *testing.T) {
 	response, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, Name: &name, Meta: meta})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysUpdateKeyResponseBody)
-	waitForPropagation()
-	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, get.V2KeysGetKeyResponseBody)
-	require.NotNil(t, get.V2KeysGetKeyResponseBody.Data.Name)
-	require.Equal(t, name, *get.V2KeysGetKeyResponseBody.Data.Name)
-	require.Equal(t, meta, get.V2KeysGetKeyResponseBody.Data.Meta)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		get, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, get.V2KeysGetKeyResponseBody)
+		require.Equal(c, &name, get.V2KeysGetKeyResponseBody.Data.Name)
+		require.Equal(c, meta, get.V2KeysGetKeyResponseBody.Data.Meta)
+	}, 30*time.Second, time.Second)
 }
 
 func TestUpdateKey_PersistsIdentityAssociation(t *testing.T) {
@@ -38,11 +40,13 @@ func TestUpdateKey_PersistsIdentityAssociation(t *testing.T) {
 	identity := createIdentity(t, ctx, client)
 	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, ExternalID: &identity.ExternalID})
 	require.NoError(t, err)
-	waitForPropagation()
-	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, get.V2KeysGetKeyResponseBody.Data.Identity)
-	require.Equal(t, identity.ExternalID, get.V2KeysGetKeyResponseBody.Data.Identity.ExternalID)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		get, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, get.V2KeysGetKeyResponseBody)
+		require.NotNil(c, get.V2KeysGetKeyResponseBody.Data.Identity)
+		require.Equal(c, identity.ExternalID, get.V2KeysGetKeyResponseBody.Data.Identity.ExternalID)
+	}, 30*time.Second, time.Second)
 }
 
 func TestUpdateKey_PersistsRatelimit(t *testing.T) {
@@ -54,11 +58,15 @@ func TestUpdateKey_PersistsRatelimit(t *testing.T) {
 	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 15, Duration: 60_000, AutoApply: ptr.P(true)}
 	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, Ratelimits: []components.RatelimitRequest{limit}})
 	require.NoError(t, err)
-	waitForPropagation()
-	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, get.V2KeysGetKeyResponseBody)
-	require.Len(t, get.V2KeysGetKeyResponseBody.Data.Ratelimits, 1)
-	require.Equal(t, limit.Name, get.V2KeysGetKeyResponseBody.Data.Ratelimits[0].Name)
-	require.Equal(t, limit.Limit, get.V2KeysGetKeyResponseBody.Data.Ratelimits[0].Limit)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		get, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, get.V2KeysGetKeyResponseBody)
+		require.Len(c, get.V2KeysGetKeyResponseBody.Data.Ratelimits, 1)
+		persisted := get.V2KeysGetKeyResponseBody.Data.Ratelimits[0]
+		require.Equal(c, limit.Name, persisted.Name)
+		require.Equal(c, limit.Limit, persisted.Limit)
+		require.Equal(c, limit.Duration, persisted.Duration)
+		require.Equal(c, limit.AutoApply, persisted.AutoApply)
+	}, 30*time.Second, time.Second)
 }
