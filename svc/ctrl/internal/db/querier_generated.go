@@ -328,15 +328,15 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
-	//FindCustomDomainWithCertByDomain
+	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
+	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
-	//  SELECT
-	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.domain_connect_provider, cd.domain_connect_url, cd.invocation_id, cd.created_at, cd.updated_at,
-	//      c.id AS certificate_id
-	//  FROM custom_domains cd
-	//  LEFT JOIN certificates c ON c.hostname = cd.domain
-	//  WHERE cd.domain = ?
-	FindCustomDomainWithCertByDomain(ctx context.Context, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	//  SELECT id
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND BINARY slug = 'default'
+	//  LIMIT 1
+	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
@@ -666,7 +666,9 @@ type Querier interface {
 	//  FROM `deployment_changes`
 	//  WHERE region_id = ?
 	GetDeploymentChangesMaxVersion(ctx context.Context, regionID string) (int64, error)
-	//GetWorkspacesForQuotaCheckByIDs
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//     w.id,
@@ -737,12 +739,14 @@ type Querier interface {
 	//      id,
 	//      name,
 	//      workspace_id,
+	//      project_id,
 	//      auth_type,
 	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1078,10 +1082,12 @@ type Querier interface {
 	//      id,
 	//      external_id,
 	//      workspace_id,
+	//      project_id,
 	//      environment,
 	//      created_at,
 	//      meta
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1223,6 +1229,7 @@ type Querier interface {
 	//  INSERT INTO `key_auth` (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      created_at_m,
 	//      store_encrypted_keys,
 	//      default_prefix,
@@ -1232,7 +1239,8 @@ type Querier interface {
 	//  ) VALUES (
 	//      ?,
 	//      ?,
-	//        ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1245,12 +1253,14 @@ type Querier interface {
 	//  INSERT INTO permissions (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    slug,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1278,11 +1288,13 @@ type Querier interface {
 	//  INSERT INTO roles (
 	//    id,
 	//    workspace_id,
+	//    project_id,
 	//    name,
 	//    description,
 	//    created_at_m
 	//  )
 	//  VALUES (
+	//    ?,
 	//    ?,
 	//    ?,
 	//    ?,
@@ -1619,25 +1631,6 @@ type Querier interface {
 	//  LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
-	// Temporary staged-collation bridge: the native-collation term preserves
-	// index lookup while the as_cs term enforces exact ID equality. Remove after
-	// all counterpart columns are utf8mb4_0900_as_cs.
-	//
-	//  SELECT
-	//     w.id,
-	//     w.org_id,
-	//     w.name,
-	//     b.stripe_customer_id,
-	//     b.tier,
-	//     w.enabled,
-	//     q.requests_per_month
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-	//  LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-	//  WHERE w.id > ?
-	//  ORDER BY w.id ASC
-	//  LIMIT 100
-	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
 	// Lists every enabled workspace that has set a Deploy spend budget, plus any
 	// that is currently spend-cap suspended even without a budget: the set the
 	// spend-cap check evaluates. The check prices each one's month-to-date Deploy

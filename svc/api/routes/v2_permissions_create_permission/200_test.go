@@ -60,11 +60,14 @@ func TestSuccess(t *testing.T) {
 		// Verify permission was created in database
 		perm, err := db.Query.FindPermissionByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
 		require.NoError(t, err)
+		projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), workspace.ID)
+		require.NoError(t, err)
 		require.Equal(t, res.Body.Data.PermissionId, perm.ID)
 		require.Equal(t, req.Name, perm.Name)
 		require.Equal(t, req.Slug, perm.Slug)
 		require.Equal(t, description, perm.Description.String)
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
+		require.Equal(t, projectID, perm.ProjectID)
 
 		// Verify the audit log was queued in clickhouse_outbox.
 		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.PermissionId)

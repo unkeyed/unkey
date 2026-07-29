@@ -36,7 +36,9 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
 }
 
-// GetWorkspacesForQuotaCheckByIDs
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	   w.id,
@@ -69,82 +71,6 @@ func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspace
 	var items []GetWorkspacesForQuotaCheckByIDsRow
 	for rows.Next() {
 		var i GetWorkspacesForQuotaCheckByIDsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrgID,
-			&i.Name,
-			&i.StripeCustomerID,
-			&i.Tier,
-			&i.Enabled,
-			&i.RequestsPerMonth,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listWorkspacesForQuotaCheck = `-- name: ListWorkspacesForQuotaCheck :many
-SELECT
-   w.id,
-   w.org_id,
-   w.name,
-   b.stripe_customer_id,
-   b.tier,
-   w.enabled,
-   q.requests_per_month
-FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-WHERE w.id > ?
-ORDER BY w.id ASC
-LIMIT 100
-`
-
-type ListWorkspacesForQuotaCheckRow struct {
-	ID               string         `db:"id"`
-	OrgID            string         `db:"org_id"`
-	Name             string         `db:"name"`
-	StripeCustomerID sql.NullString `db:"stripe_customer_id"`
-	Tier             sql.NullString `db:"tier"`
-	Enabled          bool           `db:"enabled"`
-	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
-}
-
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
-//
-//	SELECT
-//	   w.id,
-//	   w.org_id,
-//	   w.name,
-//	   b.stripe_customer_id,
-//	   b.tier,
-//	   w.enabled,
-//	   q.requests_per_month
-//	FROM `workspaces` w
-//	LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-//	LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
-//	WHERE w.id > ?
-//	ORDER BY w.id ASC
-//	LIMIT 100
-func (q *Queries) ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error) {
-	rows, err := q.db.QueryContext(ctx, listWorkspacesForQuotaCheck, cursor)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListWorkspacesForQuotaCheckRow
-	for rows.Next() {
-		var i ListWorkspacesForQuotaCheckRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgID,

@@ -3,6 +3,7 @@ INSERT INTO `identities` (
     id,
     external_id,
     workspace_id,
+    project_id,
     environment,
     created_at,
     meta
@@ -10,6 +11,7 @@ INSERT INTO `identities` (
     sqlc.arg('id'),
     sqlc.arg('external_id'),
     sqlc.arg('workspace_id'),
+    sqlc.arg('project_id'),
     sqlc.arg('environment'),
     sqlc.arg('created_at'),
     CAST(sqlc.arg('meta') AS JSON)
