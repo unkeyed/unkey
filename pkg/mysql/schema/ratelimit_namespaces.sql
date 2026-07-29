@@ -3,7 +3,7 @@ CREATE TABLE `ratelimit_namespaces` (
 	`id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(64) NOT NULL DEFAULT '',
-	`name` varchar(512) NOT NULL,
+	`name` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,

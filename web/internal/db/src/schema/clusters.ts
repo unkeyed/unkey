@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable } from "drizzle-orm/mysql-core";
 import { regions } from "./regions";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 // clusters tracks our kubernetes clusters
@@ -11,7 +10,7 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-  id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+  id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
   regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {

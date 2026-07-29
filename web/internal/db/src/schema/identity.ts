@@ -53,7 +53,7 @@ export const ratelimits = mysqlTable(
     /**
      * The name is used to reference this limit when verifying a key.
      */
-    name: caseInsensitiveVarchar("name", { length: 256 }).notNull(),
+    name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
 
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     ...lifecycleDates,

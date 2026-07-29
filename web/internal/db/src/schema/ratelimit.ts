@@ -12,7 +12,7 @@ export const ratelimitNamespaces = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
-    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
+    name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
   },
@@ -42,7 +42,7 @@ export const ratelimitOverrides = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     namespaceId: caseSensitiveVarchar("namespace_id", { length: 256 }).notNull(),
-    identifier: caseInsensitiveVarchar("identifier", { length: 512 }).notNull(),
+    identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     /**
@@ -96,9 +96,9 @@ export const ratelimitGlobalCounters = mysqlTable(
     // workspaceId is varchar(191) instead of the project-wide 256 because the
     // unique index spans six columns (the four key fields plus sequence and
     // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 191 }).notNull(),
-    namespace: caseInsensitiveVarchar("namespace", { length: 255 }).notNull(),
-    identifier: caseInsensitiveVarchar("identifier", { length: 255 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
+    namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
+    identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),
     /**
      * Sliding-window sequence this row's count belongs to. Receivers apply the
@@ -116,7 +116,7 @@ export const ratelimitGlobalCounters = mysqlTable(
      * for utf8mb4. Real region tags (aws region IDs, datacenter codes) sit
      * comfortably under this; the cap exists only to bound the index size.
      */
-    region: caseInsensitiveVarchar("region", { length: 48 }).notNull(),
+    region: caseSensitiveVarchar("region", { length: 48 }).notNull(),
     /**
      * Region's observed count for this window cell. Monotonic per region
      * within a sequence (own count only ever grows). Concurrent writers
