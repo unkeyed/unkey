@@ -1,9 +1,11 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
+import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
 import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
@@ -57,7 +59,11 @@ export const cancelDeploy = workspaceProcedure
     }
 
     await db.transaction(async (tx) => {
-      await setComputeQuotas(tx, { workspaceId: ctx.workspace.id, plan: null });
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: null,
+        preserveApiQuotas: ctx.workspace.tier !== "Free",
+      });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
@@ -67,4 +73,8 @@ export const cancelDeploy = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    if (ctx.workspace.tier === "Free" && deployPlanGrantsTeam(ctx.workspace.deployPlan)) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
   });

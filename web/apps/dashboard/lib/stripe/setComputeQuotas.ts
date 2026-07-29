@@ -1,12 +1,12 @@
 import { type Database, type Transaction, schema } from "@unkey/db";
-import { type DeployPlan, computeQuotasForPlan } from "./deployPlan";
+import { type DeployPlan, computeQuotaUpdateForPlan } from "./deployPlan";
 
-/** Applies only Compute-owned quota fields, preserving any active API plan's quotas. */
+/** Applies Compute plan quotas without weakening a paid API plan's shared entitlements. */
 export async function setComputeQuotas(
   db: Transaction | Database,
-  params: { workspaceId: string; plan: DeployPlan | null },
+  params: { workspaceId: string; plan: DeployPlan | null; preserveApiQuotas: boolean },
 ): Promise<void> {
-  const quotas = computeQuotasForPlan(params.plan);
+  const quotas = computeQuotaUpdateForPlan(params.plan, params.preserveApiQuotas);
   await db
     .insert(schema.quotas)
     .values({ workspaceId: params.workspaceId, ...quotas })

@@ -278,7 +278,11 @@ export const subscribeDeploy = workspaceProcedure
           .update(schema.workspaceBilling)
           .set(workspaceUpdate)
           .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-        await setComputeQuotas(tx, { workspaceId: ctx.workspace.id, plan: input.plan });
+        await setComputeQuotas(tx, {
+          workspaceId: ctx.workspace.id,
+          plan: input.plan,
+          preserveApiQuotas: ctx.workspace.tier !== "Free",
+        });
         if (createdDeploySubscriptionId) {
           await upsertBillingSubscription(tx, {
             workspaceId: ctx.workspace.id,
