@@ -1,6 +1,5 @@
 "use client";
 
-import { NewNavigationBanner } from "@/components/navigation/new-navigation-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
@@ -49,7 +48,6 @@ export default function ProjectsPage() {
           </PageHeader>
           <PageBody>
             <ProjectsList />
-            <NewNavigationBanner />
           </PageBody>
         </PageContainer>
       )}
