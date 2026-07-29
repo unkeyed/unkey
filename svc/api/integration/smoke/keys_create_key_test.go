@@ -17,6 +17,7 @@ func TestCreateKey_ReturnsFetchableKey(t *testing.T) {
 	key := response.V2KeysCreateKeyResponseBody.Data
 	require.NotEmpty(t, key.KeyID)
 	require.NotEmpty(t, key.Key)
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)

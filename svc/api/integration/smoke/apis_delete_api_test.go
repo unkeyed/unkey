@@ -13,6 +13,7 @@ func TestDeleteAPI_DeletesAPI(t *testing.T) {
 	created, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{Name: uid.DNS1035()})
 	require.NoError(t, err)
 	require.NotNil(t, created.V2ApisCreateAPIResponseBody)
+	waitForPropagation()
 	deleted, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{APIID: created.V2ApisCreateAPIResponseBody.Data.APIID})
 	require.NoError(t, err)
 	require.NotNil(t, deleted.V2ApisDeleteAPIResponseBody)

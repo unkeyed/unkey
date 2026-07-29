@@ -14,6 +14,7 @@ func TestCreateRole_ReturnsRoleID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2PermissionsCreateRoleResponseBody)
 	require.NotEmpty(t, response.V2PermissionsCreateRoleResponseBody.Data.RoleID)
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{Role: response.V2PermissionsCreateRoleResponseBody.Data.RoleID})
 		require.NoError(t, err)

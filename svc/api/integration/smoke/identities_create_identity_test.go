@@ -14,6 +14,7 @@ func TestCreateIdentity_ReturnsIdentityID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2IdentitiesCreateIdentityResponseBody)
 	require.NotEmpty(t, response.V2IdentitiesCreateIdentityResponseBody.Data.IdentityID)
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Identities.DeleteIdentity(ctx, components.V2IdentitiesDeleteIdentityRequestBody{Identity: response.V2IdentitiesCreateIdentityResponseBody.Data.IdentityID})
 		require.NoError(t, err)

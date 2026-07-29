@@ -15,6 +15,7 @@ func TestDeleteKey_InvalidatesVerification(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, created.V2KeysCreateKeyResponseBody)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	deleted, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 	require.NoError(t, err)
 	require.NotNil(t, deleted.V2KeysDeleteKeyResponseBody)

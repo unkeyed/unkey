@@ -13,6 +13,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func waitForPropagation() {
+	time.Sleep(2 * time.Second)
+}
+
 func externalClient(t *testing.T) (context.Context, *unkey.Unkey) {
 	t.Helper()
 
@@ -41,6 +45,7 @@ func createAPI(t *testing.T, ctx context.Context, client *unkey.Unkey) component
 	require.NoError(t, err)
 	require.NotNil(t, response.V2ApisCreateAPIResponseBody)
 	api := response.V2ApisCreateAPIResponseBody.Data
+	waitForPropagation()
 
 	t.Cleanup(func() {
 		_, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{APIID: api.APIID})
@@ -62,6 +67,7 @@ func createKey(t *testing.T, ctx context.Context, client *unkey.Unkey, apiID str
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysCreateKeyResponseBody)
 	key := response.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
@@ -85,6 +91,7 @@ func createPermission(t *testing.T, ctx context.Context, client *unkey.Unkey) co
 	require.NoError(t, err)
 	require.NotNil(t, response.V2PermissionsCreatePermissionResponseBody)
 	permissionID := response.V2PermissionsCreatePermissionResponseBody.Data.PermissionID
+	waitForPropagation()
 	getResponse, err := client.Permissions.GetPermission(ctx, components.V2PermissionsGetPermissionRequestBody{
 		Permission: permissionID,
 	})
@@ -111,19 +118,12 @@ func createRole(t *testing.T, ctx context.Context, client *unkey.Unkey) componen
 	require.NoError(t, err)
 	require.NotNil(t, response.V2PermissionsCreateRoleResponseBody)
 	roleID := response.V2PermissionsCreateRoleResponseBody.Data.RoleID
-
-	var role components.Role
-	// Role reads can lag behind creation while regional caches converge.
-	require.Eventually(t, func() bool {
-		getResponse, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{
-			Role: roleID,
-		})
-		if err != nil || getResponse.V2PermissionsGetRoleResponseBody == nil {
-			return false
-		}
-		role = getResponse.V2PermissionsGetRoleResponseBody.Data
-		return true
-	}, 30*time.Second, time.Second)
+	waitForPropagation()
+	getResponse, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{
+		Role: roleID,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, getResponse.V2PermissionsGetRoleResponseBody)
 
 	t.Cleanup(func() {
 		_, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{
@@ -132,7 +132,7 @@ func createRole(t *testing.T, ctx context.Context, client *unkey.Unkey) componen
 		require.NoError(t, err)
 	})
 
-	return role
+	return getResponse.V2PermissionsGetRoleResponseBody.Data
 }
 
 func createIdentity(t *testing.T, ctx context.Context, client *unkey.Unkey) components.Identity {
@@ -145,6 +145,7 @@ func createIdentity(t *testing.T, ctx context.Context, client *unkey.Unkey) comp
 	require.NoError(t, err)
 	require.NotNil(t, response.V2IdentitiesCreateIdentityResponseBody)
 	identityID := response.V2IdentitiesCreateIdentityResponseBody.Data.IdentityID
+	waitForPropagation()
 	getResponse, err := client.Identities.GetIdentity(ctx, components.V2IdentitiesGetIdentityRequestBody{
 		Identity: identityID,
 	})

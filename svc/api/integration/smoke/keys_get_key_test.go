@@ -29,6 +29,7 @@ func TestGetKey_ReturnsPersistedMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, created.V2KeysCreateKeyResponseBody)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)
@@ -47,6 +48,7 @@ func TestGetKey_ReturnsPersistedIdentity(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, created.V2KeysCreateKeyResponseBody)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)
@@ -66,6 +68,7 @@ func TestGetKey_ReturnsPersistedRatelimit(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, created.V2KeysCreateKeyResponseBody)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)

@@ -15,6 +15,7 @@ func TestCreateAPI_ReturnsAPIID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2ApisCreateAPIResponseBody)
 	require.NotEmpty(t, response.V2ApisCreateAPIResponseBody.Data.APIID)
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{APIID: response.V2ApisCreateAPIResponseBody.Data.APIID})
 		require.NoError(t, err)

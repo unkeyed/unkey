@@ -46,6 +46,7 @@ func TestVerifyKey_ReturnsMetadataAndIdentity(t *testing.T) {
 	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, ExternalID: &identity.ExternalID, Meta: meta})
 	require.NoError(t, err)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)
@@ -65,6 +66,7 @@ func TestVerifyKey_ReturnsAutoAppliedRatelimit(t *testing.T) {
 	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Ratelimits: []components.RatelimitRequest{limit}})
 	require.NoError(t, err)
 	key := created.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
 		require.NoError(t, err)

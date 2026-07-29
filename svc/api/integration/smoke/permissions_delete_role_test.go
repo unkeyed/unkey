@@ -13,6 +13,7 @@ func TestDeleteRole_DeletesRole(t *testing.T) {
 	created, err := client.Permissions.CreateRole(ctx, components.V2PermissionsCreateRoleRequestBody{Name: uid.DNS1035()})
 	require.NoError(t, err)
 	require.NotNil(t, created.V2PermissionsCreateRoleResponseBody)
+	waitForPropagation()
 	deleted, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{Role: created.V2PermissionsCreateRoleResponseBody.Data.RoleID})
 	require.NoError(t, err)
 	require.NotNil(t, deleted.V2PermissionsDeleteRoleResponseBody)

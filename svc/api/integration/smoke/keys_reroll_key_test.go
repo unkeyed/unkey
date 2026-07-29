@@ -63,6 +63,7 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, createResponse.V2KeysCreateKeyResponseBody)
 	original := createResponse.V2KeysCreateKeyResponseBody.Data
+	waitForPropagation()
 
 	response, err := client.Keys.RerollKey(ctx, components.V2KeysRerollKeyRequestBody{
 		KeyID:      original.KeyID,

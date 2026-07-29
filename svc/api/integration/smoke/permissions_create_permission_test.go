@@ -15,6 +15,7 @@ func TestCreatePermission_ReturnsPermissionID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2PermissionsCreatePermissionResponseBody)
 	require.NotEmpty(t, response.V2PermissionsCreatePermissionResponseBody.Data.PermissionID)
+	waitForPropagation()
 	t.Cleanup(func() {
 		_, err := client.Permissions.DeletePermission(ctx, components.V2PermissionsDeletePermissionRequestBody{Permission: response.V2PermissionsCreatePermissionResponseBody.Data.PermissionID})
 		require.NoError(t, err)
