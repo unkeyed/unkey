@@ -13,6 +13,7 @@ import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
@@ -55,10 +56,13 @@ async function mirrorDeployPlan(
   const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
-    await db
-      .update(schema.workspaceBilling)
-      .set({ plan })
-      .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.workspaceBilling)
+        .set({ plan })
+        .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
+      await setComputeQuotas(tx, { workspaceId: billing.workspaceId, plan });
+    });
   }
 }
 
@@ -585,9 +589,11 @@ export const POST = async (req: Request): Promise<Response> => {
               .where(eq(schema.workspaceBilling.workspaceId, ws.id));
             await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "compute" });
 
-            // Only reset quotas when nothing paid remains; a paid API tier keeps
-            // its own quotas, so leave them untouched.
-            if (!keepsTeam) {
+            // Reset the Compute-owned ceilings even when a paid API plan remains;
+            // in that case the API-owned quota fields and team access stay intact.
+            if (keepsTeam) {
+              await setComputeQuotas(tx, { workspaceId: ws.id, plan: null });
+            } else {
               await tx
                 .insert(schema.quotas)
                 .values({ workspaceId: ws.id, ...freeTierQuotas })

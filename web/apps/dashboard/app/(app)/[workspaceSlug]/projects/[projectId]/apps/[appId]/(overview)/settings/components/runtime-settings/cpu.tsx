@@ -14,7 +14,6 @@ const CPU_OPTIONS = [
   { label: "4 vCPU", value: 4000 },
   { label: "8 vCPU", value: 8000 },
   { label: "16 vCPU", value: 16000 },
-  { label: "32 vCPU", value: 32000 },
 ] as const;
 
 const cpuConfig = defineResourceSlider({
