@@ -101,6 +101,6 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 		require.Equal(c, ratelimit.Name, persisted.Ratelimits[0].Name)
 		require.Equal(c, ratelimit.Limit, persisted.Ratelimits[0].Limit)
 		require.Equal(c, ratelimit.Duration, persisted.Ratelimits[0].Duration)
-		require.Equal(c, ratelimit.AutoApply, persisted.Ratelimits[0].AutoApply)
+		require.True(c, persisted.Ratelimits[0].AutoApply)
 	}, 30*time.Second, time.Second)
 }

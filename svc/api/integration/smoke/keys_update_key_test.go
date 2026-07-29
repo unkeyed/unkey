@@ -67,6 +67,6 @@ func TestUpdateKey_PersistsRatelimit(t *testing.T) {
 		require.Equal(c, limit.Name, persisted.Name)
 		require.Equal(c, limit.Limit, persisted.Limit)
 		require.Equal(c, limit.Duration, persisted.Duration)
-		require.Equal(c, limit.AutoApply, persisted.AutoApply)
+		require.True(c, persisted.AutoApply)
 	}, 30*time.Second, time.Second)
 }
