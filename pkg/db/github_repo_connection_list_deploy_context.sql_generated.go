@@ -18,17 +18,17 @@ SELECT
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 FROM github_repo_connections gc
-INNER JOIN apps a ON a.id = gc.app_id
-INNER JOIN projects p ON p.id = gc.project_id
-INNER JOIN environments e ON e.app_id = a.id
+INNER JOIN apps a ON (gc.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND gc.app_id COLLATE utf8mb4_0900_as_cs = a.id)
+INNER JOIN projects p ON (gc.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND gc.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+INNER JOIN environments e ON (a.id COLLATE utf8mb4_0900_ai_ci = e.app_id AND a.id COLLATE utf8mb4_0900_as_cs = e.app_id)
   AND e.slug = CASE
     WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
     THEN 'production'
     ELSE 'preview'
   END
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
-INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+INNER JOIN app_build_settings abs ON (a.id COLLATE utf8mb4_0900_ai_ci = abs.app_id AND a.id COLLATE utf8mb4_0900_as_cs = abs.app_id) AND (e.id COLLATE utf8mb4_0900_ai_ci = abs.environment_id AND e.id COLLATE utf8mb4_0900_as_cs = abs.environment_id)
+INNER JOIN app_runtime_settings ars ON (a.id COLLATE utf8mb4_0900_ai_ci = ars.app_id AND a.id COLLATE utf8mb4_0900_as_cs = ars.app_id) AND (e.id COLLATE utf8mb4_0900_ai_ci = ars.environment_id AND e.id COLLATE utf8mb4_0900_as_cs = ars.environment_id)
 WHERE gc.installation_id = ?
   AND gc.repository_id = ?
 `
@@ -49,7 +49,9 @@ type ListRepoConnectionDeployContextsRow struct {
 	AppRuntimeSetting    AppRuntimeSetting    `db:"app_runtime_setting"`
 }
 
-// ListRepoConnectionDeployContexts
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
@@ -59,17 +61,17 @@ type ListRepoConnectionDeployContextsRow struct {
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 //	FROM github_repo_connections gc
-//	INNER JOIN apps a ON a.id = gc.app_id
-//	INNER JOIN projects p ON p.id = gc.project_id
-//	INNER JOIN environments e ON e.app_id = a.id
+//	INNER JOIN apps a ON (gc.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND gc.app_id COLLATE utf8mb4_0900_as_cs = a.id)
+//	INNER JOIN projects p ON (gc.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND gc.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+//	INNER JOIN environments e ON (a.id COLLATE utf8mb4_0900_ai_ci = e.app_id AND a.id COLLATE utf8mb4_0900_as_cs = e.app_id)
 //	  AND e.slug = CASE
 //	    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
 //	    THEN 'production'
 //	    ELSE 'preview'
 //	  END
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
-//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+//	INNER JOIN app_build_settings abs ON (a.id COLLATE utf8mb4_0900_ai_ci = abs.app_id AND a.id COLLATE utf8mb4_0900_as_cs = abs.app_id) AND (e.id COLLATE utf8mb4_0900_ai_ci = abs.environment_id AND e.id COLLATE utf8mb4_0900_as_cs = abs.environment_id)
+//	INNER JOIN app_runtime_settings ars ON (a.id COLLATE utf8mb4_0900_ai_ci = ars.app_id AND a.id COLLATE utf8mb4_0900_as_cs = ars.app_id) AND (e.id COLLATE utf8mb4_0900_ai_ci = ars.environment_id AND e.id COLLATE utf8mb4_0900_as_cs = ars.environment_id)
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
 func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error) {

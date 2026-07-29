@@ -20,8 +20,8 @@ SELECT
   ek.encryption_key_id as encryption_key_id
 
 FROM ` + "`" + `keys` + "`" + ` k
-LEFT JOIN ` + "`" + `identities` + "`" + ` i ON k.identity_id = i.id
-LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+LEFT JOIN ` + "`" + `identities` + "`" + ` i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id)
+LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 WHERE k.key_auth_id = ?
 AND k.id >= ?
 AND (? IS NULL OR k.identity_id = ?)
@@ -46,7 +46,9 @@ type ListKeysByKeySpaceIDRow struct {
 	EncryptionKeyID sql.NullString `db:"encryption_key_id"`
 }
 
-// ListKeysByKeySpaceID
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	  k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -57,8 +59,8 @@ type ListKeysByKeySpaceIDRow struct {
 //	  ek.encryption_key_id as encryption_key_id
 //
 //	FROM `keys` k
-//	LEFT JOIN `identities` i ON k.identity_id = i.id
-//	LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+//	LEFT JOIN `identities` i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id)
+//	LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 //	WHERE k.key_auth_id = ?
 //	AND k.id >= ?
 //	AND (? IS NULL OR k.identity_id = ?)

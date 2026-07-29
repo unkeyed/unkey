@@ -19,11 +19,11 @@ SELECT
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
-INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
-INNER JOIN ` + "`" + `environments` + "`" + ` e ON d.environment_id = e.id
-LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON d.app_id = grc.app_id
+INNER JOIN ` + "`" + `deployments` + "`" + ` d ON (dt.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND dt.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
+INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON (d.workspace_id COLLATE utf8mb4_0900_ai_ci = w.id AND d.workspace_id COLLATE utf8mb4_0900_as_cs = w.id)
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+INNER JOIN ` + "`" + `environments` + "`" + ` e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON (d.app_id COLLATE utf8mb4_0900_ai_ci = grc.app_id AND d.app_id COLLATE utf8mb4_0900_as_cs = grc.app_id)
 WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 ORDER BY dt.pk ASC
 LIMIT ?
@@ -46,6 +46,9 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 
 // ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 // Used by SyncDesiredState to reconcile krane agents with current desired state.
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
@@ -55,11 +58,11 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
-//	INNER JOIN `deployments` d ON dt.deployment_id = d.id
-//	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	INNER JOIN `regions` r ON dt.region_id = r.id
-//	INNER JOIN `environments` e ON d.environment_id = e.id
-//	LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
+//	INNER JOIN `deployments` d ON (dt.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND dt.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
+//	INNER JOIN `workspaces` w ON (d.workspace_id COLLATE utf8mb4_0900_ai_ci = w.id AND d.workspace_id COLLATE utf8mb4_0900_as_cs = w.id)
+//	INNER JOIN `regions` r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+//	INNER JOIN `environments` e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+//	LEFT JOIN `github_repo_connections` grc ON (d.app_id COLLATE utf8mb4_0900_ai_ci = grc.app_id AND d.app_id COLLATE utf8mb4_0900_as_cs = grc.app_id)
 //	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 //	ORDER BY dt.pk ASC
 //	LIMIT ?

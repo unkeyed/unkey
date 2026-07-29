@@ -1,4 +1,7 @@
 -- name: FindLiveKeyByHash :one
+-- Temporary staged-collation bridge: the native-collation term preserves
+-- index lookup while the as_cs term enforces exact ID equality. Remove after
+-- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
     k.*,
     sqlc.embed(a),
@@ -21,7 +24,7 @@ SELECT
         )
         FROM keys_roles kr
         JOIN roles r ON r.id = kr.role_id
-        WHERE kr.key_id = k.id),
+        WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
         JSON_ARRAY()
     ) as roles,
 
@@ -37,7 +40,7 @@ SELECT
         )
         FROM keys_permissions kp
         JOIN permissions p ON kp.permission_id = p.id
-        WHERE kp.key_id = k.id),
+        WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
         JSON_ARRAY()
     ) as permissions,
 
@@ -54,7 +57,7 @@ SELECT
         FROM keys_roles kr
         JOIN roles_permissions rp ON kr.role_id = rp.role_id
         JOIN permissions p ON rp.permission_id = p.id
-        WHERE kr.key_id = k.id),
+        WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
         JSON_ARRAY()
     ) as role_permissions,
 
@@ -74,11 +77,11 @@ SELECT
         FROM (
             SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
             FROM ratelimits rl
-            WHERE rl.key_id = k.id
+            WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
             UNION ALL
             SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
             FROM ratelimits rl
-            WHERE rl.identity_id = i.id
+            WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
         ) AS combined_rl),
         JSON_ARRAY()
     ) as ratelimits
@@ -86,9 +89,9 @@ SELECT
 FROM `keys` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
 JOIN key_auth ka ON ka.id = k.key_auth_id
-JOIN workspaces ws ON ws.id = k.workspace_id
-LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
+LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 WHERE k.hash = sqlc.arg(hash)
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL

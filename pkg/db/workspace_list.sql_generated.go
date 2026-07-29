@@ -14,7 +14,7 @@ SELECT
    w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON w.id = q.workspace_id
+LEFT JOIN quota q ON (w.id COLLATE utf8mb4_0900_ai_ci = q.workspace_id AND w.id COLLATE utf8mb4_0900_as_cs = q.workspace_id)
 WHERE w.id > ?
 ORDER BY w.id ASC
 LIMIT 100
@@ -25,13 +25,15 @@ type ListWorkspacesRow struct {
 	Quotas    Quotas    `db:"quotas"`
 }
 
-// ListWorkspaces
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 //	   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 //	FROM `workspaces` w
-//	LEFT JOIN quota q ON w.id = q.workspace_id
+//	LEFT JOIN quota q ON (w.id COLLATE utf8mb4_0900_ai_ci = q.workspace_id AND w.id COLLATE utf8mb4_0900_as_cs = q.workspace_id)
 //	WHERE w.id > ?
 //	ORDER BY w.id ASC
 //	LIMIT 100

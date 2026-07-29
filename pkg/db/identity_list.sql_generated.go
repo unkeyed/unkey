@@ -31,7 +31,7 @@ SELECT
             )
         )
         FROM ratelimits r
-        WHERE r.identity_id = i.id),
+        WHERE (i.id COLLATE utf8mb4_0900_ai_ci = r.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = r.identity_id)),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -67,6 +67,9 @@ type ListIdentitiesRow struct {
 // ratelimits aggregated into a JSON array (empty array when none exist).
 // Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 // pages deterministic, and the empty-string cursor starts from the first row.
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 // search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //
 //	SELECT
@@ -89,7 +92,7 @@ type ListIdentitiesRow struct {
 //	            )
 //	        )
 //	        FROM ratelimits r
-//	        WHERE r.identity_id = i.id),
+//	        WHERE (i.id COLLATE utf8mb4_0900_ai_ci = r.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = r.identity_id)),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i

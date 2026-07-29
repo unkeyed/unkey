@@ -50,6 +50,9 @@ type Querier interface {
 	// spend-cap suspension flag so a deployment paused for hitting the spend limit
 	// returns a billing 402 instead of a generic offline. Joining deployments and
 	// the workspace's billing row here keeps the fast path to a single round trip.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//    fr.environment_id,
@@ -59,19 +62,22 @@ type Querier interface {
 	//    d.desired_state,
 	//    wb.spend_suspended
 	//  FROM frontline_routes fr
-	//  INNER JOIN deployments d ON fr.deployment_id = d.id
-	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
+	//  INNER JOIN deployments d ON (d.id = fr.deployment_id COLLATE utf8mb4_0900_ai_ci AND d.id = fr.deployment_id COLLATE utf8mb4_0900_as_cs)
+	//  LEFT JOIN workspace_billing wb ON (wb.workspace_id = d.workspace_id COLLATE utf8mb4_0900_ai_ci AND wb.workspace_id = d.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE fr.fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error)
 	// FindInstancesByDeploymentID returns all instances for a given deployment
 	// with region metadata for instance-aware routing decisions.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//    i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status, i.container_status,
 	//    r.name AS region_name,
 	//    r.platform AS region_platform
 	//  FROM instances i
-	//  INNER JOIN regions r ON i.region_id = r.id
+	//  INNER JOIN regions r ON (r.id = i.region_id COLLATE utf8mb4_0900_ai_ci AND r.id = i.region_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE i.deployment_id = ?
 	FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error)
 	// FindOpenApiSpecByDeploymentID returns the scraped OpenAPI spec for a

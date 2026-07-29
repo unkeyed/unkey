@@ -20,9 +20,9 @@ SELECT
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
-JOIN projects p ON p.id = d.project_id
-JOIN environments e ON e.id = d.environment_id
-JOIN apps a ON a.id = d.app_id
+JOIN projects p ON (d.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND d.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+JOIN apps a ON (d.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND d.app_id COLLATE utf8mb4_0900_as_cs = a.id)
 WHERE d.workspace_id = ?
   AND d.id IN (/*SLICE:deployment_ids*/?)
 `
@@ -41,7 +41,9 @@ type ListDeploymentEnvAndAppStateRow struct {
 	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
 }
 
-// ListDeploymentEnvAndAppState
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	  d.id AS deployment_id,
@@ -51,9 +53,9 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
-//	JOIN projects p ON p.id = d.project_id
-//	JOIN environments e ON e.id = d.environment_id
-//	JOIN apps a ON a.id = d.app_id
+//	JOIN projects p ON (d.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND d.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+//	JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+//	JOIN apps a ON (d.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND d.app_id COLLATE utf8mb4_0900_as_cs = a.id)
 //	WHERE d.workspace_id = ?
 //	  AND d.id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {

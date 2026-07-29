@@ -4,6 +4,9 @@
 -- when a workspace is already being fetched, prefer joining workspace_billing in
 -- that query rather than a second round trip. Stripe subscription ids now live
 -- on billing_subscriptions, one row per (workspace, product).
+-- Temporary staged-collation bridge: the native-collation term preserves
+-- index lookup while the as_cs term enforces exact ID equality. Remove after
+-- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
    b.pk,
    b.workspace_id,
@@ -21,7 +24,7 @@ SELECT
    b.deleted_at_m
 FROM `workspace_billing` b
 LEFT JOIN `billing_subscriptions` bs_api
-   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+   ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_api.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_api.workspace_id) AND bs_api.product = 'api'
 LEFT JOIN `billing_subscriptions` bs_deploy
-   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+   ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_deploy.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_deploy.workspace_id) AND bs_deploy.product = 'compute'
 WHERE b.workspace_id = sqlc.arg(workspace_id);

@@ -28,7 +28,7 @@ JOIN (
     SELECT p2.id
     FROM projects p2
     WHERE p2.slug = ? AND p2.workspace_id = ?
-) AS project_lookup ON p.id = project_lookup.id
+) AS project_lookup ON (project_lookup.id COLLATE utf8mb4_0900_ai_ci = p.id AND project_lookup.id COLLATE utf8mb4_0900_as_cs = p.id)
 LIMIT 1
 `
 
@@ -47,7 +47,9 @@ type FindProjectByIdOrSlugRow struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
-// FindProjectByIdOrSlug
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    p.id,
@@ -66,7 +68,7 @@ type FindProjectByIdOrSlugRow struct {
 //	    SELECT p2.id
 //	    FROM projects p2
 //	    WHERE p2.slug = ? AND p2.workspace_id = ?
-//	) AS project_lookup ON p.id = project_lookup.id
+//	) AS project_lookup ON (project_lookup.id COLLATE utf8mb4_0900_ai_ci = p.id AND project_lookup.id COLLATE utf8mb4_0900_as_cs = p.id)
 //	LIMIT 1
 func (q *Queries) FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findProjectByIdOrSlug,

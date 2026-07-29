@@ -18,9 +18,9 @@ SELECT
     d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
     w.k8s_namespace
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
-INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
-INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+INNER JOIN ` + "`" + `deployments` + "`" + ` d ON (dt.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND dt.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
+INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON (d.workspace_id COLLATE utf8mb4_0900_ai_ci = w.id AND d.workspace_id COLLATE utf8mb4_0900_as_cs = w.id)
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 WHERE (? = '' OR r.name = ?)
     AND d.desired_state = ?
     AND dt.deployment_id > ?
@@ -43,15 +43,18 @@ type ListDesiredDeploymentTopologyRow struct {
 
 // ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
 // Used during bootstrap to stream all running deployments to krane.
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
 //	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 //	    w.k8s_namespace
 //	FROM `deployment_topology` dt
-//	INNER JOIN `deployments` d ON dt.deployment_id = d.id
-//	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	INNER JOIN `deployments` d ON (dt.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND dt.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
+//	INNER JOIN `workspaces` w ON (d.workspace_id COLLATE utf8mb4_0900_ai_ci = w.id AND d.workspace_id COLLATE utf8mb4_0900_as_cs = w.id)
+//	INNER JOIN `regions` r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 //	WHERE (? = '' OR r.name = ?)
 //	    AND d.desired_state = ?
 //	    AND dt.deployment_id > ?

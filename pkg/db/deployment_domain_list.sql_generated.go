@@ -13,7 +13,7 @@ import (
 const listDeploymentDomains = `-- name: ListDeploymentDomains :many
 SELECT r.fully_qualified_domain_name AS domain
 FROM frontline_routes r
-JOIN deployments d ON d.id = r.deployment_id
+JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 WHERE d.workspace_id = ?
   AND r.deployment_id = ?
 ORDER BY r.fully_qualified_domain_name
@@ -24,11 +24,13 @@ type ListDeploymentDomainsParams struct {
 	DeploymentID string `db:"deployment_id"`
 }
 
-// ListDeploymentDomains
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT r.fully_qualified_domain_name AS domain
 //	FROM frontline_routes r
-//	JOIN deployments d ON d.id = r.deployment_id
+//	JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 //	WHERE d.workspace_id = ?
 //	  AND r.deployment_id = ?
 //	ORDER BY r.fully_qualified_domain_name
@@ -58,7 +60,7 @@ func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDe
 const listDeploymentDomainsByIds = `-- name: ListDeploymentDomainsByIds :many
 SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 FROM frontline_routes r
-JOIN deployments d ON d.id = r.deployment_id
+JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 WHERE d.workspace_id = ?
   AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 ORDER BY r.deployment_id, r.fully_qualified_domain_name
@@ -78,7 +80,7 @@ type ListDeploymentDomainsByIdsRow struct {
 //
 //	SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 //	FROM frontline_routes r
-//	JOIN deployments d ON d.id = r.deployment_id
+//	JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 //	WHERE d.workspace_id = ?
 //	  AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY r.deployment_id, r.fully_qualified_domain_name

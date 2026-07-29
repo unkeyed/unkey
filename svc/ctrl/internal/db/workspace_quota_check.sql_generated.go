@@ -21,8 +21,8 @@ SELECT
    w.enabled,
    q.requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON w.id = q.workspace_id
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
+LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -47,8 +47,8 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   w.enabled,
 //	   q.requests_per_month
 //	FROM `workspaces` w
-//	LEFT JOIN quota q ON w.id = q.workspace_id
-//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
+//	LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
+//	LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
 	query := getWorkspacesForQuotaCheckByIDs
@@ -101,8 +101,8 @@ SELECT
    w.enabled,
    q.requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON w.id = q.workspace_id
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
+LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 WHERE w.id > ?
 ORDER BY w.id ASC
 LIMIT 100
@@ -118,7 +118,9 @@ type ListWorkspacesForQuotaCheckRow struct {
 	RequestsPerMonth sql.NullInt64  `db:"requests_per_month"`
 }
 
-// ListWorkspacesForQuotaCheck
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	   w.id,
@@ -129,8 +131,8 @@ type ListWorkspacesForQuotaCheckRow struct {
 //	   w.enabled,
 //	   q.requests_per_month
 //	FROM `workspaces` w
-//	LEFT JOIN quota q ON w.id = q.workspace_id
-//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
+//	LEFT JOIN quota q ON (q.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
+//	LEFT JOIN `workspace_billing` b ON (b.workspace_id = w.id COLLATE utf8mb4_0900_ai_ci AND b.workspace_id = w.id COLLATE utf8mb4_0900_as_cs)
 //	WHERE w.id > ?
 //	ORDER BY w.id ASC
 //	LIMIT 100

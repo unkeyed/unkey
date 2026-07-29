@@ -15,8 +15,8 @@ SELECT
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 FROM apps a
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
+INNER JOIN app_build_settings abs ON (a.id COLLATE utf8mb4_0900_ai_ci = abs.app_id AND a.id COLLATE utf8mb4_0900_as_cs = abs.app_id) AND abs.environment_id = ?
+INNER JOIN app_runtime_settings ars ON (a.id COLLATE utf8mb4_0900_ai_ci = ars.app_id AND a.id COLLATE utf8mb4_0900_as_cs = ars.app_id) AND ars.environment_id = ?
 WHERE a.id = ?
 `
 
@@ -31,15 +31,17 @@ type FindAppWithSettingsRow struct {
 	AppRuntimeSetting AppRuntimeSetting `db:"app_runtime_setting"`
 }
 
-// FindAppWithSettings
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 //	FROM apps a
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
-//	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
+//	INNER JOIN app_build_settings abs ON (a.id COLLATE utf8mb4_0900_ai_ci = abs.app_id AND a.id COLLATE utf8mb4_0900_as_cs = abs.app_id) AND abs.environment_id = ?
+//	INNER JOIN app_runtime_settings ars ON (a.id COLLATE utf8mb4_0900_ai_ci = ars.app_id AND a.id COLLATE utf8mb4_0900_as_cs = ars.app_id) AND ars.environment_id = ?
 //	WHERE a.id = ?
 func (q *Queries) FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error) {
 	row := db.QueryRowContext(ctx, findAppWithSettings, arg.EnvironmentID, arg.EnvironmentID, arg.ID)
