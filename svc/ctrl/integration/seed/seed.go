@@ -33,16 +33,45 @@ type Seeder struct {
 	DB        db.Database
 	Vault     vault.VaultServiceClient
 	Resources Resources
+
+	// workspaceIDs are the workspaces this seeder created, deleted with
+	// everything hanging off them when the test ends.
+	workspaceIDs []string
 }
 
 // New creates a new Seeder instance
 func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
-	return &Seeder{
-		t:         t,
-		DB:        database,
-		Vault:     vault,
-		Resources: Resources{}, //nolint:exhaustruct
+	s := &Seeder{
+		t:            t,
+		DB:           database,
+		Vault:        vault,
+		Resources:    Resources{}, //nolint:exhaustruct
+		workspaceIDs: nil,
 	}
+	t.Cleanup(s.cleanup)
+	return s
+}
+
+// cleanup removes every workspace this seeder created, and the projects, apps,
+// environments and deployments belonging to them.
+//
+// Integration tests share one MySQL container across test processes and across
+// runs, and the ctrl crons scan the whole database rather than one workspace:
+// the idle-preview scan pages over every environment with slug 'preview', and
+// the quota and billing handlers walk every workspace. Rows a test leaves
+// behind are therefore rescanned by every later run, which makes each run
+// slower until a scan outlives the harness timeout. Deleting only the ids this
+// seeder created keeps that safe while other test binaries use the same
+// database.
+func (s *Seeder) cleanup() {
+	if len(s.workspaceIDs) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	require.NoError(s.t, s.DB.DeleteWorkspacesWithChildren(ctx, s.workspaceIDs))
 }
 
 func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
@@ -57,6 +86,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 
 	err := s.DB.InsertWorkspace(ctx, params)
 	require.NoError(s.t, err)
+	s.workspaceIDs = append(s.workspaceIDs, params.ID)
 
 	s.CreateProject(ctx, CreateProjectRequest{
 		ID:               uid.New(uid.ProjectPrefix),
