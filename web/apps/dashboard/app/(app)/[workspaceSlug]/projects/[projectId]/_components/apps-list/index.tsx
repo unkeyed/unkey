@@ -1,4 +1,5 @@
 "use client";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
@@ -22,8 +23,12 @@ export const AppsList = () => {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+  // Without a Compute plan, creating an app opens the paywall instead.
   const openCreateApp = () =>
-    router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
+    gated
+      ? openPaywall()
+      : router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
 
   const apps = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
@@ -101,6 +106,7 @@ export const AppsList = () => {
           ))}
         </div>
       )}
+      {planGate}
     </>
   );
 };
