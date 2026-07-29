@@ -9,6 +9,8 @@ import (
 )
 
 func TestListIdentities_ReturnsCreatedIdentity(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	createIdentity(t, ctx, client)
 	response, err := client.Identities.ListIdentities(ctx, components.V2IdentitiesListIdentitiesRequestBody{Limit: ptr.P(int64(10))})

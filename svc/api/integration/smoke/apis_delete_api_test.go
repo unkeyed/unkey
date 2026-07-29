@@ -9,6 +9,8 @@ import (
 )
 
 func TestDeleteAPI_DeletesAPI(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	created, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{Name: uid.DNS1035()})
 	require.NoError(t, err)

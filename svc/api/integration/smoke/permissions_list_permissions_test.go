@@ -9,6 +9,8 @@ import (
 )
 
 func TestListPermissions_ReturnsCreatedPermission(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	createPermission(t, ctx, client)
 	response, err := client.Permissions.ListPermissions(ctx, components.V2PermissionsListPermissionsRequestBody{Limit: ptr.P(int64(10))})

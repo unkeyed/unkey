@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreateRole_ReturnsRoleID(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	response, err := client.Permissions.CreateRole(ctx, components.V2PermissionsCreateRoleRequestBody{Name: uid.DNS1035()})
 	require.NoError(t, err)

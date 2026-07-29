@@ -9,6 +9,8 @@ import (
 )
 
 func TestLimit_DecrementsRemainingTokens(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	response, err := client.Ratelimit.Limit(ctx, components.V2RatelimitLimitRequestBody{
 		Namespace:  "smoke",

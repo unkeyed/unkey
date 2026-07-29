@@ -11,6 +11,8 @@ import (
 )
 
 func TestUpdateKey_PersistsNameAndMetadata(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -28,6 +30,8 @@ func TestUpdateKey_PersistsNameAndMetadata(t *testing.T) {
 }
 
 func TestUpdateKey_PersistsIdentityAssociation(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -41,6 +45,8 @@ func TestUpdateKey_PersistsIdentityAssociation(t *testing.T) {
 }
 
 func TestUpdateKey_PersistsRatelimit(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)

@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreateKey_ReturnsFetchableKey(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	response, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Enabled: ptr.P(true)})

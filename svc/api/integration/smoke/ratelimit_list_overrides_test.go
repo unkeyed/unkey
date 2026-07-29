@@ -11,6 +11,8 @@ import (
 )
 
 func TestListOverrides_ReturnsPersistedOverride(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	namespace := "smoke"
 	identifier := uid.DNS1035()

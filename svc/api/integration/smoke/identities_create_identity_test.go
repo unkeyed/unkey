@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreateIdentity_ReturnsIdentityID(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	response, err := client.Identities.CreateIdentity(ctx, components.V2IdentitiesCreateIdentityRequestBody{ExternalID: uid.DNS1035()})
 	require.NoError(t, err)

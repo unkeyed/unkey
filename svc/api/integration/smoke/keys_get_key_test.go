@@ -10,6 +10,8 @@ import (
 )
 
 func TestGetKey_ReturnsBasicFields(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
@@ -22,6 +24,8 @@ func TestGetKey_ReturnsBasicFields(t *testing.T) {
 }
 
 func TestGetKey_ReturnsPersistedMetadata(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	meta := map[string]any{"smokeTest": uid.DNS1035()}
@@ -41,6 +45,8 @@ func TestGetKey_ReturnsPersistedMetadata(t *testing.T) {
 }
 
 func TestGetKey_ReturnsPersistedIdentity(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	identity := createIdentity(t, ctx, client)
@@ -61,6 +67,8 @@ func TestGetKey_ReturnsPersistedIdentity(t *testing.T) {
 }
 
 func TestGetKey_ReturnsPersistedRatelimit(t *testing.T) {
+	t.Parallel()
+
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 10, Duration: 60_000, AutoApply: ptr.P(true)}
