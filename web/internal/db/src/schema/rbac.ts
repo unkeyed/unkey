@@ -10,7 +10,7 @@ export const permissions = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),

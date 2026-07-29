@@ -2,7 +2,7 @@ CREATE TABLE `deployments` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`project_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`environment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,

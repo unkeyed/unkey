@@ -27,7 +27,7 @@ export const deployments = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
