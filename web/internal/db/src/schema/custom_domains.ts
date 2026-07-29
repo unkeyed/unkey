@@ -28,7 +28,7 @@ export const customDomains = mysqlTable(
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 256 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,

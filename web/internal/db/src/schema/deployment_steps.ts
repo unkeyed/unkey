@@ -13,7 +13,7 @@ export const deploymentSteps = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 128 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 128 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
 

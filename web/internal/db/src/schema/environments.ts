@@ -7,11 +7,12 @@ import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const environments = mysqlTable(
   "environments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
 
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),

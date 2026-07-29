@@ -22,7 +22,7 @@ export const appRegionalSettings = mysqlTable(
 
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
     regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     replicas: int("replicas").notNull().default(1),

@@ -14,7 +14,7 @@ export const frontlineRoutes = mysqlTable(
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 255 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,
     })

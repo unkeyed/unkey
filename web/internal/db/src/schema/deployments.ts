@@ -31,7 +31,7 @@ export const deployments = mysqlTable(
     projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     // App this deployment belongs to
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),

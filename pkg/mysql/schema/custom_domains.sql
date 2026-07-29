@@ -4,7 +4,7 @@ CREATE TABLE `custom_domains` (
 	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(256) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
-	`environment_id` varchar(256) NOT NULL,
+	`environment_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`domain` varchar(256) NOT NULL,
 	`challenge_type` enum('HTTP-01','DNS-01') NOT NULL,
 	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',

@@ -15,7 +15,7 @@ export const ciliumNetworkPolicies = mysqlTable(
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 255 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 64 }).notNull(),
     k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),

@@ -4,7 +4,7 @@ CREATE TABLE `frontline_routes` (
 	`project_id` varchar(255) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`environment_id` varchar(255) NOT NULL,
+	`environment_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
 	`sticky` enum('none','branch','environment','live','deployment') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
