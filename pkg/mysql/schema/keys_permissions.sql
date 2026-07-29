@@ -1,6 +1,6 @@
 CREATE TABLE `keys_permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`key_id` varchar(256) NOT NULL,
+	`key_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`permission_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
 	`created_at_m` bigint NOT NULL DEFAULT 0,

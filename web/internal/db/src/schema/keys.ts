@@ -25,7 +25,7 @@ export const keys = mysqlTable(
   "keys",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
     hash: caseInsensitiveVarchar("hash", { length: 256 }).notNull(),
@@ -150,7 +150,7 @@ export const encryptedKeys = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    keyId: caseInsensitiveVarchar("key_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
     ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },

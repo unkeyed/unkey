@@ -43,7 +43,7 @@ export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: caseInsensitiveVarchar("key_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
     permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
@@ -151,7 +151,7 @@ export const keysRoles = mysqlTable(
   "keys_roles",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: caseInsensitiveVarchar("key_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
     roleId: caseSensitiveVarchar("role_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 

@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -17,7 +18,9 @@ export const identities = mysqlTable(
     externalId: caseInsensitiveVarchar("external_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
-    environment: caseInsensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
+    environment: caseInsensitiveVarchar("environment", { length: 256 })
+      .notNull()
+      .default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
     ...lifecycleDates,
@@ -59,7 +62,7 @@ export const ratelimits = mysqlTable(
     /**
      * Either keyId or identityId may be defined, not both
      */
-    keyId: caseInsensitiveVarchar("key_id", { length: 256 }),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }),
     /**
      * Either keyId or identityId may be defined, not both
      */
