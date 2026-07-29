@@ -1,6 +1,9 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import {
+  LastExitBadge,
+  shouldShowLastExit,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
@@ -108,14 +111,12 @@ export function DeploymentRow({
             createdAt={deployment.createdAt}
             buildEndedAt={deployment.buildEndedAt}
           />
-          {/* Same hide rule as the deployment-detail header — once a deploy
-              has stabilized into ready/superseded the prior crash isn't
-              relevant context for the row. Pre-ready failures (deploying
-              that crashed pre-promote, failed deploys) keep the badge so
-              users can spot why at a glance. */}
-          {deployment.lastExit &&
-            deployment.status !== "ready" &&
-            deployment.status !== "superseded" && <LastExitBadge lastExit={deployment.lastExit} />}
+          {/* Same hide rule as the deployment-detail header: historical exits
+              disappear after stabilization, while active kubelet failures
+              remain visible, including post-ready evictions. */}
+          {deployment.lastExit && shouldShowLastExit(deployment) && (
+            <LastExitBadge lastExit={deployment.lastExit} />
+          )}
         </div>
       </div>
 

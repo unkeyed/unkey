@@ -22,6 +22,22 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND current_deployment_id = ?
 	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
+	// A running event is authoritative for the current container life. Remove a
+	// stale startup/pod error once kubelet has successfully started the same or a
+	// newer restart, while watch-observation and restartCount guards protect
+	// against delayed events from an older snapshot.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	JSON_REMOVE(container_status, '$.waiting'),
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	ClearInstanceWaiting(ctx context.Context, arg ClearInstanceWaitingParams) error
 	// Clears the local Deploy entitlement mirror on cancel. Leaves the Stripe
 	// linkage (customer/subscription) intact: a mixed subscription keeps running for
 	// the API plan, and a Deploy-only subscription cancels at period end. After this
@@ -1678,29 +1694,6 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, arg ReassignFrontlineRouteParams) error
-	// Records that kubelet has put a container into CrashLoopBackOff by setting
-	// container_status.waiting.reason. The lastTerminationState carries the
-	// most recent exit info and is left untouched — the dashboard renders both
-	// the underlying exit and the "currently throttling" indicator together.
-	//
-	// Called once per (pod_uid, container_name, restart_count) when krane sees
-	// the waiting container reach the BackOff state. The next terminated event
-	// (or a successful start) will remove $.waiting via RecordInstanceExit.
-	//
-	// Out-of-order events are dropped via the restartCount guard: a delayed
-	// crashloop RPC from an earlier container life cannot flip the waiting
-	// reason back after RecordInstanceExit has already advanced restartCount
-	// and removed $.waiting.
-	//
-	//  UPDATE instances
-	//  SET container_status = JSON_SET(
-	//  	container_status,
-	//  	'$.waiting', JSON_OBJECT('reason', 'CrashLoopBackOff')
-	//  )
-	//  WHERE k8s_name = ?
-	//  	AND region_id = ?
-	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
-	RecordInstanceCrashLoopBackOff(ctx context.Context, arg RecordInstanceCrashLoopBackOffParams) error
 	// Denormalizes the most recent container exit info onto the instances row's
 	// container_status JSON. Called by ctrl when krane reports an
 	// event_kind='terminated' event.
@@ -1735,6 +1728,33 @@ type Querier interface {
 	//  		)
 	//  	)
 	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	// Records an actionable kubelet waiting or pod-level failure reason. The
+	// lastTerminationState carries the most recent process exit and is left
+	// untouched so the dashboard can render both pieces of context together.
+	//
+	// Called once per (pod_uid, container_name, restart_count) when krane sees
+	// a startup failure or terminal pod reason. The next terminated event or a
+	// successful start removes $.waiting.
+	//
+	// Out-of-order events are dropped via the watch-observation and restartCount
+	// guards: a delayed waiting RPC cannot flip the reason back after a newer
+	// running event removed $.waiting.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	container_status,
+	//  	'$.restartCount', CAST(? AS UNSIGNED),
+	//  	'$.statusObservedAt', CAST(? AS UNSIGNED),
+	//  	'$.waiting', JSON_OBJECT(
+	//  		'reason', ?,
+	//  		'message', ?
+	//  	)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	RecordInstanceWaiting(ctx context.Context, arg RecordInstanceWaitingParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//
