@@ -4,7 +4,7 @@ CREATE TABLE `portal_configurations` (
 	`workspace_id` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
 	`app_id` varchar(64),
-	`key_auth_id` varchar(64),
+	`key_auth_id` varchar(64) COLLATE utf8mb4_0900_as_cs,
 	`enabled` boolean NOT NULL DEFAULT true,
 	`return_url` varchar(500),
 	`created_at` bigint NOT NULL,
