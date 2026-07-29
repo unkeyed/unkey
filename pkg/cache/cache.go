@@ -16,8 +16,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/timing"
 )
+
+type missResult[V any] struct {
+	value V
+	hit   CacheHit
+	err   error
+}
 
 type cache[K comparable, V any] struct {
 	otter    otter.Cache[K, swrEntry[V]]
@@ -30,6 +37,11 @@ type cache[K comparable, V any] struct {
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
+
+	missFlightMu     sync.Mutex
+	missFlightKeys   map[K]string
+	nextMissFlightID uint64
+	missFlight       singleflight.Group[missResult[V]]
 }
 
 type Config[K comparable, V any] struct {
@@ -86,6 +98,10 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
+		missFlightMu:      sync.Mutex{},
+		missFlightKeys:    make(map[K]string),
+		nextMissFlightID:  0,
+		missFlight:        singleflight.Group[missResult[V]]{},
 	}
 
 	for range 10 {
@@ -338,6 +354,83 @@ func (c *cache[K, V]) revalidate(
 	}
 }
 
+func (c *cache[K, V]) loadMiss(
+	ctx context.Context,
+	key K,
+	refreshFromOrigin func(context.Context) (V, error),
+	op func(error) Op,
+) (V, CacheHit, error) {
+	flightKey := c.acquireMissFlightKey(key)
+	defer c.releaseMissFlightKey(key, flightKey)
+
+	result, err := c.missFlight.Do(flightKey, func() (missResult[V], error) {
+		// A previous flight may have populated the cache after this caller first
+		// observed the miss but before it joined the flight.
+		if entry, ok := c.get(ctx, key); ok {
+			if c.clock.Now().Before(entry.Stale) {
+				return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+			}
+			c.otter.Delete(key)
+		}
+
+		value, loadErr := refreshFromOrigin(ctx)
+		switch op(loadErr) {
+		case WriteValue:
+			c.Set(ctx, key, value)
+		case WriteNull:
+			c.SetNull(ctx, key)
+		case Noop:
+			break
+		}
+
+		if loadErr != nil {
+			return missResult[V]{value: value, hit: Miss, err: loadErr}, nil
+		}
+
+		var hit CacheHit
+		switch op(loadErr) {
+		case Noop:
+			// Skip.
+		case WriteValue:
+			hit = Hit
+		case WriteNull:
+			hit = Null
+		default:
+			hit = Miss
+		}
+
+		return missResult[V]{value: value, hit: hit, err: nil}, nil
+	})
+	if err != nil {
+		var zero V
+		return zero, Miss, err
+	}
+	return result.value, result.hit, result.err
+}
+
+func (c *cache[K, V]) acquireMissFlightKey(key K) string {
+	c.missFlightMu.Lock()
+	defer c.missFlightMu.Unlock()
+
+	if flightKey, ok := c.missFlightKeys[key]; ok {
+		return flightKey
+	}
+
+	c.nextMissFlightID++
+	flightKey := fmt.Sprintf("%d", c.nextMissFlightID)
+	c.missFlightKeys[key] = flightKey
+	return flightKey
+}
+
+func (c *cache[K, V]) releaseMissFlightKey(key K, flightKey string) {
+	c.missFlightMu.Lock()
+	defer c.missFlightMu.Unlock()
+
+	if c.missFlightKeys[key] == flightKey {
+		delete(c.missFlightKeys, key)
+	}
+}
+
 func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
@@ -369,37 +462,9 @@ func (c *cache[K, V]) SWR(
 		c.otter.Delete(key)
 	}
 
-	// Cache Miss - measure total time including all overhead
-	v, err := refreshFromOrigin(ctx)
+	// Cache Miss - measure total time including waiting for an existing load.
+	v, hit, err := c.loadMiss(ctx, key, refreshFromOrigin, op)
 	c.recordTiming(ctx, "cache_swr", "miss", start)
-
-	switch op(err) {
-	case WriteValue:
-		c.Set(ctx, key, v)
-	case WriteNull:
-		c.SetNull(ctx, key)
-	case Noop:
-		break
-	}
-
-	if err != nil {
-		// Error occurred, return Miss as the cache hit status
-		return v, Miss, err
-	}
-
-	// Determine cache hit status based on the operation
-	var hit CacheHit
-	switch op(err) {
-	case Noop:
-		// Skip
-	case WriteValue:
-		hit = Hit
-	case WriteNull:
-		hit = Null
-	default:
-		hit = Miss
-	}
-
 	return v, hit, err
 }
 

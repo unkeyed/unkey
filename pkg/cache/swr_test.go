@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -153,6 +154,71 @@ func TestSWR_CacheHit(t *testing.T) {
 		require.Equal(t, "", value)
 		require.Equal(t, cache.Miss, hit)
 	})
+}
+
+func TestSWR_CoalescesConcurrentMisses(t *testing.T) {
+	const callers = 100
+
+	ctx := context.Background()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    time.Hour,
+		MaxSize:  10,
+		Resource: "miss_singleflight_test",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	t.Cleanup(func() {
+		releaseOnce.Do(func() { close(release) })
+	})
+
+	originStarted := make(chan struct{})
+	var originCalls atomic.Int32
+	load := func(context.Context) (string, error) {
+		if originCalls.Add(1) == 1 {
+			close(originStarted)
+		}
+		<-release
+		return "value", nil
+	}
+
+	type result struct {
+		value string
+		hit   cache.CacheHit
+		err   error
+	}
+	results := make(chan result, callers)
+	start := make(chan struct{})
+	for range callers {
+		go func() {
+			<-start
+			value, hit, loadErr := c.SWR(ctx, "key", load, func(error) cache.Op { return cache.WriteValue })
+			results <- result{value: value, hit: hit, err: loadErr}
+		}()
+	}
+	close(start)
+
+	select {
+	case <-originStarted:
+	case <-time.After(time.Second):
+		t.Fatal("origin load did not start")
+	}
+
+	require.Never(t, func() bool {
+		return originCalls.Load() > 1
+	}, 100*time.Millisecond, time.Millisecond, "concurrent misses must share one origin load")
+	releaseOnce.Do(func() { close(release) })
+
+	for range callers {
+		res := <-results
+		require.NoError(t, res.err)
+		require.Equal(t, cache.Hit, res.hit)
+		require.Equal(t, "value", res.value)
+	}
+	require.Equal(t, int32(1), originCalls.Load())
 }
 
 func TestSWR_ServesLastKnownGoodBeyondTenMinutes(t *testing.T) {

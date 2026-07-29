@@ -102,9 +102,71 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
-		return s.loadFlight.Do(sha256Hash, func() (keysdb.CachedKeyData, error) {
-			return s.loadCachedKeyData(ctx, sha256Hash)
+		// Use database retry with exponential backoff, skipping non-transient errors
+		var row keysdb.FindKeyForVerificationRow
+		row, err = mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
+			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
+		if err != nil {
+			return keysdb.CachedKeyData{}, err
+		}
+
+		// Parse IP whitelist once during cache population for performance
+		parsedIPWhitelist := make(map[string]struct{})
+		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
+			ips := strings.Split(row.IpWhitelist.String, ",")
+			for _, ip := range ips {
+				trimmed := strings.TrimSpace(ip)
+				if trimmed != "" {
+					parsedIPWhitelist[trimmed] = struct{}{}
+				}
+			}
+		}
+
+		// Decode roles / permissions / ratelimits once during cache population so
+		// that cache hits don't re-parse these JSON columns on every verify call.
+		roles, err := db.UnmarshalNullableJSONTo[[]string](row.Roles)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
+		}
+		if roles == nil {
+			roles = []string{}
+		}
+
+		permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
+		}
+		if permissions == nil {
+			permissions = []string{}
+		}
+
+		ratelimitArr, err := db.UnmarshalNullableJSONTo[[]keysdb.KeyFindForVerificationRatelimit](row.Ratelimits)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal ratelimits"))
+		}
+
+		// Convert rate limits array to map (key name -> config).
+		// Key rate limits take precedence over identity rate limits.
+		ratelimitConfigs := make(map[string]keysdb.KeyFindForVerificationRatelimit, len(ratelimitArr))
+		for _, rl := range ratelimitArr {
+			existing, exists := ratelimitConfigs[rl.Name]
+			if !exists {
+				ratelimitConfigs[rl.Name] = rl
+				continue
+			}
+			if rl.KeyID != "" && existing.IdentityID != "" {
+				ratelimitConfigs[rl.Name] = rl
+			}
+		}
+
+		return keysdb.CachedKeyData{
+			FindKeyForVerificationRow: row,
+			ParsedIPWhitelist:         parsedIPWhitelist,
+			Roles:                     roles,
+			Permissions:               permissions,
+			RatelimitConfigs:          ratelimitConfigs,
+		}, nil
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if mysql.IsNotFound(err) {
@@ -218,71 +280,4 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	return kv, nil
-}
-
-func (s *service) loadCachedKeyData(ctx context.Context, sha256Hash string) (keysdb.CachedKeyData, error) {
-	// Use database retry with exponential backoff, skipping non-transient errors.
-	row, err := mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
-		return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
-	})
-	if err != nil {
-		return keysdb.CachedKeyData{}, err
-	}
-
-	// Parse IP whitelist once during cache population for performance.
-	parsedIPWhitelist := make(map[string]struct{})
-	if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
-		ips := strings.Split(row.IpWhitelist.String, ",")
-		for _, ip := range ips {
-			trimmed := strings.TrimSpace(ip)
-			if trimmed != "" {
-				parsedIPWhitelist[trimmed] = struct{}{}
-			}
-		}
-	}
-
-	// Decode roles / permissions / ratelimits once during cache population so
-	// that cache hits don't re-parse these JSON columns on every verify call.
-	roles, err := db.UnmarshalNullableJSONTo[[]string](row.Roles)
-	if err != nil {
-		return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
-	}
-	if roles == nil {
-		roles = []string{}
-	}
-
-	permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
-	if err != nil {
-		return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
-	}
-	if permissions == nil {
-		permissions = []string{}
-	}
-
-	ratelimitArr, err := db.UnmarshalNullableJSONTo[[]keysdb.KeyFindForVerificationRatelimit](row.Ratelimits)
-	if err != nil {
-		return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal ratelimits"))
-	}
-
-	// Convert rate limits array to map (key name -> config).
-	// Key rate limits take precedence over identity rate limits.
-	ratelimitConfigs := make(map[string]keysdb.KeyFindForVerificationRatelimit, len(ratelimitArr))
-	for _, rl := range ratelimitArr {
-		existing, exists := ratelimitConfigs[rl.Name]
-		if !exists {
-			ratelimitConfigs[rl.Name] = rl
-			continue
-		}
-		if rl.KeyID != "" && existing.IdentityID != "" {
-			ratelimitConfigs[rl.Name] = rl
-		}
-	}
-
-	return keysdb.CachedKeyData{
-		FindKeyForVerificationRow: row,
-		ParsedIPWhitelist:         parsedIPWhitelist,
-		Roles:                     roles,
-		Permissions:               permissions,
-		RatelimitConfigs:          ratelimitConfigs,
-	}, nil
 }
