@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { useKeyTimeseries } from "../key-timeseries-provider";
 import { UsageColumnSkeleton } from "../skeletons";
 import { OutcomeExplainer } from "./components/outcome-explainer";
-import { useFetchVerificationTimeseries } from "./use-fetch-timeseries";
 
 type BarData = {
   id: string | number;
@@ -12,7 +12,6 @@ type BarData = {
 };
 
 type VerificationBarChartProps = {
-  keyAuthId: string;
   keyId: string;
   maxBars?: number;
   selected: boolean;
@@ -22,12 +21,11 @@ const MAX_HEIGHT_BUFFER_FACTOR = 1.3;
 const MAX_BAR_HEIGHT = 28;
 
 export const VerificationBarChart = ({
-  keyAuthId,
   keyId,
   selected,
   maxBars = 30,
 }: VerificationBarChartProps) => {
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyAuthId, keyId);
+  const { timeseries, isLoading, isError } = useKeyTimeseries(keyId);
 
   const isEmpty = useMemo(
     () => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0,

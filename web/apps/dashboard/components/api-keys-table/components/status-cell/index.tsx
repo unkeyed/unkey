@@ -7,12 +7,11 @@ import { useKeyStatus } from "./use-key-status";
 
 type StatusDisplayProps = {
   keyData: KeyDetails;
-  keyAuthId: string;
   isSelected: boolean;
 };
 
-export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
-  const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
+export const StatusDisplay = ({ keyData, isSelected }: StatusDisplayProps) => {
+  const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyData);
   const enableKeyMutation = useUpdateKeyStatus();
 
   if (isLoading) {

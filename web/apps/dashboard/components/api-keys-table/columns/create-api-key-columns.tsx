@@ -262,13 +262,7 @@ export const createApiKeyColumns = ({
     },
     cell: ({ row }) => {
       const key = row.original;
-      return (
-        <VerificationBarChart
-          keyAuthId={keyspaceId}
-          keyId={key.id}
-          selected={key.id === selectedKeyId}
-        />
-      );
+      return <VerificationBarChart keyId={key.id} selected={key.id === selectedKeyId} />;
     },
   },
   {
@@ -323,9 +317,7 @@ export const createApiKeyColumns = ({
     },
     cell: ({ row }) => {
       const key = row.original;
-      return (
-        <StatusDisplay keyData={key} keyAuthId={keyspaceId} isSelected={key.id === selectedKeyId} />
-      );
+      return <StatusDisplay keyData={key} isSelected={key.id === selectedKeyId} />;
     },
   },
   {

@@ -6,6 +6,7 @@ import {
   useApiKeysListQuery,
 } from "@/components/api-keys-table";
 import { EmptyApiKeys } from "@/components/api-keys-table/components/empty-api-keys";
+import { KeyTimeseriesProvider } from "@/components/api-keys-table/components/key-timeseries-provider";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -149,22 +150,26 @@ export const KeysList = ({
 
   const isNavigating = isFetching && !isInitialLoading;
 
+  const keyIds = useMemo(() => keys.map((key) => key.id), [keys]);
+
   return (
     <>
-      <DataTable
-        data={keys}
-        columns={columns}
-        getRowId={(key) => key.id}
-        isLoading={isInitialLoading}
-        onRowClick={handleRowClick}
-        selectedItem={selectedKey}
-        rowClassName={getRowClassNameMemoized}
-        renderSkeletonRow={renderApiKeySkeletonRow}
-        sorting={sorting}
-        onSortingChange={handleSortingChange}
-        config={TABLE_CONFIG}
-        emptyState={<EmptyApiKeys />}
-      />
+      <KeyTimeseriesProvider keyAuthId={keyspaceId} keyIds={keyIds}>
+        <DataTable
+          data={keys}
+          columns={columns}
+          getRowId={(key) => key.id}
+          isLoading={isInitialLoading}
+          onRowClick={handleRowClick}
+          selectedItem={selectedKey}
+          rowClassName={getRowClassNameMemoized}
+          renderSkeletonRow={renderApiKeySkeletonRow}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+          config={TABLE_CONFIG}
+          emptyState={<EmptyApiKeys />}
+        />
+      </KeyTimeseriesProvider>
       <PaginationFooter
         page={page}
         pageSize={pageSize}
