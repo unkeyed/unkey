@@ -7,6 +7,11 @@ import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
+import {
+  type ComputeLifecycleAlert,
+  computeCreatedAlert,
+  computeUpdatedAlert,
+} from "@/lib/stripe/computeAlerts";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
@@ -47,7 +52,7 @@ import Stripe from "stripe";
  * resubscribe (subscribeDeploy requires plan IS NULL). A resume clears cancel_at
  * and the next update re-mirrors the live plan. This mirrors the API side, whose
  * updated handler already returns early on a cancelling subscription.
- */
+ **/
 async function mirrorDeployPlan(
   billing: { workspaceId: string; plan: string | null },
   sub: Stripe.Subscription,
@@ -63,6 +68,61 @@ async function mirrorDeployPlan(
         .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
       await setComputeQuotas(tx, { workspaceId: billing.workspaceId, plan });
     });
+  }
+}
+
+/**
+ * Sends the operational Slack alert for a Compute (Deploy) subscription lifecycle
+ * event, resolving the customer email/name the alert renders. Best-effort: a
+ * failed customer lookup is logged and swallowed, never thrown, so it cannot fail
+ * the webhook whose real work (the plan mirror) has already committed. The alert
+ * post itself never throws (postToSlack logs its own failures). A null descriptor
+ * (an event that warrants no alert) is a no-op.
+ */
+async function sendComputeAlert(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  alert: ComputeLifecycleAlert | null,
+): Promise<void> {
+  if (!alert || !sub.customer) {
+    return;
+  }
+
+  let customer: Stripe.Customer | Stripe.DeletedCustomer;
+  try {
+    customer = await stripe.customers.retrieve(
+      typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+    );
+  } catch (err) {
+    console.error("Failed to retrieve customer for Compute subscription alert:", {
+      subscriptionId: sub.id,
+      error: err instanceof Error ? err.message : err,
+    });
+    return;
+  }
+
+  if (customer.deleted || !customer.email) {
+    return;
+  }
+  const name = customer.name || "Unknown";
+
+  switch (alert.type) {
+    case "created":
+      await alertSubscriptionCreation(alert.product, alert.price, customer.email, name);
+      break;
+    case "cancelling":
+      await alertIsCancellingSubscription(alert.product, alert.price, customer.email, name);
+      break;
+    case "updated":
+      await alertSubscriptionUpdate(
+        alert.product,
+        alert.price,
+        customer.email,
+        name,
+        alert.changeType,
+        alert.previousTier,
+      );
+      break;
   }
 }
 
@@ -303,17 +363,29 @@ export const POST = async (req: Request): Promise<Response> => {
           throw retrieveError;
         }
 
-        // Deploy-matched: mirror the plan and stop. The Deploy subscription
-        // never carries API tier/quota state, so there is nothing else to
-        // reconcile. mirrorDeployPlan only writes when the plan changed, so a
-        // renewal event is a no-op.
+        // Read the event's previous_attributes once: the compute branch derives
+        // its upgrade/downgrade/cancel alert from it, and the API branch below
+        // uses it for its skip heuristics and up/downgrade copy.
+        const previousAttributes = event.data.previous_attributes;
+
+        // Deploy-matched: mirror the plan, announce the change, and stop. The
+        // Deploy subscription never carries API tier/quota state, so there is
+        // nothing else to reconcile. mirrorDeployPlan only writes when the plan
+        // changed, so a renewal event does no DB write; the alert is derived
+        // from the Stripe event (a DB plan diff is unreliable because the
+        // dashboard mutations write the plan optimistically before this fires).
         if (column === "compute") {
           await mirrorDeployPlan(billing, sub);
+          const deployConfig = await deployBillingConfig();
+          await sendComputeAlert(
+            stripe,
+            sub,
+            computeUpdatedAlert(deployConfig, sub, previousAttributes),
+          );
           return new Response("OK", { status: 200 });
         }
 
         // API-matched from here: reconcile tier/quotas from the API plan item.
-        const previousAttributes = event.data.previous_attributes;
 
         // Skip heuristics correlate the event snapshot with previous_attributes,
         // so they read eventSub (what the event reported), not the re-retrieved
@@ -613,6 +685,26 @@ export const POST = async (req: Request): Promise<Response> => {
           if (!keepsTeam) {
             await deactivateNonCreatorMemberships(ws.orgId);
           }
+
+          // Notify that the Compute subscription ended. Best-effort: a failed
+          // customer lookup or Slack post must not fail the webhook, whose
+          // teardown has already committed.
+          if (sub.customer) {
+            try {
+              const customer = await stripe.customers.retrieve(
+                typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+              );
+              if (!customer.deleted && customer.email) {
+                await alertSubscriptionCancelled(customer.email, customer.name || "Unknown");
+              }
+            } catch (customerError) {
+              console.error("Failed to retrieve customer for Compute cancellation alert:", {
+                error: customerError,
+                subscriptionId: sub.id,
+                eventId: event.id,
+              });
+            }
+          }
           break;
         }
 
@@ -727,9 +819,20 @@ export const POST = async (req: Request): Promise<Response> => {
         const column =
           subscription && ws && billing && ws.deletedAtM == null ? subscription.product : null;
 
-        // Deploy-matched: mirror the plan and stop; no alert for Compute.
-        if (column === "compute" && billing) {
-          await mirrorDeployPlan(billing, sub);
+        // Compute created: a created subscription carrying a recognized Compute
+        // plan is a new Compute subscription. Detect it from the subscription's
+        // own plan-fee item, not the billing_subscriptions row, because a created
+        // event can race ahead of the checkout link that writes that row — gating
+        // the alert on the row would drop it for the no-card checkout flow. Mirror
+        // the plan when the row is already present (the link mirrors it
+        // otherwise); announce the subscription either way. An API subscription
+        // never carries Compute plan metadata, so this cannot misfire an API
+        // create as a Compute alert.
+        if (detectDeployPlan(sub)) {
+          if (billing) {
+            await mirrorDeployPlan(billing, sub);
+          }
+          await sendComputeAlert(stripe, sub, computeCreatedAlert(sub));
           return new Response("OK");
         }
 
