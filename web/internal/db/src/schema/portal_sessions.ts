@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable } from "drizzle-orm/mysql-core";
 import { portalConfigurations } from "./portal_configurations";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
@@ -10,7 +9,7 @@ export const portalSessions = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 64 }).notNull(),
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     permissions: json("permissions").$type<string[]>().notNull(),

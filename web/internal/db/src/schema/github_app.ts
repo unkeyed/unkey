@@ -2,7 +2,6 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { projects } from "./projects";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -11,7 +10,7 @@ export const githubAppInstallations = mysqlTable(
   "github_app_installations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     installationId: bigint("installation_id", { mode: "number" }).notNull(),
     ...lifecycleDates,
   },
@@ -31,7 +30,7 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
     appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull().unique(),
     installationId: bigint("installation_id", {

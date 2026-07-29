@@ -13,6 +13,7 @@ import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaceBilling } from "./workspace_billing";
@@ -21,7 +22,7 @@ export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
   id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-  orgId: caseInsensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
+  orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
 
   // slug is used for the workspace URL

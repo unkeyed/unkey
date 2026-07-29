@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -16,7 +15,7 @@ export const identities = mysqlTable(
      * They likely have an organization or user id at hand
      */
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
@@ -55,7 +54,7 @@ export const ratelimits = mysqlTable(
      */
     name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
 
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     ...lifecycleDates,
     /**
      * Either keyId or identityId may be defined, not both
