@@ -27,6 +27,7 @@ func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
 	require.NotEmpty(t, rerolled.Key)
 	require.NotEqual(t, original.KeyID, rerolled.KeyID)
 	require.NotEqual(t, original.Key, rerolled.Key)
+	waitForPropagation()
 
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
@@ -76,6 +77,7 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysRerollKeyResponseBody)
 	rerolled := response.V2KeysRerollKeyResponseBody.Data
+	waitForPropagation()
 
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{

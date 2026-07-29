@@ -25,6 +25,7 @@ func TestUpdateCredits_SetsRemainingCredits(t *testing.T) {
 	require.NotNil(t, response.V2KeysUpdateCreditsResponseBody)
 	require.Equal(t, &remaining, response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
 
+	waitForPropagation()
 	getResponse, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
 	require.NoError(t, err)
 	require.NotNil(t, getResponse.V2KeysGetKeyResponseBody)
@@ -48,6 +49,7 @@ func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	waitForPropagation()
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationIncrement,
@@ -74,6 +76,7 @@ func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	waitForPropagation()
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationDecrement,
@@ -99,6 +102,7 @@ func TestUpdateCredits_CanMakeKeyUnlimited(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	waitForPropagation()
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationSet,

@@ -17,6 +17,7 @@ func TestUpdateIdentity_PersistsMetadata(t *testing.T) {
 	response, err := client.Identities.UpdateIdentity(ctx, components.V2IdentitiesUpdateIdentityRequestBody{Identity: identity.ID, Meta: meta})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2IdentitiesUpdateIdentityResponseBody)
+	waitForPropagation()
 	get, err := client.Identities.GetIdentity(ctx, components.V2IdentitiesGetIdentityRequestBody{Identity: identity.ID})
 	require.NoError(t, err)
 	require.NotNil(t, get.V2IdentitiesGetIdentityResponseBody)

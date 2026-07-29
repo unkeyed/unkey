@@ -32,6 +32,7 @@ func TestVerifyKey_EnforcesPermissions(t *testing.T) {
 	permission := createPermission(t, ctx, client)
 	_, err := client.Keys.AddPermissions(ctx, components.V2KeysAddPermissionsRequestBody{KeyID: key.KeyID, Permissions: []string{permission.Slug}})
 	require.NoError(t, err)
+	waitForPropagation()
 	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &permission.Slug})
 	require.NoError(t, err)
 	require.True(t, response.V2KeysVerifyKeyResponseBody.Data.Valid)

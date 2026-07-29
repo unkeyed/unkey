@@ -17,6 +17,7 @@ func TestAddRoles_PersistsAssignment(t *testing.T) {
 	response, err := client.Keys.AddRoles(ctx, components.V2KeysAddRolesRequestBody{KeyID: key.KeyID, Roles: []string{role.Name}})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysAddRolesResponseBody)
+	waitForPropagation()
 	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
 	require.NoError(t, err)
 	require.NotNil(t, get.V2KeysGetKeyResponseBody)

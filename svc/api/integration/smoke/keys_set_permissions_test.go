@@ -17,6 +17,7 @@ func TestSetPermissions_PersistsAssignment(t *testing.T) {
 	response, err := client.Keys.SetPermissions(ctx, components.V2KeysSetPermissionsRequestBody{KeyID: key.KeyID, Permissions: []string{permission.Slug}})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysSetPermissionsResponseBody)
+	waitForPropagation()
 	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
 	require.NoError(t, err)
 	require.NotNil(t, get.V2KeysGetKeyResponseBody)

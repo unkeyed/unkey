@@ -2,7 +2,6 @@ package smoke_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
@@ -21,6 +20,7 @@ func TestUpdateKey_PersistsNameAndMetadata(t *testing.T) {
 	response, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, Name: &name, Meta: meta})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysUpdateKeyResponseBody)
+	waitForPropagation()
 	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
 	require.NoError(t, err)
 	require.NotNil(t, get.V2KeysGetKeyResponseBody)
@@ -38,6 +38,7 @@ func TestUpdateKey_PersistsIdentityAssociation(t *testing.T) {
 	identity := createIdentity(t, ctx, client)
 	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, ExternalID: &identity.ExternalID})
 	require.NoError(t, err)
+	waitForPropagation()
 	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
 	require.NoError(t, err)
 	require.NotNil(t, get.V2KeysGetKeyResponseBody.Data.Identity)
@@ -53,17 +54,11 @@ func TestUpdateKey_PersistsRatelimit(t *testing.T) {
 	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 15, Duration: 60_000, AutoApply: ptr.P(true)}
 	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, Ratelimits: []components.RatelimitRequest{limit}})
 	require.NoError(t, err)
-
-	var persisted components.RatelimitResponse
-	// Key configuration reads can lag behind updates while caches converge.
-	require.Eventually(t, func() bool {
-		get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-		if err != nil || get.V2KeysGetKeyResponseBody == nil || len(get.V2KeysGetKeyResponseBody.Data.Ratelimits) != 1 {
-			return false
-		}
-		persisted = get.V2KeysGetKeyResponseBody.Data.Ratelimits[0]
-		return true
-	}, 30*time.Second, time.Second)
-	require.Equal(t, limit.Name, persisted.Name)
-	require.Equal(t, limit.Limit, persisted.Limit)
+	waitForPropagation()
+	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+	require.NoError(t, err)
+	require.NotNil(t, get.V2KeysGetKeyResponseBody)
+	require.Len(t, get.V2KeysGetKeyResponseBody.Data.Ratelimits, 1)
+	require.Equal(t, limit.Name, get.V2KeysGetKeyResponseBody.Data.Ratelimits[0].Name)
+	require.Equal(t, limit.Limit, get.V2KeysGetKeyResponseBody.Data.Ratelimits[0].Limit)
 }
