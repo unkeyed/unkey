@@ -2924,26 +2924,6 @@ components:
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false
-        V2PortalListConfigurationsRequestBody:
-            type: object
-            description: |
-                Lists all portal configurations in the authenticated workspace. Takes no
-                parameters; the workspace is derived from the root key.
-            additionalProperties: false
-        V2PortalListConfigurationsResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    "$ref": "#/components/schemas/Meta"
-                data:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/PortalConfiguration"
-                    description: Array of portal configurations in the workspace, newest first.
-            additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
             properties:
@@ -12222,67 +12202,6 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getVerifications
-    /v2/portal.listConfigurations:
-        post:
-            description: |
-                List all Customer Portal configurations in your workspace, each with its
-                branding.
-
-                **Authentication**
-
-                Requires a root key. Only configurations in the root key's workspace are
-                returned.
-            operationId: portal.listConfigurations
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2PortalListConfigurationsRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2PortalListConfigurationsResponseBody'
-                    description: |
-                        Portal configurations listed successfully.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Bad request
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden
-                "429":
-                    content:
-                        application/problem+json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too Many Requests
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error
-            security:
-                - bearer: []
-            summary: List portal configurations
-            tags:
-                - portal
-            x-speakeasy-name-override: listConfigurations
     /v2/portal.listKeys:
         post:
             description: |

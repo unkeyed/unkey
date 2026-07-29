@@ -7,7 +7,6 @@ import { portalCreateSession } from "../funcs/portalCreateSession.js";
 import { portalDeleteConfiguration } from "../funcs/portalDeleteConfiguration.js";
 import { portalExchangeSession } from "../funcs/portalExchangeSession.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
-import { portalListConfigurations } from "../funcs/portalListConfigurations.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
 import { portalUpdateConfiguration } from "../funcs/portalUpdateConfiguration.js";
@@ -139,29 +138,6 @@ export class Portal extends ClientSDK {
     return unwrapAsync(portalGetVerifications(
       this,
       security,
-      request,
-      options,
-    ));
-  }
-
-  /**
-   * List portal configurations
-   *
-   * @remarks
-   * List all Customer Portal configurations in your workspace, each with its
-   * branding.
-   *
-   * **Authentication**
-   *
-   * Requires a root key. Only configurations in the root key's workspace are
-   * returned.
-   */
-  async listConfigurations(
-    request: components.V2PortalListConfigurationsRequestBody,
-    options?: RequestOptions,
-  ): Promise<components.V2PortalListConfigurationsResponseBody> {
-    return unwrapAsync(portalListConfigurations(
-      this,
       request,
       options,
     ));

@@ -2112,19 +2112,6 @@ type Querier interface {
 	//      SELECT permission_slug FROM role_permissions
 	//  ) all_permissions
 	ListPermissionsByKeyID(ctx context.Context, db DBTX, arg ListPermissionsByKeyIDParams) ([]string, error)
-	// Lists every portal configuration in a workspace, left-joining its 1:1
-	// branding row. Branding columns are null when a config has no branding. The
-	// WHERE clause scopes the listing to the caller's workspace.
-	//
-	//  SELECT
-	//      pc.pk, pc.id, pc.workspace_id, pc.slug, pc.app_id, pc.key_auth_id, pc.enabled, pc.return_url, pc.created_at, pc.updated_at,
-	//      b.logo_url AS logo_url,
-	//      b.primary_color AS primary_color
-	//  FROM portal_configurations pc
-	//  LEFT JOIN portal_branding b ON b.portal_config_id = pc.id
-	//  WHERE pc.workspace_id = ?
-	//  ORDER BY pc.created_at DESC
-	ListPortalConfigsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListPortalConfigsByWorkspaceRow, error)
 	//ListProjectsByWorkspaceId
 	//
 	//  SELECT

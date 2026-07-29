@@ -3622,19 +3622,6 @@ type V2PortalGetVerificationsResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2PortalListConfigurationsRequestBody Lists all portal configurations in the authenticated workspace. Takes no
-// parameters; the workspace is derived from the root key.
-type V2PortalListConfigurationsRequestBody = map[string]interface{}
-
-// V2PortalListConfigurationsResponseBody defines model for V2PortalListConfigurationsResponseBody.
-type V2PortalListConfigurationsResponseBody struct {
-	// Data Array of portal configurations in the workspace, newest first.
-	Data []PortalConfiguration `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
 // V2PortalListKeysRequestBody defines model for V2PortalListKeysRequestBody.
 type V2PortalListKeysRequestBody struct {
 	// Cursor Pagination cursor from a previous response to fetch the next page.
@@ -4361,9 +4348,6 @@ type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
-
-// PortalListConfigurationsJSONRequestBody defines body for PortalListConfigurations for application/json ContentType.
-type PortalListConfigurationsJSONRequestBody = V2PortalListConfigurationsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
