@@ -32,6 +32,16 @@ parallel. Logged-out/auth is a separate final track. Backend runs parallel
 - Linear project: https://linear.app/unkey/project/everythings-project-221ce186cf5d (empty — tickets not created yet, working locally first)
 - Decisions log: ./decisions.md
 
+## Linear tickets (created 2026-07-29, Everythings project)
+
+A-2 ENG-3095 · A-3 ENG-3096 · A-4 ENG-3097 · A-5 ENG-3098 · B-1 ENG-3099 ·
+B-2 ENG-3100 · B-3 ENG-3101 · N-1 ENG-3102 · N-2 ENG-3103 (blocked by 3102) ·
+N-3 ENG-3104 · N-4 ENG-3105 · N-5 ENG-3107 (blocked by 3095+3104) ·
+N-6 ENG-3106 · N-7 ENG-3108 · L-1 ENG-3109 ·
+Backend (ALL DB work, one issue to discuss with Andreas) ENG-3093 (due Fri 31 Jul) ·
+Comms ENG-3094 (due Tue 5 Aug). Linear is now the tracking source; this doc
+stays the context/decision source.
+
 ## The shape of the problem
 
 Branch diff vs origin/main: 44 commits, 145 files, +11,277/−1,549. ~60% of
