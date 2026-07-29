@@ -1,7 +1,9 @@
 package smoke_test
 
 import (
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
@@ -17,9 +19,8 @@ func TestAddRoles_PersistsAssignment(t *testing.T) {
 	response, err := client.Keys.AddRoles(ctx, components.V2KeysAddRolesRequestBody{KeyID: key.KeyID, Roles: []string{role.Name}})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysAddRolesResponseBody)
-	waitForPropagation()
-	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, get.V2KeysGetKeyResponseBody)
-	require.Contains(t, get.V2KeysGetKeyResponseBody.Data.Roles, role.Name)
+	require.Eventually(t, func() bool {
+		get, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		return getErr == nil && get.V2KeysGetKeyResponseBody != nil && slices.Contains(get.V2KeysGetKeyResponseBody.Data.Roles, role.Name)
+	}, 30*time.Second, time.Second, "role %q was not assigned to key", role.Name)
 }
