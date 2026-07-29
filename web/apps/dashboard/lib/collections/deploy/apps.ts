@@ -11,6 +11,8 @@ const schema = z.object({
   projectId: z.string(),
   name: z.string(),
   slug: z.string(),
+  sourceType: z.enum(["legacy", "github", "docker_image"]),
+  imageReference: z.string().nullable(),
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
@@ -28,6 +30,20 @@ const schema = z.object({
   domain: z.string().nullable(),
 });
 
+export const dockerImageReferenceSchema = z
+  .string()
+  .trim()
+  .min(1, "Image reference is required")
+  .max(512, "Image reference too long");
+
+export const appCreationSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("github") }),
+  z.object({
+    kind: z.literal("docker_image"),
+    imageReference: dockerImageReferenceSchema,
+  }),
+]);
+
 export const createAppRequestSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
   name: z.string().trim().min(1, "App name is required").max(256, "App name too long"),
@@ -37,6 +53,7 @@ export const createAppRequestSchema = z.object({
     .min(1, "App slug is required")
     .max(256, "App slug too long")
     .regex(/^[a-z0-9-]+$/, "App slug must contain only lowercase letters, numbers, and hyphens"),
+  source: appCreationSourceSchema,
 });
 
 export type App = z.infer<typeof schema>;
@@ -92,10 +109,18 @@ export const apps = createCollection<App, string>(
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
 
+      if (changes.sourceType === "legacy") {
+        throw new Error("New dashboard apps must declare a GitHub or Docker image source");
+      }
+
       const createInput = createAppRequestSchema.parse({
         projectId: changes.projectId,
         name: changes.name,
         slug: changes.slug,
+        source:
+          changes.sourceType === "docker_image"
+            ? { kind: "docker_image", imageReference: changes.imageReference }
+            : { kind: "github" },
       });
       const mutation = getUnkeyClient().apps.createApp({
         project: createInput.projectId,

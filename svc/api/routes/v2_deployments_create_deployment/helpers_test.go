@@ -154,6 +154,7 @@ func connectRepo(t *testing.T, h *testutil.Harness, workspaceID, projectID, appI
 		InstallationID:     12345,
 		RepositoryID:       67890,
 		RepositoryFullName: "acme/api",
+		DefaultBranch:      sql.NullString{Valid: false},
 		CreatedAt:          time.Now().UnixMilli(),
 		UpdatedAt:          sql.NullInt64{Valid: false},
 	})

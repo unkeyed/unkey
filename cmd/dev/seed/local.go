@@ -169,6 +169,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ProjectID:        projectID,
 				Name:             projectName,
 				Slug:             "default",
+				SourceType:       db.AppsSourceTypeLegacy,
 				DefaultBranch:    "main",
 				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 				CreatedAt:        now,

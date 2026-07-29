@@ -11,6 +11,7 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { collection } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
@@ -18,7 +19,8 @@ import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { CodeBranch, CodeCommit, User } from "@unkey/icons";
+import { CodeBranch, CodeCommit, Docker, Layers2, User } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
 
@@ -255,18 +257,7 @@ const formatLatencyMetrics = (log: RequestLogsResponse): React.ReactNode => {
 // Format deployment information
 const formatDeploymentInfo = (
   log: RequestLogsResponse,
-  deployment:
-    | {
-        id: string;
-        environmentId: string;
-        gitBranch?: string | null;
-        gitCommitSha?: string | null;
-        gitCommitMessage?: string | null;
-        gitCommitAuthorHandle?: string | null;
-        gitCommitAuthorAvatarUrl?: string | null;
-        status?: string | null;
-      }
-    | undefined,
+  deployment: Deployment | undefined,
   environment: { slug: string } | undefined,
   sourceRepo: string | null | undefined,
 ): React.ReactNode => {
@@ -282,13 +273,113 @@ const formatDeploymentInfo = (
     );
   }
 
-  const shortSha = deployment.gitCommitSha?.substring(0, 7);
-  const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
-  const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
-  const truncatedMessage =
-    deployment.gitCommitMessage && deployment.gitCommitMessage.length > 50
-      ? `${deployment.gitCommitMessage.substring(0, 50)}...`
-      : deployment.gitCommitMessage;
+  const sourceDetails = match(deployment.source)
+    .with("git", () => {
+      const shortSha = deployment.gitCommitSha?.substring(0, 7);
+      const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
+      const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
+      const truncatedMessage =
+        deployment.gitCommitMessage && deployment.gitCommitMessage.length > 50
+          ? `${deployment.gitCommitMessage.substring(0, 50)}...`
+          : deployment.gitCommitMessage;
+
+      return (
+        <>
+          {deployment.gitBranch && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-11">Branch:</span>
+              <div className="flex items-center gap-1.5">
+                <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                {branchUrl ? (
+                  <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
+                    <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
+                  </DottedLink>
+                ) : (
+                  <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {deployment.gitCommitSha && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-11">Commit:</span>
+              <div className="flex items-center gap-1.5">
+                <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                {commitUrl ? (
+                  <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
+                    <span className="font-mono">{shortSha}</span>
+                  </DottedLink>
+                ) : (
+                  <span className="font-mono">{shortSha}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {deployment.gitCommitAuthorHandle && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-11">Author:</span>
+              <div className="flex items-center gap-1.5">
+                {deployment.gitCommitAuthorAvatarUrl ? (
+                  <img
+                    src={deployment.gitCommitAuthorAvatarUrl}
+                    alt={deployment.gitCommitAuthorHandle}
+                    className="w-4 h-4 rounded-full shrink-0"
+                  />
+                ) : (
+                  <User iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+                )}
+                <span className="truncate max-w-[200px]">{deployment.gitCommitAuthorHandle}</span>
+              </div>
+            </div>
+          )}
+
+          {deployment.gitCommitMessage && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-11">Message:</span>
+              <span
+                className="text-grayA-11 truncate max-w-[250px]"
+                title={deployment.gitCommitMessage}
+              >
+                {truncatedMessage}
+              </span>
+            </div>
+          )}
+        </>
+      );
+    })
+    .with("docker", () => (
+      <>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-gray-11 shrink-0">Requested Image:</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Docker iconSize="sm-regular" className="text-grayA-10 shrink-0" />
+            <span className="font-mono truncate max-w-[250px]">
+              {deployment.requestedImage ?? deployment.resolvedImage ?? "Unknown"}
+            </span>
+          </div>
+        </div>
+        {deployment.resolvedImage && deployment.resolvedImage !== deployment.requestedImage && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-gray-11 shrink-0">Resolved Image:</span>
+            <span className="font-mono truncate max-w-[250px]" title={deployment.resolvedImage}>
+              {deployment.resolvedImage}
+            </span>
+          </div>
+        )}
+      </>
+    ))
+    .with("unknown", () => (
+      <div className="flex items-center justify-between">
+        <span className="text-gray-11">Source:</span>
+        <div className="flex items-center gap-1.5 text-grayA-10">
+          <Layers2 iconSize="sm-regular" className="shrink-0" />
+          <span>Unknown</span>
+        </div>
+      </div>
+    ))
+    .exhaustive();
 
   return (
     <div className="flex flex-col gap-2">
@@ -306,69 +397,9 @@ const formatDeploymentInfo = (
         </div>
       )}
 
-      {deployment.gitBranch && (
-        <div className="flex items-center justify-between">
-          <span className="text-gray-11">Branch:</span>
-          <div className="flex items-center gap-1.5">
-            <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            {branchUrl ? (
-              <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
-                <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
-              </DottedLink>
-            ) : (
-              <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
-            )}
-          </div>
-        </div>
-      )}
+      {sourceDetails}
 
-      {deployment.gitCommitSha && (
-        <div className="flex items-center justify-between">
-          <span className="text-gray-11">Commit:</span>
-          <div className="flex items-center gap-1.5">
-            <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            {commitUrl ? (
-              <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
-                <span className="font-mono">{shortSha}</span>
-              </DottedLink>
-            ) : (
-              <span className="font-mono">{shortSha}</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {deployment.gitCommitAuthorHandle && (
-        <div className="flex items-center justify-between">
-          <span className="text-gray-11">Author:</span>
-          <div className="flex items-center gap-1.5">
-            {deployment.gitCommitAuthorAvatarUrl ? (
-              <img
-                src={deployment.gitCommitAuthorAvatarUrl}
-                alt={deployment.gitCommitAuthorHandle}
-                className="w-4 h-4 rounded-full shrink-0"
-              />
-            ) : (
-              <User iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            )}
-            <span className="truncate max-w-[200px]">{deployment.gitCommitAuthorHandle}</span>
-          </div>
-        </div>
-      )}
-
-      {deployment.gitCommitMessage && (
-        <div className="flex items-center justify-between">
-          <span className="text-gray-11">Message:</span>
-          <span
-            className="text-grayA-11 truncate max-w-[250px]"
-            title={deployment.gitCommitMessage}
-          >
-            {truncatedMessage}
-          </span>
-        </div>
-      )}
-
-      {deployment.status && isDeploymentStatus(deployment.status) && (
+      {isDeploymentStatus(deployment.status) && (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Status:</span>
           <DeploymentStatusBadge status={deployment.status} />

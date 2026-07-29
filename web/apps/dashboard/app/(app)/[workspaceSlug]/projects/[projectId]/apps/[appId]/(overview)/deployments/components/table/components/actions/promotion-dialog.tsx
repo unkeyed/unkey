@@ -1,7 +1,6 @@
 "use client";
 
 import { type Deployment, collection } from "@/lib/collections";
-import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
@@ -81,7 +80,7 @@ export const PromotionDialog = ({
           loading={promote.isLoading}
           className="w-full rounded-lg"
         >
-          {`Promote to ${targetDeployment.gitCommitSha ? shortenId(targetDeployment.gitCommitSha) : targetDeployment.id}`}
+          Promote target deployment
         </Button>
       }
     >

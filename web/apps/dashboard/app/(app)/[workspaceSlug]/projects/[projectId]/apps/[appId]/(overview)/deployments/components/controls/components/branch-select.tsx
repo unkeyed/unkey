@@ -1,6 +1,7 @@
 "use client";
 
 import { CodeBranch, Magnifier } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Checkbox, FormInput, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { useState } from "react";
 import { useProjectData } from "../../../../data-provider";
@@ -25,9 +26,13 @@ export function BranchSelect() {
     }
   }
   for (const d of deployments) {
-    if (d.gitBranch && !seen.has(d.gitBranch)) {
-      seen.add(d.gitBranch);
-      branches.push(d.gitBranch);
+    const branch = match(d.source)
+      .with("git_build", () => d.gitBranch || null)
+      .with("docker_image", "unknown", () => null)
+      .exhaustive();
+    if (branch && !seen.has(branch)) {
+      seen.add(branch);
+      branches.push(branch);
     }
   }
 

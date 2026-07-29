@@ -63,8 +63,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // Run starts the Restate worker service with the provided configuration.
@@ -160,7 +158,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub != nil && cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+	if cfg.GitHub != nil {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
@@ -252,11 +250,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid build platform: %w", err)
 	}
-
 	buildConfig := deploy.BuildConfig{
 		Backend:    deploy.BuildBackend(cfg.Build.Backend),
 		Depot:      deploy.DepotConfig(cfg.GetDepotConfig()),
 		Kubernetes: deploy.KubernetesBuildConfig(cfg.Build.Kubernetes),
+	}
+	registryConfig := deploy.RegistryConfig(cfg.GetRegistryConfig())
+	imageResolver, err := deploy.NewImageResolver(registryConfig)
+	if err != nil {
+		return fmt.Errorf("configure image resolver: %w", err)
 	}
 
 	// The kubernetes build backend runs build Jobs in the worker's own
@@ -289,11 +291,12 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		Build:                           buildConfig,
 		K8s:                             k8sClient,
-		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		RegistryConfig:                  registryConfig,
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
+		ImageResolver:                   imageResolver,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	})

@@ -259,17 +259,15 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
 
-		GitHub: nil,
-		Build: deploy.BuildConfig{
-			Backend:    deploy.BuildBackendDepot,
-			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
-			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
-		},
-		K8s:                             nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		GitHub:         nil,
+		DepotConfig:    deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+		BuildSteps:     batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:  batch.NewNoop[schema.BuildStepLogV1](),
+		RegistryConfig: deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
+		BuildPlatform:  deploy.BuildPlatform{Platform: "", Architecture: ""},
+		ImageResolver: deploy.ImageResolverFunc(func(context.Context, string) (string, error) {
+			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
+		}),
 		AllowUnauthenticatedDeployments: false,
 	})
 	require.NoError(t, err)

@@ -4,8 +4,8 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { useMutation } from "@tanstack/react-query";
+import { trpc } from "@/lib/trpc/client";
+import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useProjectData } from "../../../../../data-provider";
@@ -57,12 +57,18 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
     });
   };
 
+  const subtitle = match(selectedDeployment.source)
+    .with("git_build", () => "Trigger a fresh build and deployment from the same commit")
+    .with("docker_image", () => "Create a deployment from the same resolved Docker image")
+    .with("unknown", () => "Create a new deployment from this deployment")
+    .exhaustive();
+
   return (
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={onClose}
       title="Redeploy"
-      subTitle="Trigger a fresh build and deployment from the same branch"
+      subTitle={subtitle}
       footer={
         <Button
           variant="primary"

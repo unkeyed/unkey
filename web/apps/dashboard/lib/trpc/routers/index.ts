@@ -39,6 +39,7 @@ import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
+import { updateDockerImageSource } from "./deploy/app/update-docker-image-source";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
@@ -421,6 +422,9 @@ export const router = t.router({
     }),
     app: t.router({
       list: listApps,
+      create: createApp,
+      delete: deleteApp,
+      updateDockerImageSource,
     }),
     environmentSettings: t.router({
       getAvailableRegions,

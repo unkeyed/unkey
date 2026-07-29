@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJ7ChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIhCgVhY3RvchgFIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSLiAQoQQ3JlYXRlQXBwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSIQoFYWN0b3IYBSABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbxInCgZnaXRodWIYBiABKAsyFS5jdHJsLnYxLkdpdEh1YlNvdXJjZUgAEjIKDGRvY2tlcl9pbWFnZRgHIAEoCzIaLmN0cmwudjEuRG9ja2VySW1hZ2VTb3VyY2VIAEIICgZzb3VyY2UiHwoRQ3JlYXRlQXBwUmVzcG9uc2USCgoCaWQYASABKAkiDgoMR2l0SHViU291cmNlIiwKEURvY2tlckltYWdlU291cmNlEhcKD2ltYWdlX3JlZmVyZW5jZRgBIAEoCSKCAQoeVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIOCgZhcHBfaWQYAiABKAkSFwoPaW1hZ2VfcmVmZXJlbmNlGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iIQofVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXNwb25zZSJFChBEZWxldGVBcHBSZXF1ZXN0Eg4KBmFwcF9pZBgBIAEoCRIhCgVhY3RvchgCIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIhMKEURlbGV0ZUFwcFJlc3BvbnNlMogCCgpBcHBTZXJ2aWNlEkQKCUNyZWF0ZUFwcBIZLmN0cmwudjEuQ3JlYXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuQ3JlYXRlQXBwUmVzcG9uc2UiABJuChdVcGRhdGVEb2NrZXJJbWFnZVNvdXJjZRInLmN0cmwudjEuVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXF1ZXN0GiguY3RybC52MS5VcGRhdGVEb2NrZXJJbWFnZVNvdXJjZVJlc3BvbnNlIgASRAoJRGVsZXRlQXBwEhkuY3RybC52MS5EZWxldGVBcHBSZXF1ZXN0GhouY3RybC52MS5EZWxldGVBcHBSZXNwb25zZSIAQocBCgtjb20uY3RybC52MUIIQXBwUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -42,6 +42,23 @@ export type CreateAppRequest = Message<"ctrl.v1.CreateAppRequest"> & {
    * @generated from field: ctrl.v1.ActorInfo actor = 5;
    */
   actor?: ActorInfo;
+
+  /**
+   * @generated from oneof ctrl.v1.CreateAppRequest.source
+   */
+  source: {
+    /**
+     * @generated from field: ctrl.v1.GitHubSource github = 6;
+     */
+    value: GitHubSource;
+    case: "github";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.DockerImageSource docker_image = 7;
+     */
+    value: DockerImageSource;
+    case: "dockerImage";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
@@ -69,6 +86,81 @@ export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE_
   messageDesc(file_ctrl_v1_app, 1);
 
 /**
+ * @generated from message ctrl.v1.GitHubSource
+ */
+export type GitHubSource = Message<"ctrl.v1.GitHubSource"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.GitHubSource.
+ * Use `create(GitHubSourceSchema)` to create a new message.
+ */
+export const GitHubSourceSchema: GenMessage<GitHubSource> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_app, 2);
+
+/**
+ * @generated from message ctrl.v1.DockerImageSource
+ */
+export type DockerImageSource = Message<"ctrl.v1.DockerImageSource"> & {
+  /**
+   * @generated from field: string image_reference = 1;
+   */
+  imageReference: string;
+};
+
+/**
+ * Describes the message ctrl.v1.DockerImageSource.
+ * Use `create(DockerImageSourceSchema)` to create a new message.
+ */
+export const DockerImageSourceSchema: GenMessage<DockerImageSource> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_app, 3);
+
+/**
+ * @generated from message ctrl.v1.UpdateDockerImageSourceRequest
+ */
+export type UpdateDockerImageSourceRequest = Message<"ctrl.v1.UpdateDockerImageSourceRequest"> & {
+  /**
+   * @generated from field: string workspace_id = 1;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string app_id = 2;
+   */
+  appId: string;
+
+  /**
+   * @generated from field: string image_reference = 3;
+   */
+  imageReference: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 4;
+   */
+  actor?: ActorInfo;
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateDockerImageSourceRequest.
+ * Use `create(UpdateDockerImageSourceRequestSchema)` to create a new message.
+ */
+export const UpdateDockerImageSourceRequestSchema: GenMessage<UpdateDockerImageSourceRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_app, 4);
+
+/**
+ * @generated from message ctrl.v1.UpdateDockerImageSourceResponse
+ */
+export type UpdateDockerImageSourceResponse = Message<"ctrl.v1.UpdateDockerImageSourceResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.UpdateDockerImageSourceResponse.
+ * Use `create(UpdateDockerImageSourceResponseSchema)` to create a new message.
+ */
+export const UpdateDockerImageSourceResponseSchema: GenMessage<UpdateDockerImageSourceResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_app, 5);
+
+/**
  * @generated from message ctrl.v1.DeleteAppRequest
  */
 export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
@@ -88,7 +180,7 @@ export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
  * Use `create(DeleteAppRequestSchema)` to create a new message.
  */
 export const DeleteAppRequestSchema: GenMessage<DeleteAppRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 2);
+  messageDesc(file_ctrl_v1_app, 6);
 
 /**
  * @generated from message ctrl.v1.DeleteAppResponse
@@ -101,7 +193,7 @@ export type DeleteAppResponse = Message<"ctrl.v1.DeleteAppResponse"> & {
  * Use `create(DeleteAppResponseSchema)` to create a new message.
  */
 export const DeleteAppResponseSchema: GenMessage<DeleteAppResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_app, 3);
+  messageDesc(file_ctrl_v1_app, 7);
 
 /**
  * @generated from service ctrl.v1.AppService
@@ -116,6 +208,16 @@ export const AppService: GenService<{
     methodKind: "unary";
     input: typeof CreateAppRequestSchema;
     output: typeof CreateAppResponseSchema;
+  },
+  /**
+   * Change the default image reference for a Docker-sourced app.
+   *
+   * @generated from rpc ctrl.v1.AppService.UpdateDockerImageSource
+   */
+  updateDockerImageSource: {
+    methodKind: "unary";
+    input: typeof UpdateDockerImageSourceRequestSchema;
+    output: typeof UpdateDockerImageSourceResponseSchema;
   },
   /**
    * Delete an app and all associated resources

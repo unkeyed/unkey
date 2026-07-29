@@ -5,6 +5,7 @@ import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, Empty, ResourceListBody, ResourceListContent } from "@unkey/ui";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
@@ -37,16 +38,33 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
   const data = typeof limit === "number" ? deployments.data.slice(0, limit) : deployments.data;
 
   if (data.length === 0) {
+    const description = app
+      ? match(app.sourceType)
+          .with(
+            "github",
+            () =>
+              "There are no deployments yet. Push to your connected repository or trigger a manual deployment to get started.",
+          )
+          .with(
+            "docker_image",
+            () =>
+              "There are no deployments yet. Deploy the configured image or enter another image reference to get started.",
+          )
+          .with("legacy", () =>
+            app.repositoryFullName
+              ? "There are no deployments yet. Push to your connected repository or trigger a manual deployment to get started."
+              : "There are no deployments yet. Trigger a manual deployment to get started.",
+          )
+          .exhaustive()
+      : "There are no deployments yet. Trigger a manual deployment to get started.";
+
     return (
       <ResourceListContent>
         <div className="flex w-full items-center justify-center px-4 py-16">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
-            <Empty.Description className="text-left">
-              There are no deployments yet. Push to your connected repository or trigger a manual
-              deployment to get started.
-            </Empty.Description>
+            <Empty.Description className="text-left">{description}</Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
                 href="https://www.unkey.com/docs/build-and-deploy/deployments"
