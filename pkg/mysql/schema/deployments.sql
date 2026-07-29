@@ -9,7 +9,7 @@ CREATE TABLE `deployments` (
 	`image` varchar(256),
 	`build_id` varchar(128),
 	`git_commit_sha` varchar(40),
-	`git_branch` varchar(256),
+	`git_branch` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`git_commit_message` text,
 	`git_commit_author_handle` varchar(256),
 	`git_commit_author_avatar_url` varchar(512),

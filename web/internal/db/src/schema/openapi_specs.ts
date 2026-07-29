@@ -11,7 +11,7 @@ export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }),
     portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 256 }),

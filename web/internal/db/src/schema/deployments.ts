@@ -43,7 +43,7 @@ export const deployments = mysqlTable(
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
-    gitBranch: caseInsensitiveVarchar("git_branch", { length: 256 }),
+    gitBranch: caseSensitiveVarchar("git_branch", { length: 256 }),
     gitCommitMessage: text("git_commit_message"),
     gitCommitAuthorHandle: varchar("git_commit_author_handle", {
       length: 256,

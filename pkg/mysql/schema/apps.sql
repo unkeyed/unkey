@@ -5,7 +5,7 @@ CREATE TABLE `apps` (
 	`project_id` varchar(64) NOT NULL,
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
-	`default_branch` varchar(256) NOT NULL DEFAULT 'main',
+	`default_branch` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT 'main',
 	`current_deployment_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`delete_protection` boolean DEFAULT false,

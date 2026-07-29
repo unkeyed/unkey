@@ -11,7 +11,7 @@ export const ciliumNetworkPolicies = mysqlTable(
   "cilium_network_policies",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
     appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),

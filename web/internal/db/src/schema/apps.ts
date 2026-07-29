@@ -20,7 +20,7 @@ export const apps = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
-    defaultBranch: caseInsensitiveVarchar("default_branch", { length: 256 })
+    defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()
       .default("main"),
     currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),

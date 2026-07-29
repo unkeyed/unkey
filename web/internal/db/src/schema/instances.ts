@@ -50,7 +50,7 @@ export const instances = mysqlTable(
   "instances",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),

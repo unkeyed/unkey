@@ -12,7 +12,7 @@ export const portalSessions = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 64 }).notNull(),
-    externalId: caseInsensitiveVarchar("external_id", { length: 256 }).notNull(),
+    externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     permissions: json("permissions").$type<string[]>().notNull(),
     preview: boolean("preview").notNull().default(false),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
