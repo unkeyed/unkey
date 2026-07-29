@@ -3,6 +3,9 @@
 -- ratelimits aggregated into a JSON array (empty array when none exist).
 -- Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 -- pages deterministic, and the empty-string cursor starts from the first row.
+-- Temporary staged-collation bridge: the native-collation term preserves
+-- index lookup while the as_cs term enforces exact ID equality. Remove after
+-- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
     i.id,
     i.external_id,
@@ -23,7 +26,7 @@ SELECT
             )
         )
         FROM ratelimits r
-        WHERE r.identity_id = i.id),
+        WHERE (i.id COLLATE utf8mb4_0900_ai_ci = r.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = r.identity_id)),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -31,6 +34,6 @@ WHERE i.workspace_id = sqlc.arg(workspace_id)
 AND i.deleted = sqlc.arg(deleted)
 AND i.id >= sqlc.arg(id_cursor)
 -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-AND (sqlc.narg(search) IS NULL OR i.id LIKE sqlc.narg(search) OR i.external_id LIKE sqlc.narg(search))
+AND (sqlc.narg(search) IS NULL OR LOWER(i.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(i.external_id) LIKE LOWER(sqlc.narg(search)))
 ORDER BY i.id ASC
 LIMIT ?

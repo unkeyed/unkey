@@ -39,6 +39,21 @@ func TestExportBatch_ClickHouseFailureLeavesOutboxRowPending(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
+	// A reused container can carry pending outbox rows from earlier runs.
+	// The export batch reads the whole table (ORDER BY pk LIMIT batchLimit),
+	// so enough leftovers would evict this test's freshly-seeded row from the
+	// window and break the Contains assertion below. Drain to a clean slate
+	// first with a noop ClickHouse; this only marks already-pending rows
+	// deleted, so it can't race other processes that share the container.
+	drainer := &Handler{db: database, clickhouse: clickhouse.NewNoop()}
+	for {
+		drained, drainErr := drainer.exportBatch(ctx)
+		require.NoError(t, drainErr)
+		if drained.EventsExported < batchLimit {
+			break
+		}
+	}
+
 	event := auditlog.Event{
 		EventID:     uid.New("evt"),
 		Time:        time.Now().UnixMilli(),

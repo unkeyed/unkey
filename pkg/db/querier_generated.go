@@ -56,14 +56,16 @@ type Querier interface {
 	//    AND environment_id = ?
 	//    AND `key` IN (/*SLICE:env_keys*/?)
 	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
-	//DeleteKeyByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  DELETE k, kp, kr, rl, ek
 	//  FROM `keys` k
-	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
-	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
-	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
+	//  LEFT JOIN keys_permissions kp ON (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
+	//  LEFT JOIN keys_roles kr ON (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
+	//  LEFT JOIN ratelimits rl ON (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
@@ -100,11 +102,13 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE role_id = ?
 	DeleteManyRolePermissionsByRoleID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteOldIdentityByExternalID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  DELETE i, rl
 	//  FROM identities i
-	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
+	//  LEFT JOIN ratelimits rl ON (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//  WHERE i.workspace_id = ?
 	//    AND i.external_id = ?
 	//    AND i.id != ?
@@ -156,11 +160,13 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
-	//FindAppByProjectAndIdOrSlug
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
-	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
 	//  WHERE a.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
@@ -173,11 +179,13 @@ type Querier interface {
 	//  WHERE apps.project_id = ?
 	//    AND apps.slug = ?
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
-	//FindAppByWorkspaceAndSlugs
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
-	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN projects p ON (a.project_id = p.id COLLATE utf8mb4_0900_ai_ci AND a.project_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE p.workspace_id = ?
 	//    AND p.slug = ?
 	//    AND a.slug = ?
@@ -192,6 +200,9 @@ type Querier interface {
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//  	ars.region_id,
@@ -203,8 +214,8 @@ type Querier interface {
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
-	//  JOIN regions r ON r.id = ars.region_id
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -219,20 +230,25 @@ type Querier interface {
 	// workspace. Used by portal.createSession to resolve the keyspaces an
 	// app-mapped portal config grants access to (the keyauth policies carry the
 	// keySpaceIds verified at the gateway).
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT d.sentinel_config
 	//  FROM apps a
-	//  JOIN deployments d ON d.id = a.current_deployment_id
+	//  JOIN deployments d ON (a.current_deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND a.current_deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE a.id = ?
 	//    AND a.workspace_id = ?
 	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
-	//FindClickhouseWorkspaceSettingsByWorkspaceID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
 	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  JOIN `quota` q ON (c.workspace_id COLLATE utf8mb4_0900_ai_ci = q.workspace_id AND c.workspace_id COLLATE utf8mb4_0900_as_cs = q.workspace_id)
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
@@ -248,11 +264,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
-	//FindDeploymentWithEnvironment
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug
 	//  FROM deployments d
-	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
 	//  WHERE d.id = ?
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
@@ -266,12 +284,14 @@ type Querier interface {
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
-	//FindEnvironmentByIdentifiers
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 	//  FROM environments e
-	//  JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
-	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  JOIN apps a ON (e.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND e.app_id COLLATE utf8mb4_0900_as_cs = a.id) AND (e.workspace_id COLLATE utf8mb4_0900_ai_ci = a.workspace_id AND e.workspace_id COLLATE utf8mb4_0900_as_cs = a.workspace_id)
+	//  JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
 	//  WHERE e.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
@@ -303,7 +323,9 @@ type Querier interface {
 	//  FROM identities
 	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
-	//FindIdentity
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
@@ -319,7 +341,7 @@ type Querier interface {
 	//                  'auto_apply', rl.auto_apply = 1
 	//              )
 	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
+	//          FROM ratelimits rl WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//  FROM identities i
@@ -333,7 +355,7 @@ type Querier interface {
 	//      WHERE id2.workspace_id = ?
 	//        AND id2.external_id = ?
 	//        AND id2.deleted = ?
-	//  ) AS identity_lookup ON i.id = identity_lookup.id
+	//  ) AS identity_lookup ON (identity_lookup.id COLLATE utf8mb4_0900_ai_ci = i.id AND identity_lookup.id COLLATE utf8mb4_0900_as_cs = i.id)
 	//  LIMIT 1
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
@@ -352,11 +374,13 @@ type Querier interface {
 	//    AND id = ?
 	//    AND deleted = ?
 	FindIdentityByID(ctx context.Context, db DBTX, arg FindIdentityByIDParams) (Identity, error)
-	//FindKeyAuthsByIds
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT ka.id as key_auth_id, a.id as api_id
 	//  FROM apis a
-	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = a.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = a.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE a.workspace_id = ?
 	//      AND a.id IN (/*SLICE:api_ids*/?)
 	//      AND ka.deleted_at_m IS NULL
@@ -414,17 +438,21 @@ type Querier interface {
 	//
 	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
 	FindKeysByHash(ctx context.Context, db DBTX, hashes []string) ([]FindKeysByHashRow, error)
-	//FindLiveApiByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 	//  FROM apis
-	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
+	//  JOIN key_auth as ka ON (ka.id = apis.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = apis.key_auth_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE apis.id = ?
 	//      AND ka.deleted_at_m IS NULL
 	//      AND apis.deleted_at_m IS NULL
 	//  LIMIT 1
 	FindLiveApiByID(ctx context.Context, db DBTX, id string) (FindLiveApiByIDRow, error)
-	//FindLiveKeyByHash
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -447,8 +475,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
 	//
@@ -463,8 +491,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
 	//
@@ -479,9 +507,9 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
 	//
@@ -501,28 +529,30 @@ type Querier interface {
 	//          FROM (
 	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//              FROM ratelimits rl
-	//              WHERE rl.key_id = k.id
+	//              WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//              UNION ALL
 	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//              FROM ratelimits rl
-	//              WHERE rl.identity_id = i.id
+	//              WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//          ) AS combined_rl),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
+	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.hash = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (FindLiveKeyByHashRow, error)
-	//FindLiveKeyByID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -545,8 +575,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as roles,
 	//
@@ -561,8 +591,8 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
+	//          JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)),
 	//          JSON_ARRAY()
 	//      ) as permissions,
 	//
@@ -577,9 +607,9 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
+	//          JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//          JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)),
 	//          JSON_ARRAY()
 	//      ) as role_permissions,
 	//
@@ -597,24 +627,26 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id
-	//              OR rl.identity_id = i.id),
+	//          WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
+	//              OR (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//
 	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//  JOIN workspaces ws ON (k.workspace_id COLLATE utf8mb4_0900_ai_ci = ws.id AND k.workspace_id COLLATE utf8mb4_0900_as_cs = ws.id)
+	//  LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//  LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.id = ?
 	//      AND k.deleted_at_m IS NULL
 	//      AND a.deleted_at_m IS NULL
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
-	//FindManyRatelimitNamespaces
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
@@ -626,14 +658,16 @@ type Querier interface {
 	//                                         'duration', ro.duration
 	//                                 )
 	//                         )
-	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                  from ratelimit_overrides ro where (ns.id COLLATE utf8mb4_0900_ai_ci = ro.namespace_id AND ns.id COLLATE utf8mb4_0900_as_cs = ro.namespace_id) AND ro.deleted_at_m IS NULL),
 	//                 json_array()
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByNamesWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -646,8 +680,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -698,7 +732,9 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
-	//FindProjectByIdOrSlug
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      p.id,
@@ -717,7 +753,7 @@ type Querier interface {
 	//      SELECT p2.id
 	//      FROM projects p2
 	//      WHERE p2.slug = ? AND p2.workspace_id = ?
-	//  ) AS project_lookup ON p.id = project_lookup.id
+	//  ) AS project_lookup ON (project_lookup.id COLLATE utf8mb4_0900_ai_ci = p.id AND project_lookup.id COLLATE utf8mb4_0900_as_cs = p.id)
 	//  LIMIT 1
 	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
@@ -727,7 +763,9 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindRatelimitNamespace
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 	//         coalesce(
@@ -739,7 +777,7 @@ type Querier interface {
 	//                                         'duration', ro.duration
 	//                                 )
 	//                         )
-	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+	//                  from ratelimit_overrides ro where (ns.id COLLATE utf8mb4_0900_ai_ci = ro.namespace_id AND ns.id COLLATE utf8mb4_0900_as_cs = ro.namespace_id) AND ro.deleted_at_m IS NULL),
 	//                 json_array()
 	//         ) as overrides
 	//  FROM `ratelimit_namespaces` ns
@@ -782,7 +820,9 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -795,8 +835,8 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
@@ -850,6 +890,9 @@ type Querier interface {
 	// when a workspace is already being fetched, prefer joining workspace_billing in
 	// that query rather than a second round trip. Stripe subscription ids now live
 	// on billing_subscriptions, one row per (workspace, product).
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//     b.pk,
@@ -868,9 +911,9 @@ type Querier interface {
 	//     b.deleted_at_m
 	//  FROM `workspace_billing` b
 	//  LEFT JOIN `billing_subscriptions` bs_api
-	//     ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+	//     ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_api.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_api.workspace_id) AND bs_api.product = 'api'
 	//  LEFT JOIN `billing_subscriptions` bs_deploy
-	//     ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+	//     ON (b.workspace_id COLLATE utf8mb4_0900_ai_ci = bs_deploy.workspace_id AND b.workspace_id COLLATE utf8mb4_0900_as_cs = bs_deploy.workspace_id) AND bs_deploy.product = 'compute'
 	//  WHERE b.workspace_id = ?
 	FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error)
 	//FindWorkspaceByID
@@ -1611,6 +1654,9 @@ type Querier interface {
 	ListAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarsByAppAndEnvParams) ([]ListAppEnvVarsByAppAndEnvRow, error)
 	// Returns per-region settings for every environment in an app, including the
 	// autoscaling policy bounds (if attached). Callers group by environment_id.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//  	ars.environment_id,
@@ -1623,8 +1669,8 @@ type Querier interface {
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
 	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
-	//  JOIN regions r ON r.id = ars.region_id
-	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  JOIN regions r ON (ars.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND ars.region_id COLLATE utf8mb4_0900_as_cs = r.id)
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON (hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_ai_ci AND hap.id = ars.horizontal_autoscaling_policy_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE ars.app_id = ?
 	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
 	// Returns the current regional rows for reconciliation, including the
@@ -1652,7 +1698,7 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
@@ -1666,11 +1712,13 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListDeploymentDomains
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  JOIN deployments d ON d.id = r.deployment_id
+	//  JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE d.workspace_id = ?
 	//    AND r.deployment_id = ?
 	//  ORDER BY r.fully_qualified_domain_name
@@ -1679,12 +1727,14 @@ type Querier interface {
 	//
 	//  SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 	//  FROM frontline_routes r
-	//  JOIN deployments d ON d.id = r.deployment_id
+	//  JOIN deployments d ON (r.deployment_id COLLATE utf8mb4_0900_ai_ci = d.id AND r.deployment_id COLLATE utf8mb4_0900_as_cs = d.id)
 	//  WHERE d.workspace_id = ?
 	//    AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY r.deployment_id, r.fully_qualified_domain_name
 	ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error)
-	//ListDeploymentEnvAndAppState
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//    d.id AS deployment_id,
@@ -1694,17 +1744,19 @@ type Querier interface {
 	//    a.current_deployment_id AS app_current_deployment_id,
 	//    a.is_rolled_back AS app_is_rolled_back
 	//  FROM deployments d
-	//  JOIN projects p ON p.id = d.project_id
-	//  JOIN environments e ON e.id = d.environment_id
-	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN projects p ON (d.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND d.project_id COLLATE utf8mb4_0900_as_cs = p.id)
+	//  JOIN environments e ON (d.environment_id COLLATE utf8mb4_0900_ai_ci = e.id AND d.environment_id COLLATE utf8mb4_0900_as_cs = e.id)
+	//  JOIN apps a ON (d.app_id COLLATE utf8mb4_0900_ai_ci = a.id AND d.app_id COLLATE utf8mb4_0900_as_cs = a.id)
 	//  WHERE d.workspace_id = ?
 	//    AND d.id IN (/*SLICE:deployment_ids*/?)
 	ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error)
-	//ListDeploymentRegions
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT DISTINCT r.name AS region
 	//  FROM deployment_topology dt
-	//  JOIN regions r ON r.id = dt.region_id
+	//  JOIN regions r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 	//  WHERE dt.workspace_id = ?
 	//    AND dt.deployment_id = ?
 	//  ORDER BY r.name
@@ -1713,7 +1765,7 @@ type Querier interface {
 	//
 	//  SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 	//  FROM deployment_topology dt
-	//  JOIN regions r ON r.id = dt.region_id
+	//  JOIN regions r ON (dt.region_id COLLATE utf8mb4_0900_ai_ci = r.id AND dt.region_id COLLATE utf8mb4_0900_as_cs = r.id)
 	//  WHERE dt.workspace_id = ?
 	//    AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 	//  ORDER BY dt.deployment_id, r.name
@@ -1734,11 +1786,13 @@ type Querier interface {
 	//  ORDER BY d.pk DESC
 	//  LIMIT ?
 	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
-	//ListDirectPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM keys_permissions kp
-	//  JOIN permissions p ON kp.permission_id = p.id
+	//  JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
@@ -1762,6 +1816,9 @@ type Querier interface {
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 	// pages deterministic, and the empty-string cursor starts from the first row.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
@@ -1784,14 +1841,14 @@ type Querier interface {
 	//              )
 	//          )
 	//          FROM ratelimits r
-	//          WHERE r.identity_id = i.id),
+	//          WHERE (i.id COLLATE utf8mb4_0900_ai_ci = r.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = r.identity_id)),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//  FROM identities i
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
-	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
+	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
@@ -1806,7 +1863,9 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
-	//ListLiveKeysByKeySpaceID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -1824,8 +1883,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
 	//         )                    as roles,
@@ -1840,8 +1899,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
-	//                  WHERE kp.key_id = k.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as permissions,
@@ -1856,9 +1915,9 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as role_permissions,
@@ -1878,18 +1937,18 @@ type Querier interface {
 	//                  FROM (
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.key_id = k.id
+	//                      WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//                      UNION ALL
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.identity_id = i.id
+	//                      WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id = ?
 	//    AND k.id >= ?
 	//    AND (? IS NULL OR k.identity_id = ?)
@@ -1898,7 +1957,9 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
-	//ListLiveKeysByKeySpaceIDs
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -1916,8 +1977,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY r.name),
 	//                 JSON_ARRAY()
 	//         )                    as roles,
@@ -1932,8 +1993,8 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
-	//                  WHERE kp.key_id = k.id
+	//                           JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kp.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kp.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as permissions,
@@ -1948,9 +2009,9 @@ type Querier interface {
 	//                                 )
 	//                         )
 	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
-	//                  WHERE kr.key_id = k.id
+	//                           JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//                           JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//                  WHERE (k.id COLLATE utf8mb4_0900_ai_ci = kr.key_id AND k.id COLLATE utf8mb4_0900_as_cs = kr.key_id)
 	//                  ORDER BY p.slug),
 	//                 JSON_ARRAY()
 	//         )                    as role_permissions,
@@ -1970,18 +2031,18 @@ type Querier interface {
 	//                  FROM (
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.key_id = k.id
+	//                      WHERE (k.id COLLATE utf8mb4_0900_ai_ci = rl.key_id AND k.id COLLATE utf8mb4_0900_as_cs = rl.key_id)
 	//                      UNION ALL
 	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 	//                      FROM ratelimits rl
-	//                      WHERE rl.identity_id = i.id
+	//                      WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
 	//                  ) AS combined_rl),
 	//                 JSON_ARRAY()
 	//         )                    AS ratelimits
 	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//           STRAIGHT_JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
+	//           LEFT JOIN identities i ON (k.identity_id COLLATE utf8mb4_0900_ai_ci = i.id AND k.identity_id COLLATE utf8mb4_0900_as_cs = i.id) AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON (k.id COLLATE utf8mb4_0900_ai_ci = ek.key_id AND k.id COLLATE utf8mb4_0900_as_cs = ek.key_id)
 	//  WHERE k.key_auth_id IN (/*SLICE:key_space_ids*/?)
 	//    AND k.id >= ?
 	//    AND (? IS NULL OR k.identity_id = ?)
@@ -2000,23 +2061,25 @@ type Querier interface {
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
 	//    -- because sqlc types each param after the compared column, and description's
 	//    -- dbtype.NullString override conflicts with the plain string columns.
-	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
+	//    AND (? IS NULL OR LOWER(p.id) LIKE LOWER(?) OR LOWER(p.name) LIKE LOWER(?) OR LOWER(p.slug) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?))
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
-	//ListPermissionsByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  WITH direct_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
+	//      JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kp.key_id = ?
 	//  ),
 	//  role_permissions AS (
 	//      SELECT p.slug as permission_slug
 	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
+	//      JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
+	//      JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
 	//      WHERE kr.key_id = ?
 	//  )
 	//  SELECT DISTINCT permission_slug
@@ -2040,7 +2103,7 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
@@ -2070,6 +2133,9 @@ type Querier interface {
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -2083,18 +2149,20 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
-	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
+	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
-	//ListRolesByKeyID
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -2107,12 +2175,12 @@ type Querier interface {
 	//          )
 	//           FROM (SELECT name, id, slug, description
 	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
+	//                          JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+	//                 WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM keys_roles kr
-	//  JOIN roles r ON kr.role_id = r.id
+	//  JOIN roles r ON (kr.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = r.id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
@@ -2122,13 +2190,16 @@ type Querier interface {
 	// stripe_customer_id, so that (not a subscription or price) is all the push
 	// needs. Batched by ID (never per-workspace) so the push stays a single round
 	// trip regardless of how many workspaces had usage.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//     w.id,
 	//     b.stripe_customer_id,
 	//     w.enabled
 	//  FROM `workspaces` w
-	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  LEFT JOIN `workspace_billing` b ON (w.id COLLATE utf8mb4_0900_ai_ci = b.workspace_id AND w.id COLLATE utf8mb4_0900_as_cs = b.workspace_id)
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
 	// LockDefaultProjectByWorkspaceID uses a current read so a transaction can
@@ -2181,6 +2252,9 @@ type Querier interface {
 	// Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
 	// can't use both indexes and would scan the workspace. app/environment keep the OR
 	// since the parent-id join already narrows them to a few rows.
+	// Temporary staged-collation bridge: the native-collation term preserves
+	// index lookup while the as_cs term enforces exact ID equality. Remove after
+	// all counterpart columns are utf8mb4_0900_as_cs.
 	//
 	//  SELECT
 	//      p.id AS project_id,
@@ -2197,12 +2271,12 @@ type Querier interface {
 	//      LIMIT 1
 	//  ) p
 	//  LEFT JOIN apps a
-	//      ON a.project_id = p.id
-	//      AND a.workspace_id = p.workspace_id
+	//      ON (a.project_id = p.id COLLATE utf8mb4_0900_ai_ci AND a.project_id = p.id COLLATE utf8mb4_0900_as_cs)
+	//      AND (a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_ai_ci AND a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//      AND (a.id = ? OR a.slug = ?)
 	//  LEFT JOIN environments e
-	//      ON e.app_id = a.id
-	//      AND e.workspace_id = a.workspace_id
+	//      ON (e.app_id = a.id COLLATE utf8mb4_0900_ai_ci AND e.app_id = a.id COLLATE utf8mb4_0900_as_cs)
+	//      AND (e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_ai_ci AND e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)

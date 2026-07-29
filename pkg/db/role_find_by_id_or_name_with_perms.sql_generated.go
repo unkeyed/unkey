@@ -22,8 +22,8 @@ SELECT pk, id, workspace_id, project_id, name, description, created_at_m, update
         )
          FROM (SELECT name, id, slug, description
                FROM roles_permissions rp
-                        JOIN permissions p ON p.id = rp.permission_id
-               WHERE rp.role_id = r.id) as permission),
+                        JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+               WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
         JSON_ARRAY()
 ) as permissions
 FROM roles r
@@ -50,7 +50,9 @@ type FindRoleByIdOrNameWithPermsRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// FindRoleByIdOrNameWithPerms
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
@@ -63,8 +65,8 @@ type FindRoleByIdOrNameWithPermsRow struct {
 //	        )
 //	         FROM (SELECT name, id, slug, description
 //	               FROM roles_permissions rp
-//	                        JOIN permissions p ON p.id = rp.permission_id
-//	               WHERE rp.role_id = r.id) as permission),
+//	                        JOIN permissions p ON (p.id = rp.permission_id COLLATE utf8mb4_0900_ai_ci AND p.id = rp.permission_id COLLATE utf8mb4_0900_as_cs)
+//	               WHERE (rp.role_id = r.id COLLATE utf8mb4_0900_ai_ci AND rp.role_id = r.id COLLATE utf8mb4_0900_as_cs)) as permission),
 //	        JSON_ARRAY()
 //	) as permissions
 //	FROM roles r

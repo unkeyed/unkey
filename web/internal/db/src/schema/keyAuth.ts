@@ -2,6 +2,8 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, index, int, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -9,9 +11,9 @@ export const keyAuth = mysqlTable(
   "key_auth",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
 
     ...lifecycleDatesMigration,
 

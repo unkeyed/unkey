@@ -25,7 +25,7 @@ SELECT
                 'auto_apply', rl.auto_apply = 1
             )
         )
-        FROM ratelimits rl WHERE rl.identity_id = i.id),
+        FROM ratelimits rl WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -39,7 +39,7 @@ JOIN (
     WHERE id2.workspace_id = ?
       AND id2.external_id = ?
       AND id2.deleted = ?
-) AS identity_lookup ON i.id = identity_lookup.id
+) AS identity_lookup ON (identity_lookup.id COLLATE utf8mb4_0900_ai_ci = i.id AND identity_lookup.id COLLATE utf8mb4_0900_as_cs = i.id)
 LIMIT 1
 `
 
@@ -63,7 +63,9 @@ type FindIdentityRow struct {
 	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
-// FindIdentity
+// Temporary staged-collation bridge: the native-collation term preserves
+// index lookup while the as_cs term enforces exact ID equality. Remove after
+// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
@@ -79,7 +81,7 @@ type FindIdentityRow struct {
 //	                'auto_apply', rl.auto_apply = 1
 //	            )
 //	        )
-//	        FROM ratelimits rl WHERE rl.identity_id = i.id),
+//	        FROM ratelimits rl WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
@@ -93,7 +95,7 @@ type FindIdentityRow struct {
 //	    WHERE id2.workspace_id = ?
 //	      AND id2.external_id = ?
 //	      AND id2.deleted = ?
-//	) AS identity_lookup ON i.id = identity_lookup.id
+//	) AS identity_lookup ON (identity_lookup.id COLLATE utf8mb4_0900_ai_ci = i.id AND identity_lookup.id COLLATE utf8mb4_0900_as_cs = i.id)
 //	LIMIT 1
 func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
 	row := db.QueryRowContext(ctx, findIdentity,

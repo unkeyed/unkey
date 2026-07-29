@@ -1,6 +1,8 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
 import { customDomains } from "./custom_domains";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -11,11 +13,11 @@ export const acmeChallenges = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    domainId: varchar("domain_id", { length: 255 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
+    domainId: caseSensitiveVarchar("domain_id", { length: 255 }).notNull().unique(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    token: caseInsensitiveVarchar("token", { length: 255 }).notNull(),
     type: challengeType,
-    authorization: varchar("authorization", { length: 255 }).notNull(),
+    authorization: caseInsensitiveVarchar("authorization", { length: 255 }).notNull(),
     status: mysqlEnum("status", ["waiting", "pending", "verified", "failed"]).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 

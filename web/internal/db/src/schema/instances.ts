@@ -12,6 +12,7 @@ import {
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { regions } from "./regions";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 
 //id, deplyoment_id, health, kube_dns_addr, mem, cpu, region
 
@@ -48,16 +49,16 @@ export const instances = mysqlTable(
   "instances",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
-    projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    deploymentId: caseInsensitiveVarchar("deployment_id", { length: 255 }).notNull(),
+    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
+    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
 
-    regionId: varchar("region_id", { length: 64 }).notNull(),
+    regionId: caseInsensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // used to apply updates from the kubernetes watch events
-    k8sName: varchar("k8s_name", { length: 255 }).notNull(),
+    k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull(),
     // The kubernetes pod dns address. Not uniquely constrained per region because
     // Kubernetes recycles pod IPs across deployments.
     address: varchar("address", { length: 255 }).notNull(),

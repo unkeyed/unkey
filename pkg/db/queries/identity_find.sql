@@ -1,4 +1,7 @@
 -- name: FindIdentity :one
+-- Temporary staged-collation bridge: the native-collation term preserves
+-- index lookup while the as_cs term enforces exact ID equality. Remove after
+-- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
     i.*,
     COALESCE(
@@ -13,7 +16,7 @@ SELECT
                 'auto_apply', rl.auto_apply = 1
             )
         )
-        FROM ratelimits rl WHERE rl.identity_id = i.id),
+        FROM ratelimits rl WHERE (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -27,5 +30,5 @@ JOIN (
     WHERE id2.workspace_id = sqlc.arg(workspace_id)
       AND id2.external_id = sqlc.arg(identity)
       AND id2.deleted = sqlc.arg(deleted)
-) AS identity_lookup ON i.id = identity_lookup.id
+) AS identity_lookup ON (identity_lookup.id COLLATE utf8mb4_0900_ai_ci = i.id AND identity_lookup.id COLLATE utf8mb4_0900_as_cs = i.id)
 LIMIT 1;
