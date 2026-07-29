@@ -39,8 +39,9 @@ B-2 ENG-3100 · B-3 ENG-3101 · N-1 ENG-3102 · N-2 ENG-3103 (blocked by 3102) �
 N-3 ENG-3104 · N-4 ENG-3105 · N-5 ENG-3107 (blocked by 3095+3104) ·
 N-6 ENG-3106 · N-7 ENG-3108 · L-1 ENG-3109 ·
 Backend (ALL DB work, one issue to discuss with Andreas) ENG-3093 (due Fri 31 Jul) ·
-Comms ENG-3094 (due Tue 5 Aug). Linear is now the tracking source; this doc
-stays the context/decision source.
+Comms ENG-3094 (due Tue 5 Aug) ·
+Post-rollout docs/screenshots sweep ENG-3110 (last, after ENG-3108).
+Linear is now the tracking source; this doc stays the context/decision source.
 
 ## The shape of the problem
 
