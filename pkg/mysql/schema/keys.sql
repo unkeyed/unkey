@@ -1,7 +1,7 @@
 CREATE TABLE `keys` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(256) NOT NULL,
-	`key_auth_id` varchar(256) NOT NULL,
+	`key_auth_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`hash` varchar(256) NOT NULL,
 	`start` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,

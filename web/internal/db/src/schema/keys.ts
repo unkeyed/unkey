@@ -16,6 +16,7 @@ import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -26,7 +27,7 @@ export const keys = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-    keyAuthId: caseInsensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
+    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
     hash: caseInsensitiveVarchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
