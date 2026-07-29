@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -25,27 +26,25 @@ func TestGetOverride_ReturnsPersistedOverride(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, set.V2RatelimitSetOverrideResponseBody)
 	t.Cleanup(func() {
-		require.Eventually(t, func() bool {
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			_, err := client.Ratelimit.DeleteOverride(ctx, components.V2RatelimitDeleteOverrideRequestBody{
 				Namespace:  namespace,
 				Identifier: identifier,
 			})
-			return err == nil
+			require.NoError(c, err)
 		}, 30*time.Second, time.Second)
 	})
 
 	var persisted components.RatelimitOverride
 	// Override reads may take time to propagate through regional replicas.
-	require.Eventually(t, func() bool {
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		response, err := client.Ratelimit.GetOverride(ctx, components.V2RatelimitGetOverrideRequestBody{
 			Namespace:  namespace,
 			Identifier: identifier,
 		})
-		if err != nil || response.V2RatelimitGetOverrideResponseBody == nil {
-			return false
-		}
+		require.NoError(c, err)
+		require.NotNil(c, response.V2RatelimitGetOverrideResponseBody)
 		persisted = response.V2RatelimitGetOverrideResponseBody.Data
-		return true
 	}, 30*time.Second, time.Second)
 	require.Equal(t, set.V2RatelimitSetOverrideResponseBody.Data.OverrideID, persisted.OverrideID)
 	require.Equal(t, override.Identifier, persisted.Identifier)

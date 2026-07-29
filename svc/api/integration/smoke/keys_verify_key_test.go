@@ -1,10 +1,10 @@
 package smoke_test
 
 import (
-	"slices"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -34,10 +34,13 @@ func TestVerifyKey_EnforcesPermissions(t *testing.T) {
 	permission := createPermission(t, ctx, client)
 	_, err := client.Keys.AddPermissions(ctx, components.V2KeysAddPermissionsRequestBody{KeyID: key.KeyID, Permissions: []string{permission.Slug}})
 	require.NoError(t, err)
-	require.Eventually(t, func() bool {
-		response, verifyErr := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &permission.Slug})
-		return verifyErr == nil && response.V2KeysVerifyKeyResponseBody != nil && response.V2KeysVerifyKeyResponseBody.Data.Valid && slices.Contains(response.V2KeysVerifyKeyResponseBody.Data.Permissions, permission.Slug)
-	}, 30*time.Second, time.Second, "verification did not observe permission %q", permission.Slug)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &permission.Slug})
+		require.NoError(c, err)
+		require.NotNil(c, response.V2KeysVerifyKeyResponseBody)
+		require.True(c, response.V2KeysVerifyKeyResponseBody.Data.Valid)
+		require.Contains(c, response.V2KeysVerifyKeyResponseBody.Data.Permissions, permission.Slug)
+	}, 30*time.Second, time.Second)
 	missing := uid.DNS1035()
 	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key, Permissions: &missing})
 	require.NoError(t, err)
