@@ -17,7 +17,7 @@ export const identities = mysqlTable(
      */
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),

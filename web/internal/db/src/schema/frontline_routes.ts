@@ -2,7 +2,6 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
@@ -11,8 +10,8 @@ export const frontlineRoutes = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
     deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
     environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {

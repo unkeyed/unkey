@@ -14,9 +14,9 @@ export const apps = mysqlTable(
   "apps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 

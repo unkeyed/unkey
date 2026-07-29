@@ -14,7 +14,7 @@ export const apis = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     /**
      * comma separated ips
      */

@@ -10,11 +10,12 @@ import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const projects = mysqlTable(
   "projects",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),

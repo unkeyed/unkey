@@ -3,6 +3,7 @@ import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mys
 import { apps } from "./apps";
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -31,8 +32,8 @@ export const githubRepoConnections = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 64 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull().unique(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull().unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),

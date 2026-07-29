@@ -28,13 +28,13 @@ export const deployments = mysqlTable(
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
     workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
     environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     // App this deployment belongs to
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     // the docker image
     // null until the build is done
