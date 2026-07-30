@@ -185,6 +185,7 @@ export function getSentinelLogs(ch: Querier) {
     // Lazy materialization delays reading large payload columns until ORDER BY
     // and LIMIT select the page. Enable it explicitly and raise ClickHouse's
     // default LIMIT 10 threshold to the dashboard's 50-row page size.
+    // https://clickhouse.com/docs/optimize/lazy-materialization
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
