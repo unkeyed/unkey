@@ -324,14 +324,12 @@ type Querier interface {
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	// FindCluster resolves the cluster and region rows for the complete identity
 	// supplied by Krane on cluster-scoped RPCs.
-	// Cluster identifiers are case-sensitive while region identifiers retain their
-	// legacy case-insensitive collation, so the join normalizes the region side.
 	//
 	//  SELECT
 	//      c.pk, c.id, c.cell_id, c.region_id, c.last_heartbeat_at,
 	//      r.pk, r.id, r.name, r.platform, r.can_schedule
 	//  FROM clusters c
-	//  INNER JOIN regions r ON r.id COLLATE utf8mb4_0900_as_cs = c.region_id
+	//  INNER JOIN regions r ON r.id = c.region_id
 	//  WHERE c.cell_id = ?
 	//      AND r.platform = ?
 	//      AND r.name = ?

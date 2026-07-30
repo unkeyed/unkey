@@ -64,24 +64,6 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		return nil, err
 	}
 
-	clusterKey := req.Msg.GetCluster()
-	registered, err := s.db.FindCluster(ctx, db.FindClusterParams{
-		CellID:   sql.NullString{String: clusterKey.GetCellId(), Valid: true},
-		Platform: clusterKey.GetPlatform(),
-		Region:   clusterKey.GetRegion(),
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("cluster identity %s/%s/%s conflicts with an existing cell or region", clusterKey.GetCellId(), platform, regionName))
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	s.clusterCache.Set(ctx, clusterCacheKey{
-		cellID:   clusterKey.GetCellId(),
-		platform: clusterKey.GetPlatform(),
-		region:   clusterKey.GetRegion(),
-	}, registered)
-
 	// Every region needs a wildcard cert for its frontline
 	// (*.{region}.{platform}.{regionalDomain}) so cross-region TLS works.
 	// EnsureInfraCertificate is idempotent (a single indexed read once the
