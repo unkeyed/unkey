@@ -222,7 +222,6 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
-import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
   share: t.router({
@@ -295,7 +294,6 @@ export const router = t.router({
     getCurrent: getCurrentWorkspace,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
-    optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
