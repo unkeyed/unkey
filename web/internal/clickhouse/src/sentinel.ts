@@ -1,3 +1,4 @@
+import { Err, Ok } from "@unkey/error";
 import { z } from "zod";
 import type { Querier } from "./client";
 
@@ -181,12 +182,12 @@ export function getSentinelLogs(ch: Querier) {
     // Offset pagination. `page` is 1-based; page 1 maps to offset 0.
     const offset = (args.page - 1) * args.limit;
 
-    const logsQuery = ch.query({
+    // Keep the top-N scan narrow. Reading the full request and response payload
+    // before ORDER BY forces ClickHouse to decompress those columns for every
+    // matching row even though only one page survives LIMIT.
+    const pageQuery = ch.query({
       query: `
-        SELECT request_id, time, deployment_id, region, method, path, host,
-               response_status, total_latency, instance_latency, frontline_latency AS sentinel_latency,
-               query_string, query_params, request_headers, request_body,
-               response_headers, response_body, user_agent, ip_address
+        SELECT request_id, time
         FROM ${TABLE}
         WHERE ${filterConditions}
         ORDER BY time DESC, request_id DESC
@@ -196,12 +197,67 @@ export function getSentinelLogs(ch: Querier) {
         offset: z.number().int(),
         ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
       }),
+      schema: z.object({ request_id: z.string(), time: z.number().int() }),
+    });
+
+    // Hydrate only the selected page. request_id has a bloom-filter index, and
+    // PREWHERE prevents the large payload columns from being read for rows that
+    // are not part of the page.
+    const hydrateQuery = ch.query({
+      query: `
+        SELECT request_id, time, deployment_id, region, method, path, host,
+               response_status, total_latency, instance_latency, frontline_latency AS sentinel_latency,
+               query_string, query_params, request_headers, request_body,
+               response_headers, response_body, user_agent, ip_address
+        FROM ${TABLE}
+        PREWHERE workspace_id = {workspaceId: String}
+          AND project_id = {projectId: String}
+          AND time BETWEEN {pageStartTime: UInt64} AND {pageEndTime: UInt64}
+          AND request_id IN {requestIds: Array(String)}
+        WHERE (request_id, time) IN {requestKeys: Array(Tuple(String, Int64))}
+        ORDER BY time DESC, request_id DESC`,
+      params: sentinelLogsRequestSchema.extend({
+        pageStartTime: z.number().int(),
+        pageEndTime: z.number().int(),
+        requestIds: z.array(z.string()),
+        requestKeys: z.array(z.tuple([z.string(), z.number().int()])),
+      }),
       schema: sentinelLogsResponseSchema,
+    });
+
+    // Keep selection and hydration as separate ClickHouse queries. Materializing
+    // the page here turns its IDs and timestamp bounds into constants for the
+    // second scan, allowing the primary and request_id bloom indexes to prune
+    // more effectively than an inlined CTE.
+    const pageResult = pageQuery({ ...args, ...pathValues, offset } as never);
+    const logsQuery = pageResult.then((result) => {
+      if (result.err) {
+        return Err(result.err);
+      }
+      const [firstRow, ...remainingRows] = result.val;
+      if (!firstRow) {
+        return Ok([]);
+      }
+
+      let pageStartTime = firstRow.time;
+      let pageEndTime = firstRow.time;
+      for (const row of remainingRows) {
+        pageStartTime = Math.min(pageStartTime, row.time);
+        pageEndTime = Math.max(pageEndTime, row.time);
+      }
+
+      return hydrateQuery({
+        ...args,
+        pageStartTime,
+        pageEndTime,
+        requestIds: result.val.map((row) => row.request_id),
+        requestKeys: result.val.map((row) => [row.request_id, row.time]),
+      });
     });
 
     return {
       totalQuery: totalQuery({ ...args, ...pathValues } as never),
-      logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
+      logsQuery,
     };
   };
 }
