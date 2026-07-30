@@ -1,6 +1,9 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { useMemo } from "react";
-import { type ProcessedTimeseriesDataPoint, useKeyTimeseries } from "../key-timeseries-provider";
+import {
+  type ProcessedTimeseriesDataPoint,
+  useFetchVerificationTimeseries,
+} from "../bar-chart/use-fetch-timeseries";
 import { STATUS_DEFINITIONS, type StatusInfo } from "./constants";
 
 const RATE_LIMIT_THRESHOLD_PERCENT = 0.1; // 10%
@@ -45,8 +48,8 @@ const LOADING_PRIMARY = {
   icon: null,
 };
 
-export const useKeyStatus = (keyData: KeyDetails): UseKeyStatusResult => {
-  const { timeseries, isError, isLoading } = useKeyTimeseries(keyData.id);
+export const useKeyStatus = (keyAuthId: string, keyData: KeyDetails): UseKeyStatusResult => {
+  const { timeseries, isError, isLoading } = useFetchVerificationTimeseries(keyAuthId, keyData.id);
 
   const statusResult = useMemo(() => {
     // Handle case where keyData might not be loaded yet
