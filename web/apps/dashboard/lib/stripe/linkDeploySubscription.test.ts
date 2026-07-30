@@ -267,8 +267,13 @@ describe("linkDeploySubscription", () => {
     });
     expect(h.values).toHaveBeenCalledWith({
       workspaceId: WORKSPACE_ID,
+      logsRetentionDays: 3,
+      auditLogsRetentionDays: 7,
+      team: false,
       maxCpuMillicoresPerInstance: 2_000,
       maxMemoryMibPerInstance: 2_048,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
@@ -290,8 +295,13 @@ describe("linkDeploySubscription", () => {
     expect(h.transaction).not.toHaveBeenCalled();
     expect(h.values).toHaveBeenCalledWith({
       workspaceId: WORKSPACE_ID,
+      logsRetentionDays: 3,
+      auditLogsRetentionDays: 7,
+      team: false,
       maxCpuMillicoresPerInstance: 2_000,
       maxMemoryMibPerInstance: 2_048,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
   });
 
