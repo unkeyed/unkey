@@ -14,30 +14,96 @@ import type Stripe from "stripe";
 export const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
 export type DeployPlan = (typeof DEPLOY_PLANS)[number];
 
-type ComputeQuotas = Pick<Quotas, "maxCpuMillicoresPerInstance" | "maxMemoryMibPerInstance">;
+type ComputeQuotas = Pick<
+  Quotas,
+  | "logsRetentionDays"
+  | "auditLogsRetentionDays"
+  | "team"
+  | "maxCpuMillicoresPerInstance"
+  | "maxMemoryMibPerInstance"
+  | "maxStorageMibPerInstance"
+  | "maxConcurrentBuilds"
+>;
+
+type ComputeOnlyQuotas = Pick<
+  ComputeQuotas,
+  | "maxCpuMillicoresPerInstance"
+  | "maxMemoryMibPerInstance"
+  | "maxStorageMibPerInstance"
+  | "maxConcurrentBuilds"
+>;
 
 const COMPUTE_PLAN_QUOTAS = {
   starter: {
+    logsRetentionDays: 3,
+    auditLogsRetentionDays: 7,
+    team: false,
     maxCpuMillicoresPerInstance: 2_000,
     maxMemoryMibPerInstance: 2_048,
+    maxStorageMibPerInstance: 10_240,
+    maxConcurrentBuilds: 1,
   },
   pro: {
+    logsRetentionDays: 7,
+    auditLogsRetentionDays: 14,
+    team: true,
     maxCpuMillicoresPerInstance: 8_000,
     maxMemoryMibPerInstance: 8_192,
+    maxStorageMibPerInstance: 10_240,
+    maxConcurrentBuilds: 1,
   },
   business: {
+    logsRetentionDays: 14,
+    auditLogsRetentionDays: 30,
+    team: true,
     maxCpuMillicoresPerInstance: 16_000,
     maxMemoryMibPerInstance: 32_768,
+    maxStorageMibPerInstance: 10_240,
+    maxConcurrentBuilds: 1,
   },
 } satisfies Record<DeployPlan, ComputeQuotas>;
 
 const DEFAULT_COMPUTE_QUOTAS = {
+  logsRetentionDays: freeTierQuotas.logsRetentionDays,
+  auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
+  team: freeTierQuotas.team,
   maxCpuMillicoresPerInstance: freeTierQuotas.maxCpuMillicoresPerInstance,
   maxMemoryMibPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+  maxStorageMibPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+  maxConcurrentBuilds: freeTierQuotas.maxConcurrentBuilds,
 } satisfies ComputeQuotas;
 
 export function computeQuotasForPlan(plan: DeployPlan | null): ComputeQuotas {
   return plan ? COMPUTE_PLAN_QUOTAS[plan] : DEFAULT_COMPUTE_QUOTAS;
+}
+
+/**
+ * Returns the quota fields a Compute subscription may safely update. A paid
+ * API plan owns the shared retention and team fields, so Compute must preserve
+ * those while still applying its resource limits.
+ */
+export function computeQuotaUpdateForPlan(
+  plan: DeployPlan | null,
+  preserveApiQuotas: boolean,
+): ComputeQuotas | ComputeOnlyQuotas {
+  const quotas = computeQuotasForPlan(plan);
+  if (!preserveApiQuotas) {
+    return quotas;
+  }
+  return {
+    maxCpuMillicoresPerInstance: quotas.maxCpuMillicoresPerInstance,
+    maxMemoryMibPerInstance: quotas.maxMemoryMibPerInstance,
+    maxStorageMibPerInstance: quotas.maxStorageMibPerInstance,
+    maxConcurrentBuilds: quotas.maxConcurrentBuilds,
+  };
+}
+
+export function deployPlanGrantsTeam(plan: string | null): boolean {
+  return plan === "pro" || plan === "business";
+}
+
+export function parseDeployPlan(plan: string | null): DeployPlan | null {
+  return plan !== null && isDeployPlan(plan) ? plan : null;
 }
 
 function isDeployPlan(value: string): value is DeployPlan {

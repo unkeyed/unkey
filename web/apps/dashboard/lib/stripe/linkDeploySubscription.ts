@@ -132,6 +132,7 @@ export async function linkDeploySubscription(
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
   }
+  const preserveApiQuotas = (ws.billing?.tier ?? "Free") !== "Free";
 
   const recordedSubscriptionId = subscriptionIdsByProduct(
     ws.billingSubscriptions ?? [],
@@ -145,7 +146,7 @@ export async function linkDeploySubscription(
   // repoint away from — refusing would strand this checkout's paid subscription.
   if (recordedSubscriptionId === subscriptionId) {
     if (ws.billing?.plan === plan) {
-      await setComputeQuotas(db, { workspaceId: ws.id, plan });
+      await setComputeQuotas(db, { workspaceId: ws.id, plan, preserveApiQuotas });
       return { ok: true, plan, alreadyLinked: true };
     }
   } else if (recordedSubscriptionId) {
@@ -171,7 +172,7 @@ export async function linkDeploySubscription(
       .update(schema.workspaceBilling)
       .set({ stripeCustomerId, plan })
       .where(eq(schema.workspaceBilling.workspaceId, ws.id));
-    await setComputeQuotas(tx, { workspaceId: ws.id, plan });
+    await setComputeQuotas(tx, { workspaceId: ws.id, plan, preserveApiQuotas });
     await upsertBillingSubscription(tx, {
       workspaceId: ws.id,
       product: "compute",
