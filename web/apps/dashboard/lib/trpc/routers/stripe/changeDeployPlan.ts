@@ -1,9 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { DEPLOY_PLANS, deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
 import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -117,7 +118,11 @@ export const changeDeployPlan = workspaceProcedure
         .update(schema.workspaceBilling)
         .set({ plan: input.plan })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-      await setComputeQuotas(tx, { workspaceId: ctx.workspace.id, plan: input.plan });
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: input.plan,
+        preserveApiQuotas: ctx.workspace.tier !== "Free",
+      });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
@@ -127,6 +132,14 @@ export const changeDeployPlan = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    const losesTeam =
+      ctx.workspace.tier === "Free" &&
+      deployPlanGrantsTeam(planFeeItem.plan) &&
+      !deployPlanGrantsTeam(input.plan);
+    if (losesTeam) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
 
     return result;
   });

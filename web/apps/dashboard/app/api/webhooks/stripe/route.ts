@@ -1,6 +1,6 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
-import { auth } from "@/lib/auth/server";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/stripe/computeAlerts";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
-import { detectDeployPlan } from "@/lib/stripe/deployPlan";
+import { deployPlanGrantsTeam, detectDeployPlan, parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { linkApiSubscription } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
@@ -52,20 +52,30 @@ import Stripe from "stripe";
  * updated handler already returns early on a cancelling subscription.
  */
 async function mirrorDeployPlan(
-  billing: { workspaceId: string; plan: string | null },
+  billing: { workspaceId: string; plan: string | null; tier: string | null },
+  orgId: string,
   sub: Stripe.Subscription,
 ): Promise<void> {
   const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
   const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
+    const preserveApiQuotas = (billing.tier ?? "Free") !== "Free";
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaceBilling)
         .set({ plan })
         .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
-      await setComputeQuotas(tx, { workspaceId: billing.workspaceId, plan });
+      await setComputeQuotas(tx, {
+        workspaceId: billing.workspaceId,
+        plan,
+        preserveApiQuotas,
+      });
     });
+
+    if (!preserveApiQuotas && deployPlanGrantsTeam(billing.plan) && !deployPlanGrantsTeam(plan)) {
+      await deactivateNonCreatorMemberships(orgId);
+    }
   }
 }
 
@@ -323,43 +333,6 @@ async function resolveApiSubscriptionContext(
   return { unitAmount: price.unit_amount, customer, product };
 }
 
-/**
- * Deactivates every active membership in `orgId` except the earliest one (the original
- * creator). Determining the creator from membership createdAt avoids storing extra DB
- * state. Errors per-membership are logged but don't fail the webhook — partial revocation
- * is preferable to leaving the workspace stuck in an inconsistent paid state.
- */
-async function deactivateNonCreatorMemberships(orgId: string): Promise<void> {
-  let memberships: Awaited<ReturnType<typeof auth.getOrganizationMemberList>>;
-  try {
-    memberships = await auth.getOrganizationMemberList(orgId);
-  } catch (err) {
-    console.error("Failed to list memberships for deactivation:", { orgId, error: err });
-    return;
-  }
-
-  if (memberships.data.length <= 1) {
-    return;
-  }
-
-  const sorted = [...memberships.data].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const [, ...nonCreators] = sorted;
-
-  await Promise.all(
-    nonCreators.map(async (member) => {
-      try {
-        await auth.deactivateMembership(member.id, orgId);
-      } catch (err) {
-        console.error("Failed to deactivate membership:", {
-          orgId,
-          membershipId: member.id,
-          error: err,
-        });
-      }
-    }),
-  );
-}
-
 export const runtime = "nodejs";
 
 export const POST = async (req: Request): Promise<Response> => {
@@ -479,7 +452,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // dashboard mutations write the plan optimistically before this fires).
         if (column === "compute") {
           await deprovisionOnCancel(billing, sub);
-          await mirrorDeployPlan(billing, sub);
+          await mirrorDeployPlan(billing, ws.orgId, sub);
           const deployConfig = await deployBillingConfig();
           await sendComputeAlert(
             stripe,
@@ -769,7 +742,7 @@ export const POST = async (req: Request): Promise<Response> => {
             }
           }
 
-          // Team follows any live paid product, so a paid API tier keeps it.
+          // A paid API tier keeps team access after Compute ends.
           const keepsTeam = keepsTeamAfterDelete("compute", billing);
 
           // One transaction. Deleting the billing_subscriptions row is what the
@@ -786,7 +759,11 @@ export const POST = async (req: Request): Promise<Response> => {
             // Reset the Compute-owned ceilings even when a paid API plan remains;
             // in that case the API-owned quota fields and team access stay intact.
             if (keepsTeam) {
-              await setComputeQuotas(tx, { workspaceId: ws.id, plan: null });
+              await setComputeQuotas(tx, {
+                workspaceId: ws.id,
+                plan: null,
+                preserveApiQuotas: true,
+              });
             } else {
               await tx
                 .insert(schema.quotas)
@@ -838,21 +815,18 @@ export const POST = async (req: Request): Promise<Response> => {
           break;
         }
 
-        // API-matched: downgrade the API tier. An active Deploy plan keeps team.
+        // API-matched: downgrade the API tier. Pro/Business Compute keeps team.
+        const deployPlan = parseDeployPlan(billing.plan);
         const keepsTeam = keepsTeamAfterDelete("api", billing);
 
-        // When a Compute plan survives, reset only the API-scoped quota fields:
-        // the Compute resource ceilings belong to the surviving plan, so
-        // spreading all of freeTierQuotas would clamp them to Free the moment
-        // Compute tiers diverge from the Free defaults.
+        // When a Compute plan survives, reset the API-only fields and then
+        // reapply that plan's shared and resource entitlements. Without a
+        // Compute plan, restore the complete free quota record.
         const apiFreeQuotas = {
           requestsPerMonth: freeTierQuotas.requestsPerMonth,
-          logsRetentionDays: freeTierQuotas.logsRetentionDays,
-          auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
           ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
           ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
         };
-        const downgradedQuotas = keepsTeam ? { ...apiFreeQuotas, team: true } : freeTierQuotas;
 
         // One transaction. Deleting the billing_subscriptions row is what the
         // retry lookup keys on, so if it committed alone and a later write
@@ -867,10 +841,22 @@ export const POST = async (req: Request): Promise<Response> => {
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
           await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "api" });
 
-          await tx
-            .insert(schema.quotas)
-            .values({ workspaceId: ws.id, ...downgradedQuotas })
-            .onDuplicateKeyUpdate({ set: downgradedQuotas });
+          if (deployPlan) {
+            await tx
+              .insert(schema.quotas)
+              .values({ workspaceId: ws.id, ...apiFreeQuotas })
+              .onDuplicateKeyUpdate({ set: apiFreeQuotas });
+            await setComputeQuotas(tx, {
+              workspaceId: ws.id,
+              plan: deployPlan,
+              preserveApiQuotas: false,
+            });
+          } else {
+            await tx
+              .insert(schema.quotas)
+              .values({ workspaceId: ws.id, ...freeTierQuotas })
+              .onDuplicateKeyUpdate({ set: freeTierQuotas });
+          }
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
@@ -967,8 +953,8 @@ export const POST = async (req: Request): Promise<Response> => {
         // never carries Compute plan metadata, so this cannot misfire an API
         // create as a Compute alert.
         if (detectDeployPlan(sub)) {
-          if (billing) {
-            await mirrorDeployPlan(billing, sub);
+          if (billing && ws) {
+            await mirrorDeployPlan(billing, ws.orgId, sub);
           }
           await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
           return new Response("OK");

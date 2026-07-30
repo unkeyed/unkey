@@ -1,33 +1,33 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
-import { serializeFilters } from "@/hooks/serialize-transition-key";
-import { usePageChange } from "@/hooks/use-page-change";
-import { usePageClamp } from "@/hooks/use-page-clamp";
-import { usePageTransition } from "@/hooks/use-page-transition";
-import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
+import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  computeTotalPages,
+  paginationFilterKey,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
 
+// Audit logs are paginated but not sortable, so this composes the shared
+// pagination primitives directly rather than usePaginatedListQuery (which owns
+// a URL `sort` param). The primitives own page state, the deep-link clamp, and
+// prefetch; the filter-to-payload mapping stays here.
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
 
-  const filtersKey = useMemo(() => serializeFilters(filters), [filters]);
+  const filtersKey = useMemo(() => paginationFilterKey(filters), [filters]);
 
-  const queryPage = usePageTransition({
-    transitionKey: filtersKey,
-    page: normalizedPage,
-    setPage,
-  });
+  const { page, setPage } = usePaginatedPage(filtersKey);
 
   const queryParams = useMemo(() => {
     const params: AuditLogsQueryPayload = {
       limit: pageSize,
-      page: queryPage,
+      page,
       startTime: undefined,
       endTime: undefined,
       events: { filters: [] },
@@ -80,42 +80,34 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     }
 
     return params;
-  }, [filters, pageSize, queryPage]);
+  }, [filters, pageSize, page]);
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = computeTotalPages(totalCount, pageSize);
 
-  usePageClamp({
-    page: queryPage,
-    totalPages,
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
-    setPage,
-  });
-
-  usePrefetchPages({
-    page: queryPage,
+    page,
     totalPages,
+    setPage,
+    isLoading,
+    isFetching,
     queryParams,
-    prefetch: (params) =>
-      utils.audit.logs.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+    prefetch: (params) => utils.audit.logs.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
-
-  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     auditLogs: data?.auditLogs ?? [],
-    isLoading,
-    isFetching,
-    page: queryPage,
+    isLoading: isInitialLoading,
+    isNavigating,
+    page,
     pageSize,
     totalPages,
     totalCount,
