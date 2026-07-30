@@ -104,13 +104,13 @@ export function ProductionCardChart() {
         fillColors={FILL_COLORS}
         paleFill
         height={120}
-        axisFloor={0}
+        axis={{
+          x: { domain: xDomain, utc: true },
+          y: { floor: 0, formatTick: formatCountYTick },
+        }}
         isLoading={isChartLoading}
         isError={isChartError}
         formatTooltipValue={formatCountTooltip}
-        formatYTick={formatCountYTick}
-        xAxisDomain={xDomain}
-        xAxisUTC
         hideTooltip
         onActiveChange={setActive}
       />
