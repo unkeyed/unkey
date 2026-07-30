@@ -28,7 +28,7 @@ function formatCountYTick(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return formatNumber(v);
+  return v.toFixed(1);
 }
 
 function LegendStat({
