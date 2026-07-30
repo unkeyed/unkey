@@ -1,16 +1,18 @@
 import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import { serializeFilters } from "@/hooks/serialize-transition-key";
-import { usePageChange } from "@/hooks/use-page-change";
-import { usePageClamp } from "@/hooks/use-page-clamp";
-import { usePageTransition } from "@/hooks/use-page-transition";
-import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
+import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  computeTotalPages,
+  paginationFilterKey,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
@@ -25,6 +27,10 @@ type UseKeyDetailsLogsQueryParams = {
   startPolling?: boolean;
 };
 
+// Key-details logs are time-windowed, unsorted, and layer live polling on top
+// of an offset-paginated history. The shared pagination primitives own page
+// state, the deep-link clamp, and prefetch; the realtime buffer and polling
+// stay here.
 export function useKeyDetailsLogsQuery({
   keyId,
   keyspaceId,
@@ -38,27 +44,28 @@ export function useKeyDetailsLogsQuery({
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-
-  // Filters and the time window both invalidate the current page; a
-  // transition also clears the realtime buffer since buffered live rows
-  // belong to the previous result set.
+  // usePaginatedPage owns the page reset off this key; the realtime buffer is
+  // cleared here.
   const filtersKey = useMemo(
-    () => `${serializeFilters(filters)}|ts:${timestamp}`,
+    () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
-  const queryPage = usePageTransition({
-    transitionKey: filtersKey,
-    page: normalizedPage,
-    setPage,
-    onTransition: () => setRealtimeLogsMap(new Map()),
-  });
+  const { page, setPage } = usePaginatedPage(filtersKey);
+
+  // Clear the buffer in-render on a filters/time transition, not in an effect:
+  // the page stays 1 and `activeRealtimeLogsMap` below is gated on page, so an
+  // effect would paint one frame of the old filters' rows against the new ones.
+  // State, not a ref, so a discarded render rolls the paired clear back with it.
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
+    setRealtimeLogsMap(new Map());
+  }
 
   const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling && queryPage === 1 ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
-  }, [startPolling, queryPage, realtimeLogsMap]);
+    return startPolling && page === 1 ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
+  }, [startPolling, page, realtimeLogsMap]);
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(activeRealtimeLogsMap.values()));
@@ -74,7 +81,7 @@ export function useKeyDetailsLogsQuery({
       outcomes: [],
       tags: [],
       since: "",
-      page: queryPage,
+      page,
     };
 
     filters.forEach((filter) => {
@@ -129,19 +136,14 @@ export function useKeyDetailsLogsQuery({
     });
 
     return params;
-  }, [filters, limit, timestamp, keyId, keyspaceId, queryPage]);
+  }, [filters, limit, timestamp, keyId, keyspaceId, page]);
 
   // Main query for historical data
   const {
     data: logData,
     isLoading,
     isFetching,
-  } = trpc.key.logs.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  } = trpc.key.logs.query.useQuery(queryParams, PAGINATED_LIST_QUERY_OPTIONS);
 
   // Derive historical logs from query data
   const historicalLogsMap = useMemo(() => {
@@ -156,25 +158,19 @@ export function useKeyDetailsLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  const totalCount = useMemo(() => {
-    return logData?.total ?? 0;
-  }, [logData]);
+  const totalCount = logData?.total ?? 0;
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-
-  usePageClamp({
-    page: queryPage,
-    totalPages,
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data: logData,
-    setPage,
-  });
-
-  usePrefetchPages({
-    page: queryPage,
+    page,
     totalPages,
+    setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) =>
-      queryClient.key.logs.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+      queryClient.key.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   // Query for new logs (polling)
@@ -233,16 +229,11 @@ export function useKeyDetailsLogsQuery({
 
   // Set up polling effect — only poll on page 1
   useEffect(() => {
-    if (startPolling && queryPage === 1) {
+    if (startPolling && page === 1) {
       const interval = setInterval(pollForNewLogs, pollIntervalMs);
       return () => clearInterval(interval);
     }
-  }, [startPolling, queryPage, pollForNewLogs, pollIntervalMs]);
-
-  const onPageChange = usePageChange(totalPages, setPage);
-
-  const isInitialLoading = isLoading && !logData;
-  const isNavigating = isFetching && !isInitialLoading;
+  }, [startPolling, page, pollForNewLogs, pollIntervalMs]);
 
   return {
     realtimeLogs,
@@ -252,7 +243,7 @@ export function useKeyDetailsLogsQuery({
     isFetching,
     isNavigating,
     isPolling: startPolling,
-    page: queryPage,
+    page,
     pageSize: limit,
     totalPages,
     onPageChange,
