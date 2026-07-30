@@ -44,7 +44,12 @@ export function getDeployMeterUsage(ch: Querier) {
       SELECT
         leadInFrame(ts) OVER w - ts AS dt,
         greatest(0, leadInFrame(cpu_usage_usec) OVER w - cpu_usage_usec) AS cpu_usec_delta,
-        greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes) AS egress_bytes_delta,
+        if(
+          ifNull(attributes.network_attached::Nullable(Bool), false)
+          AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w,
+          greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
+          0
+        ) AS egress_bytes_delta,
         toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
         toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
       FROM default.instance_checkpoints

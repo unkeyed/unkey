@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
 import {
@@ -20,6 +21,7 @@ export function PendingRedeployBanner() {
   const { project, deployments, projectId } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
   const currentDeploymentId = project?.currentDeploymentId;
 
@@ -101,6 +103,10 @@ export function PendingRedeployBanner() {
             disabled={redeploy.isLoading}
             loading={redeploy.isLoading}
             onClick={() => {
+              if (gated) {
+                openPaywall();
+                return;
+              }
               if (currentDeployment) {
                 redeploy.mutate({ deploymentId: currentDeployment.id });
               }
@@ -110,6 +116,7 @@ export function PendingRedeployBanner() {
           </Button>
         </div>
       </div>
+      {planGate}
     </div>
   );
 }

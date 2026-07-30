@@ -94,13 +94,29 @@ export function mrkdwn(strings: TemplateStringsArray, ...values: SlackValue[]): 
  */
 type MrkdwnText = { type: "mrkdwn"; text: Mrkdwn; verbatim: true };
 
-type SlackBlock = {
-  type: "section";
-  text: MrkdwnText;
-};
+/**
+ * A plain_text object. Slack renders it literally — no markup, no auto-linking — so it is only
+ * ever fed our own copy (block titles, button labels), never a customer-controlled value.
+ */
+type PlainText = { type: "plain_text"; text: string; emoji: true };
+
+type HeaderBlock = { type: "header"; text: PlainText };
+
+/** A section with a single line of text, `fields` for a two-column grid, or both. */
+type SectionBlock = { type: "section"; text?: MrkdwnText; fields?: MrkdwnText[] };
+
+/** A link button. `url` is a separate field from any text, so it carries no injection risk. */
+type ButtonElement = { type: "button"; text: PlainText; url: string };
+type ActionsBlock = { type: "actions"; elements: ButtonElement[] };
+
+type SlackBlock = HeaderBlock | SectionBlock | ActionsBlock;
 
 const mrkdwnText = (text: Mrkdwn): MrkdwnText => {
   return { type: "mrkdwn", text, verbatim: true };
+};
+
+const plainText = (text: string): PlainText => {
+  return { type: "plain_text", text, emoji: true };
 };
 
 type SlackMessage = {
@@ -149,129 +165,187 @@ async function postToSlack(
   }
 }
 
-const section = (text: Mrkdwn): SlackBlock => {
+const section = (text: Mrkdwn): SectionBlock => {
   return { type: "section", text: mrkdwnText(text) };
 };
 
-export async function alertSubscriptionCreation(
-  product: string,
-  price: string,
-  email: string,
-  workspaceId: string,
-  name?: string,
-): Promise<void> {
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "subscription_created", {
-    blocks: [
-      section(mrkdwn`:bugeyes: New customer ${name} signed up`),
-      section(
-        mrkdwn`A new subscription for the ${product} tier has started at a price of ${price} by ${email} :moneybag: `,
-      ),
-      section(mrkdwn`Workspace: ${workspaceId}`),
-    ],
-  });
+const header = (text: string): HeaderBlock => {
+  return { type: "header", text: plainText(text) };
+};
+
+/** A two-column grid of labelled values. Slack caps a section at 10 fields; we send at most 6. */
+const fieldsSection = (fields: Mrkdwn[]): SectionBlock => {
+  return { type: "section", fields: fields.map(mrkdwnText) };
+};
+
+const linkButton = (label: string, url: string): ActionsBlock => {
+  return { type: "actions", elements: [{ type: "button", text: plainText(label), url }] };
+};
+
+/**
+ * A deep link to the customer in the Stripe dashboard. Test-mode objects live under `/test`, so
+ * the link must switch on `livemode` or it 404s in one of the two modes. The id is Stripe-issued
+ * (`cus_...`), not customer free text, but it is still encoded before going into the URL.
+ */
+export function stripeCustomerUrl(customerId: string, livemode: boolean): string {
+  const base = livemode ? "https://dashboard.stripe.com" : "https://dashboard.stripe.com/test";
+  return `${base}/customers/${encodeURIComponent(customerId)}`;
 }
 
-export async function alertSubscriptionUpdate(
-  product: string,
-  price: string,
-  email: string,
-  workspaceId: string,
-  name?: string,
-  changeType?: string,
-  previousTier?: string,
-): Promise<void> {
-  let emoji = ":stonks:";
-  let actionText = "updated their subscription";
+/**
+ * The subscription-lifecycle action an alert announces. These are the states the team watches in
+ * the customers channel; each maps to a header emoji, a title, and an optional standing note.
+ */
+export type CustomerAlertAction =
+  | "signup"
+  | "upgrade"
+  | "downgrade"
+  | "update"
+  | "cancelling"
+  | "cancelled";
 
-  if (changeType === "upgraded") {
-    actionText = "upgraded their subscription";
-  } else if (changeType === "downgraded") {
-    emoji = ":notstonks:";
-    actionText = "downgraded their subscription";
+const ACTION_META: Record<CustomerAlertAction, { emoji: string; title: string; note?: Mrkdwn }> = {
+  signup: { emoji: ":bugeyes:", title: "New customer signup" },
+  upgrade: { emoji: ":stonks:", title: "Subscription upgraded" },
+  downgrade: { emoji: ":notstonks:", title: "Subscription downgraded" },
+  update: { emoji: ":stonks:", title: "Subscription updated" },
+  cancelling: {
+    emoji: ":warning:",
+    title: "Subscription cancelling",
+    // note is our own copy; it goes through the tag so the type checks, escaping is a no-op.
+    note: mrkdwn`They stay on their plan until the end of the billing period, then move back to the free tier. Worth reaching out to learn why.`,
+  },
+  cancelled: {
+    emoji: ":caleb-sad:",
+    title: "Subscription cancelled",
+    note: mrkdwn`They've been moved back to the free tier.`,
+  },
+};
+
+/**
+ * The details a subscription-lifecycle alert renders. Every string field is customer-controlled
+ * free text except the ids and `action`; the `mrkdwn` tag escapes them all at the boundary.
+ * Workspace fields are optional because a `created` event can race ahead of the row that links
+ * the subscription to its workspace, leaving nothing to resolve the name/id from yet.
+ */
+export type CustomerLifecycleAlert = {
+  action: CustomerAlertAction;
+  name: string;
+  email: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  product?: string;
+  previousProduct?: string;
+  price?: string;
+  stripeCustomerId?: string;
+  livemode?: boolean;
+};
+
+/**
+ * Posts the Block Kit alert for a subscription-lifecycle event: a header naming the action, a
+ * two-column grid of the customer/workspace/plan facts the team acts on, an optional standing
+ * note, and a button deep-linking to the customer in Stripe. Fields that are absent (e.g. no
+ * price on a cancellation) are simply omitted so the grid never shows a blank cell.
+ */
+export async function alertCustomerLifecycle(alert: CustomerLifecycleAlert): Promise<void> {
+  const meta = ACTION_META[alert.action];
+
+  const fields: Mrkdwn[] = [mrkdwn`*Customer*\n${alert.name}`, mrkdwn`*Email*\n${alert.email}`];
+  if (alert.workspaceName) {
+    fields.push(mrkdwn`*Workspace*\n${alert.workspaceName}`);
+  }
+  if (alert.workspaceId) {
+    fields.push(mrkdwn`*Workspace ID*\n${alert.workspaceId}`);
+  }
+  if (alert.product) {
+    fields.push(
+      alert.previousProduct
+        ? mrkdwn`*Tier / Product*\n${alert.previousProduct} → ${alert.product}`
+        : mrkdwn`*Tier / Product*\n${alert.product}`,
+    );
+  }
+  if (alert.price) {
+    fields.push(mrkdwn`*Price*\n${alert.price}`);
   }
 
-  let subscriptionText = mrkdwn`Subscription ${changeType} to the ${product} tier`;
-  if (previousTier && changeType !== "updated") {
-    subscriptionText = mrkdwn`${name}'s subscription ${changeType} from ${previousTier} to ${product} tier, they are now paying ${price}. `;
+  const blocks: SlackBlock[] = [header(`${meta.emoji} ${meta.title}`), fieldsSection(fields)];
+  if (meta.note) {
+    blocks.push(section(meta.note));
+  }
+  if (alert.stripeCustomerId) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
+      ),
+    );
   }
 
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "subscription_updated", {
-    blocks: [
-      // emoji and actionText are our own copy, so escaping them is a no-op. They go through
-      // the tag anyway rather than bypassing it, because nothing here is worth an exemption.
-      section(mrkdwn`${emoji} ${name} ${actionText}`),
-      section(subscriptionText),
-      section(mrkdwn`Here is their contact information: ${email}`),
-      section(mrkdwn`Workspace: ${workspaceId}`),
-    ],
+  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `subscription_${alert.action}`, {
+    blocks,
   });
 }
 
-export async function alertIsCancellingSubscription(
-  product: string,
-  price: string,
-  email: string,
-  name?: string,
+/**
+ * The details a payment alert renders. Payment events arrive on invoices, which are not linked to
+ * a workspace here, so these carry only the customer facts plus the Stripe deep link.
+ */
+export type PaymentAlert = {
+  email: string;
+  name: string;
+  amount: number;
+  stripeCustomerId?: string;
+  livemode?: boolean;
+};
+
+/** Shared renderer for the two payment alerts: header, customer/amount grid, note, Stripe link. */
+async function alertPayment(
+  alert: PaymentAlert,
+  kind: "failed" | "recovered",
+  emoji: string,
+  title: string,
+  note: Mrkdwn,
 ): Promise<void> {
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "subscription_cancelling", {
-    blocks: [
-      section(mrkdwn`:warning: ${name} is cancelling their subscription.`),
-      section(
-        mrkdwn`Subscription cancellation requested by ${email} - for ${product} at ${price} they will be moved back to the free tier, at the end of the month. We should reach out to find out why they are cancelling.`,
+  const blocks: SlackBlock[] = [
+    header(`${emoji} ${title}`),
+    fieldsSection([
+      mrkdwn`*Customer*\n${alert.name}`,
+      mrkdwn`*Email*\n${alert.email}`,
+      // formatPrice renders USD; the invoice currency is not shown.
+      mrkdwn`*Amount*\n${formatPrice(alert.amount)}`,
+    ]),
+    section(note),
+  ];
+  if (alert.stripeCustomerId) {
+    blocks.push(
+      linkButton(
+        "View customer in Stripe",
+        stripeCustomerUrl(alert.stripeCustomerId, alert.livemode ?? true),
       ),
-    ],
-  });
+    );
+  }
+
+  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, `payment_${kind}`, { blocks });
 }
 
-export async function alertSubscriptionCancelled(email: string, name?: string): Promise<void> {
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "subscription_cancelled", {
-    blocks: [
-      section(mrkdwn`:caleb-sad: ${name} cancelled their subscription`),
-      section(
-        mrkdwn`Subscription cancelled by ${email} - they've been moved back to the free tier`,
-      ),
-    ],
-  });
+export async function alertPaymentFailed(alert: PaymentAlert): Promise<void> {
+  await alertPayment(
+    alert,
+    "failed",
+    ":warning:",
+    "Payment failed",
+    mrkdwn`We should reach out to help resolve the payment issue.`,
+  );
 }
 
-export async function alertPaymentFailed(
-  customerEmail: string,
-  customerName: string,
-  amount: number,
-  // Accepted to match the Stripe webhook call site. `formatPrice` renders `amount` as USD,
-  // so the currency is not shown; kept in the signature so the caller need not change.
-  _currency: string,
-): Promise<void> {
-  const formattedAmount = formatPrice(amount);
-
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "payment_failed", {
-    blocks: [
-      section(mrkdwn`:warning: Payment failed for ${customerName}`),
-      section(
-        mrkdwn`Payment of ${formattedAmount} failed for ${customerEmail}. We should reach out to help resolve the payment issue.`,
-      ),
-    ],
-  });
-}
-
-export async function alertPaymentRecovered(
-  customerEmail: string,
-  customerName: string,
-  amount: number,
-  // Accepted to match the Stripe webhook call site. `formatPrice` renders `amount` as USD,
-  // so the currency is not shown; kept in the signature so the caller need not change.
-  _currency: string,
-): Promise<void> {
-  const formattedAmount = formatPrice(amount);
-
-  await postToSlack(process.env.SLACK_WEBHOOK_CUSTOMERS, "payment_recovered", {
-    blocks: [
-      section(mrkdwn`:tada: Payment recovered for ${customerName}`),
-      section(
-        mrkdwn`Great news! Payment of ${formattedAmount} has been successfully processed for ${customerEmail} after a previous failure. Their service should now be restored.`,
-      ),
-    ],
-  });
+export async function alertPaymentRecovered(alert: PaymentAlert): Promise<void> {
+  await alertPayment(
+    alert,
+    "recovered",
+    ":tada:",
+    "Payment recovered",
+    mrkdwn`Payment went through after a previous failure. Their service should now be restored.`,
+  );
 }
 
 /**
@@ -294,6 +368,7 @@ export async function alertOrphanedDeploySubscription(details: {
   sessionId?: string;
   eventId?: string;
   reason: string;
+  product?: "API" | "Compute";
 }): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_CUSTOMERS;
   if (!url) {
@@ -318,7 +393,7 @@ export async function alertOrphanedDeploySubscription(details: {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `:rotating_light: Orphaned Compute subscription needs manual reconciliation (${details.reason})`,
+              text: `:rotating_light: Orphaned ${details.product ?? "Compute"} subscription needs manual reconciliation (${details.reason})`,
             },
           },
           {
