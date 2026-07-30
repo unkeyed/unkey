@@ -43,22 +43,23 @@ export const DeploymentSettings = ({
   const appId = useAppId();
   const { data } = trpc.github.getInstallations.useQuery({ projectId, appId });
 
-  const showBuildSettings = !data || Boolean(data.repoConnection?.repositoryFullName);
+  // An app's source is fixed at creation: a repo connection means git, its
+  // absence means a published image. Nothing here can switch between them, so
+  // the whole group is hidden for image apps rather than offering a repo.
+  const isGitSourced = !data || Boolean(data.repoConnection?.repositoryFullName);
 
   return (
     <div className="flex flex-col gap-6">
-      <SettingCardGroup>
-        <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        {showBuildSettings ? (
-          <>
-            <RootDirectory />
-            <Dockerfile />
-            <BuildCommand />
-            <WatchPaths />
-            <AutoDeploy />
-          </>
-        ) : null}
-      </SettingCardGroup>
+      {isGitSourced ? (
+        <SettingCardGroup>
+          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
+          <RootDirectory />
+          <Dockerfile />
+          <BuildCommand />
+          <WatchPaths />
+          <AutoDeploy />
+        </SettingCardGroup>
+      ) : null}
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
         title="Runtime settings"
