@@ -3,6 +3,7 @@ import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -10,15 +11,15 @@ export const ciliumNetworkPolicies = mysqlTable(
   "cilium_network_policies",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 255 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 255 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 255 }).notNull(),
-    deploymentId: caseInsensitiveVarchar("deployment_id", { length: 128 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 255 }).notNull(),
+    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }).notNull(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 64 }).notNull(),
     k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
-    regionId: caseInsensitiveVarchar("region_id", { length: 64 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     // json representation of the policy
     policy: json("policy").notNull(),

@@ -4,7 +4,6 @@ import { apps } from "./apps";
 import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -20,10 +19,10 @@ export const appRegionalSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
-    regionId: caseInsensitiveVarchar("region_id", { length: 64 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     replicas: int("replicas").notNull().default(1),
 

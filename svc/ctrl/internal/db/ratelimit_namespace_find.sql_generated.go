@@ -21,7 +21,7 @@ SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, delet
                                        'duration', ro.duration
                                )
                        )
-                from ratelimit_overrides ro where (ro.namespace_id = ns.id COLLATE utf8mb4_0900_ai_ci AND ro.namespace_id = ns.id COLLATE utf8mb4_0900_as_cs) AND ro.deleted_at_m IS NULL),
+                from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
                json_array()
        ) as overrides
 FROM ` + "`" + `ratelimit_namespaces` + "`" + ` ns
@@ -46,9 +46,7 @@ type FindRatelimitNamespaceRow struct {
 	Overrides   interface{}   `db:"overrides"`
 }
 
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
+// FindRatelimitNamespace
 //
 //	SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
 //	       coalesce(
@@ -60,7 +58,7 @@ type FindRatelimitNamespaceRow struct {
 //	                                       'duration', ro.duration
 //	                               )
 //	                       )
-//	                from ratelimit_overrides ro where (ro.namespace_id = ns.id COLLATE utf8mb4_0900_ai_ci AND ro.namespace_id = ns.id COLLATE utf8mb4_0900_as_cs) AND ro.deleted_at_m IS NULL),
+//	                from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
 //	               json_array()
 //	       ) as overrides
 //	FROM `ratelimit_namespaces` ns

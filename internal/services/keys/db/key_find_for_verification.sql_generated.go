@@ -34,8 +34,8 @@ select k.id,
                (SELECT JSON_ARRAYAGG(name)
                 FROM (SELECT name
                       FROM keys_roles kr
-                               JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
-                      WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as roles),
+                               JOIN roles r ON r.id = kr.role_id
+                      WHERE kr.key_id = k.id) as roles),
                JSON_ARRAY()
        )               as roles,
 
@@ -43,16 +43,16 @@ select k.id,
                (SELECT JSON_ARRAYAGG(slug)
                 FROM (SELECT slug
                       FROM keys_permissions kp
-                               JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
-                      WHERE (kp.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kp.key_id = k.id COLLATE utf8mb4_0900_as_cs)
+                               JOIN permissions p ON kp.permission_id = p.id
+                      WHERE kp.key_id = k.id
 
                       UNION ALL
 
                       SELECT slug
                       FROM keys_roles kr
-                               JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
-                               JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
-                      WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as combined_perms),
+                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
+                               JOIN permissions p ON rp.permission_id = p.id
+                      WHERE kr.key_id = k.id) as combined_perms),
                JSON_ARRAY()
        )               as permissions,
 
@@ -71,11 +71,11 @@ select k.id,
                 from (
                     select rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
                     from ` + "`" + `ratelimits` + "`" + ` rl
-                    where (rl.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND rl.key_id = k.id COLLATE utf8mb4_0900_as_cs)
+                    where rl.key_id = k.id
                     UNION ALL
                     select rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
                     from ` + "`" + `ratelimits` + "`" + ` rl
-                    where (rl.identity_id = i.id COLLATE utf8mb4_0900_ai_ci AND rl.identity_id = i.id COLLATE utf8mb4_0900_as_cs)
+                    where rl.identity_id = i.id
                 ) as combined_rl),
                json_array()
        ) as ratelimits,
@@ -87,11 +87,11 @@ select k.id,
        ws.enabled      as workspace_enabled,
        fws.enabled     as for_workspace_enabled
 from ` + "`" + `keys` + "`" + ` k
-         JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
-         JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
-         JOIN workspaces ws ON (ws.id = k.workspace_id COLLATE utf8mb4_0900_ai_ci AND ws.id = k.workspace_id COLLATE utf8mb4_0900_as_cs)
-         LEFT JOIN workspaces fws ON (fws.id = k.for_workspace_id COLLATE utf8mb4_0900_ai_ci AND fws.id = k.for_workspace_id COLLATE utf8mb4_0900_as_cs)
-         LEFT JOIN identities i ON (i.id = k.identity_id COLLATE utf8mb4_0900_ai_ci AND i.id = k.identity_id COLLATE utf8mb4_0900_as_cs) AND i.deleted = 0
+         JOIN apis a ON a.key_auth_id = k.key_auth_id
+         JOIN key_auth ka ON ka.id = k.key_auth_id
+         JOIN workspaces ws ON ws.id = k.workspace_id
+         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+         LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
 where k.hash = ?
   and k.deleted_at_m is null
 `
@@ -132,9 +132,6 @@ type FindKeyForVerificationRow struct {
 // are returned as JSON arrays via JSON_ARRAYAGG so the caller can unmarshal
 // them into typed Go structs. Key-level and identity-level rate limits are
 // unioned so that both sources are available for the verification pipeline.
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	select k.id,
 //	       k.key_auth_id,
@@ -159,8 +156,8 @@ type FindKeyForVerificationRow struct {
 //	               (SELECT JSON_ARRAYAGG(name)
 //	                FROM (SELECT name
 //	                      FROM keys_roles kr
-//	                               JOIN roles r ON (r.id = kr.role_id COLLATE utf8mb4_0900_ai_ci AND r.id = kr.role_id COLLATE utf8mb4_0900_as_cs)
-//	                      WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as roles),
+//	                               JOIN roles r ON r.id = kr.role_id
+//	                      WHERE kr.key_id = k.id) as roles),
 //	               JSON_ARRAY()
 //	       )               as roles,
 //
@@ -168,16 +165,16 @@ type FindKeyForVerificationRow struct {
 //	               (SELECT JSON_ARRAYAGG(slug)
 //	                FROM (SELECT slug
 //	                      FROM keys_permissions kp
-//	                               JOIN permissions p ON (kp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND kp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
-//	                      WHERE (kp.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kp.key_id = k.id COLLATE utf8mb4_0900_as_cs)
+//	                               JOIN permissions p ON kp.permission_id = p.id
+//	                      WHERE kp.key_id = k.id
 //
 //	                      UNION ALL
 //
 //	                      SELECT slug
 //	                      FROM keys_roles kr
-//	                               JOIN roles_permissions rp ON (kr.role_id = rp.role_id COLLATE utf8mb4_0900_ai_ci AND kr.role_id = rp.role_id COLLATE utf8mb4_0900_as_cs)
-//	                               JOIN permissions p ON (rp.permission_id = p.id COLLATE utf8mb4_0900_ai_ci AND rp.permission_id = p.id COLLATE utf8mb4_0900_as_cs)
-//	                      WHERE (kr.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND kr.key_id = k.id COLLATE utf8mb4_0900_as_cs)) as combined_perms),
+//	                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
+//	                               JOIN permissions p ON rp.permission_id = p.id
+//	                      WHERE kr.key_id = k.id) as combined_perms),
 //	               JSON_ARRAY()
 //	       )               as permissions,
 //
@@ -196,11 +193,11 @@ type FindKeyForVerificationRow struct {
 //	                from (
 //	                    select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 //	                    from `ratelimits` rl
-//	                    where (rl.key_id = k.id COLLATE utf8mb4_0900_ai_ci AND rl.key_id = k.id COLLATE utf8mb4_0900_as_cs)
+//	                    where rl.key_id = k.id
 //	                    UNION ALL
 //	                    select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 //	                    from `ratelimits` rl
-//	                    where (rl.identity_id = i.id COLLATE utf8mb4_0900_ai_ci AND rl.identity_id = i.id COLLATE utf8mb4_0900_as_cs)
+//	                    where rl.identity_id = i.id
 //	                ) as combined_rl),
 //	               json_array()
 //	       ) as ratelimits,
@@ -212,11 +209,11 @@ type FindKeyForVerificationRow struct {
 //	       ws.enabled      as workspace_enabled,
 //	       fws.enabled     as for_workspace_enabled
 //	from `keys` k
-//	         JOIN apis a ON (a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND a.key_auth_id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
-//	         JOIN key_auth ka ON (ka.id = k.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = k.key_auth_id COLLATE utf8mb4_0900_as_cs)
-//	         JOIN workspaces ws ON (ws.id = k.workspace_id COLLATE utf8mb4_0900_ai_ci AND ws.id = k.workspace_id COLLATE utf8mb4_0900_as_cs)
-//	         LEFT JOIN workspaces fws ON (fws.id = k.for_workspace_id COLLATE utf8mb4_0900_ai_ci AND fws.id = k.for_workspace_id COLLATE utf8mb4_0900_as_cs)
-//	         LEFT JOIN identities i ON (i.id = k.identity_id COLLATE utf8mb4_0900_ai_ci AND i.id = k.identity_id COLLATE utf8mb4_0900_as_cs) AND i.deleted = 0
+//	         JOIN apis a ON a.key_auth_id = k.key_auth_id
+//	         JOIN key_auth ka ON ka.id = k.key_auth_id
+//	         JOIN workspaces ws ON ws.id = k.workspace_id
+//	         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+//	         LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
 //	where k.hash = ?
 //	  and k.deleted_at_m is null
 func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {

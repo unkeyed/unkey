@@ -9,7 +9,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
@@ -25,10 +24,10 @@ export const customDomains = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseInsensitiveVarchar("project_id", { length: 256 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,
@@ -37,7 +36,7 @@ export const customDomains = mysqlTable(
     verificationStatus: verificationStatus.notNull().default("pending"),
     // TXT record verification token (e.g., "abc123xyz...")
     // User adds TXT record: _unkey.domain.com -> unkey-domain-verify=<token>
-    verificationToken: caseInsensitiveVarchar("verification_token", { length: 64 }).notNull(),
+    verificationToken: caseSensitiveVarchar("verification_token", { length: 64 }).notNull(),
     // Whether the TXT record has been verified (proves ownership)
     ownershipVerified: boolean("ownership_verified").notNull().default(false),
     // Whether the CNAME record has been verified (enables routing)

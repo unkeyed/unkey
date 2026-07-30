@@ -12,7 +12,7 @@ import (
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
 SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
-JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
+JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE a.workspace_id = ?
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
@@ -25,13 +25,11 @@ type FindAppByProjectAndIdOrSlugParams struct {
 	App         string `db:"app"`
 }
 
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
+// FindAppByProjectAndIdOrSlug
 //
 //	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 //	FROM apps a
-//	JOIN projects p ON (a.project_id COLLATE utf8mb4_0900_ai_ci = p.id AND a.project_id COLLATE utf8mb4_0900_as_cs = p.id) AND (a.workspace_id COLLATE utf8mb4_0900_ai_ci = p.workspace_id AND a.workspace_id COLLATE utf8mb4_0900_as_cs = p.workspace_id)
+//	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE a.workspace_id = ?
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)

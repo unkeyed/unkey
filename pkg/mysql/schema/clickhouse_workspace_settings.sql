@@ -1,7 +1,7 @@
 CREATE TABLE `clickhouse_workspace_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`username` varchar(256) NOT NULL,
+	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`username` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`password_encrypted` text NOT NULL,
 	`quota_duration_seconds` int NOT NULL DEFAULT 3600,
 	`max_queries_per_window` int NOT NULL DEFAULT 1000,
