@@ -1,13 +1,14 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, text } from "drizzle-orm/mysql-core";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const acmeUsers = mysqlTable(
   "acme_users",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     encryptedKey: text("encrypted_key").notNull(),
     registrationURI: text("registration_uri"),
     ...lifecycleDates,

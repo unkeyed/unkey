@@ -1,16 +1,18 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
   "permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
-    name: varchar("name", { length: 512 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -41,9 +43,9 @@ export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -77,10 +79,10 @@ export const roles = mysqlTable(
   "roles",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 64 }).notNull().default(""),
-    name: varchar("name", { length: 512 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -112,9 +114,9 @@ export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    roleId: varchar("role_id", { length: 256 }).notNull(),
-    permissionId: varchar("permission_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    roleId: caseSensitiveVarchar("role_id", { length: 256 }).notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -149,9 +151,9 @@ export const keysRoles = mysqlTable(
   "keys_roles",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: varchar("key_id", { length: 256 }).notNull(),
-    roleId: varchar("role_id", { length: 256 }).notNull(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
+    roleId: caseSensitiveVarchar("role_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()

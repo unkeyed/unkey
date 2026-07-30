@@ -1,6 +1,5 @@
 "use client";
 
-import { NewNavigationBanner } from "@/components/navigation/new-navigation-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
@@ -49,7 +48,6 @@ export default function ProjectsPage() {
           </PageHeader>
           <PageBody>
             <ProjectsList />
-            <NewNavigationBanner />
           </PageBody>
         </PageContainer>
       )}
@@ -196,7 +194,7 @@ function usePendingSubscribe() {
   return { createDialogOpen, setCreateDialogOpen };
 }
 
-const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing"];
+const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing", "deploy"];
 
 function planLabel(plan: string): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { Button, toast, useStepWizard } from "@unkey/ui";
@@ -18,6 +19,7 @@ export const DeployAction = ({
   onDeploymentCreated,
 }: DeployActionProps) => {
   const { goTo } = useStepWizard();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: async (data) => {
@@ -43,7 +45,9 @@ export const DeployAction = ({
         disabled={deploy.isLoading || disabled}
         loading={deploy.isLoading}
         onClick={() =>
-          deploy.mutate({ projectId, appId, environmentSlug: "production", source: "default" })
+          gated
+            ? openPaywall()
+            : deploy.mutate({ projectId, appId, environmentSlug: "production", source: "default" })
         }
       >
         Deploy
@@ -51,6 +55,7 @@ export const DeployAction = ({
       <span className="text-gray-10 text-[13px] text-center">
         We'll build your image, provision infrastructure, and more.
       </span>
+      {planGate}
     </div>
   );
 };

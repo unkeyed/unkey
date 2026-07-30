@@ -17,7 +17,7 @@ SELECT
    b.stripe_customer_id,
    w.enabled
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON w.id = b.workspace_id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
 
@@ -39,7 +39,7 @@ type ListWorkspacesForDeployBillingByIDsRow struct {
 //	   b.stripe_customer_id,
 //	   w.enabled
 //	FROM `workspaces` w
-//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+//	LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) ListWorkspacesForDeployBillingByIDs(ctx context.Context, db DBTX, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error) {
 	query := listWorkspacesForDeployBillingByIDs

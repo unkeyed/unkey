@@ -31,7 +31,7 @@ export const KeysList = ({
   const {
     keys,
     isInitialLoading,
-    isFetching,
+    isNavigating,
     totalCount,
     onPageChange,
     page,
@@ -146,8 +146,6 @@ export const KeysList = ({
       handleNavigateToKey,
     ],
   );
-
-  const isNavigating = isFetching && !isInitialLoading;
 
   return (
     <>

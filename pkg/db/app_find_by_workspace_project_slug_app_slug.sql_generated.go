@@ -12,7 +12,7 @@ import (
 const findAppByWorkspaceAndSlugs = `-- name: FindAppByWorkspaceAndSlugs :one
 SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
-INNER JOIN projects p ON p.id = a.project_id
+INNER JOIN projects p ON a.project_id = p.id
 WHERE p.workspace_id = ?
   AND p.slug = ?
   AND a.slug = ?
@@ -33,7 +33,7 @@ type FindAppByWorkspaceAndSlugsRow struct {
 //
 //	SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 //	FROM apps a
-//	INNER JOIN projects p ON p.id = a.project_id
+//	INNER JOIN projects p ON a.project_id = p.id
 //	WHERE p.workspace_id = ?
 //	  AND p.slug = ?
 //	  AND a.slug = ?

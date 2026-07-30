@@ -13,7 +13,7 @@ import (
 const listDeploymentRegions = `-- name: ListDeploymentRegions :many
 SELECT DISTINCT r.name AS region
 FROM deployment_topology dt
-JOIN regions r ON r.id = dt.region_id
+JOIN regions r ON dt.region_id = r.id
 WHERE dt.workspace_id = ?
   AND dt.deployment_id = ?
 ORDER BY r.name
@@ -28,7 +28,7 @@ type ListDeploymentRegionsParams struct {
 //
 //	SELECT DISTINCT r.name AS region
 //	FROM deployment_topology dt
-//	JOIN regions r ON r.id = dt.region_id
+//	JOIN regions r ON dt.region_id = r.id
 //	WHERE dt.workspace_id = ?
 //	  AND dt.deployment_id = ?
 //	ORDER BY r.name
@@ -58,7 +58,7 @@ func (q *Queries) ListDeploymentRegions(ctx context.Context, db DBTX, arg ListDe
 const listDeploymentRegionsByIds = `-- name: ListDeploymentRegionsByIds :many
 SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 FROM deployment_topology dt
-JOIN regions r ON r.id = dt.region_id
+JOIN regions r ON dt.region_id = r.id
 WHERE dt.workspace_id = ?
   AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 ORDER BY dt.deployment_id, r.name
@@ -78,7 +78,7 @@ type ListDeploymentRegionsByIdsRow struct {
 //
 //	SELECT DISTINCT dt.deployment_id AS deployment_id, r.name AS region
 //	FROM deployment_topology dt
-//	JOIN regions r ON r.id = dt.region_id
+//	JOIN regions r ON dt.region_id = r.id
 //	WHERE dt.workspace_id = ?
 //	  AND dt.deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY dt.deployment_id, r.name

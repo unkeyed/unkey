@@ -68,6 +68,14 @@ type InstanceMeterUsage struct {
 //   - CPU and egress are monotonic counters: each pair contributes its
 //     non-negative delta, which telescopes to (last - first) when there are
 //     no dropped gaps.
+//   - Egress additionally requires both samples in a pair to be marked
+//     network_attached. The eBPF counters live on a pinned map that outlives
+//     the agent, so a checkpoint written while the collector is detached
+//     reports 0 rather than the true total, and the next attached sample's
+//     delta against that 0 is the whole accumulated counter. Charging that
+//     re-bills the container's entire lifetime egress on every reattach.
+//     Requiring both endpoints to be attached drops those pairs instead, which
+//     under-counts the detached interval rather than over-charging.
 //   - Memory and disk are gauges: each pair contributes value * dt, the lower
 //     of the two endpoint values (conservative on a resize) times the
 //     interval. Summing the products is a left-Riemann integral with the gap
@@ -104,7 +112,12 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 			resource_id,
 			leadInFrame(ts) OVER w - ts AS dt,
 			greatest(0, leadInFrame(cpu_usage_usec) OVER w - cpu_usage_usec) AS cpu_usec_delta,
-			greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes) AS egress_bytes_delta,
+			if(
+				ifNull(attributes.network_attached::Nullable(Bool), false)
+				AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w,
+				greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
+				0
+			) AS egress_bytes_delta,
 			toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
 			toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
 		FROM instance_checkpoints

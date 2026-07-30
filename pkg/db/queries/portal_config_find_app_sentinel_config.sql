@@ -5,6 +5,6 @@
 -- keySpaceIds verified at the gateway).
 SELECT d.sentinel_config
 FROM apps a
-JOIN deployments d ON d.id = a.current_deployment_id
+JOIN deployments d ON a.current_deployment_id = d.id
 WHERE a.id = sqlc.arg(app_id)
   AND a.workspace_id = sqlc.arg(workspace_id);

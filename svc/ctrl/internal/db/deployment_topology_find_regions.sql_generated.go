@@ -12,7 +12,7 @@ import (
 const findDeploymentRegions = `-- name: FindDeploymentRegions :many
 SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
-INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 WHERE dt.deployment_id = ?
 `
 
@@ -21,7 +21,7 @@ WHERE dt.deployment_id = ?
 //
 //	SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 //	FROM `deployment_topology` dt
-//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	INNER JOIN `regions` r ON r.id = dt.region_id
 //	WHERE dt.deployment_id = ?
 func (q *Queries) FindDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error) {
 	rows, err := q.db.QueryContext(ctx, findDeploymentRegions, deploymentID)

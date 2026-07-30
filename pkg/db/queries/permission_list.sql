@@ -7,6 +7,6 @@ WHERE p.workspace_id = sqlc.arg(workspace_id)
   -- by mysql.SearchContains; NULL disables the filter. They are separate params
   -- because sqlc types each param after the compared column, and description's
   -- dbtype.NullString override conflicts with the plain string columns.
-  AND (sqlc.narg(search) IS NULL OR p.id LIKE sqlc.narg(search) OR p.name LIKE sqlc.narg(search) OR p.slug LIKE sqlc.narg(search) OR p.description LIKE sqlc.narg(description_search))
+  AND (sqlc.narg(search) IS NULL OR LOWER(p.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(p.name) LIKE LOWER(sqlc.narg(search)) OR LOWER(p.slug) LIKE LOWER(sqlc.narg(search)) OR LOWER(p.description) LIKE LOWER(sqlc.narg(description_search)))
 ORDER BY p.id
 LIMIT ?;

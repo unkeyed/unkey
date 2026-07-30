@@ -21,7 +21,7 @@ SELECT
    b.deleted_at_m
 FROM `workspace_billing` b
 LEFT JOIN `billing_subscriptions` bs_api
-   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+   ON b.workspace_id = bs_api.workspace_id AND bs_api.product = 'api'
 LEFT JOIN `billing_subscriptions` bs_deploy
-   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+   ON b.workspace_id = bs_deploy.workspace_id AND bs_deploy.product = 'compute'
 WHERE b.workspace_id = sqlc.arg(workspace_id);
