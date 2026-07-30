@@ -114,6 +114,15 @@ data:
     type = "remap"
     inputs = ["merge_multiline"]
     source = '''
+    # Match @unkey/id: a log_ prefix plus 12 characters from Unkey's Base58
+    # alphabet. Vector retains the transformed event across sink retries.
+    id_alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    id_chars = map_values([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) -> |_value| {
+        index = random_int(0, 58)
+        slice!(id_alphabet, index, index + 1)
+    }
+    .log_id = "log_" + join!(id_chars, "")
+
     # Extract Unkey-specific labels from pod (|| for null coalescing)
     .workspace_id = .kubernetes.pod_labels."unkey.com/workspace.id" || ""
     .project_id = .kubernetes.pod_labels."unkey.com/project.id" || ""

@@ -108,6 +108,7 @@ export const queryRuntimeLogs = workspaceProcedure
     const k8sNameToInstanceId = new Map([...knownK8sToInstanceId, ...resolvedMapping]);
 
     const logs = chLogs.map((log) => ({
+      log_id: log.log_id,
       time: log.time,
       severity: log.severity,
       message: log.message,
