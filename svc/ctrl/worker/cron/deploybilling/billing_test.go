@@ -1,6 +1,7 @@
 package deploybilling
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -9,6 +10,32 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 )
+
+func TestInstanceMeterUsageShardsWorkspaceIDs(t *testing.T) {
+	workspaceIDs := make([]string, 20)
+	for i := range workspaceIDs {
+		workspaceIDs[i] = fmt.Sprintf("ws_%02d", i)
+	}
+
+	requests := instanceMeterUsageShards(clickhouse.GetInstanceMeterUsageRequest{
+		WorkspaceIDs: workspaceIDs,
+		Start:        1,
+		End:          2,
+	})
+	require.Len(t, requests, maxInstanceUsageShards)
+
+	seen := make(map[string]int, len(workspaceIDs))
+	for _, req := range requests {
+		require.Equal(t, int64(1), req.Start)
+		require.Equal(t, int64(2), req.End)
+		for _, workspaceID := range req.WorkspaceIDs {
+			seen[workspaceID]++
+		}
+	}
+	for _, workspaceID := range workspaceIDs {
+		require.Equal(t, 1, seen[workspaceID], "workspace must belong to exactly one shard")
+	}
+}
 
 func TestAggregateUsage(t *testing.T) {
 	const gib = 1 << 30

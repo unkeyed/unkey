@@ -20,8 +20,8 @@ import (
 
 // Config holds the orchestrator's dependencies. The per-workspace check
 // (threshold state, alert email) runs in CheckHandler; this handler resolves
-// who to check, prices their usage from one scoped ClickHouse scan, and fans
-// out only to the workspaces that are near or over their budget.
+// who to check, prices their usage from scoped ClickHouse reads, and fans out
+// only to the workspaces that are near or over their budget.
 type Config struct {
 	// DB is the primary application database, used to list workspaces with a
 	// configured Deploy spend budget. Must not be nil.
@@ -57,9 +57,9 @@ func New(cfg Config) (*Handler, error) {
 
 // Handle lists the workspaces that configured a Deploy spend budget (the VO key
 // is the billing period "YYYY-MM"), prices their month-to-date usage from a
-// single ClickHouse scan scoped to that set (the same one-scan shape as the
-// hourly billing push), fans out one check per ACTIONABLE workspace with the
-// priced gross carried in the request, and awaits the outcomes, withholding
+// journaled ClickHouse step scoped to that set (the same sharded-read shape as
+// the hourly billing push), fans out one check per ACTIONABLE workspace with
+// the priced gross carried in the request, and awaits the outcomes, withholding
 // the heartbeat when any check failed.
 //
 // Actionable means gross month-to-date metered spend has reached the lowest
@@ -249,14 +249,13 @@ func (h *Handler) Handle(
 }
 
 // priceUsage reads the period's month-to-date usage for the budgeted
-// workspaces in one grouped ClickHouse scan (two queries: instance meters and
-// active keys, shared with the hourly push via FleetMeterValues) and returns
-// the aggregated MeterValues keyed by workspace id. One grouped scan is how
-// ClickHouse wants to be read; per-workspace point queries at fan-out scale
-// are not, and scoping it to the budgeted set keeps the tight cadence from
-// re-aggregating the whole fleet's month. The read is capped at the period's
-// end so a stale invocation running after the roll cannot fold the next month
-// into this period's decisions.
+// workspaces in two journaled ClickHouse steps (instance meters and active
+// keys, shared with the hourly push via FleetMeterValues) and returns the
+// aggregated MeterValues keyed by workspace id. The expensive instance step
+// splits the scoped IDs across a bounded number of concurrent queries; it
+// avoids both a fleet scan and per-workspace query fan-out at cron cadence. The
+// read is capped at the period's end so a stale invocation running after the
+// roll cannot fold the next month into this period's decisions.
 func (h *Handler) priceUsage(
 	ctx restate.ObjectContext,
 	p billingperiod.Period,
