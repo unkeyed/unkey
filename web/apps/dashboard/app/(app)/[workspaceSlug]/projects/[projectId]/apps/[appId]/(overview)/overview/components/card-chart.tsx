@@ -23,12 +23,16 @@ const CHART_CONFIG: ChartConfig = {
 const FILL_COLORS = { total: BLUE_FILL, errors: ERROR_FILL };
 
 const formatCountTooltip = (value: number) => ({ value: `${Math.round(value)}`, unit: "req" });
+const COUNT_TICK_FORMATTER = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumSignificantDigits: 1,
+});
 
 function formatCountYTick(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return v.toFixed(1);
+  return COUNT_TICK_FORMATTER.format(v);
 }
 
 function LegendStat({
