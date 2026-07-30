@@ -176,3 +176,10 @@ export type { PreviousAttributes };
 export function isDeadSubscription(sub: Stripe.Subscription): boolean {
   return sub.status === "canceled" || sub.status === "incomplete_expired";
 }
+
+/** Returns the Stripe-hosted recovery page when latest_invoice was expanded. */
+export function hostedInvoiceUrl(sub: Stripe.Subscription): string | null {
+  const invoice =
+    sub.latest_invoice && typeof sub.latest_invoice !== "string" ? sub.latest_invoice : null;
+  return invoice?.hosted_invoice_url ?? null;
+}

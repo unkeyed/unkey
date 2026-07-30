@@ -132,16 +132,20 @@ var (
 		},
 	)
 
-	// CollectionTicksSkipped counts ticks dropped because the previous
-	// tick still held the collector mutex. Each skip is one lost
-	// periodic sample (~5s) for every pod on this node; a non-zero rate
-	// means collection is overrunning its interval.
-	CollectionTicksSkipped = lazy.NewCounter(
+	// CollectionTicksOverrun counts ticks that took longer than the
+	// checkpoint interval. Replaces a skipped-tick counter that keyed on
+	// mutex contention and so could never fire, since repeat.Every drives
+	// collection synchronously from one goroutine. Overrun is the condition
+	// that costs money: samples drift further apart than the interval, and
+	// the billing query drops any pair more than max_sample_gap apart, which
+	// zeroes every meter for every pod on the node rather than under-counting
+	// one of them. Alert on a sustained non-zero rate.
+	CollectionTicksOverrun = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
-			Name:      "collection_ticks_skipped_total",
-			Help:      "Ticks dropped because the previous tick was still running. Non-zero means collection is overrunning its interval.",
+			Name:      "collection_ticks_overrun_total",
+			Help:      "Ticks that took longer than the checkpoint interval. Sustained non-zero means sample gaps are widening toward the billing query's max_sample_gap cutoff.",
 		},
 	)
 
