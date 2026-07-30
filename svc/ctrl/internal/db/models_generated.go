@@ -777,6 +777,14 @@ type ClickhouseWorkspaceSetting struct {
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 }
 
+type Cluster struct {
+	Pk              uint64         `db:"pk"`
+	ID              string         `db:"id"`
+	CellID          sql.NullString `db:"cell_id"`
+	RegionID        string         `db:"region_id"`
+	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
+}
+
 type CustomDomain struct {
 	Pk                    uint64                          `db:"pk"`
 	ID                    string                          `db:"id"`

@@ -16,9 +16,13 @@ Krane enables the secrets RPC only when `vault.url` is set. Other features run w
 Minimal config example:
 
 ```toml
-region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 rpc_port = 8080
+
+[cluster]
+cell_id = "${UNKEY_CELL_ID}"
+platform = "aws"
+region = "${UNKEY_REGION}"
 
 [control]
 url = "${UNKEY_CTRL_URL}"
@@ -38,8 +42,19 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
   Instance identifier for logs and tracing.
 </ResponseField>
 
-<ResponseField name="region" type="string" required>
-  Region label for routing and control plane.
+<ResponseField name="cluster" type="object" required>
+  Identity of the infrastructure cell managed by this Krane agent.
+  <Expandable title="Fields">
+    <ResponseField name="cluster.cell_id" type="string" required>
+      Cell identifier, such as `cell001`.
+    </ResponseField>
+    <ResponseField name="cluster.platform" type="string" required>
+      Infrastructure provider, such as `aws`.
+    </ResponseField>
+    <ResponseField name="cluster.region" type="string" required>
+      Geographic region, such as `us-east-1`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="rpc_port" type="int" default="8070">
@@ -106,9 +121,13 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
 ## Example configuration
 
 ```toml
-region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 rpc_port = 8080
+
+[cluster]
+cell_id = "${UNKEY_CELL_ID}"
+platform = "aws"
+region = "${UNKEY_REGION}"
 
 [control]
 url = "${UNKEY_CTRL_URL}"

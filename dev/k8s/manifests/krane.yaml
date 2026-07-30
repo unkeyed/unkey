@@ -8,9 +8,12 @@ metadata:
     component: krane
 data:
   unkey.toml: |
+    storage_class_name = "topolvm-ssd"
+
+    [cluster]
+    cell_id = "local"
     region = "local"
     platform = "dev"
-    storage_class_name = "topolvm-ssd"
 
     [control]
     url = "http://ctrl-api:7091"

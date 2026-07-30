@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -18,19 +19,19 @@ import (
 // regions are available.
 //
 // The method upserts into regions (keyed by the (platform, name) unique index)
-// and clusters (keyed by region_id), updating the heartbeat timestamp on each
-// call.
+// and clusters (keyed by region_id). Existing clusters claim a cell ID once;
+// subsequent heartbeats may refresh only that same identity.
 func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.HeartbeatRequest]) (*connect.Response[ctrlv1.HeartbeatResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
-	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+	if err := validateClusterKey(req.Msg.GetCluster()); err != nil {
 		return nil, err
 	}
 
-	regionName := req.Msg.GetRegion().GetName()
-	platform := req.Msg.GetRegion().GetPlatform()
+	regionName := req.Msg.GetCluster().GetRegion()
+	platform := req.Msg.GetCluster().GetPlatform()
 	now := time.Now().UnixMilli()
 
 	err := s.db.UpsertRegion(ctx, db.UpsertRegionParams{
@@ -54,6 +55,7 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 
 	err = s.db.UpsertCluster(ctx, db.UpsertClusterParams{
 		ID:              uid.New(uid.ClusterPrefix),
+		CellID:          sql.NullString{String: req.Msg.GetCluster().GetCellId(), Valid: true},
 		RegionID:        region.ID,
 		LastHeartbeatAt: uint64(now),
 	})
@@ -61,6 +63,24 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		logger.Error("failed to upsert cluster", "error", err, "region", region)
 		return nil, err
 	}
+
+	clusterKey := req.Msg.GetCluster()
+	registered, err := s.db.FindCluster(ctx, db.FindClusterParams{
+		CellID:   sql.NullString{String: clusterKey.GetCellId(), Valid: true},
+		Platform: clusterKey.GetPlatform(),
+		Region:   clusterKey.GetRegion(),
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("cluster identity %s/%s/%s conflicts with an existing cell or region", clusterKey.GetCellId(), platform, regionName))
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	s.clusterCache.Set(ctx, clusterCacheKey{
+		cellID:   clusterKey.GetCellId(),
+		platform: clusterKey.GetPlatform(),
+		region:   clusterKey.GetRegion(),
+	}, registered)
 
 	// Every region needs a wildcard cert for its frontline
 	// (*.{region}.{platform}.{regionalDomain}) so cross-region TLS works.

@@ -322,6 +322,21 @@ type Querier interface {
 	//  JOIN `quota` q ON (q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_ai_ci AND q.workspace_id = c.workspace_id COLLATE utf8mb4_0900_as_cs)
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	// FindCluster resolves the cluster and region rows for the complete identity
+	// supplied by Krane on cluster-scoped RPCs.
+	// Cluster identifiers are case-sensitive while region identifiers retain their
+	// legacy case-insensitive collation, so the join normalizes the region side.
+	//
+	//  SELECT
+	//      c.pk, c.id, c.cell_id, c.region_id, c.last_heartbeat_at,
+	//      r.pk, r.id, r.name, r.platform, r.can_schedule
+	//  FROM clusters c
+	//  INNER JOIN regions r ON r.id COLLATE utf8mb4_0900_as_cs = c.region_id
+	//  WHERE c.cell_id = ?
+	//      AND r.platform = ?
+	//      AND r.name = ?
+	//  LIMIT 1
+	FindCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error)
 	//FindCustomDomainByDomain
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
@@ -2115,20 +2130,29 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, arg UpsertAppRuntimeSettingsParams) error
-	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
+	// UpsertCluster inserts a cluster or lets an existing region claim its cell ID
+	// exactly once. Conflicting cell or region identities remain unchanged so the
+	// caller can detect and reject them after this query.
 	//
 	//  INSERT INTO clusters (
 	//  	id,
+	//  	cell_id,
 	//  	region_id,
 	//  	last_heartbeat_at
 	//  )
 	//  VALUES (
 	//  	?,
 	//  	?,
+	//  	?,
 	//  	?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//  	last_heartbeat_at = ?
+	//  	last_heartbeat_at = IF(
+	//  		region_id = VALUES(region_id) AND (cell_id IS NULL OR cell_id = VALUES(cell_id)),
+	//  		VALUES(last_heartbeat_at),
+	//  		last_heartbeat_at
+	//  	),
+	//  	cell_id = COALESCE(cell_id, VALUES(cell_id))
 	UpsertCluster(ctx context.Context, arg UpsertClusterParams) error
 	//UpsertCustomDomain
 	//

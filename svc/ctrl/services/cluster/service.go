@@ -31,22 +31,20 @@ const (
 	infraCertCacheMaxSize = 256
 )
 
-// Region lookups are on the hot path of every region-scoped RPC but the
-// underlying row is effectively immutable (regions.id never changes once a
-// platform/name pair exists), so we cache aggressively. Fresh=5m keeps the
-// cache hot for steady-state traffic; Stale=15m lets us tolerate a brief DB
-// hiccup without synchronous re-fetch storms.
+// Populated cluster identities are immutable. Caching the complete identity
+// avoids a database read on every cluster-scoped RPC without allowing one cell
+// to replace another through Heartbeat.
 const (
-	regionCacheFresh   = 5 * time.Minute
-	regionCacheStale   = 15 * time.Minute
-	regionCacheMaxSize = 256
+	clusterCacheFresh   = 5 * time.Minute
+	clusterCacheStale   = 15 * time.Minute
+	clusterCacheMaxSize = 256
 )
 
-// regionCacheKey composes platform and region name into a comparable cache
-// key so we don't need a string-encoding helper.
-type regionCacheKey struct {
+// clusterCacheKey is the complete immutable identity supplied by Krane.
+type clusterCacheKey struct {
+	cellID   string
 	platform string
-	name     string
+	region   string
 }
 
 // Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
@@ -64,9 +62,8 @@ type Service struct {
 	// deploy_status=progressing gate + DB flip as its idempotency
 	// mechanism instead (see maybeNotifySentinelReady).
 	notifiedReady *expiringSet[string]
-	// regionCache memoizes (platform, name) → [db.Region] lookups via SWR so
-	// region-scoped RPCs don't hit the DB on every request.
-	regionCache cache.Cache[regionCacheKey, db.Region]
+	// clusterCache memoizes immutable cluster identities for cluster-scoped RPCs.
+	clusterCache cache.Cache[clusterCacheKey, db.FindClusterRow]
 	// topologyCache caches FindDeploymentTopologyMinReplicas lookups
 	// keyed by deployment_id. Topology is written once at deploy time,
 	// then read on every instance status report, so caching removes an
@@ -101,8 +98,7 @@ type Config struct {
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
 
-	// Clock backs the region cache's freshness accounting. When nil, a
-	// real-time clock is used.
+	// Clock backs cache freshness accounting. When nil, a real-time clock is used.
 	Clock clock.Clock
 
 	// TopologyCache backs FindDeploymentTopologyMinReplicas lookups on
@@ -138,15 +134,15 @@ func New(cfg Config) (*Service, error) {
 	if clk == nil {
 		clk = clock.New()
 	}
-	regionCache, err := cache.New(cache.Config[regionCacheKey, db.Region]{
-		Fresh:    regionCacheFresh,
-		Stale:    regionCacheStale,
-		MaxSize:  regionCacheMaxSize,
-		Resource: "ctrl_regions",
+	clusterCache, err := cache.New(cache.Config[clusterCacheKey, db.FindClusterRow]{
+		Fresh:    clusterCacheFresh,
+		Stale:    clusterCacheStale,
+		MaxSize:  clusterCacheMaxSize,
+		Resource: "ctrl_clusters",
 		Clock:    clk,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create region cache: %w", err)
+		return nil, fmt.Errorf("failed to create cluster cache: %w", err)
 	}
 	provisionedCerts, err := cache.New(cache.Config[string, bool]{
 		Fresh:    infraCertCacheTTL,
@@ -164,7 +160,7 @@ func New(cfg Config) (*Service, error) {
 		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
-		regionCache:                        regionCache,
+		clusterCache:                       clusterCache,
 		topologyCache:                      cfg.TopologyCache,
 		instanceEvents:                     cfg.InstanceEvents,
 		regionalDomain:                     cfg.RegionalDomain,
