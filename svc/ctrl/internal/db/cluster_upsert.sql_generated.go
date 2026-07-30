@@ -24,12 +24,8 @@ VALUES (
 	?
 )
 ON DUPLICATE KEY UPDATE
-	last_heartbeat_at = IF(
-		region_id = VALUES(region_id) AND (cell_id IS NULL OR cell_id = VALUES(cell_id)),
-		VALUES(last_heartbeat_at),
-		last_heartbeat_at
-	),
-	cell_id = COALESCE(cell_id, VALUES(cell_id))
+	cell_id = VALUES(cell_id),
+	last_heartbeat_at = VALUES(last_heartbeat_at)
 `
 
 type UpsertClusterParams struct {
@@ -39,9 +35,7 @@ type UpsertClusterParams struct {
 	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
 }
 
-// UpsertCluster inserts a cluster or lets an existing region claim its cell ID
-// exactly once. Conflicting cell or region identities remain unchanged so the
-// caller can detect and reject them after this query.
+// UpsertCluster inserts a cluster or refreshes its cell ID and heartbeat.
 //
 //	INSERT INTO clusters (
 //		id,
@@ -56,12 +50,8 @@ type UpsertClusterParams struct {
 //		?
 //	)
 //	ON DUPLICATE KEY UPDATE
-//		last_heartbeat_at = IF(
-//			region_id = VALUES(region_id) AND (cell_id IS NULL OR cell_id = VALUES(cell_id)),
-//			VALUES(last_heartbeat_at),
-//			last_heartbeat_at
-//		),
-//		cell_id = COALESCE(cell_id, VALUES(cell_id))
+//		cell_id = VALUES(cell_id),
+//		last_heartbeat_at = VALUES(last_heartbeat_at)
 func (q *Queries) UpsertCluster(ctx context.Context, arg UpsertClusterParams) error {
 	_, err := q.db.ExecContext(ctx, upsertCluster,
 		arg.ID,

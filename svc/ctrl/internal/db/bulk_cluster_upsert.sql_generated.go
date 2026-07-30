@@ -10,12 +10,8 @@ import (
 
 // bulkUpsertCluster is the base query for bulk insert
 const bulkUpsertCluster = `INSERT INTO clusters ( id, cell_id, region_id, last_heartbeat_at ) VALUES %s ON DUPLICATE KEY UPDATE
-	last_heartbeat_at = IF(
-		region_id = VALUES(region_id) AND (cell_id IS NULL OR cell_id = VALUES(cell_id)),
-		VALUES(last_heartbeat_at),
-		last_heartbeat_at
-	),
-	cell_id = COALESCE(cell_id, VALUES(cell_id))`
+	cell_id = VALUES(cell_id),
+	last_heartbeat_at = VALUES(last_heartbeat_at)`
 
 // UpsertCluster performs bulk insert in a single query
 

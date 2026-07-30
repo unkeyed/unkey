@@ -19,8 +19,8 @@ import (
 // regions are available.
 //
 // The method upserts into regions (keyed by the (platform, name) unique index)
-// and clusters (keyed by region_id). Existing clusters claim a cell ID once;
-// subsequent heartbeats may refresh only that same identity.
+// and clusters (keyed by region_id), updating the cell ID and heartbeat timestamp
+// on each call.
 func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.HeartbeatRequest]) (*connect.Response[ctrlv1.HeartbeatResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err

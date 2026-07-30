@@ -2128,9 +2128,7 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, arg UpsertAppRuntimeSettingsParams) error
-	// UpsertCluster inserts a cluster or lets an existing region claim its cell ID
-	// exactly once. Conflicting cell or region identities remain unchanged so the
-	// caller can detect and reject them after this query.
+	// UpsertCluster inserts a cluster or refreshes its cell ID and heartbeat.
 	//
 	//  INSERT INTO clusters (
 	//  	id,
@@ -2145,12 +2143,8 @@ type Querier interface {
 	//  	?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//  	last_heartbeat_at = IF(
-	//  		region_id = VALUES(region_id) AND (cell_id IS NULL OR cell_id = VALUES(cell_id)),
-	//  		VALUES(last_heartbeat_at),
-	//  		last_heartbeat_at
-	//  	),
-	//  	cell_id = COALESCE(cell_id, VALUES(cell_id))
+	//  	cell_id = VALUES(cell_id),
+	//  	last_heartbeat_at = VALUES(last_heartbeat_at)
 	UpsertCluster(ctx context.Context, arg UpsertClusterParams) error
 	//UpsertCustomDomain
 	//
