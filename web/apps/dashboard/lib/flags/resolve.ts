@@ -5,13 +5,12 @@ import * as flags from ".";
 // from this function's return shape, so any flag missing from this list will
 // fail to type-check at every useFlag(key) call site.
 export async function resolveAll() {
-  const [helloWorld, deployBilling, appOverview, portalManagement] = await Promise.all([
+  const [helloWorld, deployBilling, portalManagement] = await Promise.all([
     flags.helloWorld(),
     flags.deployBilling(),
-    flags.appOverview(),
     flags.portalManagement(),
   ]);
-  return { helloWorld, deployBilling, appOverview, portalManagement };
+  return { helloWorld, deployBilling, portalManagement };
 }
 
 export type Flags = Awaited<ReturnType<typeof resolveAll>>;
