@@ -12,7 +12,7 @@ import (
 const deleteOldIdentityByExternalID = `-- name: DeleteOldIdentityByExternalID :exec
 DELETE i, rl
 FROM identities i
-LEFT JOIN ratelimits rl ON (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
+LEFT JOIN ratelimits rl ON i.id = rl.identity_id
 WHERE i.workspace_id = ?
   AND i.external_id = ?
   AND i.id != ?
@@ -25,13 +25,11 @@ type DeleteOldIdentityByExternalIDParams struct {
 	CurrentIdentityID string `db:"current_identity_id"`
 }
 
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
+// DeleteOldIdentityByExternalID
 //
 //	DELETE i, rl
 //	FROM identities i
-//	LEFT JOIN ratelimits rl ON (i.id COLLATE utf8mb4_0900_ai_ci = rl.identity_id AND i.id COLLATE utf8mb4_0900_as_cs = rl.identity_id)
+//	LEFT JOIN ratelimits rl ON i.id = rl.identity_id
 //	WHERE i.workspace_id = ?
 //	  AND i.external_id = ?
 //	  AND i.id != ?

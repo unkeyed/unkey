@@ -2,12 +2,13 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { clusters } from "./clusters";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 export const regions = mysqlTable(
   "regions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     // e.g. us-east-1, us-west-2, etc.
     name: caseInsensitiveVarchar("name", { length: 64 }).notNull(),
     // e.g. aws, gcp, azure, local, etc.

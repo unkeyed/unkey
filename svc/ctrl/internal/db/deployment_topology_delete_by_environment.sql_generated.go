@@ -11,16 +11,14 @@ import (
 
 const deleteDeploymentTopologiesByEnvironmentId = `-- name: DeleteDeploymentTopologiesByEnvironmentId :exec
 DELETE dt FROM deployment_topology dt
-JOIN deployments d ON (d.id COLLATE utf8mb4_0900_ai_ci = dt.deployment_id AND d.id COLLATE utf8mb4_0900_as_cs = dt.deployment_id)
+JOIN deployments d ON d.id = dt.deployment_id
 WHERE d.environment_id = ?
 `
 
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
+// DeleteDeploymentTopologiesByEnvironmentId
 //
 //	DELETE dt FROM deployment_topology dt
-//	JOIN deployments d ON (d.id COLLATE utf8mb4_0900_ai_ci = dt.deployment_id AND d.id COLLATE utf8mb4_0900_as_cs = dt.deployment_id)
+//	JOIN deployments d ON d.id = dt.deployment_id
 //	WHERE d.environment_id = ?
 func (q *Queries) DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, environmentID string) error {
 	_, err := q.db.ExecContext(ctx, deleteDeploymentTopologiesByEnvironmentId, environmentID)
