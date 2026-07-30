@@ -1,7 +1,9 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { useAppId, useProjectData } from "../data-provider";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
@@ -37,15 +39,25 @@ export const DeploymentSettings = ({
   sections = { build: true, runtime: true, advanced: true, sentinel: true },
   onBeforeNavigate,
 }: DeploymentSettingsProps) => {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const { data } = trpc.github.getInstallations.useQuery({ projectId, appId });
+
+  const showBuildSettings = !data || Boolean(data.repoConnection?.repositoryFullName);
+
   return (
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
         <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        <RootDirectory />
-        <Dockerfile />
-        <BuildCommand />
-        <WatchPaths />
-        <AutoDeploy />
+        {showBuildSettings ? (
+          <>
+            <RootDirectory />
+            <Dockerfile />
+            <BuildCommand />
+            <WatchPaths />
+            <AutoDeploy />
+          </>
+        ) : null}
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
