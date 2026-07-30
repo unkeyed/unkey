@@ -140,9 +140,6 @@ export function getSentinelLogs(ch: Querier) {
       AND project_id = {projectId: String}
     `;
 
-    // Keep referenced columns covered by p_logs_by_project_time. Adding a new
-    // filter without adding its column to the projection makes ClickHouse fall
-    // back to the base table for page selection.
     const filterConditions = `
       ${baseFilter}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}

@@ -38,20 +38,7 @@ CREATE TABLE frontline_requests_raw_v1 (
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_frontline_id (frontline_id) TYPE bloom_filter GRANULARITY 1,
-  PROJECTION p_logs_by_project_time (
-    SELECT
-      workspace_id,
-      project_id,
-      time,
-      request_id,
-      deployment_id,
-      environment_id,
-      response_status,
-      method,
-      path
-    ORDER BY (workspace_id, project_id, time, request_id)
-  )
+  INDEX idx_frontline_id (frontline_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
 ORDER BY (`workspace_id`, `project_id`, `app_id`, `environment_id`, `time`, `deployment_id`)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(7)
