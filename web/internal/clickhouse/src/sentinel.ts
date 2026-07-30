@@ -183,8 +183,8 @@ export function getSentinelLogs(ch: Querier) {
     const offset = (args.page - 1) * args.limit;
 
     // Lazy materialization delays reading large payload columns until ORDER BY
-    // and LIMIT select the page. ClickHouse enables it by default only through
-    // LIMIT 10, so raise the threshold to the dashboard's 50-row page size.
+    // and LIMIT select the page. Enable it explicitly and raise ClickHouse's
+    // default LIMIT 10 threshold to the dashboard's 50-row page size.
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
@@ -196,7 +196,9 @@ export function getSentinelLogs(ch: Querier) {
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}
-        SETTINGS query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
+        SETTINGS
+          query_plan_optimize_lazy_materialization = 1,
+          query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
       params: sentinelLogsRequestSchema.extend({
         offset: z.number().int(),
         ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
