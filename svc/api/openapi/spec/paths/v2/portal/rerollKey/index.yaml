@@ -1,4 +1,5 @@
 post:
+  x-excluded: true
   tags:
     - portal
   summary: Reroll portal key
