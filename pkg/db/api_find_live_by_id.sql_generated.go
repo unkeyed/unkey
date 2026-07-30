@@ -13,7 +13,7 @@ import (
 const findLiveApiByID = `-- name: FindLiveApiByID :one
 SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 FROM apis
-JOIN key_auth as ka ON (ka.id = apis.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = apis.key_auth_id COLLATE utf8mb4_0900_as_cs)
+JOIN key_auth as ka ON ka.id = apis.key_auth_id
 WHERE apis.id = ?
     AND ka.deleted_at_m IS NULL
     AND apis.deleted_at_m IS NULL
@@ -36,13 +36,11 @@ type FindLiveApiByIDRow struct {
 	KeyAuth          KeyAuth          `db:"key_auth"`
 }
 
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
+// FindLiveApiByID
 //
 //	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
 //	FROM apis
-//	JOIN key_auth as ka ON (ka.id = apis.key_auth_id COLLATE utf8mb4_0900_ai_ci AND ka.id = apis.key_auth_id COLLATE utf8mb4_0900_as_cs)
+//	JOIN key_auth as ka ON ka.id = apis.key_auth_id
 //	WHERE apis.id = ?
 //	    AND ka.deleted_at_m IS NULL
 //	    AND apis.deleted_at_m IS NULL

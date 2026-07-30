@@ -9,9 +9,6 @@
 -- org_id resolves the alert recipients (org admins via WorkOS); the stop flag
 -- decides whether 100% triggers teardown; deploy_spend_suspended tells the check
 -- whether the cap has already stopped this workspace's compute.
--- Temporary staged-collation bridge: the native-collation term preserves
--- index lookup while the as_cs term enforces exact ID equality. Remove after
--- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
    w.id,
    w.name,
@@ -21,7 +18,7 @@ SELECT
    b.spend_budget_stop,
    b.spend_suspended
 FROM `workspaces` w
-LEFT JOIN `workspace_billing` b ON (w.id = b.workspace_id COLLATE utf8mb4_0900_ai_ci AND w.id = b.workspace_id COLLATE utf8mb4_0900_as_cs)
+LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
   AND w.enabled = true
   AND w.deleted_at_m IS NULL;

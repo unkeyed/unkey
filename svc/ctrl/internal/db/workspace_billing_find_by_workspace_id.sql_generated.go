@@ -28,9 +28,9 @@ SELECT
    b.deleted_at_m
 FROM ` + "`" + `workspace_billing` + "`" + ` b
 LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs_api
-   ON (bs_api.workspace_id = b.workspace_id COLLATE utf8mb4_0900_ai_ci AND bs_api.workspace_id = b.workspace_id COLLATE utf8mb4_0900_as_cs) AND bs_api.product = 'api'
+   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
 LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs_deploy
-   ON (bs_deploy.workspace_id = b.workspace_id COLLATE utf8mb4_0900_ai_ci AND bs_deploy.workspace_id = b.workspace_id COLLATE utf8mb4_0900_as_cs) AND bs_deploy.product = 'compute'
+   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
 WHERE b.workspace_id = ?
 `
 
@@ -57,9 +57,6 @@ type FindWorkspaceBillingByWorkspaceIDRow struct {
 // fetched, prefer joining workspace_billing in that query over a second round
 // trip. Stripe subscription ids now live on billing_subscriptions, one row per
 // (workspace, product).
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT
 //	   b.pk,
@@ -78,9 +75,9 @@ type FindWorkspaceBillingByWorkspaceIDRow struct {
 //	   b.deleted_at_m
 //	FROM `workspace_billing` b
 //	LEFT JOIN `billing_subscriptions` bs_api
-//	   ON (bs_api.workspace_id = b.workspace_id COLLATE utf8mb4_0900_ai_ci AND bs_api.workspace_id = b.workspace_id COLLATE utf8mb4_0900_as_cs) AND bs_api.product = 'api'
+//	   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
 //	LEFT JOIN `billing_subscriptions` bs_deploy
-//	   ON (bs_deploy.workspace_id = b.workspace_id COLLATE utf8mb4_0900_ai_ci AND bs_deploy.workspace_id = b.workspace_id COLLATE utf8mb4_0900_as_cs) AND bs_deploy.product = 'compute'
+//	   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
 //	WHERE b.workspace_id = ?
 func (q *Queries) FindWorkspaceBillingByWorkspaceID(ctx context.Context, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findWorkspaceBillingByWorkspaceID, workspaceID)
