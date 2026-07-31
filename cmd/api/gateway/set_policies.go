@@ -22,7 +22,7 @@ Required Permissions
 - environment.*.set_policies (for any environment)
 - environment.<environment_id>.set_policies (for a specific environment)
 
-For full documentation, see https://www.unkey.com/docs/api-reference/v2/gateway/set-policies` + util.Disclaimer,
+For full documentation, see https://www.unkey.com/docs/api-reference/gateway/set-policies` + util.Disclaimer,
 		Examples: []string{`unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[{"name":"Require API key","enabled":true,"keyauth":{"keyspaces":["ks_1234abcd"]}}]'`, `unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[]'`},
 		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("policies", "JSON array containing the complete ordered policy list.", cli.Required(), cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {

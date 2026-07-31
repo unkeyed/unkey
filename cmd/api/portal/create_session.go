@@ -36,7 +36,7 @@ Required Permissions
 
 Your root key must be associated with a workspace that has an enabled portal configuration.
 
-For full documentation, see https://www.unkey.com/docs/api-reference/v2/portal/create-session` + util.Disclaimer,
+` + util.Disclaimer,
 		Examples: []string{"unkey api portal create-session --slug=my-portal --external-id=user_123 --permissions=keys:read,keys:reroll", "unkey api portal create-session --slug=my-portal --external-id=user_123 --permissions=analytics:read --preview=true"},
 		Flags: []cli.Flag{
 			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("slug", "Portal configuration slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("external-id", "End user's identifier in your system.", cli.Required(), cli.MutuallyExclusive("body")),
