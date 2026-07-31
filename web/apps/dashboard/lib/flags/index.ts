@@ -32,6 +32,19 @@ export const deployBilling = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+export const projectsNav = flag<boolean, Entities>({
+  key: "projects-nav",
+  description:
+    "Use the projects-first navigation (sidebar, breadcrumbs, landing redirect). Off until rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 // portalManagement gates the portal configuration page and its sidebar nav
 // item. Off until portal GA so it can be developed and merged without being
 // visible. Enable per-workspace to roll out to internal workspaces first.
