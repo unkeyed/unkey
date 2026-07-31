@@ -4,6 +4,14 @@
 #MISE outputs=["./bin/unkey"]
 set -euo pipefail
 
+# WorkOS OAuth public client ID, baked in per environment at link time.
+# CI sets UNKEY_WORKOS_CLIENT_ID differently for staging vs production; local
+# builds leave it empty and rely on the runtime flag / env var instead.
+LDFLAGS=""
+if [ -n "${UNKEY_WORKOS_CLIENT_ID:-}" ]; then
+  LDFLAGS="-X github.com/unkeyed/unkey/cmd/api/util.defaultWorkOSClientID=${UNKEY_WORKOS_CLIENT_ID}"
+fi
+
 go build ./...
 mkdir -p bin
-go build -o bin/unkey .
+go build -ldflags "${LDFLAGS}" -o bin/unkey .
