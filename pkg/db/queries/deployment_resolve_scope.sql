@@ -5,9 +5,6 @@
 -- Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
 -- can't use both indexes and would scan the workspace. app/environment keep the OR
 -- since the parent-id join already narrows them to a few rows.
--- Temporary staged-collation bridge: the native-collation term preserves
--- index lookup while the as_cs term enforces exact ID equality. Remove after
--- all counterpart columns are utf8mb4_0900_as_cs.
 SELECT
     p.id AS project_id,
     a.id AS app_id,
@@ -23,11 +20,11 @@ FROM (
     LIMIT 1
 ) p
 LEFT JOIN apps a
-    ON (a.project_id = p.id COLLATE utf8mb4_0900_ai_ci AND a.project_id = p.id COLLATE utf8mb4_0900_as_cs)
-    AND (a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_ai_ci AND a.workspace_id = p.workspace_id COLLATE utf8mb4_0900_as_cs)
+    ON a.project_id = p.id
+    AND a.workspace_id = p.workspace_id
     AND (a.id = sqlc.arg(app) OR a.slug = sqlc.arg(app))
 LEFT JOIN environments e
-    ON (e.app_id = a.id COLLATE utf8mb4_0900_ai_ci AND e.app_id = a.id COLLATE utf8mb4_0900_as_cs)
-    AND (e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_ai_ci AND e.workspace_id = a.workspace_id COLLATE utf8mb4_0900_as_cs)
+    ON e.app_id = a.id
+    AND e.workspace_id = a.workspace_id
     AND (e.id = sqlc.arg(environment) OR e.slug = sqlc.arg(environment))
 LIMIT 1;

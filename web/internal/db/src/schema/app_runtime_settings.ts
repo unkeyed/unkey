@@ -19,7 +19,7 @@ export type Healthcheck = {
   failureThreshold: number;
   initialDelaySeconds: number;
 };
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -29,9 +29,9 @@ export const appRuntimeSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseInsensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseInsensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
     // CPU allocation in millicores (1000 millicores = 1 CPU).

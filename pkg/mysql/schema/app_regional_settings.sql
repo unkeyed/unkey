@@ -1,9 +1,9 @@
 CREATE TABLE `app_regional_settings` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
-	`environment_id` varchar(128) NOT NULL,
-	`region_id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`environment_id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`region_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`replicas` int NOT NULL DEFAULT 1,
 	`horizontal_autoscaling_policy_id` varchar(64) COLLATE utf8mb4_0900_as_cs,
 	`created_at` bigint NOT NULL,

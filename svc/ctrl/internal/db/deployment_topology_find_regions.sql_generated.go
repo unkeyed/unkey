@@ -12,19 +12,16 @@ import (
 const findDeploymentRegions = `-- name: FindDeploymentRegions :many
 SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
-INNER JOIN ` + "`" + `regions` + "`" + ` r ON (r.id = dt.region_id COLLATE utf8mb4_0900_ai_ci AND r.id = dt.region_id COLLATE utf8mb4_0900_as_cs)
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 WHERE dt.deployment_id = ?
 `
 
 // Returns all regions where a deployment is configured.
 // Used for fan-out: when a deployment changes, emit state_change to each region.
-// Temporary staged-collation bridge: the native-collation term preserves
-// index lookup while the as_cs term enforces exact ID equality. Remove after
-// all counterpart columns are utf8mb4_0900_as_cs.
 //
 //	SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 //	FROM `deployment_topology` dt
-//	INNER JOIN `regions` r ON (r.id = dt.region_id COLLATE utf8mb4_0900_ai_ci AND r.id = dt.region_id COLLATE utf8mb4_0900_as_cs)
+//	INNER JOIN `regions` r ON r.id = dt.region_id
 //	WHERE dt.deployment_id = ?
 func (q *Queries) FindDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error) {
 	rows, err := q.db.QueryContext(ctx, findDeploymentRegions, deploymentID)

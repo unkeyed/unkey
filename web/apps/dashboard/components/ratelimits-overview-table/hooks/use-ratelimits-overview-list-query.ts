@@ -5,14 +5,17 @@ import type {
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { serializeFilters, serializeSorts } from "@/hooks/serialize-transition-key";
-import { usePageChange } from "@/hooks/use-page-change";
-import { usePageClamp } from "@/hooks/use-page-clamp";
-import { usePageTransition } from "@/hooks/use-page-transition";
-import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
+import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  computeTotalPages,
+  paginationFilterKey,
+  paginationSortKey,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useMemo } from "react";
 
 type UseRatelimitsOverviewListQueryParams = {
@@ -22,6 +25,10 @@ type UseRatelimitsOverviewListQueryParams = {
 
 export const RATELIMITS_OVERVIEW_PAGE_SIZE = 50;
 
+// Time-windowed overview using the multi-column `useSort` surface (URL param
+// `sorts`). Composes the shared pagination primitives — which own page state,
+// the deep-link clamp, and prefetch — while keeping the feature-specific query
+// shape here.
 export function useRatelimitsOverviewListPaginated({
   namespaceId,
   limit = RATELIMITS_OVERVIEW_PAGE_SIZE,
@@ -30,21 +37,14 @@ export function useRatelimitsOverviewListPaginated({
   const { sorts } = useSort<SortFields>();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-
-  // Filters, query time, and sort all invalidate the current OFFSET, so any
-  // of them changing resets pagination.
+  // Reset to page 1 when filters, sort, or query time change — the current
+  // OFFSET is only meaningful relative to the current ordering.
   const filtersKey = useMemo(
-    () => `${serializeFilters(filters)}|t:${timestamp}|s:${serializeSorts(sorts)}`,
+    () => `${paginationFilterKey(filters)}|t:${timestamp}|s:${paginationSortKey(sorts)}`,
     [filters, timestamp, sorts],
   );
 
-  const queryPage = usePageTransition({
-    transitionKey: filtersKey,
-    page: normalizedPage,
-    setPage,
-  });
+  const { page, setPage } = usePaginatedPage(filtersKey);
 
   const queryParams = useMemo<RatelimitQueryOverviewLogsPayload>(() => {
     const params: RatelimitQueryOverviewLogsPayload = {
@@ -55,7 +55,7 @@ export function useRatelimitsOverviewListPaginated({
       status: { filters: [] },
       namespaceId,
       since: "",
-      page: queryPage,
+      page,
       sorts: sorts.length > 0 ? sorts : null,
     };
 
@@ -103,48 +103,38 @@ export function useRatelimitsOverviewListPaginated({
     });
 
     return params;
-  }, [filters, limit, timestamp, namespaceId, sorts, queryPage]);
+  }, [filters, limit, timestamp, namespaceId, sorts, page]);
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.ratelimit.overview.logs.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.ratelimit.overview.logs.query.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const totalCount = Math.max(0, data?.total ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  usePageClamp({
-    page: queryPage,
-    totalPages,
+  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,
-    setPage,
-  });
-
-  usePrefetchPages({
-    page: queryPage,
+    page,
     totalPages,
+    setPage,
+    isLoading,
+    isFetching,
     queryParams,
     prefetch: (params) =>
-      utils.ratelimit.overview.logs.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+      utils.ratelimit.overview.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];
-
-  const onPageChange = usePageChange(totalPages, setPage);
-
-  const isInitialLoading = isLoading && !data;
-  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     historicalLogs,
     isLoading: isInitialLoading,
     isFetching,
     isNavigating,
-    page: queryPage,
+    page,
     pageSize: limit,
     totalPages,
     totalCount,

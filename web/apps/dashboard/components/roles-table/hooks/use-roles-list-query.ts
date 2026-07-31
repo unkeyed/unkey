@@ -61,12 +61,13 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
       trpc.authorization.roles.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
     prefetch: (params) =>
       utils.authorization.roles.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    getTotalCount: (data) => data.total,
   });
 
   return {
     roles: result.data?.roles ?? [],
     isInitialLoading: result.isInitialLoading,
-    isFetching: result.isFetching,
+    isNavigating: result.isNavigating,
     page: result.page,
     pageSize: result.pageSize,
     totalPages: result.totalPages,

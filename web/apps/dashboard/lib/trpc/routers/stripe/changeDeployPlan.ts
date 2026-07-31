@@ -1,8 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { DEPLOY_PLANS, deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
 import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -63,7 +65,7 @@ export const changeDeployPlan = workspaceProcedure
 
     if (planFeeItem.plan === input.plan) {
       // Already on the requested plan; nothing to do.
-      return;
+      return { kind: "applied" } satisfies Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     }
 
     // The Deploy subscription is set to cancel at period end. Repricing the fee
@@ -81,11 +83,13 @@ export const changeDeployPlan = workspaceProcedure
     const newPriceId = config.planFeePriceIds[input.plan];
     const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
 
+    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     try {
-      await stripe.subscriptionItems.update(planFeeItem.id, {
-        price: newPriceId,
-        proration_behavior: isDowngrade ? "none" : "always_invoice",
-        payment_behavior: "error_if_incomplete",
+      result = await changeSubscriptionPrice(stripe, {
+        subscriptionId: sub.id,
+        subscriptionItemId: planFeeItem.id,
+        newPriceId,
+        prorationBehavior: isDowngrade ? "none" : "always_invoice",
       });
     } catch (err) {
       if (
@@ -102,6 +106,10 @@ export const changeDeployPlan = workspaceProcedure
       throw err;
     }
 
+    if (result.kind === "payment_required") {
+      return result;
+    }
+
     // One transaction so the plan write and its audit log commit together; a
     // failure in either rolls back the other. Written optimistically; the
     // subscription.updated webhook reconciles deploy_plan to the same value.
@@ -110,7 +118,11 @@ export const changeDeployPlan = workspaceProcedure
         .update(schema.workspaceBilling)
         .set({ plan: input.plan })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-      await setComputeQuotas(tx, { workspaceId: ctx.workspace.id, plan: input.plan });
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: input.plan,
+        preserveApiQuotas: ctx.workspace.tier !== "Free",
+      });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
@@ -120,4 +132,14 @@ export const changeDeployPlan = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
+
+    const losesTeam =
+      ctx.workspace.tier === "Free" &&
+      deployPlanGrantsTeam(planFeeItem.plan) &&
+      !deployPlanGrantsTeam(input.plan);
+    if (losesTeam) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
+
+    return result;
   });

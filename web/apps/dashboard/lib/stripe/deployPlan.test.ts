@@ -1,6 +1,12 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { computeQuotasForPlan, detectDeployPlan } from "./deployPlan";
+import {
+  computeQuotaUpdateForPlan,
+  computeQuotasForPlan,
+  deployPlanGrantsTeam,
+  detectDeployPlan,
+  parseDeployPlan,
+} from "./deployPlan";
 
 // Minimal subscription stub. detectDeployPlan reads items[].price.metadata.plan.
 function subWithItems(...items: Array<{ id?: string; plan?: string }>): Stripe.Subscription {
@@ -56,25 +62,69 @@ describe("detectDeployPlan", () => {
 });
 
 describe("computeQuotasForPlan", () => {
-  it("returns the advertised per-instance CPU and memory limits", () => {
+  it("returns the advertised plan quotas", () => {
     expect(computeQuotasForPlan("starter")).toEqual({
+      logsRetentionDays: 3,
+      auditLogsRetentionDays: 7,
+      team: false,
       maxCpuMillicoresPerInstance: 2_000,
       maxMemoryMibPerInstance: 2_048,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
     expect(computeQuotasForPlan("pro")).toEqual({
+      logsRetentionDays: 7,
+      auditLogsRetentionDays: 14,
+      team: true,
       maxCpuMillicoresPerInstance: 8_000,
       maxMemoryMibPerInstance: 8_192,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
     expect(computeQuotasForPlan("business")).toEqual({
+      logsRetentionDays: 14,
+      auditLogsRetentionDays: 30,
+      team: true,
       maxCpuMillicoresPerInstance: 16_000,
       maxMemoryMibPerInstance: 32_768,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
   });
 
   it("returns the default Compute limits without a plan", () => {
     expect(computeQuotasForPlan(null)).toEqual({
+      logsRetentionDays: 7,
+      auditLogsRetentionDays: 30,
+      team: false,
       maxCpuMillicoresPerInstance: 2_000,
       maxMemoryMibPerInstance: 4_096,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
     });
+  });
+
+  it("preserves API-owned team and retention quotas when an API plan is paid", () => {
+    expect(computeQuotaUpdateForPlan("business", true)).toEqual({
+      maxCpuMillicoresPerInstance: 16_000,
+      maxMemoryMibPerInstance: 32_768,
+      maxStorageMibPerInstance: 10_240,
+      maxConcurrentBuilds: 1,
+    });
+  });
+});
+
+describe("Deploy plan entitlement helpers", () => {
+  it("grants team access only to Pro and Business", () => {
+    expect(deployPlanGrantsTeam("starter")).toBe(false);
+    expect(deployPlanGrantsTeam("pro")).toBe(true);
+    expect(deployPlanGrantsTeam("business")).toBe(true);
+    expect(deployPlanGrantsTeam(null)).toBe(false);
+  });
+
+  it("fails closed when parsing persisted plan values", () => {
+    expect(parseDeployPlan("starter")).toBe("starter");
+    expect(parseDeployPlan("enterprise")).toBeNull();
+    expect(parseDeployPlan(null)).toBeNull();
   });
 });

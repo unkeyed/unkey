@@ -15,7 +15,7 @@ export const RolesList = () => {
   const {
     roles,
     isInitialLoading,
-    isFetching,
+    isNavigating,
     page,
     pageSize,
     totalPages,
@@ -107,7 +107,7 @@ export const RolesList = () => {
         onPageChange={onPageChange}
         itemLabel="roles"
         hide={isInitialLoading}
-        disabled={isFetching}
+        disabled={isNavigating}
         headerContent={
           <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
         }
