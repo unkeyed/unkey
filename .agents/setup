@@ -36,10 +36,19 @@ sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
 
 echo "Installing the pinned mise binary and toolchain..."
 ./dev/install-mise
-"$HOME/.local/bin/mise" trust .mise/config.toml
-"$HOME/.local/bin/mise" install
+mise="$HOME/.local/bin/mise"
+"$mise" trust .mise/config.toml
+"$mise" install --locked --yes
 
 echo "Installing web dependencies..."
-"$HOME/.local/bin/mise" run install-web
+"$mise" run install-web
+
+echo "Creating local web environment files when missing..."
+if [ ! -f web/apps/dashboard/.env ]; then
+  cp -- web/apps/dashboard/dev/.env.example web/apps/dashboard/.env
+fi
+if [ ! -f web/apps/portal/.env ]; then
+  cp -- web/apps/portal/.env.example web/apps/portal/.env
+fi
 
 echo "Orb setup complete. Run the Go suite with 'mise run test'."
