@@ -32,6 +32,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
   const { data: invoice, isLoading } = trpc.stripe.getUpcomingInvoice.useQuery(undefined, {
     enabled: hasPaymentMethod,
     staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
   });
 
   // Dev-only: one-click seed a Stripe test customer + 4242 card so local runs

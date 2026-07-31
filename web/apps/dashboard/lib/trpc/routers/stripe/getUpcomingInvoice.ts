@@ -43,7 +43,6 @@ export const getUpcomingInvoice = workspaceProcedure
     const customerId = ctx.workspace.stripeCustomerId;
 
     const stripe = getStripeClient();
-    const config = await deployBillingConfig();
 
     // Stripe throws when there is no upcoming invoice (e.g. the subscription is
     // fully canceled). That's an empty state, not an error.
@@ -61,7 +60,8 @@ export const getUpcomingInvoice = workspaceProcedure
       }
     };
 
-    const [apiInvoice, deployInvoice] = await Promise.all([
+    const [config, apiInvoice, deployInvoice] = await Promise.all([
+      ctx.workspace.stripeDeploySubscriptionId ? deployBillingConfig() : null,
       ctx.workspace.stripeSubscriptionId ? preview(ctx.workspace.stripeSubscriptionId) : null,
       ctx.workspace.stripeDeploySubscriptionId
         ? preview(ctx.workspace.stripeDeploySubscriptionId)
