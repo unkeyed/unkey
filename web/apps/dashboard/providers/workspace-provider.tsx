@@ -8,14 +8,7 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import {
-  type PropsWithChildren,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+import { type PropsWithChildren, createContext, useCallback, useContext, useMemo } from "react";
 
 interface WorkspaceContextType {
   user: AuthenticatedUser | null;
@@ -77,18 +70,6 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   // "No workspace" (fresh sign-up, onboarding not finished) is an expected
   // state, distinct from a failed lookup.
   const workspaceMissing = workspaceError?.data?.code === "NOT_FOUND";
-
-  /**
-   *
-   * fetches the userQuery on login redirect.
-   */
-  useEffect(() => {
-    const isOnApisRoute = pathname === "/apis";
-
-    if (isOnApisRoute && !userLoading && !user) {
-      userQuery.refetch();
-    }
-  }, [pathname, userLoading, user, userQuery.refetch]);
 
   const refetch = useCallback(async () => {
     await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);

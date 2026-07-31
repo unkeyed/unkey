@@ -10,12 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Laptop2, MoonStars, Sun } from "@unkey/icons";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import type React from "react";
 
 type UserButtonProps = {
@@ -27,6 +30,7 @@ type UserButtonProps = {
 
 export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, className }) => {
   const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
@@ -62,6 +66,20 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
             <DropdownMenuSeparator />
           </>
         )}
+        <DropdownMenuGroup className="w-full">
+          <DropdownMenuItem
+            render={
+              <Link
+                href={routes.settings.account({ workspaceSlug: workspace.slug })}
+                className="text-accent-12 text-sm font-medium"
+              >
+                Account
+              </Link>
+            }
+            className="cursor-pointer"
+          />
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <Tabs value={theme} onValueChange={setTheme}>
