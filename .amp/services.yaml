@@ -7,6 +7,22 @@ services:
       title: Dashboard
       description: Local dashboard with seeded data and local authentication.
 
+  api:
+    command: >-
+      python3 -u .amp/service-proxy.py "$PORT" 7070
+    port: 17070
+    portal:
+      title: Unkey API
+      description: Local API from the dashboard's Docker Compose stack.
+
+  vault:
+    command: >-
+      python3 -u .amp/service-proxy.py "$PORT" 8060
+    port: 18060
+    portal:
+      title: Vault RPC
+      description: Local Vault Connect RPC service from the dashboard stack.
+
   portal:
     command: >-
       __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.onamp.dev
