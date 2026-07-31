@@ -4,7 +4,9 @@ load('ext://helm_remote', 'helm_remote')
 load('ext://restart_process', 'docker_build_with_restart')
 
 config.define_string('topolvm_backing_size')
+config.define_bool('orb')
 cfg = config.parse()
+ORB = cfg.get('orb', False)
 # Sparse loopback file size. Sparse means this is a ceiling, not a reservation —
 # 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
@@ -83,12 +85,23 @@ EOF
   labels=['setup'],
 )
 
-local_resource(
-  'cilium-policies',
-  'kubectl apply -f k8s/manifests/cilium-policies.yaml',
-  resource_deps=['namespace'],
-  labels=['setup'],
-)
+if ORB:
+    # The orb kernel lacks the eBPF JIT required by Cilium. Keep the CNP CRD so
+    # Krane can reconcile its normal objects, but use bridge networking without
+    # enforcement in this isolated development cluster.
+    local_resource(
+      'cilium-network-policy-crd',
+      'kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/v1.19.0/pkg/k8s/apis/cilium.io/client/crds/v2/ciliumnetworkpolicies.yaml',
+      resource_deps=['namespace'],
+      labels=['setup'],
+    )
+else:
+    local_resource(
+      'cilium-policies',
+      'kubectl apply -f k8s/manifests/cilium-policies.yaml',
+      resource_deps=['namespace'],
+      labels=['setup'],
+    )
 
 # ─── TopoLVM (real LVM-backed PVCs for dev) ────────────────────────────────
 #
@@ -163,20 +176,21 @@ local_resource(
   labels=['storage'],
 )
 
-local_resource(
-  'hubble',
-  'kubectl -n kube-system patch configmap cilium-config --type merge -p \'{"data":{"enable-hubble":"true","hubble-listen-address":":4244"}}\' && kubectl -n kube-system rollout restart daemonset cilium && kubectl apply -f k8s/manifests/hubble.yaml && kubectl -n kube-system rollout status daemonset cilium --timeout=120s',
-  resource_deps=['cilium-policies'],
-  labels=['observability'],
-)
+if not ORB:
+    local_resource(
+      'hubble',
+      'kubectl -n kube-system patch configmap cilium-config --type merge -p \'{"data":{"enable-hubble":"true","hubble-listen-address":":4244"}}\' && kubectl -n kube-system rollout restart daemonset cilium && kubectl apply -f k8s/manifests/hubble.yaml && kubectl -n kube-system rollout status daemonset cilium --timeout=120s',
+      resource_deps=['cilium-policies'],
+      labels=['observability'],
+    )
 
-local_resource(
-  'hubble-ui',
-  serve_cmd='while true; do kubectl wait --for=condition=ready pod -l k8s-app=hubble-ui -n kube-system --timeout=120s && kubectl port-forward -n kube-system svc/hubble-ui 12000:80; echo "port-forward exited, retrying in 5s..."; sleep 5; done',
-  resource_deps=['hubble'],
-  labels=['observability'],
-  links=['http://localhost:12000'],
-)
+    local_resource(
+      'hubble-ui',
+      serve_cmd='while true; do kubectl wait --for=condition=ready pod -l k8s-app=hubble-ui -n kube-system --timeout=120s && kubectl port-forward -n kube-system svc/hubble-ui 12000:80; echo "port-forward exited, retrying in 5s..."; sleep 5; done',
+      resource_deps=['hubble'],
+      labels=['observability'],
+      links=['http://localhost:12000'],
+    )
 
 local_resource(
     'depot-credentials',
@@ -449,7 +463,14 @@ k8s_resource(
 
 # ─── Ctrl API ──────────────────────────────────────────────────────────────
 go_service_image('unkey/control-api:dev', 'control-api')
-k8s_yaml('k8s/manifests/ctrl-api.yaml')
+if ORB and not has_github_credentials:
+    ctrl_api_manifest = str(read_file('k8s/manifests/ctrl-api.yaml')).replace(
+        'app_id = ${UNKEY_GITHUB_APP_ID}',
+        'app_id = 0\n    allow_unauthenticated_deployments = true',
+    )
+    k8s_yaml(blob(ctrl_api_manifest))
+else:
+    k8s_yaml('k8s/manifests/ctrl-api.yaml')
 ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
@@ -464,7 +485,20 @@ k8s_resource(
 
 # ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
 go_service_image('unkey/control-worker:dev', 'control-worker')
-k8s_yaml('k8s/manifests/ctrl-worker.yaml')
+if ORB:
+    goarch = str(local('go env GOARCH', quiet=True, echo_off=True)).strip()
+    ctrl_worker_manifest = str(read_file('k8s/manifests/ctrl-worker.yaml')).replace(
+        'build_platform = "linux/arm64"',
+        'build_platform = "linux/%s"' % goarch,
+    )
+    if not has_github_credentials:
+        ctrl_worker_manifest = ctrl_worker_manifest.replace(
+            'app_id = ${UNKEY_GITHUB_APP_ID}',
+            'app_id = 0',
+        )
+    k8s_yaml(blob(ctrl_worker_manifest))
+else:
+    k8s_yaml('k8s/manifests/ctrl-worker.yaml')
 ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
@@ -504,49 +538,68 @@ k8s_resource(
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
-k8s_yaml('k8s/manifests/krane.yaml')
+if ORB and not has_depot_credentials:
+    krane_manifest = str(read_file('k8s/manifests/krane.yaml')).replace(
+        '''    [registry]
+    url = "registry.depot.dev"
+    username = "x-token"
+    password = "${UNKEY_REGISTRY_PASSWORD}"
+
+''',
+        '',
+    ).replace(
+        '                  optional: false',
+        '                  optional: true',
+    )
+    k8s_yaml(blob(krane_manifest))
+else:
+    k8s_yaml('k8s/manifests/krane.yaml')
+krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps,
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── Heimdall (resource metering agent) ────────────────────────────────────
-go_service_image('unkey/heimdall:dev', 'heimdall')
-k8s_yaml('k8s/manifests/heimdall.yaml')
-k8s_resource(
-  'heimdall',
-  resource_deps=['clickhouse', 'rbac', 'heimdall-compile'],
-  labels=['unkey'],
-  auto_init=True,
-  trigger_mode=TRIGGER_MODE_AUTO
-)
+if not ORB:
+    go_service_image('unkey/heimdall:dev', 'heimdall')
+    k8s_yaml('k8s/manifests/heimdall.yaml')
+    k8s_resource(
+      'heimdall',
+      resource_deps=['clickhouse', 'rbac', 'heimdall-compile'],
+      labels=['unkey'],
+      auto_init=True,
+      trigger_mode=TRIGGER_MODE_AUTO
+    )
 
 
 
-# Portal - standalone K8s service for local development.
-# Build the portal Docker image and load into minikube
-local_resource(
-    'build-portal-image',
-    'docker build -t unkey/portal:local -f ../web/apps/portal/Dockerfile .. && minikube image load unkey/portal:local',
-    deps=['../web/apps/portal', '../web/internal/ui', '../web/internal/icons', '../web/internal/id'],
-    labels=['build'],
-    auto_init=False,
-)
+# Portal - standalone K8s service for local development. Amp runs the Vite
+# server directly, so omit this manual resource in orb mode to avoid port 3100
+# ownership conflicts.
+if not ORB:
+    local_resource(
+        'build-portal-image',
+        'docker build -t unkey/portal:local -f ../web/apps/portal/Dockerfile .. && minikube image load unkey/portal:local',
+        deps=['../web/apps/portal', '../web/internal/ui', '../web/internal/icons', '../web/internal/id'],
+        labels=['build'],
+        auto_init=False,
+    )
 
-k8s_yaml('k8s/manifests/portal.yaml')
-k8s_resource(
-    'portal',
-    port_forwards='3100:3000',
-    resource_deps=['api', 'build-portal-image'],
-    labels=['unkey'],
-    auto_init=False,
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    links=['http://localhost:3100'],
-)
+    k8s_yaml('k8s/manifests/portal.yaml')
+    k8s_resource(
+        'portal',
+        port_forwards='3100:3000',
+        resource_deps=['api', 'build-portal-image'],
+        labels=['unkey'],
+        auto_init=False,
+        trigger_mode=TRIGGER_MODE_MANUAL,
+        links=['http://localhost:3100'],
+    )
 
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
@@ -557,6 +610,7 @@ local_resource(
       [ -f ./.env.github ] && source ./.env.github
       [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
       export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
+      export PORT=3000
       set +a
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',

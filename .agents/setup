@@ -33,6 +33,9 @@ sudo usermod -aG docker "$(id -un)"
 # The setup shell predates the group membership change, so grant this user
 # access without requiring the orb to restart before tests can use Docker.
 sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+# Tilt's file watchers share the orb kernel's inotify quota with the minikube
+# containers. The Debian default is too small for the full development stack.
+printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
 
 echo "Installing the pinned mise binary and toolchain..."
 ./dev/install-mise
@@ -50,5 +53,19 @@ fi
 if [ ! -f web/apps/portal/.env ]; then
   cp -- web/apps/portal/.env.example web/apps/portal/.env
 fi
+
+if [ ! -f dev/.env.depot ] && [ -n "${UNKEY_DEPOT_TOKEN:-}" ]; then
+  echo "Creating Depot credentials from the orb secret..."
+  (
+    umask 077
+    printf 'UNKEY_DEPOT_TOKEN=%s\nUNKEY_REGISTRY_PASSWORD=%s\n' \
+      "$UNKEY_DEPOT_TOKEN" \
+      "$UNKEY_DEPOT_TOKEN" > dev/.env.depot
+  )
+fi
+
+echo "Preparing the orb Kubernetes cluster..."
+"$mise" exec -- ctlptl apply -f dev/cluster.orb.yaml
+"$mise" exec -- minikube addons enable metrics-server
 
 echo "Orb setup complete. Run the Go suite with 'mise run test'."
