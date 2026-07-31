@@ -32,7 +32,25 @@ const (
 	// disjoint workspace-id range, matching the table's leading sort key, so the
 	// reads run in parallel without scanning or billing any row twice.
 	maxInstanceUsageShards = 8
+	// maxConcurrentInstanceUsageShards limits the actual ClickHouse calls while
+	// retaining eight disjoint shards to bound each query's input.
+	maxConcurrentInstanceUsageShards = 2
 )
+
+// instanceUsageQuerySlots is process-wide rather than invocation-local because
+// the billing push, spend check, and invoice close use independent Restate
+// objects and can overlap. ClickHouse user/server limits remain the backstop
+// across worker replicas and other services.
+var instanceUsageQuerySlots = make(chan struct{}, maxConcurrentInstanceUsageShards)
+
+func acquireInstanceUsageQuerySlot(ctx context.Context) (func(), error) {
+	select {
+	case instanceUsageQuerySlots <- struct{}{}:
+		return func() { <-instanceUsageQuerySlots }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
 
 // Per-unit Deploy meter rates in cents, mirroring the canonical catalog in
 // tools/pricing/catalog.go (CentsPerUnit), which the reconciler writes to
@@ -164,6 +182,12 @@ func FleetMeterValues(
 	futures := make([]restate.Selectable, len(shards))
 	for shard, shardReq := range shards {
 		futures[shard] = restate.RunAsync(ctx, func(rc restate.RunContext) (instanceMeterUsageShardResult, error) {
+			release, acquireErr := acquireInstanceUsageQuerySlot(rc)
+			if acquireErr != nil {
+				return instanceMeterUsageShardResult{Shard: shard, Rows: nil}, acquireErr
+			}
+			defer release()
+
 			rows, err := usage.GetInstanceMeterUsage(rc, shardReq)
 			if err != nil {
 				return instanceMeterUsageShardResult{}, fmt.Errorf(
