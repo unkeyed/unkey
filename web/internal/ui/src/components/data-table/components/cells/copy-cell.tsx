@@ -2,6 +2,7 @@
 import { Clipboard } from "@unkey/icons";
 import { useState } from "react";
 import { cn } from "../../../../lib/utils";
+import { toast } from "../../../toaster";
 
 export interface CopyCellProps {
   value: string;
@@ -17,9 +18,13 @@ export function CopyCell({ value, displayValue, className, monospace = false }: 
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   return (

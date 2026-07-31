@@ -36,13 +36,22 @@ export const EnvVarNameCell = ({
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      try {
-        if (type === "recoverable") {
+      let text: string;
+      if (type === "recoverable") {
+        try {
           const result = await decryptMutation.mutateAsync({ envVarId });
-          navigator.clipboard.writeText(`${variableKey}=${result.value}`);
-        } else {
-          navigator.clipboard.writeText(variableKey);
+          text = `${variableKey}=${result.value}`;
+        } catch {
+          toast.error("Failed to decrypt value");
+          return;
         }
+      } else {
+        text = variableKey;
+      }
+      try {
+        // Can reject with NotAllowedError if the document lost focus
+        // while the decrypt request was in flight.
+        await navigator.clipboard.writeText(text);
         setCopied(true);
         toast.success("Copied to clipboard");
         clearTimeout(copyTimeoutRef.current);
