@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=ctlptl.schema.json
+apiVersion: ctlptl.dev/v1alpha1
+kind: Cluster
+product: minikube
+minikube:
+  startFlags:
+    - "--driver=docker"
+    - "--cpus=no-limit"
+    - "--memory=no-limit"
+    - "--container-runtime=containerd"
+    - "--docker-opt=containerd=/var/run/containerd/containerd.sock"
+    # Amp's orb kernel does not include the eBPF JIT required by Cilium.
+    - "--cni=bridge"
+    - "--addons=gvisor,metrics-server"
+    - "--wait=all"
+registry: ctlptl-registry
+kubernetesVersion: v1.34.0

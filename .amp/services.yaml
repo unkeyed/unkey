@@ -1,8 +1,16 @@
 services:
+  dev:
+    command: >-
+      "$HOME/.local/bin/mise" run dev-orb
+    port: 10350
+    portal:
+      title: Tilt
+      description: Reduced Deploy development stack running in minikube.
+
   dashboard:
     command: >-
-      "$HOME/.local/bin/mise" run dashboard
-    port: 3000
+      python3 -u .amp/service-proxy.py "$PORT" 3000
+    port: 13000
     portal:
       title: Dashboard
       description: Local dashboard with seeded data and local authentication.
@@ -13,7 +21,7 @@ services:
     port: 17070
     portal:
       title: Unkey API
-      description: Local API from the dashboard's Docker Compose stack.
+      description: Local API from the minikube Deploy stack.
 
   vault:
     command: >-
@@ -21,7 +29,15 @@ services:
     port: 18060
     portal:
       title: Vault RPC
-      description: Local Vault Connect RPC service from the dashboard stack.
+      description: Local Vault Connect RPC service from the minikube stack.
+
+  control-api:
+    command: >-
+      python3 -u .amp/service-proxy.py "$PORT" 7091
+    port: 17091
+    portal:
+      title: Control API
+      description: Local Deploy control-plane API from the minikube stack.
 
   portal:
     command: >-
@@ -31,7 +47,7 @@ services:
     port: 3100
     portal:
       title: API Portal
-      description: API portal backed by the dashboard's local development stack.
+      description: API portal backed by the local Kubernetes API.
 
   design:
     command: >-
