@@ -1,0 +1,30 @@
+services:
+  dashboard:
+    command: >-
+      "$HOME/.local/bin/mise" run dashboard
+    port: 3000
+    portal:
+      title: Dashboard
+      description: Local dashboard with seeded data and local authentication.
+
+  portal:
+    command: >-
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.onamp.dev
+      "$HOME/.local/bin/mise" exec --
+      pnpm --dir=web --filter=@unkey/portal exec
+      vite dev --host 0.0.0.0 --port "$PORT"
+    port: 3100
+    portal:
+      title: API Portal
+      description: API portal backed by the dashboard's local development stack.
+
+  design:
+    command: >-
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.onamp.dev
+      "$HOME/.local/bin/mise" exec --
+      pnpm --dir=web --filter=@unkey/design exec
+      astro dev --host 0.0.0.0 --port "$PORT"
+    port: 4321
+    portal:
+      title: Design System
+      description: Unkey UI components and design patterns.
