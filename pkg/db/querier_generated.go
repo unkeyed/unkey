@@ -2746,6 +2746,20 @@ type Querier interface {
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)
 	UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorkspaceParams) error
+	//UpsertWorkspaceBillingPlanOverride
+	//
+	//  INSERT INTO `workspace_billing` (
+	//      workspace_id,
+	//      plan_override,
+	//      created_at_m
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      plan_override = VALUES(plan_override)
+	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingPlanOverrideParams) error
 }
 
 var _ Querier = (*Queries)(nil)
