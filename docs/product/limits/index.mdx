@@ -1,0 +1,153 @@
+---
+title: Limits
+description: "Compute quotas, resource allocation, retention, and platform limits by plan."
+---
+
+Unkey Compute limits define how much capacity a workspace can reserve and how
+you can configure each instance. Workspace quotas cover every project, app,
+environment, deployment, and region in the workspace.
+
+Limits are technical boundaries, not usage targets. Unkey can re-evaluate and
+increase them based on your workload. The [fair use guidelines](/limits/fair-use-guidelines)
+provide non-binding operational guidance for using shared infrastructure.
+
+## Plan limits
+
+All plans can deploy to all available regions. Enterprise limits are configured
+for each workspace.
+
+| Limit | Starter | Pro | Business | Enterprise |
+| --- | ---: | ---: | ---: | ---: |
+| Workspace CPU | 10 vCPU | 50 vCPU | 200 vCPU | Custom |
+| Workspace memory | 20 GiB | 50 GiB | 500 GiB | Custom |
+| Workspace ephemeral disk | 10 GiB | 100 GiB | 1 TiB | Custom |
+| CPU per instance | 2 vCPU | 4 vCPU | 16 vCPU | Custom |
+| Memory per instance | 2 GiB | 8 GiB | 32 GiB | Custom |
+| Disk per instance | 1 GiB | 10 GiB | 100 GiB | Custom |
+| Maximum replicas per region | 2 | 4 | 8 | Custom |
+| Concurrent source builds per workspace | 1 | 1 | 1 | Custom |
+| Non-audit log retention | 3 days | 7 days | 14 days | Custom |
+| Audit log retention | 7 days | 14 days | 30 days | Custom |
+| Custom domains per workspace | 1,000 | 1,000 | 1,000 | Custom |
+
+The custom domain limit is a workspace safety quota. Contact support if a
+legitimate workload needs more domains.
+
+## Calculate workspace allocation
+
+CPU, memory, and ephemeral disk are workspace-wide capacity pools. For each
+deployment region whose desired state is `running`, Unkey calculates:
+
+```plaintext
+resource per instance × maximum autoscaling replicas
+```
+
+Unkey adds that allocation across the complete desired-running deployment and
+region topology in the workspace. Preview and production deployments draw from
+the same pools. Stopped deployments don't count.
+
+For example, a deployment configured with 1 vCPU per instance, four maximum
+replicas, and two regions allocates 8 vCPU:
+
+```plaintext
+1 vCPU × 4 maximum replicas × 2 regions = 8 vCPU
+```
+
+Allocation uses the autoscaling maximum, not the number of instances active at
+that moment. This reserves enough workspace capacity for each deployment to
+scale to its configured maximum.
+
+### Plan for rollout overlap
+
+During a rollout, the existing deployment and its replacement can run at the
+same time. Both allocations count until the old deployment stops. Leave enough
+CPU, memory, and disk headroom for this overlap when sizing the workspace or
+changing deployment topology.
+
+## Behavior at a limit
+
+Unkey validates per-instance settings, maximum replicas, and workspace
+allocation before changing the running topology. A deployment that exceeds any
+quota is rejected, while the existing workload stays running.
+
+CPU, memory, and disk are checked independently. A deployment can fit within
+two resource quotas and still be rejected by the third. To free allocation,
+reduce resources per instance, lower maximum replicas, remove a region, or stop
+a deployment.
+
+When every build slot is occupied, another source build waits. It isn't
+rejected for build concurrency alone.
+
+## Additional usage
+
+Each plan includes usage credits that apply to metered resources. Additional
+usage is plan-neutral and billed after the credit is consumed.
+
+| Usage | Starter | Pro | Business | Enterprise |
+| --- | ---: | ---: | ---: | ---: |
+| Included usage credits | $5 per month | $25 per month | $50 per month | Custom |
+| CPU | Metered | Metered | Metered | Custom |
+| Memory | Metered | Metered | Metered | Custom |
+| Ephemeral disk | Metered | Metered | Metered | Custom |
+| Egress | Metered | Metered | Metered | Custom |
+| Active keys | Metered | Metered | Metered | Custom |
+
+CPU and memory billing use measured usage over time. Ephemeral disk billing
+uses allocated capacity over time. See <a href="https://unkey.com/pricing" target="_blank">Unkey pricing</a>
+for prices and plan details.
+
+## Retention
+
+Non-audit retention applies to runtime, request, verification, and rate-limit
+logs. Audit logs use the separate retention period in the plan table. Data
+older than the applicable retention period is removed.
+
+## Build limits and resources
+
+Build slots apply only while Unkey runs a source build. Deployments from a
+prebuilt image bypass source build slots. Production builds receive priority
+over queued preview builds.
+
+Each source build runs on a machine with 16 vCPU and 32 GiB of memory. Build
+slots are shared workspace-wide across projects, apps, and environments.
+
+## Environment variables
+
+Environment variable limits apply across all plans:
+
+- Maximum value size: 16 KiB
+- Maximum name length: 256 characters
+- Maximum submitted in one dashboard operation: 100 variables
+
+See [Variables](/platform/variables/overview) for scoping, encryption, build
+secrets, and system variables.
+
+## Git connections
+
+Git-based deployments have these safety constraints:
+
+- A project can connect to a GitHub repository.
+- Pushes deploy according to the project's environments and branch rules.
+- Pull requests from forks don't deploy automatically because submitted code
+  could attempt to read build or runtime secrets.
+
+See [Deploy with GitHub](/build-and-deploy/github) for configuration details.
+
+## Reserved variables
+
+Unkey reserves these runtime variable namespaces:
+
+- `PORT`
+- `UNKEY_*`
+
+System values take precedence and can't be overridden. See
+[System variables](/platform/variables/overview#system-variables) for the
+variables that describe deployments, environments, regions, instances, Git,
+and ephemeral disk.
+
+## Request a quota increase
+
+Email [support@unkey.com](mailto:support@unkey.com) with your workspace ID and
+the CPU, memory, and disk capacity your topology requires. Include per-instance
+resources, regions, maximum replicas, and expected rollout headroom. Unkey can
+re-evaluate and increase limits based on the workload.

@@ -32,9 +32,8 @@ Set the maximum number of instances per region in **Settings > Runtime settings 
 
 Running multiple instances in a region provides redundancy and distributes load. If one instance fails, the rest keep serving requests without interruption.
 
-<Note>
-  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+Available replica settings depend on your workspace plan and any approved
+workspace-specific limits. See [Compute limits](/limits#plan-limits).
 
 ## High availability
 
@@ -54,24 +53,22 @@ Regional availability is separate from instance availability. To tolerate a regi
 
 ## Resource allocation
 
-Each instance has configurable limits for CPU, memory, and storage. CPU and memory work differently for billing:
+Each instance has configurable limits for CPU, memory, and storage. Available
+resource settings depend on your workspace plan and any approved
+workspace-specific limits. See [Compute limits](/limits#plan-limits).
 
-- CPU is a maximum limit. Your instance can burst up to the configured amount, but Unkey only charges for the CPU time actually used.
-- Memory is a dedicated allocation. The configured amount is reserved for your instance, and you are charged for the full allocation.
+- CPU and memory billing use measured usage over time.
+- Ephemeral disk billing uses allocated capacity over time.
 
 Configure limits in **Settings > Runtime settings**:
 
-- CPU: 1/4 vCPU to 2 vCPU (default 1/4 vCPU, billed on usage)
-- Memory: 256 MiB to 4 GiB (default 256 MiB, billed on allocation)
-- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
+- CPU (default 1/4 vCPU)
+- Memory (default 256 MiB)
+- Ephemeral disk (default none, mounted at `/data`)
 
 A `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
 All instances in a deployment share the same resource configuration. Changing these values takes effect on the next deployment.
-
-<Note>
-  These limits apply during the beta. Larger instance sizes are planned once the beta ends. Contact [support@unkey.com](mailto:support@unkey.com) if you need more resources now.
-</Note>
 
 See [App settings](/platform/apps/settings#cpu) for details on each option.
 

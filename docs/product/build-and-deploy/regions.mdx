@@ -9,6 +9,8 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 Unkey deploys your application to one or more geographic regions. Traffic routes to the nearest healthy region automatically, reducing latency for your users.
 
+All plans can deploy to all listed available regions.
+
 ## Available regions
 
 | Region          | Location              | Provider |
@@ -26,7 +28,7 @@ Unkey deploys your application to one or more geographic regions. Traffic routes
 
 Select regions for your app in the **Settings** tab under **Runtime settings > Regions**. You must select at least one region.
 
-Production and preview environments can use different region configurations. For example, you might deploy production to all three regions for global coverage while keeping preview deployments in a single region to reduce cost.
+Production and preview environments can use different region configurations. For example, you might deploy production to multiple regions for global coverage while keeping preview deployments in a single region to reduce cost.
 
 <Frame caption="Region configuration with different selections for production and preview">
   <img src="/build-and-deploy/regions-light.png" alt="Region settings" className="block dark:hidden" />
@@ -42,7 +44,9 @@ When the minimum and maximum differ, Unkey scales each region between those boun
 Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances. For high availability, use at least 2 instances per region. See [Instances](/platform/instances/overview#high-availability) for the full availability model.
 
 <Note>
-  During the beta, the maximum is four instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+  Maximum replicas per region are 2 on Starter, 4 on Pro, and 8 on Business.
+  Enterprise limits are custom. [Compute limits](/limits#plan-limits) can be
+  adjusted by support based on your workload.
 </Note>
 
 ## Traffic routing

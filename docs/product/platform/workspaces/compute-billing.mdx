@@ -5,12 +5,23 @@ description: "How Compute usage is metered, how plan credits work, and how spend
 
 ## Compute billing
 
-Compute bills for what your workloads actually use: CPU, memory, disk, egress, and the active keys verified through the Compute gateway. Your plan fee comes with usage credits worth the same amount, so the fee already covers your first slice of usage. Anything past those credits is added to your invoice at the end of the month.
+Compute bills for measured CPU and memory usage over time, allocated ephemeral
+disk capacity over time, egress, and the active keys verified through the
+Compute gateway. Your plan fee comes with usage credits worth the same amount,
+so the fee already covers your first slice of usage. Anything past those
+credits is added to your invoice at the end of the month.
+
+Metered usage is separate from [workspace-wide Compute limits](/limits). Billing
+measures CPU and memory usage, plus allocated disk capacity, over time. Resource
+quotas reserve the maximum CPU, memory, and disk that all running deployments
+in the workspace can allocate at their autoscaling limits.
 
 The billing page shows:
 
 - **Usage this period**: what you have spent on usage so far this month. This is the number your spend budget is measured against.
-- **Per-meter quantities**: CPU hours, memory GiB-hours, egress GiB, disk GiB-hours, and active keys.
+- **Per-meter quantities**: CPU hours, memory GiB-hours, egress GiB, disk
+  GiB-hours, and active keys. Workspace disk quotas can also be expressed in
+  TiB.
 - **Spend budget** (optional): your monthly usage-spend cap and its alert thresholds.
 
 Credits refresh at the start of every billing period. If you upgrade partway through a period, you get a prorated top-up to that period's credits.

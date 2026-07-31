@@ -1,0 +1,55 @@
+---
+title: Fair use guidelines
+description: "Non-binding operational guidance for running Compute workloads on shared infrastructure."
+---
+
+These fair use guidelines provide non-binding operational guidance for Unkey
+Compute. They help customers run legitimate development and production
+workloads without threatening the security or reliability of shared
+infrastructure.
+
+Plan quotas and metering remain the technical controls for resource allocation
+and usage. High usage by itself isn't considered misuse when it comes from a
+legitimate workload that operates within those controls.
+
+## Appropriate usage
+
+Common Compute usage includes:
+
+- Hosting APIs and applications for your organization or customers
+- Running production, preview, and development deployments
+- Autoscaling in response to legitimate user traffic
+- Running background work that supports your application
+- Conducting authorized tests coordinated with Unkey when they could create a
+  sustained traffic spike
+
+## Patterns that are never fair use
+
+The following patterns are never fair use:
+
+- Circumventing quotas, metering, billing, rate limits, security controls, or
+  enforcement through additional accounts, workspaces, projects, deployments,
+  or other means
+- Running unauthorized load tests or denial-of-service tests
+- Mining cryptocurrency
+- Operating open proxies or unrelated traffic relays
+- Running or distributing malware
+- Sending spam
+
+These examples don't limit Unkey's ability to address other workloads that
+threaten the platform or its customers.
+
+## Operational response
+
+Unkey may contact the workspace owner to understand unusual usage and request
+changes to the workload. Unkey may restrict workloads that threaten platform
+security or reliability, including immediately when necessary to protect the
+platform or other customers.
+
+Before an authorized load test or an unusually large launch, email
+[support@unkey.com](mailto:support@unkey.com). Include the workspace ID,
+expected CPU, memory, and disk requirements, regions, replica count, traffic
+volume, and test duration.
+
+Review [Limits](/limits) for plan quotas, allocation calculations, and boundary
+behavior.

@@ -7,7 +7,8 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-A build turns your source code into a container image that Unkey can deploy. Every deployment starts with a build, whether triggered by a GitHub push, the CLI, or the dashboard.
+A source build turns your source code into a container image that Unkey can
+deploy. Deployments from prebuilt images bypass the source build process.
 
 ## How builds work
 
@@ -18,7 +19,8 @@ The build process:
 1. The build machine fetches your source code directly from GitHub.
 2. Unkey detects your language, package manager, and framework, then installs dependencies and builds the image.
 3. The resulting image is stored in Unkey's container registry.
-4. The image is deployed to your configured [regions](/build-and-deploy/regions).
+4. The source build slot is released.
+5. The image is deployed to your configured [regions](/build-and-deploy/regions).
 
 Build output streams to the **Deployments** tab in your project dashboard, so you can follow progress and diagnose failures in real time. The detection output appears at the top of the build logs, so you can see exactly which language and tool versions were chosen.
 
@@ -55,10 +57,12 @@ Built images run under a simple contract: your application must listen on the `P
 
 ## Build infrastructure
 
-Each build runs on a dedicated 16-CPU, 32 GB machine isolated to your project. No build shares resources with another project.
+Each source build runs on a dedicated 16 vCPU, 32 GiB machine isolated to your project. No build shares resources with another project.
 
 <Note>
-  By default, each workspace runs one build at a time. Additional pushes queue and run as the previous build finishes. This is a soft limit; contact [support@unkey.com](mailto:support@unkey.com) if you need a higher concurrency cap.
+  Source build concurrency is [workspace-wide](/limits#build-limits-and-resources).
+  Additional source builds queue and run as active builds finish. Production
+  builds receive priority over queued preview builds.
 </Note>
 
 ## Build caching
@@ -74,7 +78,7 @@ Automatic builds cover the common paths. If your build needs system packages, cu
 If you build images in your own CI/CD pipeline, you can skip the build step entirely and deploy a prebuilt image with the CLI:
 
 ```bash
-unkey deploy ghcr.io/acme/api:v1.0.0 --project=acme-platform
+unkey deploy ghcr.io/acme/api:v1.0.0 --project=acme-platform --app my-api
 ```
 
 See the [CLI reference](/cli/overview) for all available flags.
