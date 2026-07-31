@@ -149,6 +149,7 @@ export const DeployBillingClient: React.FC = () => {
         <DeployProductCard
           isAdmin={isAdmin}
           hasPaymentMethod={hasPaymentMethod}
+          workspaceId={workspace.id}
           workspaceSlug={workspace.slug}
           autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
         />

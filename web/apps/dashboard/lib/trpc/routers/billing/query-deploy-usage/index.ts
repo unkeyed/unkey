@@ -1,5 +1,7 @@
 import { projectDeployUsage, sumDeployMeterCents } from "@/lib/billing/deployPricing";
 import { clickhouse } from "@/lib/clickhouse";
+import { and, db, eq, schema, sql } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -27,6 +29,14 @@ export const queryDeployUsageResponse = z.object({
    * display, not a billed figure.
    */
   projectedGrossCents: z.number(),
+  allocatedResources: z.object({
+    cpuMillicores: z.number(),
+    memoryMib: z.number(),
+    storageMib: z.number(),
+    cpuMillicoresLimit: z.number(),
+    memoryMibLimit: z.number(),
+    storageMibLimit: z.number(),
+  }),
 });
 
 export type DeployUsageResponse = z.infer<typeof queryDeployUsageResponse>;
@@ -47,7 +57,7 @@ export const queryDeployUsage = workspaceProcedure
     const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
 
     try {
-      const [meters, keys, trailing] = await Promise.all([
+      const [meters, keys, trailing, quota, [allocatedResources]] = await Promise.all([
         clickhouse.billing.deployMeterUsage({
           workspaceId: ctx.workspace.id,
           start: monthStart,
@@ -66,6 +76,31 @@ export const queryDeployUsage = workspaceProcedure
           start: nowMs - TRAILING_WINDOW_MS,
           end: nowMs,
         }),
+        db.query.quotas.findFirst({
+          where: eq(schema.quotas.workspaceId, ctx.workspace.id),
+          columns: {
+            allocatedCpuMillicoresTotal: true,
+            allocatedMemoryMibTotal: true,
+            allocatedStorageMibTotal: true,
+          },
+        }),
+        db
+          .select({
+            cpuMillicores: sql<number>`cast(coalesce(sum(${schema.deployments.cpuMillicores} * ${schema.deploymentTopology.autoscalingReplicasMax}), 0) as signed)`,
+            memoryMib: sql<number>`cast(coalesce(sum(${schema.deployments.memoryMib} * ${schema.deploymentTopology.autoscalingReplicasMax}), 0) as signed)`,
+            storageMib: sql<number>`cast(coalesce(sum(${schema.deployments.storageMib} * ${schema.deploymentTopology.autoscalingReplicasMax}), 0) as signed)`,
+          })
+          .from(schema.deploymentTopology)
+          .innerJoin(
+            schema.deployments,
+            eq(schema.deployments.id, schema.deploymentTopology.deploymentId),
+          )
+          .where(
+            and(
+              eq(schema.deploymentTopology.workspaceId, ctx.workspace.id),
+              eq(schema.deploymentTopology.desiredStatus, "running"),
+            ),
+          ),
       ]);
 
       const monthToDate = {
@@ -90,6 +125,16 @@ export const queryDeployUsage = workspaceProcedure
         activeKeys: keys.activeKeys,
         grossCents: sumDeployMeterCents(monthToDate),
         projectedGrossCents: sumDeployMeterCents(projected),
+        allocatedResources: {
+          cpuMillicores: allocatedResources?.cpuMillicores ?? 0,
+          memoryMib: allocatedResources?.memoryMib ?? 0,
+          storageMib: allocatedResources?.storageMib ?? 0,
+          cpuMillicoresLimit:
+            quota?.allocatedCpuMillicoresTotal ?? freeTierQuotas.allocatedCpuMillicoresTotal,
+          memoryMibLimit: quota?.allocatedMemoryMibTotal ?? freeTierQuotas.allocatedMemoryMibTotal,
+          storageMibLimit:
+            quota?.allocatedStorageMibTotal ?? freeTierQuotas.allocatedStorageMibTotal,
+        },
       };
     } catch (err) {
       console.error("Failed to query deploy usage", err);

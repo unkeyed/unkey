@@ -19,15 +19,27 @@ import {
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ProductCard } from "./product-card";
 import { SpendManagement } from "./spend-management";
+import { UsageMeter } from "./usage-meter";
 
 /** Matches the billing summary strip's period formatting, e.g. "Aug 1". */
 function formatRenewalDate(millis: number): string {
   return new Date(millis).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function formatMibQuota(usedMib: number, limitMib: number): string {
+  if (limitMib >= 1024 * 1024) {
+    return `${formatCompactQuantity(usedMib / 1024 / 1024)} / ${formatCompactQuantity(limitMib / 1024 / 1024)} TiB`;
+  }
+  if (limitMib >= 1024) {
+    return `${formatCompactQuantity(usedMib / 1024)} / ${formatCompactQuantity(limitMib / 1024)} GiB`;
+  }
+  return `${formatCompactQuantity(usedMib)} / ${formatCompactQuantity(limitMib)} MiB`;
+}
+
 type DeployProductCardProps = {
   isAdmin: boolean;
   hasPaymentMethod: boolean;
+  workspaceId: string;
   workspaceSlug: string;
   /** Open the plan picker on mount (post-checkout intent hand-off). */
   autoOpenPlanModal?: boolean;
@@ -42,6 +54,7 @@ type DeployProductCardProps = {
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
   hasPaymentMethod,
+  workspaceId,
   workspaceSlug,
   autoOpenPlanModal = false,
 }) => {
@@ -59,6 +72,22 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   );
 
   const currentPlan = subscription?.plan ?? null;
+  const quotaIncreaseMailto = `mailto:support@unkey.com?subject=${encodeURIComponent(
+    "Compute quota increase request",
+  )}&body=${encodeURIComponent(`Hi Unkey Support,
+
+I'd like to request an increase to my Compute resource quotas.
+
+Workspace ID: ${workspaceId}
+
+Requested quota increases:
+- CPU:
+- Memory:
+- Disk:
+
+Reason and expected workload:
+
+`)}`;
 
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
   const suspended = budget?.suspended ?? false;
@@ -79,7 +108,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const { data: usage } = trpc.billing.queryDeployUsage.useQuery(undefined, {
     enabled: Boolean(currentPlan),
     staleTime: 30_000,
-    trpc: { context: { skipBatch: true } },
     retry: 1,
   });
 
@@ -238,6 +266,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           },
         ]
       : null;
+
+  const allocatedResources = usage?.allocatedResources ?? null;
 
   const submittingPlan = isStartingCheckout
     ? pendingPlan
@@ -499,6 +529,81 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               </div>
             ) : null}
             <SpendManagement usageCents={usageAmount} isAdmin={isAdmin} />
+            <div className="-mx-5 flex flex-col gap-4 border-grayA-3 border-t px-5 pt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium text-[13px] text-gray-12">Resource quotas</span>
+                  <span className="text-[12px] text-gray-10">
+                    Maximum resources all of your running deployments across this workspace can
+                    allocate at their autoscaling limits.{" "}
+                    <a
+                      href="https://unkey.com/docs/limits#calculate-workspace-allocation"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-gray-11 underline decoration-grayA-6 underline-offset-2 hover:text-gray-12 hover:decoration-grayA-8"
+                    >
+                      Learn how quotas are calculated.
+                    </a>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="self-start sm:self-auto"
+                  render={<a href={quotaIncreaseMailto}>Request an increase</a>}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <UsageMeter
+                  label="CPU allocated"
+                  value={
+                    allocatedResources
+                      ? `${formatCompactQuantity(allocatedResources.cpuMillicores / 1000)} / ${formatCompactQuantity(allocatedResources.cpuMillicoresLimit / 1000)} vCPU`
+                      : "—"
+                  }
+                  fraction={
+                    allocatedResources && allocatedResources.cpuMillicoresLimit > 0
+                      ? allocatedResources.cpuMillicores / allocatedResources.cpuMillicoresLimit
+                      : null
+                  }
+                  fillClassName="bg-orange-9"
+                />
+                <UsageMeter
+                  label="Memory allocated"
+                  value={
+                    allocatedResources
+                      ? formatMibQuota(
+                          allocatedResources.memoryMib,
+                          allocatedResources.memoryMibLimit,
+                        )
+                      : "—"
+                  }
+                  fraction={
+                    allocatedResources && allocatedResources.memoryMibLimit > 0
+                      ? allocatedResources.memoryMib / allocatedResources.memoryMibLimit
+                      : null
+                  }
+                  fillClassName="bg-orange-9"
+                />
+                <UsageMeter
+                  label="Disk allocated"
+                  value={
+                    allocatedResources
+                      ? formatMibQuota(
+                          allocatedResources.storageMib,
+                          allocatedResources.storageMibLimit,
+                        )
+                      : "—"
+                  }
+                  fraction={
+                    allocatedResources && allocatedResources.storageMibLimit > 0
+                      ? allocatedResources.storageMib / allocatedResources.storageMibLimit
+                      : null
+                  }
+                  fillClassName="bg-orange-9"
+                />
+              </div>
+            </div>
           </div>
         ) : null}
       </ProductCard>
