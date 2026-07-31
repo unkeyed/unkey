@@ -69,6 +69,7 @@ export * from "./icons/conversion";
 export * from "./icons/cube";
 export * from "./icons/database";
 export * from "./icons/discord";
+export * from "./icons/docker";
 export * from "./icons/dots";
 export * from "./icons/double-chevron-left";
 export * from "./icons/double-chevron-right";

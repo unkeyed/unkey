@@ -98,8 +98,16 @@ func (c *Collector) collect(_ context.Context) error {
 
 		containerUID := checkpoint.ContainerUID(string(info.uid), info.restartCount)
 
+		// Disk is the only meter with no intrinsic liveness signal: it comes off
+		// the pod spec's volume claim, which exists whether or not the container is
+		// running, so it billed through image pulls and CrashLoopBackOff and kept
+		// billing a pod object the informer had not yet dropped. cpu and memory get
+		// their liveness from the cgroup read above, and network has its own phase
+		// check, but with both cpu and memory disabled for a deployment that cgroup
+		// read is skipped and nothing was left to stop disk accruing forever. Gate
+		// it on the same phase check network uses.
 		var diskUsed, diskAllocated int64
-		if c.collectors.Disk {
+		if c.collectors.Disk && info.phase == corev1.PodRunning {
 			diskAllocated = info.diskAllocatedBytes
 			if c.kubeletRoot != "" && info.diskAllocatedBytes > 0 {
 				diskUsed = readEphemeralUsedBytes(c.kubeletRoot, info.uid)
@@ -204,22 +212,31 @@ func (c *Collector) buildKranePodLookup() (map[string]podInfo, bool) {
 	return pods, true
 }
 
-// isBillablePod returns true if pod is a krane-managed deployment or a sentinel.
+// isBillablePod returns true if pod is a krane-managed deployment.
+//
+// managed-by=krane is required unconditionally. It used to be checked only for
+// component=deployment, which made any pod merely labelled component=sentinel
+// billable with a workspace id read straight off its labels — an implicit trust
+// boundary for whoever could create such a pod. Sentinels are gone, so the
+// branch is removed rather than guarded.
+//
+// The workspace label must be non-empty. Without it heimdall wrote rows with
+// workspace_id = "", which the billing push silently skips for want of a
+// matching workspace, so the compute was free and nothing alerted.
 func isBillablePod(pod *corev1.Pod) bool {
-	component := pod.Labels[LabelComponent]
-	if component == "deployment" && pod.Labels[LabelManagedBy] != "krane" {
+	if pod.Labels[LabelComponent] != "deployment" {
 		return false
 	}
-	return component == "deployment" || component == "sentinel"
+	if pod.Labels[LabelManagedBy] != "krane" {
+		return false
+	}
+	return pod.Labels[LabelWorkspace] != ""
 }
 
 // buildPodInfo extracts the billing-relevant fields from a pod.
 func buildPodInfo(pod *corev1.Pod) podInfo {
 	component := pod.Labels[LabelComponent]
 	resourceID := pod.Labels[LabelDeployment]
-	if component == "sentinel" {
-		resourceID = pod.Labels[LabelSentinel]
-	}
 	cpuMilli, memBytes := primaryContainerAllocation(pod)
 	restartCount, restartCountKnown := primaryContainerRestartCount(pod)
 	image, imageID := primaryContainerImage(pod)
@@ -395,7 +412,15 @@ func (c *Collector) attachAndReadNetwork(info podInfo) (network.Counters, bool) 
 
 	counters, err := c.network.Read(info.uid)
 	if err != nil {
-		metrics.NetworkReadErrors.Inc()
+		// ErrNotAttached is the expected one-tick gap after a restart or a fresh
+		// attach, not a failure: the pinned counter map outlives the process, so
+		// the in-process attach table is briefly empty while the kernel still
+		// holds real byte totals. Counting it as a read error would fire on every
+		// DaemonSet rollout. Either way netAttached is false, which is what keeps
+		// the unmeasured value out of the billed delta.
+		if !errors.Is(err, network.ErrNotAttached) {
+			metrics.NetworkReadErrors.Inc()
+		}
 		return zeroCounters, false
 	}
 

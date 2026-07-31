@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
 import { Ban, Bolt, Clone, Dots, Github, Hammer2 } from "@unkey/icons";
@@ -28,8 +29,10 @@ export function ProductionCardActionsMenu({
   status,
   commitUrl,
 }: ProductionCardActionsMenuProps) {
+  const { gated, openPaywall, planGate } = useDeployActionGate();
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
+    const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
     return [
       {
         id: "stop-wake",
@@ -42,8 +45,15 @@ export function ProductionCardActionsMenu({
         id: "redeploy",
         label: "Redeploy",
         icon: <Hammer2 iconSize="md-regular" />,
-        disabled: !isRedeployableDeploymentStatus(deployment.status),
-        ActionComponent: (props) => <RedeployDialog {...props} selectedDeployment={deployment} />,
+        disabled: !canRedeploy,
+        // Without a Compute plan, redeploy opens the paywall instead of building.
+        ...(gated && canRedeploy
+          ? { onClick: () => openPaywall() }
+          : {
+              ActionComponent: (props) => (
+                <RedeployDialog {...props} selectedDeployment={deployment} />
+              ),
+            }),
         divider: true,
       },
       {
@@ -69,19 +79,22 @@ export function ProductionCardActionsMenu({
         },
       },
     ];
-  }, [deployment, status, commitUrl]);
+  }, [deployment, status, commitUrl, gated, openPaywall]);
 
   return (
-    <TableActionPopover items={items}>
-      <Button
-        variant="outline"
-        size="sm"
-        aria-label="More actions"
-        className="w-7 p-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Dots iconSize="sm-regular" />
-      </Button>
-    </TableActionPopover>
+    <>
+      <TableActionPopover items={items}>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label="More actions"
+          className="w-7 p-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Dots iconSize="sm-regular" />
+        </Button>
+      </TableActionPopover>
+      {planGate}
+    </>
   );
 }

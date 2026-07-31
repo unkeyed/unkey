@@ -96,13 +96,13 @@ type Querier interface {
 	//DeleteDeploymentStepsByEnvironmentId
 	//
 	//  DELETE ds FROM deployment_steps ds
-	//  JOIN deployments d ON ds.deployment_id = d.id
+	//  JOIN deployments d ON d.id = ds.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteDeploymentTopologiesByEnvironmentId
 	//
 	//  DELETE dt FROM deployment_topology dt
-	//  JOIN deployments d ON dt.deployment_id = d.id
+	//  JOIN deployments d ON d.id = dt.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteDeploymentsByEnvironmentId
@@ -158,6 +158,22 @@ type Querier interface {
 	//
 	//  DELETE FROM projects WHERE id = ?
 	DeleteProjectById(ctx context.Context, id string) error
+	// Removes the given workspaces along with everything scoped to them.
+	//
+	// Integration tests share one MySQL container across test processes and across
+	// runs, while the ctrl crons scan the whole database rather than one workspace.
+	// Rows a test leaves behind are rescanned by every later run, so the seeder
+	// deletes what it created once the test finishes.
+	//
+	//  DELETE w, wb, p, a, e, d
+	//  FROM workspaces w
+	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
+	//  LEFT JOIN projects p ON p.workspace_id = w.id
+	//  LEFT JOIN apps a ON a.workspace_id = w.id
+	//  LEFT JOIN environments e ON e.workspace_id = w.id
+	//  LEFT JOIN deployments d ON d.workspace_id = w.id
+	//  WHERE w.id IN (/*SLICE:ids*/?)
+	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -289,7 +305,7 @@ type Querier interface {
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
 	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  JOIN `quota` q ON q.workspace_id = c.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainByDomain
@@ -317,15 +333,6 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
-	//FindCustomDomainWithCertByDomain
-	//
-	//  SELECT
-	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.domain_connect_provider, cd.domain_connect_url, cd.invocation_id, cd.created_at, cd.updated_at,
-	//      c.id AS certificate_id
-	//  FROM custom_domains cd
-	//  LEFT JOIN certificates c ON c.hostname = cd.domain
-	//  WHERE cd.domain = ?
-	FindCustomDomainWithCertByDomain(ctx context.Context, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -364,7 +371,7 @@ type Querier interface {
 	//
 	//  SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 	//  FROM `deployment_topology` dt
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  WHERE dt.deployment_id = ?
 	FindDeploymentRegions(ctx context.Context, deploymentID string) ([]Region, error)
 	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
@@ -378,11 +385,11 @@ type Querier interface {
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `environments` e ON d.environment_id = e.id
-	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
+	//  INNER JOIN `deployments` d ON d.id = dt.deployment_id
+	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
+	//  INNER JOIN `regions` r ON r.id = dt.region_id
+	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error)
@@ -656,8 +663,8 @@ type Querier interface {
 	//     w.enabled,
 	//     q.requests_per_month
 	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
+	//  LEFT JOIN quota q ON q.workspace_id = w.id
+	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
 	// Check whether a newer deployment exists for the same (app, env, branch) that
@@ -1346,11 +1353,11 @@ type Querier interface {
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `environments` e ON d.environment_id = e.id
-	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
+	//  INNER JOIN `deployments` d ON d.id = dt.deployment_id
+	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
+	//  INNER JOIN `regions` r ON r.id = dt.region_id
+	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
@@ -1398,6 +1405,21 @@ type Querier interface {
 	//    AND b.stripe_customer_id IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error)
+	// Lists the workspaces whose Deploy usage can be reported to Stripe. This is
+	// intentionally not gated on an active plan or enabled workspace: usage
+	// incurred while a cancelled deployment drains is still owed. The hourly
+	// push uses this set to scope and shard the ClickHouse scan before doing the
+	// expensive checkpoint integration; workspaces without a Stripe customer
+	// could never produce a meter event and must not make that scan more costly.
+	//
+	//  SELECT
+	//     w.id,
+	//     b.stripe_customer_id
+	//  FROM `workspaces` w
+	//  INNER JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  WHERE b.stripe_customer_id IS NOT NULL
+	//    AND b.stripe_customer_id <> ''
+	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
@@ -1419,8 +1441,8 @@ type Querier interface {
 	//
 	//  SELECT aev.app_id, aev.`key`, aev.value
 	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON a.id = aev.app_id
-	//  INNER JOIN environments e ON e.app_id = a.id AND e.id = aev.environment_id
+	//  INNER JOIN apps a ON aev.app_id = a.id
+	//  INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
 	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
@@ -1592,23 +1614,6 @@ type Querier interface {
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	ListWorkspacesForDeployBillingByIDs(ctx context.Context, workspaceIds []string) ([]ListWorkspacesForDeployBillingByIDsRow, error)
-	//ListWorkspacesForQuotaCheck
-	//
-	//  SELECT
-	//     w.id,
-	//     w.org_id,
-	//     w.name,
-	//     b.stripe_customer_id,
-	//     b.tier,
-	//     w.enabled,
-	//     q.requests_per_month
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
-	//  WHERE w.id > ?
-	//  ORDER BY w.id ASC
-	//  LIMIT 100
-	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
 	// Lists every enabled workspace that has set a Deploy spend budget, plus any
 	// that is currently spend-cap suspended even without a budget: the set the
 	// spend-cap check evaluates. The check prices each one's month-to-date Deploy
@@ -1629,7 +1634,7 @@ type Querier interface {
 	//     b.spend_budget_stop,
 	//     b.spend_suspended
 	//  FROM `workspaces` w
-	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+	//  LEFT JOIN `workspace_billing` b ON w.id = b.workspace_id
 	//  WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
 	//    AND w.enabled = true
 	//    AND w.deleted_at_m IS NULL

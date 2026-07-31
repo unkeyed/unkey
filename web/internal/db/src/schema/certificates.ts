@@ -1,13 +1,14 @@
 import { relations } from "drizzle-orm";
 import { bigint, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
 export const certificates = mysqlTable(
   "certificates",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     hostname: varchar("hostname", { length: 255 }).notNull(),
     certificate: text("certificate").notNull(),
     encryptedPrivateKey: text("encrypted_private_key").notNull(),

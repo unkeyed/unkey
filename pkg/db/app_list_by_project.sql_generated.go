@@ -16,7 +16,7 @@ FROM apps
 WHERE project_id = ?
   AND id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 ORDER BY id ASC
 LIMIT ?
 `
@@ -35,7 +35,7 @@ type ListAppsByProjectParams struct {
 //	WHERE project_id = ?
 //	  AND id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-//	  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
+//	  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error) {

@@ -13,7 +13,7 @@ SELECT
                 'auto_apply', rl.auto_apply = 1
             )
         )
-        FROM ratelimits rl WHERE rl.identity_id = i.id),
+        FROM ratelimits rl WHERE i.id = rl.identity_id),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -27,5 +27,5 @@ JOIN (
     WHERE id2.workspace_id = sqlc.arg(workspace_id)
       AND id2.external_id = sqlc.arg(identity)
       AND id2.deleted = sqlc.arg(deleted)
-) AS identity_lookup ON i.id = identity_lookup.id
+) AS identity_lookup ON identity_lookup.id = i.id
 LIMIT 1;

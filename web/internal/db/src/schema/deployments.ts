@@ -14,6 +14,8 @@ import { environments } from "./environments";
 import { instances } from "./instances";
 import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -22,26 +24,26 @@ export const deployments = mysqlTable(
   "deployments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 128 }).notNull().unique(),
-    k8sName: varchar("k8s_name", { length: 255 }).notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    projectId: varchar("project_id", { length: 256 }).notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: varchar("environment_id", { length: 128 }).notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     // App this deployment belongs to
-    appId: varchar("app_id", { length: 64 }).notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     // the docker image
     // null until the build is done
     image: varchar("image", { length: 256 }),
-    buildId: varchar("build_id", { length: 128 }).unique(),
+    buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information
     gitCommitSha: varchar("git_commit_sha", { length: 40 }),
-    gitBranch: varchar("git_branch", { length: 256 }),
+    gitBranch: caseSensitiveVarchar("git_branch", { length: 256 }),
     gitCommitMessage: text("git_commit_message"),
     gitCommitAuthorHandle: varchar("git_commit_author_handle", {
       length: 256,

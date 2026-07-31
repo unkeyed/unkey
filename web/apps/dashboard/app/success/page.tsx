@@ -55,6 +55,7 @@ function SuccessContent() {
   const updateCustomerMutation = trpc.stripe.updateCustomer.useMutation();
   const updateWorkspaceStripeCustomerMutation =
     trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
+  const linkApiSubscriptionMutation = trpc.stripe.linkApiSubscription.useMutation();
   const linkDeploySubscriptionMutation = trpc.stripe.linkDeploySubscription.useMutation();
 
   const trpcUtils = trpc.useUtils();
@@ -72,6 +73,7 @@ function SuccessContent() {
     const processStripeSession = async (
       updateCustomerFn: typeof updateCustomerMutation.mutateAsync,
       updateWorkspaceFn: typeof updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkApiFn: typeof linkApiSubscriptionMutation.mutateAsync,
       linkDeployFn: typeof linkDeploySubscriptionMutation.mutateAsync,
     ) => {
       try {
@@ -110,6 +112,40 @@ function SuccessContent() {
         const workspace = await trpcUtils.workspace.getById.fetch();
 
         if (!isMounted) {
+          return;
+        }
+
+        // API subscription Checkout owns the first payment, including CVC
+        // recollection and 3DS. Link the paid subscription before returning to
+        // billing; the completed webhook races through the same idempotent path
+        // if the user closes this page early.
+        if (intent === "api-subscription" && sessionResponse.subscription) {
+          try {
+            await linkApiFn({ sessionId });
+          } catch (error) {
+            const entitled = await trpcUtils.stripe.getBillingInfo
+              .fetch(undefined, { staleTime: 0 })
+              .then((billing) => Boolean(billing.currentProductId))
+              .catch(() => false);
+            if (!isMounted) {
+              return;
+            }
+            if (!entitled) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              setError(`Failed to activate your API plan: ${errorMessage}`);
+              setLoading(false);
+              return;
+            }
+          }
+
+          if (!isMounted) {
+            return;
+          }
+          await trpcUtils.workspace.invalidate();
+          await trpcUtils.stripe.invalidate();
+          await trpcUtils.billing.invalidate();
+          setProcessedData({ workspaceSlug: workspace.slug });
+          setLoading(false);
           return;
         }
 
@@ -293,6 +329,7 @@ function SuccessContent() {
     processStripeSession(
       updateCustomerMutation.mutateAsync,
       updateWorkspaceStripeCustomerMutation.mutateAsync,
+      linkApiSubscriptionMutation.mutateAsync,
       linkDeploySubscriptionMutation.mutateAsync,
     );
 
@@ -306,6 +343,7 @@ function SuccessContent() {
     trpcUtils,
     updateCustomerMutation.mutateAsync,
     updateWorkspaceStripeCustomerMutation.mutateAsync,
+    linkApiSubscriptionMutation.mutateAsync,
     linkDeploySubscriptionMutation.mutateAsync,
   ]);
 

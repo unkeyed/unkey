@@ -9,12 +9,13 @@ import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const projects = mysqlTable(
   "projects",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace

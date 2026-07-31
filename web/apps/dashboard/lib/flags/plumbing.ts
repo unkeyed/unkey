@@ -7,7 +7,7 @@ import { dedupe } from "flags/next";
 // details here unless the flag provider needs them for evaluation.
 export type Entities = {
   user?: { id: string };
-  org?: { id: string };
+  team?: { id: string };
 };
 
 // identify uses the non-redirecting auth helper because flag evaluation can run
@@ -16,7 +16,7 @@ export const identify = dedupe(async (): Promise<Entities> => {
   const { userId, orgId } = await getAuth();
   return {
     user: userId ? { id: userId } : undefined,
-    org: orgId ? { id: orgId } : undefined,
+    team: orgId ? { id: orgId } : undefined,
   };
 });
 

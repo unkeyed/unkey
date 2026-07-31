@@ -120,6 +120,15 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create workspaces: %w", err)
 		}
 
+		err = db.Query.UpsertWorkspaceBillingPlanOverride(ctx, tx, db.UpsertWorkspaceBillingPlanOverrideParams{
+			WorkspaceID:  workspaceID,
+			PlanOverride: sql.NullString{String: "starter", Valid: true},
+			CreatedAtM:   now,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create workspace billing: %w", err)
+		}
+
 		rootDefaultProjectID, err := ensureDefaultProject(ctx, tx, rootWorkspaceID, now)
 		if err != nil {
 			return fmt.Errorf("failed to ensure root default project: %w", err)

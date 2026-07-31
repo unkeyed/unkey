@@ -55,7 +55,6 @@ export function TeamPageClient({ team }: { team: boolean }) {
       <div className="flex items-center justify-center w-full min-h-[60vh]">
         <Empty className="w-full">
           <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
-          <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
             <Suspense fallback={<Loading type="spinner" />}>
               <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>

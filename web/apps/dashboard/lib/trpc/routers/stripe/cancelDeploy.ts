@@ -1,9 +1,12 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
+import { deactivateNonCreatorMemberships } from "@/lib/auth/deactivateNonCreatorMemberships";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
+import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -13,7 +16,8 @@ import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
  * mixed one, never refunding), then calls ctrl to tear down the workspace's
  * running compute and clear the deploy_plan entitlement. The Stripe logic lives
  * here alongside subscribe and change-plan so subscription knowledge is not
- * duplicated in Go. The audit log stays here so the user actor is recorded.
+ * duplicated in Go. Compute-owned quotas return to their defaults, while any API
+ * plan quotas remain intact. The audit log stays here so the user actor is recorded.
  */
 export const cancelDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -54,12 +58,23 @@ export const cancelDeploy = workspaceProcedure
       });
     }
 
-    await insertAuditLogs(db, {
-      workspaceId: ctx.workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "workspace.update",
-      description: "Cancelled Compute.",
-      resources: [],
-      context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+    await db.transaction(async (tx) => {
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan: null,
+        preserveApiQuotas: ctx.workspace.tier !== "Free",
+      });
+      await insertAuditLogs(tx, {
+        workspaceId: ctx.workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "workspace.update",
+        description: "Cancelled Compute.",
+        resources: [],
+        context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+      });
     });
+
+    if (ctx.workspace.tier === "Free" && deployPlanGrantsTeam(ctx.workspace.deployPlan)) {
+      await deactivateNonCreatorMemberships(ctx.workspace.orgId);
+    }
   });

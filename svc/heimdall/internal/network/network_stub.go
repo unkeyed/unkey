@@ -17,7 +17,7 @@ func PinDir() string { return "" }
 func NewReader(_ string) (Reader, error)              { return stubReader{}, nil }
 func (stubReader) Attach(_ types.UID) error           { return nil }
 func (stubReader) Detach(_ types.UID)                 {}
-func (stubReader) Read(_ types.UID) (Counters, error) { return zeroCounters, nil }
+func (stubReader) Read(_ types.UID) (Counters, error) { return zeroCounters, ErrNotAttached }
 func (stubReader) MapEntries() int                    { return 0 }
 func (stubReader) Reconcile(_ map[types.UID]struct{}) {}
 func (stubReader) Close() error                       { return nil }

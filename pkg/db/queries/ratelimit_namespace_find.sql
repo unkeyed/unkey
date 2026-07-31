@@ -9,7 +9,7 @@ SELECT *,
                                        'duration', ro.duration
                                )
                        )
-                from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+                from ratelimit_overrides ro where ns.id = ro.namespace_id AND ro.deleted_at_m IS NULL),
                json_array()
        ) as overrides
 FROM `ratelimit_namespaces` ns

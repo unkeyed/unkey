@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 // Resources contains the baseline entities created during [Seeder.Seed]. These
@@ -151,17 +152,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 }
 
 func (s *Seeder) defaultProjectID(ctx context.Context, workspaceID string) string {
-	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, s.DB.RW(), workspaceID)
-	if errors.Is(err, sql.ErrNoRows) {
-		project := s.CreateProject(ctx, CreateProjectRequest{
-			ID:               uid.New(uid.ProjectPrefix),
-			WorkspaceID:      workspaceID,
-			Name:             "Default",
-			Slug:             "default",
-			DeleteProtection: true,
-		})
-		return project.ID
-	}
+	projectID, err := projects.EnsureDefaultProject(ctx, s.DB.RW(), workspaceID)
 	require.NoError(s.t, err)
 	require.NotEmpty(s.t, projectID)
 	return projectID
