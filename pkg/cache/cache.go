@@ -35,9 +35,13 @@ type cache[K comparable, V any] struct {
 
 	revalidateC chan func()
 
-	inflightMu        sync.Mutex
-	inflightRefreshes map[K]bool
+	// Track both queued and running refreshes so duplicate stale hits cannot
+	// consume queue capacity before a worker starts the refresh.
+	revalidationMu         sync.Mutex
+	scheduledRevalidations map[K]struct{}
 
+	// Singleflight is only for synchronous cache misses. Stale hits must return
+	// immediately rather than wait for the shared database call.
 	missFlight singleflight.Group[K, missResult[V]]
 }
 
@@ -87,15 +91,15 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		return nil, err
 	}
 	c := &cache[K, V]{
-		otter:             otter,
-		fresh:             config.Fresh,
-		stale:             config.Stale,
-		resource:          config.Resource,
-		clock:             config.Clock,
-		revalidateC:       make(chan func(), 1000),
-		inflightMu:        sync.Mutex{},
-		inflightRefreshes: make(map[K]bool),
-		missFlight:        singleflight.Group[K, missResult[V]]{},
+		otter:                  otter,
+		fresh:                  config.Fresh,
+		stale:                  config.Stale,
+		resource:               config.Resource,
+		clock:                  config.Clock,
+		revalidateC:            make(chan func(), 1000),
+		revalidationMu:         sync.Mutex{},
+		scheduledRevalidations: make(map[K]struct{}),
+		missFlight:             singleflight.Group[K, missResult[V]]{},
 	}
 
 	for range 10 {
@@ -285,17 +289,17 @@ func (c *cache[K, V]) Name() string {
 }
 
 func (c *cache[K, V]) enqueueRevalidations(keys []K, revalidate func([]K)) {
-	c.inflightMu.Lock()
+	c.revalidationMu.Lock()
 	keysToRevalidate := make([]K, 0, len(keys))
 	for _, key := range keys {
-		if c.inflightRefreshes[key] {
+		if _, scheduled := c.scheduledRevalidations[key]; scheduled {
 			continue
 		}
 
-		c.inflightRefreshes[key] = true
+		c.scheduledRevalidations[key] = struct{}{}
 		keysToRevalidate = append(keysToRevalidate, key)
 	}
-	c.inflightMu.Unlock()
+	c.revalidationMu.Unlock()
 
 	if len(keysToRevalidate) == 0 {
 		return
@@ -317,11 +321,11 @@ func (c *cache[K, V]) enqueueRevalidations(keys []K, revalidate func([]K)) {
 }
 
 func (c *cache[K, V]) finishRevalidations(keys []K) {
-	c.inflightMu.Lock()
-	defer c.inflightMu.Unlock()
+	c.revalidationMu.Lock()
+	defer c.revalidationMu.Unlock()
 
 	for _, key := range keys {
-		delete(c.inflightRefreshes, key)
+		delete(c.scheduledRevalidations, key)
 	}
 }
 
