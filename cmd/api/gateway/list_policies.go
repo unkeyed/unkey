@@ -22,7 +22,7 @@ Your root key must have one of the following permissions:
 - environment.*.read_policies (for any environment)
 - environment.<environment_id>.read_policies (for a specific environment)
 
-For full documentation, see https://www.unkey.com/docs/api-reference/v2/gateway/list-policies` + util.Disclaimer,
+For full documentation, see https://www.unkey.com/docs/api-reference/gateway/list-policies` + util.Disclaimer,
 		Examples: []string{"unkey api gateway list-policies --project=payments --app=payments-api --environment=production"},
 		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body"))},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
