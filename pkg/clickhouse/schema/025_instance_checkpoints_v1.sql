@@ -12,8 +12,9 @@
 --      agent was down: dropping the interval makes an outage under-count
 --      rather than over-charge. This applies to every meter below.
 --
--- Prefer the `instance_checkpoints` VIEW over this table directly — the view
--- already applies FINAL.
+-- Prefer the `instance_checkpoints` VIEW over this table directly. Ordered
+-- windows that rely on this table's sort key may query it with FINAL explicitly
+-- so the planner retains the physical ordering.
 --
 -- Every meter is summed over the in-gap pairs of one container_uid, so all
 -- four share the leadInFrame(...) OVER (PARTITION BY container_uid ORDER BY
