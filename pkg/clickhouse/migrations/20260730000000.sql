@@ -8,6 +8,12 @@
 -- Existing rows also read log_id as an empty string. Runtime-log readers retain
 -- their content-based identity fallback until those rows expire.
 --
+-- Keep offset pagination until every legacy row has expired. A strict
+-- (time, log_id) cursor cannot distinguish same-millisecond rows while their
+-- log_id is empty. Before cutting over, verify this query returns zero:
+--
+--   SELECT count() FROM default.runtime_logs_raw_v1 WHERE log_id = '';
+--
 -- Appending a newly added column to ORDER BY is a metadata-only ALTER. As
 -- required by ClickHouse, log_id is added without a DEFAULT and in the same
 -- ALTER that modifies the sorting key. The existing primary key remains a
