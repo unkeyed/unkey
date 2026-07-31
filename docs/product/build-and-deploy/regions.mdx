@@ -43,12 +43,6 @@ When the minimum and maximum differ, Unkey scales each region between those boun
 
 Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances. For high availability, use at least 2 instances per region. See [Instances](/platform/instances/overview#high-availability) for the full availability model.
 
-<Note>
-  Maximum replicas per region are 2 on Starter, 4 on Pro, and 8 on Business.
-  Enterprise limits are custom. [Compute limits](/limits#plan-limits) can be
-  adjusted by support based on your workload.
-</Note>
-
 ## Traffic routing
 
 Unkey routes incoming requests to the nearest healthy region based on the client's location. If a region becomes unhealthy (all instances failing health checks), traffic reroutes to the next nearest region.
