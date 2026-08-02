@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
+	apiAndKeySpace, err := db.Query.FindApiAndKeySpaceByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not found",
@@ -89,8 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
 		)
 	}
-
-	if api.WorkspaceID != principal.WorkspaceID {
+	if apiAndKeySpace.WorkspaceID != principal.WorkspaceID {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
@@ -112,7 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(apiAndKeySpace.KeyAuthID.String),
 			permissions.CreateKey{},
 		),
 	))
@@ -143,18 +142,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	actor := auditactor.FromPrincipal(principal)
 
-	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+	if apiAndKeySpace.KeySpaceID == "" {
+		return fault.New("api not set up for keys",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
 		)
 	}
 
@@ -166,13 +157,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	switch {
 	case req.Prefix != nil:
 		prefix = *req.Prefix
-	case keySpace.DefaultPrefix.Valid:
-		prefix = keySpace.DefaultPrefix.String
+	case apiAndKeySpace.DefaultPrefix.Valid:
+		prefix = apiAndKeySpace.DefaultPrefix.String
 	}
 
 	byteLength := ptr.SafeDeref(req.ByteLength)
-	if byteLength == 0 && keySpace.DefaultBytes.Valid {
-		byteLength = int(keySpace.DefaultBytes.Int32)
+	if byteLength == 0 && apiAndKeySpace.DefaultBytes.Valid {
+		byteLength = int(apiAndKeySpace.DefaultBytes.Int32)
 	}
 	if byteLength == 0 {
 		byteLength = 16
@@ -208,10 +199,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
-				ResourceID:   api.ID,
+				ResourceID:   apiAndKeySpace.ApiID,
 				Action:       rbac.EncryptKey,
 			}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(apiAndKeySpace.KeySpaceID).Key("*"), permissions.EncryptKey{}),
 		))
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(
@@ -221,7 +212,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if !keySpace.StoreEncryptedKeys {
+		if !apiAndKeySpace.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -240,11 +231,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil {
-		return err
-	}
-
 	now := time.Now().UnixMilli()
 
 	txErr := retry.New(
@@ -255,9 +241,56 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// keys.id unique index can be recovered by regenerating the ID.
 		keyID = uid.New(uid.KeyPrefix)
 		return db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			projectID := ""
+			attemptIdentityID := sql.NullString{}
+			existingPermissionsBySlug := make(map[string]db.Permission)
+			existingRolesByName := make(map[string]db.FindRolesByNamesRow)
+			permissionSlugs := []string{}
+			if req.Permissions != nil {
+				permissionSlugs = *req.Permissions
+			}
+			roleNames := []string{}
+			if req.Roles != nil {
+				roleNames = *req.Roles
+			}
+			findIdentity := int64(0)
+			externalID := ""
+			if req.ExternalId != nil {
+				findIdentity = 1
+				externalID = *req.ExternalId
+			}
+			if findIdentity == 1 || len(permissionSlugs) > 0 || len(roleNames) > 0 {
+				resources, findErr := db.Query.FindKeyMutationResources(ctx, tx, db.FindKeyMutationResourcesParams{
+					FindIdentity:    findIdentity,
+					WorkspaceID:     principal.WorkspaceID,
+					ExternalID:      externalID,
+					PermissionSlugs: permissionSlugs,
+					RoleNames:       roleNames,
+				})
+				if findErr != nil {
+					return fault.Wrap(findErr,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to find key mutation resources"),
+						fault.Public("Failed to retrieve key resources."),
+					)
+				}
+				for _, resource := range resources {
+					switch resource.ResourceType {
+					case "identity":
+						attemptIdentityID = sql.NullString{String: resource.IdentityID, Valid: true}
+					case "permission":
+						existingPermissionsBySlug[resource.PermissionSlug] = db.Permission{ID: resource.PermissionID, Slug: resource.PermissionSlug} //nolint:exhaustruct
+					case "role":
+						existingRolesByName[resource.RoleName] = db.FindRolesByNamesRow{ID: resource.RoleID, Name: resource.RoleName}
+					case "project":
+						projectID = resource.ProjectID
+					}
+				}
+			}
+
 			insertKeyParams := db.InsertKeyParams{
 				ID:                 keyID,
-				KeySpaceID:         api.KeyAuthID.String,
+				KeySpaceID:         apiAndKeySpace.KeyAuthID.String,
 				Hash:               keyResult.Hash,
 				Start:              keyResult.Start,
 				WorkspaceID:        principal.WorkspaceID,
@@ -283,39 +316,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if req.ExternalId != nil {
 				externalID := *req.ExternalId
 
-				// Upsert identity - inserts if not exists, no-op if exists
-				err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
-					ID:          uid.New(uid.IdentityPrefix),
-					ExternalID:  externalID,
-					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
-					Environment: "default",
-					CreatedAt:   now,
-					Meta:        []byte("{}"),
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to upsert identity"),
-						fault.Public("Failed to create identity."),
-					)
+				if !attemptIdentityID.Valid {
+					if projectID == "" {
+						projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+						if err != nil {
+							return err
+						}
+					}
+
+					identityID := uid.New(uid.IdentityPrefix)
+					err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+						ID:          identityID,
+						ExternalID:  externalID,
+						WorkspaceID: principal.WorkspaceID,
+						ProjectID:   projectID,
+						Environment: "default",
+						CreatedAt:   now,
+						Meta:        []byte("{}"),
+					})
+					if err != nil {
+						return fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("failed to insert identity"),
+							fault.Public("Failed to create identity."),
+						)
+					}
+					attemptIdentityID = sql.NullString{Valid: true, String: identityID}
 				}
 
-				// Fetch the identity ID (either just created or already existed)
-				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-					WorkspaceID: principal.WorkspaceID,
-					ExternalID:  externalID,
-					Deleted:     false,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("failed to find identity after upsert"),
-						fault.Public("Failed to find identity."),
-					)
-				}
-
-				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
+				insertKeyParams.IdentityID = attemptIdentityID
 			}
 
 			if req.Meta != nil {
@@ -433,42 +462,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			var auditLogs []auditlog.AuditLog
-			if req.Permissions != nil {
-				var existingPermissions []db.Permission
-				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-					WorkspaceID: principal.WorkspaceID,
-					Slugs:       *req.Permissions,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to retrieve permissions."),
-					)
-				}
-
-				existingPermMap := make(map[string]db.Permission)
-				for _, p := range existingPermissions {
-					existingPermMap[p.Slug] = p
-				}
-
-				permissionsToCreate := []db.InsertPermissionParams{}
+			if req.Permissions != nil && len(*req.Permissions) > 0 {
 				requestedPermissions := []db.Permission{}
+				permissionSlugsToCreate := []string{}
 
 				for _, requestedSlug := range *req.Permissions {
-					existingPerm, exists := existingPermMap[requestedSlug]
+					existingPerm, exists := existingPermissionsBySlug[requestedSlug]
 					if exists {
 						requestedPermissions = append(requestedPermissions, existingPerm)
 						continue
 					}
 
+					permissionSlugsToCreate = append(permissionSlugsToCreate, requestedSlug)
+				}
+
+				if len(permissionSlugsToCreate) > 0 && projectID == "" {
+					projectID, err = projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+					if err != nil {
+						return err
+					}
+				}
+
+				permissionsToCreate := make([]db.InsertPermissionParams, 0, len(permissionSlugsToCreate))
+				for _, permissionSlug := range permissionSlugsToCreate {
 					newPermID := uid.New(uid.PermissionPrefix)
 					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 						PermissionID: newPermID,
 						WorkspaceID:  principal.WorkspaceID,
 						ProjectID:    projectID,
-						Name:         requestedSlug,
-						Slug:         requestedSlug,
+						Name:         permissionSlug,
+						Slug:         permissionSlug,
 						Description:  dbtype.NullString{String: "", Valid: false},
 						CreatedAtM:   now,
 					})
@@ -476,8 +499,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					requestedPermissions = append(requestedPermissions, db.Permission{
 						Pk:          0, // only here to make the linter happy
 						ID:          newPermID,
-						Name:        requestedSlug,
-						Slug:        requestedSlug,
+						Name:        permissionSlug,
+						Slug:        permissionSlug,
 						CreatedAtM:  now,
 						WorkspaceID: principal.WorkspaceID,
 						ProjectID:   projectID,
@@ -549,31 +572,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 			}
 
-			if req.Roles != nil {
-				var existingRoles []db.FindRolesByNamesRow
-				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-					WorkspaceID: principal.WorkspaceID,
-					Names:       *req.Roles,
-				})
-				if err != nil {
-					return fault.Wrap(err,
-						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-						fault.Internal("database error"),
-						fault.Public("Failed to retrieve roles."),
-					)
-				}
-
-				// Find which roles need to be created
-				existingRoleMap := make(map[string]db.FindRolesByNamesRow)
-				for _, r := range existingRoles {
-					existingRoleMap[r.Name] = r
-				}
-
+			if req.Roles != nil && len(*req.Roles) > 0 {
 				// Create missing roles in bulk and build final list
 				requestedRoles := []db.FindRolesByNamesRow{}
 
 				for _, requestedName := range *req.Roles {
-					existingRole, exists := existingRoleMap[requestedName]
+					existingRole, exists := existingRolesByName[requestedName]
 					if exists {
 						requestedRoles = append(requestedRoles, existingRole)
 						continue
@@ -659,8 +663,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						Type:        auditlog.APIResourceType,
 						ID:          req.ApiId,
-						DisplayName: api.Name,
-						Name:        api.Name,
+						DisplayName: apiAndKeySpace.ApiName,
+						Name:        apiAndKeySpace.ApiName,
 						Meta:        map[string]any{},
 					},
 				},

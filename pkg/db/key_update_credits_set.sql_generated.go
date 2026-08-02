@@ -10,23 +10,49 @@ import (
 	"database/sql"
 )
 
-const updateKeyCreditsSet = `-- name: UpdateKeyCreditsSet :exec
+const updateKeyCreditsSet = `-- name: UpdateKeyCreditsSet :execresult
 UPDATE ` + "`" + `keys` + "`" + `
-SET remaining_requests = ?
+SET
+    remaining_requests = ?,
+    refill_amount = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+        ELSE refill_amount
+    END,
+    refill_day = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+        ELSE refill_day
+    END
 WHERE id = ?
+  AND deleted_at_m IS NULL
 `
 
 type UpdateKeyCreditsSetParams struct {
-	Credits sql.NullInt64 `db:"credits"`
-	ID      string        `db:"id"`
+	Credits           sql.NullInt64 `db:"credits"`
+	ClearRefillAmount int64         `db:"clear_refill_amount"`
+	ClearRefillDay    int64         `db:"clear_refill_day"`
+	ID                string        `db:"id"`
 }
 
 // UpdateKeyCreditsSet
 //
 //	UPDATE `keys`
-//	SET remaining_requests = ?
+//	SET
+//	    remaining_requests = ?,
+//	    refill_amount = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        ELSE refill_amount
+//	    END,
+//	    refill_day = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN NULL
+//	        ELSE refill_day
+//	    END
 //	WHERE id = ?
-func (q *Queries) UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error {
-	_, err := db.ExecContext(ctx, updateKeyCreditsSet, arg.Credits, arg.ID)
-	return err
+//	  AND deleted_at_m IS NULL
+func (q *Queries) UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) (sql.Result, error) {
+	return db.ExecContext(ctx, updateKeyCreditsSet,
+		arg.Credits,
+		arg.ClearRefillAmount,
+		arg.ClearRefillDay,
+		arg.ID,
+	)
 }

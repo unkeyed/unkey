@@ -23,3 +23,23 @@ func (q *Queries) FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.N
 	err := row.Scan(&remaining_requests)
 	return remaining_requests, err
 }
+
+const findLiveKeyCredits = `-- name: FindLiveKeyCredits :one
+SELECT remaining_requests
+FROM ` + "`" + `keys` + "`" + `
+WHERE id = ?
+  AND deleted_at_m IS NULL
+`
+
+// FindLiveKeyCredits
+//
+//	SELECT remaining_requests
+//	FROM `keys`
+//	WHERE id = ?
+//	  AND deleted_at_m IS NULL
+func (q *Queries) FindLiveKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error) {
+	row := db.QueryRowContext(ctx, findLiveKeyCredits, id)
+	var remaining_requests sql.NullInt64
+	err := row.Scan(&remaining_requests)
+	return remaining_requests, err
+}

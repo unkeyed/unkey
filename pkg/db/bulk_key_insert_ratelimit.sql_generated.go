@@ -10,6 +10,7 @@ import (
 
 // bulkInsertKeyRatelimit is the base query for bulk insert
 const bulkInsertKeyRatelimit = `INSERT INTO ` + "`" + `ratelimits` + "`" + ` ( id, workspace_id, key_id, name, ` + "`" + `limit` + "`" + `, duration, auto_apply, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+name = VALUES(name),
 ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
 duration = VALUES(duration),
 auto_apply = VALUES(auto_apply),

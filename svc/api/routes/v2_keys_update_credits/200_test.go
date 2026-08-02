@@ -104,6 +104,19 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.EqualValues(t, key.RemainingRequests.Int64, setTo)
 	})
 
+	t.Run("setting the current value succeeds as a no-op", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId:     keyID,
+			Operation: openapi.Set,
+			Value:     nullable.NewNullableWithValue(setTo),
+		})
+
+		require.Equal(t, http.StatusOK, res.Status)
+		remaining, err := res.Body.Data.Remaining.Get()
+		require.NoError(t, err)
+		require.Equal(t, setTo, remaining)
+	})
+
 	increaseBy := int64(rand.IntN(50) + 1)
 	t.Run(fmt.Sprintf("increase credits by %d", increaseBy), func(t *testing.T) {
 		// Get current credits before decrement

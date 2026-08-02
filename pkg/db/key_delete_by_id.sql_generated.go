@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const deleteAllKeyPermissionsAndRolesByKeyID = `-- name: DeleteAllKeyPermissionsAndRolesByKeyID :exec
+DELETE kp, kr
+FROM ` + "`" + `keys` + "`" + ` k
+LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+LEFT JOIN keys_roles kr ON k.id = kr.key_id
+WHERE k.id = ?
+`
+
+// DeleteAllKeyPermissionsAndRolesByKeyID
+//
+//	DELETE kp, kr
+//	FROM `keys` k
+//	LEFT JOIN keys_permissions kp ON k.id = kp.key_id
+//	LEFT JOIN keys_roles kr ON k.id = kr.key_id
+//	WHERE k.id = ?
+func (q *Queries) DeleteAllKeyPermissionsAndRolesByKeyID(ctx context.Context, db DBTX, keyID string) error {
+	_, err := db.ExecContext(ctx, deleteAllKeyPermissionsAndRolesByKeyID, keyID)
+	return err
+}
+
 const deleteKeyByID = `-- name: DeleteKeyByID :exec
 DELETE k, kp, kr, rl, ek
 FROM ` + "`" + `keys` + "`" + ` k
