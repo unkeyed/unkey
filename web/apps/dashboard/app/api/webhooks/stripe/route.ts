@@ -608,29 +608,17 @@ export const POST = async (req: Request): Promise<Response> => {
             })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
+          await setComputeQuotas(tx, {
+            workspaceId: ws.id,
+            plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
+            preserveApiQuotas: true,
+            quotaUpdate: {
               requestsPerMonth,
               logsRetentionDays,
               auditLogsRetentionDays,
               team: true,
               ...rateLimitReset,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-                ...rateLimitReset,
-              },
-            });
-          await setComputeQuotas(tx, {
-            workspaceId: ws.id,
-            plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
-            preserveApiQuotas: true,
+            },
           });
 
           await insertAuditLogs(tx, {

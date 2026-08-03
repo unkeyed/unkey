@@ -1,4 +1,4 @@
-import { type Database, type Transaction, schema } from "@unkey/db";
+import { type Database, type InsertQuotas, type Transaction, schema } from "@unkey/db";
 import { type DeployPlan, computeQuotaUpdateForPlan } from "./deployPlan";
 
 const customDomainLimitByPlan = {
@@ -7,40 +7,46 @@ const customDomainLimitByPlan = {
   business: 1_000_000,
 } satisfies Record<DeployPlan, number>;
 
-/** Applies Compute plan quotas without weakening a paid API plan's shared entitlements. */
+/** Updates quota once, then mirrors the resulting workspace limits into limits. */
 export async function setComputeQuotas(
   db: Transaction | Database,
-  params: { workspaceId: string; plan: DeployPlan | null; preserveApiQuotas: boolean },
+  params: {
+    workspaceId: string;
+    plan: DeployPlan | null;
+    preserveApiQuotas: boolean;
+    quotaUpdate?: Partial<Omit<InsertQuotas, "workspaceId" | "pk">>;
+  },
 ): Promise<void> {
-  const quotas = computeQuotaUpdateForPlan(params.plan, params.preserveApiQuotas);
+  const quotas = {
+    ...computeQuotaUpdateForPlan(params.plan, params.preserveApiQuotas),
+    ...params.quotaUpdate,
+  };
   await db
     .insert(schema.quotas)
     .values({ workspaceId: params.workspaceId, ...quotas })
     .onDuplicateKeyUpdate({ set: quotas });
 
-  const legacy = await db.query.quotas.findFirst({
+  const quota = await db.query.quotas.findFirst({
     where: (table, { eq }) => eq(table.workspaceId, params.workspaceId),
   });
-  if (!legacy) {
-    throw new Error(
-      `Legacy quota row missing after Compute quota update for ${params.workspaceId}`,
-    );
+  if (!quota) {
+    throw new Error(`Quota row missing after quota update for ${params.workspaceId}`);
   }
 
   const limitValues = {
     workspaceId: params.workspaceId,
-    apiBillableOperationsCountMaxPerMonth: legacy.requestsPerMonth,
-    apiRequestsCountMaxPerMinute: legacy.ratelimitApiLimit,
-    logsRetentionDaysMax: legacy.logsRetentionDays,
-    logsAuditRetentionDaysMax: legacy.auditLogsRetentionDays,
-    teamEnabled: legacy.team,
-    cpuCoresMax: Math.ceil(legacy.allocatedCpuMillicoresTotal / 1_000),
-    cpuCoresMaxPerInstance: Math.ceil(legacy.maxCpuMillicoresPerInstance / 1_000),
-    memoryMibMax: legacy.allocatedMemoryMibTotal,
-    memoryMibMaxPerInstance: legacy.maxMemoryMibPerInstance,
-    diskEphemeralMibMax: legacy.allocatedStorageMibTotal,
-    diskEphemeralMibMaxPerInstance: legacy.maxStorageMibPerInstance,
-    buildsConcurrentCountMax: legacy.maxConcurrentBuilds,
+    apiBillableOperationsCountMaxPerMonth: quota.requestsPerMonth,
+    apiRequestsCountMaxPerMinute: quota.ratelimitApiLimit,
+    logsRetentionDaysMax: quota.logsRetentionDays,
+    logsAuditRetentionDaysMax: quota.auditLogsRetentionDays,
+    teamEnabled: quota.team,
+    cpuCoresMax: Math.ceil(quota.allocatedCpuMillicoresTotal / 1_000),
+    cpuCoresMaxPerInstance: Math.ceil(quota.maxCpuMillicoresPerInstance / 1_000),
+    memoryMibMax: quota.allocatedMemoryMibTotal,
+    memoryMibMaxPerInstance: quota.maxMemoryMibPerInstance,
+    diskEphemeralMibMax: quota.allocatedStorageMibTotal,
+    diskEphemeralMibMaxPerInstance: quota.maxStorageMibPerInstance,
+    buildsConcurrentCountMax: quota.maxConcurrentBuilds,
     customDomainsCountMax: params.plan ? customDomainLimitByPlan[params.plan] : 0,
   };
   await db

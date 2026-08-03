@@ -174,23 +174,19 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
-      const quotaUpdate = {
-        requestsPerMonth: newQuotas.requestsPerMonth,
-        logsRetentionDays: newQuotas.logsRetentionDays,
-        auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-        team: true,
-        ...rateLimitReset,
-      };
-      await tx
-        .insert(schema.quotas)
-        .values({ workspaceId: ctx.workspace.id, ...quotaUpdate })
-        .onDuplicateKeyUpdate({ set: quotaUpdate });
       await setComputeQuotas(tx, {
         workspaceId: ctx.workspace.id,
         plan:
           parseDeployPlan(ctx.workspace.deployPlanOverride) ??
           parseDeployPlan(ctx.workspace.deployPlan),
         preserveApiQuotas: true,
+        quotaUpdate: {
+          requestsPerMonth: newQuotas.requestsPerMonth,
+          logsRetentionDays: newQuotas.logsRetentionDays,
+          auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
+          team: true,
+          ...rateLimitReset,
+        },
       });
 
       await insertAuditLogs(tx, {

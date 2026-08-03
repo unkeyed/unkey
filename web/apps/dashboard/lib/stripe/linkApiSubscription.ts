@@ -129,13 +129,6 @@ export async function linkApiSubscription(
   ).stripeSubscriptionId;
   if (recordedSubscriptionId === subscriptionId) {
     if (ws.billing?.tier === product.name) {
-      await setComputeQuotas(db, {
-        workspaceId: ws.id,
-        plan:
-          parseDeployPlan(ws.billing?.planOverride ?? null) ??
-          parseDeployPlan(ws.billing?.plan ?? null),
-        preserveApiQuotas: true,
-      });
       return { ok: true, productName: product.name, alreadyLinked: true };
     }
   } else if (recordedSubscriptionId) {
@@ -167,22 +160,18 @@ export async function linkApiSubscription(
       product: "api",
       stripeSubscriptionId: subscriptionId,
     });
-    const quotaUpdate = {
-      requestsPerMonth,
-      logsRetentionDays,
-      auditLogsRetentionDays,
-      team: true,
-    };
-    await tx
-      .insert(schema.quotas)
-      .values({ workspaceId: ws.id, ...quotaUpdate })
-      .onDuplicateKeyUpdate({ set: quotaUpdate });
     await setComputeQuotas(tx, {
       workspaceId: ws.id,
       plan:
         parseDeployPlan(ws.billing?.planOverride ?? null) ??
         parseDeployPlan(ws.billing?.plan ?? null),
       preserveApiQuotas: true,
+      quotaUpdate: {
+        requestsPerMonth,
+        logsRetentionDays,
+        auditLogsRetentionDays,
+        team: true,
+      },
     });
     await insertAuditLogs(tx, {
       workspaceId: ws.id,
