@@ -3,6 +3,7 @@
  */
 
 import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
+import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import { unwrapAsync } from "../types/fp.js";
@@ -37,6 +38,47 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsCreateDomainResponseBody> {
     return unwrapAsync(domainsCreateDomain(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Get domain
+   *
+   * @remarks
+   * Retrieve a custom domain and where it stands in verification.
+   *
+   * Address the domain by its id or by the name itself. Names are unique per workspace, so
+   * `api.acme.com` is enough and no project, app, or environment is needed.
+   *
+   * Use this to poll after `domains.createDomain`. Verification runs in the background and polls DNS
+   * roughly once a minute, so the result is eventually consistent; `lastCheckedAt` tells you when it
+   * was last looked at.
+   *
+   * **Read `routingVerified` before sending traffic.** `status` summarises verification, and
+   * verification can pass on proof of ownership alone. A domain with `status: verified` and
+   * `routingVerified: false` is claimed by your workspace but routes nothing, because the routing
+   * record was never read back. `verificationError` explains the most recent failed attempt.
+   *
+   * `dnsRecords` is rebuilt from stored state and matches what `domains.createDomain` returned, so
+   * the values are recoverable without creating the domain again.
+   *
+   * **Important**: verification stops 24 hours after the domain was created and the status becomes
+   * `failed`. The window runs from `createdAt`, not from the last attempt.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.read_domain` (to read domains in any environment)
+   * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+   */
+  async getDomain(
+    request: components.V2DomainsGetDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsGetDomainResponseBody> {
+    return unwrapAsync(domainsGetDomain(
       this,
       request,
       options,
