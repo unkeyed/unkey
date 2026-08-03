@@ -62,7 +62,6 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.Nil(t, res.Body.Data.DomainConnectUrl)
 
 	// Domain creation and its audit log are delegated to the control plane.
-	// Assert the RPC carried the resolved ownership chain and the actor.
 	require.Len(t, ctrlClient.AddCustomDomainCalls, 1)
 	call := ctrlClient.AddCustomDomainCalls[0]
 	require.Equal(t, env.workspaceID, call.GetWorkspaceId())

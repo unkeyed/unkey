@@ -73,8 +73,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// A caller that may not read the environment must not be able to tell a real
-	// one from a missing one, so the rejection becomes the same 404.
 	if err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -119,10 +117,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return ctrlclient.HandleError(err, "create custom domain")
 	}
 
-	// The caller gets the finished record list rather than raw values, so nothing
-	// downstream has to re-derive the TXT name, its prefix, or the apex rules. The
-	// apex branch matches the verification worker's, which reaches the same
-	// conclusion via domainconnect.IsApexDomain.
+	// The verification worker reads these published values back, so a divergence
+	// here leaves domains stuck unverified with no error pointing at the cause.
 	routing := openapi.DnsRecord{
 		Type:  openapi.CNAME,
 		Name:  req.Domain,
@@ -136,7 +132,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Note:  ptr.P("Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published."),
 	}
 
-	// An apex domain cannot hold a CNAME, so routing needs a provider-specific alias.
 	if domainconnect.IsApexDomain(req.Domain) {
 		routing.Type = openapi.ALIAS
 		routing.Note = ptr.P("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
