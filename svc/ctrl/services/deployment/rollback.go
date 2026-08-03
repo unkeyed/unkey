@@ -57,7 +57,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{
 		Status:              targetDeployment.Status,
 		DesiredState:        targetDeployment.DesiredState,
-		IsProduction:        targetDeployment.EnvironmentIsProduction,
+		EnvironmentKind:     targetDeployment.EnvironmentKind,
 		CurrentDeploymentID: targetDeployment.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 	}); err != nil {

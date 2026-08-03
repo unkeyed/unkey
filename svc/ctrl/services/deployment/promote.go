@@ -42,7 +42,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              deployment.Status,
 		DesiredState:        deployment.DesiredState,
-		IsProduction:        deployment.EnvironmentIsProduction,
+		EnvironmentKind:     deployment.EnvironmentKind,
 		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
 		DeploymentID:        deployment.ID,
 		IsRolledBack:        deployment.IsRolledBack,

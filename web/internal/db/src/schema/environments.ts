@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -19,7 +19,7 @@ export const environments = mysqlTable(
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
-    isProduction: boolean("is_production").notNull().default(false),
+    kind: mysqlEnum("kind", ["production", "preview"]).notNull().default("preview"),
 
     ...deleteProtection,
     ...lifecycleDates,

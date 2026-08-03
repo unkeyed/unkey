@@ -40,13 +40,13 @@ func TestGetEnvironmentForbidden(t *testing.T) {
 		DefaultBranch: "main",
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  workspace.ID,
-		ProjectID:    project.ID,
-		AppID:        app.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "Production environment",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "Production environment",
 	})
 
 	testCases := []struct {
@@ -120,13 +120,13 @@ func TestGetEnvironmentExistenceNotLeaked(t *testing.T) {
 		DefaultBranch: "main",
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  workspace.ID,
-		ProjectID:    project.ID,
-		AppID:        app.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "Production environment",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "Production environment",
 	})
 
 	missingID := uid.New(uid.EnvironmentPrefix)

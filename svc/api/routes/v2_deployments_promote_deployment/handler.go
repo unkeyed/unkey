@@ -87,7 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
-		IsProduction:        dep.EnvironmentIsProduction,
+		EnvironmentKind:     dep.EnvironmentKind,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
 		IsRolledBack:        app.IsRolledBack,

@@ -32,7 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
-	"github.com/unkeyed/unkey/pkg/ptr"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -478,12 +478,12 @@ type DeploymentTestSetup struct {
 // CreateTestDeploymentSetupOptions configures the resources created by
 // [Harness.CreateTestDeploymentSetup].
 type CreateTestDeploymentSetupOptions struct {
-	ProjectName             string
-	ProjectSlug             string
-	EnvironmentSlug         string
-	EnvironmentIsProduction *bool
-	SkipEnvironment         bool
-	Permissions             []string
+	ProjectName     string
+	ProjectSlug     string
+	EnvironmentSlug string
+	EnvironmentKind mysqltype.EnvironmentKind
+	SkipEnvironment bool
+	Permissions     []string
 }
 
 // CreateTestDeploymentSetup creates a complete deployment test environment with a
@@ -495,12 +495,12 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	h.t.Helper()
 
 	config := CreateTestDeploymentSetupOptions{
-		ProjectName:             "test-project",
-		ProjectSlug:             "production",
-		EnvironmentSlug:         "production",
-		EnvironmentIsProduction: ptr.P(true),
-		SkipEnvironment:         false,
-		Permissions:             nil,
+		ProjectName:     "test-project",
+		ProjectSlug:     "production",
+		EnvironmentSlug: "production",
+		EnvironmentKind: mysqltype.EnvironmentKindProduction,
+		SkipEnvironment: false,
+		Permissions:     nil,
 	}
 
 	if len(opts) > 0 {
@@ -513,8 +513,8 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		if opts[0].EnvironmentSlug != "" {
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
 		}
-		if opts[0].EnvironmentIsProduction != nil {
-			config.EnvironmentIsProduction = opts[0].EnvironmentIsProduction
+		if opts[0].EnvironmentKind != "" {
+			config.EnvironmentKind = opts[0].EnvironmentKind
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
 		if opts[0].Permissions != nil {
@@ -558,7 +558,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
-			IsProduction:     ptr.SafeDeref(config.EnvironmentIsProduction),
+			Kind:             config.EnvironmentKind,
 			DeleteProtection: false,
 			SentinelConfig:   nil,
 		})

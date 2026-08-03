@@ -6,7 +6,7 @@ describe("getDeploymentActionEligibility", () => {
     selectedDeployment: { id: "dep-1", status: "ready" as const },
     currentDeploymentId: "dep-current",
     isRolledBack: false,
-    isProduction: true,
+    environmentKind: "production" as const,
   };
 
   const cases = [
@@ -67,7 +67,7 @@ describe("getDeploymentActionEligibility", () => {
     },
     {
       name: "ready + staging → redeploy and stop",
-      ctx: { ...baseCtx, isProduction: false },
+      ctx: { ...baseCtx, environmentKind: "preview" as const },
       expected: {
         canRollback: false,
         canPromote: false,
@@ -136,7 +136,7 @@ describe("getDeploymentActionEligibility", () => {
     },
     {
       name: "unknown environment production state → only redeploy if ready",
-      ctx: { ...baseCtx, isProduction: null },
+      ctx: { ...baseCtx, environmentKind: null },
       expected: {
         canRollback: false,
         canPromote: false,
@@ -151,7 +151,7 @@ describe("getDeploymentActionEligibility", () => {
       ctx: {
         ...baseCtx,
         selectedDeployment: { id: "dep-1", status: "stopped" as const },
-        isProduction: false,
+        environmentKind: "preview" as const,
       },
       expected: {
         canRollback: false,

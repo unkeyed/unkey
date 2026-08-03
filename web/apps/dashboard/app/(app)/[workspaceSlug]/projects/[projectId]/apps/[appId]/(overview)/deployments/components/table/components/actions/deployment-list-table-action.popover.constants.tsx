@@ -54,7 +54,7 @@ export const DeploymentListTableActions = ({
         selectedDeployment,
         currentDeploymentId,
         isRolledBack,
-        isProduction: environment?.isProduction ?? null,
+        environmentKind: environment?.kind ?? null,
       });
 
     // Without a Compute plan, actions that build or activate compute open the

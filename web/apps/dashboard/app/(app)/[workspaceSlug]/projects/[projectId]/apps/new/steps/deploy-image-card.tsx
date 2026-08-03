@@ -34,7 +34,7 @@ export const DeployImageCard = ({
   const { data: environments } = trpc.deploy.environment.list.useQuery({ projectId });
   const appEnvironments = (environments ?? []).filter((e) => e.appId === appId);
   const environmentSlug =
-    appEnvironments.find((e) => e.slug === "preview")?.slug ?? appEnvironments[0]?.slug;
+    appEnvironments.find((e) => e.kind === "preview")?.slug ?? appEnvironments[0]?.slug;
 
   const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {

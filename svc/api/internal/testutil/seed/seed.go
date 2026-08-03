@@ -239,7 +239,7 @@ type CreateEnvironmentRequest struct {
 	AppID            string
 	Slug             string
 	Description      string
-	IsProduction     bool
+	Kind             mysqltype.EnvironmentKind
 	SentinelConfig   []byte
 	DeleteProtection bool
 }
@@ -248,17 +248,21 @@ type CreateEnvironmentRequest struct {
 // nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	now := time.Now().UnixMilli()
+	kind := req.Kind
+	if kind == "" {
+		kind = mysqltype.EnvironmentKindPreview
+	}
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
-		ID:           req.ID,
-		WorkspaceID:  req.WorkspaceID,
-		ProjectID:    req.ProjectID,
-		AppID:        req.AppID,
-		Slug:         req.Slug,
-		Description:  req.Description,
-		IsProduction: req.IsProduction,
-		CreatedAt:    now,
-		UpdatedAt:    sql.NullInt64{Int64: 0, Valid: false},
+		ID:          req.ID,
+		WorkspaceID: req.WorkspaceID,
+		ProjectID:   req.ProjectID,
+		AppID:       req.AppID,
+		Slug:        req.Slug,
+		Description: req.Description,
+		Kind:        kind,
+		CreatedAt:   now,
+		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -308,7 +312,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
-		IsProduction:     environment.IsProduction,
+		Kind:             environment.Kind,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},

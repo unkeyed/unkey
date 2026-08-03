@@ -150,13 +150,13 @@ func TestListFilterByProject(t *testing.T) {
 		DefaultBranch: "main",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  setup.Workspace.ID,
-		ProjectID:    otherProject.ID,
-		AppID:        otherApp.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "other project production",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   otherProject.ID,
+		AppID:       otherApp.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "other project production",
 	})
 	h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -194,13 +194,13 @@ func TestListFilterByApp(t *testing.T) {
 		DefaultBranch: "main",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  setup.Workspace.ID,
-		ProjectID:    setup.Project.ID,
-		AppID:        otherApp.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "other app production",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		AppID:       otherApp.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "other app production",
 	})
 
 	target := h.CreateDeployment(seed.CreateDeploymentRequest{

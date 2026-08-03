@@ -27,7 +27,7 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
         return match.id;
       }
     }
-    return environments.find((e) => e.isProduction)?.id ?? environments.at(0)?.id;
+    return environments.find((e) => e.kind === "production")?.id ?? environments.at(0)?.id;
   }, [envIdParam, environments]);
 
   const { data } = useLiveQuery(

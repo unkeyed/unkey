@@ -416,7 +416,7 @@ type Querier interface {
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.is_production AS environment_is_production, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -424,12 +424,12 @@ type Querier interface {
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.is_production, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, is_production, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
@@ -1019,7 +1019,7 @@ type Querier interface {
 	//      app_id,
 	//      slug,
 	//      description,
-	//      is_production,
+	//      kind,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
@@ -1461,10 +1461,10 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN e.is_production
-	//      ELSE e.slug = 'preview'
+	//      THEN e.kind = 'production'
+	//      ELSE e.kind = 'preview'
 	//    END
 	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
@@ -1523,9 +1523,9 @@ type Querier interface {
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, is_production, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 	//  FROM environments
-	//  WHERE slug = 'preview'
+	//  WHERE kind = 'preview'
 	//  AND pk > ?
 	//  ORDER BY pk ASC
 	//  LIMIT ?
@@ -1552,7 +1552,7 @@ type Querier interface {
 	//  SELECT
 	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.is_production, e.delete_protection, e.created_at, e.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
@@ -1561,10 +1561,10 @@ type Querier interface {
 	//  INNER JOIN projects p ON p.id = gc.project_id
 	//  INNER JOIN environments e ON e.app_id = a.id
 	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN e.is_production
-	//      ELSE e.slug = 'preview'
+	//      THEN e.kind = 'production'
+	//      ELSE e.kind = 'preview'
 	//    END
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id

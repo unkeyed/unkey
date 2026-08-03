@@ -54,13 +54,13 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  workspace.ID,
-		ProjectID:    project.ID,
-		AppID:        app.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "Production environment",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "Production environment",
 	})
 
 	return seededEnv{

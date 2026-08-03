@@ -106,7 +106,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		ProjectID:        project.ID,
 		AppID:            app.ID,
 		Slug:             "production",
-		IsProduction:     true,
+		Kind:             "production",
 		Description:      "",
 		SentinelConfig:   []byte("{}"),
 		DeleteProtection: false,

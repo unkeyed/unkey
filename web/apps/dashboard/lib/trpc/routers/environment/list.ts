@@ -21,7 +21,7 @@ export const listEnvironments = workspaceProcedure
           id: true,
           projectId: true,
           slug: true,
-          isProduction: true,
+          kind: true,
         },
         with: {
           app: {
@@ -34,7 +34,7 @@ export const listEnvironments = workspaceProcedure
         id: row.id,
         projectId: row.projectId,
         slug: row.slug,
-        isProduction: row.isProduction,
+        kind: row.kind,
         appId: row.app?.id ?? "",
       }));
     } catch (error) {

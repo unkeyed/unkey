@@ -24,7 +24,7 @@ type SentinelPoliciesData = {
 export function useSentinelPoliciesData(): SentinelPoliciesData {
   const { environments } = useProjectData();
 
-  const envA = environments.find((e) => e.isProduction) ?? environments.at(0);
+  const envA = environments.find((e) => e.kind === "production") ?? environments.at(0);
   const envB = environments.find((e) => e.id !== envA?.id) ?? environments.at(1);
 
   const envAId = envA?.id ?? "";

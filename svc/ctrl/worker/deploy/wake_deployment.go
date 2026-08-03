@@ -47,8 +47,8 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
-		DesiredState: deployment.DesiredState,
-		IsProduction: environment.IsProduction,
+		DesiredState:    deployment.DesiredState,
+		EnvironmentKind: environment.Kind,
 		// Spend is gated by the ctrl service before enqueue; the worker only
 		// re-checks lifecycle state.
 		SpendSuspended: false,

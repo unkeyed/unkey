@@ -18,10 +18,10 @@ INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = ?
   AND gc.repository_id = ?
   AND CASE
-    WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-    THEN e.is_production
-    ELSE e.slug = 'preview'
+    THEN e.kind = 'production'
+    ELSE e.kind = 'preview'
   END
 `
 
@@ -48,10 +48,10 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
 //	  AND CASE
-//	    WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+//	    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-//	    THEN e.is_production
-//	    ELSE e.slug = 'preview'
+//	    THEN e.kind = 'production'
+//	    ELSE e.kind = 'preview'
 //	  END
 func (q *Queries) ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listEnvVarsForRepoConnections,

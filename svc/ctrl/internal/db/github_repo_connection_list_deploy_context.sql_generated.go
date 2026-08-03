@@ -13,7 +13,7 @@ const listRepoConnectionDeployContexts = `-- name: ListRepoConnectionDeployConte
 SELECT
     gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
     p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.is_production, e.delete_protection, e.created_at, e.updated_at,
+    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
     a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
     abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
@@ -22,10 +22,10 @@ INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND CASE
-    WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-    THEN e.is_production
-    ELSE e.slug = 'preview'
+    THEN e.kind = 'production'
+    ELSE e.kind = 'preview'
   END
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
@@ -54,7 +54,7 @@ type ListRepoConnectionDeployContextsRow struct {
 //	SELECT
 //	    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
 //	    p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-//	    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.is_production, e.delete_protection, e.created_at, e.updated_at,
+//	    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
 //	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 //	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
@@ -63,10 +63,10 @@ type ListRepoConnectionDeployContextsRow struct {
 //	INNER JOIN projects p ON p.id = gc.project_id
 //	INNER JOIN environments e ON e.app_id = a.id
 //	  AND CASE
-//	    WHEN CAST(? AS SIGNED) = 1 THEN e.slug = 'preview'
+//	    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-//	    THEN e.is_production
-//	    ELSE e.slug = 'preview'
+//	    THEN e.kind = 'production'
+//	    ELSE e.kind = 'preview'
 //	  END
 //	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
@@ -112,7 +112,7 @@ func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, arg List
 			&i.Environment.AppID,
 			&i.Environment.Slug,
 			&i.Environment.Description,
-			&i.Environment.IsProduction,
+			&i.Environment.Kind,
 			&i.Environment.DeleteProtection,
 			&i.Environment.CreatedAt,
 			&i.Environment.UpdatedAt,

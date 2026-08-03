@@ -77,7 +77,7 @@ export function ProductionDeploymentCard() {
   );
   const currentDeployment = currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined;
 
-  const productionEnvironmentId = environments.find((e) => e.isProduction)?.id;
+  const productionEnvironmentId = environments.find((e) => e.kind === "production")?.id;
   const latestProductionDeployment = productionEnvironmentId
     ? deployments.find((d) => d.environmentId === productionEnvironmentId)
     : undefined;

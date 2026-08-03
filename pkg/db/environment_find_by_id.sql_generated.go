@@ -10,14 +10,14 @@ import (
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT pk, id, workspace_id, project_id, app_id, slug, description, is_production, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 FROM environments
 WHERE id = ?
 `
 
 // FindEnvironmentById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, is_production, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE id = ?
 func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error) {
@@ -31,7 +31,7 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
-		&i.IsProduction,
+		&i.Kind,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

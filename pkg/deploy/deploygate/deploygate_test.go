@@ -13,7 +13,7 @@ func promoteBase() PromoteInput {
 	return PromoteInput{
 		Status:              dbtype.DeploymentsStatusReady,
 		DesiredState:        dbtype.DeploymentsDesiredStateRunning,
-		IsProduction:        true,
+		EnvironmentKind:     dbtype.EnvironmentKindProduction,
 		CurrentDeploymentID: "dep_live",
 		DeploymentID:        "dep_target",
 		IsRolledBack:        false,
@@ -24,7 +24,7 @@ func rollbackBase() RollbackInput {
 	return RollbackInput{
 		Status:              dbtype.DeploymentsStatusReady,
 		DesiredState:        dbtype.DeploymentsDesiredStateRunning,
-		IsProduction:        true,
+		EnvironmentKind:     dbtype.EnvironmentKindProduction,
 		CurrentDeploymentID: "dep_live",
 		DeploymentID:        "dep_target",
 	}
@@ -76,7 +76,7 @@ func TestCheckPromoteTarget(t *testing.T) {
 		requireCode(t, codes.App.Precondition.DeploymentNotReady, CheckPromoteTarget(in))
 
 		in = promoteBase()
-		in.IsProduction = false
+		in.EnvironmentKind = dbtype.EnvironmentKindPreview
 		requireCode(t, codes.App.Precondition.DeploymentNotProduction, CheckPromoteTarget(in))
 
 		in = promoteBase()
@@ -130,7 +130,7 @@ func TestCheckStopTarget(t *testing.T) {
 	requireCode(t, codes.App.Precondition.DeploymentIsStopping, CheckStopTarget(draining))
 
 	prod := running
-	prod.IsProduction = true
+	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
 	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
 }
 
@@ -146,7 +146,7 @@ func TestCheckStartTarget(t *testing.T) {
 	requireCode(t, codes.App.Precondition.DeploymentNotStopped, CheckStartTarget(notStopped))
 
 	prod := stopped
-	prod.IsProduction = true
+	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
 	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStartTarget(prod))
 
 	suspended := stopped

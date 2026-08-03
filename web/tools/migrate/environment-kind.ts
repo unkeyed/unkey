@@ -1,16 +1,16 @@
 import { and, createCommentedPool, drizzle, eq, schema, staticTagsFromEnv } from "@unkey/db";
 
 /**
- * Backfills the explicit production flag for environments created before the
+ * Backfills the explicit environment kind for environments created before the
  * column existed. The update is batched for Vitess and is safe to rerun.
  *
  * Rollout sequence:
- * 1. Deploy the `is_production` column.
- * 2. Run this migration before deploying readers of the new flag.
+ * 1. Deploy the `kind` column.
+ * 2. Run this migration before deploying readers of the new kind.
  * 3. Run it again after all previous app writers have stopped.
  *
  * Run from the repository root with `DRIZZLE_DATABASE_URL` set:
- * `mise exec -- pnpm --dir=web/tools/migrate environment-production`
+ * `mise exec -- pnpm --dir=web/tools/migrate environment-kind`
  */
 const UPDATE_BATCH_SIZE = 10_000;
 
@@ -22,7 +22,7 @@ async function main() {
 
   const pool = createCommentedPool(
     { uri: databaseUrl },
-    staticTagsFromEnv("environment-production-migration"),
+    staticTagsFromEnv("environment-kind-migration"),
   );
   const db = drizzle(pool, { schema, mode: "default" });
 
@@ -31,11 +31,11 @@ async function main() {
     while (true) {
       const result = await db
         .update(schema.environments)
-        .set({ isProduction: true })
+        .set({ kind: "production" })
         .where(
           and(
             eq(schema.environments.slug, "production"),
-            eq(schema.environments.isProduction, false),
+            eq(schema.environments.kind, "preview"),
           ),
         )
         .limit(UPDATE_BATCH_SIZE);
@@ -47,13 +47,13 @@ async function main() {
       }
     }
 
-    console.info("Environment production migration finished", { updated });
+    console.info("Environment kind migration finished", { updated });
   } finally {
     await pool.end();
   }
 }
 
 main().catch((error: unknown) => {
-  console.error("Environment production migration failed", error);
+  console.error("Environment kind migration failed", error);
   process.exitCode = 1;
 });

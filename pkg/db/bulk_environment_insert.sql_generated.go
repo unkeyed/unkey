@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertEnvironment is the base query for bulk insert
-const bulkInsertEnvironment = `INSERT INTO environments ( id, workspace_id, project_id, app_id, slug, description, is_production, created_at, updated_at ) VALUES %s`
+const bulkInsertEnvironment = `INSERT INTO environments ( id, workspace_id, project_id, app_id, slug, description, kind, created_at, updated_at ) VALUES %s`
 
 // InsertEnvironments performs bulk insert in a single query
 func (q *BulkQueries) InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error {
@@ -35,7 +35,7 @@ func (q *BulkQueries) InsertEnvironments(ctx context.Context, db DBTX, args []In
 		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.Description)
-		allArgs = append(allArgs, arg.IsProduction)
+		allArgs = append(allArgs, arg.Kind)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

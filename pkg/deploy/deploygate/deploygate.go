@@ -26,7 +26,7 @@ import (
 type PromoteInput struct {
 	Status              dbtype.DeploymentsStatus
 	DesiredState        dbtype.DeploymentsDesiredState
-	IsProduction        bool
+	EnvironmentKind     dbtype.EnvironmentKind
 	CurrentDeploymentID string
 	DeploymentID        string
 	IsRolledBack        bool
@@ -36,23 +36,23 @@ type PromoteInput struct {
 type RollbackInput struct {
 	Status              dbtype.DeploymentsStatus
 	DesiredState        dbtype.DeploymentsDesiredState
-	IsProduction        bool
+	EnvironmentKind     dbtype.EnvironmentKind
 	CurrentDeploymentID string
 	DeploymentID        string
 }
 
 // StopInput is the state CheckStopTarget needs.
 type StopInput struct {
-	Status       dbtype.DeploymentsStatus
-	DesiredState dbtype.DeploymentsDesiredState
-	IsProduction bool
+	Status          dbtype.DeploymentsStatus
+	DesiredState    dbtype.DeploymentsDesiredState
+	EnvironmentKind dbtype.EnvironmentKind
 }
 
 // StartInput is the state CheckStartTarget needs.
 type StartInput struct {
-	DesiredState   dbtype.DeploymentsDesiredState
-	IsProduction   bool
-	SpendSuspended bool
+	DesiredState    dbtype.DeploymentsDesiredState
+	EnvironmentKind dbtype.EnvironmentKind
+	SpendSuspended  bool
 }
 
 // isCurrent reports whether the target is the app's current (live) deployment.
@@ -130,7 +130,7 @@ func targetFault(r TargetFailureReason) error {
 func targetCore(
 	status dbtype.DeploymentsStatus,
 	desiredState dbtype.DeploymentsDesiredState,
-	isProduction bool,
+	environmentKind dbtype.EnvironmentKind,
 	currentDeploymentID string,
 ) TargetFailureReason {
 	switch {
@@ -138,7 +138,7 @@ func targetCore(
 		return TargetNotReady
 	case desiredState != dbtype.DeploymentsDesiredStateRunning:
 		return TargetIsDraining
-	case !isProduction:
+	case !environmentKind.IsProduction():
 		return TargetNotProduction
 	case currentDeploymentID == "":
 		return TargetNoCurrentDeployment
@@ -151,7 +151,7 @@ func targetCore(
 // Promoting the deployment that is already current is rejected, unless the app
 // is in a rolled-back state (then it is a rollback confirmation, allowed).
 func CheckPromoteTarget(in PromoteInput) error {
-	if r := targetCore(in.Status, in.DesiredState, in.IsProduction, in.CurrentDeploymentID); r != TargetOK {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentKind, in.CurrentDeploymentID); r != TargetOK {
 		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) && !in.IsRolledBack {
@@ -163,7 +163,7 @@ func CheckPromoteTarget(in PromoteInput) error {
 // CheckRollbackTarget validates a deployment may be rolled back to. Rolling back
 // to the deployment that is already current is always a no-op, so it is rejected.
 func CheckRollbackTarget(in RollbackInput) error {
-	if r := targetCore(in.Status, in.DesiredState, in.IsProduction, in.CurrentDeploymentID); r != TargetOK {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentKind, in.CurrentDeploymentID); r != TargetOK {
 		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) {
@@ -231,7 +231,7 @@ func CheckStopTarget(in StopInput) error {
 		return stopFault(StopNotRunning)
 	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
-	case in.IsProduction:
+	case in.EnvironmentKind.IsProduction():
 		return stopFault(StopIsProduction)
 	default:
 		return nil
@@ -301,7 +301,7 @@ func CheckStartTarget(in StartInput) error {
 	switch {
 	case in.DesiredState != dbtype.DeploymentsDesiredStateStopped:
 		return startFault(StartNotStopped)
-	case in.IsProduction:
+	case in.EnvironmentKind.IsProduction():
 		return startFault(StartIsProduction)
 	case in.SpendSuspended:
 		return startFault(StartSpendSuspended)

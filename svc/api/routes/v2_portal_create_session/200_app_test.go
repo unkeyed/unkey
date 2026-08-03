@@ -67,13 +67,13 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		DefaultBranch: "main",
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:           uid.New(uid.EnvironmentPrefix),
-		WorkspaceID:  workspaceID,
-		ProjectID:    project.ID,
-		AppID:        app.ID,
-		Slug:         "production",
-		IsProduction: true,
-		Description:  "production environment",
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "production",
+		Kind:        "production",
+		Description: "production environment",
 	})
 
 	sentinelConfig, err := protojson.Marshal(&frontlinev1.Config{

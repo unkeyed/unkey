@@ -18,16 +18,16 @@ func availableActions(in Input) []openapi.DeploymentAction {
 	d := in.Deployment
 	actions := []openapi.DeploymentAction{}
 
-	// An empty slug means the environment could not be resolved; without it the
-	// production gate is unknowable, so offer nothing rather than guess.
-	if in.State.EnvironmentSlug == "" {
+	// An empty kind means the environment could not be resolved; without it the
+	// lifecycle gate is unknowable, so offer nothing rather than guess.
+	if in.State.EnvironmentKind == "" {
 		return actions
 	}
 
 	ready := d.Status == mysqltype.DeploymentsStatusReady
 	running := d.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 
-	if in.State.EnvironmentIsProduction {
+	if in.State.EnvironmentKind.IsProduction() {
 		currentDeploymentID := in.State.AppCurrentDeploymentID.String
 		hasLiveDeployment := currentDeploymentID != ""
 		isCurrentDeployment := currentDeploymentID == d.ID

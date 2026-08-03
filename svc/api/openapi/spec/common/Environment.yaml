@@ -3,7 +3,7 @@ required:
   - id
   - slug
   - description
-  - isProduction
+  - kind
   - deleteProtection
   - createdAt
 properties:
@@ -23,12 +23,10 @@ properties:
       Human-readable description of this environment.
       Empty string if none was provided.
     example: Production environment
-  isProduction:
-    type: boolean
+  kind:
+    "$ref": "./EnvironmentKind.yaml"
     description: |
-      Whether deployments in this environment serve production traffic.
-      Production environments support promotion and rollback and cannot be stopped.
-    example: true
+      How deployments in this environment participate in the deployment lifecycle.
   deleteProtection:
     type: boolean
     description: |
