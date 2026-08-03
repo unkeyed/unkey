@@ -20,10 +20,10 @@ import (
 	"github.com/restatedev/sdk-go/ingress"
 )
 
-// TestHeartbeatProvisionsRegionCertificate verifies that the first Heartbeat for
-// a brand-new region auto-provisions its wildcard certificate records (replacing
-// the old manual bootstrap), and that a repeat Heartbeat is idempotent.
-func TestHeartbeatProvisionsRegionCertificate(t *testing.T) {
+// TestHeartbeatProvisionsCertificates verifies that the first Heartbeat for a
+// brand-new cell auto-provisions its region and cell wildcard certificate
+// records, and that a repeat Heartbeat is idempotent.
+func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
 
@@ -32,50 +32,23 @@ func TestHeartbeatProvisionsRegionCertificate(t *testing.T) {
 		regionalDomain = "unkey.cloud"
 		platform       = "aws"
 		regionName     = "ap-southeast-1"
+		cellID         = "cell004"
 	)
 	// Matches the platform-ful format the frontline expects, e.g.
 	// *.ap-southeast-1.aws.unkey.cloud.
 	wildcardDomain := "*." + regionName + "." + platform + "." + regionalDomain
-
-	// newSvc builds a cluster service with a cold provisioned-cert cache. Each
-	// instance models a separate ctrl replica (or a restarted process): a fresh
-	// cache forces EnsureInfraCertificate to consult the DB, which is what proves
-	// recovery is driven by durable state, not in-memory bookkeeping.
-	newSvc := func() *cluster.Service {
-		topologyCache, cacheErr := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
-			Fresh:    5 * time.Minute,
-			Stale:    30 * time.Minute,
-			MaxSize:  10,
-			Resource: "test_topology",
-			Clock:    clock.New(),
-		})
-		require.NoError(t, cacheErr)
-
-		svc, svcErr := cluster.New(cluster.Config{
-			Database: h.DB,
-			// Points nowhere: triggering issuance is best-effort, so the failing
-			// Send must not affect the DB records or the heartbeat response.
-			Restate:        ingress.NewClient("http://127.0.0.1:1"),
-			Bearer:         bearer,
-			Clock:          clock.New(),
-			TopologyCache:  topologyCache,
-			InstanceEvents: batch.NewNoop[schema.InstanceEventV1](),
-			RegionalDomain: regionalDomain,
-		})
-		require.NoError(t, svcErr)
-		return svc
-	}
+	cellWildcardDomain := "*." + cellID + "." + regionName + "." + platform + "." + regionalDomain
 
 	heartbeat := func(svc *cluster.Service) {
 		req := connect.NewRequest(&ctrlv1.HeartbeatRequest{
-			Region: &ctrlv1.RegionKey{Platform: platform, Name: regionName},
+			Cluster: &ctrlv1.ClusterKey{CellId: cellID, Platform: platform, Region: regionName},
 		})
 		req.Header().Set("Authorization", "Bearer "+bearer)
 		_, hbErr := svc.Heartbeat(ctx, req)
 		require.NoError(t, hbErr)
 	}
 
-	svc := newSvc()
+	svc := newHeartbeatService(t, h.DB, bearer, regionalDomain)
 
 	// First heartbeat: registers the region and provisions the cert records.
 	heartbeat(svc)
@@ -88,12 +61,18 @@ func TestHeartbeatProvisionsRegionCertificate(t *testing.T) {
 
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
 	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	cellDomain, err := h.DB.FindCustomDomainByDomain(ctx, cellWildcardDomain)
+	require.NoError(t, err)
+	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, cellWildcardDomain))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellDomain.ID))
 
 	// Second heartbeat for the same region must not create duplicate records:
 	// the existing challenge row makes EnsureInfraCertificate a no-op.
 	heartbeat(svc)
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
 	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
+	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, cellWildcardDomain))
+	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, cellDomain.ID))
 
 	// Recovery: if provisioning previously failed before writing the challenge
 	// (region row exists, backstop missing), a later heartbeat must re-create it
@@ -104,7 +83,7 @@ func TestHeartbeatProvisionsRegionCertificate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, countAcmeChallenges(ctx, t, h.DB, domain.ID))
 
-	heartbeat(newSvc())
+	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
 	require.Equal(t, 1, countCustomDomains(ctx, t, h.DB, wildcardDomain))
 	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
 
@@ -116,9 +95,38 @@ func TestHeartbeatProvisionsRegionCertificate(t *testing.T) {
 	_, err = h.DB.RW().ExecContext(ctx, "UPDATE acme_challenges SET status = 'failed' WHERE domain_id = ?", domain.ID)
 	require.NoError(t, err)
 
-	heartbeat(newSvc())
+	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
 	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))
 	require.Equal(t, "waiting", challengeStatus(ctx, t, h.DB, domain.ID))
+}
+
+// newHeartbeatService builds an isolated ctrl service instance backed by the
+// supplied database, modeling a separate replica or restarted process.
+func newHeartbeatService(t *testing.T, database db.Database, bearer, regionalDomain string) *cluster.Service {
+	t.Helper()
+
+	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
+		Fresh:    5 * time.Minute,
+		Stale:    30 * time.Minute,
+		MaxSize:  10,
+		Resource: "test_topology",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+
+	svc, err := cluster.New(cluster.Config{
+		Database: database,
+		// Points nowhere: triggering issuance is best-effort, so the failing
+		// Send must not affect the DB records or the heartbeat response.
+		Restate:        ingress.NewClient("http://127.0.0.1:1"),
+		Bearer:         bearer,
+		Clock:          clock.New(),
+		TopologyCache:  topologyCache,
+		InstanceEvents: batch.NewNoop[schema.InstanceEventV1](),
+		RegionalDomain: regionalDomain,
+	})
+	require.NoError(t, err)
+	return svc
 }
 
 func challengeStatus(ctx context.Context, t *testing.T, database db.Database, domainID string) string {

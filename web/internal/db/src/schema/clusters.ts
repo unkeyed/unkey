@@ -11,6 +11,8 @@ export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
   id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+  // Nullable until an existing cluster reports its cell identity by heartbeat.
+  cellId: caseSensitiveVarchar("cell_id", { length: 64 }).unique(),
   regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {

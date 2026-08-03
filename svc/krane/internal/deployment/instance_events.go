@@ -73,10 +73,10 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 
 	req := &ctrlv1.ReportInstanceEventsRequest{
 		Events: fresh,
-		// Same RegionKey-on-the-body convention every other ClusterService
+		// Same ClusterKey-on-the-body convention every other ClusterService
 		// RPC follows. Without this, ctrl can't map the event to the right
 		// region row and rejects the call with InvalidArgument.
-		Region: c.regionKey(),
+		Cluster: c.clusterKey(),
 	}
 	// Wrap the RPC in the controller's circuit breaker. Same backend as
 	// reportDeploymentStatus, so a ctrl outage trips one breaker for both
