@@ -23,8 +23,8 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
-    # No [registry] section: the local ctlptl registry is unauthenticated,
-    # and without registry config krane skips pull-secret creation entirely.
+    # Tilt adds registry configuration when dev/.env.depot exists. Without
+    # that section, Krane skips pull-secret creation for the local registry.
 
 ---
 apiVersion: v1

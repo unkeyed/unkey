@@ -584,30 +584,30 @@ k8s_resource(
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
-krane_manifest = str(read_file('k8s/manifests/krane.yaml'))
+krane_resources = read_yaml_stream('k8s/manifests/krane.yaml')
 if has_depot_credentials:
-    krane_manifest = krane_manifest.replace(
-        '''    # No [registry] section: the local ctlptl registry is unauthenticated,
-    # and without registry config krane skips pull-secret creation entirely.
-''',
-        '''    [registry]
-    url = "registry.depot.dev"
-    username = "x-token"
-    password = "${UNKEY_REGISTRY_PASSWORD}"
-''',
-    ).replace(
-        '''          imagePullPolicy: Never # Use local images
-''',
-        '''          imagePullPolicy: Never # Use local images
-          env:
-            - name: UNKEY_REGISTRY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_REGISTRY_PASSWORD
-''',
-    )
-k8s_yaml(blob(krane_manifest))
+    for resource in krane_resources:
+        metadata = resource.get('metadata', {})
+        if resource.get('kind') == 'ConfigMap' and metadata.get('name') == 'krane-config':
+            resource['data']['unkey.toml'] += '''
+[registry]
+url = "registry.depot.dev"
+username = "x-token"
+password = "${UNKEY_REGISTRY_PASSWORD}"
+'''
+        if resource.get('kind') == 'Deployment' and metadata.get('name') == 'krane':
+            for container in resource['spec']['template']['spec']['containers']:
+                if container.get('name') == 'krane':
+                    container['env'] = [{
+                        'name': 'UNKEY_REGISTRY_PASSWORD',
+                        'valueFrom': {
+                            'secretKeyRef': {
+                                'name': 'depot-credentials',
+                                'key': 'UNKEY_REGISTRY_PASSWORD',
+                            },
+                        },
+                    }]
+k8s_yaml(encode_yaml_stream(krane_resources))
 krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
 krane_deps = ['ctrl-api', 'rbac', 'namespace', 'registry', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps
 if has_depot_credentials:
