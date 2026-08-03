@@ -1336,8 +1336,8 @@ type Limit struct {
 	LogsRetentionDaysMax                  uint64        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint64        `db:"logs_audit_retention_days_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
-	CpuMax                         uint64        `db:"cpu_max"`
-	CpuMaxPerInstance              uint64        `db:"cpu_max_per_instance"`
+	CpuCoresMax                         uint64        `db:"cpu_cores_max"`
+	CpuCoresMaxPerInstance              uint64        `db:"cpu_cores_max_per_instance"`
 	MemoryMibMax                   uint64        `db:"memory_mib_max"`
 	MemoryMibMaxPerInstance        uint64        `db:"memory_mib_max_per_instance"`
 	DiskEphemeralMibMax            uint64        `db:"disk_ephemeral_mib_max"`

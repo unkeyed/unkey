@@ -41,8 +41,8 @@ INSERT IGNORE INTO `limits` (
   `logs_retention_days_max`,
   `logs_audit_retention_days_max`,
   `team_enabled`,
-  `cpu_max`,
-  `cpu_max_per_instance`,
+  `cpu_cores_max`,
+  `cpu_cores_max_per_instance`,
   `memory_mib_max`,
   `memory_mib_max_per_instance`,
   `disk_ephemeral_mib_max`,
@@ -103,8 +103,8 @@ WHERE NOT (l.`api_billable_operations_count_max_per_month` <=> q.`requests_per_m
    OR NOT (l.`logs_retention_days_max` <=> q.`logs_retention_days`)
    OR NOT (l.`logs_audit_retention_days_max` <=> q.`audit_logs_retention_days`)
    OR NOT (l.`team_enabled` <=> q.`team`)
-   OR NOT (l.`cpu_max` <=> CEIL(q.`allocated_cpu_millicores_total` / 1000))
-   OR NOT (l.`cpu_max_per_instance` <=> CEIL(q.`max_cpu_millicores_per_instance` / 1000))
+   OR NOT (l.`cpu_cores_max` <=> CEIL(q.`allocated_cpu_millicores_total` / 1000))
+   OR NOT (l.`cpu_cores_max_per_instance` <=> CEIL(q.`max_cpu_millicores_per_instance` / 1000))
    OR NOT (l.`memory_mib_max` <=> q.`allocated_memory_mib_total`)
    OR NOT (l.`memory_mib_max_per_instance` <=> q.`max_memory_mib_per_instance`)
    OR NOT (l.`disk_ephemeral_mib_max` <=> q.`allocated_storage_mib_total`)

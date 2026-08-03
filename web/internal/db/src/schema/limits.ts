@@ -31,11 +31,11 @@ export const limits = mysqlTable("limits", {
     unsigned: true,
   }).notNull(),
   teamEnabled: boolean("team_enabled").notNull(),
-  cpuMax: bigint("cpu_max", {
+  cpuCoresMax: bigint("cpu_cores_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  cpuMaxPerInstance: bigint("cpu_max_per_instance", {
+  cpuCoresMaxPerInstance: bigint("cpu_cores_max_per_instance", {
     mode: "number",
     unsigned: true,
   }).notNull(),
