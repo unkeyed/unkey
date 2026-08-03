@@ -1,4 +1,4 @@
-import { freeTierQuotas } from "@/lib/quotas";
+import { limitsByPlan, type PlanLimits } from "@/lib/quotas";
 import type { Quotas } from "@unkey/db";
 import type Stripe from "stripe";
 
@@ -33,48 +33,20 @@ type ComputeOnlyQuotas = Pick<
   | "maxConcurrentBuilds"
 >;
 
-const COMPUTE_PLAN_QUOTAS = {
-  starter: {
-    logsRetentionDays: 3,
-    auditLogsRetentionDays: 7,
-    team: false,
-    maxCpuMillicoresPerInstance: 2_000,
-    maxMemoryMibPerInstance: 2_048,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-  pro: {
-    logsRetentionDays: 7,
-    auditLogsRetentionDays: 14,
-    team: true,
-    maxCpuMillicoresPerInstance: 8_000,
-    maxMemoryMibPerInstance: 8_192,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-  business: {
-    logsRetentionDays: 14,
-    auditLogsRetentionDays: 30,
-    team: true,
-    maxCpuMillicoresPerInstance: 16_000,
-    maxMemoryMibPerInstance: 32_768,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-} satisfies Record<DeployPlan, ComputeQuotas>;
-
-const DEFAULT_COMPUTE_QUOTAS = {
-  logsRetentionDays: freeTierQuotas.logsRetentionDays,
-  auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
-  team: freeTierQuotas.team,
-  maxCpuMillicoresPerInstance: freeTierQuotas.maxCpuMillicoresPerInstance,
-  maxMemoryMibPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-  maxStorageMibPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-  maxConcurrentBuilds: freeTierQuotas.maxConcurrentBuilds,
-} satisfies ComputeQuotas;
+function computeQuotasFromLimits(limits: PlanLimits): ComputeQuotas {
+  return {
+    logsRetentionDays: limits.logsRetentionDaysMax,
+    auditLogsRetentionDays: limits.logsAuditRetentionDaysMax,
+    team: limits.teamEnabled,
+    maxCpuMillicoresPerInstance: limits.cpuCoresMaxPerInstance * 1_000,
+    maxMemoryMibPerInstance: limits.memoryMibMaxPerInstance,
+    maxStorageMibPerInstance: limits.diskEphemeralMibMaxPerInstance,
+    maxConcurrentBuilds: limits.buildsConcurrentCountMax,
+  };
+}
 
 export function computeQuotasForPlan(plan: DeployPlan | null): ComputeQuotas {
-  return plan ? COMPUTE_PLAN_QUOTAS[plan] : DEFAULT_COMPUTE_QUOTAS;
+  return computeQuotasFromLimits(limitsByPlan[plan ?? "free"]);
 }
 
 /**

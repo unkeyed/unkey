@@ -1,11 +1,6 @@
+import { limitsByPlan } from "@/lib/quotas";
 import { type Database, type InsertQuotas, type Transaction, schema } from "@unkey/db";
 import { type DeployPlan, computeQuotaUpdateForPlan } from "./deployPlan";
-
-const customDomainLimitByPlan = {
-  starter: 1,
-  pro: 1_000_000,
-  business: 1_000_000,
-} satisfies Record<DeployPlan, number>;
 
 /** Updates quota once, then mirrors the resulting workspace limits into limits. */
 export async function setComputeQuotas(
@@ -47,7 +42,7 @@ export async function setComputeQuotas(
     diskEphemeralMibMax: quota.allocatedStorageMibTotal,
     diskEphemeralMibMaxPerInstance: quota.maxStorageMibPerInstance,
     buildsConcurrentCountMax: quota.maxConcurrentBuilds,
-    customDomainsCountMax: params.plan ? customDomainLimitByPlan[params.plan] : 0,
+    customDomainsCountMax: limitsByPlan[params.plan ?? "free"].customDomainsCountMax,
   };
   await db
     .insert(schema.limits)
