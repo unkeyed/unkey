@@ -1,5 +1,5 @@
 import { and, db, eq } from "@/lib/db";
-import { freeTierLimits } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import { TRPCError } from "@trpc/server";
 import { appRuntimeSettings, environments, limits } from "@unkey/db/src/schema";
 import { z } from "zod";

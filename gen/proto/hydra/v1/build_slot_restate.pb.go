@@ -27,7 +27,7 @@ import (
 //     representing a Deploy handler blocked on its awakeable waiting for a
 //     slot to free up
 //
-// The limit is read from the workspace's quota.max_concurrent_builds.
+// The limit is read from limits.builds_concurrent_max for the workspace.
 //
 // Key: workspace_id
 type BuildSlotServiceClient interface {
@@ -149,7 +149,7 @@ func (c *buildSlotServiceIngressClient) Release() ingress.Requester[*ReleaseSlot
 //     representing a Deploy handler blocked on its awakeable waiting for a
 //     slot to free up
 //
-// The limit is read from the workspace's quota.max_concurrent_builds.
+// The limit is read from limits.builds_concurrent_max for the workspace.
 //
 // Key: workspace_id
 type BuildSlotServiceServer interface {

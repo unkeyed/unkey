@@ -1340,10 +1340,10 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
-	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
-	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
-	// is safe to call after InsertWorkspace without a prior check. New workspaces
-	// start on the Free tier with no Stripe linkage and no plan.
+	// Creates the billing row for a workspace. Idempotent: a second call for the
+	// same workspace is a no-op, so it is safe to call after InsertWorkspace without
+	// a prior check. New workspaces start on the Free tier with no Stripe linkage and
+	// no plan.
 	//
 	//  INSERT INTO `workspace_billing` (
 	//      workspace_id,
@@ -2196,24 +2196,6 @@ type Querier interface {
 	//      content = VALUES(content),
 	//      updated_at = VALUES(updated_at)
 	UpsertOpenApiSpec(ctx context.Context, arg UpsertOpenApiSpecParams) error
-	//UpsertQuota
-	//
-	//  INSERT INTO quota (
-	//      workspace_id,
-	//      requests_per_month,
-	//      audit_logs_retention_days,
-	//      logs_retention_days,
-	//      team,
-	//      ratelimit_api_limit,
-	//      ratelimit_api_duration
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      requests_per_month = VALUES(requests_per_month),
-	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days),
-	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
-	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
-	UpsertQuota(ctx context.Context, arg UpsertQuotaParams) error
 	// Inserts a region or does nothing if it already exists (keyed by the
 	// (name, platform) unique index).
 	//

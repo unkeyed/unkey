@@ -2182,7 +2182,7 @@ type Querier interface {
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
 	// ids live on billing_subscriptions and are cleared separately by
 	// DeleteWorkspaceBillingSubscriptions. Used by the `unkey dev stripe reset`
-	// tooling; quota is reset separately via UpdateQuota.
+	// tooling.
 	//
 	//  UPDATE `workspace_billing`
 	//  SET stripe_customer_id = NULL,
@@ -2486,29 +2486,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
-	// Overwrites every column of a workspace's quota row (team included, unlike
-	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
-	// full set of values, so it fits full resets like `unkey dev stripe reset`:
-	// resetting only the core quotas would leave a paid tier's elevated rate-limit
-	// and Deploy-resource allowances behind.
-	//
-	//  UPDATE quota
-	//  SET requests_per_month = ?,
-	//      audit_logs_retention_days = ?,
-	//      logs_retention_days = ?,
-	//      team = ?,
-	//      ratelimit_api_limit = ?,
-	//      ratelimit_api_duration = ?,
-	//      allocated_cpu_millicores_total = ?,
-	//      allocated_memory_mib_total = ?,
-	//      allocated_storage_mib_total = ?,
-	//      max_cpu_millicores_per_instance = ?,
-	//      max_memory_mib_per_instance = ?,
-	//      max_storage_mib_per_instance = ?,
-	//      max_concurrent_builds = ?,
-	//      max_replicas_per_region = ?
-	//  WHERE workspace_id = ?
-	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
@@ -2777,24 +2754,6 @@ type Querier interface {
 	//      primary_color = VALUES(primary_color),
 	//      updated_at = VALUES(updated_at)
 	UpsertPortalBranding(ctx context.Context, db DBTX, arg UpsertPortalBrandingParams) error
-	//UpsertQuota
-	//
-	//  INSERT INTO quota (
-	//      workspace_id,
-	//      requests_per_month,
-	//      audit_logs_retention_days,
-	//      logs_retention_days,
-	//      team,
-	//      ratelimit_api_limit,
-	//      ratelimit_api_duration
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      requests_per_month = VALUES(requests_per_month),
-	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days),
-	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
-	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
-	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
 	// Inserts a region or does nothing if it already exists.
 	//
 	//  INSERT INTO regions (

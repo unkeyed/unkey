@@ -161,18 +161,7 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 func seedScaleLimits(t *testing.T, ctx context.Context, h *testutil.Harness) {
 	t.Helper()
 
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            scaleWorkspaceID,
-		LogsRetentionDays:      30,
-		AuditLogsRetentionDays: 30,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
-	})
-	require.NoError(t, err)
-
-	err = db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           scaleWorkspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
 		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
@@ -187,7 +176,7 @@ func seedScaleLimits(t *testing.T, ctx context.Context, h *testutil.Harness) {
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
 		CustomDomainsMax:                      0,
-		AutoscalingReplicasMax:                4,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(t, err)
 }
