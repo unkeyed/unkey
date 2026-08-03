@@ -48,10 +48,10 @@ INSERT IGNORE INTO `limits` (
   `cpu_cores_max_per_instance`,
   `memory_mib_max`,
   `memory_mib_max_per_instance`,
-  `disk_ephemeral_mib_max`,
-  `disk_ephemeral_mib_max_per_instance`,
-  `builds_concurrent_count_max`,
-  `custom_domains_count_max`,
+  `storage_mib_max`,
+  `storage_mib_max_per_instance`,
+  `builds_concurrent_max`,
+  `custom_domains_max`,
   `autoscaling_replicas_max`
 )
 SELECT
@@ -117,11 +117,11 @@ WHERE NOT (l.`api_billable_operations_count_max_per_month` <=> q.`requests_per_m
    OR NOT (l.`cpu_cores_max_per_instance` <=> CEIL(q.`max_cpu_millicores_per_instance` / 1000))
    OR NOT (l.`memory_mib_max` <=> q.`allocated_memory_mib_total`)
    OR NOT (l.`memory_mib_max_per_instance` <=> q.`max_memory_mib_per_instance`)
-   OR NOT (l.`disk_ephemeral_mib_max` <=> q.`allocated_storage_mib_total`)
-   OR NOT (l.`disk_ephemeral_mib_max_per_instance` <=> q.`max_storage_mib_per_instance`)
-   OR NOT (l.`builds_concurrent_count_max` <=> q.`max_concurrent_builds`)
+   OR NOT (l.`storage_mib_max` <=> q.`allocated_storage_mib_total`)
+   OR NOT (l.`storage_mib_max_per_instance` <=> q.`max_storage_mib_per_instance`)
+   OR NOT (l.`builds_concurrent_max` <=> q.`max_concurrent_builds`)
    OR NOT (
-     l.`custom_domains_count_max` <=>
+     l.`custom_domains_max` <=>
      CASE COALESCE(NULLIF(b.`plan_override`, ''), NULLIF(b.`plan`, ''))
        WHEN 'starter' THEN 1
        WHEN 'pro' THEN 1000000

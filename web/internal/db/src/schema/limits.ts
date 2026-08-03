@@ -15,7 +15,8 @@ import { workspaces } from "./workspaces";
  * Units describe what the number measures. Qualifiers describe where or when
  * the limit applies. Put max after the unit being capped, and put scope
  * qualifiers after max only when they are needed. Boolean feature gates should
- * use `<feature>_enabled`.
+ * use `<feature>_enabled`. Use count only when the counted thing is not clear
+ * from the resource name.
  */
 export const limits = mysqlTable("limits", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
@@ -81,24 +82,24 @@ export const limits = mysqlTable("limits", {
   memoryMibMaxPerInstance: int("memory_mib_max_per_instance", { unsigned: true }).notNull(),
 
   /**
-   * Caps how much ephemeral disk the workspace can allocate across all running
+   * Caps how much storage the workspace can allocate across all running
    * instances. Unit: MiB.
    */
-  diskEphemeralMibMax: int("disk_ephemeral_mib_max", { unsigned: true }).notNull(),
+  storageMibMax: int("storage_mib_max", { unsigned: true }).notNull(),
 
   /**
-   * Caps how much ephemeral disk one runtime instance can request.
+   * Caps how much storage one runtime instance can request.
    * Unit: MiB.
    */
-  diskEphemeralMibMaxPerInstance: int("disk_ephemeral_mib_max_per_instance", {
+  storageMibMaxPerInstance: int("storage_mib_max_per_instance", {
     unsigned: true,
   }).notNull(),
 
   /**
    * Caps how many builds the workspace can run at the same time.
-   * Unit: active builds.
+   * Unit: builds.
    */
-  buildsConcurrentCountMax: smallint("builds_concurrent_count_max", { unsigned: true }).notNull(),
+  buildsConcurrentMax: smallint("builds_concurrent_max", { unsigned: true }).notNull(),
 
   // Add these when build workers read limits from this table.
   //
@@ -130,7 +131,7 @@ export const limits = mysqlTable("limits", {
    * Caps how many custom domains the workspace can add.
    * Unit: domains.
    */
-  customDomainsCountMax: int("custom_domains_count_max", { unsigned: true }).notNull(),
+  customDomainsMax: int("custom_domains_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how many replicas autoscaling can run for one app.

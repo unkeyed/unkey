@@ -1343,10 +1343,10 @@ type Limit struct {
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
 	MemoryMibMax                          uint32        `db:"memory_mib_max"`
 	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
-	DiskEphemeralMibMax                   uint32        `db:"disk_ephemeral_mib_max"`
-	DiskEphemeralMibMaxPerInstance        uint32        `db:"disk_ephemeral_mib_max_per_instance"`
-	BuildsConcurrentCountMax              uint16        `db:"builds_concurrent_count_max"`
-	CustomDomainsCountMax                 uint32        `db:"custom_domains_count_max"`
+	StorageMibMax                         uint32        `db:"storage_mib_max"`
+	StorageMibMaxPerInstance              uint32        `db:"storage_mib_max_per_instance"`
+	BuildsConcurrentMax                   uint16        `db:"builds_concurrent_max"`
+	CustomDomainsMax                      uint32        `db:"custom_domains_max"`
 	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
 }
 

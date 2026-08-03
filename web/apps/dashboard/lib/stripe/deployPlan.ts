@@ -40,8 +40,8 @@ function computeQuotasFromLimits(limits: PlanLimits): ComputeQuotas {
     team: limits.teamEnabled,
     maxCpuMillicoresPerInstance: limits.cpuCoresMaxPerInstance * 1_000,
     maxMemoryMibPerInstance: limits.memoryMibMaxPerInstance,
-    maxStorageMibPerInstance: limits.diskEphemeralMibMaxPerInstance,
-    maxConcurrentBuilds: limits.buildsConcurrentCountMax,
+    maxStorageMibPerInstance: limits.storageMibMaxPerInstance,
+    maxConcurrentBuilds: limits.buildsConcurrentMax,
   };
 }
 
