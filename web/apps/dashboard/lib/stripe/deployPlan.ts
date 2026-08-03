@@ -1,4 +1,4 @@
-import { limitsByPlan, type PlanLimits } from "@/lib/quotas";
+import { type PlanLimits, limitsByPlan } from "@/lib/quotas";
 import type { Quotas } from "@unkey/db";
 import type Stripe from "stripe";
 

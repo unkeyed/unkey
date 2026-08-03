@@ -13,14 +13,9 @@ CREATE TABLE `limits` (
 	`disk_ephemeral_mib_max` int unsigned NOT NULL,
 	`disk_ephemeral_mib_max_per_instance` int unsigned NOT NULL,
 	`builds_concurrent_count_max` smallint unsigned NOT NULL,
-	-- Add these when build workers read limits from this table.
-	-- `builds_duration_minutes_max` smallint unsigned NOT NULL,
-	-- `builds_machine_cpu_cores_max` smallint unsigned NOT NULL,
-	-- `builds_machine_memory_mib_max` int unsigned NOT NULL,
-	-- `builds_cache_gib_max` smallint unsigned NOT NULL,
-	-- `builds_cache_retention_days_max` smallint unsigned NOT NULL,
 	`custom_domains_count_max` int unsigned NOT NULL,
 	`autoscaling_replicas_max` smallint unsigned NOT NULL,
 	CONSTRAINT `limits_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `limits_workspace_id_unique` UNIQUE(`workspace_id`)
 );
+
