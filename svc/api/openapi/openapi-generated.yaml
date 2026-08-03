@@ -4711,7 +4711,6 @@ components:
                 dnsRecords:
                     type: array
                     minItems: 1
-                    maxItems: 4
                     items:
                         "$ref": "#/components/schemas/DnsRecord"
                     description: |
@@ -9076,8 +9075,8 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 pending:
-                                    description: Neither record has been read back yet, so nothing routes
-                                    summary: Domain still waiting on DNS
+                                    description: No DNS check has run, so lastCheckedAt and updatedAt are absent rather than zero
+                                    summary: Domain created, not checked yet
                                     value:
                                         data:
                                             appId: app_1234abcd
@@ -9094,11 +9093,10 @@ paths:
                                             domain: api.acme.com
                                             environmentId: env_1234abcd
                                             id: dom_1234abcd
-                                            lastCheckedAt: 1704067260000
                                             ownershipVerified: false
                                             projectId: proj_1234abcd
                                             routingVerified: false
-                                            status: verifying
+                                            status: pending
                                         meta:
                                             requestId: req_1234abcd
                                 verified:
@@ -9148,7 +9146,7 @@ paths:
                                             errors:
                                                 - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd', without a scheme, port, or path
                                                   location: body.domain
-                                                  message: must match ^[a-zA-Z0-9_.-]+$
+                                                  message: must match ^([a-zA-Z0-9_]+|([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error

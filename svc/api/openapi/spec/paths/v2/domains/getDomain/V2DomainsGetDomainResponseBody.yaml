@@ -41,8 +41,8 @@ examples:
         createdAt: 1704067200000
         updatedAt: 1704067260000
   pending:
-    summary: Domain still waiting on DNS
-    description: Neither record has been read back yet, so nothing routes
+    summary: Domain created, not checked yet
+    description: No DNS check has run, so lastCheckedAt and updatedAt are absent rather than zero
     value:
       meta:
         requestId: req_1234abcd
@@ -52,10 +52,9 @@ examples:
         projectId: proj_1234abcd
         appId: app_1234abcd
         environmentId: env_1234abcd
-        status: verifying
+        status: pending
         routingVerified: false
         ownershipVerified: false
-        lastCheckedAt: 1704067260000
         dnsRecords:
           - type: CNAME
             name: api.acme.com

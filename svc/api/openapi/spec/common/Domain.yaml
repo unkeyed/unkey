@@ -105,7 +105,6 @@ properties:
   dnsRecords:
     type: array
     minItems: 1
-    maxItems: 4
     items:
       "$ref": "./DnsRecord.yaml"
     description: |
