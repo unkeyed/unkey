@@ -1,0 +1,51 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - domain
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  domain:
+    type: string
+    minLength: 4
+    maxLength: 253
+    pattern: "^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$"
+    description: |
+      Fully qualified domain name to attach to the environment, without a scheme, port, or path.
+      Must be unique across your entire workspace: the same name cannot be attached to two environments.
+      Labels may contain letters, digits, and hyphens, and cannot start or end with a hyphen.
+    example: api.acme.com
+additionalProperties: false
+examples:
+  bySlug:
+    summary: Attach a domain, locating the environment by slug
+    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      domain: api.acme.com
+  byId:
+    summary: Attach a domain, locating the environment by ID
+    description: Uses the ids returned by projects.listProjects, apps.listApps, and environments.listEnvironments
+    value:
+      project: proj_1234abcd
+      app: app_1234abcd
+      environment: env_1234abcd
+      domain: api.acme.com
+  apex:
+    summary: Attach an apex domain
+    description: |
+      An apex domain cannot carry a CNAME, so it is verified through the TXT record and needs A or AAAA
+      records pointing at Unkey before it starts serving traffic
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      domain: acme.com

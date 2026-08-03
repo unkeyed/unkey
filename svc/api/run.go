@@ -456,6 +456,16 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	)
 
+	ctrlCustomDomainClient := ctrl.NewConnectCustomDomainServiceClient(
+		ctrlv1connect.NewCustomDomainServiceClient(
+			&http.Client{},
+			cfg.Control.URL,
+			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
+			})),
+		),
+	)
+
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
@@ -501,9 +511,11 @@ func Run(ctx context.Context, cfg Config) error {
 		CtrlDeploymentClient: ctrlDeploymentClient,
 		CtrlProjectClient:    ctrlProjectClient,
 		CtrlAppClient:        ctrlAppClient,
-		PprofEnabled:         pprofEnabled,
-		PprofUsername:        pprofUsername,
-		PprofPassword:        pprofPassword,
+
+		CtrlCustomDomainClient: ctrlCustomDomainClient,
+		PprofEnabled:           pprofEnabled,
+		PprofUsername:          pprofUsername,
+		PprofPassword:          pprofPassword,
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,

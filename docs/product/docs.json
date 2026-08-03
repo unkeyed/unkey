@@ -503,6 +503,7 @@
                       "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/deployment_not_found",
+                      "errors/unkey/data/domain_already_exists",
                       "errors/unkey/data/environment_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",

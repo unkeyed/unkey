@@ -13,10 +13,14 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -29,6 +33,7 @@ type Service struct {
 	db                         db.Database
 	restate                    *restateingress.Client
 	restateAdmin               *restateadmin.Client
+	auditlogs                  auditlogs.AuditLogService
 	cnameDomain                string
 	domainConnectPrivateKeyPEM []byte
 	bearer                     string
@@ -42,6 +47,8 @@ type Config struct {
 	Restate *restateingress.Client
 	// RestateAdmin is the admin client for canceling invocations.
 	RestateAdmin *restateadmin.Client
+	// Auditlogs records custom domain mutations within the same transaction as the write.
+	Auditlogs auditlogs.AuditLogService
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	CnameDomain string
 	// DomainConnectPrivateKeyPEM is the PEM-encoded RSA private key for signing
@@ -58,6 +65,7 @@ func New(cfg Config) *Service {
 		db:                                      cfg.Database,
 		restate:                                 cfg.Restate,
 		restateAdmin:                            cfg.RestateAdmin,
+		auditlogs:                               cfg.Auditlogs,
 		cnameDomain:                             cfg.CnameDomain,
 		domainConnectPrivateKeyPEM:              cfg.DomainConnectPrivateKeyPEM,
 		bearer:                                  cfg.Bearer,
@@ -82,6 +90,16 @@ func (s *Service) AddCustomDomain(
 ) (*connect.Response[ctrlv1.AddCustomDomainResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
+	}
+	if err := assert.All(
+		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
+		assert.NotEmpty(req.Msg.GetProjectId(), "project_id is required"),
+		assert.NotEmpty(req.Msg.GetAppId(), "app_id is required"),
+		assert.NotEmpty(req.Msg.GetEnvironmentId(), "environment_id is required"),
+		assert.NotEmpty(req.Msg.GetDomain(), "domain is required"),
+		assert.NotNilAndNotZero(req.Msg.GetActor(), "actor is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	domain := req.Msg.GetDomain()
@@ -149,23 +167,59 @@ func (s *Service) AddCustomDomain(
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
-	err = s.db.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
-		ID:                    domainID,
-		WorkspaceID:           req.Msg.GetWorkspaceId(),
-		ProjectID:             req.Msg.GetProjectId(),
-		AppID:                 req.Msg.GetAppId(),
-		EnvironmentID:         req.Msg.GetEnvironmentId(),
-		Domain:                domain,
-		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
-		VerificationStatus:    db.CustomDomainsVerificationStatusPending,
-		VerificationToken:     verificationToken,
-		TargetCname:           targetCname,
-		DomainConnectProvider: sql.NullString{Valid: dcProvider != "", String: dcProvider},
-		DomainConnectUrl:      sql.NullString{Valid: dcURL != "", String: dcURL},
-		InvocationID:          sql.NullString{String: "", Valid: false},
-		CreatedAt:             now,
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if txErr := db.NewQueries(tx).InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
+			ID:                    domainID,
+			WorkspaceID:           req.Msg.GetWorkspaceId(),
+			ProjectID:             req.Msg.GetProjectId(),
+			AppID:                 req.Msg.GetAppId(),
+			EnvironmentID:         req.Msg.GetEnvironmentId(),
+			Domain:                domain,
+			ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
+			VerificationStatus:    db.CustomDomainsVerificationStatusPending,
+			VerificationToken:     verificationToken,
+			TargetCname:           targetCname,
+			DomainConnectProvider: sql.NullString{Valid: dcProvider != "", String: dcProvider},
+			DomainConnectUrl:      sql.NullString{Valid: dcURL != "", String: dcURL},
+			InvocationID:          sql.NullString{String: "", Valid: false},
+			CreatedAt:             now,
+		}); txErr != nil {
+			return fmt.Errorf("insert custom domain: %w", txErr)
+		}
+
+		a := req.Msg.GetActor()
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   req.Msg.GetWorkspaceId(),
+				Event:         auditlog.DomainCreateEvent,
+				Display:       fmt.Sprintf("Added custom domain %s", domain),
+				ActorID:       a.GetId(),
+				ActorName:     a.GetName(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          domainID,
+						Type:        auditlog.DomainResourceType,
+						Meta:        map[string]any{"domain": domain, "projectId": req.Msg.GetProjectId(), "appId": req.Msg.GetAppId(), "environmentId": req.Msg.GetEnvironmentId()},
+						Name:        domain,
+						DisplayName: domain,
+					},
+				},
+			},
+		}); txErr != nil {
+			return fmt.Errorf("insert audit log: %w", txErr)
+		}
+
+		return nil
 	})
 	if err != nil {
+		if db.IsDuplicateKeyError(err) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
 	}
 
@@ -174,7 +228,8 @@ func (s *Service) AddCustomDomain(
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
-		logger.Warn("failed to trigger verification workflow",
+		logger.Warn(
+			"failed to trigger verification workflow",
 			"domain", domain,
 			"error", sendErr,
 		)
@@ -193,6 +248,7 @@ func (s *Service) AddCustomDomain(
 		Status:                ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
 		DomainConnectProvider: dcProvider,
 		DomainConnectUrl:      dcURL,
+		VerificationToken:     verificationToken,
 	}), nil
 }
 
@@ -225,7 +281,8 @@ func (s *Service) DeleteCustomDomain(
 	// Cancel any running verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			logger.Warn("failed to cancel verification workflow",
+			logger.Warn(
+				"failed to cancel verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,
@@ -297,7 +354,8 @@ func (s *Service) RetryVerification(
 	// Cancel any existing verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			logger.Warn("failed to cancel old verification workflow",
+			logger.Warn(
+				"failed to cancel old verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,

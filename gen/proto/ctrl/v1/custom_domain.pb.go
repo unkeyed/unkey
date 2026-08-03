@@ -84,6 +84,7 @@ type AddCustomDomainRequest struct {
 	EnvironmentId string                 `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	Domain        string                 `protobuf:"bytes,4,opt,name=domain,proto3" json:"domain,omitempty"`
 	AppId         string                 `protobuf:"bytes,5,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,6,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -153,6 +154,13 @@ func (x *AddCustomDomainRequest) GetAppId() string {
 	return ""
 }
 
+func (x *AddCustomDomainRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
 type AddCustomDomainResponse struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	DomainId    string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
@@ -162,8 +170,12 @@ type AddCustomDomainResponse struct {
 	DomainConnectProvider string `protobuf:"bytes,4,opt,name=domain_connect_provider,json=domainConnectProvider,proto3" json:"domain_connect_provider,omitempty"`
 	// Fully signed Domain Connect redirect URL. Empty if unavailable.
 	DomainConnectUrl string `protobuf:"bytes,5,opt,name=domain_connect_url,json=domainConnectUrl,proto3" json:"domain_connect_url,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Ownership proof token the caller publishes as a TXT record on
+	// "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
+	// apex domains, which cannot carry a CNAME.
+	VerificationToken string `protobuf:"bytes,6,opt,name=verification_token,json=verificationToken,proto3" json:"verification_token,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AddCustomDomainResponse) Reset() {
@@ -227,6 +239,13 @@ func (x *AddCustomDomainResponse) GetDomainConnectProvider() string {
 func (x *AddCustomDomainResponse) GetDomainConnectUrl() string {
 	if x != nil {
 		return x.DomainConnectUrl
+	}
+	return ""
+}
+
+func (x *AddCustomDomainResponse) GetVerificationToken() string {
+	if x != nil {
+		return x.VerificationToken
 	}
 	return ""
 }
@@ -435,20 +454,22 @@ var File_ctrl_v1_custom_domain_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"\n" +
-	"\x1bctrl/v1/custom_domain.proto\x12\actrl.v1\"\xb0\x01\n" +
+	"\x1bctrl/v1/custom_domain.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xda\x01\n" +
 	"\x16AddCustomDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
 	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12\x16\n" +
 	"\x06domain\x18\x04 \x01(\tR\x06domain\x12\x15\n" +
-	"\x06app_id\x18\x05 \x01(\tR\x05appId\"\xf4\x01\n" +
+	"\x06app_id\x18\x05 \x01(\tR\x05appId\x12(\n" +
+	"\x05actor\x18\x06 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\xa3\x02\n" +
 	"\x17AddCustomDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x123\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\x126\n" +
 	"\x17domain_connect_provider\x18\x04 \x01(\tR\x15domainConnectProvider\x12,\n" +
-	"\x12domain_connect_url\x18\x05 \x01(\tR\x10domainConnectUrl\"u\n" +
+	"\x12domain_connect_url\x18\x05 \x01(\tR\x10domainConnectUrl\x12-\n" +
+	"\x12verification_token\x18\x06 \x01(\tR\x11verificationToken\"u\n" +
 	"\x19DeleteCustomDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -496,21 +517,23 @@ var file_ctrl_v1_custom_domain_proto_goTypes = []any{
 	(*DeleteCustomDomainResponse)(nil), // 4: ctrl.v1.DeleteCustomDomainResponse
 	(*RetryVerificationRequest)(nil),   // 5: ctrl.v1.RetryVerificationRequest
 	(*RetryVerificationResponse)(nil),  // 6: ctrl.v1.RetryVerificationResponse
+	(*ActorInfo)(nil),                  // 7: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_custom_domain_proto_depIdxs = []int32{
-	0, // 0: ctrl.v1.AddCustomDomainResponse.status:type_name -> ctrl.v1.CustomDomainStatus
-	0, // 1: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
-	1, // 2: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
-	3, // 3: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
-	5, // 4: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
-	2, // 5: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
-	4, // 6: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
-	6, // 7: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7, // 0: ctrl.v1.AddCustomDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 1: ctrl.v1.AddCustomDomainResponse.status:type_name -> ctrl.v1.CustomDomainStatus
+	0, // 2: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
+	1, // 3: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
+	3, // 4: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
+	5, // 5: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
+	2, // 6: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
+	4, // 7: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
+	6, // 8: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_custom_domain_proto_init() }
@@ -518,6 +541,7 @@ func file_ctrl_v1_custom_domain_proto_init() {
 	if File_ctrl_v1_custom_domain_proto != nil {
 		return
 	}
+	file_ctrl_v1_actor_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

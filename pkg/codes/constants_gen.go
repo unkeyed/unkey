@@ -114,6 +114,11 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// Domain
+
+	// Duplicate indicates the domain is already registered in this workspace.
+	UnkeyDataErrorsDomainDuplicate URN = "err:unkey:data:domain_already_exists"
+
 	// Deployment
 
 	// NotFound indicates the requested deployment does not exist.

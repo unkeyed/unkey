@@ -1,6 +1,8 @@
 syntax = "proto3";
 package ctrl.v1;
 
+import "ctrl/v1/actor.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Custom domain verification status
@@ -18,6 +20,7 @@ message AddCustomDomainRequest {
   string environment_id = 3;
   string domain = 4;
   string app_id = 5;
+  ActorInfo actor = 6;
 }
 
 message AddCustomDomainResponse {
@@ -28,6 +31,10 @@ message AddCustomDomainResponse {
   string domain_connect_provider = 4;
   // Fully signed Domain Connect redirect URL. Empty if unavailable.
   string domain_connect_url = 5;
+  // Ownership proof token the caller publishes as a TXT record on
+  // "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
+  // apex domains, which cannot carry a CNAME.
+  string verification_token = 6;
 }
 
 message DeleteCustomDomainRequest {
