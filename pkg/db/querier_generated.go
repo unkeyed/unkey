@@ -55,13 +55,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
-	//DeleteEnvVarsByKeys
-	//
-	//  DELETE FROM app_environment_variables
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	//    AND `key` IN (/*SLICE:env_keys*/?)
-	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
 	//DeleteGithubRepoConnectionsByAppId
 	//
 	//  DELETE FROM github_repo_connections WHERE app_id = ?

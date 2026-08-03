@@ -512,28 +512,11 @@ type Querier interface {
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FrontlineRoute, error)
-	//FindFrontlineRouteForPromotion
-	//
-	//  SELECT
-	//      id,
-	//      project_id,
-	//      environment_id,
-	//      fully_qualified_domain_name,
-	//      deployment_id,
-	//      sticky,
-	//      created_at,
-	//      updated_at
-	//  FROM frontline_routes
-	//  WHERE
-	//    environment_id = ?
-	//    AND sticky IN (/*SLICE:sticky*/?)
-	//  ORDER BY created_at ASC
-	FindFrontlineRouteForPromotion(ctx context.Context, arg FindFrontlineRouteForPromotionParams) ([]FindFrontlineRouteForPromotionRow, error)
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ?
 	FindFrontlineRoutesByDeploymentID(ctx context.Context, deploymentID string) ([]FrontlineRoute, error)
-	//FindFrontlineRoutesForRollback
+	//FindFrontlineRoutesByEnvironmentAndSticky
 	//
 	//  SELECT
 	//      id,
@@ -549,7 +532,7 @@ type Querier interface {
 	//    environment_id = ?
 	//    AND sticky IN (/*SLICE:sticky*/?)
 	//  ORDER BY created_at ASC
-	FindFrontlineRoutesForRollback(ctx context.Context, arg FindFrontlineRoutesForRollbackParams) ([]FindFrontlineRoutesForRollbackRow, error)
+	FindFrontlineRoutesByEnvironmentAndSticky(ctx context.Context, arg FindFrontlineRoutesByEnvironmentAndStickyParams) ([]FindFrontlineRoutesByEnvironmentAndStickyRow, error)
 	//FindGithubRepoConnectionByAppId
 	//
 	//  SELECT
