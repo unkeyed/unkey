@@ -5,7 +5,7 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
@@ -778,40 +778,10 @@ export const POST = async (req: Request): Promise<Response> => {
                 .insert(schema.limits)
                 .values({
                   workspaceId: ws.id,
-                  apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
-                  apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
-                  logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
-                  logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
-                  teamEnabled: freeTierQuotas.team,
-                  cpuCoresMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
-                  cpuCoresMaxPerInstance: Math.ceil(
-                    freeTierQuotas.maxCpuMillicoresPerInstance / 1_000,
-                  ),
-                  memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
-                  memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-                  diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
-                  diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-                  buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
-                  customDomainsCountMax: 0,
+                  ...freeTierLimits,
                 })
                 .onDuplicateKeyUpdate({
-                  set: {
-                    apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
-                    apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
-                    logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
-                    logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
-                    teamEnabled: freeTierQuotas.team,
-                    cpuCoresMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
-                    cpuCoresMaxPerInstance: Math.ceil(
-                      freeTierQuotas.maxCpuMillicoresPerInstance / 1_000,
-                    ),
-                    memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
-                    memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-                    diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
-                    diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-                    buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
-                    customDomainsCountMax: 0,
-                  },
+                  set: freeTierLimits,
                 });
             }
 
@@ -904,40 +874,10 @@ export const POST = async (req: Request): Promise<Response> => {
               .insert(schema.limits)
               .values({
                 workspaceId: ws.id,
-                apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
-                apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
-                logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
-                logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
-                teamEnabled: freeTierQuotas.team,
-                cpuCoresMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
-                cpuCoresMaxPerInstance: Math.ceil(
-                  freeTierQuotas.maxCpuMillicoresPerInstance / 1_000,
-                ),
-                memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
-                memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-                diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
-                diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-                buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
-                customDomainsCountMax: 0,
+                ...freeTierLimits,
               })
               .onDuplicateKeyUpdate({
-                set: {
-                  apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
-                  apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
-                  logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
-                  logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
-                  teamEnabled: freeTierQuotas.team,
-                  cpuCoresMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
-                  cpuCoresMaxPerInstance: Math.ceil(
-                    freeTierQuotas.maxCpuMillicoresPerInstance / 1_000,
-                  ),
-                  memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
-                  memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-                  diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
-                  diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-                  buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
-                  customDomainsCountMax: 0,
-                },
+                set: freeTierLimits,
               });
           }
 

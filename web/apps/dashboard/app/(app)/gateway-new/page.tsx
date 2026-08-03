@@ -10,7 +10,7 @@
 import { randomInt } from "node:crypto";
 import { getAuth } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
 import { dns1035, newId } from "@unkey/id";
 import { redirect } from "next/navigation";
 
@@ -40,19 +40,7 @@ export default async function Page() {
       });
       await tx.insert(schema.limits).values({
         workspaceId: id,
-        apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
-        apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
-        logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
-        logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
-        teamEnabled: freeTierQuotas.team,
-        cpuCoresMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
-        cpuCoresMaxPerInstance: Math.ceil(freeTierQuotas.maxCpuMillicoresPerInstance / 1_000),
-        memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
-        memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-        diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
-        diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-        buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
-        customDomainsCountMax: 0,
+        ...freeTierLimits,
       });
       await tx.insert(schema.workspaceBilling).values({
         workspaceId: id,
