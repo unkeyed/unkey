@@ -413,10 +413,10 @@ export const POST = async (req: Request): Promise<Response> => {
           columns: { workspaceId: true, product: true },
           with: {
             workspace: {
-              columns: { id: true, deletedAtM: true },
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
               with: {
                 billing: {
-                  columns: { workspaceId: true, plan: true },
+                  columns: { workspaceId: true, plan: true, tier: true },
                 },
               },
             },
@@ -721,7 +721,7 @@ export const POST = async (req: Request): Promise<Response> => {
           columns: { workspaceId: true, product: true },
           with: {
             workspace: {
-              columns: { id: true, orgId: true, deletedAtM: true },
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
               with: {
                 billing: {
                   columns: { tier: true, plan: true },
@@ -950,10 +950,10 @@ export const POST = async (req: Request): Promise<Response> => {
           columns: { workspaceId: true, product: true },
           with: {
             workspace: {
-              columns: { deletedAtM: true },
+              columns: { id: true, orgId: true, name: true, deletedAtM: true },
               with: {
                 billing: {
-                  columns: { workspaceId: true, plan: true },
+                  columns: { workspaceId: true, plan: true, tier: true },
                 },
               },
             },

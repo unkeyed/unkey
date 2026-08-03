@@ -33,7 +33,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 
 	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
 		DeploymentID: req.Msg.GetDeploymentId(),
-		RegionID:     cluster.Region.ID,
+		RegionID:     cluster.RegionID,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

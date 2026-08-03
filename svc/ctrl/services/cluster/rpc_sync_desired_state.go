@@ -32,7 +32,7 @@ func (s *Service) SyncDesiredState(
 
 	fullSyncStart := time.Now()
 
-	if err := s.syncDeployments(ctx, stream, cluster.Region.ID); err != nil {
+	if err := s.syncDeployments(ctx, stream, cluster.RegionID); err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}

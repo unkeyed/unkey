@@ -130,7 +130,7 @@ export async function linkDeploySubscription(
     columns: { id: true },
     with: {
       billing: {
-        columns: { plan: true },
+        columns: { plan: true, tier: true },
       },
       billingSubscriptions: {
         columns: { product: true, stripeSubscriptionId: true },
