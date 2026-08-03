@@ -4,7 +4,9 @@ import { stripeEnv } from "@/lib/env";
 import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
 import { deployBillingConfig, findApiItem } from "./deployBilling";
+import { parseDeployPlan } from "./deployPlan";
 import { validateAndParseQuotas } from "./productUtils";
+import { setComputeQuotas } from "./setComputeQuotas";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 export type LinkApiAudit = {
@@ -158,23 +160,23 @@ export async function linkApiSubscription(
       product: "api",
       stripeSubscriptionId: subscriptionId,
     });
+    const quotaUpdate = {
+      requestsPerMonth,
+      logsRetentionDays,
+      auditLogsRetentionDays,
+      team: true,
+    };
     await tx
       .insert(schema.quotas)
-      .values({
-        workspaceId: ws.id,
-        requestsPerMonth,
-        logsRetentionDays,
-        auditLogsRetentionDays,
-        team: true,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          requestsPerMonth,
-          logsRetentionDays,
-          auditLogsRetentionDays,
-          team: true,
-        },
-      });
+      .values({ workspaceId: ws.id, ...quotaUpdate })
+      .onDuplicateKeyUpdate({ set: quotaUpdate });
+    await setComputeQuotas(tx, {
+      workspaceId: ws.id,
+      plan:
+        parseDeployPlan(ws.billing?.planOverride ?? null) ??
+        parseDeployPlan(ws.billing?.plan ?? null),
+      preserveApiQuotas: true,
+    });
     await insertAuditLogs(tx, {
       workspaceId: ws.id,
       actor: input.audit.actor,

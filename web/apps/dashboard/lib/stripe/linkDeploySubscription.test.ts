@@ -13,7 +13,23 @@ const h = vi.hoisted(() => {
   const values = vi.fn().mockReturnValue({ onDuplicateKeyUpdate });
   const insert = vi.fn().mockReturnValue({ values });
   const findFirst = vi.fn();
-  const transaction = vi.fn(async (cb: (tx: unknown) => unknown) => cb({ update, insert }));
+  const quotaFindFirst = vi.fn().mockResolvedValue({
+    requestsPerMonth: 150_000,
+    logsRetentionDays: 3,
+    auditLogsRetentionDays: 7,
+    team: false,
+    ratelimitApiLimit: null,
+    allocatedCpuMillicoresTotal: 10_000,
+    maxCpuMillicoresPerInstance: 2_000,
+    allocatedMemoryMibTotal: 20_480,
+    maxMemoryMibPerInstance: 2_048,
+    allocatedStorageMibTotal: 10_240,
+    maxStorageMibPerInstance: 10_240,
+    maxConcurrentBuilds: 1,
+  });
+  const transaction = vi.fn(async (cb: (tx: unknown) => unknown) =>
+    cb({ update, insert, query: { quotas: { findFirst: quotaFindFirst } } }),
+  );
   const insertAuditLogs = vi.fn();
   return {
     where,
@@ -23,6 +39,7 @@ const h = vi.hoisted(() => {
     values,
     onDuplicateKeyUpdate,
     findFirst,
+    quotaFindFirst,
     transaction,
     insertAuditLogs,
   };
@@ -30,7 +47,10 @@ const h = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({
   db: {
-    query: { workspaces: { findFirst: h.findFirst } },
+    query: {
+      workspaces: { findFirst: h.findFirst },
+      quotas: { findFirst: h.quotaFindFirst },
+    },
     transaction: h.transaction,
     insert: h.insert,
   },
@@ -39,6 +59,7 @@ vi.mock("@/lib/db", () => ({
     workspaces: { id: {} },
     workspaceBilling: { workspaceId: {} },
     quotas: { workspaceId: {} },
+    limits: {},
   },
 }));
 vi.mock("@unkey/db", () => ({
@@ -47,6 +68,7 @@ vi.mock("@unkey/db", () => ({
   schema: {
     billingSubscriptions: { workspaceId: {}, product: {} },
     quotas: { workspaceId: {} },
+    limits: {},
   },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
@@ -145,6 +167,7 @@ describe("linkDeploySubscription", () => {
     h.update.mockClear();
     h.insert.mockClear();
     h.values.mockClear();
+    h.quotaFindFirst.mockClear();
     customersUpdate.mockClear();
   });
 

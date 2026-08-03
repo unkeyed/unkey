@@ -4,7 +4,9 @@ import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -172,25 +174,24 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
+      const quotaUpdate = {
+        requestsPerMonth: newQuotas.requestsPerMonth,
+        logsRetentionDays: newQuotas.logsRetentionDays,
+        auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
+        team: true,
+        ...rateLimitReset,
+      };
       await tx
         .insert(schema.quotas)
-        .values({
-          workspaceId: ctx.workspace.id,
-          requestsPerMonth: newQuotas.requestsPerMonth,
-          logsRetentionDays: newQuotas.logsRetentionDays,
-          auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-          team: true,
-          ...rateLimitReset,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            requestsPerMonth: newQuotas.requestsPerMonth,
-            logsRetentionDays: newQuotas.logsRetentionDays,
-            auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-            team: true,
-            ...rateLimitReset,
-          },
-        });
+        .values({ workspaceId: ctx.workspace.id, ...quotaUpdate })
+        .onDuplicateKeyUpdate({ set: quotaUpdate });
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan:
+          parseDeployPlan(ctx.workspace.deployPlanOverride) ??
+          parseDeployPlan(ctx.workspace.deployPlan),
+        preserveApiQuotas: true,
+      });
 
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,

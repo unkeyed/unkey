@@ -842,6 +842,24 @@ type KeysRole struct {
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 }
 
+type Limit struct {
+	Pk                                    uint64        `db:"pk"`
+	WorkspaceID                           string        `db:"workspace_id"`
+	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
+	ApiRequestsCountMaxPerMinute          sql.NullInt64 `db:"api_requests_count_max_per_minute"`
+	LogsRetentionDaysMax                  uint64        `db:"logs_retention_days_max"`
+	LogsAuditRetentionDaysMax             uint64        `db:"logs_audit_retention_days_max"`
+	TeamEnabled                           bool          `db:"team_enabled"`
+	ComputeCpuMax                         uint64        `db:"compute_cpu_max"`
+	ComputeCpuMaxPerInstance              uint64        `db:"compute_cpu_max_per_instance"`
+	ComputeMemoryMibMax                   uint64        `db:"compute_memory_mib_max"`
+	ComputeMemoryMibMaxPerInstance        uint64        `db:"compute_memory_mib_max_per_instance"`
+	ComputeDiskEphemeralMibMax            uint64        `db:"compute_disk_ephemeral_mib_max"`
+	ComputeDiskEphemeralMibMaxPerInstance uint64        `db:"compute_disk_ephemeral_mib_max_per_instance"`
+	ComputeBuildsConcurrentCountMax       uint64        `db:"compute_builds_concurrent_count_max"`
+	ComputeCustomDomainsCountMax          uint64        `db:"compute_custom_domains_count_max"`
+}
+
 type Permission struct {
 	Pk          uint64            `db:"pk"`
 	ID          string            `db:"id"`
