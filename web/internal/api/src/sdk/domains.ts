@@ -4,6 +4,7 @@
 
 import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
 import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
+import { domainsListDomains } from "../funcs/domainsListDomains.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import { unwrapAsync } from "../types/fp.js";
@@ -80,6 +81,41 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsGetDomainResponseBody> {
     return unwrapAsync(domainsGetDomain(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List domains
+   *
+   * @remarks
+   * List the custom domains attached to an environment, with where each one stands in verification.
+   *
+   * Ordered by domain id, and capped at 10 entries rather than paginated, since an environment
+   * normally holds far fewer. Receiving exactly 10 means the list was truncated. An environment with
+   * no domains returns an empty array, not a 404.
+   *
+   * **Read `routingVerified` before sending traffic.** `status` summarises verification, and
+   * verification can pass on proof of ownership alone, so a domain with `status: verified` and
+   * `routingVerified: false` is claimed by your workspace but routes nothing. Scanning a list is where
+   * that difference shows up: two domains can both report `verified` while only one serves traffic.
+   *
+   * Each entry carries its full `dnsRecords`, so the records still outstanding for a half-configured
+   * domain are visible without a second call.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.read_domain` (to read domains in any environment)
+   * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+   */
+  async listDomains(
+    request: components.V2DomainsListDomainsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsListDomainsResponseBody> {
+    return unwrapAsync(domainsListDomains(
       this,
       request,
       options,

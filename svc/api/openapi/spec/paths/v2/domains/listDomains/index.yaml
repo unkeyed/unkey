@@ -1,0 +1,230 @@
+post:
+  tags:
+    - domains
+  summary: List domains
+  description: |
+    List the custom domains attached to an environment, with where each one stands in verification.
+
+    Returns up to 10 domains, ordered by domain id. An environment with no domains returns an empty
+    array, not a 404.
+
+    **Read `routingVerified` before sending traffic.** `status` summarises verification, and
+    verification can pass on proof of ownership alone, so a domain with `status: verified` and
+    `routingVerified: false` is claimed by your workspace but routes nothing. Scanning a list is where
+    that difference shows up: two domains can both report `verified` while only one serves traffic.
+
+    Each entry carries its full `dnsRecords`, so the records still outstanding for a half-configured
+    domain are visible without a second call.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_domain` (to read domains in any environment)
+    - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+  operationId: domains.listDomains
+  x-speakeasy-name-override: listDomains
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DomainsListDomainsRequestBody.yaml"
+        examples:
+          bySlugs:
+            summary: List an environment's domains by slugs
+            description: Uses the project, app, and environment slugs
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+          byIds:
+            summary: List an environment's domains by ID
+            description: Uses the ids returned by the corresponding list endpoints
+            value:
+              project: proj_1234abcd
+              app: app_1234abcd
+              environment: env_1234abcd
+          search:
+            summary: Filter by name
+            description: Returns only domains whose id or name contains the search string
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              search: acme.com
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the environment's domains.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DomainsListDomainsResponseBody.yaml"
+          examples:
+            domainList:
+              summary: Domain list
+              description: The apex is claimed but not routing, so it serves no traffic despite reporting verified
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - id: dom_1234abcd
+                    domain: api.acme.com
+                    projectId: proj_1234abcd
+                    appId: app_1234abcd
+                    environmentId: env_1234abcd
+                    status: verified
+                    routingVerified: true
+                    ownershipVerified: false
+                    lastCheckedAt: 1704067260000
+                    dnsRecords:
+                      - type: CNAME
+                        name: api.acme.com
+                        value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                        note: Create as DNS-only. A proxied record is flattened and cannot be read back.
+                      - type: TXT
+                        name: _unkey.api.acme.com
+                        value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                        note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
+                    createdAt: 1704067200000
+                    updatedAt: 1704067260000
+                  - id: dom_5678efgh
+                    domain: acme.com
+                    projectId: proj_1234abcd
+                    appId: app_1234abcd
+                    environmentId: env_1234abcd
+                    status: verified
+                    routingVerified: false
+                    ownershipVerified: true
+                    lastCheckedAt: 1704067260000
+                    dnsRecords:
+                      - type: ALIAS
+                        name: acme.com
+                        value: i9j8k7l6m5n4o3p2.cname.unkey.com
+                        note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                      - type: TXT
+                        name: _unkey.acme.com
+                        value: unkey-domain-verify=7Kp2Rq9wZx4mB6nT1yL8vJ3h
+                        note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                    createdAt: 1704067200000
+                    updatedAt: 1704067260000
+            empty:
+              summary: No domains attached
+              description: An environment with no custom domains returns an empty array rather than a 404
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: []
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            searchTooLong:
+              summary: Search string above the maximum
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The search string must be at most 256 characters.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.search
+                      message: must be at most 256 characters
+                      fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Root key not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid.
+                  status: 401
+                  type: unauthorized
+    "403":
+      description: |
+        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
+        which environments exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The provided root key is disabled.
+                  status: 403
+                  type: forbidden
+    "404":
+      description: |
+        Not Found - The environment does not exist in your workspace, or your root key may not read it
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            environmentNotFound:
+              summary: Environment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested environment does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            rateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                  status: 429
+                  type: rate-limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            internalError:
+              summary: Unexpected server error
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                  status: 500
+                  type: internal-server-error

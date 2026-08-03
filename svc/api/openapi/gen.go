@@ -2115,6 +2115,34 @@ type V2DomainsGetDomainResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DomainsListDomainsRequestBody defines model for V2DomainsListDomainsRequestBody.
+type V2DomainsListDomainsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Search Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
+}
+
+// V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
+type V2DomainsListDomainsResponseBody struct {
+	// Data Up to 10 domains attached to the environment, ordered by domain id.
+	// Empty when the environment has none, which is not an error.
+	Data []Domain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -4377,6 +4405,9 @@ type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
 
 // DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
 type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
+
+// DomainsListDomainsJSONRequestBody defines body for DomainsListDomains for application/json ContentType.
+type DomainsListDomainsJSONRequestBody = V2DomainsListDomainsRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
