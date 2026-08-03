@@ -119,9 +119,9 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			LastUsedAt:         r.LastUsedAt,
 			PendingMigrationID: r.PendingMigrationID,
 		},
-		Identity: nil,
-		Api: Api{}, // Empty Api since not in this query
-		KeyAuth: KeyAuth{}, // Empty KeyAuth since not in this query
+		Identity:  nil,
+		Api:       Api{},       // Empty Api since not in this query
+		KeyAuth:   KeyAuth{},   // Empty KeyAuth since not in this query
 		Workspace: Workspace{}, // Empty Workspace since not in this query
 
 		EncryptedKey:    r.EncryptedKey,

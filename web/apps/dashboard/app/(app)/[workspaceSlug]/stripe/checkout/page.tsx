@@ -61,6 +61,9 @@ export default async function StripeRedirect(props: {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
     columns: { id: true, slug: true },
     with: {
+      billing: {
+        columns: { stripeCustomerId: true },
+      },
       billingSubscriptions: {
         columns: { product: true, stripeSubscriptionId: true },
       },
