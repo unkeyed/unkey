@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -22,22 +23,18 @@ type (
 	Response = openapi.V2AppsListAppsResponseBody
 )
 
-// Handler implements zen.Route interface for the v2 apps list apps endpoint
 type Handler struct {
 	DB db.Database
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/apps.listApps"
 }
 
-// Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -102,14 +99,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	rows, pg := pagination.Paginate(rows, p, func(r db.App) string { return r.ID })
+	rows, pg := pagination.Paginate(rows, p, func(r db.ListAppsByProjectRow) string { return r.ID })
 
-	data := array.Map(rows, func(row db.App) openapi.App {
+	data := array.Map(rows, func(row db.ListAppsByProjectRow) openapi.App {
 		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			DefaultBranch:       row.DefaultBranch,
+			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.DefaultBranch),
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
 			IsRolledBack:        row.IsRolledBack,
 			DeleteProtection:    row.DeleteProtection.Bool,

@@ -28,6 +28,31 @@ type ClickHouseConfig struct {
 	AnalyticsURL string `toml:"analytics_url"`
 }
 
+// GitHubConfig holds the API's GitHub App settings: the App slug and private
+// key for github.installApp (install URL + state signing), and the
+// numeric App ID for the authenticated client that connects repositories via
+// the `git` field on apps.createApp / apps.updateApp. Leaving fields empty
+// disables the corresponding flow.
+type GitHubConfig struct {
+	// AppName is the GitHub App slug used in the install URL
+	// (https://github.com/apps/<app_name>/installations/new). Matches the
+	// dashboard's NEXT_PUBLIC_GITHUB_APP_NAME.
+	AppName string `toml:"app_name"`
+
+	// AppID is the numeric GitHub App ID. Used to sign the App JWT when minting
+	// installation tokens for repo-connection lookups. Matches the dashboard's
+	// GITHUB_APP_ID.
+	AppID int64 `toml:"app_id"`
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format. Used both to
+	// derive the install-state signing key (github.installApp) and to
+	// sign the App JWT for installation tokens (repo connection). Must be the
+	// same key the dashboard uses so its callback can verify the install state.
+	// See the signer in the github.installApp handler
+	// (svc/api/routes/v2_github_install_app/state.go).
+	PrivateKeyPEM string `toml:"private_key_pem"`
+}
+
 const (
 	authTypeJWT           = "jwt"
 	authTypePortalSession = "portal_session"
@@ -339,6 +364,10 @@ type Config struct {
 
 	// Auth configures the ordered authentication resolver chain.
 	Auth AuthConfigs `toml:"auth"`
+
+	// GitHub configures the GitHub App install flow. See [GitHubConfig].
+	// When unset, github.installApp reports the feature as unconfigured.
+	GitHub GitHubConfig `toml:"github"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
