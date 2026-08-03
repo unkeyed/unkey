@@ -49,7 +49,7 @@ post:
               domain: api.acme.com
           apex:
             summary: Attach an apex domain
-            description: An apex domain is verified through the TXT record and needs A or AAAA records to serve traffic
+            description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership
             value:
               project: payments
               app: payments-api

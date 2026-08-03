@@ -4520,7 +4520,10 @@ components:
                     maxLength: 253
                     description: |
                         Fully qualified name of the record, ready to use as-is.
-                        Providers that expect a name relative to the zone want the portion before the zone apex.
+
+                        Some providers want a name relative to the zone instead. Drop the zone and its trailing dot:
+                        in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
+                        `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
                     example: api.acme.com
                 value:
                     type: string
@@ -4529,6 +4532,10 @@ components:
                     description: |
                         The value to store, exactly as given, including any prefix.
                         Do not trim or reformat it: verification compares the published record against this string.
+
+                        Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
+                        so a long TTL keeps a stale value cached and can burn the verification window on a value you
+                        have already corrected. Raise it afterwards if you want.
                     example: a1b2c3d4e5f6g7h8.cname.unkey.com
                 note:
                     type: string
@@ -4536,7 +4543,7 @@ components:
                     description: |
                         Provider-specific caveat for this record, present only when there is one.
                         Worth surfacing to whoever edits the DNS zone.
-                    example: Create as DNS-only. A proxied record is flattened and cannot be read.
+                    example: Create as DNS-only. A proxied record is flattened and cannot be read back.
             additionalProperties: false
         Environment:
             type: object
@@ -8520,7 +8527,7 @@ paths:
                     application/json:
                         examples:
                             apex:
-                                description: An apex domain is verified through the TXT record and needs A or AAAA records to serve traffic
+                                description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership
                                 summary: Attach an apex domain
                                 value:
                                     app: payments-api

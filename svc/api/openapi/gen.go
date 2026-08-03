@@ -446,7 +446,10 @@ type DeploymentStatus string
 // DnsRecord defines model for DnsRecord.
 type DnsRecord struct {
 	// Name Fully qualified name of the record, ready to use as-is.
-	// Providers that expect a name relative to the zone want the portion before the zone apex.
+	//
+	// Some providers want a name relative to the zone instead. Drop the zone and its trailing dot:
+	// in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
+	// `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
 	Name string `json:"name"`
 
 	// Note Provider-specific caveat for this record, present only when there is one.
@@ -460,6 +463,10 @@ type DnsRecord struct {
 
 	// Value The value to store, exactly as given, including any prefix.
 	// Do not trim or reformat it: verification compares the published record against this string.
+	//
+	// Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
+	// so a long TTL keeps a stale value cached and can burn the verification window on a value you
+	// have already corrected. Raise it afterwards if you want.
 	Value string `json:"value"`
 }
 

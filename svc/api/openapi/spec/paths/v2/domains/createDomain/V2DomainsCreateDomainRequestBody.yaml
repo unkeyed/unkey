@@ -42,8 +42,10 @@ examples:
   apex:
     summary: Attach an apex domain
     description: |
-      An apex domain cannot carry a CNAME, so it is verified through the TXT record and needs A or AAAA
-      records pointing at Unkey before it starts serving traffic
+      An apex domain cannot carry a CNAME, so the response returns an apex-compatible alias instead.
+      The provider resolves that alias to A or AAAA records, which is both what carries traffic and
+      what verification looks for, so there are no address records to find or enter by hand.
+      Ownership is proven through the TXT record.
     value:
       project: payments
       app: payments-api
