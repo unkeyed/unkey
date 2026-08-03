@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -52,7 +53,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 		ProjectID:   project.ID,
 		AppID:       app.ID,
 		Slug:        "production",
-		Kind:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "Production environment",
 	})
 

@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -61,7 +62,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ProjectID:      victimProject.ID,
 		AppID:          victimApp.ID,
 		Slug:           "production",
-		Kind:           "production",
+		Kind:           mysqltype.EnvironmentKindProduction,
 		SentinelConfig: []byte("{}"),
 	})
 
@@ -114,7 +115,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ProjectID:      attackerProject.ID,
 		AppID:          attackerApp.ID,
 		Slug:           "production",
-		Kind:           "production",
+		Kind:           mysqltype.EnvironmentKindProduction,
 		SentinelConfig: []byte("{}"),
 	})
 
@@ -190,7 +191,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 		ProjectID:      project.ID,
 		AppID:          app.ID,
 		Slug:           "production",
-		Kind:           "production",
+		Kind:           mysqltype.EnvironmentKindProduction,
 		SentinelConfig: []byte("{}"),
 	})
 

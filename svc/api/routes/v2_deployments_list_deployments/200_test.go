@@ -155,7 +155,7 @@ func TestListFilterByProject(t *testing.T) {
 		ProjectID:   otherProject.ID,
 		AppID:       otherApp.ID,
 		Slug:        "production",
-		Kind:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "other project production",
 	})
 	h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -199,7 +199,7 @@ func TestListFilterByApp(t *testing.T) {
 		ProjectID:   setup.Project.ID,
 		AppID:       otherApp.ID,
 		Slug:        "production",
-		Kind:        "production",
+		Kind:        mysqltype.EnvironmentKindProduction,
 		Description: "other app production",
 	})
 

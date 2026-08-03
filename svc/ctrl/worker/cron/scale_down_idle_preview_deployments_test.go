@@ -146,7 +146,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		ProjectID:        project.ID,
 		AppID:            app.ID,
 		Slug:             "production",
-		Kind:             "production",
+		Kind:             mysqltype.EnvironmentKindProduction,
 		Description:      "",
 		SentinelConfig:   nil,
 		DeleteProtection: false,
