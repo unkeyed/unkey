@@ -78,6 +78,7 @@ import (
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 	v2DomainsCreateDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
+	v2DomainsGetDomain "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
 	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 	v2EnvironmentsListEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
 	v2EnvironmentsListEnvironments "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
@@ -911,6 +912,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:          svc.Database,
 			CtrlClient:  svc.CtrlCustomDomainClient,
 			LimitsCache: svc.Caches.WorkspaceLimits,
+		},
+	)
+
+	// v2/domains.getDomain
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DomainsGetDomain.Handler{
+			DB: svc.Database,
 		},
 	)
 

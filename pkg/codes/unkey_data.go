@@ -59,6 +59,8 @@ type dataEnvironment struct {
 type dataDomain struct {
 	// Duplicate indicates the domain is already attached to this workspace.
 	Duplicate Code
+	// NotFound indicates the requested domain does not exist.
+	NotFound Code
 }
 
 // dataDeployment defines errors related to deployment operations.
@@ -207,6 +209,7 @@ var Data = UnkeyDataErrors{
 
 	Domain: dataDomain{
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "domain_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "domain_not_found"},
 	},
 
 	Deployment: dataDeployment{

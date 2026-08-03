@@ -287,6 +287,9 @@ paths:
   /v2/domains.createDomain:
     $ref: "./spec/paths/v2/domains/createDomain/index.yaml"
 
+  /v2/domains.getDomain:
+    $ref: "./spec/paths/v2/domains/getDomain/index.yaml"
+
   # Gateway Endpoints
   /v2/gateway.setPolicies:
     $ref: "./spec/paths/v2/gateway/setPolicies/index.yaml"

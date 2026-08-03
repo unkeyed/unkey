@@ -245,6 +245,28 @@ type Querier interface {
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	//FindCustomDomainByIdentifier
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR domain = ?)
+	//  LIMIT 1
+	FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error)
 	// Covered by unique_domain_workspace_idx.
 	//
 	//  SELECT id

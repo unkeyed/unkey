@@ -118,6 +118,8 @@ const (
 
 	// Duplicate indicates the domain is already attached to this workspace.
 	UnkeyDataErrorsDomainDuplicate URN = "err:unkey:data:domain_already_exists"
+	// NotFound indicates the requested domain does not exist.
+	UnkeyDataErrorsDomainNotFound URN = "err:unkey:data:domain_not_found"
 
 	// Deployment
 
