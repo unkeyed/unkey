@@ -9,4 +9,3 @@ CREATE TABLE `clusters` (
 	CONSTRAINT `clusters_cell_id_unique` UNIQUE(`cell_id`),
 	CONSTRAINT `clusters_region_id_unique` UNIQUE(`region_id`)
 );
-

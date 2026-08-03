@@ -9,10 +9,12 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 // we might use this as service discovery later to push updates to clusters to speed up reconciliation
 export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+
   id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-  // Nullable while existing clusters claim their immutable cell identity.
+  // Nullable until an existing cluster reports its cell identity by heartbeat.
   cellId: caseSensitiveVarchar("cell_id", { length: 64 }).unique(),
   regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull().unique(),
+
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",
     unsigned: true,

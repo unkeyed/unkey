@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -25,28 +26,29 @@ func TestListOverrides_ReturnsPersistedOverride(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, set.V2RatelimitSetOverrideResponseBody)
 	t.Cleanup(func() {
-		require.Eventually(t, func() bool {
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			_, err := client.Ratelimit.DeleteOverride(ctx, components.V2RatelimitDeleteOverrideRequestBody{
 				Namespace:  namespace,
 				Identifier: identifier,
 			})
-			return err == nil
+			require.NoError(c, err)
 		}, 30*time.Second, time.Second)
 	})
 	// Override listings may take time to propagate through regional replicas.
-	require.Eventually(t, func() bool {
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		response, err := client.Ratelimit.ListOverrides(ctx, components.V2RatelimitListOverridesRequestBody{
 			Namespace: namespace,
 			Limit:     ptr.P(int64(100)),
 		})
-		if err != nil || response.V2RatelimitListOverridesResponseBody == nil {
-			return false
-		}
+		require.NoError(c, err)
+		require.NotNil(c, response.V2RatelimitListOverridesResponseBody)
+		found := false
 		for _, override := range response.V2RatelimitListOverridesResponseBody.Data {
 			if override.OverrideID == set.V2RatelimitSetOverrideResponseBody.Data.OverrideID {
-				return true
+				found = true
+				break
 			}
 		}
-		return false
+		require.True(c, found, "override %q was not listed", set.V2RatelimitSetOverrideResponseBody.Data.OverrideID)
 	}, 30*time.Second, time.Second)
 }

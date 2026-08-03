@@ -44,22 +44,46 @@ func (f *fakeUsageReader) setActiveKeys(rows []clickhouse.ActiveKeysUsage) {
 
 func (f *fakeUsageReader) GetInstanceMeterUsage(
 	_ context.Context,
-	_ clickhouse.GetInstanceMeterUsageRequest,
+	req clickhouse.GetInstanceMeterUsageRequest,
 ) ([]clickhouse.InstanceMeterUsage, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.instanceReads++
-	return f.rows, nil
+	workspaceIDs := make(map[string]struct{}, len(req.WorkspaceIDs))
+	for _, workspaceID := range req.WorkspaceIDs {
+		workspaceIDs[workspaceID] = struct{}{}
+	}
+	rows := make([]clickhouse.InstanceMeterUsage, 0, len(f.rows))
+	for _, row := range f.rows {
+		_, included := workspaceIDs[row.WorkspaceID]
+		if (req.WorkspaceID == "" || row.WorkspaceID == req.WorkspaceID) &&
+			(req.WorkspaceIDs == nil || included) {
+			rows = append(rows, row)
+		}
+	}
+	return rows, nil
 }
 
 func (f *fakeUsageReader) GetActiveKeysUsage(
 	_ context.Context,
-	_ clickhouse.GetActiveKeysUsageRequest,
+	req clickhouse.GetActiveKeysUsageRequest,
 ) ([]clickhouse.ActiveKeysUsage, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.activeKeyReads++
-	return f.activeKeys, nil
+	workspaceIDs := make(map[string]struct{}, len(req.WorkspaceIDs))
+	for _, workspaceID := range req.WorkspaceIDs {
+		workspaceIDs[workspaceID] = struct{}{}
+	}
+	rows := make([]clickhouse.ActiveKeysUsage, 0, len(f.activeKeys))
+	for _, row := range f.activeKeys {
+		_, included := workspaceIDs[row.WorkspaceID]
+		if (req.WorkspaceID == "" || row.WorkspaceID == req.WorkspaceID) &&
+			(req.WorkspaceIDs == nil || included) {
+			rows = append(rows, row)
+		}
+	}
+	return rows, nil
 }
 
 func (f *fakeUsageReader) reads() (instance, activeKeys int) {

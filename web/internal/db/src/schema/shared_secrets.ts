@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable } from "drizzle-orm/mysql-core";
-import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { workspaces } from "./workspaces";
 
@@ -11,8 +11,8 @@ export const sharedSecrets = mysqlTable(
   "shared_secrets",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseInsensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    workspaceId: caseInsensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
     // Rows are write-once (created, then deleted), so there is no updated_at.
     createdAt: bigint("created_at", { mode: "number" })

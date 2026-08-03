@@ -1,11 +1,10 @@
 import type { SubscriptionProduct } from "./billingSubscriptions";
+import { deployPlanGrantsTeam } from "./deployPlan";
 
 /**
  * Whether a workspace keeps team access after one product's subscription is
- * deleted. Team follows any live paid product, so a delete only strips it when
- * nothing paid remains: an ending API subscription keeps team while a Deploy
- * plan is active, and an ending Deploy subscription keeps team while the API
- * tier is paid.
+ * deleted. Paid API tiers and the Compute Pro/Business plans grant team access;
+ * Compute Starter does not.
  *
  * The product is read straight from the deleted subscription's
  * billing_subscriptions row now, so the webhook no longer inspects columns or
@@ -15,5 +14,7 @@ export function keepsTeamAfterDelete(
   product: SubscriptionProduct,
   billing: { tier: string | null; plan: string | null },
 ): boolean {
-  return product === "api" ? billing.plan !== null : (billing.tier ?? "Free") !== "Free";
+  return product === "api"
+    ? deployPlanGrantsTeam(billing.plan)
+    : (billing.tier ?? "Free") !== "Free";
 }

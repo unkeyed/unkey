@@ -192,7 +192,6 @@ import { changeDeployPlan } from "./stripe/changeDeployPlan";
 import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { getCheckoutSession } from "./stripe/getCheckoutSession";
-import { getCustomer } from "./stripe/getCustomer";
 import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
@@ -222,7 +221,6 @@ import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
-import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
   share: t.router({
@@ -295,7 +293,6 @@ export const router = t.router({
     getCurrent: getCurrentWorkspace,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
-    optIntoBeta: optWorkspaceIntoBeta,
     onboarding: onboardingKeyCreation,
   }),
   stripe: t.router({
@@ -306,7 +303,6 @@ export const router = t.router({
     getBillingInfo,
     updateCustomer,
     getCheckoutSession,
-    getCustomer,
     getProducts,
     getSetupIntent,
     getSubscriptionPaymentUrl,

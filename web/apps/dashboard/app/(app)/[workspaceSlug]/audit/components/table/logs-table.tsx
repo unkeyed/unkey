@@ -19,8 +19,16 @@ type Props = {
 
 export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) => {
   const tableRef = useRef<DataTableRef>(null);
-  const { auditLogs, isLoading, page, pageSize, totalPages, totalCount, onPageChange } =
-    useAuditLogsQuery();
+  const {
+    auditLogs,
+    isLoading,
+    isNavigating,
+    page,
+    pageSize,
+    totalPages,
+    totalCount,
+    onPageChange,
+  } = useAuditLogsQuery();
 
   useEffect(() => {
     const distanceToTop = tableRef.current?.containerRef?.getBoundingClientRect().top ?? 0;
@@ -62,6 +70,7 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
+        disabled={isNavigating}
       />
     </>
   );

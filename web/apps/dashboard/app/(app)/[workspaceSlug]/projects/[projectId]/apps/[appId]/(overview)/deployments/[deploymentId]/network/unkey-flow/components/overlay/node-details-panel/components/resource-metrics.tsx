@@ -366,9 +366,10 @@ function NetworkSection({
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
-        xAxisDomain={xAxisDomain}
-        contractOnSparseData
-        formatYTick={formatYAxisCompactBytesPerSecond}
+        axis={{
+          x: { domain: xAxisDomain, contractOnSparseData: true },
+          y: { formatTick: formatYAxisCompactBytesPerSecond },
+        }}
       />
     </div>
   );
@@ -426,12 +427,12 @@ function InstancesSection({
         isError={isError}
         showDateInTooltip={showDateInTooltip}
         formatTooltipValue={(count) => ({ value: `${Math.round(count)}`, unit: "vm" })}
-        formatYTick={formatInstanceTick}
         // 3 keeps the axis showing 0 / 1 / 2 / 3 on single-replica deployments
         // instead of collapsing everything onto the 0 line.
-        axisFloor={3}
-        xAxisDomain={xAxisDomain}
-        contractOnSparseData
+        axis={{
+          x: { domain: xAxisDomain, contractOnSparseData: true },
+          y: { floor: 3, formatTick: formatInstanceTick },
+        }}
       />
     </div>
   );
@@ -505,15 +506,18 @@ function CpuSection({
           const pct = formatTooltipPercent((millicores / allocatedMilli) * 100);
           return { value: pct, hint: `${Math.round(millicores)}m` };
         }}
-        axisFloor={100}
-        formatYTick={(v) => {
-          if (v === 0 || allocatedMilli <= 0) {
-            return "";
-          }
-          return `${Math.round((v / allocatedMilli) * 100)}%`;
+        axis={{
+          x: { domain: xAxisDomain, contractOnSparseData: true },
+          y: {
+            floor: 100,
+            formatTick: (v) => {
+              if (v === 0 || allocatedMilli <= 0) {
+                return "";
+              }
+              return `${Math.round((v / allocatedMilli) * 100)}%`;
+            },
+          },
         }}
-        xAxisDomain={xAxisDomain}
-        contractOnSparseData
       />
     </div>
   );
@@ -580,9 +584,10 @@ function MemorySection({
             hint: `(${formatTooltipPercent((bytes / allocatedBytes) * 100)})`,
           };
         }}
-        axisFloor={1024 * 1024}
-        xAxisDomain={xAxisDomain}
-        contractOnSparseData
+        axis={{
+          x: { domain: xAxisDomain, contractOnSparseData: true },
+          y: { floor: 1024 * 1024 },
+        }}
       />
     </div>
   );
@@ -652,9 +657,10 @@ function DiskSection({
             hint: `(${formatTooltipPercent((bytes / allocatedBytes) * 100)})`,
           };
         }}
-        axisFloor={1024 * 1024}
-        xAxisDomain={xAxisDomain}
-        contractOnSparseData
+        axis={{
+          x: { domain: xAxisDomain, contractOnSparseData: true },
+          y: { floor: 1024 * 1024 },
+        }}
       />
     </div>
   );

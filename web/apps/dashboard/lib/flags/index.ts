@@ -32,10 +32,10 @@ export const deployBilling = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-export const appOverview = flag<boolean, Entities>({
-  key: "app-overview",
+export const projectsNav = flag<boolean, Entities>({
+  key: "projects-nav",
   description:
-    "Show the app overview page and use it as the default app landing. Off until rollout.",
+    "Use the projects-first navigation (sidebar, breadcrumbs, landing redirect). Off until rollout.",
   defaultValue: false,
   options: [
     { value: false, label: "Off" },
