@@ -8,6 +8,14 @@ import { workspaces } from "./workspaces";
  *
  * API request throttling is nullable because NULL means no automatic workspace
  * throttle. Every other limit is explicit, including zero.
+ *
+ * Column names should read from most significant to least significant:
+ * `<resource>_<measurement>_<unit>_max[_scope]`.
+ *
+ * Units describe what the number measures. Qualifiers describe where or when
+ * the limit applies. Put max after the unit being capped, and put scope
+ * qualifiers after max only when they are needed. Boolean feature gates should
+ * use `<feature>_enabled`.
  */
 export const limits = mysqlTable("limits", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
