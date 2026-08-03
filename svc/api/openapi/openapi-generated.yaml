@@ -4411,6 +4411,7 @@ components:
                 - id
                 - slug
                 - description
+                - isProduction
                 - deleteProtection
                 - createdAt
             properties:
@@ -4430,6 +4431,12 @@ components:
                         Human-readable description of this environment.
                         Empty string if none was provided.
                     example: Production environment
+                isProduction:
+                    type: boolean
+                    description: |
+                        Whether deployments in this environment serve production traffic.
+                        Production environments support promotion and rollback and cannot be stopped.
+                    example: true
                 deleteProtection:
                     type: boolean
                     description: |

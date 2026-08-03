@@ -85,6 +85,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		ProjectID:      project.ID,
 		AppID:          app.ID,
 		Slug:           "production",
+		IsProduction:   true,
 		Description:    "",
 		SentinelConfig: []byte("{}"),
 	})

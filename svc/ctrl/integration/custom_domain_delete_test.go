@@ -61,6 +61,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ProjectID:      victimProject.ID,
 		AppID:          victimApp.ID,
 		Slug:           "production",
+		IsProduction:   true,
 		SentinelConfig: []byte("{}"),
 	})
 
@@ -113,6 +114,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		ProjectID:      attackerProject.ID,
 		AppID:          attackerApp.ID,
 		Slug:           "production",
+		IsProduction:   true,
 		SentinelConfig: []byte("{}"),
 	})
 
@@ -188,6 +190,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 		ProjectID:      project.ID,
 		AppID:          app.ID,
 		Slug:           "production",
+		IsProduction:   true,
 		SentinelConfig: []byte("{}"),
 	})
 

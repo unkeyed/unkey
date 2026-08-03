@@ -50,12 +50,13 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 			DefaultBranch: "main",
 		})
 		otherEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:          uid.New(uid.EnvironmentPrefix),
-			WorkspaceID: otherWorkspace.ID,
-			ProjectID:   otherProject.ID,
-			AppID:       otherApp.ID,
-			Slug:        "production",
-			Description: "Theirs",
+			ID:           uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:  otherWorkspace.ID,
+			ProjectID:    otherProject.ID,
+			AppID:        otherApp.ID,
+			Slug:         "production",
+			IsProduction: true,
+			Description:  "Theirs",
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID, Environment: otherEnvironment.ID})

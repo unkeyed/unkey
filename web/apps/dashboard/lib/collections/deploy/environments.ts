@@ -9,6 +9,7 @@ const schema = z.object({
   id: z.string(),
   projectId: z.string(),
   slug: z.string(),
+  isProduction: z.boolean(),
   appId: z.string(),
 });
 

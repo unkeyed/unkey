@@ -254,25 +254,25 @@ type Querier interface {
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentWithEnvironment
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.is_production AS environment_is_production
 	//  FROM deployments d
 	//  JOIN environments e ON d.environment_id = e.id
 	//  WHERE d.id = ?
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.is_production, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, is_production, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByIdentifiers
 	//
-	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.is_production, e.delete_protection, e.created_at, e.updated_at
 	//  FROM environments e
 	//  JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -1138,10 +1138,11 @@ type Querier interface {
 	//      app_id,
 	//      slug,
 	//      description,
+	//      is_production,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -1704,6 +1705,7 @@ type Querier interface {
 	//    p.slug AS project_slug,
 	//    a.slug AS app_slug,
 	//    e.slug AS environment_slug,
+	//    e.is_production AS environment_is_production,
 	//    a.current_deployment_id AS app_current_deployment_id,
 	//    a.is_rolled_back AS app_is_rolled_back
 	//  FROM deployments d
@@ -1758,7 +1760,7 @@ type Querier interface {
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.is_production, environments.delete_protection, environments.created_at, environments.updated_at
 	//  FROM environments
 	//  WHERE app_id = ?
 	//  ORDER BY id ASC

@@ -87,9 +87,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// desired_state=stopped immediately while status only flips once krane drains
 	// the last instance.
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
-		DesiredState:    dep.DesiredState,
-		EnvironmentSlug: dep.EnvironmentSlug,
-		SpendSuspended:  billing.SpendSuspended,
+		DesiredState:   dep.DesiredState,
+		IsProduction:   dep.EnvironmentIsProduction,
+		SpendSuspended: billing.SpendSuspended,
 	}); err != nil {
 		return err
 	}

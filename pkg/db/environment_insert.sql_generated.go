@@ -18,22 +18,24 @@ INSERT INTO environments (
     app_id,
     slug,
     description,
+    is_production,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertEnvironmentParams struct {
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	AppID       string        `db:"app_id"`
-	Slug        string        `db:"slug"`
-	Description string        `db:"description"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	ID           string        `db:"id"`
+	WorkspaceID  string        `db:"workspace_id"`
+	ProjectID    string        `db:"project_id"`
+	AppID        string        `db:"app_id"`
+	Slug         string        `db:"slug"`
+	Description  string        `db:"description"`
+	IsProduction bool          `db:"is_production"`
+	CreatedAt    int64         `db:"created_at"`
+	UpdatedAt    sql.NullInt64 `db:"updated_at"`
 }
 
 // InsertEnvironment
@@ -45,10 +47,11 @@ type InsertEnvironmentParams struct {
 //	    app_id,
 //	    slug,
 //	    description,
+//	    is_production,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?, ?, ?, ?
+//	    ?, ?, ?, ?, ?, ?, ?, ?, ?
 //	)
 func (q *Queries) InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvironmentParams) error {
 	_, err := db.ExecContext(ctx, insertEnvironment,
@@ -58,6 +61,7 @@ func (q *Queries) InsertEnvironment(ctx context.Context, db DBTX, arg InsertEnvi
 		arg.AppID,
 		arg.Slug,
 		arg.Description,
+		arg.IsProduction,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

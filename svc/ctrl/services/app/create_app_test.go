@@ -202,6 +202,11 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 		FROM environments
 		WHERE app_id = ? AND workspace_id = ? AND project_id = ?
 	`, appID, s.workspaceID, s.projectID))
+	require.Equal(s.t, 1, countRows(s.t, ctx, tx, `
+		SELECT COUNT(*)
+		FROM environments
+		WHERE app_id = ? AND is_production = true
+	`, appID))
 	require.Equal(s.t, 2, countRows(s.t, ctx, tx, `
 		SELECT COUNT(*)
 		FROM app_build_settings

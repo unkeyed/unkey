@@ -4,7 +4,7 @@ type DeploymentActionContext = {
   selectedDeployment: { id: string; status: DeploymentStatus };
   currentDeploymentId: string | null;
   isRolledBack: boolean;
-  environmentSlug: string | null;
+  isProduction: boolean | null;
 };
 
 type DeploymentActionEligibility = {
@@ -54,8 +54,8 @@ export function getDeploymentActionEligibility(
 ): DeploymentActionEligibility {
   const status = ctx.selectedDeployment.status;
   const isActionable = status === "ready";
-  const isProduction = ctx.environmentSlug === "production";
-  const isNonProduction = ctx.environmentSlug !== null && !isProduction;
+  const isProduction = ctx.isProduction === true;
+  const isNonProduction = ctx.isProduction === false;
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 

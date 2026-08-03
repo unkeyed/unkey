@@ -51,12 +51,13 @@ func TestGetEnvironment(t *testing.T) {
 
 	t.Run("with default settings", func(t *testing.T) {
 		environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-			ID:          uid.New(uid.EnvironmentPrefix),
-			WorkspaceID: workspace.ID,
-			ProjectID:   project.ID,
-			AppID:       app.ID,
-			Slug:        "production",
-			Description: "Production environment",
+			ID:           uid.New(uid.EnvironmentPrefix),
+			WorkspaceID:  workspace.ID,
+			ProjectID:    project.ID,
+			AppID:        app.ID,
+			Slug:         "production",
+			Description:  "Production environment",
+			IsProduction: true,
 		})
 
 		for _, tc := range []struct {
@@ -81,6 +82,7 @@ func TestGetEnvironment(t *testing.T) {
 				require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
 				require.Equal(t, "production", res.Body.Data.Slug)
 				require.Equal(t, "Production environment", res.Body.Data.Description)
+				require.True(t, res.Body.Data.IsProduction)
 				require.False(t, res.Body.Data.DeleteProtection)
 				require.Greater(t, res.Body.Data.CreatedAt, int64(0))
 				require.Zero(t, res.Body.Data.UpdatedAt, "never-updated environment should have zero (omitted) updatedAt")

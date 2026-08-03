@@ -146,6 +146,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 		ProjectID:        project.ID,
 		AppID:            app.ID,
 		Slug:             "production",
+		IsProduction:     true,
 		Description:      "",
 		SentinelConfig:   nil,
 		DeleteProtection: false,

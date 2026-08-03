@@ -43,9 +43,9 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
-		Status:          deployment.Status,
-		DesiredState:    deployment.DesiredState,
-		EnvironmentSlug: environment.Slug,
+		Status:       deployment.Status,
+		DesiredState: deployment.DesiredState,
+		IsProduction: environment.IsProduction,
 	}); err != nil {
 		return nil, gatefault.Connect(err)
 	}

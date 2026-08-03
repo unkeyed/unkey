@@ -40,6 +40,13 @@ export type Environment = {
    */
   description: string;
   /**
+   * Whether deployments in this environment serve production traffic.
+   *
+   * @remarks
+   * Production environments support promotion and rollback and cannot be stopped.
+   */
+  isProduction: boolean;
+  /**
    * Whether delete protection is enabled for this environment.
    *
    * @remarks
@@ -91,6 +98,7 @@ export const Environment$inboundSchema: z.ZodType<
   id: z.string(),
   slug: z.string(),
   description: z.string(),
+  isProduction: z.boolean(),
   deleteProtection: z.boolean(),
   createdAt: z.number().int(),
   updatedAt: z.number().int().optional(),

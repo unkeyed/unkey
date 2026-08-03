@@ -5,11 +5,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// productionSlug is the environment whose current deployment serves production
-// traffic. promote and rollback only apply there; stop and start only apply
-// elsewhere. Mirrors the gate in the lifecycle handlers.
-const productionSlug = "production"
-
 // availableActions returns the lifecycle operations that would succeed on a
 // deployment in this state. It encodes the same preconditions the
 // promote/rollback/stop/start handlers enforce, so a caller can pick a legal
@@ -32,7 +27,7 @@ func availableActions(in Input) []openapi.DeploymentAction {
 	ready := d.Status == mysqltype.DeploymentsStatusReady
 	running := d.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 
-	if in.State.EnvironmentSlug == productionSlug {
+	if in.State.EnvironmentIsProduction {
 		currentDeploymentID := in.State.AppCurrentDeploymentID.String
 		hasLiveDeployment := currentDeploymentID != ""
 		isCurrentDeployment := currentDeploymentID == d.ID

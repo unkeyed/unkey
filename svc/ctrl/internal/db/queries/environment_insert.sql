@@ -6,8 +6,9 @@ INSERT INTO environments (
     app_id,
     slug,
     description,
+    is_production,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 );

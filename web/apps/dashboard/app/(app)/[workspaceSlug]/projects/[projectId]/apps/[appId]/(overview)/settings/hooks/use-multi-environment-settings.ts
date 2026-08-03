@@ -15,7 +15,7 @@ export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
   const { environments } = useProjectData();
 
   const productionEnvId = useMemo(
-    () => environments.find((e) => e.slug === "production")?.id,
+    () => environments.find((e) => e.isProduction)?.id,
     [environments],
   );
   const previewEnvId = useMemo(

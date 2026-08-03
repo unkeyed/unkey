@@ -878,6 +878,7 @@ type Environment struct {
 	AppID            string        `db:"app_id"`
 	Slug             string        `db:"slug"`
 	Description      string        `db:"description"`
+	IsProduction     bool          `db:"is_production"`
 	DeleteProtection sql.NullBool  `db:"delete_protection"`
 	CreatedAt        int64         `db:"created_at"`
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`

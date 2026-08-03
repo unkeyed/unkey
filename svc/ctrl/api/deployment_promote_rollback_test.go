@@ -80,7 +80,7 @@ func newLifecycleFixture(t *testing.T) *lifecycleFixture {
 		ID: uid.New("app"), WorkspaceID: wsID, ProjectID: project.ID, Name: "default", Slug: "default", DefaultBranch: "main",
 	}, prodEnvID)
 	prodEnv := h.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
-		ID: prodEnvID, WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "production", SentinelConfig: []byte("{}"),
+		ID: prodEnvID, WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "production", IsProduction: true, SentinelConfig: []byte("{}"),
 	})
 	previewEnv := h.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID: uid.New("env"), WorkspaceID: wsID, ProjectID: project.ID, AppID: app.ID, Slug: "preview", SentinelConfig: []byte("{}"),

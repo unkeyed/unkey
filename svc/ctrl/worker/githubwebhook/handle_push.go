@@ -35,7 +35,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	branch := req.GetBranch()
 
 	// Single query: connections + apps + projects + environments + build/runtime settings
-	// Filters by environment slug based on branch vs project default_branch in SQL.
+	// Selects the production environment for the default branch and preview for others.
 	// Fork PRs always go to preview via the is_fork_pr flag.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{

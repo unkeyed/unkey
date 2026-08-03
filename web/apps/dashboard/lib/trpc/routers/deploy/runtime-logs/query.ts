@@ -25,7 +25,7 @@ export const queryRuntimeLogs = workspaceProcedure
       columns: { id: true },
       with: {
         environments: {
-          columns: { id: true, appId: true, slug: true },
+          columns: { id: true, appId: true, isProduction: true },
         },
       },
     });
@@ -80,7 +80,7 @@ export const queryRuntimeLogs = workspaceProcedure
     const appId = input.appId || null;
     if (appId && transformedInputs.environmentId.length === 0) {
       const prod =
-        project.environments.find((e) => e.appId === appId && e.slug === "production") ??
+        project.environments.find((e) => e.appId === appId && e.isProduction) ??
         project.environments.find((e) => e.appId === appId) ??
         defaultEnvironment;
       transformedInputs.environmentId = [prod.id];

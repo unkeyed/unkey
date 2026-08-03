@@ -30,7 +30,7 @@ export const querySentinelLogs = workspaceProcedure
         columns: { id: true },
         with: {
           environments: {
-            columns: { id: true, appId: true, slug: true },
+            columns: { id: true, appId: true, isProduction: true },
           },
         },
       });
@@ -60,7 +60,7 @@ export const querySentinelLogs = workspaceProcedure
       const appId = input.appId || null;
       if (appId && transformedInputs.environmentId.length === 0) {
         const appEnvironments = project.environments.filter((e) => e.appId === appId);
-        const scoped = appEnvironments.find((e) => e.slug === "production") ?? appEnvironments[0];
+        const scoped = appEnvironments.find((e) => e.isProduction) ?? appEnvironments[0];
         if (scoped) {
           transformedInputs.environmentId = [scoped.id];
         }

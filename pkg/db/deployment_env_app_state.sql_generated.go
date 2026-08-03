@@ -17,6 +17,7 @@ SELECT
   p.slug AS project_slug,
   a.slug AS app_slug,
   e.slug AS environment_slug,
+  e.is_production AS environment_is_production,
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
@@ -33,12 +34,13 @@ type ListDeploymentEnvAndAppStateParams struct {
 }
 
 type ListDeploymentEnvAndAppStateRow struct {
-	DeploymentID           string         `db:"deployment_id"`
-	ProjectSlug            string         `db:"project_slug"`
-	AppSlug                string         `db:"app_slug"`
-	EnvironmentSlug        string         `db:"environment_slug"`
-	AppCurrentDeploymentID sql.NullString `db:"app_current_deployment_id"`
-	AppIsRolledBack        bool           `db:"app_is_rolled_back"`
+	DeploymentID            string         `db:"deployment_id"`
+	ProjectSlug             string         `db:"project_slug"`
+	AppSlug                 string         `db:"app_slug"`
+	EnvironmentSlug         string         `db:"environment_slug"`
+	EnvironmentIsProduction bool           `db:"environment_is_production"`
+	AppCurrentDeploymentID  sql.NullString `db:"app_current_deployment_id"`
+	AppIsRolledBack         bool           `db:"app_is_rolled_back"`
 }
 
 // ListDeploymentEnvAndAppState
@@ -48,6 +50,7 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	  p.slug AS project_slug,
 //	  a.slug AS app_slug,
 //	  e.slug AS environment_slug,
+//	  e.is_production AS environment_is_production,
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
@@ -81,6 +84,7 @@ func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg
 			&i.ProjectSlug,
 			&i.AppSlug,
 			&i.EnvironmentSlug,
+			&i.EnvironmentIsProduction,
 			&i.AppCurrentDeploymentID,
 			&i.AppIsRolledBack,
 		); err != nil {

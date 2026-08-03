@@ -30,7 +30,7 @@ export const stopDeployment = workspaceProcedure
         },
         environment: {
           columns: {
-            slug: true,
+            isProduction: true,
           },
         },
       },
@@ -50,7 +50,7 @@ export const stopDeployment = workspaceProcedure
       });
     }
 
-    if (deployment.environment?.slug === "production") {
+    if (deployment.environment?.isProduction) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "Production deployments cannot be stopped",

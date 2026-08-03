@@ -19,16 +19,17 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// envSpec defines the slug and human-readable description for a default environment.
+// envSpec defines a default environment created with an app.
 type envSpec struct {
-	slug        string
-	description string
+	slug         string
+	description  string
+	isProduction bool
 }
 
 // defaultEnvironments are the environments created automatically for every new app.
 var defaultEnvironments = []envSpec{
-	{slug: "production", description: "Production"},
-	{slug: "preview", description: "Preview"},
+	{slug: "production", description: "Production", isProduction: true},
+	{slug: "preview", description: "Preview", isProduction: false},
 }
 
 // CreateApp creates an app with default environments and their
@@ -83,14 +84,15 @@ func (s *Service) CreateApp(
 			envID := uid.New(uid.EnvironmentPrefix)
 
 			if txErr := db.NewQueries(tx).InsertEnvironment(txCtx, db.InsertEnvironmentParams{
-				ID:          envID,
-				WorkspaceID: workspaceID,
-				ProjectID:   projectID,
-				AppID:       appID,
-				Slug:        env.slug,
-				Description: env.description,
-				CreatedAt:   now,
-				UpdatedAt:   sql.NullInt64{Valid: false},
+				ID:           envID,
+				WorkspaceID:  workspaceID,
+				ProjectID:    projectID,
+				AppID:        appID,
+				Slug:         env.slug,
+				Description:  env.description,
+				IsProduction: env.isProduction,
+				CreatedAt:    now,
+				UpdatedAt:    sql.NullInt64{Valid: false},
 			}); txErr != nil {
 				return fmt.Errorf("insert %s environment: %w", env.slug, txErr)
 			}
