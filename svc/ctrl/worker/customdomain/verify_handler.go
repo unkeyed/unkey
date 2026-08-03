@@ -243,7 +243,7 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
 
-	txtRecords, err := dns.LookupTXT(ctx, "_unkey."+domain)
+	txtRecords, err := dns.LookupTXT(ctx, dns.OwnershipTXTName(domain))
 	if err != nil {
 		if dns.IsNotFoundError(err) {
 			return false, nil
@@ -251,7 +251,7 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 		return false, err
 	}
 
-	expected := "unkey-domain-verify=" + expectedToken
+	expected := dns.OwnershipTXTValue(expectedToken)
 	for _, txt := range txtRecords {
 		if strings.EqualFold(txt, expected) {
 			return true, nil

@@ -15,7 +15,30 @@ const (
 
 	// DefaultTimeout is the default timeout for DNS lookups.
 	DefaultTimeout = 10 * time.Second
+
+	// ownershipTXTLabel is the label the ownership-proof TXT record lives under,
+	// relative to the domain being verified.
+	ownershipTXTLabel = "_unkey"
+
+	// ownershipTXTPrefix precedes the verification token in the TXT record value.
+	ownershipTXTPrefix = "unkey-domain-verify="
 )
+
+// OwnershipTXTName returns the fully qualified name of the ownership-proof TXT
+// record for domain.
+//
+// domains.createDomain tells the caller to publish this record and the
+// verification worker reads it back, so both derive it here: a mismatch would
+// leave every domain stuck unverified with no error to point at.
+func OwnershipTXTName(domain string) string {
+	return ownershipTXTLabel + "." + domain
+}
+
+// OwnershipTXTValue returns the exact TXT record value that proves ownership for
+// the given verification token. See [OwnershipTXTName] for why this is shared.
+func OwnershipTXTValue(token string) string {
+	return ownershipTXTPrefix + token
+}
 
 // resolver uses Cloudflare's 1.1.1.1 for consistent lookups across environments.
 var resolver = newResolver(CloudflareDNS, DefaultTimeout)

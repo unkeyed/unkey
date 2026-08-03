@@ -1,0 +1,49 @@
+type: object
+required:
+  - type
+  - name
+  - value
+  - required
+properties:
+  type:
+    type: string
+    enum:
+      - CNAME
+      - ALIAS
+      - TXT
+    description: |
+      Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
+      alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
+      hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
+    example: CNAME
+  name:
+    type: string
+    minLength: 1
+    maxLength: 253
+    description: |
+      Fully qualified name of the record, ready to use as-is.
+      Providers that expect a name relative to the zone want the portion before the zone apex.
+    example: api.acme.com
+  value:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: |
+      The value to store, exactly as given, including any prefix.
+      Do not trim or reformat it: verification compares the published record against this string.
+    example: a1b2c3d4e5f6g7h8.cname.unkey.com
+  required:
+    type: boolean
+    description: |
+      Whether verification can succeed without this record.
+      A subdomain verifies from its routing record alone, so its TXT record is optional and only
+      matters when the routing record cannot be read. Apex domains require every record.
+    example: true
+  note:
+    type: string
+    maxLength: 512
+    description: |
+      Provider-specific caveat for this record, present only when there is one.
+      Worth surfacing to whoever edits the DNS zone.
+    example: Create as DNS-only. A proxied record is flattened and cannot be read.
+additionalProperties: false

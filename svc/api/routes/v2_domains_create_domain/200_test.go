@@ -2,12 +2,14 @@ package handler_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
 )
 
@@ -36,8 +38,24 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 	require.Equal(t, domainID, res.Body.Data.DomainId)
-	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", res.Body.Data.TargetCname)
-	require.Equal(t, "3ZQ8xK1mP7vT5nR2wY6bJ4hL", res.Body.Data.VerificationToken)
+
+	// A subdomain routes through a CNAME, and its TXT record is only a fallback,
+	// so it is returned but not required.
+	require.Len(t, res.Body.Data.DnsRecords, 2, "expected routing + ownership records, received: %s", res.RawBody)
+
+	routing := res.Body.Data.DnsRecords[0]
+	require.Equal(t, openapi.CNAME, routing.Type)
+	require.Equal(t, domain, routing.Name)
+	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", routing.Value)
+	require.True(t, routing.Required)
+	require.NotNil(t, routing.Note)
+
+	txt := res.Body.Data.DnsRecords[1]
+	require.Equal(t, openapi.TXT, txt.Type)
+	require.Equal(t, "_unkey."+domain, txt.Name)
+	require.Equal(t, "unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL", txt.Value)
+	require.False(t, txt.Required, "a subdomain verifies from its CNAME alone")
+	require.NotNil(t, txt.Note)
 
 	// Domain Connect discovery found nothing, so both fields stay absent rather
 	// than being serialized as empty strings.
@@ -90,6 +108,46 @@ func TestCreateDomainBySlugs(t *testing.T) {
 	require.Equal(t, env.projectID, call.GetProjectId())
 	require.Equal(t, env.appID, call.GetAppId())
 	require.Equal(t, env.environmentID, call.GetEnvironmentId())
+}
+
+// TestCreateDomainApexRecords pins the apex contract: an apex domain cannot hold
+// a CNAME, so routing must be an apex-compatible alias and the TXT record becomes
+// mandatory. Returning CNAME here would send the caller to a dead end, since the
+// record they were told to create cannot exist.
+func TestCreateDomainApexRecords(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	ctrlClient := &testutil.MockCustomDomainClient{
+		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			return &ctrlv1.AddCustomDomainResponse{
+				DomainId:          uid.New(uid.DomainPrefix),
+				TargetCname:       "a1b2c3d4e5f6g7h8.cname.unkey.com",
+				VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+			}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+
+	// No subdomain label, so this is a zone apex.
+	apex := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")) + ".com"
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, apex))
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data.DnsRecords, 2, "received: %s", res.RawBody)
+
+	routing := res.Body.Data.DnsRecords[0]
+	require.Equal(t, openapi.ALIAS, routing.Type, "apex cannot hold a CNAME, received: %s", res.RawBody)
+	require.Equal(t, apex, routing.Name)
+	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", routing.Value)
+	require.True(t, routing.Required)
+
+	txt := res.Body.Data.DnsRecords[1]
+	require.Equal(t, openapi.TXT, txt.Type)
+	require.Equal(t, "_unkey."+apex, txt.Name)
+	require.True(t, txt.Required, "apex can only be verified through the TXT record")
 }
 
 func TestCreateDomainWithDomainConnect(t *testing.T) {

@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dns"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -117,12 +119,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return ctrlclient.HandleError(err, "create custom domain")
 	}
 
+	// The caller gets the finished record list rather than raw values, so nothing
+	// downstream has to re-derive the TXT name, its prefix, or the apex rules. The
+	// apex branch matches the verification worker's, which reaches the same
+	// conclusion via domainconnect.IsApexDomain.
+	routing := openapi.DnsRecord{
+		Type:     openapi.CNAME,
+		Name:     req.Domain,
+		Value:    res.GetTargetCname(),
+		Required: true,
+		Note:     ptr.P("Create as DNS-only. A proxied record is flattened and cannot be read."),
+	}
+	txt := openapi.DnsRecord{
+		Type:     openapi.TXT,
+		Name:     dns.OwnershipTXTName(req.Domain),
+		Value:    dns.OwnershipTXTValue(res.GetVerificationToken()),
+		Required: false,
+		Note:     ptr.P("Only needed when the CNAME cannot be read, or the domain is already verified in another workspace."),
+	}
+
+	// An apex domain cannot hold a CNAME, so routing needs a provider-specific
+	// alias and ownership can only be proven through the TXT record.
+	if domainconnect.IsApexDomain(req.Domain) {
+		routing.Type = openapi.ALIAS
+		routing.Note = ptr.P("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
+		txt.Required = true
+		txt.Note = ptr.P("Required for apex domains, which cannot be verified through their routing record.")
+	}
+
 	// Domain Connect discovery is best-effort inside ctrl, so both fields are
 	// absent whenever the provider does not support it.
 	data := openapi.V2DomainsCreateDomainResponseData{
 		DomainId:              res.GetDomainId(),
-		TargetCname:           res.GetTargetCname(),
-		VerificationToken:     res.GetVerificationToken(),
+		DnsRecords:            []openapi.DnsRecord{routing, txt},
 		DomainConnectProvider: nil,
 		DomainConnectUrl:      nil,
 	}
