@@ -21,13 +21,11 @@ examples:
           - type: CNAME
             name: api.acme.com
             value: a1b2c3d4e5f6g7h8.cname.unkey.com
-            required: true
-            note: Create as DNS-only. A proxied record is flattened and cannot be read.
+            note: Create as DNS-only. A proxied record is flattened and cannot be read back.
           - type: TXT
             name: _unkey.api.acme.com
             value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
-            required: false
-            note: Only needed when the CNAME cannot be read, or the domain is already verified in another workspace.
+            note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
   apex:
     summary: Apex domain attached
     description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record
@@ -40,13 +38,11 @@ examples:
           - type: ALIAS
             name: acme.com
             value: a1b2c3d4e5f6g7h8.cname.unkey.com
-            required: true
             note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
           - type: TXT
             name: _unkey.acme.com
             value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
-            required: true
-            note: Required for apex domains, which cannot be verified through their routing record.
+            note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
   domainConnect:
     summary: Attached at a Domain Connect provider
     description: The provider supports Domain Connect, so the records can be applied through the returned URL
@@ -59,12 +55,10 @@ examples:
           - type: CNAME
             name: api.acme.com
             value: a1b2c3d4e5f6g7h8.cname.unkey.com
-            required: true
-            note: Create as DNS-only. A proxied record is flattened and cannot be read.
+            note: Create as DNS-only. A proxied record is flattened and cannot be read back.
           - type: TXT
             name: _unkey.api.acme.com
             value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
-            required: false
-            note: Only needed when the CNAME cannot be read, or the domain is already verified in another workspace.
+            note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
         domainConnectProvider: Cloudflare
         domainConnectUrl: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api

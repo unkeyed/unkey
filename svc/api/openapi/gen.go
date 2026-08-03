@@ -453,11 +453,6 @@ type DnsRecord struct {
 	// Worth surfacing to whoever edits the DNS zone.
 	Note *string `json:"note,omitempty"`
 
-	// Required Whether verification can succeed without this record.
-	// A subdomain verifies from its routing record alone, so its TXT record is optional and only
-	// matters when the routing record cannot be read. Apex domains require every record.
-	Required bool `json:"required"`
-
 	// Type Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
 	// alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
 	// hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
@@ -1980,9 +1975,10 @@ type V2DomainsCreateDomainResponseData struct {
 	// The list already accounts for whether the domain is an apex or a subdomain, so no further
 	// branching is needed: create each entry as given.
 	//
-	// One record establishes routing and one proves ownership. Records marked `required: false` are
-	// only consulted when the routing record cannot be read, which happens for proxied records and
-	// for a name another workspace has already verified.
+	// One record establishes routing and one proves ownership. Create all of them: whether ownership
+	// can be inferred from the routing record depends on how your provider publishes it, and a name
+	// another workspace has already verified can only be claimed through the ownership record.
+	// Neither is knowable before the records exist.
 	DnsRecords []DnsRecord `json:"dnsRecords"`
 
 	// DomainConnectProvider Display name of the DNS provider the domain is delegated to, such as 'Cloudflare'. Discovered from

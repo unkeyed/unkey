@@ -4467,9 +4467,10 @@ components:
                         The list already accounts for whether the domain is an apex or a subdomain, so no further
                         branching is needed: create each entry as given.
 
-                        One record establishes routing and one proves ownership. Records marked `required: false` are
-                        only consulted when the routing record cannot be read, which happens for proxied records and
-                        for a name another workspace has already verified.
+                        One record establishes routing and one proves ownership. Create all of them: whether ownership
+                        can be inferred from the routing record depends on how your provider publishes it, and a name
+                        another workspace has already verified can only be claimed through the ownership record.
+                        Neither is knowable before the records exist.
                 domainConnectProvider:
                     type: string
                     maxLength: 256
@@ -4501,7 +4502,6 @@ components:
                 - type
                 - name
                 - value
-                - required
             properties:
                 type:
                     type: string
@@ -4530,13 +4530,6 @@ components:
                         The value to store, exactly as given, including any prefix.
                         Do not trim or reformat it: verification compares the published record against this string.
                     example: a1b2c3d4e5f6g7h8.cname.unkey.com
-                required:
-                    type: boolean
-                    description: |
-                        Whether verification can succeed without this record.
-                        A subdomain verifies from its routing record alone, so its TXT record is optional and only
-                        matters when the routing record cannot be read. Apex domains require every record.
-                    example: true
                 note:
                     type: string
                     maxLength: 512
@@ -8508,7 +8501,7 @@ paths:
 
                 The domain is created in the `pending` state and does not serve traffic until verification succeeds. Verification runs in the background and polls DNS, so it is eventually consistent.
 
-                The response returns `dnsRecords`: every record needed to finish setup, already resolved for whether this domain is an apex or a subdomain. Create each entry exactly as given. One record establishes routing and one proves ownership; entries marked `required: false` are only consulted when the routing record cannot be read, which happens for proxied records and for a name another workspace has already verified.
+                The response returns `dnsRecords`: every record needed to finish setup, already resolved for whether this domain is an apex or a subdomain. Create every entry exactly as given. One record establishes routing and one proves ownership, and both are needed: whether ownership can be inferred from the routing record depends on how your provider publishes it, and a name another workspace has already verified can only be claimed through the ownership record. Neither is knowable before the records exist.
 
                 When your DNS provider supports Domain Connect, the response also carries `domainConnectProvider` and `domainConnectUrl`; opening that URL applies the same records at the provider in one step.
 
@@ -8566,12 +8559,10 @@ paths:
                                             dnsRecords:
                                                 - name: acme.com
                                                   note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
-                                                  required: true
                                                   type: ALIAS
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
                                                 - name: _unkey.acme.com
-                                                  note: Required for apex domains, which cannot be verified through their routing record.
-                                                  required: true
+                                                  note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
                                             domainId: dom_1234abcd
@@ -8584,13 +8575,11 @@ paths:
                                         data:
                                             dnsRecords:
                                                 - name: api.acme.com
-                                                  note: Create as DNS-only. A proxied record is flattened and cannot be read.
-                                                  required: true
+                                                  note: Create as DNS-only. A proxied record is flattened and cannot be read back.
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
                                                 - name: _unkey.api.acme.com
-                                                  note: Only needed when the CNAME cannot be read, or the domain is already verified in another workspace.
-                                                  required: false
+                                                  note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
                                             domainConnectProvider: Cloudflare
@@ -8605,13 +8594,11 @@ paths:
                                         data:
                                             dnsRecords:
                                                 - name: api.acme.com
-                                                  note: Create as DNS-only. A proxied record is flattened and cannot be read.
-                                                  required: true
+                                                  note: Create as DNS-only. A proxied record is flattened and cannot be read back.
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
                                                 - name: _unkey.api.acme.com
-                                                  note: Only needed when the CNAME cannot be read, or the domain is already verified in another workspace.
-                                                  required: false
+                                                  note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
                                             domainId: dom_1234abcd

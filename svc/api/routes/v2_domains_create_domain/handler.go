@@ -124,27 +124,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// apex branch matches the verification worker's, which reaches the same
 	// conclusion via domainconnect.IsApexDomain.
 	routing := openapi.DnsRecord{
-		Type:     openapi.CNAME,
-		Name:     req.Domain,
-		Value:    res.GetTargetCname(),
-		Required: true,
-		Note:     ptr.P("Create as DNS-only. A proxied record is flattened and cannot be read."),
+		Type:  openapi.CNAME,
+		Name:  req.Domain,
+		Value: res.GetTargetCname(),
+		Note:  ptr.P("Create as DNS-only. A proxied record is flattened and cannot be read back."),
 	}
 	txt := openapi.DnsRecord{
-		Type:     openapi.TXT,
-		Name:     dns.OwnershipTXTName(req.Domain),
-		Value:    dns.OwnershipTXTValue(res.GetVerificationToken()),
-		Required: false,
-		Note:     ptr.P("Only needed when the CNAME cannot be read, or the domain is already verified in another workspace."),
+		Type:  openapi.TXT,
+		Name:  dns.OwnershipTXTName(req.Domain),
+		Value: dns.OwnershipTXTValue(res.GetVerificationToken()),
+		Note:  ptr.P("Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published."),
 	}
 
-	// An apex domain cannot hold a CNAME, so routing needs a provider-specific
-	// alias and ownership can only be proven through the TXT record.
+	// An apex domain cannot hold a CNAME, so routing needs a provider-specific alias.
 	if domainconnect.IsApexDomain(req.Domain) {
 		routing.Type = openapi.ALIAS
 		routing.Note = ptr.P("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
-		txt.Required = true
-		txt.Note = ptr.P("Required for apex domains, which cannot be verified through their routing record.")
+		txt.Note = ptr.P("Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.")
 	}
 
 	// Domain Connect discovery is best-effort inside ctrl, so both fields are

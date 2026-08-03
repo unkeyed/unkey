@@ -23,9 +23,10 @@ properties:
       The list already accounts for whether the domain is an apex or a subdomain, so no further
       branching is needed: create each entry as given.
 
-      One record establishes routing and one proves ownership. Records marked `required: false` are
-      only consulted when the routing record cannot be read, which happens for proxied records and
-      for a name another workspace has already verified.
+      One record establishes routing and one proves ownership. Create all of them: whether ownership
+      can be inferred from the routing record depends on how your provider publishes it, and a name
+      another workspace has already verified can only be claimed through the ownership record.
+      Neither is knowable before the records exist.
   domainConnectProvider:
     type: string
     maxLength: 256

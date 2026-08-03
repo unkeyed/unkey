@@ -39,22 +39,21 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 	require.Equal(t, domainID, res.Body.Data.DomainId)
 
-	// A subdomain routes through a CNAME, and its TXT record is only a fallback,
-	// so it is returned but not required.
+	// A subdomain routes through a CNAME and proves ownership through the TXT
+	// record. Both are returned, because whether the CNAME can be read back is
+	// only knowable after it is published.
 	require.Len(t, res.Body.Data.DnsRecords, 2, "expected routing + ownership records, received: %s", res.RawBody)
 
 	routing := res.Body.Data.DnsRecords[0]
 	require.Equal(t, openapi.CNAME, routing.Type)
 	require.Equal(t, domain, routing.Name)
 	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", routing.Value)
-	require.True(t, routing.Required)
 	require.NotNil(t, routing.Note)
 
 	txt := res.Body.Data.DnsRecords[1]
 	require.Equal(t, openapi.TXT, txt.Type)
 	require.Equal(t, "_unkey."+domain, txt.Name)
 	require.Equal(t, "unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL", txt.Value)
-	require.False(t, txt.Required, "a subdomain verifies from its CNAME alone")
 	require.NotNil(t, txt.Note)
 
 	// Domain Connect discovery found nothing, so both fields stay absent rather
@@ -111,9 +110,9 @@ func TestCreateDomainBySlugs(t *testing.T) {
 }
 
 // TestCreateDomainApexRecords pins the apex contract: an apex domain cannot hold
-// a CNAME, so routing must be an apex-compatible alias and the TXT record becomes
-// mandatory. Returning CNAME here would send the caller to a dead end, since the
-// record they were told to create cannot exist.
+// a CNAME, so routing must be an apex-compatible alias. Returning CNAME here
+// would send the caller to a dead end, since the record they were told to create
+// cannot exist.
 func TestCreateDomainApexRecords(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -142,12 +141,11 @@ func TestCreateDomainApexRecords(t *testing.T) {
 	require.Equal(t, openapi.ALIAS, routing.Type, "apex cannot hold a CNAME, received: %s", res.RawBody)
 	require.Equal(t, apex, routing.Name)
 	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", routing.Value)
-	require.True(t, routing.Required)
 
 	txt := res.Body.Data.DnsRecords[1]
 	require.Equal(t, openapi.TXT, txt.Type)
 	require.Equal(t, "_unkey."+apex, txt.Name)
-	require.True(t, txt.Required, "apex can only be verified through the TXT record")
+	require.NotNil(t, txt.Note)
 }
 
 func TestCreateDomainWithDomainConnect(t *testing.T) {
