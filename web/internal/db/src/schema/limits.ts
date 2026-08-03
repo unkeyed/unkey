@@ -92,6 +92,32 @@ export const limits = mysqlTable("limits", {
    */
   buildsConcurrentCountMax: smallint("builds_concurrent_count_max", { unsigned: true }).notNull(),
 
+  // Add these when build workers read limits from this table.
+  //
+  // Caps how long one build can run.
+  // Unit: minutes.
+  // buildsDurationMinutesMax: smallint("builds_duration_minutes_max", { unsigned: true }).notNull(),
+  //
+  // Caps how much CPU one build machine can use.
+  // Unit: whole CPU cores.
+  // buildsMachineCpuCoresMax: smallint("builds_machine_cpu_cores_max", {
+  //   unsigned: true,
+  // }).notNull(),
+  //
+  // Caps how much memory one build machine can use.
+  // Unit: MiB.
+  // buildsMachineMemoryMibMax: int("builds_machine_memory_mib_max", { unsigned: true }).notNull(),
+  //
+  // Caps how much build cache the workspace can keep.
+  // Unit: GiB.
+  // buildsCacheGibMax: smallint("builds_cache_gib_max", { unsigned: true }).notNull(),
+  //
+  // Caps how long build cache entries are retained.
+  // Unit: days.
+  // buildsCacheRetentionDaysMax: smallint("builds_cache_retention_days_max", {
+  //   unsigned: true,
+  // }).notNull(),
+
   /**
    * Caps how many custom domains the workspace can add.
    * Unit: domains.
