@@ -24,8 +24,8 @@ type resourceLimitManager struct{}
 
 func (resourceLimitManager) GetConnection(context.Context, string) (clickhouse.ClickHouse, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	return resourceLimitConnection{}, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{
-		ClickhouseWorkspaceSetting: db.ClickhouseWorkspaceSetting{MaxQueryResultRows: 100},
-		Quotas:                     db.Quotas{LogsRetentionDays: 30},
+		ClickhouseMaxQueryResultRows: 100,
+		QuotaLogsRetentionDays:       30,
 	}, nil
 }
 

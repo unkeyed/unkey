@@ -10,14 +10,14 @@ import (
 )
 
 const findQuotaByWorkspaceID = `-- name: FindQuotaByWorkspaceID :one
-SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
+SELECT quota.pk, quota.workspace_id, quota.requests_per_month, quota.logs_retention_days, quota.audit_logs_retention_days, quota.team, quota.ratelimit_api_limit, quota.ratelimit_api_duration, quota.allocated_cpu_millicores_total, quota.allocated_memory_mib_total, quota.allocated_storage_mib_total, quota.max_cpu_millicores_per_instance, quota.max_memory_mib_per_instance, quota.max_storage_mib_per_instance, quota.max_concurrent_builds, quota.max_replicas_per_region
 FROM ` + "`" + `quota` + "`" + `
 WHERE workspace_id = ?
 `
 
 // FindQuotaByWorkspaceID
 //
-//	SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
+//	SELECT quota.pk, quota.workspace_id, quota.requests_per_month, quota.logs_retention_days, quota.audit_logs_retention_days, quota.team, quota.ratelimit_api_limit, quota.ratelimit_api_duration, quota.allocated_cpu_millicores_total, quota.allocated_memory_mib_total, quota.allocated_storage_mib_total, quota.max_cpu_millicores_per_instance, quota.max_memory_mib_per_instance, quota.max_storage_mib_per_instance, quota.max_concurrent_builds, quota.max_replicas_per_region
 //	FROM `quota`
 //	WHERE workspace_id = ?
 func (q *Queries) FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error) {

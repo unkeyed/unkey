@@ -9,7 +9,12 @@ export default async function SettingTeamPage() {
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    with: { quotas: true },
+    columns: { id: true },
+    with: {
+      quotas: {
+        columns: { team: true },
+      },
+    },
   });
 
   const team = workspace?.quotas?.team ?? false;

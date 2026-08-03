@@ -39,6 +39,7 @@ export const updateInstances = workspaceProcedure
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
           eq(appRegionalSettings.environmentId, input.environmentId),
         ),
+        columns: { horizontalAutoscalingPolicyId: true },
       });
 
       if (regions.length === 0) {

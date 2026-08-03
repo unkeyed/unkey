@@ -21,8 +21,9 @@ export const createKey = workspaceProcedure
       .findFirst({
         where: (table, { and, eq }) =>
           and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
-        with: {
-          api: true,
+        columns: {
+          id: true,
+          storeEncryptedKeys: true,
         },
       })
       .catch((_err) => {

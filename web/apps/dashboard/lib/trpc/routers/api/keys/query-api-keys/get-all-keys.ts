@@ -55,6 +55,7 @@ export async function getAllKeys({
           },
         },
       },
+      columns: { id: true },
     });
     if (!keyAuth) {
       throw new TRPCError({
@@ -289,6 +290,21 @@ export async function getAllKeys({
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => buildFilterConditions(key, helpers),
+      columns: {
+        id: true,
+        name: true,
+        ownerId: true,
+        identityId: true,
+        enabled: true,
+        expires: true,
+        updatedAtM: true,
+        start: true,
+        lastUsedAt: true,
+        meta: true,
+        remaining: true,
+        refillAmount: true,
+        refillDay: true,
+      },
       with: {
         ratelimits: {
           columns: {

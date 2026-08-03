@@ -116,7 +116,15 @@ export async function linkApiSubscription(
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq: eqFn, isNull }) =>
       and(eqFn(table.id, input.expectedWorkspaceId), isNull(table.deletedAtM)),
-    with: { billing: true, billingSubscriptions: true },
+    columns: { id: true },
+    with: {
+      billing: {
+        columns: { tier: true },
+      },
+      billingSubscriptions: {
+        columns: { product: true, stripeSubscriptionId: true },
+      },
+    },
   });
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };

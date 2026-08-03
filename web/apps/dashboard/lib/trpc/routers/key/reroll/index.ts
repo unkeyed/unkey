@@ -104,16 +104,58 @@ async function rerollKeyCore({
 
       const source = await tx.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, keyId),
+        columns: {
+          id: true,
+          keyAuthId: true,
+          workspaceId: true,
+          forWorkspaceId: true,
+          name: true,
+          ownerId: true,
+          identityId: true,
+          meta: true,
+          expires: true,
+          refillDay: true,
+          refillAmount: true,
+          lastRefillAt: true,
+          enabled: true,
+          remaining: true,
+          environment: true,
+          start: true,
+        },
         with: {
           keyAuth: {
+            columns: {
+              storeEncryptedKeys: true,
+              defaultBytes: true,
+            },
             with: {
-              api: true,
+              api: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
-          encrypted: true,
-          ratelimits: true,
-          roles: true,
-          permissions: true,
+          encrypted: {
+            columns: { keyId: true },
+          },
+          ratelimits: {
+            columns: {
+              keyId: true,
+              identityId: true,
+              name: true,
+              limit: true,
+              duration: true,
+              autoApply: true,
+            },
+          },
+          roles: {
+            columns: { roleId: true },
+          },
+          permissions: {
+            columns: { permissionId: true },
+          },
         },
       });
 

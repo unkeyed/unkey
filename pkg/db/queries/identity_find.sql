@@ -1,6 +1,6 @@
 -- name: FindIdentity :one
 SELECT
-    i.*,
+    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(

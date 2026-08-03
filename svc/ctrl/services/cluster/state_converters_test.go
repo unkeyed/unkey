@@ -10,7 +10,7 @@ import (
 
 func TestDeploymentRowToState_Running(t *testing.T) {
 	row := deploymentRow{
-		dt: db.DeploymentTopology{
+		dt: deploymentTopology{
 			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 			AutoscalingReplicasMin: 1,
 			AutoscalingReplicasMax: 3,
@@ -51,7 +51,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 
 func TestDeploymentRowToState_Stopped(t *testing.T) {
 	row := deploymentRow{
-		dt: db.DeploymentTopology{
+		dt: deploymentTopology{
 			DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
 		},
 		d: db.Deployment{

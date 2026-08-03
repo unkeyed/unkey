@@ -14,6 +14,13 @@ export const getEnvironmentSettings = workspaceProcedure
             eq(appBuildSettings.workspaceId, ctx.workspace.id),
             eq(appBuildSettings.environmentId, input.environmentId),
           ),
+          columns: {
+            autoDeploy: true,
+            dockerfile: true,
+            dockerContext: true,
+            buildCommand: true,
+            watchPaths: true,
+          },
         }),
         db.query.appRuntimeSettings.findFirst({
           where: and(
@@ -21,7 +28,14 @@ export const getEnvironmentSettings = workspaceProcedure
             eq(appRuntimeSettings.environmentId, input.environmentId),
           ),
           columns: {
-            sentinelConfig: false,
+            port: true,
+            cpuMillicores: true,
+            memoryMib: true,
+            storageMib: true,
+            command: true,
+            healthcheck: true,
+            upstreamProtocol: true,
+            openapiSpecPath: true,
           },
         }),
         db.query.appRegionalSettings.findMany({
@@ -29,9 +43,21 @@ export const getEnvironmentSettings = workspaceProcedure
             eq(appRegionalSettings.workspaceId, ctx.workspace.id),
             eq(appRegionalSettings.environmentId, input.environmentId),
           ),
+          columns: {
+            replicas: true,
+          },
           with: {
-            region: true,
-            horizontalAutoscalingPolicy: true,
+            region: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+            horizontalAutoscalingPolicy: {
+              columns: {
+                replicasMin: true,
+              },
+            },
           },
         }),
       ]);

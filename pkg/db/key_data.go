@@ -53,11 +53,46 @@ func ToKeyData[T KeyRow](row T) *KeyData {
 }
 
 func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
-	hr := FindLiveKeyByHashRow(*r) // safe value copy
-	return buildKeyData(&hr)
+	//nolint:exhaustruct
+	kd := &KeyData{
+		Key: Key{
+			ID:                r.KeyID,
+			KeyAuthID:         r.KeyKeyAuthID,
+			Hash:              r.KeyHash,
+			Start:             r.KeyStart,
+			WorkspaceID:       r.KeyWorkspaceID,
+			ForWorkspaceID:    r.KeyForWorkspaceID,
+			Name:              r.KeyName,
+			IdentityID:        r.KeyIdentityID,
+			Meta:              r.KeyMeta,
+			Expires:           r.KeyExpires,
+			CreatedAtM:        r.KeyCreatedAtM,
+			UpdatedAtM:        r.KeyUpdatedAtM,
+			RefillDay:         r.KeyRefillDay,
+			RefillAmount:      r.KeyRefillAmount,
+			Enabled:           r.KeyEnabled,
+			RemainingRequests: r.KeyRemainingRequests,
+			LastUsedAt:        r.KeyLastUsedAt,
+		},
+		Api: Api{ID: r.ApiID, Name: r.ApiName},
+		KeyAuth: KeyAuth{
+			ID:                 r.KeyAuthID,
+			StoreEncryptedKeys: r.KeyAuthStoreEncryptedKeys,
+			DefaultPrefix:      r.KeyAuthDefaultPrefix,
+			DefaultBytes:       r.KeyAuthDefaultBytes,
+		},
+		Workspace:       Workspace{},
+		EncryptedKey:    r.EncryptedKey,
+		EncryptionKeyID: r.EncryptionKeyID,
+	}
+
+	populateFindLiveKeyRelationships(kd, r.KeyWorkspaceID, r.IdentityTableID,
+		r.IdentityExternalID, r.IdentityMeta, r.Roles, r.Permissions, r.RolePermissions, r.Ratelimits)
+	return kd
 }
 
 func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
+	//nolint:exhaustruct
 	kd := &KeyData{
 		Key: Key{
 			Pk:                 r.Pk,
@@ -84,13 +119,9 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			LastUsedAt:         r.LastUsedAt,
 			PendingMigrationID: r.PendingMigrationID,
 		},
-		// nolint: exhaustruct
-		Identity: nil,
-		// nolint: exhaustruct
-		Api: Api{}, // Empty Api since not in this query
-		// nolint: exhaustruct
-		KeyAuth: KeyAuth{}, // Empty KeyAuth since not in this query
-		// nolint: exhaustruct
+		Identity:  nil,
+		Api:       Api{},       // Empty Api since not in this query
+		KeyAuth:   KeyAuth{},   // Empty KeyAuth since not in this query
 		Workspace: Workspace{}, // Empty Workspace since not in this query
 
 		EncryptedKey:    r.EncryptedKey,
@@ -132,31 +163,24 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 	//nolint:exhaustruct
 	kd := &KeyData{
 		Key: Key{
-			ID:                r.ID,
-			KeyAuthID:         r.KeyAuthID,
-			Hash:              r.Hash,
-			Start:             r.Start,
-			WorkspaceID:       r.WorkspaceID,
-			ForWorkspaceID:    r.ForWorkspaceID,
-			Name:              r.Name,
-			OwnerID:           r.OwnerID,
-			IdentityID:        r.IdentityID,
-			Meta:              r.Meta,
-			Expires:           r.Expires,
-			CreatedAtM:        r.CreatedAtM,
-			UpdatedAtM:        r.UpdatedAtM,
-			DeletedAtM:        r.DeletedAtM,
-			RefillDay:         r.RefillDay,
-			RefillAmount:      r.RefillAmount,
-			LastRefillAt:      r.LastRefillAt,
-			Enabled:           r.Enabled,
-			RemainingRequests: r.RemainingRequests,
-			Environment:       r.Environment,
-			LastUsedAt:        r.LastUsedAt,
+			ID:                r.KeyID,
+			KeyAuthID:         r.KeyKeyAuthID,
+			Start:             r.KeyStart,
+			WorkspaceID:       r.KeyWorkspaceID,
+			Name:              r.KeyName,
+			Meta:              r.KeyMeta,
+			Expires:           r.KeyExpires,
+			CreatedAtM:        r.KeyCreatedAtM,
+			UpdatedAtM:        r.KeyUpdatedAtM,
+			RefillDay:         r.KeyRefillDay,
+			RefillAmount:      r.KeyRefillAmount,
+			Enabled:           r.KeyEnabled,
+			RemainingRequests: r.KeyRemainingRequests,
+			LastUsedAt:        r.KeyLastUsedAt,
 		},
-		Api:             r.Api,
-		KeyAuth:         r.KeyAuth,
-		Workspace:       r.Workspace,
+		Api:             Api{ID: r.ApiID},
+		KeyAuth:         KeyAuth{StoreEncryptedKeys: r.KeyAuthStoreEncryptedKeys},
+		Workspace:       Workspace{},
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
 		Roles:           nil,
@@ -165,28 +189,30 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 		Ratelimits:      nil,
 	}
 
-	if r.IdentityTableID.Valid {
-		//nolint: exhaustruct
+	populateFindLiveKeyRelationships(kd, r.KeyWorkspaceID, r.IdentityTableID,
+		r.IdentityExternalID, r.IdentityMeta, r.Roles, r.Permissions, r.RolePermissions, r.Ratelimits)
+	return kd
+}
+
+func populateFindLiveKeyRelationships(kd *KeyData, workspaceID string, identityID, identityExternalID sql.NullString,
+	identityMeta []byte, roles, permissions, rolePermissions, ratelimits interface{},
+) {
+	if identityID.Valid {
+		//nolint:exhaustruct
 		kd.Identity = &Identity{
-			ID:          r.IdentityTableID.String,
-			ExternalID:  r.IdentityExternalID.String,
-			WorkspaceID: r.WorkspaceID,
-			Meta:        r.IdentityMeta,
+			ID:          identityID.String,
+			ExternalID:  identityExternalID.String,
+			WorkspaceID: workspaceID,
+			Meta:        identityMeta,
 		}
 	}
 
 	// Unmarshal JSON fields, silently ignoring errors
-	roles, _ := UnmarshalNullableJSONTo[[]RoleInfo](r.Roles)
-	kd.Roles = roles
+	kd.Roles, _ = UnmarshalNullableJSONTo[[]RoleInfo](roles)
 
-	permissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.Permissions)
-	kd.Permissions = permissions
+	kd.Permissions, _ = UnmarshalNullableJSONTo[[]PermissionInfo](permissions)
 
-	rolePermissions, _ := UnmarshalNullableJSONTo[[]PermissionInfo](r.RolePermissions)
-	kd.RolePermissions = rolePermissions
+	kd.RolePermissions, _ = UnmarshalNullableJSONTo[[]PermissionInfo](rolePermissions)
 
-	ratelimits, _ := UnmarshalNullableJSONTo[[]RatelimitInfo](r.Ratelimits)
-	kd.Ratelimits = ratelimits
-
-	return kd
+	kd.Ratelimits, _ = UnmarshalNullableJSONTo[[]RatelimitInfo](ratelimits)
 }

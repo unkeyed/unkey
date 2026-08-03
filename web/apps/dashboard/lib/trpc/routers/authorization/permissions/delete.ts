@@ -25,6 +25,10 @@ export const deletePermissionWithRelations = workspaceProcedure
       const permissions = await tx.query.permissions.findMany({
         where: (table, { and, eq, inArray }) =>
           and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, input.permissionIds)),
+        columns: {
+          id: true,
+          name: true,
+        },
       });
 
       if (permissions.length !== input.permissionIds.length) {

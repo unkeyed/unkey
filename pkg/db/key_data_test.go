@@ -11,68 +11,88 @@ import (
 func TestToKeyData_ValidCases(t *testing.T) {
 	t.Run("FindLiveKeyByIDRow value", func(t *testing.T) {
 		row := FindLiveKeyByIDRow{
-			ID:          "test-key-id",
-			Hash:        "test-hash",
-			WorkspaceID: "test-workspace",
-			Enabled:     true,
+			KeyID:                     "test-key-id",
+			KeyHash:                   "test-key-hash",
+			KeyWorkspaceID:            "test-workspace",
+			KeyForWorkspaceID:         sql.NullString{String: "root-workspace", Valid: true},
+			KeyEnabled:                true,
+			ApiID:                     "api-id",
+			ApiName:                   "api-name",
+			KeyAuthID:                 "key-auth-id",
+			KeyAuthStoreEncryptedKeys: true,
+			KeyAuthDefaultPrefix:      sql.NullString{String: "prefix", Valid: true},
+			KeyAuthDefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
 		}
 
 		result := ToKeyData(row)
 
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id", result.Key.ID)
-		require.Equal(t, "test-hash", result.Key.Hash)
+		require.Equal(t, "test-key-hash", result.Key.Hash)
 		require.Equal(t, "test-workspace", result.Key.WorkspaceID)
+		require.Equal(t, "root-workspace", result.Key.ForWorkspaceID.String)
+		require.True(t, result.Key.ForWorkspaceID.Valid)
 		require.True(t, result.Key.Enabled)
+		require.Equal(t, "api-id", result.Api.ID)
+		require.Equal(t, "api-name", result.Api.Name)
+		require.Equal(t, "key-auth-id", result.KeyAuth.ID)
+		require.True(t, result.KeyAuth.StoreEncryptedKeys)
+		require.Equal(t, "prefix", result.KeyAuth.DefaultPrefix.String)
+		require.Equal(t, int32(16), result.KeyAuth.DefaultBytes.Int32)
+		require.Empty(t, result.Workspace)
 	})
 
 	t.Run("FindLiveKeyByIDRow pointer", func(t *testing.T) {
 		row := FindLiveKeyByIDRow{
-			ID:          "test-key-id-ptr",
-			Hash:        "test-hash-ptr",
-			WorkspaceID: "test-workspace-ptr",
-			Enabled:     false,
+			KeyID:          "test-key-id-ptr",
+			KeyWorkspaceID: "test-workspace-ptr",
+			KeyEnabled:     false,
 		}
 
 		result := ToKeyData(row)
 
 		require.NotNil(t, result)
 		require.Equal(t, "test-key-id-ptr", result.Key.ID)
-		require.Equal(t, "test-hash-ptr", result.Key.Hash)
+		require.Empty(t, result.Key.Hash)
 		require.Equal(t, "test-workspace-ptr", result.Key.WorkspaceID)
 		require.False(t, result.Key.Enabled)
 	})
 
 	t.Run("FindLiveKeyByHashRow value", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:          "hash-key-id",
-			Hash:        "hash-test",
-			WorkspaceID: "hash-workspace",
-			Enabled:     true,
+			KeyID:                     "hash-key-id",
+			KeyWorkspaceID:            "hash-workspace",
+			KeyEnabled:                true,
+			ApiID:                     "hash-api-id",
+			KeyAuthStoreEncryptedKeys: true,
 		}
 
 		result := ToKeyData(row)
 
 		require.NotNil(t, result)
 		require.Equal(t, "hash-key-id", result.Key.ID)
-		require.Equal(t, "hash-test", result.Key.Hash)
+		require.Empty(t, result.Key.Hash)
 		require.Equal(t, "hash-workspace", result.Key.WorkspaceID)
 		require.True(t, result.Key.Enabled)
+		require.Equal(t, "hash-api-id", result.Api.ID)
+		require.Empty(t, result.Api.Name)
+		require.True(t, result.KeyAuth.StoreEncryptedKeys)
+		require.Empty(t, result.KeyAuth.ID)
+		require.Empty(t, result.Workspace)
 	})
 
 	t.Run("FindLiveKeyByHashRow pointer", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:          "hash-key-ptr",
-			Hash:        "hash-ptr",
-			WorkspaceID: "hash-workspace-ptr",
-			Enabled:     false,
+			KeyID:          "hash-key-ptr",
+			KeyWorkspaceID: "hash-workspace-ptr",
+			KeyEnabled:     false,
 		}
 
 		result := ToKeyData(row)
 
 		require.NotNil(t, result)
 		require.Equal(t, "hash-key-ptr", result.Key.ID)
-		require.Equal(t, "hash-ptr", result.Key.Hash)
+		require.Empty(t, result.Key.Hash)
 		require.Equal(t, "hash-workspace-ptr", result.Key.WorkspaceID)
 		require.False(t, result.Key.Enabled)
 	})
@@ -117,8 +137,8 @@ func TestToKeyData_EmptyValues(t *testing.T) {
 func TestToKeyData_WithIdentity(t *testing.T) {
 	t.Run("with valid identity data", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:                 "key-with-identity",
-			WorkspaceID:        "workspace-123",
+			KeyID:              "key-with-identity",
+			KeyWorkspaceID:     "workspace-123",
 			IdentityTableID:    sql.NullString{String: "identity-123", Valid: true},
 			IdentityExternalID: sql.NullString{String: "user-456", Valid: true},
 			IdentityMeta:       []byte(`{"role": "admin"}`),
@@ -136,8 +156,8 @@ func TestToKeyData_WithIdentity(t *testing.T) {
 
 	t.Run("without identity data", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:              "key-no-identity",
-			WorkspaceID:     "workspace-123",
+			KeyID:           "key-no-identity",
+			KeyWorkspaceID:  "workspace-123",
 			IdentityTableID: sql.NullString{Valid: false}, // No identity
 		}
 
@@ -178,7 +198,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 		require.NoError(t, err)
 
 		row := FindLiveKeyByHashRow{
-			ID:              "key-with-json",
+			KeyID:           "key-with-json",
 			Roles:           rolesJSON,
 			Permissions:     permissionsJSON,
 			RolePermissions: permissionsJSON,
@@ -205,7 +225,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 
 	t.Run("with invalid JSON - should ignore errors", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:          "key-bad-json",
+			KeyID:       "key-bad-json",
 			Roles:       []byte(`{invalid json}`),      // Bad JSON
 			Permissions: []byte(`not json at all`),     // Bad JSON
 			Ratelimits:  []byte(`{"incomplete": true`), // Bad JSON
@@ -223,7 +243,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 
 	t.Run("with nil JSON fields", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:              "key-nil-json",
+			KeyID:           "key-nil-json",
 			Roles:           nil,
 			Permissions:     nil,
 			RolePermissions: nil,
@@ -241,7 +261,7 @@ func TestToKeyData_WithJSONFields(t *testing.T) {
 
 	t.Run("with non-byte slice fields", func(t *testing.T) {
 		row := FindLiveKeyByHashRow{
-			ID:              "key-wrong-type",
+			KeyID:           "key-wrong-type",
 			Roles:           "not a byte slice", // Wrong type
 			Permissions:     123,                // Wrong type
 			RolePermissions: struct{}{},         // Wrong type

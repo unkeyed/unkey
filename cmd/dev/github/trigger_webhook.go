@@ -172,11 +172,11 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to find default app for project %s: %w\n\nMake sure the project has a 'default' app", projectID, err)
 	}
-	fmt.Printf("App: %s (id: %s)\n", appRow.App.Slug, appRow.App.ID)
+	fmt.Printf("App: %s (id: %s)\n", appRow.Slug, appRow.ID)
 
 	// Ensure github_repo_connection exists
 	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := svc.ensureGithubConnection(ctx, appRow.App.WorkspaceID, projectID, appRow.App.ID, installationID, repoInfo.ID, repository); err != nil {
+	if err := svc.ensureGithubConnection(ctx, appRow.WorkspaceID, projectID, appRow.ID, installationID, repoInfo.ID, repository); err != nil {
 		return fmt.Errorf("failed to create GitHub connection: %w", err)
 	}
 	fmt.Println("✔ GitHub connection ready")
