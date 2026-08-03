@@ -1,5 +1,9 @@
 import { getStripeClient } from "@/lib/stripe";
-import { handleStripeError } from "@/lib/trpc/routers/utils/stripe";
+import {
+  expandableId,
+  retrieveCompletedWorkspaceCheckoutSession,
+  throwRedactedStripeError,
+} from "@/lib/trpc/routers/utils/stripe";
 import {
   ratelimit,
   requireWorkspaceAdmin,
@@ -11,13 +15,12 @@ import Stripe from "stripe";
 import { z } from "zod";
 
 const updateCustomerInputSchema = z.object({
-  // Either the workspace's bound customer id, or a checkout session whose
-  // client_reference_id matches. During initial card-vault setup no
-  // customer is bound yet, so callers pass sessionId and ownership is
-  // verified from the session.
-  customerId: z.string().optional(),
-  sessionId: z.string().optional(),
-  paymentMethod: z.string(),
+  // No customer id from the client: it is derived from this session, which is
+  // verified to belong to the workspace.
+  sessionId: z.string().min(1, "Stripe checkout session ID is required"),
+  // Stripe reads an empty string as "unset", which clears the card on file and
+  // reports success.
+  paymentMethod: z.string().min(1, "Payment method is required"),
 });
 
 const customerSchema = z.object({
@@ -32,29 +35,17 @@ export const updateCustomer = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
-    // Resolve and verify ownership server-side; never trust a caller-supplied id.
-    let resolvedCustomerId: string | null = null;
-    if (input.sessionId) {
-      const session = await stripe.checkout.sessions.retrieve(input.sessionId);
-      if (!session || session.client_reference_id !== ctx.workspace.id) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Customer not found",
-        });
-      }
-      resolvedCustomerId =
-        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
-    } else if (input.customerId && ctx.workspace.stripeCustomerId) {
-      if (input.customerId !== ctx.workspace.stripeCustomerId) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Customer not found",
-        });
-      }
-      resolvedCustomerId = input.customerId;
-    }
+    // The session's customer, not the workspace's: setup-mode checkout creates
+    // a new customer and attaches the payment method to that one.
+    const session = await retrieveCompletedWorkspaceCheckoutSession({
+      stripe,
+      sessionId: input.sessionId,
+      workspaceId: ctx.workspace.id,
+      notFoundMessage: "Customer not found",
+    });
+    const customerId = expandableId(session.customer);
 
-    if (!resolvedCustomerId) {
+    if (!customerId) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Customer not found",
@@ -62,37 +53,24 @@ export const updateCustomer = workspaceProcedure
     }
 
     try {
-      const customer = await stripe.customers.update(resolvedCustomerId, {
+      const customer = await stripe.customers.update(customerId, {
         invoice_settings: {
           default_payment_method: input.paymentMethod,
         },
       });
 
-      if (!customer) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Customer not found or has been deleted",
-        });
-      }
-
       return {
         id: customer.id,
       };
     } catch (error) {
-      // If error is already a TRPCError, rethrow unchanged
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      // Handle Stripe errors
       if (error instanceof Stripe.errors.StripeError) {
-        handleStripeError(error);
+        throwRedactedStripeError(error, "Failed to set the default payment method");
       }
 
-      // Handle unknown errors
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to update customer",
+        message: "Failed to set the default payment method",
+        cause: error,
       });
     }
   });

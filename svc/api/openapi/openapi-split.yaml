@@ -124,6 +124,8 @@ tags:
     description: Customer Portal session management
   - name: ratelimit
     description: Rate limiting operations
+  - name: github
+    description: GitHub App installation operations
 
 paths:
   # Health Endpoints
@@ -248,6 +250,10 @@ paths:
     $ref: "./spec/paths/v2/projects/updateProject/index.yaml"
   /v2/projects.deleteProject:
     $ref: "./spec/paths/v2/projects/deleteProject/index.yaml"
+
+  # GitHub Endpoints
+  /v2/github.installApp:
+    $ref: "./spec/paths/v2/github/installApp/index.yaml"
 
   # App Endpoints
   /v2/apps.createApp:

@@ -21,6 +21,7 @@ type BulkQuerier interface {
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
+	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
 	InsertHorizontalAutoscalingPolicies(ctx context.Context, db DBTX, args []InsertHorizontalAutoscalingPolicyParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error

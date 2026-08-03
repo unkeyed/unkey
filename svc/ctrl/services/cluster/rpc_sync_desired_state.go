@@ -24,7 +24,7 @@ func (s *Service) SyncDesiredState(
 		return err
 	}
 
-	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
@@ -32,7 +32,7 @@ func (s *Service) SyncDesiredState(
 
 	fullSyncStart := time.Now()
 
-	if err := s.syncDeployments(ctx, stream, region.ID); err != nil {
+	if err := s.syncDeployments(ctx, stream, cluster.Region.ID); err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}

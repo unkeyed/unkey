@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -50,10 +51,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -177,20 +178,22 @@ func Run(ctx context.Context, cfg Config) error {
 	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
 	// ClickHouse is configured, which leaves the billing push disabled.
 	var billingUsageReader deploybilling.UsageReader
+	var clickhouseClient *clickhouse.Client
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
 	if cfg.ClickHouse.URL != "" {
-		chClient, chErr := clickhouse.New(clickhouse.Config{
+		var chErr error
+		clickhouseClient, chErr = clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
-			ch = chClient
-			billingUsageReader = chClient
+			ch = clickhouseClient
+			billingUsageReader = clickhouseClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -199,7 +202,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -210,7 +213,7 @@ func Run(ctx context.Context, cfg Config) error {
 			})
 
 			// Close connection last (LIFO: first registered closes last)
-			r.Defer(chClient.Close)
+			r.Defer(clickhouseClient.Close)
 			r.Defer(func() error { buildSteps.Close(); return nil })
 			r.Defer(func() error { buildStepLogs.Close(); return nil })
 		}
@@ -223,6 +226,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// panics) still surface, its routine success noise is dropped, and the
 	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
 	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
+	if clickhouseClient == nil {
+		logger.Info("LegacyBillingWorkflow disabled: real ClickHouse client not configured")
+	} else if cfg.Billing.StripeSecretKey == "" {
+		logger.Info("LegacyBillingWorkflow disabled: Stripe secret key not configured")
+	} else {
+		restateSrv.Bind(hydrav1.NewLegacyBillingWorkflowServer(legacybilling.New(
+			database,
+			clickhouseClient,
+			cfg.Billing.StripeSecretKey,
+		)))
+		logger.Info("LegacyBillingWorkflow enabled")
+	}
 
 	// Shared Restate admin client used both for service registration and
 	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).

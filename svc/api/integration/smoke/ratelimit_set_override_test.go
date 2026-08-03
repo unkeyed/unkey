@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -26,22 +27,26 @@ func TestSetOverride_AppliesOverride(t *testing.T) {
 	require.NotNil(t, response.V2RatelimitSetOverrideResponseBody)
 	overrideID := response.V2RatelimitSetOverrideResponseBody.Data.OverrideID
 	t.Cleanup(func() {
-		require.Eventually(t, func() bool {
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			_, err := client.Ratelimit.DeleteOverride(ctx, components.V2RatelimitDeleteOverrideRequestBody{
 				Namespace:  namespace,
 				Identifier: identifier,
 			})
-			return err == nil
+			require.NoError(c, err)
 		}, 30*time.Second, time.Second)
 	})
 	// Override enforcement may take time to propagate through regional caches.
-	require.Eventually(t, func() bool {
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		limited, err := client.Ratelimit.Limit(ctx, components.V2RatelimitLimitRequestBody{
 			Namespace:  namespace,
 			Identifier: identifier,
 			Limit:      10,
 			Duration:   60_000,
 		})
-		return err == nil && limited.V2RatelimitLimitResponseBody != nil && limited.V2RatelimitLimitResponseBody.Data.Limit == override.Limit && limited.V2RatelimitLimitResponseBody.Data.OverrideID != nil && *limited.V2RatelimitLimitResponseBody.Data.OverrideID == overrideID
+		require.NoError(c, err)
+		require.NotNil(c, limited.V2RatelimitLimitResponseBody)
+		require.Equal(c, override.Limit, limited.V2RatelimitLimitResponseBody.Data.Limit)
+		require.NotNil(c, limited.V2RatelimitLimitResponseBody.Data.OverrideID)
+		require.Equal(c, overrideID, *limited.V2RatelimitLimitResponseBody.Data.OverrideID)
 	}, 30*time.Second, time.Second)
 }

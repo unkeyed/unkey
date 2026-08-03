@@ -7,48 +7,56 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const upsertCluster = `-- name: UpsertCluster :exec
 INSERT INTO clusters (
 	id,
+	cell_id,
 	region_id,
 	last_heartbeat_at
 )
 VALUES (
 	?,
 	?,
+	?,
 	?
 )
 ON DUPLICATE KEY UPDATE
-	last_heartbeat_at = ?
+	cell_id = VALUES(cell_id),
+	last_heartbeat_at = VALUES(last_heartbeat_at)
 `
 
 type UpsertClusterParams struct {
-	ID              string `db:"id"`
-	RegionID        string `db:"region_id"`
-	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
+	ID              string         `db:"id"`
+	CellID          sql.NullString `db:"cell_id"`
+	RegionID        string         `db:"region_id"`
+	LastHeartbeatAt uint64         `db:"last_heartbeat_at"`
 }
 
-// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
+// UpsertCluster inserts a cluster or refreshes its cell ID and heartbeat.
 //
 //	INSERT INTO clusters (
 //		id,
+//		cell_id,
 //		region_id,
 //		last_heartbeat_at
 //	)
 //	VALUES (
 //		?,
 //		?,
+//		?,
 //		?
 //	)
 //	ON DUPLICATE KEY UPDATE
-//		last_heartbeat_at = ?
+//		cell_id = VALUES(cell_id),
+//		last_heartbeat_at = VALUES(last_heartbeat_at)
 func (q *Queries) UpsertCluster(ctx context.Context, arg UpsertClusterParams) error {
 	_, err := q.db.ExecContext(ctx, upsertCluster,
 		arg.ID,
+		arg.CellID,
 		arg.RegionID,
-		arg.LastHeartbeatAt,
 		arg.LastHeartbeatAt,
 	)
 	return err

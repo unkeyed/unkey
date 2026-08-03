@@ -6,7 +6,9 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -266,6 +268,61 @@ func (c *Client) IsRepoPublic(repo string) (bool, error) {
 	}
 
 	return value, nil
+}
+
+// ghRepoResponse is the subset of GitHub's GET /repos/{owner}/{repo} response we need.
+type ghRepoResponse struct {
+	ID            int64  `json:"id"`
+	FullName      string `json:"full_name"`
+	DefaultBranch string `json:"default_branch"`
+}
+
+// GetInstallationRepo fetches repo metadata using the installation's token. The
+// token is scoped to only the repositories the installation was granted, so a
+// 404 (nil result) means the installation cannot see the repo, which is exactly
+// the access check we need before connecting it to an app.
+func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return nil, err
+	}
+
+	apiURL := fmt.Sprintf("%s/repos/%s", c.baseURL, repo)
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("GET %s failed", apiURL)))
+	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fault.New(
+			fmt.Sprintf("GET %s returned unexpected status", apiURL),
+			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
+		)
+	}
+
+	var gh ghRepoResponse
+	if err := json.NewDecoder(resp.Body).Decode(&gh); err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to decode response"))
+	}
+
+	info := RepoInfo(gh)
+	return &info, nil
 }
 
 // scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
