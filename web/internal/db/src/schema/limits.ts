@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, mysqlTable } from "drizzle-orm/mysql-core";
+import { bigint, boolean, int, mysqlTable, smallint } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
@@ -26,26 +26,19 @@ export const limits = mysqlTable("limits", {
    * Caps workspace API traffic when a throttle is configured.
    * Unit: requests per minute. NULL means there is no workspace-level throttle.
    */
-  apiRequestsCountMaxPerMinute: bigint("api_requests_count_max_per_minute", {
-    mode: "number",
-    unsigned: true,
-  }),
+  apiRequestsCountMaxPerMinute: int("api_requests_count_max_per_minute", { unsigned: true }),
 
   /**
    * Caps how long request and runtime logs are retained.
    * Unit: days.
    */
-  logsRetentionDaysMax: bigint("logs_retention_days_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  logsRetentionDaysMax: smallint("logs_retention_days_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how long audit logs are retained.
    * Unit: days.
    */
-  logsAuditRetentionDaysMax: bigint("logs_audit_retention_days_max", {
-    mode: "number",
+  logsAuditRetentionDaysMax: smallint("logs_audit_retention_days_max", {
     unsigned: true,
   }).notNull(),
 
@@ -59,53 +52,37 @@ export const limits = mysqlTable("limits", {
    * Caps how much CPU the workspace can allocate across all running instances.
    * Unit: whole CPU cores.
    */
-  cpuCoresMax: bigint("cpu_cores_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  cpuCoresMax: int("cpu_cores_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how much CPU one runtime instance can request.
    * Unit: whole CPU cores.
    */
-  cpuCoresMaxPerInstance: bigint("cpu_cores_max_per_instance", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  cpuCoresMaxPerInstance: int("cpu_cores_max_per_instance", { unsigned: true }).notNull(),
 
   /**
    * Caps how much memory the workspace can allocate across all running instances.
    * Unit: MiB.
    */
-  memoryMibMax: bigint("memory_mib_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  memoryMibMax: int("memory_mib_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how much memory one runtime instance can request.
    * Unit: MiB.
    */
-  memoryMibMaxPerInstance: bigint("memory_mib_max_per_instance", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  memoryMibMaxPerInstance: int("memory_mib_max_per_instance", { unsigned: true }).notNull(),
 
   /**
    * Caps how much ephemeral disk the workspace can allocate across all running
    * instances. Unit: MiB.
    */
-  diskEphemeralMibMax: bigint("disk_ephemeral_mib_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  diskEphemeralMibMax: int("disk_ephemeral_mib_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how much ephemeral disk one runtime instance can request.
    * Unit: MiB.
    */
-  diskEphemeralMibMaxPerInstance: bigint("disk_ephemeral_mib_max_per_instance", {
-    mode: "number",
+  diskEphemeralMibMaxPerInstance: int("disk_ephemeral_mib_max_per_instance", {
     unsigned: true,
   }).notNull(),
 
@@ -113,19 +90,19 @@ export const limits = mysqlTable("limits", {
    * Caps how many builds the workspace can run at the same time.
    * Unit: active builds.
    */
-  buildsConcurrentCountMax: bigint("builds_concurrent_count_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  buildsConcurrentCountMax: smallint("builds_concurrent_count_max", { unsigned: true }).notNull(),
 
   /**
    * Caps how many custom domains the workspace can add.
    * Unit: domains.
    */
-  customDomainsCountMax: bigint("custom_domains_count_max", {
-    mode: "number",
-    unsigned: true,
-  }).notNull(),
+  customDomainsCountMax: int("custom_domains_count_max", { unsigned: true }).notNull(),
+
+  /**
+   * Caps how many replicas autoscaling can run for one app.
+   * Unit: replicas.
+   */
+  autoscalingReplicasMax: smallint("autoscaling_replicas_max", { unsigned: true }).notNull(),
 });
 
 export const limitsRelations = relations(limits, ({ one }) => ({

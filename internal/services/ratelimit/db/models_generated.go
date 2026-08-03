@@ -1333,18 +1333,19 @@ type Limit struct {
 	Pk                                    uint64        `db:"pk"`
 	WorkspaceID                           string        `db:"workspace_id"`
 	ApiBillableOperationsCountMaxPerMonth uint64        `db:"api_billable_operations_count_max_per_month"`
-	ApiRequestsCountMaxPerMinute          sql.NullInt64 `db:"api_requests_count_max_per_minute"`
-	LogsRetentionDaysMax                  uint64        `db:"logs_retention_days_max"`
-	LogsAuditRetentionDaysMax             uint64        `db:"logs_audit_retention_days_max"`
+	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
+	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
+	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
-	CpuCoresMax                           uint64        `db:"cpu_cores_max"`
-	CpuCoresMaxPerInstance                uint64        `db:"cpu_cores_max_per_instance"`
-	MemoryMibMax                          uint64        `db:"memory_mib_max"`
-	MemoryMibMaxPerInstance               uint64        `db:"memory_mib_max_per_instance"`
-	DiskEphemeralMibMax                   uint64        `db:"disk_ephemeral_mib_max"`
-	DiskEphemeralMibMaxPerInstance        uint64        `db:"disk_ephemeral_mib_max_per_instance"`
-	BuildsConcurrentCountMax              uint64        `db:"builds_concurrent_count_max"`
-	CustomDomainsCountMax                 uint64        `db:"custom_domains_count_max"`
+	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
+	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
+	MemoryMibMax                          uint32        `db:"memory_mib_max"`
+	MemoryMibMaxPerInstance               uint32        `db:"memory_mib_max_per_instance"`
+	DiskEphemeralMibMax                   uint32        `db:"disk_ephemeral_mib_max"`
+	DiskEphemeralMibMaxPerInstance        uint32        `db:"disk_ephemeral_mib_max_per_instance"`
+	BuildsConcurrentCountMax              uint16        `db:"builds_concurrent_count_max"`
+	CustomDomainsCountMax                 uint32        `db:"custom_domains_count_max"`
+	AutoscalingReplicasMax                uint16        `db:"autoscaling_replicas_max"`
 }
 
 type OpenapiSpec struct {

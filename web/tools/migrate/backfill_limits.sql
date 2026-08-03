@@ -10,21 +10,24 @@ FROM `quota`
 WHERE (`ratelimit_api_limit` IS NULL) <> (`ratelimit_api_duration` IS NULL)
    OR (`ratelimit_api_duration` IS NOT NULL AND `ratelimit_api_duration` <> 60000);
 
--- PRE: must return no rows. The target is unsigned and the dashboard reads
--- bigint values as JavaScript numbers while dual-write is active.
+-- PRE: must return no rows. These values must fit the target columns.
 SELECT
   `workspace_id`,
   `requests_per_month`,
   `logs_retention_days`,
-  `audit_logs_retention_days`
+  `audit_logs_retention_days`,
+  `max_concurrent_builds`
 FROM `quota`
 WHERE `requests_per_month` < 0
    OR `requests_per_month` > 9007199254740991
    OR `logs_retention_days` < 0
-   OR `audit_logs_retention_days` < 0;
+   OR `logs_retention_days` > 65535
+   OR `audit_logs_retention_days` < 0
+   OR `audit_logs_retention_days` > 65535
+   OR `max_concurrent_builds` > 65535;
 
--- PRE: must return no rows. Ceil division converts legacy millicores to whole
--- vCPU without reducing custom entitlements and must remain a safe integer.
+-- PRE: must return no rows. Ceil division converts millicores to whole vCPU
+-- without reducing custom entitlements.
 SELECT `workspace_id`, `allocated_cpu_millicores_total`, `max_cpu_millicores_per_instance`
 FROM `quota`
 WHERE `allocated_cpu_millicores_total` < 0
@@ -48,7 +51,8 @@ INSERT IGNORE INTO `limits` (
   `disk_ephemeral_mib_max`,
   `disk_ephemeral_mib_max_per_instance`,
   `builds_concurrent_count_max`,
-  `custom_domains_count_max`
+  `custom_domains_count_max`,
+  `autoscaling_replicas_max`
 )
 SELECT
   q.`workspace_id`,
@@ -68,6 +72,12 @@ SELECT
     WHEN 'starter' THEN 1
     WHEN 'pro' THEN 1000000
     WHEN 'business' THEN 1000000
+    ELSE 0
+  END,
+  CASE COALESCE(NULLIF(b.`plan_override`, ''), NULLIF(b.`plan`, ''))
+    WHEN 'starter' THEN 4
+    WHEN 'pro' THEN 8
+    WHEN 'business' THEN 16
     ELSE 0
   END
 FROM `quota` q
@@ -116,6 +126,15 @@ WHERE NOT (l.`api_billable_operations_count_max_per_month` <=> q.`requests_per_m
        WHEN 'starter' THEN 1
        WHEN 'pro' THEN 1000000
        WHEN 'business' THEN 1000000
+       ELSE 0
+     END
+   )
+   OR NOT (
+     l.`autoscaling_replicas_max` <=>
+     CASE COALESCE(NULLIF(b.`plan_override`, ''), NULLIF(b.`plan`, ''))
+       WHEN 'starter' THEN 4
+       WHEN 'pro' THEN 8
+       WHEN 'business' THEN 16
        ELSE 0
      END
    );

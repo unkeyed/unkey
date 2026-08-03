@@ -1,7 +1,7 @@
-import type { InsertLimits, Quotas } from "@unkey/db";
+import type { Limits, Quotas } from "@unkey/db";
 import type { DeployPlan } from "./stripe/deployPlan";
 
-export type PlanLimits = Omit<InsertLimits, "workspaceId" | "pk">;
+export type PlanLimits = Omit<Limits, "workspaceId" | "pk">;
 export type LimitsPlan = "free" | DeployPlan;
 
 export const limitsByPlan = {
@@ -19,6 +19,7 @@ export const limitsByPlan = {
     diskEphemeralMibMaxPerInstance: 10_240,
     buildsConcurrentCountMax: 1,
     customDomainsCountMax: 0,
+    autoscalingReplicasMax: 0,
   },
   starter: {
     apiBillableOperationsCountMaxPerMonth: 150_000,
@@ -34,6 +35,7 @@ export const limitsByPlan = {
     diskEphemeralMibMaxPerInstance: 10_240,
     buildsConcurrentCountMax: 1,
     customDomainsCountMax: 1,
+    autoscalingReplicasMax: 4,
   },
   pro: {
     apiBillableOperationsCountMaxPerMonth: 150_000,
@@ -49,6 +51,7 @@ export const limitsByPlan = {
     diskEphemeralMibMaxPerInstance: 10_240,
     buildsConcurrentCountMax: 1,
     customDomainsCountMax: 1_000_000,
+    autoscalingReplicasMax: 8,
   },
   business: {
     apiBillableOperationsCountMaxPerMonth: 150_000,
@@ -64,6 +67,7 @@ export const limitsByPlan = {
     diskEphemeralMibMaxPerInstance: 10_240,
     buildsConcurrentCountMax: 1,
     customDomainsCountMax: 1_000_000,
+    autoscalingReplicasMax: 16,
   },
 } satisfies Record<LimitsPlan, PlanLimits>;
 

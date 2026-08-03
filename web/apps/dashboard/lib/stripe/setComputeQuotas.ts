@@ -28,6 +28,7 @@ export async function setComputeQuotas(
     throw new Error(`Quota row missing after quota update for ${params.workspaceId}`);
   }
 
+  const planLimits = limitsByPlan[params.plan ?? "free"];
   const limitValues = {
     workspaceId: params.workspaceId,
     apiBillableOperationsCountMaxPerMonth: quota.requestsPerMonth,
@@ -42,7 +43,8 @@ export async function setComputeQuotas(
     diskEphemeralMibMax: quota.allocatedStorageMibTotal,
     diskEphemeralMibMaxPerInstance: quota.maxStorageMibPerInstance,
     buildsConcurrentCountMax: quota.maxConcurrentBuilds,
-    customDomainsCountMax: limitsByPlan[params.plan ?? "free"].customDomainsCountMax,
+    customDomainsCountMax: planLimits.customDomainsCountMax,
+    autoscalingReplicasMax: planLimits.autoscalingReplicasMax,
   };
   await db
     .insert(schema.limits)
@@ -62,6 +64,7 @@ export async function setComputeQuotas(
         diskEphemeralMibMaxPerInstance: limitValues.diskEphemeralMibMaxPerInstance,
         buildsConcurrentCountMax: limitValues.buildsConcurrentCountMax,
         customDomainsCountMax: limitValues.customDomainsCountMax,
+        autoscalingReplicasMax: limitValues.autoscalingReplicasMax,
       },
     });
 }
