@@ -10,7 +10,7 @@ import (
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
-// region. This is a point query alternative to [Service.WatchDeployments] for cases where
+// region. This is a point query alternative to [Service.WatchDeploymentChanges] for cases where
 // an agent needs to fetch state for a specific deployment rather than streaming all changes.
 //
 // The response contains either an ApplyDeployment (for running state) or DeleteDeployment
@@ -18,22 +18,22 @@ import (
 // database. Unhandled desired states result in CodeInternal.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
-// region is missing, CodeNotFound if no deployment exists with the given ID in
-// the specified region, or CodeInternal for database errors or unhandled states.
+// the cluster key is missing, CodeNotFound if the cluster or deployment does not
+// exist, or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
-	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
 		return nil, err
 	}
 
 	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
 		DeploymentID: req.Msg.GetDeploymentId(),
-		RegionID:     region.ID,
+		RegionID:     cluster.Region.ID,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

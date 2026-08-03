@@ -199,6 +199,13 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				api.RootKeyAuthConfig{Enabled: nil},
 			},
 			PortalBaseURL: "https://portal.test.local",
+			GitHub: api.GitHubConfig{
+				AppName: "unkey-test",
+				// AppID 0 leaves GitHub unconfigured, so Run wires the Noop client;
+				// handler tests that exercise repo connection inject their own client.
+				AppID:         0,
+				PrivateKeyPEM: "test-private-key-pem",
+			},
 		}
 
 		// Start API server in goroutine

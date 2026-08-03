@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -108,4 +109,17 @@ type Services struct {
 	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
 	// URLs when no custom domain is configured for the portal's app.
 	PortalBaseURL string
+
+	// GitHubAppName is the GitHub App slug used to build the install URL in
+	// github.installApp. GitHubPrivateKeyPEM is the App private key
+	// used to derive the install-state signing key. Either empty disables the
+	// endpoint.
+	GitHubAppName       string
+	GitHubPrivateKeyPEM string
+
+	// GitHubClient authenticates against the GitHub API to resolve and verify
+	// repositories when connecting them to apps (apps.createApp /
+	// apps.updateApp). It is a Noop when GitHub is not configured, which makes
+	// those handlers report the repo-connection feature as unavailable.
+	GitHubClient githubclient.GitHubClient
 }

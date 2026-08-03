@@ -9,6 +9,7 @@ const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
 
 const TABLE = "default.frontline_requests_raw_v1";
 const MV_TABLE = "default.frontline_requests_per_15m_v1";
+const LAZY_MATERIALIZATION_MAX_LIMIT = 50;
 
 const SQL = {
   deploymentFilter: `
@@ -181,6 +182,10 @@ export function getSentinelLogs(ch: Querier) {
     // Offset pagination. `page` is 1-based; page 1 maps to offset 0.
     const offset = (args.page - 1) * args.limit;
 
+    // Lazy materialization delays reading large payload columns until ORDER BY
+    // and LIMIT select the page. Enable it explicitly and raise ClickHouse's
+    // default LIMIT 10 threshold to the dashboard's 50-row page size.
+    // https://clickhouse.com/docs/optimize/lazy-materialization
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
@@ -191,7 +196,10 @@ export function getSentinelLogs(ch: Querier) {
         WHERE ${filterConditions}
         ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}
-        OFFSET {offset: Int}`,
+        OFFSET {offset: Int}
+        SETTINGS
+          query_plan_optimize_lazy_materialization = 1,
+          query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
       params: sentinelLogsRequestSchema.extend({
         offset: z.number().int(),
         ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),

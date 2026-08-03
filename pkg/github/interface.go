@@ -19,6 +19,14 @@ type GitHubClient interface {
 	// e.g. rate limited.
 	IsRepoPublic(repo string) (bool, error)
 
+	// GetInstallationRepo fetches repo ("owner/repo") using the installation's
+	// credentials. An installation token only sees the repositories the
+	// installation was granted, so a nil result (with a nil error) means the
+	// installation cannot access the repo: either it was not granted or it does
+	// not exist. Use this both to resolve repo metadata and to confirm access
+	// before connecting a repository to an app.
+	GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error)
+
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 	// repository using the given installation's credentials.
 	GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error)
@@ -64,6 +72,21 @@ type GitHubClient interface {
 	// FindBotComment searches PR comments for one containing the given marker string.
 	// Returns the comment ID and body, or 0 if not found.
 	FindBotComment(installationID int64, repo string, prNumber int, marker string) (int64, string, error)
+}
+
+// RepoInfo is the subset of a GitHub repository's metadata Unkey needs when
+// connecting a repository to an app.
+type RepoInfo struct {
+	// ID is GitHub's numeric repository id. It is stable across repo renames,
+	// so it is what we persist as the connection's repository_id.
+	ID int64
+
+	// FullName is the canonical "owner/repo" name at the time of the lookup.
+	FullName string
+
+	// DefaultBranch is the repository's default branch on GitHub, used as the
+	// tracked branch when the caller does not specify one.
+	DefaultBranch string
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

@@ -160,7 +160,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 }
 
 // ApplyDesiredState writes a deployment's desired state and propagates it to
-// every region's topology, inserting deployment_changes so WatchDeployments
+// every region's topology, inserting deployment_changes so WatchDeploymentChanges
 // picks the change up. It performs no current-deployment guard: the
 // DeploymentService.ChangeDesiredState caller does that check atomically with
 // its own write, while Resume (DeployTeardownService) calls this to bring a
@@ -183,7 +183,7 @@ func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deployme
 
 // applyTopologyDesiredStatus propagates a desired status to every region's
 // topology row and inserts a deployment_changes row per region so
-// WatchDeployments picks the change up. Shared by ChangeDesiredState (after its
+// WatchDeploymentChanges picks the change up. Shared by ChangeDesiredState (after its
 // atomic guard + desired-state write) and ApplyDesiredState.
 func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database, deploymentID string, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
