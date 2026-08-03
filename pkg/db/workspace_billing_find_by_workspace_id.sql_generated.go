@@ -28,9 +28,9 @@ SELECT
    b.deleted_at_m
 FROM ` + "`" + `workspace_billing` + "`" + ` b
 LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs_api
-   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+   ON b.workspace_id = bs_api.workspace_id AND bs_api.product = 'api'
 LEFT JOIN ` + "`" + `billing_subscriptions` + "`" + ` bs_deploy
-   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+   ON b.workspace_id = bs_deploy.workspace_id AND bs_deploy.product = 'compute'
 WHERE b.workspace_id = ?
 `
 
@@ -74,9 +74,9 @@ type FindWorkspaceBillingByWorkspaceIDRow struct {
 //	   b.deleted_at_m
 //	FROM `workspace_billing` b
 //	LEFT JOIN `billing_subscriptions` bs_api
-//	   ON bs_api.workspace_id = b.workspace_id AND bs_api.product = 'api'
+//	   ON b.workspace_id = bs_api.workspace_id AND bs_api.product = 'api'
 //	LEFT JOIN `billing_subscriptions` bs_deploy
-//	   ON bs_deploy.workspace_id = b.workspace_id AND bs_deploy.product = 'compute'
+//	   ON b.workspace_id = bs_deploy.workspace_id AND bs_deploy.product = 'compute'
 //	WHERE b.workspace_id = ?
 func (q *Queries) FindWorkspaceBillingByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindWorkspaceBillingByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceBillingByWorkspaceID, workspaceID)

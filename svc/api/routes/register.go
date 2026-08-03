@@ -92,6 +92,8 @@ import (
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
+	v2GithubInstallApp "github.com/unkeyed/unkey/svc/api/routes/v2_github_install_app"
+
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -108,7 +110,7 @@ import (
 // Conditional routes are registered based on [Services] configuration.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
-	withMetrics := zen.WithMetrics(svc.ApiRequests, info)
+	withMetrics := zen.WithMetrics(svc.ApiRequests, info, svc.Redactor)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withErrorHandling := middleware.WithErrorHandling()
@@ -793,8 +795,21 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsCreateApp.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlAppClient,
+			DB:            svc.Database,
+			CtrlClient:    svc.CtrlAppClient,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
+		},
+	)
+
+	// v2/github.installApp
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2GithubInstallApp.Handler{
+			DB:                  svc.Database,
+			GitHubAppName:       svc.GitHubAppName,
+			GitHubPrivateKeyPEM: svc.GitHubPrivateKeyPEM,
 		},
 	)
 
@@ -818,8 +833,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AppsUpdateApp.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
+			DB:            svc.Database,
+			Auditlogs:     svc.Auditlogs,
+			GitHubClient:  svc.GitHubClient,
+			GitHubAppName: svc.GitHubAppName,
 		},
 	)
 

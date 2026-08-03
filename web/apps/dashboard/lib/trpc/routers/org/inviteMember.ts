@@ -21,6 +21,12 @@ export const inviteMember = workspaceProcedure
           message: "Invalid organization ID",
         });
       }
+      if (!ctx.workspace.quotas?.team) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Upgrade to Pro or Business to invite team members.",
+        });
+      }
       return await authProvider.inviteMember({
         email: input.email,
         role: input.role,

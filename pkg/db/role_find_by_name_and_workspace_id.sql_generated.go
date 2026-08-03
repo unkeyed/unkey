@@ -10,7 +10,7 @@ import (
 )
 
 const findRoleByNameAndWorkspaceID = `-- name: FindRoleByNameAndWorkspaceID :one
-SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
+SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
 FROM roles
 WHERE name = ?
 AND workspace_id = ?
@@ -25,7 +25,7 @@ type FindRoleByNameAndWorkspaceIDParams struct {
 // Finds a role record by its name within a specific workspace
 // Returns: The role record if found
 //
-//	SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
+//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m
 //	FROM roles
 //	WHERE name = ?
 //	AND workspace_id = ?
@@ -37,6 +37,7 @@ func (q *Queries) FindRoleByNameAndWorkspaceID(ctx context.Context, db DBTX, arg
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAtM,

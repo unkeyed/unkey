@@ -20,9 +20,9 @@ SELECT
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d
-JOIN projects p ON p.id = d.project_id
-JOIN environments e ON e.id = d.environment_id
-JOIN apps a ON a.id = d.app_id
+JOIN projects p ON d.project_id = p.id
+JOIN environments e ON d.environment_id = e.id
+JOIN apps a ON d.app_id = a.id
 WHERE d.workspace_id = ?
   AND d.id IN (/*SLICE:deployment_ids*/?)
 `
@@ -51,9 +51,9 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	  a.current_deployment_id AS app_current_deployment_id,
 //	  a.is_rolled_back AS app_is_rolled_back
 //	FROM deployments d
-//	JOIN projects p ON p.id = d.project_id
-//	JOIN environments e ON e.id = d.environment_id
-//	JOIN apps a ON a.id = d.app_id
+//	JOIN projects p ON d.project_id = p.id
+//	JOIN environments e ON d.environment_id = e.id
+//	JOIN apps a ON d.app_id = a.id
 //	WHERE d.workspace_id = ?
 //	  AND d.id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg ListDeploymentEnvAndAppStateParams) ([]ListDeploymentEnvAndAppStateRow, error) {

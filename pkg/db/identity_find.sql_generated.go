@@ -12,7 +12,7 @@ import (
 
 const findIdentity = `-- name: FindIdentity :one
 SELECT
-    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -25,7 +25,7 @@ SELECT
                 'auto_apply', rl.auto_apply = 1
             )
         )
-        FROM ratelimits rl WHERE rl.identity_id = i.id),
+        FROM ratelimits rl WHERE i.id = rl.identity_id),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -39,7 +39,7 @@ JOIN (
     WHERE id2.workspace_id = ?
       AND id2.external_id = ?
       AND id2.deleted = ?
-) AS identity_lookup ON i.id = identity_lookup.id
+) AS identity_lookup ON identity_lookup.id = i.id
 LIMIT 1
 `
 
@@ -54,6 +54,7 @@ type FindIdentityRow struct {
 	ID          string        `db:"id"`
 	ExternalID  string        `db:"external_id"`
 	WorkspaceID string        `db:"workspace_id"`
+	ProjectID   string        `db:"project_id"`
 	Environment string        `db:"environment"`
 	Meta        []byte        `db:"meta"`
 	Deleted     bool          `db:"deleted"`
@@ -65,7 +66,7 @@ type FindIdentityRow struct {
 // FindIdentity
 //
 //	SELECT
-//	    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    i.pk, i.id, i.external_id, i.workspace_id, i.project_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -78,7 +79,7 @@ type FindIdentityRow struct {
 //	                'auto_apply', rl.auto_apply = 1
 //	            )
 //	        )
-//	        FROM ratelimits rl WHERE rl.identity_id = i.id),
+//	        FROM ratelimits rl WHERE i.id = rl.identity_id),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i
@@ -92,7 +93,7 @@ type FindIdentityRow struct {
 //	    WHERE id2.workspace_id = ?
 //	      AND id2.external_id = ?
 //	      AND id2.deleted = ?
-//	) AS identity_lookup ON i.id = identity_lookup.id
+//	) AS identity_lookup ON identity_lookup.id = i.id
 //	LIMIT 1
 func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error) {
 	row := db.QueryRowContext(ctx, findIdentity,
@@ -109,6 +110,7 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 		&i.ID,
 		&i.ExternalID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Environment,
 		&i.Meta,
 		&i.Deleted,

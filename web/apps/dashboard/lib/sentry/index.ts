@@ -1,11 +1,3 @@
-/**
- * Sentry Integration Module
- *
- * This module provides a centralized API for Sentry-related functionality
- * including error filtering, structured logging, and configuration utilities.
- */
-
-// Export error filtering functionality
 export {
   createErrorFilter,
   createClientErrorFilter,
@@ -20,7 +12,6 @@ export {
   type BeforeSendHook,
 } from "./error-filter";
 
-// Re-export error classification utilities for convenience
 export {
   isExpectedTRPCError,
   extractTRPCErrorInfo,
@@ -34,7 +25,6 @@ export {
   type ErrorClassification,
 } from "../utils/error-classification";
 
-// Re-export structured logging for convenience
 export {
   logTRPCError,
   logUserAction,
@@ -47,12 +37,16 @@ export {
   type LogLevel,
 } from "../logging/structured-logger";
 
-// Export trace sampling functionality
 export { createTracesSampler } from "./trace-sampler";
 
-// Export PII/URL scrubbing utilities
-export { scrubUrl, scrubEventPii, scrubTransactionPii, scrubSpanPii } from "./pii-scrubber";
+export {
+  scrubUrl,
+  scrubEventPii,
+  scrubTransactionPii,
+  scrubSpanPii,
+  scrubLog,
+  scrubReplayFrame,
+} from "./pii-scrubber";
 
-// Export Replay privacy config and noise filters
 export { replayPrivacyOptions } from "./replay-privacy";
 export { IGNORE_ERRORS, DENY_URLS } from "./noise-filters";

@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -50,7 +51,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
@@ -529,41 +529,72 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// Ratelimit global-counters cleanup keeps the pre-consolidation
-	// 5-attempt / 100ms-5s policy with PauseOnMaxAttempts: stateless
-	// DELETE that the hot path doesn't depend on, so pausing for an
-	// operator to inspect a real failure is better than killing silently.
+	// Ratelimit global-counters cleanup: stateless, cutoff-bounded DELETE
+	// that re-derives its work from the clock on every tick. Kill (not
+	// Pause) on exhaustion — a paused invocation parks the fixed
+	// "ratelimit-global-counters-cleanup" key and every later tick queues
+	// behind it, so one bad run silently stops the sweep until an operator
+	// cancels it. There is no compensation to re-enter for, and the handler
+	// drains in batches, so killing just means the next hourly tick picks
+	// up where this one stopped.
 	cronRatelimitGCCRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy: a
-	// stateless, cutoff-bounded DELETE the hot path doesn't depend on, so
-	// pausing for an operator to inspect a real failure beats killing
-	// silently. The daily cadence means a paused run is caught well before
-	// the next tick.
+	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy for the
+	// same reasons: a stateless, cutoff-bounded, batched DELETE with no
+	// compensation, on a fixed singleton key that a paused invocation would
+	// wedge. Kill on exhaustion and let the next daily tick retry.
 	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
-	// AuditLogExport runs every minute and is idempotent: any failure is
-	// recovered by the next tick, not by replaying journals from
-	// yesterday. 1h journal retention keeps enough debugging headroom for
-	// an oncall to inspect a recent failure without bloating the journal
-	// store with ~1440 dead invocations/day. No retry override — SDK
-	// default behavior was the pre-consolidation contract.
-	// DeployBillingClose is idempotent and cron-backed; per-workspace
-	// failures are journaled as deferred so one bad customer cannot wedge
-	// the period VO. Kill on exhaustion so the backup cron can retry with
-	// a fresh idempotency key instead of sitting behind a wedged webhook
-	// invocation.
-	cronDeployBillingCloseRetry := restate.WithInvocationRetryPolicy(
+	// AuditLogExport drains the outbox every minute on the fixed singleton
+	// key "audit-log-export", so a stuck invocation blocks every later tick.
+	// The SDK default retries forever, which is the same wedge as pausing
+	// with no attempt cap — and the drainer has a known permanent failure
+	// mode (a malformed payload fails its batch until someone fixes the
+	// writer), so retrying it for eternity buys nothing while the outbox
+	// grows unbounded behind a key nobody is watching.
+	//
+	// Kill after 5 attempts instead. The drain is fully idempotent: rows are
+	// soft-deleted only after their ClickHouse insert commits, so a dropped
+	// run leaves them unmarked and the next tick re-reads the same set in
+	// the same order (ClickHouse block dedup collapses any duplicate write).
+	// Failure surfaces through the missing end-of-run heartbeat. The retry
+	// window stays inside a few seconds on purpose: with a tick every minute
+	// the meaningful retry is the next tick, not a longer in-invocation
+	// backoff that would still be running when that tick queues up.
+	cronAuditLogExportRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	// The fleet close runs once per month and is the fallback for webhook-driven
+	// workspace closes, so a brief infrastructure outage must not exhaust it in
+	// seconds. Nine attempts span roughly 75 minutes while staying well inside
+	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
+	// the period VO never remains wedged.
+	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Minute),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(15*time.Minute),
+		restate.WithMaxAttempts(9),
+		restate.KillOnMaxAttempts(),
+	)
+	// The per-workspace close is dispatched by invoice.created and backed up by
+	// the fleet close. Its handler turns customer-specific push and finalization
+	// failures into deferred work, so this short policy only covers failures that
+	// escape those bounds.
+	cronDeployBillingWorkspaceCloseRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
@@ -612,10 +643,13 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
-		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
+		// 1h journal retention keeps debugging headroom for an oncall to
+		// inspect a recent failure without bloating the journal store with
+		// ~1440 dead invocations/day.
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
-		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
-		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
 		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")

@@ -5,14 +5,21 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { baseQueryOptions, createRetryFn, isAuthError } from "@/lib/utils/trpc";
 import type { TRPCClientErrorLike } from "@trpc/client";
-import type { Quotas, Workspace } from "@unkey/db";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { Quotas } from "@unkey/db";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import { type PropsWithChildren, createContext, useCallback, useContext, useMemo } from "react";
 
+// Billing state (tier, stripe ids, deploy plan/spend) lives on the
+// workspace_billing relation, not the workspaces row. getCurrent re-surfaces it
+// under the legacy field names, so type the provider from that procedure's
+// output rather than the raw Workspace model, which no longer carries them.
+type CurrentWorkspace = inferRouterOutputs<Router>["workspace"]["getCurrent"];
+
 interface WorkspaceContextType {
   user: AuthenticatedUser | null;
-  workspace: Workspace | null;
+  workspace: CurrentWorkspace | null;
   quotas: Quotas | null;
   isLoading: boolean;
   error: TRPCClientErrorLike<Router> | null;

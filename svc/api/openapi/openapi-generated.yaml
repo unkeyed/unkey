@@ -393,6 +393,8 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
+                git:
+                    "$ref": "#/components/schemas/AppGitCreateInput"
             additionalProperties: false
         V2AppsCreateAppResponseBody:
             type: object
@@ -531,14 +533,15 @@ components:
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                defaultBranch:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
+                git:
                     description: |
-                        New default git branch deployments track for this app.
-                        Omit this field to leave the current branch unchanged.
-                    example: main
+                        Connect, reconfigure, or disconnect this app's GitHub repository.
+                        Omit to leave unchanged, set null to disconnect, or set an object with a
+                        "repository" to connect or replace it and/or a "defaultBranch" to set which
+                        branch it tracks. Fields are independent, so send only the one you change.
+                    anyOf:
+                        - "$ref": "#/components/schemas/AppGitUpdateInput"
+                        - type: "null"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -1309,6 +1312,17 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2GithubInstallAppResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2GithubInstallAppResponseData"
             additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
@@ -2294,6 +2308,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The API key to verify, exactly as provided by your user.
                         Include any prefix - even small changes will cause verification to fail.
@@ -2363,6 +2378,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The complete API key string provided by you, including any prefix.
                         Never log, cache, or store API keys in your system as they provide full access to user resources.
@@ -2780,6 +2796,7 @@ components:
                 sessionId:
                     type: string
                     minLength: 1
+                    x-unkey-redact: true
                     description: |
                         The session token ID received from `portal.createSession`.
                         Must be valid, unexpired, and not previously exchanged.
@@ -3605,9 +3622,10 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 plaintext:
                     type: string
+                    x-unkey-redact: true
                     description: Decrypted key value (only when decrypt=true).
-                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer: true
+                    example: sk_test_abc123def456
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 ratelimits:
                     type: array
@@ -3751,6 +3769,31 @@ components:
                 Identifies a resource by either its unique ID or its slug.
                 Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
             example: proj_1234abcd
+        AppGitCreateInput:
+            type: object
+            description: |
+                Connect a GitHub repository to the app on creation. Omit to create the app
+                without a repository and connect one later with apps.updateApp.
+            required:
+                - repository
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". The workspace must have
+                        the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        default branch on GitHub.
+                    example: main
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -3772,7 +3815,6 @@ components:
                 - id
                 - name
                 - slug
-                - defaultBranch
                 - isRolledBack
                 - deleteProtection
                 - createdAt
@@ -3793,11 +3835,13 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
-                defaultBranch:
-                    type: string
+                git:
                     description: |
-                        The default git branch deployments track for this app.
-                    example: main
+                        The connected GitHub repository and the branch its deployments track.
+                        Omitted when the app has no repository connected (for example a
+                        Docker-based app).
+                    allOf:
+                        - "$ref": "#/components/schemas/AppGit"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -3836,6 +3880,48 @@ components:
                     example: 1704153600000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        AppGit:
+            type: object
+            required:
+                - repository
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: The connected GitHub repository, as "owner/repo".
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: The branch this app's deployments track.
+                    example: main
+            additionalProperties: false
+        AppGitUpdateInput:
+            type: object
+            minProperties: 1
+            properties:
+                repository:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    description: |
+                        The GitHub repository to connect, as "owner/repo". Omit to change only the
+                        tracked branch of the already-connected repository. The workspace must have
+                        the Unkey GitHub App installed with access to it.
+                    example: unkeyed/unkey
+                defaultBranch:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The branch this app's deployments track. Omit to adopt the repository's
+                        GitHub default branch on a new connection, keep the current branch when
+                        replacing an already-connected repository, or set it alone to retarget the
+                        branch of the connected repository.
+                    example: main
             additionalProperties: false
         V2DeployGitCommit:
             type: object
@@ -4522,11 +4608,12 @@ components:
                     "$ref": "#/components/schemas/EnvironmentVariableKind"
                 value:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The decrypted plaintext value. Present only for `recoverable` variables.
                         Omitted for `writeonly` variables, which can never be read back.
-                    example: postgresql://user:pass@host:5432/db
                     x-go-type-skip-optional-pointer: true
+                    example: postgresql://user:pass@host:5432/db
                 description:
                     type: string
                     description: Human-readable description. Omitted if none was provided.
@@ -4571,6 +4658,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 16384
+                    x-unkey-redact: true
                     description: |
                         The variable value. Always encrypted at rest. The limit is enforced
                         server-side in UTF-8 bytes, so a multibyte value may be rejected before
@@ -5010,6 +5098,28 @@ components:
                             prefix: /internal/
                 firewall:
                     action: ACTION_DENY
+        V2GithubInstallAppResponseData:
+            type: object
+            required:
+                - url
+                - expiresAt
+            properties:
+                url:
+                    type: string
+                    format: uri
+                    description: |
+                        The GitHub App install URL. Open it in a browser to install the app and
+                        grant repository access. After installation GitHub returns to Unkey, which
+                        binds the installation and lands you in the workspace settings.
+                    example: https://github.com/apps/unkey/installations/new?state=eyJ...
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds after which the URL's signed state expires
+                        and the link must be requested again.
+                    example: 1700000900000
+            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
@@ -5208,6 +5318,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: "The full generated API key that should be securely provided to your user.\nSECURITY WARNING: This is the only time you'll receive the complete key - Unkey only stores a securely hashed version. Never log or store this value in your own systems; provide it directly to your end user via secure channels. After this API call completes, this value cannot be retrieved again (unless created with `recoverable=true`)."
                     example: prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT
             required:
@@ -5420,6 +5531,7 @@ components:
                     example: key_2cGKbMxRyIzhCxo1Idjz8q
                 key:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The newly generated API key token (the actual secret that authenticates requests).
 
@@ -5815,12 +5927,14 @@ components:
             properties:
                 sessionId:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
                     example: pst_abc123def456
                 url:
                     type: string
                     format: uri
+                    x-unkey-redact: true
                     description: |
                         The full portal URL with the session parameter. Redirect the end user to this URL.
                     example: "https://portal.unkey.com/?session=pst_abc123def456"
@@ -5833,6 +5947,7 @@ components:
             properties:
                 token:
                     type: string
+                    x-unkey-redact: true
                     description: |
                         The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
                     example: ps_xyz789abc123
@@ -9275,6 +9390,79 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: updatePolicy
+    /v2/github.installApp:
+        post:
+            description: |
+                Start installing the Unkey GitHub App for your workspace. Returns a GitHub
+                App install URL: open it in a browser to install the app and grant
+                repository access. After installation GitHub returns to Unkey, which binds
+                the installation to your workspace and lands you in the workspace settings.
+
+                Installation is workspace-wide and takes no parameters. Once installed, link
+                repositories to individual apps with the `git` field on `apps.createApp` and
+                `apps.updateApp`.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `workspace.*.install_github`
+            operationId: github.installApp
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Open the returned url to install the GitHub App
+                                    summary: Install URL created
+                                    value:
+                                        data:
+                                            expiresAt: 1700000900000
+                                            url: https://github.com/apps/unkey/installations/new?state=eyJ...
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2GithubInstallAppResponseBody'
+                    description: |
+                        Install URL created. Open the returned url to install the GitHub App and
+                        finish binding it to your workspace.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `workspace.*.install_github`)
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Install GitHub App
+            tags:
+                - github
+            x-speakeasy-name-override: installApp
+            x-unkey-idempotency: idempotent
     /v2/identities.createIdentity:
         post:
             description: |
@@ -11663,6 +11851,7 @@ paths:
             summary: Create portal session
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: createSession
     /v2/portal.exchangeSession:
         post:
@@ -11730,6 +11919,7 @@ paths:
             summary: Exchange session token
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: exchangeSession
     /v2/portal.getVerifications:
         post:
@@ -11798,6 +11988,7 @@ paths:
             summary: Get portal verifications
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: getVerifications
     /v2/portal.listKeys:
         post:
@@ -11866,6 +12057,7 @@ paths:
             summary: List portal keys
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: listKeys
             x-speakeasy-pagination:
                 inputs:
@@ -11940,6 +12132,7 @@ paths:
             summary: Reroll portal key
             tags:
                 - portal
+            x-excluded: true
             x-speakeasy-name-override: rerollKey
     /v2/projects.createProject:
         post:
@@ -13292,6 +13485,8 @@ tags:
       name: portal
     - description: Rate limiting operations
       name: ratelimit
+    - description: GitHub App installation operations
+      name: github
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

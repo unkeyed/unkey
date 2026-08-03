@@ -12,8 +12,8 @@ import (
 const listEnvVarsForRepoConnections = `-- name: ListEnvVarsForRepoConnections :many
 SELECT aev.app_id, aev.` + "`" + `key` + "`" + `, aev.value
 FROM app_environment_variables aev
-INNER JOIN apps a ON a.id = aev.app_id
-INNER JOIN environments e ON e.app_id = a.id AND e.id = aev.environment_id
+INNER JOIN apps a ON aev.app_id = a.id
+INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
 INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = ?
   AND gc.repository_id = ?
@@ -42,8 +42,8 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //
 //	SELECT aev.app_id, aev.`key`, aev.value
 //	FROM app_environment_variables aev
-//	INNER JOIN apps a ON a.id = aev.app_id
-//	INNER JOIN environments e ON e.app_id = a.id AND e.id = aev.environment_id
+//	INNER JOIN apps a ON aev.app_id = a.id
+//	INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
 //	INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?

@@ -12,6 +12,7 @@ properties:
     "$ref": "./EnvironmentVariableKind.yaml"
   value:
     type: string
+    x-unkey-redact: true
     description: |
       The decrypted plaintext value. Present only for `recoverable` variables.
       Omitted for `writeonly` variables, which can never be read back.

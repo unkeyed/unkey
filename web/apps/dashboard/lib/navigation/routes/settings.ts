@@ -13,7 +13,7 @@ export type CheckoutIntent = "compute" | "api" | "payment" | "deploy";
 /** Compute-plan tiers carried through the deploy-gate checkout round-trip. */
 export type DeployCheckoutPlan = "starter" | "pro" | "business";
 /** Where the deploy-gate dialog was opened from, for post-subscribe routing. */
-export type DeployCheckoutOrigin = "create" | "banner" | "billing";
+export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 
 export const settingsRoutes = {
   account({ workspaceSlug }: WorkspaceScope): Route {

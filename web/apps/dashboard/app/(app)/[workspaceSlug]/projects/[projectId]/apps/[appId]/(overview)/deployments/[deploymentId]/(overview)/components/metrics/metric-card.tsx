@@ -1,5 +1,6 @@
 import {
   type AreaChartPoint,
+  type AreaTimeseriesAxisOptions,
   AreaTimeseriesChart,
   type ValueParts,
 } from "@/components/charts/area-timeseries";
@@ -73,8 +74,7 @@ type MetricCardProps = {
   timeWindow?: {
     chart: string;
   };
-  xAxisDomain?: [number, number];
-  contractOnSparseData?: boolean;
+  axis?: AreaTimeseriesAxisOptions;
   isLoading?: boolean;
   isError?: boolean;
   formatTooltipValue?: (value: number) => ValueParts;
@@ -88,9 +88,8 @@ export function MetricCard({
   chartData,
   percentile,
   onPercentileChange,
-  xAxisDomain,
-  contractOnSparseData,
   timeWindow,
+  axis,
   isLoading = false,
   isError = false,
   formatTooltipValue,
@@ -160,10 +159,7 @@ export function MetricCard({
             isLoading={isLoading}
             isError={isError}
             formatTooltipValue={formatTooltipValue}
-            axisFloor={0}
-            xAxisDomain={xAxisDomain}
-            contractOnSparseData={contractOnSparseData}
-            hideAxes
+            axis={axis ? { ...axis, visible: false, y: { floor: 0, ...axis.y } } : null}
           />
         ) : (
           <LogsTimeseriesBarChart

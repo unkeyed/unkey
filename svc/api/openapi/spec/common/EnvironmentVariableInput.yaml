@@ -18,6 +18,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 16384
+    x-unkey-redact: true
     description: |
       The variable value. Always encrypted at rest. The limit is enforced
       server-side in UTF-8 bytes, so a multibyte value may be rejected before

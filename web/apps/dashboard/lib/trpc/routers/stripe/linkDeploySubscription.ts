@@ -1,4 +1,5 @@
 import { getStripeClient } from "@/lib/stripe";
+import { linkApiSubscription as linkApiSubscriptionCore } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription as linkDeploySubscriptionCore } from "@/lib/stripe/linkDeploySubscription";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -44,4 +45,36 @@ export const linkDeploySubscription = workspaceProcedure
     }
 
     return { plan: result.plan };
+  });
+
+/** Persists a paid API subscription Checkout when the user returns from Stripe. */
+export const linkApiSubscription = workspaceProcedure
+  .use(requireWorkspaceAdmin)
+  .use(withRatelimit(ratelimit.update))
+  .input(z.object({ sessionId: z.string().min(1) }))
+  .mutation(async ({ ctx, input }) => {
+    const stripe = getStripeClient();
+    const result = await linkApiSubscriptionCore(stripe, {
+      sessionId: input.sessionId,
+      expectedWorkspaceId: ctx.workspace.id,
+      audit: {
+        actor: { type: "user", id: ctx.user.id },
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
+
+    if (!result.ok) {
+      throw new TRPCError({
+        code:
+          result.reason === "forbidden"
+            ? "FORBIDDEN"
+            : result.reason === "session_not_found" || result.reason === "workspace_not_found"
+              ? "NOT_FOUND"
+              : "PRECONDITION_FAILED",
+        message: result.message,
+      });
+    }
+
+    return { productName: result.productName };
   });

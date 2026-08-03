@@ -1,17 +1,18 @@
 package deploybilling
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 )
 
 // HandleCloseWorkspace closes one workspace's Deploy renewal invoice. The
@@ -52,6 +53,48 @@ func (h *Handler) HandleCloseWorkspace(
 		return nil, restate.TerminalError(
 			fmt.Errorf("billing period %s has not ended yet (ends %s)", period, p.End().Format(time.RFC3339)),
 		)
+	}
+
+	// Same period-alignment assertion the fleet sweep runs (see closeWorkspace).
+	// This path is handed an invoice id by the webhook instead of discovering it by
+	// listing, so without an explicit read it finalized whatever it was given: an
+	// anchor-misaligned invoice was deferred by the sweep and blind-finalized here,
+	// on the primary path. Read before the ingestion wait so a misalignment fails
+	// fast instead of 24 hours later.
+	invoice, err := restate.Run(ctx, func(rc restate.RunContext) (invoicecloser.DraftInvoice, error) {
+		return h.closer.GetInvoice(rc, req.GetInvoiceId())
+	}, restate.WithName("read invoice"))
+	if err != nil {
+		if errors.Is(err, invoicecloser.ErrNotFound) {
+			return nil, restate.TerminalError(fmt.Errorf("invoice %s does not exist", req.GetInvoiceId()))
+		}
+		return nil, fmt.Errorf("read invoice %s: %w", req.GetInvoiceId(), err)
+	}
+	if invoice.BillingReason != "subscription_cycle" {
+		return nil, restate.TerminalError(
+			fmt.Errorf("invoice %s is not a subscription renewal (billing reason %q)", invoice.ID, invoice.BillingReason),
+		)
+	}
+	if invoice.PeriodEnd != p.End().Unix() || invoice.PeriodStart < p.Start().Unix() {
+		logger.Error("deploy invoice period does not align to the calendar month; refusing to finalize",
+			"workspace_id", workspaceID,
+			"invoice_id", invoice.ID,
+			"invoice_period_start", invoice.PeriodStart,
+			"invoice_period_end", invoice.PeriodEnd,
+			"expected_period_start", p.Start().Unix(),
+			"expected_period_end", p.End().Unix(),
+		)
+		return nil, restate.TerminalError(
+			fmt.Errorf("invoice %s period does not align to calendar month %s", invoice.ID, period),
+		)
+	}
+	if invoice.Status != "draft" {
+		logger.Info("deploy renewal invoice already left draft status; skipping close redelivery",
+			"workspace_id", workspaceID,
+			"invoice_id", invoice.ID,
+			"invoice_status", invoice.Status,
+		)
+		return &hydrav1.CloseDeployBillingWorkspaceResponse{}, nil
 	}
 
 	if err := waitForUsageIngestion(ctx, p, nowTime); err != nil {
@@ -117,19 +160,18 @@ func (h *Handler) pushSingleWorkspace(
 	endMillis int64,
 	eventTimestamp int64,
 ) (workspacePushOutcome, error) {
-	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
-		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
-			WorkspaceID:  workspaceID,
-			WorkspaceIDs: nil,
-			Start:        p.Start().UnixMilli(),
-			End:          endMillis,
-		})
-	}, restate.WithName("get workspace period usage"))
+	// Shared with the fleet close rather than re-reading here. The previous local
+	// read called only GetInstanceMeterUsage and fed it to AggregateUsage, which
+	// hardcodes ActiveKeys: 0 and expects MergeActiveKeys to fill it in. Nothing
+	// did, so the final push emitted no active_keys event and that meter stayed at
+	// whatever the last hourly push reported, and a workspace whose only usage was
+	// key verifications (compute scaled to zero) failed the Positive() check below
+	// and got no final push at all.
+	valuesByWorkspace, err := FleetMeterValues(ctx, h.usage, p, endMillis, []string{workspaceID})
 	if err != nil {
 		return workspacePushOutcome{}, fmt.Errorf("get workspace period usage: %w", err)
 	}
 
-	valuesByWorkspace := AggregateUsage(rows)
 	values, ok := valuesByWorkspace[workspaceID]
 	if !ok || !values.Positive() {
 		logger.Info("no deploy usage to push for workspace close",

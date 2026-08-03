@@ -65,7 +65,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 	logger.Info("reporting deployment status", "req", req.Msg)
 
-	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
-					RegionID:     region.ID,
+					RegionID:     cluster.Region.ID,
 				})
 				if err != nil {
 					return err
@@ -102,7 +102,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
-							RegionID: region.ID,
+							RegionID: cluster.Region.ID,
 						})
 						if err != nil {
 							return err
@@ -117,7 +117,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
 						AppID:         deployment.AppID,
-						RegionID:      region.ID,
+						RegionID:      cluster.Region.ID,
 						K8sName:       instance.GetK8SName(),
 						Address:       instance.GetAddress(),
 						CpuMillicores: int32(instance.GetCpuMillicores()),
@@ -139,7 +139,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				if err := db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
-					RegionID:     region.ID,
+					RegionID:     cluster.Region.ID,
 				}); err != nil {
 					return err
 				}

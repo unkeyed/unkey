@@ -89,6 +89,8 @@ func TestLimitSuccessfully(t *testing.T) {
 		require.Equal(t, int64(299), res.Body.Data.Limits[2].Remaining)
 
 		// Verify all 3 namespaces were created with audit logs
+		defaultProject, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, h.DB.RO(), h.Resources().UserWorkspace.ID)
+		require.NoError(t, err)
 		for _, nsName := range []string{namespaceName1, namespaceName2, namespaceName3} {
 			namespace, err := db.Query.FindRatelimitNamespaceByName(ctx, h.DB.RO(), db.FindRatelimitNamespaceByNameParams{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -96,6 +98,7 @@ func TestLimitSuccessfully(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Equal(t, nsName, namespace.Name)
+			require.Equal(t, defaultProject, namespace.ProjectID)
 			require.False(t, namespace.DeletedAtM.Valid, "Namespace should not be deleted")
 
 			// Verify the audit log was queued in clickhouse_outbox.

@@ -13,9 +13,9 @@ import (
 const findLiveKeyByHash = `-- name: FindLiveKeyByHash :one
 SELECT
     k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-    a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-    ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+    a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+    ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
+    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
     i.id as identity_table_id,
     i.external_id as identity_external_id,
     i.meta as identity_meta,
@@ -33,7 +33,7 @@ SELECT
         )
         FROM keys_roles kr
         JOIN roles r ON r.id = kr.role_id
-        WHERE kr.key_id = k.id),
+        WHERE k.id = kr.key_id),
         JSON_ARRAY()
     ) as roles,
 
@@ -49,7 +49,7 @@ SELECT
         )
         FROM keys_permissions kp
         JOIN permissions p ON kp.permission_id = p.id
-        WHERE kp.key_id = k.id),
+        WHERE k.id = kp.key_id),
         JSON_ARRAY()
     ) as permissions,
 
@@ -66,7 +66,7 @@ SELECT
         FROM keys_roles kr
         JOIN roles_permissions rp ON kr.role_id = rp.role_id
         JOIN permissions p ON rp.permission_id = p.id
-        WHERE kr.key_id = k.id),
+        WHERE k.id = kr.key_id),
         JSON_ARRAY()
     ) as role_permissions,
 
@@ -86,11 +86,11 @@ SELECT
         FROM (
             SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
             FROM ratelimits rl
-            WHERE rl.key_id = k.id
+            WHERE k.id = rl.key_id
             UNION ALL
             SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.` + "`" + `limit` + "`" + `, rl.duration, rl.auto_apply
             FROM ratelimits rl
-            WHERE rl.identity_id = i.id
+            WHERE i.id = rl.identity_id
         ) AS combined_rl),
         JSON_ARRAY()
     ) as ratelimits
@@ -98,9 +98,9 @@ SELECT
 FROM ` + "`" + `keys` + "`" + ` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
 JOIN key_auth ka ON ka.id = k.key_auth_id
-JOIN workspaces ws ON ws.id = k.workspace_id
+JOIN workspaces ws ON k.workspace_id = ws.id
 LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 WHERE k.hash = ?
     AND k.deleted_at_m IS NULL
     AND a.deleted_at_m IS NULL
@@ -150,9 +150,9 @@ type FindLiveKeyByHashRow struct {
 //
 //	SELECT
 //	    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-//	    a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-//	    ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-//	    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.deploy_spend_suspended, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+//	    a.pk, a.id, a.name, a.workspace_id, a.project_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
+//	    ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
+//	    ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 //	    i.id as identity_table_id,
 //	    i.external_id as identity_external_id,
 //	    i.meta as identity_meta,
@@ -170,7 +170,7 @@ type FindLiveKeyByHashRow struct {
 //	        )
 //	        FROM keys_roles kr
 //	        JOIN roles r ON r.id = kr.role_id
-//	        WHERE kr.key_id = k.id),
+//	        WHERE k.id = kr.key_id),
 //	        JSON_ARRAY()
 //	    ) as roles,
 //
@@ -186,7 +186,7 @@ type FindLiveKeyByHashRow struct {
 //	        )
 //	        FROM keys_permissions kp
 //	        JOIN permissions p ON kp.permission_id = p.id
-//	        WHERE kp.key_id = k.id),
+//	        WHERE k.id = kp.key_id),
 //	        JSON_ARRAY()
 //	    ) as permissions,
 //
@@ -203,7 +203,7 @@ type FindLiveKeyByHashRow struct {
 //	        FROM keys_roles kr
 //	        JOIN roles_permissions rp ON kr.role_id = rp.role_id
 //	        JOIN permissions p ON rp.permission_id = p.id
-//	        WHERE kr.key_id = k.id),
+//	        WHERE k.id = kr.key_id),
 //	        JSON_ARRAY()
 //	    ) as role_permissions,
 //
@@ -223,11 +223,11 @@ type FindLiveKeyByHashRow struct {
 //	        FROM (
 //	            SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 //	            FROM ratelimits rl
-//	            WHERE rl.key_id = k.id
+//	            WHERE k.id = rl.key_id
 //	            UNION ALL
 //	            SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
 //	            FROM ratelimits rl
-//	            WHERE rl.identity_id = i.id
+//	            WHERE i.id = rl.identity_id
 //	        ) AS combined_rl),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
@@ -235,9 +235,9 @@ type FindLiveKeyByHashRow struct {
 //	FROM `keys` k
 //	JOIN apis a ON a.key_auth_id = k.key_auth_id
 //	JOIN key_auth ka ON ka.id = k.key_auth_id
-//	JOIN workspaces ws ON ws.id = k.workspace_id
+//	JOIN workspaces ws ON k.workspace_id = ws.id
 //	LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-//	LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+//	LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 //	WHERE k.hash = ?
 //	    AND k.deleted_at_m IS NULL
 //	    AND a.deleted_at_m IS NULL
@@ -274,6 +274,7 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 		&i.Api.ID,
 		&i.Api.Name,
 		&i.Api.WorkspaceID,
+		&i.Api.ProjectID,
 		&i.Api.IpWhitelist,
 		&i.Api.AuthType,
 		&i.Api.KeyAuthID,
@@ -284,6 +285,7 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 		&i.KeyAuth.Pk,
 		&i.KeyAuth.ID,
 		&i.KeyAuth.WorkspaceID,
+		&i.KeyAuth.ProjectID,
 		&i.KeyAuth.CreatedAtM,
 		&i.KeyAuth.UpdatedAtM,
 		&i.KeyAuth.DeletedAtM,
@@ -298,14 +300,6 @@ func (q *Queries) FindLiveKeyByHash(ctx context.Context, db DBTX, hash string) (
 		&i.Workspace.Name,
 		&i.Workspace.Slug,
 		&i.Workspace.K8sNamespace,
-		&i.Workspace.Tier,
-		&i.Workspace.StripeCustomerID,
-		&i.Workspace.StripeSubscriptionID,
-		&i.Workspace.DeployPlan,
-		&i.Workspace.DeployPlanOverride,
-		&i.Workspace.DeploySpendBudgetCents,
-		&i.Workspace.DeploySpendBudgetStop,
-		&i.Workspace.DeploySpendSuspended,
 		&i.Workspace.BetaFeatures,
 		&i.Workspace.Subscriptions,
 		&i.Workspace.Enabled,

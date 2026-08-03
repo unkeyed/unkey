@@ -94,8 +94,7 @@ export function DeploymentNetworkSection() {
               data: latencyTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -114,8 +113,7 @@ export function DeploymentNetworkSection() {
               data: cpuTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -141,8 +139,7 @@ export function DeploymentNetworkSection() {
               data: memoryTimeseries,
               dataKey: "y",
             }}
-            xAxisDomain={sixHourDomain}
-            contractOnSparseData
+            axis={{ x: { domain: sixHourDomain, contractOnSparseData: true } }}
             timeWindow={{
               chart: "Last 6h",
             }}

@@ -33,16 +33,45 @@ type Seeder struct {
 	DB        db.Database
 	Vault     vault.VaultServiceClient
 	Resources Resources
+
+	// workspaceIDs are the workspaces this seeder created, deleted with
+	// everything hanging off them when the test ends.
+	workspaceIDs []string
 }
 
 // New creates a new Seeder instance
 func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Seeder {
-	return &Seeder{
-		t:         t,
-		DB:        database,
-		Vault:     vault,
-		Resources: Resources{}, //nolint:exhaustruct
+	s := &Seeder{
+		t:            t,
+		DB:           database,
+		Vault:        vault,
+		Resources:    Resources{}, //nolint:exhaustruct
+		workspaceIDs: nil,
 	}
+	t.Cleanup(s.cleanup)
+	return s
+}
+
+// cleanup removes every workspace this seeder created, and the projects, apps,
+// environments and deployments belonging to them.
+//
+// Integration tests share one MySQL container across test processes and across
+// runs, and the ctrl crons scan the whole database rather than one workspace:
+// the idle-preview scan pages over every environment with slug 'preview', and
+// the quota and billing handlers walk every workspace. Rows a test leaves
+// behind are therefore rescanned by every later run, which makes each run
+// slower until a scan outlives the harness timeout. Deleting only the ids this
+// seeder created keeps that safe while other test binaries use the same
+// database.
+func (s *Seeder) cleanup() {
+	if len(s.workspaceIDs) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	require.NoError(s.t, s.DB.DeleteWorkspacesWithChildren(ctx, s.workspaceIDs))
 }
 
 func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
@@ -57,6 +86,15 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 
 	err := s.DB.InsertWorkspace(ctx, params)
 	require.NoError(s.t, err)
+	s.workspaceIDs = append(s.workspaceIDs, params.ID)
+
+	s.CreateProject(ctx, CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      params.ID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: true,
+	})
 
 	err = s.DB.InsertWorkspaceBilling(ctx, db.InsertWorkspaceBillingParams{
 		WorkspaceID: params.ID,
@@ -99,10 +137,12 @@ type CreateApiRequest struct {
 }
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
+	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := s.DB.InsertKeySpace(ctx, db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
 		WorkspaceID:        req.WorkspaceID,
+		ProjectID:          projectID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		DefaultPrefix:      sql.NullString{String: ptr.SafeDeref(req.DefaultPrefix), Valid: req.DefaultPrefix != nil},
 		DefaultBytes:       sql.NullInt32{Int32: ptr.SafeDeref(req.DefaultBytes), Valid: req.DefaultBytes != nil},
@@ -115,6 +155,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		ID:          apiID,
 		Name:        ptr.SafeDeref(req.Name, "test-api"),
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   projectID,
 		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
@@ -126,6 +167,14 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	require.NoError(s.t, err)
 
 	return api
+}
+
+// defaultProjectID returns the exact default project established by CreateWorkspace.
+func (s *Seeder) defaultProjectID(ctx context.Context, workspaceID string) string {
+	projectID, err := s.DB.FindDefaultProjectByWorkspaceID(ctx, workspaceID)
+	require.NoError(s.t, err)
+	require.NotEmpty(s.t, projectID)
+	return projectID
 }
 
 type CreateProjectRequest struct {
@@ -405,11 +454,13 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	require.NoError(s.t, err)
 
 	if len(permissions) > 0 {
+		projectID := s.defaultProjectID(ctx, s.Resources.RootWorkspace.ID)
 		for _, permission := range permissions {
 			permissionID := uid.New(uid.TestPrefix)
 			err := s.DB.InsertPermission(ctx, db.InsertPermissionParams{
 				PermissionID: permissionID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
+				ProjectID:    projectID,
 				Name:         permission,
 				Slug:         permission,
 				Description:  dbtype.NullString{String: "", Valid: false},
@@ -620,6 +671,7 @@ type CreateIdentityRequest struct {
 }
 
 func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) string {
+	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
 	metaBytes := []byte("{}")
 	if len(req.Meta) > 0 {
 		metaBytes = req.Meta
@@ -633,6 +685,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   projectID,
 		Environment: "",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        metaBytes,
@@ -656,6 +709,7 @@ type CreateRoleRequest struct {
 }
 
 func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) string {
+	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Role WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Role Name must be set"))
 
@@ -665,6 +719,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) string {
 	err := s.DB.InsertRole(ctx, db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   projectID,
 		Name:        req.Name,
 		CreatedAt:   createdAt,
 		Description: sql.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
@@ -727,6 +782,7 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 }
 
 func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionRequest) db.Permission {
+	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Permission WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Name, "Permission Name must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.Slug, "Permission Slug must be set"))
@@ -737,6 +793,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 	err := s.DB.InsertPermission(ctx, db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    projectID,
 		Name:         req.Name,
 		Slug:         req.Slug,
 		Description:  dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
@@ -748,6 +805,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Pk:          0, // db internal
 		ID:          permissionID,
 		WorkspaceID: req.WorkspaceID,
+		ProjectID:   projectID,
 		Name:        req.Name,
 		Slug:        req.Slug,
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},

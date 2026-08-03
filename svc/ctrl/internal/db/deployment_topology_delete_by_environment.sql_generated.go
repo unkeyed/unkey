@@ -11,14 +11,14 @@ import (
 
 const deleteDeploymentTopologiesByEnvironmentId = `-- name: DeleteDeploymentTopologiesByEnvironmentId :exec
 DELETE dt FROM deployment_topology dt
-JOIN deployments d ON dt.deployment_id = d.id
+JOIN deployments d ON d.id = dt.deployment_id
 WHERE d.environment_id = ?
 `
 
 // DeleteDeploymentTopologiesByEnvironmentId
 //
 //	DELETE dt FROM deployment_topology dt
-//	JOIN deployments d ON dt.deployment_id = d.id
+//	JOIN deployments d ON d.id = dt.deployment_id
 //	WHERE d.environment_id = ?
 func (q *Queries) DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, environmentID string) error {
 	_, err := q.db.ExecContext(ctx, deleteDeploymentTopologiesByEnvironmentId, environmentID)

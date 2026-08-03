@@ -10,7 +10,7 @@ import (
 )
 
 const findPermissionByIdOrSlug = `-- name: FindPermissionByIdOrSlug :one
-SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 FROM permissions
 WHERE workspace_id = ? AND (id = ? OR slug = ?)
 `
@@ -22,7 +22,7 @@ type FindPermissionByIdOrSlugParams struct {
 
 // FindPermissionByIdOrSlug
 //
-//	SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
+//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
 //	FROM permissions
 //	WHERE workspace_id = ? AND (id = ? OR slug = ?)
 func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error) {
@@ -32,6 +32,7 @@ func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg Fin
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Slug,
 		&i.Description,

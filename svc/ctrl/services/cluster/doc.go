@@ -29,8 +29,8 @@
 //
 // # Authentication
 //
-// All RPCs require bearer token authentication via the Authorization header. Region-scoped
-// RPCs carry a [ctrlv1.RegionKey] (platform + region name) on the request message.
+// All RPCs require bearer token authentication via the Authorization header. Cluster-scoped
+// RPCs carry a [ctrlv1.ClusterKey] (cell ID, platform, and region) on the request message.
 //
 // # Key Types
 //

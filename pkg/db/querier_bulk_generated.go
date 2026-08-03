@@ -6,8 +6,6 @@ import "context"
 
 // BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
-	InsertAcmeChallenges(ctx context.Context, db DBTX, args []InsertAcmeChallengeParams) error
-	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error
 	InsertAppEnvironmentVariables(ctx context.Context, db DBTX, args []InsertAppEnvironmentVariableParams) error
@@ -15,28 +13,20 @@ type BulkQuerier interface {
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsSentinelConfigParams) error
-	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
-	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
-	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
-	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
-	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
-	InsertDeploymentChanges(ctx context.Context, db DBTX, args []InsertDeploymentChangeParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
-	UpsertEnvironment(ctx context.Context, db DBTX, args []UpsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
+	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
 	InsertHorizontalAutoscalingPolicies(ctx context.Context, db DBTX, args []InsertHorizontalAutoscalingPolicyParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
 	UpsertIdentity(ctx context.Context, db DBTX, args []UpsertIdentityParams) error
 	InsertFrontlineRoutes(ctx context.Context, db DBTX, args []InsertFrontlineRouteParams) error
-	UpsertInstance(ctx context.Context, db DBTX, args []UpsertInstanceParams) error
-	InsertKeyAuths(ctx context.Context, db DBTX, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, db DBTX, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, db DBTX, args []InsertKeyParams) error
 	InsertKeyRatelimits(ctx context.Context, db DBTX, args []InsertKeyRatelimitParams) error
@@ -45,7 +35,6 @@ type BulkQuerier interface {
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
-	UpsertOpenApiSpec(ctx context.Context, db DBTX, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
 	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
@@ -57,7 +46,7 @@ type BulkQuerier interface {
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
-	InsertWorkspaceBillings(ctx context.Context, db DBTX, args []InsertWorkspaceBillingParams) error
+	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingPlanOverrideParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

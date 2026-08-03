@@ -59,7 +59,6 @@ async function main() {
       id: ws.id,
       name: ws.name,
       org: ws.orgId,
-      sub: ws.stripeSubscriptionId,
     })),
   );
 }

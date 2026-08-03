@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -49,12 +50,14 @@ export async function createApiCore(
   ctx: CreateApiContext,
   tx: DatabaseTransaction,
 ) {
+  const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
   const keyAuthId = newId("keyAuth");
   const apiId = newId("api");
 
   await tx.insert(schema.keyAuth).values({
     id: keyAuthId,
     workspaceId: ctx.workspace.id,
+    projectId,
     createdAtM: Date.now(),
   });
 
@@ -62,6 +65,7 @@ export async function createApiCore(
     id: apiId,
     name: input.name,
     workspaceId: ctx.workspace.id,
+    projectId,
     keyAuthId,
     authType: "key",
     ipWhitelist: null,

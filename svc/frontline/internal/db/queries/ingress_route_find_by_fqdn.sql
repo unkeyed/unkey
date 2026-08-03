@@ -15,6 +15,6 @@ SELECT
   d.desired_state,
   wb.spend_suspended
 FROM frontline_routes fr
-INNER JOIN deployments d ON fr.deployment_id = d.id
+INNER JOIN deployments d ON d.id = fr.deployment_id
 LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
 WHERE fr.fully_qualified_domain_name = sqlc.arg(fqdn);

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 )
 
@@ -18,11 +17,10 @@ INSERT INTO workspaces (
     name,
     slug,
     created_at_m,
-    tier,
     beta_features,
     enabled,
     delete_protection
-) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
+) VALUES (?, ?, ?, ?, ?, ?, true, false)
 ON DUPLICATE KEY UPDATE
     beta_features = VALUES(beta_features),
     name = VALUES(name)
@@ -34,7 +32,6 @@ type UpsertWorkspaceParams struct {
 	Name         string          `db:"name"`
 	Slug         string          `db:"slug"`
 	CreatedAtM   int64           `db:"created_at_m"`
-	Tier         sql.NullString  `db:"tier"`
 	BetaFeatures json.RawMessage `db:"beta_features"`
 }
 
@@ -46,11 +43,10 @@ type UpsertWorkspaceParams struct {
 //	    name,
 //	    slug,
 //	    created_at_m,
-//	    tier,
 //	    beta_features,
 //	    enabled,
 //	    delete_protection
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
+//	) VALUES (?, ?, ?, ?, ?, ?, true, false)
 //	ON DUPLICATE KEY UPDATE
 //	    beta_features = VALUES(beta_features),
 //	    name = VALUES(name)
@@ -61,7 +57,6 @@ func (q *Queries) UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorksp
 		arg.Name,
 		arg.Slug,
 		arg.CreatedAtM,
-		arg.Tier,
 		arg.BetaFeatures,
 	)
 	return err

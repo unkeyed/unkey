@@ -39,18 +39,21 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/tls"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
 
@@ -231,6 +234,19 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
+
+	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
+	// field set means every annotated secret would be persisted in the clear.
+	// Refuse to start rather than log plaintext keys.
+	redactedPaths, err := redaction.PathsFromSpec(openapi.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to load redaction paths: %w", err)
+	}
+	if len(redactedPaths) == 0 {
+		return fmt.Errorf("openapi spec declares no %s properties, refusing to log request bodies unredacted", redaction.Extension)
+	}
+	redactor := redaction.New(redactedPaths)
+	logger.Info("request body redaction enabled", "paths", redactor.Paths())
 
 	var ctr counter.Counter
 	if cfg.Test.Counter != nil {
@@ -449,6 +465,24 @@ func Run(ctx context.Context, cfg Config) error {
 		pprofPassword = cfg.Pprof.Password
 	}
 
+	// A real GitHub client is only built when the App ID and private key are
+	// both configured. Without them the repo-connection path on apps.createApp /
+	// apps.updateApp reports the feature as unconfigured; the Noop stand-in keeps
+	// the handlers non-nil and returns that "not configured" error on use.
+	var githubClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+		ghc, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			// Repo connection never verifies webhooks, so no secret is needed.
+			WebhookSecret: "",
+		})
+		if ghErr != nil {
+			return fmt.Errorf("unable to create github client: %w", ghErr)
+		}
+		githubClient = ghc
+	}
+
 	routes.Register(srv, &routes.Services{
 		Database:             database,
 		ClickHouse:           ch,
@@ -459,6 +493,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auth:                 authSvc,
 		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
+		Redactor:             redactor,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,
 		Caches:               caches,
@@ -473,6 +508,9 @@ func Run(ctx context.Context, cfg Config) error {
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 		PortalBaseURL:              cfg.PortalBaseURL,
+		GitHubAppName:              cfg.GitHub.AppName,
+		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
+		GitHubClient:               githubClient,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

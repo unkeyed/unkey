@@ -1,42 +1,23 @@
-// This file configures the initialization of Sentry for edge features (middleware, edge routes, and so on).
-// The config you add here will be used whenever one of the edge features is loaded.
-// Note that this config is unrelated to the Vercel Edge Runtime and is also required when running locally.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
-
 import * as Sentry from "@sentry/nextjs";
 import { env } from "./lib/env";
 import {
   createEdgeErrorFilter,
   createTracesSampler,
+  scrubLog,
   scrubSpanPii,
   scrubTransactionPii,
 } from "./lib/sentry";
 
-// Skip Sentry initialization in development or when explicitly disabled
 const envVars = env();
 if (process.env.NODE_ENV !== "development" && !envVars.SENTRY_DISABLED) {
   Sentry.init({
     dsn: "https://08589d17fe3b4b7e8b70b6c916123ee5@o4510544758046720.ingest.us.sentry.io/4510544758308864",
-
-    // Filter expected tRPC errors from being reported as Sentry errors
     beforeSend: createEdgeErrorFilter(),
-
-    // Transactions bypass `beforeSend`, so scrub secrets/PII from the URLs
-    // they carry (request url, Referer header, span http.url/url.full) before
-    // sending.
     beforeSendTransaction: scrubTransactionPii,
-
-    // Standalone spans bypass `beforeSendTransaction` too; scrub them here.
     beforeSendSpan: scrubSpanPii,
-
-    // Use dynamic sampling to reduce non-error traces while ensuring all errors are captured
     tracesSampler: createTracesSampler(),
-
-    // Enable logs to be sent to Sentry
     enableLogs: true,
-
-    // Enable sending user PII (Personally Identifiable Information)
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
+    beforeSendLog: scrubLog,
     sendDefaultPii: false,
   });
 }
