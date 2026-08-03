@@ -6,7 +6,7 @@ description: "Manage your Unkey workspace billing, subscription plans, payment m
 Unkey uses Stripe for all billing. Each workspace has its own subscription, payment method, and invoices. You manage billing from **Settings > Billing** in the dashboard.
 ## Plans
 
-Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid API Management plans unlock higher monthly request allowances, longer data retention, and [team collaboration](/platform/workspaces/team-members). Compute plans provide usage credits and higher [Compute limits](/limits).
+Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid plans unlock higher [limits](/platform/workspaces/quotas), longer data retention, and [team collaboration](/platform/workspaces/team-members).
 
 | Capability              | Free plan      | Paid plans                  |
 | ----------------------- | -------------- | --------------------------- |
@@ -18,8 +18,6 @@ Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid 
 <Tip>
   Visit [unkey.com/pricing](https://unkey.com/pricing) for the latest plan details and pricing.
 </Tip>
-
-See [Compute limits](/limits) for resource limit scope, calculation, and enforcement behavior.
 
 ## Add a payment method
 
@@ -56,7 +54,7 @@ Unkey prorates charges when you upgrade mid-cycle. The difference is applied to 
 2. Click **Cancel plan** at the bottom of the billing page.
 3. Confirm the cancellation.
 
-Cancellation takes effect at the end of your current billing period. Your workspace continues to operate with paid plan limits until that date. After the period ends, the workspace reverts to the [Free plan limits](#plans).
+Cancellation takes effect at the end of your current billing period. Your workspace continues to operate with paid plan limits until that date. After the period ends, the workspace reverts to Free plan [defaults](/platform/workspaces/quotas#free-plan-defaults).
 
 If you cancel by mistake, you can resume your subscription from the same billing page before the period ends.
 

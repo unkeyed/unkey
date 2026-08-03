@@ -1,7 +1,7 @@
 import { type Database, type Transaction, schema } from "@unkey/db";
 import { type DeployPlan, computeQuotaUpdateForPlan } from "./deployPlan";
 
-const computeCustomDomainLimitByPlan = {
+const customDomainLimitByPlan = {
   starter: 1,
   pro: 1_000_000,
   business: 1_000_000,
@@ -34,14 +34,14 @@ export async function setComputeQuotas(
     logsRetentionDaysMax: legacy.logsRetentionDays,
     logsAuditRetentionDaysMax: legacy.auditLogsRetentionDays,
     teamEnabled: legacy.team,
-    computeCpuMax: Math.ceil(legacy.allocatedCpuMillicoresTotal / 1_000),
-    computeCpuMaxPerInstance: Math.ceil(legacy.maxCpuMillicoresPerInstance / 1_000),
-    computeMemoryMibMax: legacy.allocatedMemoryMibTotal,
-    computeMemoryMibMaxPerInstance: legacy.maxMemoryMibPerInstance,
-    computeDiskEphemeralMibMax: legacy.allocatedStorageMibTotal,
-    computeDiskEphemeralMibMaxPerInstance: legacy.maxStorageMibPerInstance,
-    computeBuildsConcurrentCountMax: legacy.maxConcurrentBuilds,
-    computeCustomDomainsCountMax: params.plan ? computeCustomDomainLimitByPlan[params.plan] : 0,
+    cpuMax: Math.ceil(legacy.allocatedCpuMillicoresTotal / 1_000),
+    cpuMaxPerInstance: Math.ceil(legacy.maxCpuMillicoresPerInstance / 1_000),
+    memoryMibMax: legacy.allocatedMemoryMibTotal,
+    memoryMibMaxPerInstance: legacy.maxMemoryMibPerInstance,
+    diskEphemeralMibMax: legacy.allocatedStorageMibTotal,
+    diskEphemeralMibMaxPerInstance: legacy.maxStorageMibPerInstance,
+    buildsConcurrentCountMax: legacy.maxConcurrentBuilds,
+    customDomainsCountMax: params.plan ? customDomainLimitByPlan[params.plan] : 0,
   };
   await db
     .insert(schema.limits)
@@ -53,14 +53,14 @@ export async function setComputeQuotas(
         logsRetentionDaysMax: limitValues.logsRetentionDaysMax,
         logsAuditRetentionDaysMax: limitValues.logsAuditRetentionDaysMax,
         teamEnabled: limitValues.teamEnabled,
-        computeCpuMax: limitValues.computeCpuMax,
-        computeCpuMaxPerInstance: limitValues.computeCpuMaxPerInstance,
-        computeMemoryMibMax: limitValues.computeMemoryMibMax,
-        computeMemoryMibMaxPerInstance: limitValues.computeMemoryMibMaxPerInstance,
-        computeDiskEphemeralMibMax: limitValues.computeDiskEphemeralMibMax,
-        computeDiskEphemeralMibMaxPerInstance: limitValues.computeDiskEphemeralMibMaxPerInstance,
-        computeBuildsConcurrentCountMax: limitValues.computeBuildsConcurrentCountMax,
-        computeCustomDomainsCountMax: limitValues.computeCustomDomainsCountMax,
+        cpuMax: limitValues.cpuMax,
+        cpuMaxPerInstance: limitValues.cpuMaxPerInstance,
+        memoryMibMax: limitValues.memoryMibMax,
+        memoryMibMaxPerInstance: limitValues.memoryMibMaxPerInstance,
+        diskEphemeralMibMax: limitValues.diskEphemeralMibMax,
+        diskEphemeralMibMaxPerInstance: limitValues.diskEphemeralMibMaxPerInstance,
+        buildsConcurrentCountMax: limitValues.buildsConcurrentCountMax,
+        customDomainsCountMax: limitValues.customDomainsCountMax,
       },
     });
 }

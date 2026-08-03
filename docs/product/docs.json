@@ -77,13 +77,6 @@
             ]
           },
           {
-            "group": "Limits",
-            "pages": [
-              "limits",
-              "limits/fair-use-guidelines"
-            ]
-          },
-          {
             "expanded": false,
             "group": "Platform",
             "icon": "grid-2",
@@ -210,6 +203,7 @@
                   "platform/workspaces/settings",
                   "platform/workspaces/billing",
                   "platform/workspaces/compute-billing",
+                  "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
               }
@@ -486,9 +480,7 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing",
-                      "errors/unkey/authentication/portal_session_not_found",
-                      "errors/unkey/authentication/portal_token_missing"
+                      "errors/unkey/authentication/missing"
                     ]
                   },
                   {
@@ -520,7 +512,6 @@
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
                       "errors/unkey/data/policy_not_found",
-                      "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_already_exists",
                       "errors/unkey/data/project_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
@@ -716,10 +707,6 @@
     ]
   },
   "redirects": [
-    {
-      "destination": "/limits",
-      "source": "/platform/workspaces/quotas"
-    },
     {
       "destination": "/platform/gateway/:slug*",
       "source": "/platform/sentinel/:slug*"

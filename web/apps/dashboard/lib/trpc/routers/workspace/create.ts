@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { auth as authProvider } from "@/lib/auth/server";
 import { type InsertWorkspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
+import { freeTierQuotas } from "@/lib/quotas";
 import { TRPCError } from "@trpc/server";
 import { dns1035, newId } from "@unkey/id";
 import { z } from "zod";
@@ -82,7 +82,19 @@ export const createWorkspace = protectedProcedure
         });
         await tx.insert(schema.limits).values({
           workspaceId: workspace.id,
-          ...freeTierLimits,
+          apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
+          apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
+          logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
+          logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
+          teamEnabled: freeTierQuotas.team,
+          cpuMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
+          cpuMaxPerInstance: Math.ceil(freeTierQuotas.maxCpuMillicoresPerInstance / 1_000),
+          memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
+          memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+          diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
+          diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+          buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
+          customDomainsCountMax: 0,
         });
         await tx.insert(schema.workspaceBilling).values({
           workspaceId: workspace.id,

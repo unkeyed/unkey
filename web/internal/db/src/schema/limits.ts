@@ -31,35 +31,35 @@ export const limits = mysqlTable("limits", {
     unsigned: true,
   }).notNull(),
   teamEnabled: boolean("team_enabled").notNull(),
-  computeCpuMax: bigint("compute_cpu_max", {
+  cpuMax: bigint("cpu_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeCpuMaxPerInstance: bigint("compute_cpu_max_per_instance", {
+  cpuMaxPerInstance: bigint("cpu_max_per_instance", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeMemoryMibMax: bigint("compute_memory_mib_max", {
+  memoryMibMax: bigint("memory_mib_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeMemoryMibMaxPerInstance: bigint("compute_memory_mib_max_per_instance", {
+  memoryMibMaxPerInstance: bigint("memory_mib_max_per_instance", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeDiskEphemeralMibMax: bigint("compute_disk_ephemeral_mib_max", {
+  diskEphemeralMibMax: bigint("disk_ephemeral_mib_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeDiskEphemeralMibMaxPerInstance: bigint("compute_disk_ephemeral_mib_max_per_instance", {
+  diskEphemeralMibMaxPerInstance: bigint("disk_ephemeral_mib_max_per_instance", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeBuildsConcurrentCountMax: bigint("compute_builds_concurrent_count_max", {
+  buildsConcurrentCountMax: bigint("builds_concurrent_count_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),
-  computeCustomDomainsCountMax: bigint("compute_custom_domains_count_max", {
+  customDomainsCountMax: bigint("custom_domains_count_max", {
     mode: "number",
     unsigned: true,
   }).notNull(),

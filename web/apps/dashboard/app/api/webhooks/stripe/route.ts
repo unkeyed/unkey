@@ -5,7 +5,7 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
+import { freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
@@ -776,8 +776,41 @@ export const POST = async (req: Request): Promise<Response> => {
                 .onDuplicateKeyUpdate({ set: freeTierQuotas });
               await tx
                 .insert(schema.limits)
-                .values({ workspaceId: ws.id, ...freeTierLimits })
-                .onDuplicateKeyUpdate({ set: freeTierLimits });
+                .values({
+                  workspaceId: ws.id,
+                  apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
+                  apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
+                  logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
+                  logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
+                  teamEnabled: freeTierQuotas.team,
+                  cpuMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
+                  cpuMaxPerInstance: Math.ceil(freeTierQuotas.maxCpuMillicoresPerInstance / 1_000),
+                  memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
+                  memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+                  diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
+                  diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+                  buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
+                  customDomainsCountMax: 0,
+                })
+                .onDuplicateKeyUpdate({
+                  set: {
+                    apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
+                    apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
+                    logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
+                    logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
+                    teamEnabled: freeTierQuotas.team,
+                    cpuMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
+                    cpuMaxPerInstance: Math.ceil(
+                      freeTierQuotas.maxCpuMillicoresPerInstance / 1_000,
+                    ),
+                    memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
+                    memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+                    diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
+                    diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+                    buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
+                    customDomainsCountMax: 0,
+                  },
+                });
             }
 
             await insertAuditLogs(tx, {
@@ -867,8 +900,39 @@ export const POST = async (req: Request): Promise<Response> => {
               .onDuplicateKeyUpdate({ set: freeTierQuotas });
             await tx
               .insert(schema.limits)
-              .values({ workspaceId: ws.id, ...freeTierLimits })
-              .onDuplicateKeyUpdate({ set: freeTierLimits });
+              .values({
+                workspaceId: ws.id,
+                apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
+                apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
+                logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
+                logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
+                teamEnabled: freeTierQuotas.team,
+                cpuMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
+                cpuMaxPerInstance: Math.ceil(freeTierQuotas.maxCpuMillicoresPerInstance / 1_000),
+                memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
+                memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+                diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
+                diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+                buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
+                customDomainsCountMax: 0,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  apiBillableOperationsCountMaxPerMonth: freeTierQuotas.requestsPerMonth,
+                  apiRequestsCountMaxPerMinute: freeTierQuotas.ratelimitApiLimit,
+                  logsRetentionDaysMax: freeTierQuotas.logsRetentionDays,
+                  logsAuditRetentionDaysMax: freeTierQuotas.auditLogsRetentionDays,
+                  teamEnabled: freeTierQuotas.team,
+                  cpuMax: Math.ceil(freeTierQuotas.allocatedCpuMillicoresTotal / 1_000),
+                  cpuMaxPerInstance: Math.ceil(freeTierQuotas.maxCpuMillicoresPerInstance / 1_000),
+                  memoryMibMax: freeTierQuotas.allocatedMemoryMibTotal,
+                  memoryMibMaxPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
+                  diskEphemeralMibMax: freeTierQuotas.allocatedStorageMibTotal,
+                  diskEphemeralMibMaxPerInstance: freeTierQuotas.maxStorageMibPerInstance,
+                  buildsConcurrentCountMax: freeTierQuotas.maxConcurrentBuilds,
+                  customDomainsCountMax: 0,
+                },
+              });
           }
 
           await insertAuditLogs(tx, {

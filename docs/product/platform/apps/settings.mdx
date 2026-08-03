@@ -84,8 +84,9 @@ Set the minimum and maximum to the same value to pin instance count and disable 
 
 Production and preview environments can use different ranges. For example, you might run production with a range of `2 – 4` for redundancy and headroom while keeping preview at `1 – 1` to reduce cost.
 
-Available replica settings depend on your workspace plan and any approved
-workspace-specific limits. See [Compute limits](/limits#plan-limits).
+<Note>
+  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
 
 ### Autoscaling
 
@@ -97,7 +98,7 @@ When the minimum and maximum replicas differ, Unkey automatically adjusts instan
 
 ### CPU
 
-CPU allocation for each instance. The dashboard can offer these options:
+CPU allocation for each instance. Available options:
 
 | Option    | Millicores |
 | --------- | ---------- |
@@ -108,13 +109,13 @@ CPU allocation for each instance. The dashboard can offer these options:
 
 Defaults to 1/4 vCPU.
 
-Available options depend on your workspace plan and any approved
-workspace-specific limits. CPU billing uses measured usage over time. See
-[Compute limits](/limits#plan-limits).
+<Note>
+  During the beta, the maximum is 2 vCPU. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
 
 ### Memory
 
-Memory allocation for each instance. The dashboard can offer these options:
+Memory allocation for each instance. Available options:
 
 - 256 MiB (default)
 - 512 MiB
@@ -122,9 +123,9 @@ Memory allocation for each instance. The dashboard can offer these options:
 - 2 GiB
 - 4 GiB
 
-Available options depend on your workspace plan and any approved
-workspace-specific limits. Memory billing uses measured usage over time. See
-[Compute limits](/limits#plan-limits).
+<Note>
+  During the beta, the maximum is 4 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
 
 ### Storage
 
@@ -143,7 +144,7 @@ Every instance gets a writable `/tmp` directory backed by memory. Use it for sma
 
 Ephemeral disk space per instance. When configured, Unkey attaches a dedicated volume to each instance mounted at `/data`. The volume is created when the instance starts and destroyed when it stops, data does not persist across restarts.
 
-The dashboard can offer these options:
+Available options:
 
 - None (default)
 - 512 MiB
@@ -156,9 +157,9 @@ Use this for workloads that need temporary disk access, such as media processing
 
 Your application can read the mount path from the `UNKEY_EPHEMERAL_DISK_PATH` environment variable, which is set to `/data` when storage is configured.
 
-Available options depend on your workspace plan and any approved
-workspace-specific limits. Ephemeral disk billing uses allocated capacity over
-time. See [Compute limits](/limits#plan-limits).
+<Note>
+  During the beta, the maximum is 10 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
 
 ### Port
 
