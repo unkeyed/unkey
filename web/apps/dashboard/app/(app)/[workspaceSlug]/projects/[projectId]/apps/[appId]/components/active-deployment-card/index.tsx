@@ -279,8 +279,8 @@ export function shouldShowLastExit({ lastExit, status }: Pick<Deployment, "lastE
   );
 }
 
-// LastExitBadge renders a compact "OOMKilled · exit=137" or Kubernetes
-// status pill. Current kubelet errors take precedence over the previous
+// LastExitBadge renders a compact "OOMKilled · exit=137" or runtime-status
+// pill. Current infrastructure errors take precedence over the previous
 // process exit because they explain why the instance cannot recover.
 // Exported so the deployments list row + network instance card can reuse
 // it next to the status badge — same surface, same data, different page.
@@ -338,7 +338,7 @@ function explainExit(
         </div>
         {statusMessage && (
           <div className="break-words">
-            <span className="font-medium">Kubernetes: </span>
+            <span className="font-medium">Technical details: </span>
             {statusMessage}
           </div>
         )}
@@ -363,23 +363,23 @@ function explainExit(
     }))
     .with("ErrImagePull", "ImagePullBackOff", () => ({
       label: "Couldn't pull your image",
-      body: "Kubernetes could not download the configured image. Check that the image exists and that its registry credentials allow access.",
+      body: "We couldn't download the configured image. Check that the image exists and that your registry credentials allow access.",
     }))
     .with("InvalidImageName", () => ({
       label: "Invalid image name",
-      body: "Kubernetes rejected the configured image reference. Check the registry, repository, and tag.",
+      body: "The configured image reference is invalid. Check the registry, repository, and tag.",
     }))
     .with("CreateContainerConfigError", "CreateContainerError", () => ({
-      label: "Couldn't create your container",
-      body: "Kubernetes could not create the container from its runtime configuration.",
+      label: "Couldn't start your app",
+      body: "We couldn't start your app because its runtime configuration is invalid.",
     }))
     .with("Evicted", () => ({
-      label: "Instance was evicted",
-      body: "Kubernetes removed this instance because a node or pod resource limit was exceeded.",
+      label: "Instance was stopped",
+      body: "This instance was stopped because a resource limit was exceeded.",
     }))
     .with("Unschedulable", () => ({
-      label: "Couldn't schedule your instance",
-      body: "Kubernetes could not find a node with enough compatible resources for this instance.",
+      label: "Couldn't start your instance",
+      body: "We couldn't find enough compatible resources to start this instance.",
     }))
     .with("Completed", () => ({
       label: "Exited cleanly",
@@ -390,7 +390,7 @@ function explainExit(
       (r) => ({
         label: r,
         body: isRuntimeStatus
-          ? "Kubernetes reported an error while running this instance."
+          ? "The instance reported an error while starting or running."
           : "Your app exited. The exit code below has more detail.",
       }),
     )
@@ -401,7 +401,7 @@ function explainExit(
   }
 
   if (statusMessage) {
-    lines.push({ label: "Kubernetes message", body: statusMessage });
+    lines.push({ label: "Technical details", body: statusMessage });
   }
 
   if (exitCode !== null && exitCode !== 0) {
