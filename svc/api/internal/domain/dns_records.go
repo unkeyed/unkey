@@ -35,7 +35,6 @@ func DnsRecords(domainName, targetCname, verificationToken string, routingVerifi
 		Note:     ptr.P("Proves ownership. Create it alongside the routing record."),
 	}
 
-	// An apex domain cannot hold a CNAME, so routing needs a provider-specific alias.
 	if domainconnect.IsApexDomain(domainName) {
 		routing.Type = openapi.ALIAS
 		routing.Note = ptr.P("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
