@@ -24,8 +24,8 @@ type waitEntry struct {
 // on a FIFO wait list. The caller's awakeable is resolved with true when the
 // slot is granted (now or later).
 //
-// Production deployments still respect the workspace's max_concurrent_builds
-// quota — they don't get a free pass — but they enqueue into a separate
+// Production deployments still respect the workspace's concurrent build limit,
+// but they enqueue into a separate
 // prod_wait_list that Release drains before the preview wait list. So
 // production hot-fixes priority-queue ahead of preview builds without
 // blowing past the workspace cap.
@@ -65,15 +65,16 @@ func (s *Service) AcquireOrWait(
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
 
-	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-		return s.db.FindQuotaByWorkspaceID(runCtx, workspaceID)
-	}, restate.WithName("fetch quota"))
+	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Limit, error) {
+		return s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
+	}, restate.WithName("fetch limits"))
 	if err != nil {
-		return nil, fmt.Errorf("fetch quota: %w", err)
+		return nil, fmt.Errorf("fetch limits: %w", err)
 	}
 
-	if uint32(len(active)) < quota.MaxConcurrentBuilds {
-		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, quota.MaxConcurrentBuilds, req.GetIsProduction())
+	buildLimit := uint32(limits.BuildsConcurrentMax)
+	if uint32(len(active)) < buildLimit {
+		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
 	}
 
 	// At capacity: park the caller. Production goes to its own list so
@@ -97,7 +98,7 @@ func (s *Service) AcquireOrWait(
 		"active", len(active),
 		"prod_wait", len(prodWait),
 		"preview_wait", len(previewWait),
-		"limit", quota.MaxConcurrentBuilds,
+		"limit", buildLimit,
 	)
 
 	return &hydrav1.AcquireOrWaitResponse{}, nil

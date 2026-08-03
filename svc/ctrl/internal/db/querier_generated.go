@@ -303,9 +303,9 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
+	//      l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON q.workspace_id = c.workspace_id
+	//  JOIN `limits` l ON l.workspace_id = c.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	// FindCluster resolves the cluster and region rows for the complete identity
@@ -548,6 +548,12 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
+	//FindLimitsByWorkspaceID
+	//
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
@@ -566,12 +572,6 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, id string) (Project, error)
-	//FindQuotaByWorkspaceID
-	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
-	//  FROM `quota`
-	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -674,9 +674,9 @@ type Querier interface {
 	//     b.stripe_customer_id,
 	//     b.tier,
 	//     w.enabled,
-	//     q.requests_per_month
+	//     l.api_billable_operations_count_max_per_month AS requests_per_month
 	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON q.workspace_id = w.id
+	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
@@ -2151,6 +2151,41 @@ type Querier interface {
 	//  	memory_mib = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, arg UpsertInstanceParams) error
+	//UpsertLimit
+	//
+	//  INSERT INTO `limits` (
+	//      workspace_id,
+	//      api_billable_operations_count_max_per_month,
+	//      api_requests_count_max_per_minute,
+	//      logs_retention_days_max,
+	//      logs_audit_retention_days_max,
+	//      team_enabled,
+	//      cpu_cores_max,
+	//      cpu_cores_max_per_instance,
+	//      memory_mib_max,
+	//      memory_mib_max_per_instance,
+	//      storage_mib_max,
+	//      storage_mib_max_per_instance,
+	//      builds_concurrent_max,
+	//      custom_domains_max,
+	//      autoscaling_replicas_max
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      api_billable_operations_count_max_per_month = VALUES(api_billable_operations_count_max_per_month),
+	//      api_requests_count_max_per_minute = VALUES(api_requests_count_max_per_minute),
+	//      logs_retention_days_max = VALUES(logs_retention_days_max),
+	//      logs_audit_retention_days_max = VALUES(logs_audit_retention_days_max),
+	//      team_enabled = VALUES(team_enabled),
+	//      cpu_cores_max = VALUES(cpu_cores_max),
+	//      cpu_cores_max_per_instance = VALUES(cpu_cores_max_per_instance),
+	//      memory_mib_max = VALUES(memory_mib_max),
+	//      memory_mib_max_per_instance = VALUES(memory_mib_max_per_instance),
+	//      storage_mib_max = VALUES(storage_mib_max),
+	//      storage_mib_max_per_instance = VALUES(storage_mib_max_per_instance),
+	//      builds_concurrent_max = VALUES(builds_concurrent_max),
+	//      custom_domains_max = VALUES(custom_domains_max),
+	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
+	UpsertLimit(ctx context.Context, arg UpsertLimitParams) error
 	//UpsertOpenApiSpec
 	//
 	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)

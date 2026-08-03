@@ -28,9 +28,9 @@ type (
 // harness's shared ClickHouse client.
 func newHandler(h *testutil.Harness) *handler.Handler {
 	return &handler.Handler{
-		ClickHouse: h.ClickHouse,
-		DB:         h.DB,
-		QuotaCache: h.Caches.WorkspaceQuota,
+		ClickHouse:  h.ClickHouse,
+		DB:          h.DB,
+		LimitsCache: h.Caches.WorkspaceLimits,
 	}
 }
 

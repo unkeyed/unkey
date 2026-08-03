@@ -17,7 +17,8 @@
         "../../../../pkg/mysql/schema/roles_permissions.sql",
         "../../../../pkg/mysql/schema/ratelimits.sql",
         "../../../../pkg/mysql/schema/key_migrations.sql",
-        "../../../../pkg/mysql/schema/quota.sql"
+        "../../../../pkg/mysql/schema/quota.sql",
+        "../../../../pkg/mysql/schema/limits.sql"
       ],
       "gen": {
         "go": {

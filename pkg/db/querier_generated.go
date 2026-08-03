@@ -234,9 +234,9 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
+	//      l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
+	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
@@ -2720,6 +2720,41 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertLimit
+	//
+	//  INSERT INTO `limits` (
+	//      workspace_id,
+	//      api_billable_operations_count_max_per_month,
+	//      api_requests_count_max_per_minute,
+	//      logs_retention_days_max,
+	//      logs_audit_retention_days_max,
+	//      team_enabled,
+	//      cpu_cores_max,
+	//      cpu_cores_max_per_instance,
+	//      memory_mib_max,
+	//      memory_mib_max_per_instance,
+	//      storage_mib_max,
+	//      storage_mib_max_per_instance,
+	//      builds_concurrent_max,
+	//      custom_domains_max,
+	//      autoscaling_replicas_max
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      api_billable_operations_count_max_per_month = VALUES(api_billable_operations_count_max_per_month),
+	//      api_requests_count_max_per_minute = VALUES(api_requests_count_max_per_minute),
+	//      logs_retention_days_max = VALUES(logs_retention_days_max),
+	//      logs_audit_retention_days_max = VALUES(logs_audit_retention_days_max),
+	//      team_enabled = VALUES(team_enabled),
+	//      cpu_cores_max = VALUES(cpu_cores_max),
+	//      cpu_cores_max_per_instance = VALUES(cpu_cores_max_per_instance),
+	//      memory_mib_max = VALUES(memory_mib_max),
+	//      memory_mib_max_per_instance = VALUES(memory_mib_max_per_instance),
+	//      storage_mib_max = VALUES(storage_mib_max),
+	//      storage_mib_max_per_instance = VALUES(storage_mib_max_per_instance),
+	//      builds_concurrent_max = VALUES(builds_concurrent_max),
+	//      custom_domains_max = VALUES(custom_domains_max),
+	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
+	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
 	//UpsertPortalBranding
 	//
 	//  INSERT INTO portal_branding (
