@@ -16,6 +16,10 @@ export type DeployCheckoutPlan = "starter" | "pro" | "business";
 export type DeployCheckoutOrigin = "create" | "banner" | "billing" | "deploy";
 
 export const settingsRoutes = {
+  account({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/account", { workspaceSlug });
+  },
+
   general({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
   },
@@ -30,10 +34,6 @@ export const settingsRoutes = {
 
   billing({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
-  },
-
-  security({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/security", { workspaceSlug });
   },
 
   stripe: {
