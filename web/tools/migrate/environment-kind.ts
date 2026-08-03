@@ -33,10 +33,7 @@ async function main() {
         .update(schema.environments)
         .set({ kind: "production" })
         .where(
-          and(
-            eq(schema.environments.slug, "production"),
-            eq(schema.environments.kind, "preview"),
-          ),
+          and(eq(schema.environments.slug, "production"), eq(schema.environments.kind, "preview")),
         )
         .limit(UPDATE_BATCH_SIZE);
       const affectedRows = result[0].affectedRows;

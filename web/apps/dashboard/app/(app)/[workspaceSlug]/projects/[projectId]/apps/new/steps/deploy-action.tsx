@@ -22,7 +22,9 @@ export const DeployAction = ({
   const { goTo } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const { environments } = useProjectData();
-  const productionEnvironment = environments.find((environment) => environment.kind === "production");
+  const productionEnvironment = environments.find(
+    (environment) => environment.kind === "production",
+  );
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: async (data) => {
