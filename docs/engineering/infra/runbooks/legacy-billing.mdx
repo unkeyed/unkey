@@ -1,0 +1,190 @@
+---
+title: "Create a legacy invoice manually"
+description: "How to create and review a draft Stripe invoice for a workspace that still uses legacy billing"
+---
+
+The legacy billing workflow creates a standalone Stripe draft invoice for one
+workspace and one completed calendar month. Use it only for workspaces that
+still store pricing in `workspaces.subscriptions` and don't have an API or
+Compute Stripe subscription.
+
+<Warning>
+  Running this workflow writes an invoice and invoice items to the Stripe
+  account configured on the worker. It doesn't have a dry-run mode. Confirm the
+  workspace, month, pricing, usage data, and worker environment before running it.
+</Warning>
+
+The workflow never finalizes, sends, pays, or attaches the invoice to a
+subscription. It leaves the complete invoice in draft state for review.
+
+## Understand what the workflow bills
+
+The workflow reads pricing and usage from existing Unkey data before it writes to
+Stripe:
+
+- `plan` and `support` entries in `workspaces.subscriptions` become full fixed
+  charges with quantity 1.
+- `verifications` and `ratelimits` entries use billable ClickHouse usage for
+  the requested workspace, year, and month.
+- Free tiers consume usage without creating invoice lines. Each paid tier
+  creates one line for the quantity inside that tier.
+- Fixed and usage lines have no proration. Every line belongs directly to the
+  standalone invoice, not to a subscription.
+
+The selected month must be complete in UTC. The workflow uses the current legacy
+subscriptions JSON, not a historical pricing snapshot. Before billing an older
+month, confirm that the stored prices and tiers applied during that month.
+
+This process doesn't replace subscription billing or Deploy billing. The workflow
+stops if `billing_subscriptions` contains an API or Compute Stripe subscription
+ID for the workspace.
+
+## Complete the preflight checks
+
+Complete every check before you invoke the workflow. It starts writing to
+Stripe after the database and usage checks pass.
+
+1. Confirm the workspace ID and customer-approved billing month.
+2. Confirm the month has ended in UTC.
+3. Confirm ClickHouse ingestion is complete for that month. A missing monthly
+   aggregate can appear as zero usage.
+4. Inspect the workspace's `subscriptions` JSON and confirm each product ID,
+   fixed price, free tier, paid tier, and boundary against the agreement that
+   applied during the selected month.
+5. Confirm `stripe_customer_id` belongs to the intended customer in the
+   intended Stripe environment.
+6. Confirm both subscription IDs are empty. Don't bypass this check to bill a
+   subscription customer.
+7. Search Stripe for an existing invoice for the workspace and billing month.
+   The workflow also performs an account-wide metadata scan and stops if it
+   finds multiple matches.
+
+You can inspect the MySQL records with this read-only query:
+
+```sql
+SELECT
+  w.id,
+  w.name,
+  w.deleted_at_m,
+  w.subscriptions,
+  wb.stripe_customer_id,
+  wb.deleted_at_m AS billing_deleted_at_m,
+  bs_api.stripe_subscription_id AS api_subscription_id,
+  bs_compute.stripe_subscription_id AS compute_subscription_id
+FROM workspaces AS w
+LEFT JOIN workspace_billing AS wb
+  ON wb.workspace_id = w.id
+LEFT JOIN billing_subscriptions AS bs_api
+  ON bs_api.workspace_id = w.id AND bs_api.product = 'api'
+LEFT JOIN billing_subscriptions AS bs_compute
+  ON bs_compute.workspace_id = w.id AND bs_compute.product = 'compute'
+WHERE w.id = 'ws_XXX';
+```
+
+Stop if the workspace or billing record is deleted, the legacy subscriptions
+JSON is empty or unexpected, the customer ID is wrong, or either subscription
+ID is present.
+
+## Create the draft invoice
+
+Invoke Restate ingress for workspace `ws_XXX` and July 2026:
+
+```bash
+curl --fail-with-body \
+  -X POST \
+  -H 'content-type: application/json' \
+  "${RESTATE_INGRESS_URL}/hydra.v1.LegacyBillingWorkflow/Run" \
+  -d '{"workspaceId":"ws_XXX","year":2026,"month":7}'
+```
+
+The worker exposes this workflow only when a real ClickHouse client and Stripe
+secret are configured.
+
+The workflow performs these operations in order:
+
+1. Validates the request and completed month.
+2. Loads the workspace, legacy pricing, Stripe customer, and subscription
+   state from MySQL.
+3. Loads verification and ratelimit usage from ClickHouse when those products
+   exist in the legacy pricing.
+4. Validates all prices and tiers and builds at most 250 invoice lines.
+5. Scans Stripe for an invoice tagged with the tool source, workspace ID, and
+   billing period.
+6. Creates a standalone invoice with `auto_advance=false` and excludes unrelated
+   pending customer invoice items, or resumes one matching draft.
+7. Adds only missing invoice lines with deterministic idempotency keys.
+8. Retrieves and validates the invoice and every line again before reporting
+   success.
+
+MySQL, ClickHouse, and Stripe operations are durable Restate steps. External
+provider retries are bounded. If an invocation fails, use the recovery
+procedure below instead of changing the invoice manually.
+
+A successful invocation returns JSON in this form:
+
+```json
+{"invoiceId":"in_XXX","itemCount":3,"verifications":"175000","ratelimits":"0"}
+```
+
+Copy the invoice ID into the operational ticket so another operator can audit
+what was created.
+
+## Review the invoice in Stripe
+
+Open the returned invoice ID in the worker's Stripe account. Complete this
+review before any separate finalization process:
+
+1. Confirm the invoice status is `draft` and automatic advancement is off.
+2. Confirm the Stripe customer and workspace metadata match the request.
+3. Confirm the billing-period metadata and displayed custom field match the
+   requested UTC month.
+4. Confirm there is no subscription association.
+5. Compare every fixed charge with the legacy subscriptions JSON.
+6. Compare every usage tier quantity with the approved ClickHouse totals and
+   tier boundaries.
+7. Confirm unrelated pending customer invoice items aren't present.
+8. Record the review and invoice URL in the operational ticket.
+
+The workflow doesn't finalize the invoice. Use the separately approved billing
+process after review if the draft must be finalized or sent.
+
+<Warning>
+  The draft uses Stripe's `charge_automatically` collection method. Finalizing
+  it through another process can initiate collection from the customer's
+  default payment method. Don't finalize the draft until the invoice and the
+  collection action have both been approved.
+</Warning>
+
+## Recover from an interrupted run
+
+MySQL, ClickHouse, and Stripe steps retry for up to 15 minutes. If a step
+exhausts that retry window, the invocation completes with a terminal failure.
+After fixing the cause, invoke the workflow again with the same request. Stripe
+metadata, idempotency keys, and reconciliation ensure the existing draft is
+resumed and only missing lines are created.
+
+Don't delete lines, add manual lines, or change workflow metadata before retrying.
+The workflow stops when an existing line differs from the expected product,
+quantity, period, currency, or charge specification. This fail-closed behavior
+prevents a retry from silently changing an invoice.
+
+Investigate instead of bypassing these errors:
+
+- Active subscription: The workspace is handled by subscription billing or
+  has inconsistent billing data. Don't create a legacy standalone invoice.
+- Multiple invoices: More than one Stripe invoice has the same workspace
+  and period metadata. Review all matches before taking any action.
+- Unexpected invoice state: The matching invoice has a different customer,
+  isn't a draft, has automatic advancement enabled, or has a subscription
+  parent. Don't rerun against another Stripe account to avoid the error.
+- Unexpected or changed line: Someone or another process changed the draft,
+  or the legacy pricing changed between runs. Compare the draft with the source
+  data and resolve the discrepancy manually.
+- Incomplete month: Wait until the UTC month has ended and usage ingestion
+  is complete.
+- ClickHouse or MySQL error: Restore read access or service availability.
+  The workflow doesn't treat query failures as zero usage.
+
+If a draft needs to be deleted, finalized, voided, or otherwise corrected,
+handle that as a separate reviewed Stripe operation. The billing workflow performs
+none of those actions.
