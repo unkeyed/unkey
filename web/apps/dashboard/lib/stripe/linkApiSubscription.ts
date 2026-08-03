@@ -129,6 +129,13 @@ export async function linkApiSubscription(
   ).stripeSubscriptionId;
   if (recordedSubscriptionId === subscriptionId) {
     if (ws.billing?.tier === product.name) {
+      await setComputeQuotas(db, {
+        workspaceId: ws.id,
+        plan:
+          parseDeployPlan(ws.billing?.planOverride ?? null) ??
+          parseDeployPlan(ws.billing?.plan ?? null),
+        preserveApiQuotas: true,
+      });
       return { ok: true, productName: product.name, alreadyLinked: true };
     }
   } else if (recordedSubscriptionId) {

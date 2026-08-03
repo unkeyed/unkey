@@ -850,14 +850,14 @@ type Limit struct {
 	LogsRetentionDaysMax                  uint64        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint64        `db:"logs_audit_retention_days_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
-	CpuCoresMax                         uint64        `db:"cpu_cores_max"`
-	CpuCoresMaxPerInstance              uint64        `db:"cpu_cores_max_per_instance"`
-	MemoryMibMax                   uint64        `db:"memory_mib_max"`
-	MemoryMibMaxPerInstance        uint64        `db:"memory_mib_max_per_instance"`
-	DiskEphemeralMibMax            uint64        `db:"disk_ephemeral_mib_max"`
-	DiskEphemeralMibMaxPerInstance uint64        `db:"disk_ephemeral_mib_max_per_instance"`
-	BuildsConcurrentCountMax       uint64        `db:"builds_concurrent_count_max"`
-	CustomDomainsCountMax          uint64        `db:"custom_domains_count_max"`
+	CpuCoresMax                           uint64        `db:"cpu_cores_max"`
+	CpuCoresMaxPerInstance                uint64        `db:"cpu_cores_max_per_instance"`
+	MemoryMibMax                          uint64        `db:"memory_mib_max"`
+	MemoryMibMaxPerInstance               uint64        `db:"memory_mib_max_per_instance"`
+	DiskEphemeralMibMax                   uint64        `db:"disk_ephemeral_mib_max"`
+	DiskEphemeralMibMaxPerInstance        uint64        `db:"disk_ephemeral_mib_max_per_instance"`
+	BuildsConcurrentCountMax              uint64        `db:"builds_concurrent_count_max"`
+	CustomDomainsCountMax                 uint64        `db:"custom_domains_count_max"`
 }
 
 type Permission struct {
