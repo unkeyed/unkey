@@ -19,6 +19,7 @@ SELECT
     network_egress_public_bytes,
     network_egress_private_bytes,
     network_ingress_public_bytes,
-    network_ingress_private_bytes
+    network_ingress_private_bytes,
+    attributes
 FROM default.instance_checkpoints_v1
 FINAL;
