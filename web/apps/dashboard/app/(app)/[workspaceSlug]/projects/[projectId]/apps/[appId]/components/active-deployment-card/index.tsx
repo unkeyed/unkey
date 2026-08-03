@@ -298,7 +298,12 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   );
 
   return (
-    <InfoTooltip content={tooltip} variant="inverted" position={{ side: "top", align: "end" }}>
+    <InfoTooltip
+      content={tooltip}
+      variant="primary"
+      className="w-[360px] max-w-[calc(100vw-24px)] overflow-hidden p-0 text-left font-normal"
+      position={{ side: "top", align: "end" }}
+    >
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
         {(() => {
@@ -323,32 +328,13 @@ function explainExit(
   statusMessage: string | null,
   isRuntimeStatus: boolean,
 ): React.ReactNode {
-  // CrashLoopBackOff: point users at the exit code for diagnosis.
-  if (reason === "CrashLoopBackOff") {
-    return (
-      <div className="flex flex-col gap-1.5 max-w-[280px]">
-        <div className="font-medium">App keeps crashing on startup</div>
-        <div>
-          Your app has exited too many times in a row, so we're slowing down restart attempts to
-          give it room to recover.
-        </div>
-        <div>
-          Check the recent crash entries below for the exit code that's causing the loop, and your
-          logs for the underlying error.
-        </div>
-        {statusMessage && (
-          <div className="break-words">
-            <span className="font-medium">Technical details: </span>
-            {statusMessage}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   const lines: { label: string; body: string }[] = [];
 
   const reasonLine = match(reason)
+    .with("CrashLoopBackOff", () => ({
+      label: "App keeps crashing on startup",
+      body: "Your app has exited repeatedly, so restart attempts are being slowed down. Check the latest crash and your logs for the underlying error.",
+    }))
     .with("OOMKilled", () => ({
       label: "Out of memory",
       body: "Your app used more memory than its configured limit. Either it has a memory leak, or the limit is set too low for what it actually needs at peak.",
@@ -400,11 +386,7 @@ function explainExit(
     lines.push(reasonLine);
   }
 
-  if (statusMessage) {
-    lines.push({ label: "Technical details", body: statusMessage });
-  }
-
-  if (exitCode !== null && exitCode !== 0) {
+  if (exitCode !== null && exitCode !== 0 && (!isRuntimeStatus || reason === "CrashLoopBackOff")) {
     const exitLine = describeExitCode(exitCode, signal);
     if (exitLine) {
       lines.push(exitLine);
@@ -416,13 +398,25 @@ function explainExit(
   }
 
   return (
-    <div className="flex flex-col gap-1.5 max-w-[280px]">
-      {lines.map((line) => (
-        <div key={line.label} className="flex flex-col gap-0.5">
-          <div className="font-medium">{line.label}</div>
-          <div>{line.body}</div>
+    <div className="flex w-full flex-col">
+      <div className="flex flex-col gap-2.5 p-3">
+        {lines.map((line) => (
+          <div key={line.label}>
+            <div className="text-[13px] leading-5 font-medium text-gray-12">{line.label}</div>
+            <div className="mt-0.5 text-xs leading-5 font-normal text-gray-10">{line.body}</div>
+          </div>
+        ))}
+      </div>
+      {statusMessage && (
+        <div className="border-t border-grayA-4 bg-grayA-2 px-3 py-2.5">
+          <div className="text-[10px] leading-4 font-medium uppercase tracking-wide text-gray-9">
+            Technical details
+          </div>
+          <pre className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-4 font-normal text-gray-11 scrollbar-thin">
+            {statusMessage}
+          </pre>
         </div>
-      ))}
+      )}
     </div>
   );
 }
