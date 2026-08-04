@@ -77,10 +77,12 @@ post:
                     - type: CNAME
                       name: api.acme.com
                       value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
                       note: Create as DNS-only if your provider offers the choice.
                     - type: TXT
                       name: _unkey.api.acme.com
                       value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
                       note: Proves ownership. Create it alongside the routing record.
             apex:
               summary: Apex domain attached
@@ -94,10 +96,12 @@ post:
                     - type: ALIAS
                       name: acme.com
                       value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
                       note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
                     - type: TXT
                       name: _unkey.acme.com
                       value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
                       note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
             domainConnect:
               summary: Domain attached at a Domain Connect provider
@@ -111,10 +115,12 @@ post:
                     - type: CNAME
                       name: api.acme.com
                       value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                      verified: false
                       note: Create as DNS-only if your provider offers the choice.
                     - type: TXT
                       name: _unkey.api.acme.com
                       value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                      verified: false
                       note: Proves ownership. Create it alongside the routing record.
                   domainConnect:
                     provider: Cloudflare

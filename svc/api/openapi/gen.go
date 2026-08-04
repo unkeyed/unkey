@@ -469,6 +469,15 @@ type DnsRecord struct {
 	// so a long TTL keeps a stale value cached and can burn the verification window on a value you
 	// have already corrected. Raise it afterwards if you want.
 	Value string `json:"value"`
+
+	// Verified Whether Unkey has read this record back with the expected value. Use it to see which
+	// records are still outstanding.
+	//
+	// False does not always mean the record is missing. A provider that does not expose the
+	// published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+	// this false for as long as it serves traffic; such a domain verifies through its TXT
+	// record instead. Always false on a domain no check has run against yet.
+	Verified bool `json:"verified"`
 }
 
 // DnsRecordType Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible

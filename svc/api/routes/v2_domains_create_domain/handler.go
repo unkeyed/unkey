@@ -166,16 +166,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	routing := openapi.DnsRecord{
-		Type:  openapi.CNAME,
-		Name:  domain,
-		Value: res.GetTargetCname(),
-		Note:  ptr.P("Create as DNS-only if your provider offers the choice."),
+		Type:     openapi.CNAME,
+		Name:     domain,
+		Value:    res.GetTargetCname(),
+		Verified: false,
+		Note:     ptr.P("Create as DNS-only if your provider offers the choice."),
 	}
 	txt := openapi.DnsRecord{
-		Type:  openapi.TXT,
-		Name:  dns.OwnershipTXTName(domain),
-		Value: dns.OwnershipTXTValue(res.GetVerificationToken()),
-		Note:  ptr.P("Proves ownership. Create it alongside the routing record."),
+		Type:     openapi.TXT,
+		Name:     dns.OwnershipTXTName(domain),
+		Value:    dns.OwnershipTXTValue(res.GetVerificationToken()),
+		Verified: false,
+		Note:     ptr.P("Proves ownership. Create it alongside the routing record."),
 	}
 
 	if domainconnect.IsApexDomain(domain) {

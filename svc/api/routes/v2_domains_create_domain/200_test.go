@@ -56,6 +56,11 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.Equal(t, "unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL", txt.Value)
 	require.NotNil(t, txt.Note)
 
+	// Nothing has been published yet, so neither record can have been read back. A caller
+	// polling getDomain watches these flip.
+	require.False(t, routing.Verified)
+	require.False(t, txt.Verified)
+
 	// Discovery found nothing, so the object is absent rather than present with empty
 	// strings, which is what tells a caller the shortcut is unavailable.
 	require.Nil(t, res.Body.Data.DomainConnect)

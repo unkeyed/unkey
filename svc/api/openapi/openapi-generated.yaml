@@ -4482,6 +4482,7 @@ components:
                 - type
                 - name
                 - value
+                - verified
             properties:
                 type:
                     type: string
@@ -4518,6 +4519,17 @@ components:
                         so a long TTL keeps a stale value cached and can burn the verification window on a value you
                         have already corrected. Raise it afterwards if you want.
                     example: a1b2c3d4e5f6g7h8.cname.unkey.com
+                verified:
+                    type: boolean
+                    description: |
+                        Whether Unkey has read this record back with the expected value. Use it to see which
+                        records are still outstanding.
+
+                        False does not always mean the record is missing. A provider that does not expose the
+                        published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+                        this false for as long as it serves traffic; such a domain verifies through its TXT
+                        record instead. Always false on a domain no check has run against yet.
+                    example: false
                 note:
                     type: string
                     maxLength: 512
@@ -8585,10 +8597,12 @@ paths:
                                                   note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
                                                   type: ALIAS
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
                                                 - name: _unkey.acme.com
                                                   note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
                                             domainId: dom_1234abcd
                                         meta:
                                             requestId: req_1234abcd
@@ -8602,10 +8616,12 @@ paths:
                                                   note: Create as DNS-only if your provider offers the choice.
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
                                                 - name: _unkey.api.acme.com
                                                   note: Proves ownership. Create it alongside the routing record.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
                                             domainConnect:
                                                 provider: Cloudflare
                                                 url: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
@@ -8622,10 +8638,12 @@ paths:
                                                   note: Create as DNS-only if your provider offers the choice.
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: false
                                                 - name: _unkey.api.acme.com
                                                   note: Proves ownership. Create it alongside the routing record.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
                                             domainId: dom_1234abcd
                                         meta:
                                             requestId: req_1234abcd
