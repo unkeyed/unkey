@@ -169,13 +169,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Type:  openapi.CNAME,
 		Name:  domain,
 		Value: res.GetTargetCname(),
-		Note:  ptr.P("Create as DNS-only if your provider offers the choice. A proxied record still routes traffic, but the certificate challenge then has to pass through the proxy."),
+		Note:  ptr.P("Create as DNS-only if your provider offers the choice."),
 	}
 	txt := openapi.DnsRecord{
 		Type:  openapi.TXT,
 		Name:  dns.OwnershipTXTName(domain),
 		Value: dns.OwnershipTXTValue(res.GetVerificationToken()),
-		Note:  ptr.P("Proves ownership. Create it as well, since whether the routing record can be read back only becomes clear once it is published."),
+		Note:  ptr.P("Proves ownership. Create it alongside the routing record."),
 	}
 
 	if domainconnect.IsApexDomain(domain) {
