@@ -105,15 +105,14 @@ func (s *Service) AddCustomDomain(
 	// Generate verification token for TXT record ownership verification
 	verificationToken := uid.Secure(24)
 
-	// Check domain doesn't already exist in this workspace
 	_, err := s.db.FindCustomDomainIDByWorkspaceAndDomain(ctx, db.FindCustomDomainIDByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
-	switch {
-	case err == nil:
+	if err == nil {
 		return nil, gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyAttached(domain))
-	case !db.IsNotFound(err):
+	}
+	if !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
 	}
 
