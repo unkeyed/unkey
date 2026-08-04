@@ -28,7 +28,7 @@ import (
 func TestCreateDomainBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}}
+	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -108,7 +108,7 @@ func TestCreateDomainCtrlRejectsDomain(t *testing.T) {
 			)
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -138,7 +138,7 @@ func TestCreateDomainDuplicateRejectedLocally(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)

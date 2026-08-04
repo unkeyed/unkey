@@ -7,6 +7,9 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/internal/services/caches"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
@@ -28,8 +31,9 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.CustomDomainServiceClient
+	DB          db.Database
+	CtrlClient  ctrl.CustomDomainServiceClient
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 func (h *Handler) Method() string {
@@ -108,10 +112,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: principal.WorkspaceID,
 		Domain:      domain,
 	})
-	switch {
-	case err == nil:
+	if err == nil {
 		return domaingate.AlreadyAttached(domain)
-	case !db.IsNotFound(err):
+	}
+	if !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -120,17 +124,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	allowed, err := db.Query.FindCustomDomainsMaxByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return domaingate.LimitsNotConfigured(principal.WorkspaceID)
-		}
+	limits, hit, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+	}, caches.DefaultFindFirstOp)
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to read the workspace's resource limits."),
 		)
+	}
+	if db.IsNotFound(err) || hit == cache.Null {
+		return domaingate.LimitsNotConfigured(principal.WorkspaceID)
 	}
 
 	attached, err := db.Query.CountCustomDomainsByWorkspace(ctx, h.DB.RO(), principal.WorkspaceID)
@@ -143,7 +149,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err = domaingate.CheckAllowance(attached, allowed); err != nil {
+	if err = domaingate.CheckAllowance(attached, limits.CustomDomainsMax); err != nil {
 		return err
 	}
 

@@ -111,6 +111,11 @@ func setCustomDomainAllowance(t *testing.T, h *testutil.Harness, workspaceID str
 		CustomDomainsMax: allowance,
 		WorkspaceID:      workspaceID,
 	}))
+
+	// The handler reads the allowance through the limits cache, and authentication warms
+	// that entry on any earlier request in the test. Without this drop, the new allowance
+	// would not be visible until the entry went stale.
+	//h.Caches.WorkspaceLimits.Remove(context.Background(), workspaceID)
 }
 
 // randomSlug produces a lowercase-dashed value. Parallel packages share one

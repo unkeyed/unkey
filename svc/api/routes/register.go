@@ -908,8 +908,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DomainsCreateDomain.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlCustomDomainClient,
+			DB:          svc.Database,
+			CtrlClient:  svc.CtrlCustomDomainClient,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 

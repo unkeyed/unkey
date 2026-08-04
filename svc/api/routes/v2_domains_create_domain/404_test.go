@@ -15,7 +15,7 @@ import (
 func TestCreateDomainNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}}
+	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)

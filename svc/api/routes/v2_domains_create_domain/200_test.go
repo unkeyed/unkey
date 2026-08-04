@@ -27,7 +27,7 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -85,7 +85,7 @@ func TestCreateDomainBySlugs(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -124,7 +124,7 @@ func TestCreateDomainApexRecords(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -161,7 +161,7 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -202,7 +202,7 @@ func TestCreateDomainOmitsPartialDomainConnect(t *testing.T) {
 					}, nil
 				},
 			}
-			route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+			route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 			h.Register(route)
 
 			env := seedEnvironment(t, h)
@@ -231,7 +231,7 @@ func TestCreateDomainNormalizesCase(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -261,7 +261,7 @@ func TestCreateDomainWithSpecificEnvironmentPermission(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)

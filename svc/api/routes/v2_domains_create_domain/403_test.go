@@ -33,7 +33,7 @@ func TestCreateDomainPermissions(t *testing.T) {
 			}, nil
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -84,7 +84,7 @@ func TestCreateDomainPlanAllowanceExceeded(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockCustomDomainClient{}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -112,7 +112,7 @@ func TestCreateDomainMissingWorkspaceLimits(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockCustomDomainClient{}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -147,7 +147,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 			)
 		},
 	}
-	racedRoute := &handler.Handler{DB: h.DB, CtrlClient: raced}
+	racedRoute := &handler.Handler{DB: h.DB, CtrlClient: raced, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(racedRoute)
 
 	env := seedEnvironment(t, h)
@@ -160,7 +160,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 
 	// Now provoke the same rejection locally and compare.
 	local := &testutil.MockCustomDomainClient{}
-	localRoute := &handler.Handler{DB: h.DB, CtrlClient: local}
+	localRoute := &handler.Handler{DB: h.DB, CtrlClient: local, LimitsCache: h.Caches.WorkspaceLimits}
 	setCustomDomainAllowance(t, h, env.workspaceID, 0)
 
 	fromHandler := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, localRoute, authHeaders(rootKey), makeRequest(env, randomDomain()))
@@ -177,7 +177,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 func TestCreateDomainExistenceNotLeaked(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}}
+	route := &handler.Handler{DB: h.DB, CtrlClient: &testutil.MockCustomDomainClient{}, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)

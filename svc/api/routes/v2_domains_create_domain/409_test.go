@@ -32,7 +32,7 @@ func TestCreateDomainDuplicate(t *testing.T) {
 			)
 		},
 	}
-	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
