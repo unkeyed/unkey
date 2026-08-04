@@ -13,6 +13,8 @@ post:
 
     Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
 
+    How many domains you may attach is set by your plan. Attaching one beyond that allowance returns a 403; upgrade the plan or remove a domain you no longer need.
+
     **Important**: verification stops after 24 hours without the required DNS records, and the domain moves to `failed`.
 
     **Required Permissions**
@@ -65,7 +67,7 @@ post:
           examples:
             subdomain:
               summary: Subdomain attached
-              description: A subdomain verifies from its CNAME alone, so the TXT record is optional
+              description: A subdomain routes through a CNAME and proves ownership through the TXT record. Create both.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -137,7 +139,7 @@ post:
                   type: validation-error
                   errors:
                     - location: body.domain
-                      message: must match ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$
+                      message: must match ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$
                       fix: Pass a fully qualified domain name such as 'api.acme.com', without a scheme, port, or path
     "401":
       description: Unauthorized
@@ -158,7 +160,8 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+        Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
+        many custom domains as its plan allows. A root key that simply lacks
         `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
         which environments exist.
       content:
@@ -176,6 +179,17 @@ post:
                   detail: The provided root key is disabled.
                   status: 403
                   type: forbidden
+            allowanceExceeded:
+              summary: Plan allowance reached
+              description: The workspace already holds every custom domain its plan permits
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/limits/custom_domains_exceeded
     "404":
       description: |
         Not Found - The environment does not exist in your workspace, or your root key may not read it

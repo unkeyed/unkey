@@ -853,11 +853,12 @@ components:
                     type: string
                     minLength: 4
                     maxLength: 253
-                    pattern: "^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$"
+                    pattern: "^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,63}$"
                     description: |
                         Fully qualified domain name to attach to the environment, without a scheme, port, or path.
                         Must be unique across your entire workspace: the same name cannot be attached to two environments.
-                        Labels may contain letters, digits, and hyphens, and cannot start or end with a hyphen.
+                        Labels may contain letters, digits, and hyphens, cannot start or end with a hyphen, and are
+                        limited to 63 characters each. Internationalized names must already be Punycode encoded.
                     example: api.acme.com
             additionalProperties: false
         V2DomainsCreateDomainResponseBody:
@@ -4540,8 +4541,9 @@ components:
                     type: string
                     maxLength: 512
                     description: |
-                        Provider-specific caveat for this record, present only when there is one.
-                        Worth surfacing to whoever edits the DNS zone.
+                        What this record is for and any provider-specific caveat that applies to it.
+                        Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+                        no data the record itself needs, so a future record type may omit it.
                     example: Create as DNS-only. A proxied record is flattened and cannot be read back.
             additionalProperties: false
         Environment:
@@ -8513,6 +8515,8 @@ paths:
 
                 Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
 
+                How many domains you may attach is set by your plan. Attaching one beyond that allowance returns a 403; upgrade the plan or remove a domain you no longer need.
+
                 **Important**: verification stops after 24 hours without the required DNS records, and the domain moves to `failed`.
 
                 **Required Permissions**
@@ -8594,7 +8598,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 subdomain:
-                                    description: A subdomain verifies from its CNAME alone, so the TXT record is optional
+                                    description: A subdomain routes through a CNAME and proves ownership through the TXT record. Create both.
                                     summary: Subdomain attached
                                     value:
                                         data:
@@ -8626,7 +8630,7 @@ paths:
                                             errors:
                                                 - fix: Pass a fully qualified domain name such as 'api.acme.com', without a scheme, port, or path
                                                   location: body.domain
-                                                  message: must match ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$
+                                                  message: must match ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error
@@ -8656,6 +8660,17 @@ paths:
                     content:
                         application/json:
                             examples:
+                                allowanceExceeded:
+                                    description: The workspace already holds every custom domain its plan permits
+                                    summary: Plan allowance reached
+                                    value:
+                                        error:
+                                            detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
+                                            status: 403
+                                            title: Forbidden
+                                            type: https://unkey.com/docs/errors/unkey/limits/custom_domains_exceeded
+                                        meta:
+                                            requestId: req_1234abcd
                                 keyDisabled:
                                     summary: Root key disabled
                                     value:
@@ -8669,7 +8684,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
+                        many custom domains as its plan allows. A root key that simply lacks
                         `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
                         which environments exist.
                 "404":

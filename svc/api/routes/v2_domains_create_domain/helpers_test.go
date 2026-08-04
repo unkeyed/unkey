@@ -1,11 +1,15 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -69,6 +73,41 @@ func makeRequest(env seededEnv, domain string) handler.Request {
 		Environment: env.environmentID,
 		Domain:      domain,
 	}
+}
+
+// insertCustomDomain writes the row the real ctrl service would have written. The
+// mock stands in for ctrl, so nothing else creates it and the handler's reads would
+// see no state.
+func insertCustomDomain(t *testing.T, h *testutil.Harness, req *ctrlv1.AddCustomDomainRequest, domainID string) {
+	t.Helper()
+
+	_, err := h.DB.RW().ExecContext(context.Background(), `
+		INSERT INTO custom_domains
+			(id, workspace_id, project_id, app_id, environment_id, domain,
+			 challenge_type, verification_status, verification_token, target_cname, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, 'HTTP-01', 'pending', ?, ?, ?)
+	`,
+		domainID,
+		req.GetWorkspaceId(),
+		req.GetProjectId(),
+		req.GetAppId(),
+		req.GetEnvironmentId(),
+		req.GetDomain(),
+		uid.New("vt"),
+		uid.DNS1035(16)+".cname.unkey.local",
+		time.Now().UnixMilli(),
+	)
+	require.NoError(t, err)
+}
+
+// setCustomDomainAllowance overrides the seeder's generous default so a test can
+// drive the plan allowance gate.
+func setCustomDomainAllowance(t *testing.T, h *testutil.Harness, workspaceID string, allowance uint32) {
+	t.Helper()
+
+	_, err := h.DB.RW().ExecContext(context.Background(),
+		"UPDATE `limits` SET custom_domains_max = ? WHERE workspace_id = ?", allowance, workspaceID)
+	require.NoError(t, err)
 }
 
 // randomSlug produces a lowercase-dashed value. Parallel packages share one

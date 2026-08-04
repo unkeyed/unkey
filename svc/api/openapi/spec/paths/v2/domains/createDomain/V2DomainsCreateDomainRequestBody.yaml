@@ -15,11 +15,12 @@ properties:
     type: string
     minLength: 4
     maxLength: 253
-    pattern: "^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$"
+    pattern: "^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,63}$"
     description: |
       Fully qualified domain name to attach to the environment, without a scheme, port, or path.
       Must be unique across your entire workspace: the same name cannot be attached to two environments.
-      Labels may contain letters, digits, and hyphens, and cannot start or end with a hyphen.
+      Labels may contain letters, digits, and hyphens, cannot start or end with a hyphen, and are
+      limited to 63 characters each. Internationalized names must already be Punycode encoded.
     example: api.acme.com
 additionalProperties: false
 examples:

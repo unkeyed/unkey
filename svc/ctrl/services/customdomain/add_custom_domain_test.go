@@ -2,11 +2,13 @@ package customdomain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -14,16 +16,304 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
+const testBearer = "test-token"
+
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
+
+// TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification pins two
+// production guarantees at once, because both are only observable on the path
+// where the insert commits.
+//
+// The audit trail: a domain that reaches the database has a matching outbox row,
+// so no custom domain can appear without an attributed create event.
+//
+// The verification state: Restate is pointed at a closed port here, so the
+// workflow trigger fails the way it would if Restate were down. The 24 hour
+// verification window is only evaluated inside the workflow, so a domain whose
+// workflow never started must not be left in `pending` where it is
+// indistinguishable from one still polling DNS.
+func TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	svc := f.newService(t)
+
+	res, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err)
+	require.NotEmpty(t, res.Msg.GetDomainId())
+	require.NotEmpty(t, res.Msg.GetVerificationToken())
+
+	stored, err := f.database.FindCustomDomainById(ctx, res.Msg.GetDomainId())
+	require.NoError(t, err)
+	require.Equal(t, f.domain, stored.Domain)
+	require.Equal(t, db.CustomDomainsVerificationStatusFailed, stored.VerificationStatus,
+		"a domain whose verification workflow never started must not stay pending")
+	require.True(t, stored.VerificationError.Valid)
+	require.NotEmpty(t, stored.VerificationError.String)
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Len(t, outboxRows, 1)
+
+	var logged auditlog.Event
+	require.NoError(t, json.Unmarshal(outboxRows[0].Payload, &logged))
+	require.Equal(t, f.workspaceID, logged.WorkspaceID)
+	require.Equal(t, string(auditlog.DomainCreateEvent), logged.Event)
+	require.Equal(t, string(auditlog.UserActor), logged.Actor.Type)
+	require.Equal(t, "user_test", logged.Actor.ID)
+	require.Len(t, logged.Targets, 1)
+	require.Equal(t, string(auditlog.DomainResourceType), logged.Targets[0].Type)
+	require.Equal(t, res.Msg.GetDomainId(), logged.Targets[0].ID)
+	require.Equal(t, f.domain, logged.Targets[0].Meta["domain"])
+	require.Equal(t, f.environmentID, logged.Targets[0].Meta["environmentId"])
+}
 
 // TestAddCustomDomainRollsBackWhenAuditInsertFails verifies the production
 // guarantee that the custom domain row and its audit outbox row commit together.
 // Without the shared transaction a failed audit insert would leave an orphaned
 // domain that never appears in the audit trail.
 func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	// No Restate client and no Domain Connect key: the failing audit insert aborts
+	// the transaction before either is reached.
+	svc := New(Config{
+		Database:     f.database,
+		Restate:      nil,
+		RestateAdmin: nil,
+		Auditlogs: failingAuditLogService{
+			t:             t,
+			workspaceID:   f.workspaceID,
+			projectID:     f.projectID,
+			appID:         f.appID,
+			environmentID: f.environmentID,
+			domain:        f.domain,
+		},
+		CnameDomain:                "cname.unkey.local",
+		DomainConnectPrivateKeyPEM: nil,
+		Bearer:                     testBearer,
+	})
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInjectedAuditInsert)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeInternal, connectErr.Code())
+
+	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, f.domain))
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, outboxRows)
+}
+
+// TestAddCustomDomainEnforcesPlanAllowance pins that custom_domains_max is
+// actually read. Without this the column is decorative and any workspace can
+// attach unlimited domains, free tier included.
+func TestAddCustomDomainEnforcesPlanAllowance(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	svc := f.newService(t)
+
+	// The allowance is one, so the first domain is accepted.
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err)
+
+	// The second is refused even though its name is free, because the allowance
+	// counts domains rather than names.
+	second := randomDomain()
+	_, err = svc.AddCustomDomain(ctx, f.request(second))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeResourceExhausted, connectErr.Code())
+
+	// Nothing was written for the refused request.
+	require.Equal(t, 0, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, second))
+}
+
+// TestAddCustomDomainRejectsDuplicate pins the workspace-uniqueness pre-check. It
+// runs before the insert, so the caller gets AlreadyExists rather than the
+// duplicate-key internal error the unique index would raise. The repeat is also
+// sent uppercase: the stored name is canonical, so case must not open a second slot.
+func TestAddCustomDomainRejectsDuplicate(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 5)
+
+	svc := f.newService(t)
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err)
+
+	for _, repeat := range []string{f.domain, strings.ToUpper(f.domain)} {
+		_, err = svc.AddCustomDomain(ctx, f.request(repeat))
+		require.Error(t, err, "re-adding %q must be refused", repeat)
+
+		var connectErr *connect.Error
+		require.ErrorAs(t, err, &connectErr)
+		require.Equal(t, connect.CodeAlreadyExists, connectErr.Code())
+		require.Contains(t, connectErr.Message(), f.domain,
+			"the message must name the colliding domain")
+	}
+
+	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, f.domain))
+}
+
+// TestAddCustomDomainAllowanceIsWorkspaceWide pins that the allowance counts every
+// domain in the workspace, not per environment. A per-environment reading would let
+// one workspace multiply its allowance by adding environments.
+func TestAddCustomDomainAllowanceIsWorkspaceWide(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err)
+
+	// A different name, a different environment, the same workspace.
+	other := f.newEnvironment(t)
+	_, err = svc.AddCustomDomain(ctx, f.requestIn(other, randomDomain()))
+	require.Error(t, err)
+
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeResourceExhausted, connectErr.Code())
+}
+
+// TestAddCustomDomainAllowsSameDomainInAnotherWorkspace pins the other half of
+// per-workspace uniqueness: the index is (workspace_id, domain), so a name one
+// workspace holds must not block another. Contention between them is settled later,
+// by the verification worker's TXT ownership check, not here.
+//
+// It also proves the allowance count is workspace-scoped: the second workspace is
+// granted exactly one domain and the first has already taken one.
+func TestAddCustomDomainAllowsSameDomainInAnotherWorkspace(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	first, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err)
+
+	other := f.newWorkspace(t, 1)
+	second, err := svc.AddCustomDomain(ctx, f.requestIn(other, f.domain))
+	require.NoError(t, err, "another workspace must be able to claim the same name")
+	require.NotEqual(t, first.Msg.GetDomainId(), second.Msg.GetDomainId())
+
+	// Each workspace holds its own row for the name.
+	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, f.domain))
+	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, other.workspaceID, f.domain))
+
+	// Distinct CNAME targets: target_cname is globally unique, so a shared name must
+	// not produce a shared target.
+	require.Equal(t, 2, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(DISTINCT target_cname)
+		FROM custom_domains
+		WHERE domain = ?
+	`, f.domain))
+}
+
+// TestAddCustomDomainRefusesWorkspaceWithoutLimits pins the fail-closed choice.
+// Every allowance is written by billing, so a missing row means billing state is
+// unknown. Defaulting it would hand out paid capacity to whichever workspace
+// billing has not written yet.
+func TestAddCustomDomainRefusesWorkspaceWithoutLimits(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 0)
+
+	_, err := f.database.RW().ExecContext(ctx, "DELETE FROM `limits` WHERE workspace_id = ?", f.workspaceID)
+	require.NoError(t, err)
+
+	svc := f.newService(t)
+
+	_, err = svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeFailedPrecondition, connectErr.Code())
+}
+
+// TestAddCustomDomainAttributesMissingActorToSystem pins that an absent actor is
+// degraded rather than rejected. Requiring one would break any caller not yet
+// redeployed, and the audit entry is worth more than its attribution: the domain
+// and the entry commit together, so refusing the actor would drop both.
+func TestAddCustomDomainAttributesMissingActorToSystem(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	svc := f.newService(t)
+
+	req := connect.NewRequest(&ctrlv1.AddCustomDomainRequest{
+		WorkspaceId:   f.workspaceID,
+		ProjectId:     f.projectID,
+		AppId:         f.appID,
+		EnvironmentId: f.environmentID,
+		Domain:        f.domain,
+		Actor:         nil,
+	})
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+
+	res, err := svc.AddCustomDomain(ctx, req)
+	require.NoError(t, err)
+	require.NotEmpty(t, res.Msg.GetDomainId())
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Len(t, outboxRows, 1, "the entry is still written, just unattributed")
+
+	var logged auditlog.Event
+	require.NoError(t, json.Unmarshal(outboxRows[0].Payload, &logged))
+	require.Equal(t, string(auditlog.SystemActor), logged.Actor.Type)
+	require.Empty(t, logged.Actor.ID)
+	require.Equal(t, string(auditlog.DomainCreateEvent), logged.Event)
+}
+
+// chain is one workspace/project/app/environment path a domain can be attached to.
+type chain struct {
+	workspaceID   string
+	projectID     string
+	appID         string
+	environmentID string
+}
+
+// fixture is a seeded chain plus a limits row granting customDomainsMax domains.
+type fixture struct {
+	database db.Database
+	seeder   *seed.Seeder
+	chain
+	domain string
+}
+
+func newFixture(t *testing.T, customDomainsMax uint32) fixture {
+	t.Helper()
+
 	ctx := context.Background()
 	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
@@ -32,19 +322,33 @@ func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
 		require.NoError(t, database.Close())
 	})
 
-	const bearer = "test-token"
-
 	seeder := seed.New(t, database, nil)
 	seeder.Seed(ctx)
 
-	workspaceID := seeder.Resources.UserWorkspace.ID
-	project := seeder.CreateProject(ctx, seed.CreateProjectRequest{
+	f := fixture{
+		database: database,
+		seeder:   seeder,
+		chain:    chain{}, //nolint:exhaustruct
+		domain:   randomDomain(),
+	}
+	f.chain = f.seedChain(t, seeder.Resources.UserWorkspace.ID, customDomainsMax)
+
+	return f
+}
+
+// seedChain builds a project, app, and environment under workspaceID and grants it
+// an allowance.
+func (f fixture) seedChain(t *testing.T, workspaceID string, customDomainsMax uint32) chain {
+	t.Helper()
+
+	ctx := context.Background()
+	project := f.seeder.CreateProject(ctx, seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspaceID,
 		Name:        "Atomic AddCustomDomain",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("project"), "_", "-")),
 	})
-	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
+	app := f.seeder.CreateApp(ctx, seed.CreateAppRequest{
 		ID:            uid.New(uid.AppPrefix),
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
@@ -52,7 +356,7 @@ func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
 		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
 		DefaultBranch: "main",
 	})
-	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+	environment := f.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
 		WorkspaceID: workspaceID,
 		ProjectID:   project.ID,
@@ -61,32 +365,59 @@ func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
 		Description: "Production environment",
 	})
 
-	domain := strings.ToLower(strings.ReplaceAll(uid.New("d"), "_", "")) + ".example.com"
+	_, err := f.database.RW().ExecContext(ctx, `
+		INSERT INTO `+"`limits`"+`
+			(workspace_id, api_billable_operations_count_max_per_month, logs_retention_days_max,
+			 logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance,
+			 memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance,
+			 builds_concurrent_max, custom_domains_max, autoscaling_replicas_max)
+		VALUES (?, 150000, 7, 30, false, 10, 2, 20480, 4096, 51200, 10240, 1, ?, 0)
+		ON DUPLICATE KEY UPDATE custom_domains_max = VALUES(custom_domains_max)
+	`, workspaceID, customDomainsMax)
+	require.NoError(t, err)
 
-	// No Restate client and no Domain Connect key: the failing audit insert aborts
-	// the transaction before either is reached.
-	svc := New(Config{
-		Database:     database,
-		Restate:      nil,
-		RestateAdmin: nil,
-		Auditlogs: failingAuditLogService{
-			t:             t,
-			workspaceID:   workspaceID,
-			projectID:     project.ID,
-			appID:         app.ID,
-			environmentID: environment.ID,
-			domain:        domain,
-		},
-		CnameDomain:                "cname.unkey.local",
-		DomainConnectPrivateKeyPEM: nil,
-		Bearer:                     bearer,
+	return chain{
+		workspaceID:   workspaceID,
+		projectID:     project.ID,
+		appID:         app.ID,
+		environmentID: environment.ID,
+	}
+}
+
+// newWorkspace seeds an unrelated workspace with its own allowance.
+func (f fixture) newWorkspace(t *testing.T, customDomainsMax uint32) chain {
+	t.Helper()
+	return f.seedChain(t, f.seeder.CreateWorkspace(context.Background()).ID, customDomainsMax)
+}
+
+// newEnvironment adds a second environment beside f's, under the same app.
+func (f fixture) newEnvironment(t *testing.T) chain {
+	t.Helper()
+
+	environment := f.seeder.CreateEnvironment(context.Background(), seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: f.workspaceID,
+		ProjectID:   f.projectID,
+		AppID:       f.appID,
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("env"), "_", "-")),
+		Description: "Second environment",
 	})
 
+	next := f.chain
+	next.environmentID = environment.ID
+	return next
+}
+
+func (f fixture) request(domain string) *connect.Request[ctrlv1.AddCustomDomainRequest] {
+	return f.requestIn(f.chain, domain)
+}
+
+func (f fixture) requestIn(c chain, domain string) *connect.Request[ctrlv1.AddCustomDomainRequest] {
 	req := connect.NewRequest(&ctrlv1.AddCustomDomainRequest{
-		WorkspaceId:   workspaceID,
-		ProjectId:     project.ID,
-		AppId:         app.ID,
-		EnvironmentId: environment.ID,
+		WorkspaceId:   c.workspaceID,
+		ProjectId:     c.projectID,
+		AppId:         c.appID,
+		EnvironmentId: c.environmentID,
 		Domain:        domain,
 		Actor: &ctrlv1.ActorInfo{
 			Id:        "user_test",
@@ -97,58 +428,32 @@ func TestAddCustomDomainRollsBackWhenAuditInsertFails(t *testing.T) {
 			Meta:      map[string]string{},
 		},
 	})
-	req.Header().Set("Authorization", "Bearer "+bearer)
-
-	_, err = svc.AddCustomDomain(ctx, req)
-	require.Error(t, err)
-	require.ErrorIs(t, err, errInjectedAuditInsert)
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	require.Equal(t, connect.CodeInternal, connectErr.Code())
-
-	require.Equal(t, 0, countRows(t, ctx, database.RW(), `
-		SELECT COUNT(*)
-		FROM custom_domains
-		WHERE workspace_id = ? AND domain = ?
-	`, workspaceID, domain))
-
-	outboxRows, err := database.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
-	require.NoError(t, err)
-	require.Empty(t, outboxRows)
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+	return req
 }
 
-// TestAddCustomDomainRequiresActor pins the assertion that ctrl refuses to write
-// an unattributed domain, so no caller can bypass the audit trail by omitting
-// the actor.
-func TestAddCustomDomainRequiresActor(t *testing.T) {
-	ctx := context.Background()
+// newService builds a service whose Restate ingress is unroutable, so the workflow
+// trigger fails fast and every test lands on the same post-commit path.
+func (f fixture) newService(t *testing.T) *Service {
+	t.Helper()
 
-	const bearer = "test-token"
-	svc := New(Config{
-		Database:                   nil,
-		Restate:                    nil,
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: f.database})
+	require.NoError(t, err)
+
+	return New(Config{
+		Database:                   f.database,
+		Restate:                    restateingress.NewClient("http://127.0.0.1:1"),
 		RestateAdmin:               nil,
-		Auditlogs:                  nil,
+		Auditlogs:                  auditlogSvc,
 		CnameDomain:                "cname.unkey.local",
 		DomainConnectPrivateKeyPEM: nil,
-		Bearer:                     bearer,
+		Bearer:                     testBearer,
 	})
+}
 
-	req := connect.NewRequest(&ctrlv1.AddCustomDomainRequest{
-		WorkspaceId:   uid.New(uid.WorkspacePrefix),
-		ProjectId:     uid.New(uid.ProjectPrefix),
-		AppId:         uid.New(uid.AppPrefix),
-		EnvironmentId: uid.New(uid.EnvironmentPrefix),
-		Domain:        "api.example.com",
-		Actor:         nil,
-	})
-	req.Header().Set("Authorization", "Bearer "+bearer)
-
-	_, err := svc.AddCustomDomain(ctx, req)
-	require.Error(t, err)
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	require.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+// randomDomain keeps names unique across runs sharing one database.
+func randomDomain() string {
+	return strings.ToLower(strings.ReplaceAll(uid.New("d"), "_", "")) + ".example.com"
 }
 
 type failingAuditLogService struct {

@@ -452,8 +452,9 @@ type DnsRecord struct {
 	// `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
 	Name string `json:"name"`
 
-	// Note Provider-specific caveat for this record, present only when there is one.
-	// Worth surfacing to whoever edits the DNS zone.
+	// Note What this record is for and any provider-specific caveat that applies to it.
+	// Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+	// no data the record itself needs, so a future record type may omit it.
 	Note *string `json:"note,omitempty"`
 
 	// Type Record type to create. `ALIAS` is not a real DNS record type: it means an apex-compatible
@@ -1956,7 +1957,8 @@ type V2DomainsCreateDomainRequestBody struct {
 
 	// Domain Fully qualified domain name to attach to the environment, without a scheme, port, or path.
 	// Must be unique across your entire workspace: the same name cannot be attached to two environments.
-	// Labels may contain letters, digits, and hyphens, and cannot start or end with a hyphen.
+	// Labels may contain letters, digits, and hyphens, cannot start or end with a hyphen, and are
+	// limited to 63 characters each. Internationalized names must already be Punycode encoded.
 	Domain string `json:"domain"`
 
 	// Environment Identifies a resource by either its unique ID or its slug.

@@ -248,6 +248,15 @@ const (
 	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
 
 	// ----------------
+	// UnkeyLimitsErrors
+	// ----------------
+
+	// CustomDomain
+
+	// Exceeded indicates the workspace has already attached as many custom domains as its plan allows.
+	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domains_exceeded"
+
+	// ----------------
 	// UnkeyFrontlineErrors
 	// ----------------
 

@@ -175,6 +175,40 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 	require.Equal(t, "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com", *res.Body.Data.DomainConnectUrl)
 }
 
+// TestCreateDomainNormalizesCase pins that a mixed-case name is stored and echoed
+// in one canonical form. DNS is case-insensitive and verification compares
+// against records read back from resolvers, which lowercase, so a stored
+// mixed-case name would only ever match by luck of the column's collation.
+func TestCreateDomainNormalizesCase(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	ctrlClient := &testutil.MockCustomDomainClient{
+		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			return &ctrlv1.AddCustomDomainResponse{
+				DomainId:          uid.New(uid.DomainPrefix),
+				TargetCname:       "a1b2c3d4e5f6g7h8.cname.unkey.com",
+				VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+			}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+
+	lower := randomDomain()
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, strings.ToUpper(lower)))
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+	require.Len(t, ctrlClient.AddCustomDomainCalls, 1)
+	require.Equal(t, lower, ctrlClient.AddCustomDomainCalls[0].GetDomain(),
+		"ctrl must receive the canonical form")
+
+	require.Equal(t, lower, res.Body.Data.DnsRecords[0].Name)
+	require.Equal(t, "_unkey."+lower, res.Body.Data.DnsRecords[1].Name)
+}
+
 func TestCreateDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 

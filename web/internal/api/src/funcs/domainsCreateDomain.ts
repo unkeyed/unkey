@@ -40,6 +40,8 @@ import { Result } from "../types/fp.js";
  *
  * Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
  *
+ * How many domains you may attach is set by your plan. Attaching one beyond that allowance returns a 403; upgrade the plan or remove a domain you no longer need.
+ *
  * **Important**: verification stops after 24 hours without the required DNS records, and the domain moves to `failed`.
  *
  * **Required Permissions**

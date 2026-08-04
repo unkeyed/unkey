@@ -67,6 +67,9 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
 	require.NoError(s.t, err)
 
+	// Handlers that gate on a plan allowance refuse a workspace with no limits row, so
+	// every allowance here is set high enough that a test only fails on the gate it is
+	// actually exercising. A test driving a specific allowance overrides that column.
 	err = db.Query.UpsertLimit(ctx, s.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           params.ID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
@@ -81,7 +84,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		StorageMibMax:                         51_200,
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
-		CustomDomainsMax:                      0,
+		CustomDomainsMax:                      1_000_000,
 		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(s.t, err)

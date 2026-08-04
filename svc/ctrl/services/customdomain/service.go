@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"regexp"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
+	"github.com/unkeyed/unkey/pkg/dns/domaingate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -23,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
 // Service implements the CustomDomainService ConnectRPC API. It coordinates
@@ -72,17 +74,6 @@ func New(cfg Config) *Service {
 	}
 }
 
-// domainRegex validates domain format (basic validation)
-var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
-
-// isValidDomain checks if the domain has a valid format.
-func isValidDomain(domain string) bool {
-	if len(domain) > 253 {
-		return false
-	}
-	return domainRegex.MatchString(domain)
-}
-
 // AddCustomDomain creates a new custom domain and starts the verification workflow.
 func (s *Service) AddCustomDomain(
 	ctx context.Context,
@@ -97,16 +88,13 @@ func (s *Service) AddCustomDomain(
 		assert.NotEmpty(req.Msg.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.Msg.GetEnvironmentId(), "environment_id is required"),
 		assert.NotEmpty(req.Msg.GetDomain(), "domain is required"),
-		assert.NotNilAndNotZero(req.Msg.GetActor(), "actor is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	domain := req.Msg.GetDomain()
-
-	// Validate domain format
-	if !isValidDomain(domain) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid domain format: %s", domain))
+	domain := strings.ToLower(req.Msg.GetDomain())
+	if err := gatefault.ConnectWith(connect.CodeInvalidArgument, domaingate.CheckDomain(domain)); err != nil {
+		return nil, err
 	}
 
 	// Generate unique CNAME target for this domain
@@ -116,15 +104,41 @@ func (s *Service) AddCustomDomain(
 	verificationToken := uid.Secure(24)
 
 	// Check domain doesn't already exist in this workspace
-	existing, err := s.db.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+	_, err := s.db.FindCustomDomainIDByWorkspaceAndDomain(ctx, db.FindCustomDomainIDByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
 	if err != nil && !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
 	}
-	if existing.ID != "" {
-		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
+	if gateErr := gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.CheckAvailable(domain, err == nil)); gateErr != nil {
+		return nil, gateErr
+	}
+
+	// Before Domain Connect discovery, so a workspace at its allowance cannot use
+	// rejected requests to drive outbound discovery traffic.
+	allowed, err := s.db.FindCustomDomainsMaxByWorkspaceID(ctx, req.Msg.GetWorkspaceId())
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, gatefault.ConnectWith(
+				connect.CodeFailedPrecondition,
+				domaingate.LimitsNotConfigured(req.Msg.GetWorkspaceId()),
+			)
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to read workspace limits: %w", err))
+	}
+
+	// Concurrent creates can both pass. The overshoot is bounded by request
+	// concurrency, which beats serializing every create in a workspace behind a lock.
+	attached, err := s.db.CountCustomDomainsByWorkspace(ctx, req.Msg.GetWorkspaceId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to count custom domains: %w", err))
+	}
+	if err := gatefault.ConnectWith(
+		connect.CodeResourceExhausted,
+		domaingate.CheckAllowance(attached, allowed),
+	); err != nil {
+		return nil, err
 	}
 
 	// Domain Connect discovery (best-effort, before DB insert so we can persist results)
@@ -187,6 +201,9 @@ func (s *Service) AddCustomDomain(
 			return fmt.Errorf("insert custom domain: %w", txErr)
 		}
 
+		// An absent actor is attributed to the system rather than rejected: losing
+		// attribution on one entry beats refusing the write, since the entry and the
+		// domain commit together.
 		a := req.Msg.GetActor()
 		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
 			{
@@ -228,12 +245,28 @@ func (s *Service) AddCustomDomain(
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
-		logger.Warn(
+		logger.Error(
 			"failed to trigger verification workflow",
 			"domain", domain,
+			"domain_id", domainID,
 			"error", sendErr,
 		)
-		// Don't fail the request - domain is created, verification can be retried
+
+		// The 24 hour window is only evaluated inside the workflow, so a domain whose
+		// workflow never started would sit in `pending` forever, indistinguishable
+		// from one still polling DNS. `failed` is what RetryVerification resets from.
+		if failErr := s.db.UpdateCustomDomainFailed(ctx, db.UpdateCustomDomainFailedParams{
+			ID:                 domainID,
+			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
+			VerificationError:  sql.NullString{Valid: true, String: "verification could not be started, retry verification"},
+			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
+		}); failErr != nil {
+			logger.Error(
+				"failed to record unstarted verification",
+				"domain_id", domainID,
+				"error", failErr,
+			)
+		}
 	} else {
 		_ = s.db.UpdateCustomDomainInvocationID(ctx, db.UpdateCustomDomainInvocationIDParams{
 			ID:           domainID,

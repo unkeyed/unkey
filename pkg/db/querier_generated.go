@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -239,6 +245,21 @@ type Querier interface {
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
+	//FindCustomDomainsMaxByWorkspaceID
+	//
+	//  SELECT custom_domains_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	//  LIMIT 1
+	FindCustomDomainsMaxByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (uint32, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//

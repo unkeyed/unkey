@@ -524,6 +524,12 @@
                       "errors/unkey/data/role_not_found",
                       "errors/unkey/data/workspace_not_found"
                     ]
+                  },
+                  {
+                    "group": "Limits",
+                    "pages": [
+                      "errors/unkey/limits/custom_domains_exceeded"
+                    ]
                   }
                 ]
               },

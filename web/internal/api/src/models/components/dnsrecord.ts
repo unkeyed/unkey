@@ -60,10 +60,11 @@ export type DnsRecord = {
    */
   value: string;
   /**
-   * Provider-specific caveat for this record, present only when there is one.
+   * What this record is for and any provider-specific caveat that applies to it.
    *
    * @remarks
-   * Worth surfacing to whoever edits the DNS zone.
+   * Worth surfacing to whoever edits the DNS zone. Treat it as optional: it carries
+   * no data the record itself needs, so a future record type may omit it.
    */
   note?: string | undefined;
 };
