@@ -25,6 +25,7 @@ export * from "./emptyresponse.js";
 export * from "./environment.js";
 export * from "./environmentbuild.js";
 export * from "./environmenthealthcheck.js";
+export * from "./environmentkind.js";
 export * from "./environmentregion.js";
 export * from "./environmentruntime.js";
 export * from "./environmentshutdownsignal.js";

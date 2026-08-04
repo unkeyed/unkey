@@ -27,6 +27,7 @@ func ToResponse(p Params) openapi.Environment {
 		Id:               p.Env.ID,
 		Slug:             p.Env.Slug,
 		Description:      p.Env.Description,
+		Kind:             openapi.EnvironmentKind(p.Env.Kind),
 		DeleteProtection: p.Env.DeleteProtection.Bool,
 		CreatedAt:        p.Env.CreatedAt,
 		UpdatedAt:        p.Env.UpdatedAt.Int64,

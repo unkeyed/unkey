@@ -36,9 +36,9 @@ type Caches struct {
 	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
-	// WorkspaceQuota caches workspace quota lookups by workspace ID.
-	// Keys are string (workspace ID) and values are keysdb.Quotas.
-	WorkspaceQuota cache.Cache[string, keysdb.Quotas]
+	// WorkspaceLimits caches workspace limit lookups by workspace ID.
+	// Keys are string (workspace ID) and values are keysdb.Limit.
+	WorkspaceLimits cache.Cache[string, keysdb.Limit]
 
 	// PortalSession caches portal session lookups by session token.
 	// Keys are string (session token ID) and values are db.PortalSession.
@@ -136,11 +136,11 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	workspaceQuota, err := cache.New(cache.Config[string, keysdb.Quotas]{
+	workspaceLimits, err := cache.New(cache.Config[string, keysdb.Limit]{
 		Fresh:    time.Minute,
 		Stale:    24 * time.Hour,
 		MaxSize:  100_000,
-		Resource: "workspace_quota",
+		Resource: "workspace_limits",
 		Clock:    config.Clock,
 	})
 	if err != nil {
@@ -175,7 +175,7 @@ func New(config Config) (Caches, error) {
 		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
 		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
-		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
+		WorkspaceLimits:       middleware.WithTracing(workspaceLimits),
 		PortalSession:         middleware.WithTracing(portalSession),
 		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
 	}, nil

@@ -34,7 +34,7 @@ func (f *fakeManager) GetConnection(_ context.Context, workspaceID string) (clic
 	f.workspace = workspaceID
 	return f.connection, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{
 		ClickhouseWorkspaceSetting: db.ClickhouseWorkspaceSetting{MaxQueryResultRows: 100},
-		Quotas:                     db.Quotas{LogsRetentionDays: 30},
+		Limit:                      db.Limit{LogsRetentionDaysMax: 30},
 	}, nil
 }
 

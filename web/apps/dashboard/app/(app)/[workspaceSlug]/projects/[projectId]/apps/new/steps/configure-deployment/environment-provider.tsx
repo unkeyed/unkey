@@ -18,7 +18,7 @@ export const OnboardingEnvironmentSettingsProvider = ({
   const { environments, isEnvironmentsLoading } = useProjectData();
 
   const prodEnvId = useMemo(
-    () => (environments.find((e) => e.slug === "production") ?? environments.at(0))?.id,
+    () => (environments.find((e) => e.kind === "production") ?? environments.at(0))?.id,
     [environments],
   );
 

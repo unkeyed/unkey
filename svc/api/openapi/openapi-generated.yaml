@@ -4411,6 +4411,7 @@ components:
                 - id
                 - slug
                 - description
+                - kind
                 - deleteProtection
                 - createdAt
             properties:
@@ -4430,6 +4431,10 @@ components:
                         Human-readable description of this environment.
                         Empty string if none was provided.
                     example: Production environment
+                kind:
+                    "$ref": "#/components/schemas/EnvironmentKind"
+                    description: |
+                        How deployments in this environment participate in the deployment lifecycle.
                 deleteProtection:
                     type: boolean
                     description: |
@@ -4467,6 +4472,17 @@ components:
                         Per-region deployment settings for this environment.
                         Empty until regional settings are configured.
             additionalProperties: false
+        EnvironmentKind:
+            type: string
+            enum:
+                - production
+                - preview
+            description: |
+                The deployment lifecycle role of an environment.
+
+                - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+                - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+            example: production
         EnvironmentRuntime:
             type: object
             description: |

@@ -20,7 +20,7 @@ export const inviteMember = workspaceProcedure
           message: "Invalid organization ID",
         });
       }
-      if (!ctx.workspace.quotas?.team) {
+      if (!ctx.workspace.limits?.teamEnabled) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Upgrade to Pro or Business to invite team members.",

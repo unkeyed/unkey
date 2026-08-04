@@ -10,7 +10,7 @@ import (
 )
 
 const listEnvironmentsByApp = `-- name: ListEnvironmentsByApp :many
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE app_id = ?
 ORDER BY id ASC
@@ -19,7 +19,7 @@ ORDER BY id ASC
 // An app has only a handful of environments, so this returns all of them
 // without pagination.
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE app_id = ?
 //	ORDER BY id ASC
@@ -40,6 +40,7 @@ func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, appID stri
 			&i.AppID,
 			&i.Slug,
 			&i.Description,
+			&i.Kind,
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,

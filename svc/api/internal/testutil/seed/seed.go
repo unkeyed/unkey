@@ -78,6 +78,25 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	})
 	require.NoError(s.t, err)
 
+	err = db.Query.UpsertLimit(ctx, s.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           params.ID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                4,
+	})
+	require.NoError(s.t, err)
+
 	ws, err := db.Query.FindWorkspaceByID(ctx, s.DB.RW(), params.ID)
 	require.NoError(s.t, err)
 
@@ -239,6 +258,7 @@ type CreateEnvironmentRequest struct {
 	AppID            string
 	Slug             string
 	Description      string
+	Kind             mysqltype.EnvironmentKind
 	SentinelConfig   []byte
 	DeleteProtection bool
 }
@@ -247,6 +267,10 @@ type CreateEnvironmentRequest struct {
 // nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	now := time.Now().UnixMilli()
+	kind := req.Kind
+	if kind == "" {
+		kind = mysqltype.EnvironmentKindPreview
+	}
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
 		ID:          req.ID,
@@ -255,6 +279,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:       req.AppID,
 		Slug:        req.Slug,
 		Description: req.Description,
+		Kind:        kind,
 		CreatedAt:   now,
 		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
@@ -306,6 +331,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
+		Kind:             environment.Kind,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
