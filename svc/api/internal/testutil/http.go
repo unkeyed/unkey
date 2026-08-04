@@ -462,7 +462,7 @@ func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Enviro
 }
 
 // CreateCustomDomain attaches a custom domain to an environment.
-func (h *Harness) CreateCustomDomain(req seed.CreateCustomDomainRequest) db.FindCustomDomainByIdentifierRow {
+func (h *Harness) CreateCustomDomain(req seed.CreateCustomDomainRequest) db.CustomDomain {
 	return h.seeder.CreateCustomDomain(h.t.Context(), req)
 }
 

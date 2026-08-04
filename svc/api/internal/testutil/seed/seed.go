@@ -350,7 +350,7 @@ type CreateCustomDomainRequest struct {
 // CreateCustomDomain attaches a custom domain to an environment. Production writes go
 // through ctrl, so this seeds the row directly. TargetCname is generated when omitted
 // because it is unique-constrained across workspaces.
-func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainRequest) db.FindCustomDomainByIdentifierRow {
+func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainRequest) db.CustomDomain {
 	require.NoError(s.t, assert.NotEmpty(req.ID, "CustomDomain ID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "CustomDomain WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "CustomDomain EnvironmentID must be set"))
@@ -389,10 +389,7 @@ func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainR
 	})
 	require.NoError(s.t, err)
 
-	row, err := db.Query.FindCustomDomainByIdentifier(ctx, s.DB.RO(), db.FindCustomDomainByIdentifierParams{
-		WorkspaceID: req.WorkspaceID,
-		Domain:      req.ID,
-	})
+	row, err := db.Query.FindCustomDomainById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
 
 	return row
