@@ -26,14 +26,11 @@ properties:
       in zone `acme.com`, `api.acme.com` becomes `api` and `_unkey.api.acme.com` becomes
       `_unkey.api`. A name equal to the zone itself is usually entered as `@`.
     example: api.acme.com
-  # Deliberately not x-unkey-redact. The ownership record's value carries the
-  # verification token, but publishing it in public DNS is the whole point, so it
-  # is world-readable the moment it is used. Knowing it grants nothing without
-  # control of the zone it has to be published in.
   value:
     type: string
     minLength: 1
     maxLength: 512
+    x-unkey-redact: true
     description: |
       The value to set on the record, exactly as given, including any prefix.
       Do not trim or reformat it: verification compares the published record against this string.

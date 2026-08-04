@@ -4507,6 +4507,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
+                    x-unkey-redact: true
                     description: |
                         The value to set on the record, exactly as given, including any prefix.
                         Do not trim or reformat it: verification compares the published record against this string.
