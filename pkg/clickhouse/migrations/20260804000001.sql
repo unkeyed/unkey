@@ -6,12 +6,12 @@
 -- can only store idempotent min/max snapshots — pair-integration (gap drop,
 -- restart boundaries, network-attached pairing) is a window function over
 -- adjacent rows that an insert-time MV can never compute. Two REFRESH
--- (scheduled recompute) views rebuild trailing windows from the
--- instance_checkpoints FINAL view into a ReplacingMergeTree(computed_at):
--- a cheap 25-hour window every 15 minutes for freshness, and a 7-day window
--- every 6 hours for heimdall's late writes. Duplicate inserts, retried
--- refreshes, and late checkpoints all converge. Read via
--- instance_usage_per_hour.
+-- (scheduled recompute) views rebuild trailing windows from the raw table
+-- (FINAL) into a ReplacingMergeTree(computed_at): a cheap 25-hour window
+-- every 15 minutes for freshness, and a 7-day window every 6 hours for
+-- heimdall's late writes. Duplicate inserts, retried refreshes, and late
+-- checkpoints all converge. Read with an explicit FINAL
+-- (FROM instance_usage_per_hour_v1 FINAL); there is no wrapper view.
 
 CREATE TABLE IF NOT EXISTS default.instance_usage_per_hour_v1 (
   time DateTime,
@@ -42,11 +42,6 @@ ENGINE = ReplacingMergeTree(computed_at)
 ORDER BY (workspace_id, resource_id, container_uid, time)
 PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
-
-CREATE VIEW IF NOT EXISTS default.instance_usage_per_hour AS
-SELECT *
-FROM default.instance_usage_per_hour_v1
-FINAL;
 
 -- Frequent tier: trailing 25 hours every 15 minutes.
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_usage_per_hour_mv_v1
@@ -79,7 +74,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM default.instance_checkpoints
+  FROM default.instance_checkpoints_v1 FINAL
   WHERE ts >= window_start_ms - max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid
@@ -124,7 +119,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM default.instance_checkpoints
+  FROM default.instance_checkpoints_v1 FINAL
   WHERE ts >= window_start_ms - max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid
@@ -186,7 +181,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM default.instance_checkpoints
+  FROM default.instance_checkpoints_v1 FINAL
   WHERE ts >= slice_start_ms - max_gap_ms AND ts < slice_end_ms + max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid
@@ -234,7 +229,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM default.instance_checkpoints
+  FROM default.instance_checkpoints_v1 FINAL
   WHERE ts >= slice_start_ms - max_gap_ms AND ts < slice_end_ms + max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid
@@ -283,7 +278,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM default.instance_checkpoints
+  FROM default.instance_checkpoints_v1 FINAL
   WHERE ts >= slice_start_ms - max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid

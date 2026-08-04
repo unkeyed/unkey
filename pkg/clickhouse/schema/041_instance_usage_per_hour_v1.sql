@@ -10,13 +10,16 @@
 -- adjacent rows, and an MV only ever sees the block being inserted — so a
 -- REFRESH (scheduled recompute) view rebuilds the trailing window instead.
 --
--- Replay safety: refreshes recompute a trailing window from the
--- instance_checkpoints FINAL view and append into a
--- ReplacingMergeTree(computed_at). Recomputed rows supersede prior versions
--- on merge, so duplicate raw inserts, retried refreshes, and late/retroactive
--- checkpoints (heimdall writes up to days late after an agent outage) all
--- converge to the same values. Read via the instance_usage_per_hour view
--- (FINAL applied) — never the _v1 table directly.
+-- Replay safety: refreshes recompute a trailing window from the raw table
+-- (FINAL) and append into a ReplacingMergeTree(computed_at). Recomputed rows
+-- supersede prior versions on merge, so duplicate raw inserts, retried
+-- refreshes, and late/retroactive checkpoints (heimdall writes up to days
+-- late after an agent outage) all converge to the same values. Read with an
+-- explicit FINAL (FROM instance_usage_per_hour_v1 FINAL): unmerged refresh
+-- generations double-count when summed without it. No wrapper view — plain
+-- views lose the table's ordering metadata on 25.6/26.2 (see
+-- GetInstanceMeterUsage, which reads the raw table directly for the same
+-- reason), and explicit FINAL keeps the cost visible.
 --
 -- An hour is attributed the pairs whose *left* endpoint falls inside it, the
 -- same convention as GetInstanceMeterUsage's [start, end) window. The refresh
@@ -66,13 +69,6 @@ ORDER BY (workspace_id, resource_id, container_uid, time)
 PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
 
--- FINAL-applying read view, same pattern as instance_checkpoints: unmerged
--- refresh generations would otherwise double-count when summed.
-CREATE VIEW instance_usage_per_hour AS
-SELECT *
-FROM instance_usage_per_hour_v1
-FINAL;
-
 -- Trailing-window recompute, split into two tiers so the frequent refresh
 -- stays cheap at the raw table's design scale (each run's cost is its window
 -- size; a single 7-day window every 15 minutes would rescan ~27x more rows
@@ -118,7 +114,10 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM instance_checkpoints
+  -- Raw table + explicit FINAL (not the instance_checkpoints view): plain
+  -- views drop the table's ordering metadata on 25.6/26.2, forcing a full
+  -- sort in this window query. Same fix as GetInstanceMeterUsage.
+  FROM instance_checkpoints_v1 FINAL
   -- Read one maxSampleGap before the rewrite horizon so the first hour's
   -- opening pair (left endpoint just before the horizon... ) is only
   -- attributed to an hour we do NOT rewrite, never silently dropped from
@@ -169,7 +168,7 @@ FROM (
     if(pair_attached, greatest(0, leadInFrame(network_ingress_private_bytes) OVER w - network_ingress_private_bytes), 0) AS ingress_private_delta,
     toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
     toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-  FROM instance_checkpoints
+  FROM instance_checkpoints_v1 FINAL
   WHERE ts >= window_start_ms - max_gap_ms
   WINDOW w AS (
     PARTITION BY workspace_id, container_uid
