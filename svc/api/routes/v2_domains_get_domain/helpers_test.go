@@ -23,8 +23,6 @@ type seededDomain struct {
 	targetCname   string
 }
 
-// seedDomain creates a project, app, and environment, then attaches one domain to
-// it. Pass a mutator to change the row before it is inserted.
 func seedDomain(t *testing.T, h *testutil.Harness, mutate func(*seed.CreateCustomDomainRequest)) seededDomain {
 	t.Helper()
 
@@ -88,20 +86,16 @@ func seedDomain(t *testing.T, h *testutil.Harness, mutate func(*seed.CreateCusto
 	}
 }
 
-// randomSlug produces a lowercase-dashed value. Parallel packages share one
-// database, so a hardcoded slug would collide across runs.
+// Parallel packages share one database, so a hardcoded slug would collide across runs.
 func randomSlug() string {
 	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 }
 
-// randomDomain produces a unique hostname satisfying the FQDN pattern. The label is
-// prefixed so it cannot start with a digit-only accident of uid.
+// The label is prefixed so it cannot start with a digit-only accident of uid.
 func randomDomain() string {
 	return fmt.Sprintf("d%s.example.com", strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")))
 }
 
-// randomApexDomain produces a unique zone apex, which routes through an alias rather
-// than a CNAME.
 func randomApexDomain() string {
 	return fmt.Sprintf("d%s.com", strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")))
 }

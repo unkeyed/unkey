@@ -90,8 +90,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		AppId:         row.AppID,
 		EnvironmentId: row.EnvironmentID,
 		Status:        domain.Status(row.VerificationStatus),
-		// The stored flag is named for the CNAME, but an apex domain routes through an
-		// alias, so the API reports it by purpose instead of by record type.
+		// Whether the routing record was read back and matched, which is only ever the
+		// CNAME check. A proxied, flattened, or apex domain routes without that record
+		// being readable, so false here does not mean traffic is not being served.
 		RoutingVerified:   row.CnameVerified,
 		OwnershipVerified: row.OwnershipVerified,
 		VerificationError: nil,

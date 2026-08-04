@@ -15,6 +15,8 @@ SELECT
     created_at,
     updated_at
 FROM custom_domains
+-- Names are stored lowercase, so the name half is lowered here rather than left to the
+-- column's collation. The id half is compared as given: ids are case-sensitive.
 WHERE workspace_id = sqlc.arg(workspace_id)
-  AND (id = sqlc.arg(domain) OR domain = sqlc.arg(domain))
+  AND (id = sqlc.arg(domain) OR domain = LOWER(sqlc.arg(domain)))
 LIMIT 1;

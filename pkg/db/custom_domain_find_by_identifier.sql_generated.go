@@ -28,7 +28,7 @@ SELECT
     updated_at
 FROM custom_domains
 WHERE workspace_id = ?
-  AND (id = ? OR domain = ?)
+  AND (id = ? OR domain = LOWER(?))
 LIMIT 1
 `
 
@@ -54,7 +54,8 @@ type FindCustomDomainByIdentifierRow struct {
 	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
 }
 
-// FindCustomDomainByIdentifier
+// Names are stored lowercase, so the name half is lowered here rather than left to the
+// column's collation. The id half is compared as given: ids are case-sensitive.
 //
 //	SELECT
 //	    id,
@@ -73,7 +74,7 @@ type FindCustomDomainByIdentifierRow struct {
 //	    updated_at
 //	FROM custom_domains
 //	WHERE workspace_id = ?
-//	  AND (id = ? OR domain = ?)
+//	  AND (id = ? OR domain = LOWER(?))
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainByIdentifier, arg.WorkspaceID, arg.Domain, arg.Domain)

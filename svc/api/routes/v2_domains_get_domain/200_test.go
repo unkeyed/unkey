@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +66,27 @@ func TestGetDomainById(t *testing.T) {
 	require.Equal(t, seeded.domain, res.Body.Data.Domain)
 }
 
+// TestGetDomainByNameIsCaseInsensitive pins that a name reaches its row whatever case
+// the caller sends, since domains.createDomain lowercases before storing and a caller
+// echoing a name from their own config should not have to match that.
+func TestGetDomainByNameIsCaseInsensitive(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	seeded := seedDomain(t, h, nil)
+	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.read_domain")
+
+	for _, identifier := range []string{strings.ToUpper(seeded.domain), strings.ToTitle(seeded.domain)} {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+			Domain: identifier,
+		})
+		require.Equal(t, http.StatusOK, res.Status, "expected 200 for %q, received: %s", identifier, res.RawBody)
+		require.Equal(t, seeded.domainID, res.Body.Data.Id)
+		require.Equal(t, seeded.domain, res.Body.Data.Domain, "the canonical stored name is returned, received: %s", res.RawBody)
+	}
+}
+
 // TestGetDomainDnsRecordsMatchCreate pins that the returned records are rebuilt from
 // stored state with the same values domains.createDomain produced. A caller that lost
 // the create response recovers them here, so a divergence would send them to records
@@ -119,11 +141,11 @@ func TestGetDomainApexRecords(t *testing.T) {
 	require.Equal(t, "_unkey."+apex, res.Body.Data.DnsRecords[1].Name)
 }
 
-// TestGetDomainVerifiedWithoutRouting pins the case the response exists to expose:
-// verification can pass on proof of ownership alone, so a domain reports verified
-// while nothing routes. Collapsing this into status alone would tell the caller
-// traffic is live when it is not.
-func TestGetDomainVerifiedWithoutRouting(t *testing.T) {
+// TestGetDomainVerifiedWithUnreadableRouting pins the shape a proxied, flattened, or
+// apex domain reports: it routes through a record the worker cannot read back, so it
+// verifies on its TXT record and keeps routingVerified false while serving. The flag
+// reports which proof passed, so it must not be folded into status.
+func TestGetDomainVerifiedWithUnreadableRouting(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)

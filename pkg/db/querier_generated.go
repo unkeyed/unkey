@@ -245,7 +245,8 @@ type Querier interface {
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
-	//FindCustomDomainByIdentifier
+	// Names are stored lowercase, so the name half is lowered here rather than left to the
+	// column's collation. The id half is compared as given: ids are case-sensitive.
 	//
 	//  SELECT
 	//      id,
@@ -264,7 +265,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
-	//    AND (id = ? OR domain = ?)
+	//    AND (id = ? OR domain = LOWER(?))
 	//  LIMIT 1
 	FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error)
 	// Covered by unique_domain_workspace_idx.
