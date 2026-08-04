@@ -22,7 +22,7 @@ import { useDeploymentStatus } from "./use-deployment-status";
 export default function DeploymentOverview() {
   const searchParams = useSearchParams();
   const build = searchParams.get("build");
-  const deploymentSuccessBannerEnabled = useFlag("deploymentSuccessBanner");
+  const showDarksoulsSuccessBanner = useFlag("showDarksoulsSuccessBanner");
   const { deployment } = useDeployment();
   const { refetchDomains } = useProjectData();
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function DeploymentOverview() {
 
   useEffect(() => {
     const becameReady =
-      deploymentSuccessBannerEnabled &&
+      showDarksoulsSuccessBanner &&
       previousStatus.current !== "ready" &&
       deployment.status === "ready";
     previousStatus.current = deployment.status;
@@ -56,7 +56,7 @@ export default function DeploymentOverview() {
     setShowSuccessBanner(true);
     const timer = setTimeout(() => setShowSuccessBanner(false), 4_500);
     return () => clearTimeout(timer);
-  }, [deployment.status, deploymentSuccessBannerEnabled]);
+  }, [deployment.status, showDarksoulsSuccessBanner]);
 
   const view = match(deployment.status)
     .when(
