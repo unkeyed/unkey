@@ -1804,7 +1804,8 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  FROM custom_domains
-	//  WHERE project_id = ?
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND environment_id = ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))

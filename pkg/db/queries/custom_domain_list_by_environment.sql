@@ -15,7 +15,8 @@ SELECT
     created_at,
     updated_at
 FROM custom_domains
-WHERE project_id = sqlc.arg(project_id)
+WHERE workspace_id = sqlc.arg(workspace_id)
+  AND project_id = sqlc.arg(project_id)
   AND environment_id = sqlc.arg(environment_id)
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (sqlc.narg(search) IS NULL OR LOWER(id) LIKE LOWER(sqlc.narg(search)) OR LOWER(domain) LIKE LOWER(sqlc.narg(search)))

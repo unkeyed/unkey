@@ -101,8 +101,8 @@ func TestListDomainsStableOrder(t *testing.T) {
 }
 
 // TestListDomainsCapped pins the bound at 10, since the endpoint has no cursor to reach
-// past it. An environment holding more than 10 domains gets a truncated list, so the
-// number must not drift without the response description changing with it.
+// past it. An environment holding more gets a truncated list, so the number must not drift
+// without the response description changing with it.
 func TestListDomainsCapped(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
@@ -239,10 +239,10 @@ func TestListDomainsDnsRecordsPerEntry(t *testing.T) {
 	require.Equal(t, "unkey-domain-verify="+apex.VerificationToken, ap.DnsRecords[1].Value)
 }
 
-// TestListDomainsVerifiedWithoutRouting pins the state the response exists to expose:
-// verification can pass on ownership alone, so two domains can both report verified
-// while only one serves traffic.
-func TestListDomainsVerifiedWithoutRouting(t *testing.T) {
+// A list mixes domains that verified through their routing record with ones that verified
+// through TXT because the record could not be read back, so the flag has to be per entry
+// and cannot be folded into status.
+func TestListDomainsVerifiedWithUnreadableRouting(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)

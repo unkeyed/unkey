@@ -23,6 +23,8 @@ type (
 	Response = openapi.V2DomainsListDomainsResponseBody
 )
 
+// maxDomains bounds the response rather than paginating it. An environment holding more
+// than this gets the first ten by id. Raise it as plans allow more.
 const maxDomains = 10
 
 type Handler struct {
@@ -93,6 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListCustomDomainsByEnvironment(ctx, h.DB.RO(), db.ListCustomDomainsByEnvironmentParams{
+		WorkspaceID:   principal.WorkspaceID,
 		ProjectID:     env.ProjectID,
 		EnvironmentID: env.ID,
 		Search:        search,
@@ -115,8 +118,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			AppId:         row.AppID,
 			EnvironmentId: row.EnvironmentID,
 			Status:        domain.Status(row.VerificationStatus),
-			// The stored flag is named for the CNAME, but an apex domain routes through
-			// an alias, so the API reports it by purpose instead of by record type.
+			// Whether the routing record was read back and matched, which is only ever the
+			// CNAME check. A proxied, flattened, or apex domain routes without that record
+			// being readable, so false here does not mean traffic is not being served.
 			RoutingVerified:   row.CnameVerified,
 			OwnershipVerified: row.OwnershipVerified,
 			VerificationError: nil,

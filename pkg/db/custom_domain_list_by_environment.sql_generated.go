@@ -27,7 +27,8 @@ SELECT
     created_at,
     updated_at
 FROM custom_domains
-WHERE project_id = ?
+WHERE workspace_id = ?
+  AND project_id = ?
   AND environment_id = ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
@@ -36,6 +37,7 @@ LIMIT ?
 `
 
 type ListCustomDomainsByEnvironmentParams struct {
+	WorkspaceID   string         `db:"workspace_id"`
 	ProjectID     string         `db:"project_id"`
 	EnvironmentID string         `db:"environment_id"`
 	Search        sql.NullString `db:"search"`
@@ -77,7 +79,8 @@ type ListCustomDomainsByEnvironmentRow struct {
 //	    created_at,
 //	    updated_at
 //	FROM custom_domains
-//	WHERE project_id = ?
+//	WHERE workspace_id = ?
+//	  AND project_id = ?
 //	  AND environment_id = ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //	  AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
@@ -85,6 +88,7 @@ type ListCustomDomainsByEnvironmentRow struct {
 //	LIMIT ?
 func (q *Queries) ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error) {
 	rows, err := db.QueryContext(ctx, listCustomDomainsByEnvironment,
+		arg.WorkspaceID,
 		arg.ProjectID,
 		arg.EnvironmentID,
 		arg.Search,
