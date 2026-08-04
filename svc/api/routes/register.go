@@ -117,16 +117,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:       svc.Auth,
-		Database:   svc.Database,
-		QuotaCache: svc.Caches.WorkspaceQuota,
-		Ratelimit:  svc.Ratelimit,
+		Auth:        svc.Auth,
+		Database:    svc.Database,
+		LimitsCache: svc.Caches.WorkspaceLimits,
+		Ratelimit:   svc.Ratelimit,
 	})
 	withPortalAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:       svc.PortalAuth,
-		Database:   svc.Database,
-		QuotaCache: svc.Caches.WorkspaceQuota,
-		Ratelimit:  svc.Ratelimit,
+		Auth:        svc.PortalAuth,
+		Database:    svc.Database,
+		LimitsCache: svc.Caches.WorkspaceLimits,
+		Ratelimit:   svc.Ratelimit,
 	})
 
 	publicMiddlewares := []zen.Middleware{
@@ -743,9 +743,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
-			ClickHouse: svc.ClickHouse,
-			DB:         svc.Database,
-			QuotaCache: svc.Caches.WorkspaceQuota,
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 
@@ -869,9 +869,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2EnvironmentsUpdateSettings.Handler{
-			DB:         svc.Database,
-			Auditlogs:  svc.Auditlogs,
-			QuotaCache: svc.Caches.WorkspaceQuota,
+			DB:          svc.Database,
+			Auditlogs:   svc.Auditlogs,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 

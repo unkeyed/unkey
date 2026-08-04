@@ -1,4 +1,4 @@
--- name: FindQuotaByWorkspaceID :one
+-- name: FindLimitsByWorkspaceID :one
 SELECT *
-FROM `quota`
+FROM `limits`
 WHERE workspace_id = sqlc.arg('workspace_id');

@@ -78,6 +78,25 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	})
 	require.NoError(s.t, err)
 
+	err = db.Query.UpsertLimit(ctx, s.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           params.ID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                4,
+	})
+	require.NoError(s.t, err)
+
 	ws, err := db.Query.FindWorkspaceByID(ctx, s.DB.RW(), params.ID)
 	require.NoError(s.t, err)
 
