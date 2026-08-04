@@ -112,28 +112,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data := array.Map(rows, func(row db.ListCustomDomainsByEnvironmentRow) openapi.Domain {
 		d := openapi.Domain{
-			Id:            row.ID,
-			Domain:        row.Domain,
-			ProjectId:     row.ProjectID,
-			AppId:         row.AppID,
-			EnvironmentId: row.EnvironmentID,
-			Status:        domain.Status(row.VerificationStatus),
-			// Whether the routing record was read back and matched, which is only ever the
-			// CNAME check. A proxied, flattened, or apex domain routes without that record
-			// being readable, so false here does not mean traffic is not being served.
-			RoutingVerified:   row.CnameVerified,
-			OwnershipVerified: row.OwnershipVerified,
+			Id:                row.ID,
+			Domain:            row.Domain,
+			ProjectId:         row.ProjectID,
+			AppId:             row.AppID,
+			EnvironmentId:     row.EnvironmentID,
+			Status:            domain.Status(row.VerificationStatus),
 			VerificationError: nil,
-			LastCheckedAt:     nil,
-			DnsRecords:        domain.DnsRecords(row.Domain, row.TargetCname, row.VerificationToken),
+			DnsRecords:        domain.DnsRecords(row.Domain, row.TargetCname, row.VerificationToken, row.CnameVerified, row.OwnershipVerified),
 			CreatedAt:         row.CreatedAt,
 			UpdatedAt:         nil,
 		}
 		if row.VerificationError.Valid && row.VerificationError.String != "" {
 			d.VerificationError = ptr.P(row.VerificationError.String)
-		}
-		if row.LastCheckedAt.Valid {
-			d.LastCheckedAt = ptr.P(row.LastCheckedAt.Int64)
 		}
 		if row.UpdatedAt.Valid {
 			d.UpdatedAt = ptr.P(row.UpdatedAt.Int64)

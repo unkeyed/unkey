@@ -9252,10 +9252,10 @@ paths:
                 array, not a 404.
 
                 `status: verified` means verification passed, so Unkey has provisioned routing and requested a
-                certificate. `routingVerified` and `ownershipVerified` report which proof it passed on rather
-                than whether traffic arrives: a proxied, flattened, or apex domain routes through a record that
-                cannot be read back, so it verifies on its TXT record and keeps `routingVerified: false` for as
-                long as it serves. Expect a mix of both across a list.
+                certificate. Each entry's `dnsRecords` carry their own `verified` flag, so a half-configured
+                environment shows exactly which record each domain is still missing. A record a provider does not
+                expose to a DNS lookup, such as a proxied or flattened routing record, stays `false` for as long
+                as it serves.
 
                 Each entry carries its full `dnsRecords`, so the records still outstanding for a half-configured
                 domain are visible without a second call.
@@ -9301,7 +9301,7 @@ paths:
                         application/json:
                             examples:
                                 domainList:
-                                    description: The apex verified on its TXT record, so routingVerified is false while it serves
+                                    description: The apex verified on its TXT record, so only that record reports verified while it serves
                                     summary: Domain list
                                     value:
                                         data:
@@ -9312,17 +9312,16 @@ paths:
                                                   note: Create as DNS-only if your provider offers the choice.
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: true
                                                 - name: _unkey.api.acme.com
                                                   note: Proves ownership. Create it alongside the routing record.
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
                                               domain: api.acme.com
                                               environmentId: env_1234abcd
                                               id: dom_1234abcd
-                                              lastCheckedAt: 1704067260000
-                                              ownershipVerified: false
                                               projectId: proj_1234abcd
-                                              routingVerified: true
                                               status: verified
                                               updatedAt: 1704067260000
                                             - appId: app_1234abcd
@@ -9332,17 +9331,16 @@ paths:
                                                   note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
                                                   type: ALIAS
                                                   value: i9j8k7l6m5n4o3p2.cname.unkey.com
+                                                  verified: false
                                                 - name: _unkey.acme.com
                                                   note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
                                                   type: TXT
                                                   value: unkey-domain-verify=7Kp2Rq9wZx4mB6nT1yL8vJ3h
+                                                  verified: true
                                               domain: acme.com
                                               environmentId: env_1234abcd
                                               id: dom_5678efgh
-                                              lastCheckedAt: 1704067260000
-                                              ownershipVerified: true
                                               projectId: proj_1234abcd
-                                              routingVerified: false
                                               status: verified
                                               updatedAt: 1704067260000
                                         meta:

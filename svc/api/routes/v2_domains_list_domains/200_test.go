@@ -21,11 +21,9 @@ func TestListDomains(t *testing.T) {
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	checkedAt := time.Now().UnixMilli()
 	first := attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
 		req.VerificationStatus = db.CustomDomainsVerificationStatusVerified
 		req.CnameVerified = true
-		req.LastCheckedAt = checkedAt
 	})
 	second := attachDomain(t, h, env, nil)
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
@@ -46,16 +44,14 @@ func TestListDomains(t *testing.T) {
 	require.Equal(t, env.appID, got.AppId)
 	require.Equal(t, env.environmentID, got.EnvironmentId)
 	require.Equal(t, openapi.DomainStatusVerified, got.Status)
-	require.True(t, got.RoutingVerified)
-	require.False(t, got.OwnershipVerified)
-	require.NotNil(t, got.LastCheckedAt)
-	require.Equal(t, checkedAt, *got.LastCheckedAt)
 	require.NotZero(t, got.CreatedAt)
+	require.True(t, got.DnsRecords[0].Verified, "cname_verified was seeded true, received: %s", res.RawBody)
+	require.False(t, got.DnsRecords[1].Verified)
 
 	pending := byID[second.ID]
 	require.Equal(t, openapi.DomainStatusPending, pending.Status)
-	require.False(t, pending.RoutingVerified)
-	require.Nil(t, pending.LastCheckedAt)
+	require.False(t, pending.DnsRecords[0].Verified)
+	require.False(t, pending.DnsRecords[1].Verified)
 	require.Nil(t, pending.VerificationError)
 }
 
@@ -267,10 +263,13 @@ func TestListDomainsVerifiedWithUnreadableRouting(t *testing.T) {
 	}
 
 	require.Equal(t, openapi.DomainStatusVerified, byID[routing.ID].Status)
-	require.True(t, byID[routing.ID].RoutingVerified)
+	require.True(t, byID[routing.ID].DnsRecords[0].Verified)
 
 	require.Equal(t, openapi.DomainStatusVerified, byID[ownershipOnly.ID].Status, "received: %s", res.RawBody)
-	require.False(t, byID[ownershipOnly.ID].RoutingVerified, "routing must not be reported as verified, received: %s", res.RawBody)
+	require.False(t, byID[ownershipOnly.ID].DnsRecords[0].Verified,
+		"the routing record could not be read back, received: %s", res.RawBody)
+	require.True(t, byID[ownershipOnly.ID].DnsRecords[1].Verified,
+		"ownership was proven through TXT, received: %s", res.RawBody)
 }
 
 // TestListDomainsSearch covers both halves of the search clause, which matches on id

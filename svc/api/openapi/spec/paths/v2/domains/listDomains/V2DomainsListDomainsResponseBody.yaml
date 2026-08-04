@@ -17,7 +17,7 @@ examples:
   domainList:
     summary: Domain list
     description: |
-      Two domains in one environment. The apex verified on its TXT record, so it reports routingVerified false while serving.
+      Two domains in one environment. The apex verified on its TXT record, so only that record reports verified.
       despite reporting verified.
     value:
       meta:
@@ -29,17 +29,16 @@ examples:
           appId: app_1234abcd
           environmentId: env_1234abcd
           status: verified
-          routingVerified: true
-          ownershipVerified: false
-          lastCheckedAt: 1704067260000
           dnsRecords:
             - type: CNAME
               name: api.acme.com
               value: a1b2c3d4e5f6g7h8.cname.unkey.com
+              verified: true
               note: Create as DNS-only if your provider offers the choice.
             - type: TXT
               name: _unkey.api.acme.com
               value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+              verified: false
               note: Proves ownership. Create it alongside the routing record.
           createdAt: 1704067200000
           updatedAt: 1704067260000
@@ -49,17 +48,16 @@ examples:
           appId: app_1234abcd
           environmentId: env_1234abcd
           status: verified
-          routingVerified: false
-          ownershipVerified: true
-          lastCheckedAt: 1704067260000
           dnsRecords:
             - type: ALIAS
               name: acme.com
               value: i9j8k7l6m5n4o3p2.cname.unkey.com
+              verified: false
               note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
             - type: TXT
               name: _unkey.acme.com
               value: unkey-domain-verify=7Kp2Rq9wZx4mB6nT1yL8vJ3h
+              verified: true
               note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
           createdAt: 1704067200000
           updatedAt: 1704067260000
