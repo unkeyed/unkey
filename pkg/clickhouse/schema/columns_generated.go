@@ -59,7 +59,7 @@ func (InstanceCheckpoint) Table() string {
 
 // InsertColumns implements [Row]; derived from InstanceCheckpoint's ch tags.
 func (InstanceCheckpoint) InsertColumns() string {
-	return "`node_id`, `workspace_id`, `project_id`, `environment_id`, `resource_type`, `resource_id`, `pod_uid`, `instance_id`, `container_uid`, `restart_count`, `ts`, `event_kind`, `cpu_usage_usec`, `memory_bytes`, `cpu_allocated_millicores`, `memory_allocated_bytes`, `disk_allocated_bytes`, `disk_used_bytes`, `network_egress_public_bytes`, `network_egress_private_bytes`, `network_ingress_public_bytes`, `network_ingress_private_bytes`, `region`, `platform`, `attributes`"
+	return "`node_id`, `workspace_id`, `project_id`, `app_id`, `environment_id`, `resource_type`, `resource_id`, `pod_uid`, `instance_id`, `container_uid`, `restart_count`, `ts`, `event_kind`, `cpu_usage_usec`, `memory_bytes`, `cpu_allocated_millicores`, `memory_allocated_bytes`, `disk_allocated_bytes`, `disk_used_bytes`, `network_egress_public_bytes`, `network_egress_private_bytes`, `network_ingress_public_bytes`, `network_ingress_private_bytes`, `region`, `platform`, `attributes`"
 }
 
 // Table implements [Row].

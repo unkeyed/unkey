@@ -165,9 +165,13 @@ type BuildStepLogV1 struct {
 //
 //unkey:table default.instance_checkpoints_v1
 type InstanceCheckpoint struct {
-	NodeID        string `ch:"node_id" json:"node_id"`
-	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
-	ProjectID     string `ch:"project_id" json:"project_id"`
+	NodeID      string `ch:"node_id" json:"node_id"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID   string `ch:"project_id" json:"project_id"`
+	// AppID comes from the pod's unkey.com/app.id label, stamped by krane.
+	// Empty on rows written before the label was collected; treat "" as
+	// "unknown app" at query time, same as frontline_requests_raw_v1.
+	AppID         string `ch:"app_id" json:"app_id"`
 	EnvironmentID string `ch:"environment_id" json:"environment_id"`
 	ResourceType  string `ch:"resource_type" json:"resource_type"`
 	ResourceID    string `ch:"resource_id" json:"resource_id"`

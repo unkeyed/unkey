@@ -42,6 +42,9 @@ CREATE TABLE instance_checkpoints_v1 (
   node_id LowCardinality(String),
   workspace_id String,
   project_id LowCardinality(String),
+  -- From the pod's unkey.com/app.id label (stamped by krane). Empty string
+  -- on rows written before the collector read the label.
+  app_id LowCardinality(String),
   environment_id LowCardinality(String),
   resource_type LowCardinality(String),
   resource_id LowCardinality(String),
@@ -104,6 +107,7 @@ CREATE TABLE instance_checkpoints_v1 (
   -- Skip indexes for cross-workspace admin and project-scoped queries. The
   -- ORDER BY already serves workspace-scoped billing.
   INDEX idx_project project_id TYPE bloom_filter(0.01) GRANULARITY 4,
+  INDEX idx_app app_id TYPE bloom_filter(0.01) GRANULARITY 4,
   INDEX idx_resource resource_id TYPE bloom_filter(0.01) GRANULARITY 4,
   INDEX idx_ts ts TYPE minmax GRANULARITY 1,
   -- Replica-scoped dashboard filter (web resources.ts). instance_id is the
