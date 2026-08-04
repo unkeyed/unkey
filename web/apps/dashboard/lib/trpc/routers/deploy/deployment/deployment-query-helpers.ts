@@ -71,12 +71,23 @@ export function computeLastExit(
       reason: term?.reason ?? null,
       finishedAt: term?.finishedAt ?? null,
       statusReason: waiting?.reason ?? null,
+      statusMessage: waiting?.message ?? null,
     };
     if (candidate.reason === null && candidate.statusReason === null) {
       continue;
     }
     if (!result) {
       result = candidate;
+      continue;
+    }
+    // A current kubelet error is more useful than an older process exit on
+    // another replica. Prefer active waiting/pod failures before comparing
+    // historical termination timestamps.
+    if (candidate.statusReason !== null && result.statusReason === null) {
+      result = candidate;
+      continue;
+    }
+    if (candidate.statusReason === null && result.statusReason !== null) {
       continue;
     }
     // Prefer the candidate with a more recent finishedAt; if neither has

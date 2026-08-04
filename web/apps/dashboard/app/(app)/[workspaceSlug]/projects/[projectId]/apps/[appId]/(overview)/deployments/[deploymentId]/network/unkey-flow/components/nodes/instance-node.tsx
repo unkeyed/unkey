@@ -36,16 +36,16 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
 
   // Promote the card to "unhealthy" styling whenever there's something
   // actively wrong. Two triggers:
-  //   - statusReason === "CrashLoopBackOff" — kubelet is currently
-  //     throttling restarts; ALWAYS unhealthy regardless of finishedAt
+  //   - statusReason is set — kubelet is currently reporting a startup or
+  //     pod failure; ALWAYS unhealthy regardless of finishedAt
   //   - finishedAt within the recent window — there was a crash
   //     recently enough that the user still cares
   // Otherwise, defer to the kubelet-derived health (running pod with
   // an old crash 6h ago should look normal).
-  const isInActiveCrashloop = lastExit?.statusReason === "CrashLoopBackOff";
+  const hasRuntimeError = lastExit?.statusReason != null;
   const isRecentCrash =
     lastExit?.finishedAt != null && Date.now() - lastExit.finishedAt < RECENT_CRASH_WINDOW_MS;
-  const effectiveHealth = isInActiveCrashloop || isRecentCrash ? "unhealthy" : health;
+  const effectiveHealth = hasRuntimeError || isRecentCrash ? "unhealthy" : health;
 
   // Replace the static "Instance Replica" subtitle with the exit badge
   // when ctrl has recorded a crash. The diagnostic should be readable

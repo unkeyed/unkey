@@ -1,8 +1,9 @@
 // Container lifecycle event capture: walks pod.Status, mirrors each
 // container's corev1.ContainerState into an InstanceEvent.state oneof, and
 // ships the events to ctrl via ReportInstanceEvents. Surfaces user-actionable
-// failures (OOMKilled, exit codes, crashloops) the gateway can't currently
-// report, and lets the logs viewer draw lifecycle dividers between runs.
+// failures (OOMKilled, exit codes, image-pull errors, pod evictions) the
+// gateway can't currently report, and lets the logs viewer draw lifecycle
+// dividers between runs.
 //
 // This runs alongside reportDeploymentStatus on every pod-watch tick.
 // reportDeploymentStatus produces a coarse instance summary (Running /
@@ -35,6 +36,7 @@ const (
 	eventKindRunning    = "running"
 	eventKindTerminated = "terminated"
 	eventKindWaiting    = "waiting"
+	observedAtAttribute = "status_observed_at_unix_nano"
 
 	// fingerprintMessageMax bounds the message bytes used in the
 	// event_fingerprint hash. Long stack traces make every retry of the
@@ -45,9 +47,9 @@ const (
 
 // reportInstanceEvents walks the pod's container statuses, builds the set of
 // events not yet seen for this (pod_uid, container_name, restart_count,
-// state) tuple, and ships them in a single batched RPC. Best-effort: errors
-// are logged and surfaced as metrics but do not fail the caller.
-func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) {
+// state, reason) tuple, and ships them in a single batched RPC. Best-effort:
+// errors are logged and surfaced as metrics but do not fail the caller.
+func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod, observedAtUnixNano int64) {
 	if c.eventDedup == nil {
 		return // not configured (tests or environments without ctrl-CH wiring)
 	}
@@ -59,6 +61,10 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 
 	fresh := make([]*ctrlv1.InstanceEvent, 0, len(candidates))
 	for _, ev := range candidates {
+		if ev.Attributes == nil {
+			ev.Attributes = map[string]string{}
+		}
+		ev.Attributes[observedAtAttribute] = strconv.FormatInt(observedAtUnixNano, 10)
 		key := dedupKey(ev)
 		if _, hit := c.eventDedup.Get(ctx, key); hit == cache.Hit {
 			metrics.InstanceEventsDedupDroppedTotal.WithLabelValues(eventKindOf(ev)).Inc()
@@ -116,10 +122,14 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 //   - LastTerminationState.Terminated: the previous life ended at
 //     (restart_count - 1) and the container has since restarted. Skipped
 //     when restart_count == 0 because there is no prior life to describe.
-//   - State.Waiting with reason=CrashLoopBackOff: kubelet has put the
-//     container in a backoff window. Emit one event per restart_count
-//     value so the dashboard can render "kubelet is throttling" alongside
-//     the underlying exit.
+//   - State.Waiting with an actionable reason: kubelet could not start or
+//     restart the container. Routine progress states such as
+//     ContainerCreating and PodInitializing are omitted.
+//   - Pod phase Failed: emit the pod-level reason and message. This is where
+//     kubelet records eviction details, including ephemeral-storage limits;
+//     the per-container termination often only says "Error".
+//   - PodScheduled=False with reason=Unschedulable: emit scheduler failures
+//     that happen before kubelet creates any container status.
 func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 	if pod == nil {
 		return nil
@@ -137,20 +147,78 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 
 	out := make([]*ctrlv1.InstanceEvent, 0, len(statuses))
 	for _, cs := range statuses {
-		if r := cs.State.Running; r != nil {
-			out = append(out, buildRunningEvent(pod, tenant, cs, r.StartedAt.UnixMilli()))
-		}
 		if t := cs.State.Terminated; t != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount, t))
 		}
 		if cs.RestartCount > 0 && cs.LastTerminationState.Terminated != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount-1, cs.LastTerminationState.Terminated))
 		}
-		if w := cs.State.Waiting; w != nil && w.Reason == "CrashLoopBackOff" {
+		// Emit a prior termination before Running. Ctrl advances the stored
+		// restart count while processing Running, which would otherwise make
+		// the immediately preceding life look stale within the same batch.
+		if r := cs.State.Running; r != nil {
+			out = append(out, buildRunningEvent(pod, tenant, cs, r.StartedAt.UnixMilli()))
+		}
+		if w := cs.State.Waiting; isActionableWaiting(w) {
 			out = append(out, buildWaitingEvent(pod, tenant, cs, w))
 		}
 	}
+
+	if pod.Status.Phase == corev1.PodFailed {
+		reason := pod.Status.Reason
+		if reason == "" {
+			reason = "PodFailed"
+		}
+		out = append(out, buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
+			Reason:  reason,
+			Message: pod.Status.Message,
+		}))
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodScheduled && condition.Status == corev1.ConditionFalse && condition.Reason == corev1.PodReasonUnschedulable {
+			out = append(out, buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
+				Reason:  condition.Reason,
+				Message: condition.Message,
+			}))
+			break
+		}
+	}
 	return out
+}
+
+// isActionableWaiting filters out normal startup progress while retaining
+// kubelet errors without relying on a closed list. New error reasons therefore
+// surface automatically instead of requiring a krane release.
+func isActionableWaiting(waiting *corev1.ContainerStateWaiting) bool {
+	if waiting == nil || waiting.Reason == "" {
+		return false
+	}
+	switch waiting.Reason {
+	case "ContainerCreating", "PodInitializing":
+		return false
+	default:
+		return true
+	}
+}
+
+// primaryContainerStatus returns the main workload container status used to
+// attribute a pod-level failure to an instance event. A pod can fail before
+// kubelet creates any container status (for example, during admission), so the
+// pod spec is the fallback source for its name and image.
+func primaryContainerStatus(pod *corev1.Pod, statuses []corev1.ContainerStatus) corev1.ContainerStatus {
+	if len(pod.Spec.Containers) > 0 {
+		primary := pod.Spec.Containers[0]
+		for _, status := range statuses {
+			if status.Name == primary.Name {
+				return status
+			}
+		}
+		return corev1.ContainerStatus{Name: primary.Name, Image: primary.Image}
+	}
+	if len(statuses) > 0 {
+		return statuses[0]
+	}
+	return corev1.ContainerStatus{Name: "pod"}
 }
 
 // tenantContext bundles the workspace/project/app/environment/deployment
@@ -350,13 +418,15 @@ func fingerprint(imageID string, exitCode int32, reason, message string) string 
 	return hex.EncodeToString(h[:])
 }
 
-// dedupKey is the in-memory dedupe identity for an event. Mirrors the
-// ClickHouse insert dedupe constraint.
+// dedupKey is the in-memory dedupe identity for an event. Reason distinguishes
+// transitions within one container life, such as ErrImagePull becoming
+// ImagePullBackOff or a crashlooping pod later being Evicted.
 func dedupKey(ev *ctrlv1.InstanceEvent) string {
 	return strings.Join([]string{
 		ev.GetPodUid(),
 		ev.GetContainerName(),
 		strconv.FormatInt(int64(ev.GetRestartCount()), 10),
 		eventKindOf(ev),
+		reasonOf(ev),
 	}, "|")
 }

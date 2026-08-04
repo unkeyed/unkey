@@ -35,6 +35,7 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 // storing one.
 export type ContainerStatus = {
   restartCount: number;
+  statusObservedAt?: number; // internal Unix-nanosecond ordering guard for pod reports
   lastTerminationState?: {
     exitCode: number;
     signal: number;
@@ -43,6 +44,7 @@ export type ContainerStatus = {
   };
   waiting?: {
     reason: string; // CrashLoopBackOff, ImagePullBackOff, ContainerCreating, …
+    message?: string; // exact kubelet diagnostic, including registry/storage errors
   };
 };
 
