@@ -56,12 +56,13 @@ CREATE TABLE instance_usage_per_hour_v1 (
   INDEX idx_instance_id instance_id TYPE bloom_filter(0.001) GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree(computed_at)
--- app_id is part of the replacement key: a long-lived container crossing the
--- collector rollout emits app_id = '' rows and real-app rows for the same
--- hour, and both groups must survive FINAL instead of collapsing to one
--- arbitrary winner. All other grouped dimensions (project, environment,
--- resource, instance) are immutable for a given container_uid.
-ORDER BY (workspace_id, resource_id, container_uid, time, app_id)
+-- app_id is deliberately NOT in the replacement key. For the one hour per
+-- container that straddles the collector rollout (app_id '' -> real app),
+-- the refresh emits two rows and FINAL keeps one, undercounting that hour
+-- for one app — accepted at current scale. Post-rollout, app_id is
+-- immutable per container_uid (krane stamps the pod label at creation),
+-- like every other grouped dimension here, so no further collisions occur.
+ORDER BY (workspace_id, resource_id, container_uid, time)
 PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
 

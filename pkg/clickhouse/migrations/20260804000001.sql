@@ -36,9 +36,10 @@ CREATE TABLE IF NOT EXISTS default.instance_usage_per_hour_v1 (
   INDEX idx_instance_id instance_id TYPE bloom_filter(0.001) GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree(computed_at)
--- app_id is part of the replacement key so the '' -> real-app transition at
--- collector rollout keeps per-app rows distinct through FINAL.
-ORDER BY (workspace_id, resource_id, container_uid, time, app_id)
+-- app_id is deliberately NOT in the replacement key; the one transition hour
+-- per container at collector rollout ('' -> real app) collapses to a single
+-- surviving row, which we accept at current scale. See the schema file.
+ORDER BY (workspace_id, resource_id, container_uid, time)
 PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
 
