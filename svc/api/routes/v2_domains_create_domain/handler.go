@@ -163,13 +163,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Type:  openapi.CNAME,
 		Name:  domain,
 		Value: res.GetTargetCname(),
-		Note:  ptr.P("Create as DNS-only. A proxied record is flattened and cannot be read back."),
+		Note:  ptr.P("Create as DNS-only if your provider offers the choice. A proxied record does not return this value on a DNS lookup, so the domain verifies through the TXT record instead. Traffic reaches Unkey either way."),
 	}
 	txt := openapi.DnsRecord{
 		Type:  openapi.TXT,
 		Name:  dns.OwnershipTXTName(domain),
 		Value: dns.OwnershipTXTValue(res.GetVerificationToken()),
-		Note:  ptr.P("Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published."),
+		Note:  ptr.P("Proves ownership. Create it as well, since whether the routing record can be read back only becomes clear once it is published."),
 	}
 
 	if domainconnect.IsApexDomain(domain) {

@@ -77,11 +77,11 @@ post:
                     - type: CNAME
                       name: api.acme.com
                       value: a1b2c3d4e5f6g7h8.cname.unkey.com
-                      note: Create as DNS-only. A proxied record is flattened and cannot be read back.
+                      note: Create as DNS-only if your provider offers the choice. A proxied record does not return this value on a DNS lookup, so the domain verifies through the TXT record instead. Traffic reaches Unkey either way.
                     - type: TXT
                       name: _unkey.api.acme.com
                       value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
-                      note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
+                      note: Proves ownership. Create it as well, since whether the routing record can be read back only becomes clear once it is published.
             apex:
               summary: Apex domain attached
               description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record
@@ -111,11 +111,11 @@ post:
                     - type: CNAME
                       name: api.acme.com
                       value: a1b2c3d4e5f6g7h8.cname.unkey.com
-                      note: Create as DNS-only. A proxied record is flattened and cannot be read back.
+                      note: Create as DNS-only if your provider offers the choice. A proxied record does not return this value on a DNS lookup, so the domain verifies through the TXT record instead. Traffic reaches Unkey either way.
                     - type: TXT
                       name: _unkey.api.acme.com
                       value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
-                      note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
+                      note: Proves ownership. Create it as well, since whether the routing record can be read back only becomes clear once it is published.
                   domainConnect:
                     provider: Cloudflare
                     url: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
