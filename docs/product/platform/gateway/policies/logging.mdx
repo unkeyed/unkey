@@ -41,6 +41,28 @@ The gateway captures the following for each request:
 | Instance latency   | Time your app spent processing the request                |
 | Gateway latency    | Overhead added by the gateway (policy evaluation, routing)   |
 
+## Redact body fields
+
+When an OpenAPI validation policy matches a request, the logging policy uses
+the same OpenAPI specification to redact sensitive JSON properties. Add
+`x-unkey-redact: true` to a schema property to replace its value with
+`[REDACTED]` in logged request and response bodies:
+
+```yaml
+properties:
+  token:
+    type: string
+    x-unkey-redact: true
+  displayName:
+    type: string
+    x-unkey-redact: false
+```
+
+The extension enables redaction only when its value is `true`. Setting it to
+`false` doesn't override other redaction rules. Authorization headers and
+credentials configured through a KeyAuth policy remain redacted regardless of
+the OpenAPI setting.
+
 ## View logs
 
 Logs are available in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
