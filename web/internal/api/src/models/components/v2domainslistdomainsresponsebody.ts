@@ -15,13 +15,10 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * Domains attached to the environment, ordered by domain id. Empty when the environment has none,
+   * Up to 10 domains attached to the environment, ordered by domain id.
    *
    * @remarks
-   * which is not an error.
-   *
-   * Not paginated, and capped at 10 entries. An environment normally holds far fewer, so receiving
-   * exactly 10 means the list was truncated and some domains are not shown.
+   * Empty when the environment has none, which is not an error.
    */
   data: Array<Domain>;
 };

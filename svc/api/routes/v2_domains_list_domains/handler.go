@@ -92,8 +92,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	// project_id leads so the seek uses project_idx; environment_id narrows within
-	// that partition, which has no index of its own.
 	rows, err := db.Query.ListCustomDomainsByEnvironment(ctx, h.DB.RO(), db.ListCustomDomainsByEnvironmentParams{
 		ProjectID:     env.ProjectID,
 		EnvironmentID: env.ID,

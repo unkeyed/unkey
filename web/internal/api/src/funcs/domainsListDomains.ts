@@ -32,9 +32,8 @@ import { Result } from "../types/fp.js";
  * @remarks
  * List the custom domains attached to an environment, with where each one stands in verification.
  *
- * Ordered by domain id, and capped at 10 entries rather than paginated, since an environment
- * normally holds far fewer. Receiving exactly 10 means the list was truncated. An environment with
- * no domains returns an empty array, not a 404.
+ * Returns up to 10 domains, ordered by domain id. An environment with no domains returns an empty
+ * array, not a 404.
  *
  * **Read `routingVerified` before sending traffic.** `status` summarises verification, and
  * verification can pass on proof of ownership alone, so a domain with `status: verified` and
