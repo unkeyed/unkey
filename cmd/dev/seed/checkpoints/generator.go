@@ -102,6 +102,7 @@ func (g generator) generate(buf bufferer) int {
 					NodeID:                     "seed-node",
 					WorkspaceID:                g.target.workspaceID,
 					ProjectID:                  g.target.projectID,
+					AppID:                      g.target.appID,
 					EnvironmentID:              g.target.environmentID,
 					ResourceType:               "deployment",
 					ResourceID:                 g.target.resourceID,
