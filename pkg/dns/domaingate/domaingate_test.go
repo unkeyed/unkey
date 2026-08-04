@@ -62,11 +62,10 @@ func TestCheckDomain(t *testing.T) {
 	}
 }
 
-func TestCheckAvailable(t *testing.T) {
+func TestAlreadyAttached(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, domaingate.CheckAvailable("api.acme.com", false))
-	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckAvailable("api.acme.com", true))
+	requireCode(t, codes.Data.Domain.Duplicate, domaingate.AlreadyAttached("api.acme.com"))
 }
 
 func TestCheckAllowance(t *testing.T) {
@@ -96,7 +95,7 @@ func TestFaultUserFacingMessage(t *testing.T) {
 
 	require.Equal(t,
 		"The domain 'api.acme.com' is already registered in this workspace.",
-		fault.UserFacingMessage(domaingate.CheckAvailable("api.acme.com", true)))
+		fault.UserFacingMessage(domaingate.AlreadyAttached("api.acme.com")))
 
 	require.Equal(t,
 		"Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.",

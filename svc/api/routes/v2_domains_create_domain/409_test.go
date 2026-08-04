@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -9,17 +10,26 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
 )
 
+// TestCreateDomainDuplicate covers the race: the handler's availability check
+// passed and ctrl rejected the name anyway. The mock sends what ctrl sends, which is
+// gatefault carrying the gate's public message. Inventing a message here would let
+// ctrl's internal wording reach callers with no test noticing.
 func TestCreateDomainDuplicate(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockCustomDomainClient{
 		AddCustomDomainFunc: func(_ context.Context, req *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
-			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", req.GetDomain()))
+			return nil, connect.NewError(
+				connect.CodeAlreadyExists,
+				errors.New(fault.UserFacingMessage(domaingate.AlreadyAttached(req.GetDomain()))),
+			)
 		},
 	}
 	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
@@ -33,7 +43,10 @@ func TestCreateDomainDuplicate(t *testing.T) {
 	require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/domain_already_exists", res.Body.Error.Type)
 
-	// The message must name the colliding domain so the caller knows which input
-	// to change without a second request.
-	require.Contains(t, res.Body.Error.Detail, domain, "expected the detail to name the domain, received: %s", res.RawBody)
+	// Pinned in full, not just for the domain: a message naming the domain is not
+	// necessarily a message the caller can act on.
+	require.Equal(t,
+		fmt.Sprintf("The domain '%s' is already registered in this workspace.", domain),
+		res.Body.Error.Detail,
+		"received: %s", res.RawBody)
 }

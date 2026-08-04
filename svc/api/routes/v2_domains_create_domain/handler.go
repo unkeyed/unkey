@@ -108,16 +108,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: principal.WorkspaceID,
 		Domain:      domain,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	switch {
+	case err == nil:
+		return domaingate.AlreadyAttached(domain)
+	case !db.IsNotFound(err):
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to check whether the domain is available."),
 		)
-	}
-	if err = domaingate.CheckAvailable(domain, err == nil); err != nil {
-		return err
 	}
 
 	allowed, err := db.Query.FindCustomDomainsMaxByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)

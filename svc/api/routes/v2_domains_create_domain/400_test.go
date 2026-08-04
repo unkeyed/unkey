@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -10,6 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -99,8 +101,11 @@ func TestCreateDomainCtrlRejectsDomain(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockCustomDomainClient{
-		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid domain format"))
+		AddCustomDomainFunc: func(_ context.Context, req *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				errors.New(fault.UserFacingMessage(domaingate.CheckDomain(req.GetDomain()+"/nope"))),
+			)
 		},
 	}
 	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
@@ -111,6 +116,8 @@ func TestCreateDomainCtrlRejectsDomain(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "fully qualified domain name",
+		"the detail must state the rule, received: %s", res.RawBody)
 }
 
 // TestCreateDomainDuplicateRejectedLocally pins that the handler's own

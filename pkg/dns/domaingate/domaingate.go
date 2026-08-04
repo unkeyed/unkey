@@ -19,8 +19,7 @@ import (
 )
 
 // CheckDomain reports whether domain is a name Unkey can attach at all. The API
-// advertises the same rule as its `domain` request pattern, so a caller reaching
-// this check bypassed the schema.
+// advertises the same rule as its `domain` request pattern.
 func CheckDomain(domain string) error {
 	if dns.IsValidFQDN(domain) {
 		return nil
@@ -33,12 +32,9 @@ func CheckDomain(domain string) error {
 	)
 }
 
-// CheckAvailable reports whether domain is free to attach within the workspace.
-func CheckAvailable(domain string, taken bool) error {
-	if !taken {
-		return nil
-	}
-
+// AlreadyAttached is the outcome for a domain the workspace already holds. Domains
+// are unique per workspace, so the same name cannot serve two environments.
+func AlreadyAttached(domain string) error {
 	return fault.New("domain already exists",
 		fault.Code(codes.Data.Domain.Duplicate.URN()),
 		fault.Internal(fmt.Sprintf("domain %q is already registered in this workspace", domain)),
@@ -46,10 +42,8 @@ func CheckAvailable(domain string, taken bool) error {
 	)
 }
 
-// CheckAllowance reports whether the workspace may attach one more domain.
-//
-// The counts stay internal: they describe billing state the caller cannot act on,
-// and the way out is the same either way.
+// CheckAllowance reports whether the workspace may attach one more domain. The
+// counts stay internal: the way out is the same either way.
 func CheckAllowance(attached int64, allowed uint32) error {
 	if attached < int64(allowed) {
 		return nil
@@ -63,9 +57,8 @@ func CheckAllowance(attached int64, allowed uint32) error {
 }
 
 // LimitsNotConfigured is the outcome for a workspace with no limits row. Billing
-// writes every allowance, so a missing row means billing state is unknown rather
-// than that the workspace is on the free tier. Refusing is the safe reading, but
-// the caller cannot fix it, so the message points at support.
+// writes every allowance, so a missing row means unknown billing state, not free
+// tier. The caller cannot fix it, hence support rather than an upgrade.
 func LimitsNotConfigured(workspaceID string) error {
 	return fault.New("workspace limits not configured",
 		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

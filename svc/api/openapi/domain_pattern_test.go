@@ -10,10 +10,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// The spec's `domain` constraints are advertised to callers, and ctrl re-validates
-// against [dns.IsValidFQDN] before writing. Two copies that drift produce one of
-// two silent failures: a 500 on a domain the spec says is valid, or a rejection of
-// a domain the spec accepts. Pin them to the same source.
+// The spec advertises these constraints and ctrl re-validates against
+// [dns.IsValidFQDN]. Drift produces either a 500 on a domain the spec calls valid,
+// or a rejection of one it accepts.
 func TestSpecDomainConstraintsMatchDNS(t *testing.T) {
 	t.Parallel()
 

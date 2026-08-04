@@ -18,8 +18,7 @@ func Connect(err error) error {
 }
 
 // ConnectWith is [Connect] for gates whose outcomes are not all preconditions, so
-// the caller can pick the connect code that matches each one. Returns nil when err
-// is nil.
+// the caller picks the matching connect code. Returns nil when err is nil.
 func ConnectWith(code connect.Code, err error) error {
 	if err == nil {
 		return nil

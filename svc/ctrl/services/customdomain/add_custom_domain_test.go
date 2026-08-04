@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -24,18 +26,10 @@ const testBearer = "test-token"
 
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
 
-// TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification pins two
-// production guarantees at once, because both are only observable on the path
-// where the insert commits.
-//
-// The audit trail: a domain that reaches the database has a matching outbox row,
-// so no custom domain can appear without an attributed create event.
-//
-// The verification state: Restate is pointed at a closed port here, so the
-// workflow trigger fails the way it would if Restate were down. The 24 hour
-// verification window is only evaluated inside the workflow, so a domain whose
-// workflow never started must not be left in `pending` where it is
-// indistinguishable from one still polling DNS.
+// Two guarantees, both only observable once the insert commits: a domain in the
+// database always has a matching outbox row, and one whose workflow never started
+// records `failed` rather than sitting in `pending` forever. Restate points at a
+// closed port here to force the second case.
 func TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
@@ -178,6 +172,59 @@ func TestAddCustomDomainRejectsDuplicate(t *testing.T) {
 	`, f.workspaceID, f.domain))
 }
 
+// TestAddCustomDomainConcurrentDuplicateReadsTheSame pins that a name lost to a
+// concurrent create reads exactly like one rejected before the insert. Two paths
+// reject a duplicate, the pre-check and the unique index, and the API reflects
+// whichever message ctrl sends. Asserted without caring which path fired, so it
+// holds either way the race lands.
+func TestAddCustomDomainConcurrentDuplicateReadsTheSame(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 5)
+	svc := f.newService(t)
+
+	want := fault.UserFacingMessage(domaingate.AlreadyAttached(f.domain))
+
+	type result struct {
+		err error
+	}
+	results := make(chan result, 2)
+	start := make(chan struct{})
+	for range 2 {
+		go func() {
+			<-start
+			_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+			results <- result{err: err}
+		}()
+	}
+	close(start)
+
+	var succeeded, rejected int
+	for range 2 {
+		r := <-results
+		if r.err == nil {
+			succeeded++
+			continue
+		}
+		rejected++
+
+		var connectErr *connect.Error
+		require.ErrorAs(t, r.err, &connectErr)
+		require.Equal(t, connect.CodeAlreadyExists, connectErr.Code(),
+			"a duplicate must be AlreadyExists whichever path caught it")
+		require.Equal(t, want, connectErr.Message(),
+			"both duplicate paths must carry the gate's message, not ctrl's internal wording")
+	}
+
+	require.Equal(t, 1, succeeded, "exactly one create may win")
+	require.Equal(t, 1, rejected)
+
+	require.Equal(t, 1, countRows(t, ctx, f.database.RW(), `
+		SELECT COUNT(*)
+		FROM custom_domains
+		WHERE workspace_id = ? AND domain = ?
+	`, f.workspaceID, f.domain))
+}
+
 // TestAddCustomDomainAllowanceIsWorkspaceWide pins that the allowance counts every
 // domain in the workspace, not per environment. A per-environment reading would let
 // one workspace multiply its allowance by adding environments.
@@ -199,13 +246,10 @@ func TestAddCustomDomainAllowanceIsWorkspaceWide(t *testing.T) {
 	require.Equal(t, connect.CodeResourceExhausted, connectErr.Code())
 }
 
-// TestAddCustomDomainAllowsSameDomainInAnotherWorkspace pins the other half of
-// per-workspace uniqueness: the index is (workspace_id, domain), so a name one
-// workspace holds must not block another. Contention between them is settled later,
-// by the verification worker's TXT ownership check, not here.
-//
-// It also proves the allowance count is workspace-scoped: the second workspace is
-// granted exactly one domain and the first has already taken one.
+// The index is (workspace_id, domain), so a name one workspace holds must not block
+// another; contention is settled later by the worker's TXT check. Also proves the
+// allowance count is workspace-scoped, since the second workspace is granted one and
+// the first already took one.
 func TestAddCustomDomainAllowsSameDomainInAnotherWorkspace(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
@@ -258,6 +302,34 @@ func TestAddCustomDomainRefusesWorkspaceWithoutLimits(t *testing.T) {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeFailedPrecondition, connectErr.Code())
+}
+
+// TestAddCustomDomainMissingRequiredFieldIsInternal keeps ctrl's own asserts off the
+// codes the API reflects to callers. On InvalidArgument, "workspace_id is required"
+// would be published as a 400.
+func TestAddCustomDomainMissingRequiredFieldIsInternal(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	req := connect.NewRequest(&ctrlv1.AddCustomDomainRequest{
+		WorkspaceId:   "",
+		ProjectId:     f.projectID,
+		AppId:         f.appID,
+		EnvironmentId: f.environmentID,
+		Domain:        f.domain,
+		Actor:         nil,
+	})
+	req.Header().Set("Authorization", "Bearer "+testBearer)
+
+	_, err := svc.AddCustomDomain(ctx, req)
+	require.Error(t, err)
+
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeInternal, connectErr.Code())
+	require.Contains(t, connectErr.Message(), "workspace_id",
+		"the detail is still useful internally, it just must not be a reflected code")
 }
 
 // TestAddCustomDomainAttributesMissingActorToSystem pins that an absent actor is

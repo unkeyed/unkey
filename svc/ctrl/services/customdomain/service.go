@@ -89,7 +89,9 @@ func (s *Service) AddCustomDomain(
 		assert.NotEmpty(req.Msg.GetEnvironmentId(), "environment_id is required"),
 		assert.NotEmpty(req.Msg.GetDomain(), "domain is required"),
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		// Not InvalidArgument: callers derive these from resolved state, and it keeps
+		// InvalidArgument exclusively a gatefault code.
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	domain := strings.ToLower(req.Msg.GetDomain())
@@ -108,11 +110,11 @@ func (s *Service) AddCustomDomain(
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	switch {
+	case err == nil:
+		return nil, gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyAttached(domain))
+	case !db.IsNotFound(err):
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
-	}
-	if gateErr := gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.CheckAvailable(domain, err == nil)); gateErr != nil {
-		return nil, gateErr
 	}
 
 	// Before Domain Connect discovery, so a workspace at its allowance cannot use
@@ -198,7 +200,10 @@ func (s *Service) AddCustomDomain(
 			InvocationID:          sql.NullString{String: "", Valid: false},
 			CreatedAt:             now,
 		}); txErr != nil {
-			return fmt.Errorf("insert custom domain: %w", txErr)
+			if db.IsDuplicateKeyError(txErr) {
+				return gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyAttached(domain))
+			}
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert custom domain: %w", txErr))
 		}
 
 		// An absent actor is attributed to the system rather than rejected: losing
@@ -228,16 +233,13 @@ func (s *Service) AddCustomDomain(
 				},
 			},
 		}); txErr != nil {
-			return fmt.Errorf("insert audit log: %w", txErr)
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert audit log: %w", txErr))
 		}
 
 		return nil
 	})
 	if err != nil {
-		if db.IsDuplicateKeyError(err) {
-			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
+		return nil, err
 	}
 
 	// Trigger verification workflow and store invocation ID

@@ -36,7 +36,7 @@ func TestMapCtrlErrorRoundTripsGateOutcomes(t *testing.T) {
 		{
 			name:        "duplicate",
 			connectCode: connect.CodeAlreadyExists,
-			gateErr:     domaingate.CheckAvailable("api.acme.com", true),
+			gateErr:     domaingate.AlreadyAttached("api.acme.com"),
 			wantCode:    codes.Data.Domain.Duplicate.URN(),
 		},
 		{
@@ -87,12 +87,15 @@ func TestMapCtrlErrorRoundTripsGateOutcomes(t *testing.T) {
 	}
 }
 
-// Codes ctrl does not use for a gate outcome carry no public-message guarantee, so
-// they must not be reflected.
+// Codes ctrl does not raise through a gate carry no public-message guarantee, so
+// they must not be reflected. ctrl's own assert failures are the case that matters:
+// they name internal request fields, and they are why those asserts return Internal
+// rather than InvalidArgument.
 func TestMapCtrlErrorDoesNotReflectUnmappedCodes(t *testing.T) {
 	t.Parallel()
 
 	for _, err := range []error{
+		connect.NewError(connect.CodeInternal, errors.New("workspace_id is required")),
 		connect.NewError(connect.CodeUnavailable, errors.New("dial tcp 10.0.0.1:8080: connect: connection refused")),
 		connect.NewError(connect.CodeInternal, errors.New("failed to count custom domains: table is gone")),
 		fmt.Errorf("not a connect error at all"),

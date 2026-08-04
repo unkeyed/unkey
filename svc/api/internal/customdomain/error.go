@@ -11,26 +11,20 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 )
 
-// ctrlCodes maps the connect codes ctrl returns for a domaingate outcome onto the
-// error code that decides the HTTP status. The status is all this layer decides;
-// the message travels with the error.
+// Every code here is one ctrl raises only through gatefault, so its message is the
+// gate's public message and is reflected as-is. Adding a code ctrl can raise some
+// other way would publish that producer's internal wording.
 var ctrlCodes = map[connect.Code]codes.URN{
 	connect.CodeAlreadyExists:      codes.Data.Domain.Duplicate.URN(),
 	connect.CodeResourceExhausted:  codes.Limits.CustomDomain.Exceeded.URN(),
-	connect.CodeInvalidArgument:    codes.App.Validation.InvalidInput.URN(),
 	connect.CodeFailedPrecondition: codes.App.Internal.ServiceUnavailable.URN(),
-	connect.CodeNotFound:           codes.Data.Environment.NotFound.URN(),
+	connect.CodeInvalidArgument:    codes.App.Validation.InvalidInput.URN(),
 }
 
 // MapCtrlError converts a ctrl custom domain error into a fault. The handler runs
 // the same domaingate checks first, so what lands here is the race: state changed
-// between the handler's read and ctrl's authoritative re-check.
-//
-// The message is reflected, not rewritten. ctrl builds these errors with gatefault,
-// whose message is exactly the gate's public message, so the wording has one source
-// and cannot drift from what the handler would have said. Codes ctrl does not use
-// for a gate outcome carry no such guarantee and fall through to
-// [ctrlclient.HandleError].
+// between that read and ctrl's re-check. Anything ctrl does not raise through a gate
+// falls through to [ctrlclient.HandleError].
 func MapCtrlError(err error, action string) error {
 	var connectErr *connect.Error
 	if !errors.As(err, &connectErr) {
