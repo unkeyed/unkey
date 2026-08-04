@@ -136,9 +136,11 @@ SETTINGS do_not_merge_across_partitions_select_final = 1;
 
 -- Catchup tier: same query over the full 7-day late-write horizon, run
 -- 4x/day instead of 96x/day. Body must stay in sync with the MV above —
--- only the window start differs.
+-- only the window start differs. The 7-minute offset keeps its start times
+-- off the 15-minute tier's UTC-aligned grid (:00/:15/:30/:45), so the two
+-- FINAL scans never kick off at the same instant.
 CREATE MATERIALIZED VIEW instance_usage_per_hour_catchup_mv_v1
-REFRESH EVERY 6 HOUR APPEND TO instance_usage_per_hour_v1 AS
+REFRESH EVERY 6 HOUR OFFSET 7 MINUTE APPEND TO instance_usage_per_hour_v1 AS
 WITH
   toUnixTimestamp64Milli(toDateTime64(toStartOfHour(now() - INTERVAL 7 DAY), 3)) AS window_start_ms,
   120000 AS max_gap_ms

@@ -92,8 +92,10 @@ GROUP BY time, workspace_id, project_id, app_id, environment_id, resource_type, 
 SETTINGS do_not_merge_across_partitions_select_final = 1;
 
 -- Catchup tier: trailing 7 days every 6 hours, for heimdall's late writes.
+-- OFFSET 7 MINUTE keeps its starts off the 15-minute tier's UTC-aligned
+-- grid so the two FINAL scans never kick off at the same instant.
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_usage_per_hour_catchup_mv_v1
-REFRESH EVERY 6 HOUR APPEND TO default.instance_usage_per_hour_v1 AS
+REFRESH EVERY 6 HOUR OFFSET 7 MINUTE APPEND TO default.instance_usage_per_hour_v1 AS
 WITH
   toUnixTimestamp64Milli(toDateTime64(toStartOfHour(now() - INTERVAL 7 DAY), 3)) AS window_start_ms,
   120000 AS max_gap_ms
