@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -26,11 +28,9 @@ const testBearer = "test-token"
 
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
 
-// Two guarantees, both only observable once the insert commits: a domain in the
-// database always has a matching outbox row, and one whose workflow never started
-// records `failed` rather than sitting in `pending` forever. Restate points at a
-// closed port here to force the second case.
-func TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification(t *testing.T) {
+// A domain in the database always has a matching outbox row, which is only observable
+// once the insert commits.
+func TestAddCustomDomainWritesAuditLog(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
 
@@ -44,10 +44,9 @@ func TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification(t *testing
 	stored, err := f.database.FindCustomDomainById(ctx, res.Msg.GetDomainId())
 	require.NoError(t, err)
 	require.Equal(t, f.domain, stored.Domain)
-	require.Equal(t, db.CustomDomainsVerificationStatusFailed, stored.VerificationStatus,
-		"a domain whose verification workflow never started must not stay pending")
-	require.True(t, stored.VerificationError.Valid)
-	require.NotEmpty(t, stored.VerificationError.String)
+	require.Equal(t, db.CustomDomainsVerificationStatusPending, stored.VerificationStatus)
+	require.True(t, stored.InvocationID.Valid,
+		"a started workflow must have its invocation id persisted so it can be cancelled")
 
 	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
 	require.NoError(t, err)
@@ -64,6 +63,35 @@ func TestAddCustomDomainWritesAuditLogAndRecordsUnstartedVerification(t *testing
 	require.Equal(t, res.Msg.GetDomainId(), logged.Targets[0].ID)
 	require.Equal(t, f.domain, logged.Targets[0].Meta["domain"])
 	require.Equal(t, f.environmentID, logged.Targets[0].Meta["environmentId"])
+}
+
+// Restate retries only an invocation it has accepted, so nothing is running here and
+// nothing will start on its own. Answering OK would send the caller off to poll a
+// verification that cannot progress. The row stays, marked `failed`, which is what
+// RetryVerification resets from.
+func TestAddCustomDomainFailsWhenVerificationCannotStart(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	svc := f.newServiceUnreachableRestate(t)
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.Error(t, err, "a domain whose workflow never started must not report success")
+
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeInternal, connectErr.Code())
+
+	stored, err := f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: f.workspaceID,
+		Domain:      f.domain,
+	})
+	require.NoError(t, err, "the domain row must survive so the caller can retry verification")
+	require.Equal(t, db.CustomDomainsVerificationStatusFailed, stored.VerificationStatus,
+		"a domain whose verification workflow never started must not stay pending")
+	require.True(t, stored.VerificationError.Valid)
+	require.NotEmpty(t, stored.VerificationError.String)
+	require.False(t, stored.InvocationID.Valid, "no invocation was accepted, so none may be recorded")
 }
 
 // TestAddCustomDomainRollsBackWhenAuditInsertFails verifies the production
@@ -504,9 +532,17 @@ func (f fixture) requestIn(c chain, domain string) *connect.Request[ctrlv1.AddCu
 	return req
 }
 
-// newService builds a service whose Restate ingress is unroutable, so the workflow
-// trigger fails fast and every test lands on the same post-commit path.
 func (f fixture) newService(t *testing.T) *Service {
+	t.Helper()
+	return f.newServiceWithRestate(t, acceptingIngress(t))
+}
+
+func (f fixture) newServiceUnreachableRestate(t *testing.T) *Service {
+	t.Helper()
+	return f.newServiceWithRestate(t, "http://127.0.0.1:1")
+}
+
+func (f fixture) newServiceWithRestate(t *testing.T, ingressURL string) *Service {
 	t.Helper()
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: f.database})
@@ -514,13 +550,36 @@ func (f fixture) newService(t *testing.T) *Service {
 
 	return New(Config{
 		Database:                   f.database,
-		Restate:                    restateingress.NewClient("http://127.0.0.1:1"),
+		Restate:                    restateingress.NewClient(ingressURL),
 		RestateAdmin:               nil,
 		Auditlogs:                  auditlogSvc,
 		CnameDomain:                "cname.unkey.local",
 		DomainConnectPrivateKeyPEM: nil,
 		Bearer:                     testBearer,
 	})
+}
+
+// acceptingIngress answers every send with an accepted invocation. A create only reports
+// success once Restate has taken the invocation, so without a reachable ingress every
+// test here would exercise the failure path.
+func acceptingIngress(t *testing.T) string {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/send") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]string{
+			"invocationId": uid.New("inv"),
+			"status":       "Accepted",
+		}))
+	}))
+	t.Cleanup(server.Close)
+
+	return server.URL
 }
 
 // randomDomain keeps names unique across runs sharing one database.

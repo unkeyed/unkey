@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/dns/domaingate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -241,10 +242,8 @@ func (s *Service) AddCustomDomain(
 		return nil, err
 	}
 
-	// Trigger verification workflow and store invocation ID
 	// Domain ID is the virtual object key (not domain name, since domains are workspace-scoped)
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
-	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
+	sendResp, sendErr := s.startVerification(ctx, domainID)
 	if sendErr != nil {
 		logger.Error(
 			"failed to trigger verification workflow",
@@ -268,13 +267,17 @@ func (s *Service) AddCustomDomain(
 				"error", failErr,
 			)
 		}
-	} else {
-		_ = s.db.UpdateCustomDomainInvocationID(ctx, db.UpdateCustomDomainInvocationIDParams{
-			ID:           domainID,
-			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-		})
+
+		// Reporting success would tell the caller to poll a verification that is not
+		// running. The row is left in place so RetryVerification can pick it up.
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
 	}
+
+	_ = s.db.UpdateCustomDomainInvocationID(ctx, db.UpdateCustomDomainInvocationIDParams{
+		ID:           domainID,
+		InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+	})
 
 	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{
 		DomainId:              domainID,
@@ -398,9 +401,7 @@ func (s *Service) RetryVerification(
 		}
 	}
 
-	// Trigger new verification workflow keyed by domain ID
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.ID)
-	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
+	sendResp, sendErr := s.startVerification(ctx, domain.ID)
 	if sendErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))
 	}
@@ -420,4 +421,18 @@ func (s *Service) RetryVerification(
 	return connect.NewResponse(&ctrlv1.RetryVerificationResponse{
 		Status: ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
 	}), nil
+}
+
+// startVerification submits the verification workflow for domainID.
+//
+// Restate owns retries only once it has accepted the invocation, so a submit that fails
+// leaves nothing running and nothing for the workflow's own retry policy to act on, hence
+// the attempts here. Re-submitting is safe because the invocation is keyed by domainID,
+// making it a virtual object Restate runs one at a time per domain.
+func (s *Service) startVerification(ctx context.Context, domainID string) (restateingress.SimpleSendResponse, error) {
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
+
+	return retry.DoWithResultContext(retry.New(), ctx, func() (restateingress.SimpleSendResponse, error) {
+		return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
+	})
 }
