@@ -46,7 +46,7 @@ func TestCreateDomainDuplicate(t *testing.T) {
 	// Pinned in full, not just for the domain: a message naming the domain is not
 	// necessarily a message the caller can act on.
 	require.Equal(t,
-		fmt.Sprintf("The domain '%s' is already registered in this workspace.", domain),
+		fmt.Sprintf("The domain '%s' is already attached to this workspace.", domain),
 		res.Body.Error.Detail,
 		"received: %s", res.RawBody)
 }

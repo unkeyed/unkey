@@ -70,11 +70,11 @@ func TestAlreadyAttached(t *testing.T) {
 
 // Both layers pass the outcome of their own lookup, so a nil error meaning "free" and a
 // found row meaning "taken" is decided here rather than at each call site.
-func TestCheckAvailable(t *testing.T) {
+func TestCheckNotAttached(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, domaingate.CheckAvailable("api.acme.com", false))
-	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckAvailable("api.acme.com", true))
+	require.NoError(t, domaingate.CheckNotAttached("api.acme.com", false))
+	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckNotAttached("api.acme.com", true))
 }
 
 func TestCheckAllowance(t *testing.T) {
@@ -103,7 +103,7 @@ func TestFaultUserFacingMessage(t *testing.T) {
 		fault.UserFacingMessage(domaingate.CheckDomain("bad domain")))
 
 	require.Equal(t,
-		"The domain 'api.acme.com' is already registered in this workspace.",
+		"The domain 'api.acme.com' is already attached to this workspace.",
 		fault.UserFacingMessage(domaingate.AlreadyAttached("api.acme.com")))
 
 	require.Equal(t,

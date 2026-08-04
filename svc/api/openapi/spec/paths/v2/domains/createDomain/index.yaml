@@ -217,13 +217,13 @@ post:
             "$ref": "../../../../error/ConflictErrorResponse.yaml"
           examples:
             domainExists:
-              summary: Domain already registered
+              summary: Domain already attached
               value:
                 meta:
                   requestId: req_1234abcd
                 error:
                   title: Conflict
-                  detail: The domain 'api.acme.com' is already registered in this workspace.
+                  detail: The domain 'api.acme.com' is already attached to this workspace.
                   status: 409
                   type: conflict
     "429":

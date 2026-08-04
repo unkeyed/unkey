@@ -115,7 +115,7 @@ func (s *Service) AddCustomDomain(
 	}
 	if gateErr := gatefault.ConnectWith(
 		connect.CodeAlreadyExists,
-		domaingate.CheckAvailable(domain, err == nil),
+		domaingate.CheckNotAttached(domain, err == nil),
 	); gateErr != nil {
 		return nil, gateErr
 	}

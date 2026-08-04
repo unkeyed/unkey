@@ -116,7 +116,7 @@ const (
 
 	// Domain
 
-	// Duplicate indicates the domain is already registered in this workspace.
+	// Duplicate indicates the domain is already attached to this workspace.
 	UnkeyDataErrorsDomainDuplicate URN = "err:unkey:data:domain_already_exists"
 
 	// Deployment

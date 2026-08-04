@@ -57,7 +57,7 @@ type dataEnvironment struct {
 
 // dataDomain defines errors related to custom domain operations.
 type dataDomain struct {
-	// Duplicate indicates the domain is already registered in this workspace.
+	// Duplicate indicates the domain is already attached to this workspace.
 	Duplicate Code
 }
 

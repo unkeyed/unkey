@@ -117,10 +117,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
-			fault.Public("Failed to check whether the domain is available."),
+			fault.Public("Failed to check whether the domain is already attached."),
 		)
 	}
-	if err = domaingate.CheckAvailable(domain, err == nil); err != nil {
+	if err = domaingate.CheckNotAttached(domain, err == nil); err != nil {
 		return err
 	}
 

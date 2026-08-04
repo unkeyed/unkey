@@ -8724,10 +8724,10 @@ paths:
                         application/json:
                             examples:
                                 domainExists:
-                                    summary: Domain already registered
+                                    summary: Domain already attached
                                     value:
                                         error:
-                                            detail: The domain 'api.acme.com' is already registered in this workspace.
+                                            detail: The domain 'api.acme.com' is already attached to this workspace.
                                             status: 409
                                             title: Conflict
                                             type: conflict
