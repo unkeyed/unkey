@@ -169,7 +169,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Type:  openapi.CNAME,
 		Name:  domain,
 		Value: res.GetTargetCname(),
-		Note:  ptr.P("Create as DNS-only if your provider offers the choice. A proxied record does not return this value on a DNS lookup, so the domain verifies through the TXT record instead. Traffic reaches Unkey either way."),
+		Note:  ptr.P("Create as DNS-only if your provider offers the choice. A proxied record still routes traffic, but the certificate challenge then has to pass through the proxy."),
 	}
 	txt := openapi.DnsRecord{
 		Type:  openapi.TXT,
