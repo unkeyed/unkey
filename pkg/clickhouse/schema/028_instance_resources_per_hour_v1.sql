@@ -32,7 +32,14 @@ CREATE TABLE instance_resources_per_hour_v1 (
   INDEX idx_instance_id instance_id TYPE bloom_filter(0.001) GRANULARITY 1
 )
 ENGINE = AggregatingMergeTree()
-ORDER BY (workspace_id, resource_id, container_uid, time)
+-- app_id is in the sorting key so rows that differ only by app (the '' -> real
+-- app transition at collector rollout) merge per app instead of collapsing to
+-- an arbitrary survivor. PRIMARY KEY stays the pre-app_id prefix because
+-- production reached this shape via ALTER ... MODIFY ORDER BY, which cannot
+-- extend the primary key; declaring it explicitly keeps fresh and migrated
+-- tables identical.
+PRIMARY KEY (workspace_id, resource_id, container_uid, time)
+ORDER BY (workspace_id, resource_id, container_uid, time, app_id)
 PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
 

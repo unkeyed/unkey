@@ -31,21 +31,31 @@ FROM default.instance_checkpoints_v1
 FINAL;
 
 -- Rollup targets ─────────────────────────────────────────────────────────
+-- app_id joins each sorting key so rows that differ only by app (the '' ->
+-- real-app transition at collector rollout) merge per app instead of
+-- collapsing to an arbitrary survivor. MODIFY ORDER BY may only append
+-- newly added columns and leaves the primary key at the old prefix; the
+-- declarative schema mirrors that with an explicit PRIMARY KEY.
 
 ALTER TABLE default.instance_resources_per_15s_v1
-    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id;
+    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id,
+    MODIFY ORDER BY (workspace_id, resource_id, container_uid, time, app_id);
 
 ALTER TABLE default.instance_resources_per_minute_v1
-    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id;
+    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id,
+    MODIFY ORDER BY (workspace_id, resource_id, container_uid, time, app_id);
 
 ALTER TABLE default.instance_resources_per_hour_v1
-    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id;
+    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id,
+    MODIFY ORDER BY (workspace_id, resource_id, container_uid, time, app_id);
 
 ALTER TABLE default.instance_resources_per_day_v1
-    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id;
+    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id,
+    MODIFY ORDER BY (workspace_id, resource_id, container_uid, time, app_id);
 
 ALTER TABLE default.instance_resources_per_month_v1
-    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id;
+    ADD COLUMN IF NOT EXISTS app_id LowCardinality(String) AFTER project_id,
+    MODIFY ORDER BY (workspace_id, resource_id, container_uid, time, app_id);
 
 -- Rollup MVs ─────────────────────────────────────────────────────────────
 
