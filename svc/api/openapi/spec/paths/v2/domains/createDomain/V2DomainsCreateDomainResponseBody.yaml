@@ -60,5 +60,6 @@ examples:
             name: _unkey.api.acme.com
             value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
             note: Proves ownership. Needed whenever the routing record cannot be read back, which is not knowable until it is published.
-        domainConnectProvider: Cloudflare
-        domainConnectUrl: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
+        domainConnect:
+          provider: Cloudflare
+          url: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api

@@ -178,19 +178,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		txt.Note = ptr.P("Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.")
 	}
 
-	// Domain Connect discovery is best-effort inside ctrl, so both fields are
-	// absent whenever the provider does not support it.
 	data := openapi.V2DomainsCreateDomainResponseData{
-		DomainId:              res.GetDomainId(),
-		DnsRecords:            []openapi.DnsRecord{routing, txt},
-		DomainConnectProvider: nil,
-		DomainConnectUrl:      nil,
+		DomainId:      res.GetDomainId(),
+		DnsRecords:    []openapi.DnsRecord{routing, txt},
+		DomainConnect: nil,
 	}
-	if p := res.GetDomainConnectProvider(); p != "" {
-		data.DomainConnectProvider = ptr.P(p)
-	}
-	if u := res.GetDomainConnectUrl(); u != "" {
-		data.DomainConnectUrl = ptr.P(u)
+
+	// Discovery inside ctrl is best-effort and yields a provider and a URL together or
+	// neither, so a half-filled object would mean ctrl changed, not that the shortcut is
+	// partly available. Both are required in the schema, hence the pair check.
+	provider, dcURL := res.GetDomainConnectProvider(), res.GetDomainConnectUrl()
+	if provider != "" && dcURL != "" {
+		data.DomainConnect = &openapi.DomainConnect{
+			Provider: provider,
+			Url:      dcURL,
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{

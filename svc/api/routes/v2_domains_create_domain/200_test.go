@@ -56,10 +56,10 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.Equal(t, "unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL", txt.Value)
 	require.NotNil(t, txt.Note)
 
-	// Domain Connect discovery found nothing, so both fields stay absent rather
-	// than being serialized as empty strings.
-	require.Nil(t, res.Body.Data.DomainConnectProvider)
-	require.Nil(t, res.Body.Data.DomainConnectUrl)
+	// Discovery found nothing, so the object is absent rather than present with empty
+	// strings, which is what tells a caller the shortcut is unavailable.
+	require.Nil(t, res.Body.Data.DomainConnect)
+	require.NotContains(t, res.RawBody, "domainConnect", "received: %s", res.RawBody)
 
 	// Domain creation and its audit log are delegated to the control plane.
 	require.Len(t, ctrlClient.AddCustomDomainCalls, 1)
@@ -169,10 +169,50 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotNil(t, res.Body.Data.DomainConnectProvider, "expected provider, received: %s", res.RawBody)
-	require.Equal(t, "Cloudflare", *res.Body.Data.DomainConnectProvider)
-	require.NotNil(t, res.Body.Data.DomainConnectUrl, "expected url, received: %s", res.RawBody)
-	require.Equal(t, "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com", *res.Body.Data.DomainConnectUrl)
+	require.NotNil(t, res.Body.Data.DomainConnect, "expected the domainConnect object, received: %s", res.RawBody)
+	require.Equal(t, "Cloudflare", res.Body.Data.DomainConnect.Provider)
+	require.Equal(t, "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com", res.Body.Data.DomainConnect.Url)
+}
+
+// TestCreateDomainOmitsPartialDomainConnect pins that a provider without a URL, or a URL
+// without a provider, yields no object at all. Both fields are required inside it, so
+// emitting a half-filled one would put a response on the wire that its own schema rejects.
+func TestCreateDomainOmitsPartialDomainConnect(t *testing.T) {
+	testCases := []struct {
+		name     string
+		provider string
+		url      string
+	}{
+		{name: "provider without url", provider: "Cloudflare", url: ""},
+		{name: "url without provider", provider: "", url: "https://dash.cloudflare.com/domainconnect"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := testutil.NewHarness(t)
+
+			ctrlClient := &testutil.MockCustomDomainClient{
+				AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+					return &ctrlv1.AddCustomDomainResponse{
+						DomainId:              uid.New(uid.DomainPrefix),
+						TargetCname:           "a1b2c3d4e5f6g7h8.cname.unkey.com",
+						VerificationToken:     "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+						DomainConnectProvider: tc.provider,
+						DomainConnectUrl:      tc.url,
+					}, nil
+				},
+			}
+			route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+			h.Register(route)
+
+			env := seedEnvironment(t, h)
+			rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
+			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Nil(t, res.Body.Data.DomainConnect, "a half-filled object must be omitted, received: %s", res.RawBody)
+		})
+	}
 }
 
 // TestCreateDomainNormalizesCase pins that a mixed-case name is stored and echoed
