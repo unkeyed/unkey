@@ -35,8 +35,8 @@
 //  2. Concurrency gate: [Workflow.waitForBuildSlot] creates a Restate
 //     awakeable and calls [hydrav1.BuildSlotService.AcquireOrWait]. The
 //     handler parks on the awakeable until BuildSlotService resolves it —
-//     either immediately (slot available or is_production=true) or later when
-//     a held slot is released. Production deployments bypass the limit.
+//     either immediately (slot available or the environment is production) or
+//     later when a held slot is released. Production deployments bypass the limit.
 //
 // On the creation side, [dedup.CancelOlderSiblings] runs right after the
 // deployment row is inserted: it batch-stamps older siblings with the

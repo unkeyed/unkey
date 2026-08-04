@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -480,6 +481,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectName     string
 	ProjectSlug     string
 	EnvironmentSlug string
+	EnvironmentKind mysqltype.EnvironmentKind
 	SkipEnvironment bool
 	Permissions     []string
 }
@@ -496,6 +498,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectName:     "test-project",
 		ProjectSlug:     "production",
 		EnvironmentSlug: "production",
+		EnvironmentKind: mysqltype.EnvironmentKindProduction,
 		SkipEnvironment: false,
 		Permissions:     nil,
 	}
@@ -509,6 +512,9 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		}
 		if opts[0].EnvironmentSlug != "" {
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
+		}
+		if opts[0].EnvironmentKind != "" {
+			config.EnvironmentKind = opts[0].EnvironmentKind
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
 		if opts[0].Permissions != nil {
@@ -552,6 +558,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
+			Kind:             config.EnvironmentKind,
 			DeleteProtection: false,
 			SentinelConfig:   nil,
 		})

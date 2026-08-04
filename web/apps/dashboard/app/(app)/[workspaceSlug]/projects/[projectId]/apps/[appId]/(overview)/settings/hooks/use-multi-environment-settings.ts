@@ -15,11 +15,11 @@ export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
   const { environments } = useProjectData();
 
   const productionEnvId = useMemo(
-    () => environments.find((e) => e.slug === "production")?.id,
+    () => environments.find((e) => e.kind === "production")?.id,
     [environments],
   );
   const previewEnvId = useMemo(
-    () => environments.find((e) => e.slug === "preview")?.id,
+    () => environments.find((e) => e.kind === "preview")?.id,
     [environments],
   );
 

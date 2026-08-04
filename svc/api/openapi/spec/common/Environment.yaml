@@ -3,6 +3,7 @@ required:
   - id
   - slug
   - description
+  - kind
   - deleteProtection
   - createdAt
 properties:
@@ -22,6 +23,10 @@ properties:
       Human-readable description of this environment.
       Empty string if none was provided.
     example: Production environment
+  kind:
+    "$ref": "./EnvironmentKind.yaml"
+    description: |
+      How deployments in this environment participate in the deployment lifecycle.
   deleteProtection:
     type: boolean
     description: |

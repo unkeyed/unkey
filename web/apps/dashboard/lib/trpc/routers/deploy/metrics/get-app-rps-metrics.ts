@@ -28,7 +28,7 @@ export const getAppRpsMetrics = workspaceProcedure
       columns: { projectId: true, createdAt: true },
       with: {
         environments: {
-          where: (table, { eq }) => eq(table.slug, "production"),
+          where: (table, { eq }) => eq(table.kind, "production"),
           columns: { id: true },
         },
       },

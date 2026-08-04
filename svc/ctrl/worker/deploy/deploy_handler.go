@@ -150,7 +150,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
 	}
-	isProduction := gateEnvironment.Slug == "production"
+	isProduction := gateEnvironment.Kind.IsProduction()
 
 	// Register the slot release as a durable compensation BEFORE calling
 	// AcquireOrWait. This ensures the slot is returned on ANY failure path:
@@ -327,12 +327,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		switch environment.Slug {
-		case "production":
+		if environment.Kind.IsProduction() {
 			if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 			}
-		case "preview":
+		} else if environment.Kind.IsPreview() {
 			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
 				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
 				logger.Error("unable to spin down previous preview deployments", "error", err)
@@ -735,6 +734,7 @@ func (w *Workflow) configureRouting(
 		deployment.GitBranch.String,
 		forkOwner,
 		w.defaultDomain,
+		environment.Kind.IsProduction(),
 		uniquifyCommitDomain,
 		deployment.ID,
 	)
@@ -888,7 +888,7 @@ func (w *Workflow) swapLiveDeployment(
 	app db.App,
 	environment db.Environment,
 ) error {
-	if app.IsRolledBack || environment.Slug != "production" {
+	if app.IsRolledBack || !environment.Kind.IsProduction() {
 		return nil
 	}
 
@@ -1007,7 +1007,7 @@ func (w *Workflow) initGitHubStatus(
 		EnvironmentLabel:           envLabel,
 		EnvironmentUrl:             envURL,
 		LogUrl:                     logURL,
-		IsProduction:               environment.Slug == "production",
+		IsProduction:               environment.Kind.IsProduction(),
 		ProjectSlug:                project.Slug,
 		AppSlug:                    app.Slug,
 		EnvSlug:                    environment.Slug,

@@ -57,7 +57,7 @@ func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Se
 //
 // Integration tests share one MySQL container across test processes and across
 // runs, and the ctrl crons scan the whole database rather than one workspace:
-// the idle-preview scan pages over every environment with slug 'preview', and
+// the idle-preview scan pages over every preview environment, and
 // the quota and billing handlers walk every workspace. Rows a test leaves
 // behind are therefore rescanned by every later run, which makes each run
 // slower until a scan outlives the harness timeout. Deleting only the ids this
@@ -239,12 +239,17 @@ type CreateEnvironmentRequest struct {
 	AppID            string
 	Slug             string
 	Description      string
+	Kind             dbtype.EnvironmentKind
 	SentinelConfig   []byte
 	DeleteProtection bool
 }
 
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	now := time.Now().UnixMilli()
+	kind := req.Kind
+	if kind == "" {
+		kind = dbtype.EnvironmentKindPreview
+	}
 
 	err := s.DB.InsertEnvironment(ctx, db.InsertEnvironmentParams{
 		ID:          req.ID,
@@ -253,6 +258,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:       req.AppID,
 		Slug:        req.Slug,
 		Description: req.Description,
+		Kind:        kind,
 		CreatedAt:   now,
 		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
@@ -304,6 +310,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
+		Kind:             environment.Kind,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
