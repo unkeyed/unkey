@@ -60,10 +60,7 @@ export async function setWorkspaceLimits(
     autoscalingReplicasMax: limitValues.autoscalingReplicasMax,
   };
 
-  if (
-    !params.preserveApiLimits ||
-    hasRequestedLimit("apiBillableOperationsCountMaxPerMonth")
-  ) {
+  if (!params.preserveApiLimits || hasRequestedLimit("apiBillableOperationsCountMaxPerMonth")) {
     limitUpdate.apiBillableOperationsCountMaxPerMonth =
       limitValues.apiBillableOperationsCountMaxPerMonth;
   }
