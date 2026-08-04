@@ -17,6 +17,9 @@ const dnsRecordTTLSeconds = 60
 //
 // createDomain and getDomain both return these and the verification worker reads the published
 // values back, so a divergence here leaves domains stuck unverified with no error pointing at it.
+//
+// The worker checks each record separately, so its two results are reported per record: a caller
+// fixing setup needs to know which record is outstanding, not how many are.
 func DnsRecords(domainName, targetCname, verificationToken string, routingVerified, ownershipVerified bool) []openapi.DnsRecord {
 	routing := openapi.DnsRecord{
 		Type:     openapi.CNAME,

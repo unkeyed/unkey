@@ -40,12 +40,16 @@ func TestGetDomainByName(t *testing.T) {
 	require.Equal(t, seeded.appID, data.AppId)
 	require.Equal(t, seeded.environmentID, data.EnvironmentId)
 	require.Equal(t, openapi.DomainStatusVerified, data.Status)
-	require.True(t, data.RoutingVerified, "cname_verified was seeded true, received: %s", res.RawBody)
-	require.False(t, data.OwnershipVerified)
 	require.Nil(t, data.VerificationError, "no error was seeded, received: %s", res.RawBody)
-	require.NotNil(t, data.LastCheckedAt)
-	require.Equal(t, checkedAt, *data.LastCheckedAt)
 	require.NotZero(t, data.CreatedAt)
+
+	// cname_verified was seeded true and ownership_verified false, and each flag belongs to
+	// the record it was checked against.
+	require.Len(t, data.DnsRecords, 2, "received: %s", res.RawBody)
+	require.Equal(t, openapi.CNAME, data.DnsRecords[0].Type)
+	require.True(t, data.DnsRecords[0].Verified, "received: %s", res.RawBody)
+	require.Equal(t, openapi.TXT, data.DnsRecords[1].Type)
+	require.False(t, data.DnsRecords[1].Verified, "received: %s", res.RawBody)
 }
 
 // TestGetDomainById pins that the same row is reachable by id, since that is what
@@ -141,10 +145,10 @@ func TestGetDomainApexRecords(t *testing.T) {
 	require.Equal(t, "_unkey."+apex, res.Body.Data.DnsRecords[1].Name)
 }
 
-// TestGetDomainVerifiedWithUnreadableRouting pins the shape a proxied, flattened, or
-// apex domain reports: it routes through a record the worker cannot read back, so it
-// verifies on its TXT record and keeps routingVerified false while serving. The flag
-// reports which proof passed, so it must not be folded into status.
+// TestGetDomainVerifiedWithUnreadableRouting pins the shape a proxied, flattened, or apex
+// domain reports: it routes through a record the worker cannot read back, so only its TXT
+// record reports verified while it serves. Per record rather than per domain, since that is
+// what tells a caller which one to go fix.
 func TestGetDomainVerifiedWithUnreadableRouting(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
@@ -162,8 +166,11 @@ func TestGetDomainVerifiedWithUnreadableRouting(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, openapi.DomainStatusVerified, res.Body.Data.Status)
-	require.True(t, res.Body.Data.OwnershipVerified)
-	require.False(t, res.Body.Data.RoutingVerified, "routing must not be reported as verified, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data.DnsRecords, 2, "received: %s", res.RawBody)
+	require.False(t, res.Body.Data.DnsRecords[0].Verified,
+		"the routing record could not be read back, received: %s", res.RawBody)
+	require.True(t, res.Body.Data.DnsRecords[1].Verified,
+		"ownership was proven through TXT, received: %s", res.RawBody)
 }
 
 func TestGetDomainFailedReportsError(t *testing.T) {
@@ -236,7 +243,6 @@ func TestGetDomainOmitsUnsetOptionalFields(t *testing.T) {
 		Domain: seeded.domain,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Nil(t, res.Body.Data.LastCheckedAt)
 	require.Nil(t, res.Body.Data.VerificationError)
 	require.Nil(t, res.Body.Data.UpdatedAt)
 	require.NotContains(t, res.RawBody, "lastCheckedAt", "unset optional fields must be absent, received: %s", res.RawBody)

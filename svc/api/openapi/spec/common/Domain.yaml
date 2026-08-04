@@ -6,8 +6,6 @@ required:
   - appId
   - environmentId
   - status
-  - routingVerified
-  - ownershipVerified
   - dnsRecords
   - createdAt
 properties:
@@ -64,26 +62,9 @@ properties:
       - `failed`: the required records did not appear within 24 hours of creation
 
       `verified` means verification passed, so Unkey has provisioned routing and requested a
-      certificate. `routingVerified` and `ownershipVerified` report which proof it passed on.
+      certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
+      that proof came from.
     example: verified
-  routingVerified:
-    type: boolean
-    description: |
-      Whether the routing record was read back with the expected value.
-
-      False does not mean traffic is not being served. A proxied, flattened, or apex domain routes
-      through a record that cannot be read back, so it verifies through its TXT record instead and
-      reports `false` here for as long as it serves. A domain that published only the TXT record and
-      no routing record at all verifies the same way, so this flag on its own does not separate the
-      two. When it is `true`, the routing record was read back and matched.
-    example: true
-  ownershipVerified:
-    type: boolean
-    description: |
-      Whether the TXT record proving ownership has been read back. False is normal for a domain that
-      verified through its routing record alone, since the TXT record is only consulted when it is
-      needed.
-    example: false
   verificationError:
     type: string
     maxLength: 512
@@ -91,13 +72,6 @@ properties:
       Why the most recent verification attempt did not succeed, in plain language.
       Omitted while verification is progressing normally.
     example: domain verification timed out after 24 hours
-  lastCheckedAt:
-    type: integer
-    format: int64
-    description: |
-      Unix timestamp in milliseconds of the most recent DNS check.
-      Omitted until the first check completes.
-    example: 1704067200000
   dnsRecords:
     type: array
     minItems: 1
@@ -106,7 +80,7 @@ properties:
     description: |
       The DNS records this domain needs, rebuilt from stored state so they match what
       domains.createDomain returned. Useful for recovering the values without re-creating the domain,
-      and for showing a caller what to publish while the domain is not yet verified.
+      and each entry's `verified` flag shows which records are still outstanding.
   createdAt:
     type: integer
     format: int64

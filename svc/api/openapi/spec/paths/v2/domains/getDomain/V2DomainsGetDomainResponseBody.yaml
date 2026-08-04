@@ -22,9 +22,6 @@ examples:
         appId: app_1234abcd
         environmentId: env_1234abcd
         status: verified
-        routingVerified: true
-        ownershipVerified: false
-        lastCheckedAt: 1704067260000
         dnsRecords:
           - type: CNAME
             name: api.acme.com
@@ -42,7 +39,7 @@ examples:
         updatedAt: 1704067260000
   pending:
     summary: Domain created, not checked yet
-    description: No DNS check has run, so lastCheckedAt and updatedAt are absent rather than zero
+    description: No DNS check has run, so neither record is verified and updatedAt is absent
     value:
       meta:
         requestId: req_1234abcd
@@ -53,8 +50,6 @@ examples:
         appId: app_1234abcd
         environmentId: env_1234abcd
         status: pending
-        routingVerified: false
-        ownershipVerified: false
         dnsRecords:
           - type: CNAME
             name: api.acme.com
@@ -70,7 +65,7 @@ examples:
             note: Proves ownership. Create it alongside the routing record.
         createdAt: 1704067200000
   claimedButNotRouting:
-    summary: Ownership proven, routing missing
+    summary: Apex domain serving, routing record unreadable
     description: |
       The TXT record was published but the routing record was not, so the domain counts as verified
       while serving no traffic. Create the routing record from `dnsRecords` to fix it.
@@ -84,9 +79,6 @@ examples:
         appId: app_1234abcd
         environmentId: env_1234abcd
         status: verified
-        routingVerified: false
-        ownershipVerified: true
-        lastCheckedAt: 1704067260000
         dnsRecords:
           - type: ALIAS
             name: acme.com
@@ -115,10 +107,7 @@ examples:
         appId: app_1234abcd
         environmentId: env_1234abcd
         status: failed
-        routingVerified: false
-        ownershipVerified: false
         verificationError: domain verification timed out after 24 hours
-        lastCheckedAt: 1704153600000
         dnsRecords:
           - type: CNAME
             name: api.acme.com

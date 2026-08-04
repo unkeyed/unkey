@@ -507,7 +507,7 @@ type Domain struct {
 
 	// DnsRecords The DNS records this domain needs, rebuilt from stored state so they match what
 	// domains.createDomain returned. Useful for recovering the values without re-creating the domain,
-	// and for showing a caller what to publish while the domain is not yet verified.
+	// and each entry's `verified` flag shows which records are still outstanding.
 	DnsRecords []DnsRecord `json:"dnsRecords"`
 
 	// Domain Fully qualified domain name attached to the environment.
@@ -521,26 +521,8 @@ type Domain struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Id ResourceIdentifier `json:"id"`
 
-	// LastCheckedAt Unix timestamp in milliseconds of the most recent DNS check.
-	// Omitted until the first check completes.
-	LastCheckedAt *int64 `json:"lastCheckedAt,omitempty"`
-
-	// OwnershipVerified Whether the TXT record proving ownership has been read back. False is normal for a domain that
-	// verified through its routing record alone, since the TXT record is only consulted when it is
-	// needed.
-	OwnershipVerified bool `json:"ownershipVerified"`
-
 	// ProjectId The project the domain's environment belongs to.
 	ProjectId string `json:"projectId"`
-
-	// RoutingVerified Whether the routing record was read back with the expected value.
-	//
-	// False does not mean traffic is not being served. A proxied, flattened, or apex domain routes
-	// through a record that cannot be read back, so it verifies through its TXT record instead and
-	// reports `false` here for as long as it serves. A domain that published only the TXT record and
-	// no routing record at all verifies the same way, so this flag on its own does not separate the
-	// two. When it is `true`, the routing record was read back and matched.
-	RoutingVerified bool `json:"routingVerified"`
 
 	// Status Where the domain is in verification.
 	//
@@ -550,7 +532,8 @@ type Domain struct {
 	// - `failed`: the required records did not appear within 24 hours of creation
 	//
 	// `verified` means verification passed, so Unkey has provisioned routing and requested a
-	// certificate. `routingVerified` and `ownershipVerified` report which proof it passed on.
+	// certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
+	// that proof came from.
 	Status DomainStatus `json:"status"`
 
 	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
@@ -569,7 +552,8 @@ type Domain struct {
 // - `failed`: the required records did not appear within 24 hours of creation
 //
 // `verified` means verification passed, so Unkey has provisioned routing and requested a
-// certificate. `routingVerified` and `ownershipVerified` report which proof it passed on.
+// certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
+// that proof came from.
 type DomainStatus string
 
 // DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
