@@ -462,7 +462,7 @@ type DnsRecord struct {
 	// hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
 	Type DnsRecordType `json:"type"`
 
-	// Value The value to store, exactly as given, including any prefix.
+	// Value The value to set on the record, exactly as given, including any prefix.
 	// Do not trim or reformat it: verification compares the published record against this string.
 	//
 	// Use the lowest TTL your provider allows until the domain is verified. Verification polls DNS,
