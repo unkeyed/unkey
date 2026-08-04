@@ -93,7 +93,7 @@ func TestCreateDomainPlanAllowanceExceeded(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-	require.Equal(t, "https://unkey.com/docs/errors/unkey/limits/custom_domains_exceeded", res.Body.Error.Type)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded", res.Body.Error.Type)
 	require.Contains(t, res.Body.Error.Detail, "Upgrade your plan",
 		"the detail must name a way out, received: %s", res.RawBody)
 

@@ -8668,7 +8668,7 @@ paths:
                                             detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
                                             status: 403
                                             title: Forbidden
-                                            type: https://unkey.com/docs/errors/unkey/limits/custom_domains_exceeded
+                                            type: https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded
                                         meta:
                                             requestId: req_1234abcd
                                 keyDisabled:

@@ -528,7 +528,7 @@
                   {
                     "group": "Limits",
                     "pages": [
-                      "errors/unkey/limits/custom_domains_exceeded"
+                      "errors/unkey/limits/custom_domain_limit_exceeded"
                     ]
                   }
                 ]

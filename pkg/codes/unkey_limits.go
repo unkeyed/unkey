@@ -19,6 +19,6 @@ type UnkeyLimitsErrors struct {
 // error handling throughout the application.
 var Limits = UnkeyLimitsErrors{
 	CustomDomain: limitsCustomDomain{
-		Exceeded: Code{SystemUnkey, CategoryUnkeyLimits, "custom_domains_exceeded"},
+		Exceeded: Code{SystemUnkey, CategoryUnkeyLimits, "custom_domain_limit_exceeded"},
 	},
 }

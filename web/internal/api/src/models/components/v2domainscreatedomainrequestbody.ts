@@ -31,7 +31,8 @@ export type V2DomainsCreateDomainRequestBody = {
    *
    * @remarks
    * Must be unique across your entire workspace: the same name cannot be attached to two environments.
-   * Labels may contain letters, digits, and hyphens, and cannot start or end with a hyphen.
+   * Labels may contain letters, digits, and hyphens, cannot start or end with a hyphen, and are
+   * limited to 63 characters each. Internationalized names must already be Punycode encoded.
    */
   domain: string;
 };

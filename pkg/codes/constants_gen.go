@@ -254,7 +254,7 @@ const (
 	// CustomDomain
 
 	// Exceeded indicates the workspace has already attached as many custom domains as its plan allows.
-	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domains_exceeded"
+	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domain_limit_exceeded"
 
 	// ----------------
 	// UnkeyFrontlineErrors

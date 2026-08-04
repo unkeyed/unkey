@@ -189,7 +189,7 @@ post:
                   title: Forbidden
                   detail: Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.
                   status: 403
-                  type: https://unkey.com/docs/errors/unkey/limits/custom_domains_exceeded
+                  type: https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded
     "404":
       description: |
         Not Found - The environment does not exist in your workspace, or your root key may not read it
