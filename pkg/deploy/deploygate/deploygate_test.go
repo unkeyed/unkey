@@ -13,7 +13,7 @@ func promoteBase() PromoteInput {
 	return PromoteInput{
 		Status:              dbtype.DeploymentsStatusReady,
 		DesiredState:        dbtype.DeploymentsDesiredStateRunning,
-		EnvironmentSlug:     envProduction,
+		EnvironmentKind:     dbtype.EnvironmentKindProduction,
 		CurrentDeploymentID: "dep_live",
 		DeploymentID:        "dep_target",
 		IsRolledBack:        false,
@@ -24,7 +24,7 @@ func rollbackBase() RollbackInput {
 	return RollbackInput{
 		Status:              dbtype.DeploymentsStatusReady,
 		DesiredState:        dbtype.DeploymentsDesiredStateRunning,
-		EnvironmentSlug:     envProduction,
+		EnvironmentKind:     dbtype.EnvironmentKindProduction,
 		CurrentDeploymentID: "dep_live",
 		DeploymentID:        "dep_target",
 	}
@@ -51,10 +51,10 @@ func TestFaultUserFacingMessage(t *testing.T) {
 	in.CurrentDeploymentID = in.DeploymentID
 	require.Equal(t, "The deployment is already the current deployment.", fault.UserFacingMessage(CheckPromoteTarget(in)))
 
-	stop := StopInput{Status: dbtype.DeploymentsStatusReady, DesiredState: dbtype.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
+	stop := StopInput{Status: dbtype.DeploymentsStatusReady, DesiredState: dbtype.DeploymentsDesiredStateStopped}
 	require.Equal(t, "The deployment is already stopping.", fault.UserFacingMessage(CheckStopTarget(stop)))
 
-	start := StartInput{DesiredState: dbtype.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview", SpendSuspended: true}
+	start := StartInput{DesiredState: dbtype.DeploymentsDesiredStateStopped, SpendSuspended: true}
 	require.Equal(t, "The workspace is suspended by its Compute spend cap. Raise the spend limit to resume.", fault.UserFacingMessage(CheckStartTarget(start)))
 
 	// The base and internal strings must never leak into the user-facing message.
@@ -76,7 +76,7 @@ func TestCheckPromoteTarget(t *testing.T) {
 		requireCode(t, codes.App.Precondition.DeploymentNotReady, CheckPromoteTarget(in))
 
 		in = promoteBase()
-		in.EnvironmentSlug = "preview"
+		in.EnvironmentKind = dbtype.EnvironmentKindPreview
 		requireCode(t, codes.App.Precondition.DeploymentNotProduction, CheckPromoteTarget(in))
 
 		in = promoteBase()
@@ -117,7 +117,7 @@ func TestCheckRollbackTarget(t *testing.T) {
 }
 
 func TestCheckStopTarget(t *testing.T) {
-	running := StopInput{Status: dbtype.DeploymentsStatusReady, DesiredState: dbtype.DeploymentsDesiredStateRunning, EnvironmentSlug: "preview"}
+	running := StopInput{Status: dbtype.DeploymentsStatusReady, DesiredState: dbtype.DeploymentsDesiredStateRunning}
 
 	require.NoError(t, CheckStopTarget(running))
 
@@ -130,14 +130,14 @@ func TestCheckStopTarget(t *testing.T) {
 	requireCode(t, codes.App.Precondition.DeploymentIsStopping, CheckStopTarget(draining))
 
 	prod := running
-	prod.EnvironmentSlug = envProduction
+	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
 	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
 }
 
 func TestCheckStartTarget(t *testing.T) {
 	// A stopped deployment is keyed on desired_state, not status: it may still be
 	// draining (status ready) while its intent is stopped.
-	stopped := StartInput{DesiredState: dbtype.DeploymentsDesiredStateStopped, EnvironmentSlug: "preview"}
+	stopped := StartInput{DesiredState: dbtype.DeploymentsDesiredStateStopped}
 
 	require.NoError(t, CheckStartTarget(stopped), "wakeable while draining toward stopped")
 
@@ -146,7 +146,7 @@ func TestCheckStartTarget(t *testing.T) {
 	requireCode(t, codes.App.Precondition.DeploymentNotStopped, CheckStartTarget(notStopped))
 
 	prod := stopped
-	prod.EnvironmentSlug = envProduction
+	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
 	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStartTarget(prod))
 
 	suspended := stopped

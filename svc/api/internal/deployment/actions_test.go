@@ -27,30 +27,31 @@ func TestAvailableActions(t *testing.T) {
 		status       mysqltype.DeploymentsStatus
 		desiredState mysqltype.DeploymentsDesiredState
 		envSlug      string
+		envKind      mysqltype.EnvironmentKind
 		current      string // app's current_deployment_id
 		rolledBack   bool
 		want         []openapi.DeploymentAction
 	}{
-		{"prod ready, another is live", ready, running, "production", other, false,
+		{"production canary ready, another is live", ready, running, "canary", mysqltype.EnvironmentKindProduction, other, false,
 			[]openapi.DeploymentAction{openapi.DeploymentActionPromote, openapi.DeploymentActionRollback}},
-		{"prod ready, this is live", ready, running, "production", self, false,
+		{"production canary ready, this is live", ready, running, "canary", mysqltype.EnvironmentKindProduction, self, false,
 			[]openapi.DeploymentAction{}},
-		{"prod ready, this is the rolled-back live one", ready, running, "production", self, true,
+		{"production canary ready, this is the rolled-back live one", ready, running, "canary", mysqltype.EnvironmentKindProduction, self, true,
 			// promote forward is legal, rollback to the current is not
 			[]openapi.DeploymentAction{openapi.DeploymentActionPromote}},
-		{"prod ready, app has no live deployment", ready, running, "production", "", false,
+		{"production canary ready, app has no live deployment", ready, running, "canary", mysqltype.EnvironmentKindProduction, "", false,
 			[]openapi.DeploymentAction{}},
-		{"prod ready but draining", ready, drained, "production", other, false,
+		{"production canary ready but draining", ready, drained, "canary", mysqltype.EnvironmentKindProduction, other, false,
 			[]openapi.DeploymentAction{}},
-		{"prod still building", building, running, "production", other, false,
+		{"production canary still building", building, running, "canary", mysqltype.EnvironmentKindProduction, other, false,
 			[]openapi.DeploymentAction{}},
-		{"preview ready running", ready, running, "preview", "", false,
+		{"preview ready running", ready, running, "preview", mysqltype.EnvironmentKindPreview, "", false,
 			[]openapi.DeploymentAction{openapi.DeploymentActionStop}},
-		{"preview stopped", stopped, drained, "preview", "", false,
+		{"preview stopped", stopped, drained, "preview", mysqltype.EnvironmentKindPreview, "", false,
 			[]openapi.DeploymentAction{openapi.DeploymentActionStart}},
-		{"preview building", building, running, "preview", "", false,
+		{"preview building", building, running, "preview", mysqltype.EnvironmentKindPreview, "", false,
 			[]openapi.DeploymentAction{}},
-		{"unknown environment offers nothing", ready, running, "", other, false,
+		{"unknown environment offers nothing", ready, running, "", "", other, false,
 			[]openapi.DeploymentAction{}},
 	}
 	for _, tc := range cases {
@@ -59,6 +60,7 @@ func TestAvailableActions(t *testing.T) {
 				Deployment: db.Deployment{ID: self, Status: tc.status, DesiredState: tc.desiredState},
 				State: db.ListDeploymentEnvAndAppStateRow{
 					EnvironmentSlug:        tc.envSlug,
+					EnvironmentKind:        tc.envKind,
 					AppCurrentDeploymentID: sql.NullString{Valid: tc.current != "", String: tc.current},
 					AppIsRolledBack:        tc.rolledBack,
 				},
