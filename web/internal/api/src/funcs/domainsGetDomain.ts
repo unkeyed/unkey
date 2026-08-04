@@ -39,10 +39,11 @@ import { Result } from "../types/fp.js";
  * roughly once a minute, so the result is eventually consistent; `lastCheckedAt` tells you when it
  * was last looked at.
  *
- * **Read `routingVerified` before sending traffic.** `status` summarises verification, and
- * verification can pass on proof of ownership alone. A domain with `status: verified` and
- * `routingVerified: false` is claimed by your workspace but routes nothing, because the routing
- * record was never read back. `verificationError` explains the most recent failed attempt.
+ * `status: verified` means verification passed, so Unkey has provisioned routing and requested a
+ * certificate. `routingVerified` and `ownershipVerified` report which proof it passed on rather
+ * than whether traffic arrives: a proxied, flattened, or apex domain routes through a record that
+ * cannot be read back, so it verifies on its TXT record and keeps `routingVerified: false` for as
+ * long as it serves. `verificationError` explains the most recent failed attempt.
  *
  * `dnsRecords` is rebuilt from stored state and matches what `domains.createDomain` returned, so
  * the values are recoverable without creating the domain again.
