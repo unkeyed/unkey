@@ -37,6 +37,11 @@ const (
 
 	// Environment represents environment resources within an app
 	Environment ResourceType = "environment"
+
+	// Workspace represents workspace-wide operations that are not scoped to any
+	// project, app, or api (e.g. installing the Unkey GitHub App). There is one
+	// workspace per root key, so permissions use the "*" id.
+	Workspace ResourceType = "workspace"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -77,6 +82,15 @@ const (
 
 	// ReadAnalytics permits viewing API analytics
 	ReadAnalytics ActionType = "read_analytics"
+)
+
+// Predefined workspace actions. These constants define workspace-wide
+// operations that are not scoped to a project, app, or api.
+const (
+	// InstallGithub permits installing the Unkey GitHub App for the workspace
+	// (minting the install URL and binding the resulting installation). It is a
+	// workspace-wide action, so it is granted as workspace.*.install_github.
+	InstallGithub ActionType = "install_github"
 )
 
 // Predefined rate limiting actions. These constants define operations
@@ -223,6 +237,12 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
+
+	// ConnectRepository permits connecting or disconnecting a GitHub repository
+	// for an app (the `git` field on apps.createApp / apps.updateApp). Installing
+	// the Unkey GitHub App itself is a separate workspace-level action,
+	// InstallGithub.
+	ConnectRepository ActionType = "connect_repository"
 )
 
 // Predefined environment actions. These constants define operations that can

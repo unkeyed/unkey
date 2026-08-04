@@ -5,7 +5,7 @@ import { Database } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Storage tiers on the slider. resolveStrategy bounds these to the workspace
-// quota and adds the exact quota value as a stop when it is not one of these tiers.
+// limit and adds the exact limit value as a stop when it is not one of these tiers.
 const STORAGE_OPTIONS = [
   { label: "None", value: 0 },
   { label: "512 MiB", value: 512 },
@@ -31,7 +31,7 @@ const storageConfig = defineResourceSlider({
   write: (draft, value) => {
     draft.storageMib = value;
   },
-  quotaKey: "maxStorageMibPerInstance",
+  limitKey: "storageMibMaxPerInstance",
 });
 
 export const Storage = () => <ResourceSliderSetting config={storageConfig} />;

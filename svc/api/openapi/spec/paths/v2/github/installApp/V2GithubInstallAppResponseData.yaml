@@ -1,0 +1,21 @@
+type: object
+required:
+  - url
+  - expiresAt
+properties:
+  url:
+    type: string
+    format: uri
+    description: |
+      The GitHub App install URL. Open it in a browser to install the app and
+      grant repository access. After installation GitHub returns to Unkey, which
+      binds the installation and lands you in the workspace settings.
+    example: https://github.com/apps/unkey/installations/new?state=eyJ...
+  expiresAt:
+    type: integer
+    format: int64
+    description: |
+      Unix timestamp in milliseconds after which the URL's signed state expires
+      and the link must be requested again.
+    example: 1700000900000
+additionalProperties: false

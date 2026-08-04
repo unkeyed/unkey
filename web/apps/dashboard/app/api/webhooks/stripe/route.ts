@@ -5,7 +5,7 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits, freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
@@ -608,25 +608,18 @@ export const POST = async (req: Request): Promise<Response> => {
             })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
+          await setComputeQuotas(tx, {
+            workspaceId: ws.id,
+            plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
+            preserveApiQuotas: true,
+            quotaUpdate: {
               requestsPerMonth,
               logsRetentionDays,
               auditLogsRetentionDays,
               team: true,
               ...rateLimitReset,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-                ...rateLimitReset,
-              },
-            });
+            },
+          });
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
@@ -769,6 +762,15 @@ export const POST = async (req: Request): Promise<Response> => {
                 .insert(schema.quotas)
                 .values({ workspaceId: ws.id, ...freeTierQuotas })
                 .onDuplicateKeyUpdate({ set: freeTierQuotas });
+              await tx
+                .insert(schema.limits)
+                .values({
+                  workspaceId: ws.id,
+                  ...freeTierLimits,
+                })
+                .onDuplicateKeyUpdate({
+                  set: freeTierLimits,
+                });
             }
 
             await insertAuditLogs(tx, {
@@ -856,6 +858,15 @@ export const POST = async (req: Request): Promise<Response> => {
               .insert(schema.quotas)
               .values({ workspaceId: ws.id, ...freeTierQuotas })
               .onDuplicateKeyUpdate({ set: freeTierQuotas });
+            await tx
+              .insert(schema.limits)
+              .values({
+                workspaceId: ws.id,
+                ...freeTierLimits,
+              })
+              .onDuplicateKeyUpdate({
+                set: freeTierLimits,
+              });
           }
 
           await insertAuditLogs(tx, {

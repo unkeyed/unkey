@@ -13,13 +13,13 @@ import (
 )
 
 // All bad input returns 400, whether rejected by the OpenAPI validation
-// middleware (shapes, patterns, bounds, array caps) or by the handler (quota,
-// region logic). The seeded quota row uses the schema defaults (cpu 2000, memory
-// 4096, storage 10240), so requests above those exceed quota.
+// middleware (shapes, patterns, bounds, array caps) or by the handler (limits,
+// region logic). The seeded limits row uses the test defaults (cpu 2000, memory
+// 4096, storage 10240), so requests above those exceed limits.
 func TestUpdateSettings400(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, QuotaCache: h.Caches.WorkspaceQuota}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)

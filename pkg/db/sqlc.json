@@ -133,6 +133,14 @@
                 "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }
+            },
+            {
+              "column": "environments.kind",
+              "go_type": {
+                "type": "EnvironmentKind",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
             }
           ]
         }

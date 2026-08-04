@@ -52,7 +52,7 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    deployment.DesiredState,
-		EnvironmentSlug: environment.Slug,
+		EnvironmentKind: environment.Kind,
 		SpendSuspended:  entitlement.SpendSuspended.Bool,
 	}); err != nil {
 		return nil, gatefault.Connect(err)

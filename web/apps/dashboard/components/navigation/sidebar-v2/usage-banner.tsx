@@ -16,7 +16,7 @@ import Link from "next/link";
 
 export function UsageBanner() {
   const workspace = useWorkspaceNavigation();
-  const { quotas } = useWorkspace();
+  const { limits } = useWorkspace();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -33,15 +33,18 @@ export function UsageBanner() {
   });
 
   const current = usage.data?.billableTotal ?? 0;
-  const max = quotas?.requestsPerMonth;
+  const max = limits?.apiBillableOperationsCountMaxPerMonth;
 
   if (max === undefined || max === null) {
-    console.error("UsageBanner: quotas.requestsPerMonth is undefined or null");
+    console.error("UsageBanner: limits.apiBillableOperationsCountMaxPerMonth is undefined or null");
     return null;
   }
 
   if (max <= 0) {
-    console.error("UsageBanner: quotas.requestsPerMonth must be greater than 0, got:", max);
+    console.error(
+      "UsageBanner: limits.apiBillableOperationsCountMaxPerMonth must be greater than 0, got:",
+      max,
+    );
     return null;
   }
 

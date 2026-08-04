@@ -21,6 +21,7 @@ type BulkQuerier interface {
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, db DBTX, args []InsertGithubRepoConnectionParams) error
+	UpsertGithubRepoConnection(ctx context.Context, db DBTX, args []UpsertGithubRepoConnectionParams) error
 	InsertHorizontalAutoscalingPolicies(ctx context.Context, db DBTX, args []InsertHorizontalAutoscalingPolicyParams) error
 	InsertIdentities(ctx context.Context, db DBTX, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, db DBTX, args []InsertIdentityRatelimitParams) error
@@ -34,6 +35,7 @@ type BulkQuerier interface {
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
+	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
 	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error

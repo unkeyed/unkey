@@ -17,6 +17,7 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -196,6 +197,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "preview",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindPreview,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			}, {
@@ -205,6 +207,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "production",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindProduction,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			},

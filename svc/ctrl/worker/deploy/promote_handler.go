@@ -81,7 +81,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if err := deploygate.CheckPromoteTarget(deploygate.PromoteInput{
 		Status:              targetDeployment.Status,
 		DesiredState:        targetDeployment.DesiredState,
-		EnvironmentSlug:     environment.Slug,
+		EnvironmentKind:     environment.Kind,
 		CurrentDeploymentID: app.CurrentDeploymentID.String,
 		DeploymentID:        targetDeployment.ID,
 		IsRolledBack:        app.IsRolledBack,
