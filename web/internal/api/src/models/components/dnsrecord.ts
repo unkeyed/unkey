@@ -49,7 +49,7 @@ export type DnsRecord = {
    */
   name: string;
   /**
-   * The value to store, exactly as given, including any prefix.
+   * The value to set on the record, exactly as given, including any prefix.
    *
    * @remarks
    * Do not trim or reformat it: verification compares the published record against this string.

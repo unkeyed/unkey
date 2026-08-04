@@ -22,6 +22,7 @@ export * from "./deploymentsourcegit.js";
 export * from "./deploymentsourceimage.js";
 export * from "./deploymentstatus.js";
 export * from "./dnsrecord.js";
+export * from "./domainconnect.js";
 export * from "./emptyresponse.js";
 export * from "./environment.js";
 export * from "./environmentbuild.js";

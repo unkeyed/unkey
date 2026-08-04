@@ -18,7 +18,7 @@ export class Domains extends ClientSDK {
    *
    * The response returns `dnsRecords`: every record needed to finish setup, already resolved for whether this domain is an apex or a subdomain. Create every entry exactly as given. One record establishes routing and one proves ownership, and both are needed: whether ownership can be inferred from the routing record depends on how your provider publishes it, and a name another workspace has already verified can only be claimed through the ownership record. Neither is knowable before the records exist.
    *
-   * When your DNS provider supports Domain Connect, the response also carries `domainConnectProvider` and `domainConnectUrl`; opening that URL applies the same records at the provider in one step.
+   * When your DNS provider supports Domain Connect, the response also carries a `domainConnect` object; opening its `url` applies the same records at the provider in one step. The object is absent when the shortcut is unavailable.
    *
    * Domains are unique per workspace, so the same name cannot be attached to two environments. Attaching a domain that already exists in your workspace returns a 409 conflict.
    *

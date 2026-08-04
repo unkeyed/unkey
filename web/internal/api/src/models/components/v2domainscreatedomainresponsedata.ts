@@ -7,6 +7,7 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
+import { DomainConnect, DomainConnect$inboundSchema } from "./domainconnect.js";
 
 export type V2DomainsCreateDomainResponseData = {
   /**
@@ -30,29 +31,13 @@ export type V2DomainsCreateDomainResponseData = {
    */
   dnsRecords: Array<DnsRecord>;
   /**
-   * Display name of the DNS provider the domain is delegated to, such as 'Cloudflare'. Discovered from
+   * One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
    *
    * @remarks
-   * the domain's nameservers, so it reflects where DNS is actually hosted rather than where the domain
-   * was registered. Omitted when the provider does not support Domain Connect or discovery failed.
+   * Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+   * available and both of its fields are filled.
    */
-  domainConnectProvider?: string | undefined;
-  /**
-   * Signed Domain Connect URL that pre-fills the records in `dnsRecords` at the provider. Open it in a
-   *
-   * @remarks
-   * browser and the domain owner approves them in one step instead of entering them by hand. The URL is
-   * signed with an Unkey key, so it cannot be constructed or altered by the caller.
-   *
-   * Intended for a browser, not a script: after approval the provider sends the browser to this
-   * workspace's app settings page in the Unkey dashboard, so it suits a caller who administers this
-   * workspace. Anyone who does not have access to it approves the records successfully but lands on a
-   * page they cannot open. Approving is what writes the records; verification then proceeds on its own,
-   * so nothing depends on completing that return trip.
-   *
-   * Omitted whenever domainConnectProvider is omitted.
-   */
-  domainConnectUrl?: string | undefined;
+  domainConnect?: DomainConnect | undefined;
 };
 
 /** @internal */
@@ -63,8 +48,7 @@ export const V2DomainsCreateDomainResponseData$inboundSchema: z.ZodType<
 > = z.object({
   domainId: z.string(),
   dnsRecords: z.array(DnsRecord$inboundSchema),
-  domainConnectProvider: z.string().optional(),
-  domainConnectUrl: z.string().optional(),
+  domainConnect: DomainConnect$inboundSchema.optional(),
 });
 
 export function v2DomainsCreateDomainResponseDataFromJSON(
