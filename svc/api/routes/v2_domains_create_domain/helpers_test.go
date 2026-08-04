@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -81,23 +83,23 @@ func makeRequest(env seededEnv, domain string) handler.Request {
 func insertCustomDomain(t *testing.T, h *testutil.Harness, req *ctrlv1.AddCustomDomainRequest, domainID string) {
 	t.Helper()
 
-	_, err := h.DB.RW().ExecContext(context.Background(), `
-		INSERT INTO custom_domains
-			(id, workspace_id, project_id, app_id, environment_id, domain,
-			 challenge_type, verification_status, verification_token, target_cname, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'HTTP-01', 'pending', ?, ?, ?)
-	`,
-		domainID,
-		req.GetWorkspaceId(),
-		req.GetProjectId(),
-		req.GetAppId(),
-		req.GetEnvironmentId(),
-		req.GetDomain(),
-		uid.New("vt"),
-		uid.DNS1035(16)+".cname.unkey.local",
-		time.Now().UnixMilli(),
-	)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.InsertCustomDomain(context.Background(), h.DB.RW(), db.InsertCustomDomainParams{
+		ID:                 domainID,
+		WorkspaceID:        req.GetWorkspaceId(),
+		ProjectID:          req.GetProjectId(),
+		AppID:              req.GetAppId(),
+		EnvironmentID:      req.GetEnvironmentId(),
+		Domain:             req.GetDomain(),
+		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus: db.CustomDomainsVerificationStatusPending,
+		VerificationToken:  uid.New("vt"),
+		OwnershipVerified:  false,
+		CnameVerified:      false,
+		TargetCname:        uid.DNS1035(16) + ".cname.unkey.local",
+		VerificationError:  sql.NullString{String: "", Valid: false},
+		LastCheckedAt:      sql.NullInt64{Int64: 0, Valid: false},
+		CreatedAt:          time.Now().UnixMilli(),
+	}))
 }
 
 // setCustomDomainAllowance overrides the seeder's generous default so a test can
@@ -105,9 +107,10 @@ func insertCustomDomain(t *testing.T, h *testutil.Harness, req *ctrlv1.AddCustom
 func setCustomDomainAllowance(t *testing.T, h *testutil.Harness, workspaceID string, allowance uint32) {
 	t.Helper()
 
-	_, err := h.DB.RW().ExecContext(context.Background(),
-		"UPDATE `limits` SET custom_domains_max = ? WHERE workspace_id = ?", allowance, workspaceID)
-	require.NoError(t, err)
+	require.NoError(t, db.Query.UpdateCustomDomainsMax(context.Background(), h.DB.RW(), db.UpdateCustomDomainsMaxParams{
+		CustomDomainsMax: allowance,
+		WorkspaceID:      workspaceID,
+	}))
 }
 
 // randomSlug produces a lowercase-dashed value. Parallel packages share one

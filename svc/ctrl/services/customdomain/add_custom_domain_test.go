@@ -2,6 +2,7 @@ package customdomain
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -465,16 +466,25 @@ func (f fixture) seedChain(t *testing.T, workspaceID string, customDomainsMax ui
 		Description: "Production environment",
 	})
 
-	_, err := f.database.RW().ExecContext(ctx, `
-		INSERT INTO `+"`limits`"+`
-			(workspace_id, api_billable_operations_count_max_per_month, logs_retention_days_max,
-			 logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance,
-			 memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance,
-			 builds_concurrent_max, custom_domains_max, autoscaling_replicas_max)
-		VALUES (?, 150000, 7, 30, false, 10, 2, 20480, 4096, 51200, 10240, 1, ?, 0)
-		ON DUPLICATE KEY UPDATE custom_domains_max = VALUES(custom_domains_max)
-	`, workspaceID, customDomainsMax)
-	require.NoError(t, err)
+	// Every allowance other than custom_domains_max is set high enough that no other
+	// gate can be what refused a request under test.
+	require.NoError(t, f.database.UpsertLimit(ctx, db.UpsertLimitParams{
+		WorkspaceID:                           workspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 150_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  7,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      customDomainsMax,
+		AutoscalingReplicasMax:                0,
+	}))
 
 	return chain{
 		workspaceID:   workspaceID,

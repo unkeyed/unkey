@@ -1035,6 +1035,42 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      challenge_type,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -2389,6 +2425,12 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
+	//UpdateCustomDomainsMax
+	//
+	//  UPDATE `limits`
+	//  SET custom_domains_max = ?
+	//  WHERE workspace_id = ?
+	UpdateCustomDomainsMax(ctx context.Context, db DBTX, arg UpdateCustomDomainsMaxParams) error
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
