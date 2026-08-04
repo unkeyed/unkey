@@ -77,11 +77,16 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
 	// produces a principal, we set it here for the upstream.
+	//
+	// Request logging is opt-in: only an enabled logging policy that matches
+	// the request turns it on. Without one, the ClickHouse logging middleware
+	// skips the row and body capture below is skipped entirely.
 	if len(decision.Policies) > 0 && h.Engine != nil {
 		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.Policies)
 		if evalErr != nil {
 			return evalErr
 		}
+		tracking.LogRequest = result.LogRequest
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
@@ -102,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// successful attempt drains it and the tee captures from that drain.
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
-	if req.Body != nil {
+	if tracking.LogRequest && req.Body != nil {
 		var buf bytes.Buffer
 		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
 		defer func() {

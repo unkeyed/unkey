@@ -29,6 +29,12 @@ type RequestTracking struct {
 	AppID         string
 	EnvironmentID string
 
+	// LogRequest is set by the handler when an enabled logging policy matched
+	// the request during policy evaluation. When false (the default), the
+	// ClickHouse logging middleware skips the row entirely and the handler and
+	// proxy skip request/response body capture.
+	LogRequest bool
+
 	// Credential locations derived from the route's KeyAuth policies, set by
 	// the handler. The ClickHouse logging middleware redacts the value of any
 	// request header named in RedactedHeaders (lowercased) and any query

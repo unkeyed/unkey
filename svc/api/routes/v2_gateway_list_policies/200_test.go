@@ -81,11 +81,13 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			{"id":"pol_firewall","name":"firewall","enabled":false,
 				"firewall":{"action":"ACTION_DENY"}},
 			{"id":"pol_openapi","name":"openapi",
-				"openapi":{}}
+				"openapi":{}},
+			{"id":"pol_logging","name":"logging","enabled":true,
+				"logging":{}}
 		]}`)
 
 		res := call(t, makeRequest(env))
-		require.Len(t, res.Body.Data, 4)
+		require.Len(t, res.Body.Data, 5)
 
 		keyauth := res.Body.Data[0]
 		require.Equal(t, "pol_keyauth", keyauth.Id)
@@ -156,6 +158,15 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		// false, matching frontline evaluation semantics.
 		require.False(t, oa.Enabled)
 		require.NotNil(t, oa.Openapi)
+
+		logging := res.Body.Data[4]
+		require.Equal(t, "pol_logging", logging.Id)
+		require.True(t, logging.Enabled)
+		require.NotNil(t, logging.Logging)
+		require.Nil(t, logging.Keyauth)
+		require.Nil(t, logging.Ratelimit)
+		require.Nil(t, logging.Firewall)
+		require.Nil(t, logging.Openapi)
 	})
 
 	t.Run("every ratelimit identifier source maps", func(t *testing.T) {

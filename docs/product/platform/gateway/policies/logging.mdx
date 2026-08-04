@@ -9,6 +9,8 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 The logging policy records the full HTTP request and response for every matched request. Use it to debug issues, audit API usage, and understand traffic patterns without adding instrumentation to your application.
 
+Logging is opt-in. Without an enabled logging policy, the gateway does not record requests. Add a logging policy with no match conditions to log all traffic, or scope it with match conditions to log only specific routes.
+
 ## What gets logged
 
 The gateway captures the following for each request:

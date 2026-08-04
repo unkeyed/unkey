@@ -5,6 +5,7 @@ package frontline.v1;
 import "frontline/policies/v1/firewall.proto";
 import "frontline/policies/v1/jwtauth.proto";
 import "frontline/policies/v1/keyauth.proto";
+import "frontline/policies/v1/logging.proto";
 import "frontline/policies/v1/match.proto";
 import "frontline/policies/v1/openapi.proto";
 import "frontline/policies/v1/ratelimit.proto";
@@ -58,5 +59,6 @@ message Policy {
     RateLimit ratelimit = 8;
     Firewall firewall = 9;
     OpenApiRequestValidation openapi = 10;
+    Logging logging = 11;
   }
 }

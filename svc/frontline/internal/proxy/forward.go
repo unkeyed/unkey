@@ -139,7 +139,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			// bidirectional copy; io.NopCloser would erase the Write half
 			// and break WebSockets. Logging a "response body" is meaningless
 			// after an upgrade — the bytes that follow are WS frames.
-			if resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
+			//
+			// Skip capture when the request is not opted into request
+			// logging (no matching logging policy): the buffered copy would
+			// never be persisted.
+			if hasTracking && tracking.LogRequest && resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
 				responseBuf.Reset()
 				resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
 			}

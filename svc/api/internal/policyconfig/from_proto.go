@@ -36,6 +36,7 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 		Ratelimit: nil,
 		Firewall:  nil,
 		Openapi:   nil,
+		Logging:   nil,
 	}
 
 	if len(p.GetMatch()) > 0 {
@@ -93,6 +94,9 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 
 	case *frontlinev1.Policy_Openapi:
 		out.Openapi = ptr.P(openapi.OpenapiPolicy{})
+
+	case *frontlinev1.Policy_Logging:
+		out.Logging = ptr.P(openapi.LoggingPolicy{})
 
 	default:
 		return openapi.PolicyResponse{}, unmappable(p.GetId(), "config variant")

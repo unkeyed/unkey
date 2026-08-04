@@ -1016,6 +1016,79 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// --- Logging integration tests ---
+
+func TestLogging_EnabledMatchingPolicySetsLogRequest(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Name:    "Log /api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequest)
+}
+
+func TestLogging_NonMatchingPolicyLeavesLogRequestOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequest)
+}
+
+func TestLogging_DisabledPolicyLeavesLogRequestOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(false),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequest)
+}
+
 func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()

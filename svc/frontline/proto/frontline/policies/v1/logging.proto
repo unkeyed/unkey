@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package frontline.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1";
+
+// Logging records the full HTTP request and response of matching requests to
+// the request log (ClickHouse), including headers, bodies, status, and a
+// latency breakdown. Without an enabled logging policy, frontline does not
+// persist request logs for a deployment at all — logging is strictly opt-in
+// per environment.
+//
+// Making logging a policy rather than an always-on behavior gives operators
+// the same controls as every other policy: scope it to specific routes via
+// match expressions (e.g. exclude health checks or high-volume endpoints),
+// and toggle it without a redeploy via the enabled flag.
+//
+// Sensitive values are redacted before persistence regardless of this
+// policy's configuration: the Authorization header is always redacted, and
+// any header or query parameter configured as a KeyAuth key location is
+// redacted too.
+//
+// The message is intentionally empty for now. What gets captured is fixed;
+// future knobs (sampling, body capture opt-out, retention hints) belong here.
+message Logging {}

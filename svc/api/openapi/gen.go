@@ -857,6 +857,14 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// LoggingPolicy Records the full HTTP request and response of matching requests, including
+// headers, bodies, and a latency breakdown, viewable in the dashboard's
+// Requests tab. Has no configuration of its own; scope what gets logged via
+// the policy's `match` expressions. Without an enabled logging policy no
+// request logs are recorded. Authorization headers and configured key
+// locations are always redacted before storage.
+type LoggingPolicy = map[string]interface{}
+
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
 // `header` or `queryParam` must be set.
 type MatchExpr struct {
@@ -953,9 +961,9 @@ type Permission struct {
 	Slug string `json:"slug"`
 }
 
-// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-// `openapi` must be set. The server generates an id for every policy it
-// stores.
+// Policy A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+// `openapi` or `logging` must be set. The server generates an id for every
+// policy it stores.
 type Policy struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -965,6 +973,14 @@ type Policy struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Records the full HTTP request and response of matching requests, including
+	// headers, bodies, and a latency breakdown, viewable in the dashboard's
+	// Requests tab. Has no configuration of its own; scope what gets logged via
+	// the policy's `match` expressions. Without an enabled logging policy no
+	// request logs are recorded. Authorization headers and configured key
+	// locations are always redacted before storage.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omit to apply to every request.
@@ -983,7 +999,7 @@ type Policy struct {
 }
 
 // PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
 type PolicyResponse struct {
 	// Enabled Disabled policies are stored but skipped during evaluation.
 	Enabled bool `json:"enabled"`
@@ -996,6 +1012,14 @@ type PolicyResponse struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Records the full HTTP request and response of matching requests, including
+	// headers, bodies, and a latency breakdown, viewable in the dashboard's
+	// Requests tab. Has no configuration of its own; scope what gets logged via
+	// the policy's `match` expressions. Without an enabled logging policy no
+	// request logs are recorded. Authorization headers and configured key
+	// locations are always redacted before storage.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
 	// all expressions; omitted when the policy applies to every request.
@@ -2212,8 +2236,9 @@ type V2GatewaySetPoliciesResponseBody struct {
 
 // V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
 // values; at least one updatable field must be provided. Providing one of
-// `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
-// rule entirely, including switching its type; at most one may be set.
+// `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+// policy's rule entirely, including switching its type; at most one may be
+// set.
 type V2GatewayUpdatePolicyRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2232,6 +2257,14 @@ type V2GatewayUpdatePolicyRequestBody struct {
 
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Logging Records the full HTTP request and response of matching requests, including
+	// headers, bodies, and a latency breakdown, viewable in the dashboard's
+	// Requests tab. Has no configuration of its own; scope what gets logged via
+	// the policy's `match` expressions. Without an enabled logging policy no
+	// request logs are recorded. Authorization headers and configured key
+	// locations are always redacted before storage.
+	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Replaces all match expressions. Set null to remove them so the policy
 	// applies to every request. Omit to keep the current expressions.

@@ -55,6 +55,11 @@ var _ Evaluator = (*Engine)(nil)
 // Result holds the outcome of policy evaluation.
 type Result struct {
 	Principal *principal.Principal
+
+	// LogRequest reports whether an enabled logging policy matched the
+	// request, i.e. whether the request should be persisted to the
+	// ClickHouse request log.
+	LogRequest bool
 }
 
 // New creates a new Engine with the given configuration.
@@ -194,6 +199,14 @@ func (e *Engine) Evaluate(
 			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
+
+		case *frontlinev1.Policy_Logging:
+			// Logging is observational, not an enforcement action: a matching
+			// enabled policy opts the request into the ClickHouse request log.
+			// The actual capture and emission happen in the handler and the
+			// ClickHouse logging middleware.
+			result.LogRequest = true
+			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:
 			continue

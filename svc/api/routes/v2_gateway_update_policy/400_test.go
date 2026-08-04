@@ -43,7 +43,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 		req.Openapi = &openapi.OpenapiPolicy{}
 		res := callTyped(t, req)
 		require.Contains(t, res.Body.Error.Type, "invalid_input")
-		require.Contains(t, res.Body.Error.Detail, "exactly one of keyauth, ratelimit, firewall or openapi; 2 are set")
+		require.Contains(t, res.Body.Error.Detail, "exactly one of keyauth, ratelimit, firewall, openapi or logging; 2 are set")
 	})
 
 	t.Run("invalid regex in match", func(t *testing.T) {

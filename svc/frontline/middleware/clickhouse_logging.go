@@ -34,7 +34,11 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			// handler stamps DeploymentID/InstanceID before forwarding. If
 			// those are empty the request was forwarded cross-region and
 			// the peer logs it.
-			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
+			//
+			// LogRequest is set by the handler only when an enabled logging
+			// policy matched the request — without one, request logging is
+			// off for the deployment and no row is emitted.
+			if !s.ShouldLogRequestToClickHouse() || !tracking.LogRequest || tracking.DeploymentID == "" || tracking.InstanceID == "" {
 				return err
 			}
 

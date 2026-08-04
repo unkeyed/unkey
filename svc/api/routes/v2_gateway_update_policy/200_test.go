@@ -133,6 +133,23 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Len(t, ptr.SafeDeref(policies[0].Match), 1)
 	})
 
+	t.Run("switch rule variant to logging", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedSentinelConfig(t, h, env,
+			`{"policies":[{"id":"pol_kebap","name":"KEBAP","enabled":true,`+
+				`"firewall":{"action":"ACTION_DENY"}}]}`)
+
+		req := makeRequest(env, "pol_kebap")
+		req.Logging = &openapi.LoggingPolicy{}
+		call(t, req)
+
+		policies := list(t, env)
+		require.Len(t, policies, 1)
+		require.Equal(t, "pol_kebap", policies[0].Id)
+		require.NotNil(t, policies[0].Logging)
+		require.Nil(t, policies[0].Firewall, "old rule must be gone")
+	})
+
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)

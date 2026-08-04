@@ -216,6 +216,21 @@ export const openapiPolicySchema = z
   .strict();
 export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
+// ── Logging policy ──────────────────────────────────────────────────────
+
+// Opts matching requests into the ClickHouse request log (Requests tab).
+// Config-less: the policy's `enabled` flag and `match` expressions carry all
+// the semantics. Without an enabled logging policy the gateway records no
+// request logs for the environment.
+export const loggingPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("logging"),
+    logging: z.object({}).strict(),
+  })
+  .strict();
+export type LoggingPolicy = z.infer<typeof loggingPolicySchema>;
+
 // ── Sentinel policy (discriminated union — extend with new types here) ──
 
 export const sentinelPolicySchema = z.discriminatedUnion("type", [
@@ -223,6 +238,7 @@ export const sentinelPolicySchema = z.discriminatedUnion("type", [
   ratelimitPolicySchema,
   firewallPolicySchema,
   openapiPolicySchema,
+  loggingPolicySchema,
 ]);
 export type SentinelPolicy = z.infer<typeof sentinelPolicySchema>;
 export type SentinelPolicyType = SentinelPolicy["type"];
@@ -267,6 +283,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   }
   if ("openapi" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "openapi" });
+  }
+  if ("logging" in obj) {
+    return sentinelPolicySchema.parse({ ...obj, type: "logging" });
   }
   throw new Error("unknown sentinel policy variant");
 }

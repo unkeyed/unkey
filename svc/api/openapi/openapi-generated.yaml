@@ -1296,12 +1296,15 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
                 Partial update of a single policy. Omitted fields keep their stored
                 values; at least one updatable field must be provided. Providing one of
-                `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
-                rule entirely, including switching its type; at most one may be set.
+                `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` replaces the
+                policy's rule entirely, including switching its type; at most one may be
+                set.
         V2GatewayUpdatePolicyResponseBody:
             type: object
             required:
@@ -4734,10 +4737,12 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
                 A stored gateway policy as returned by list endpoints. Exactly one of
-                `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+                `keyauth`, `ratelimit`, `firewall`, `openapi` or `logging` is set.
             example:
                 id: pol_2gJbXhAr4
                 name: Block internal paths
@@ -4854,6 +4859,17 @@ components:
                 Validates matching requests against the app's uploaded OpenAPI spec. Has no
                 configuration of its own. If no spec has been uploaded for the deployment,
                 the policy is a no-op and requests pass through unvalidated.
+            example: {}
+        LoggingPolicy:
+            type: object
+            additionalProperties: false
+            description: |-
+                Records the full HTTP request and response of matching requests, including
+                headers, bodies, and a latency breakdown, viewable in the dashboard's
+                Requests tab. Has no configuration of its own; scope what gets logged via
+                the policy's `match` expressions. Without an enabled logging policy no
+                request logs are recorded. Authorization headers and configured key
+                locations are always redacted before storage.
             example: {}
         PathMatch:
             type: object
@@ -5100,11 +5116,13 @@ components:
                     "$ref": "#/components/schemas/FirewallPolicy"
                 openapi:
                     "$ref": "#/components/schemas/OpenapiPolicy"
+                logging:
+                    "$ref": "#/components/schemas/LoggingPolicy"
             additionalProperties: false
             description: |-
-                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall` or
-                `openapi` must be set. The server generates an id for every policy it
-                stores.
+                A gateway policy. Exactly one of `keyauth`, `ratelimit`, `firewall`,
+                `openapi` or `logging` must be set. The server generates an id for every
+                policy it stores.
             example:
                 name: Block internal paths
                 enabled: true

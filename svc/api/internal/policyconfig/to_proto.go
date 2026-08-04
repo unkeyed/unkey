@@ -43,6 +43,8 @@ func VariantName(p *frontlinev1.Policy) string {
 		return "firewall"
 	case *frontlinev1.Policy_Openapi:
 		return "openapi"
+	case *frontlinev1.Policy_Logging:
+		return "logging"
 	default:
 		return "unknown"
 	}
@@ -52,8 +54,8 @@ func VariantName(p *frontlinev1.Policy) string {
 // callers own identity (ToProto generates fresh ids, updatePolicy keeps the
 // stored one).
 func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
-	if err := exactlyOne(path, "keyauth, ratelimit, firewall or openapi",
-		p.Keyauth != nil, p.Ratelimit != nil, p.Firewall != nil, p.Openapi != nil); err != nil {
+	if err := exactlyOne(path, "keyauth, ratelimit, firewall, openapi or logging",
+		p.Keyauth != nil, p.Ratelimit != nil, p.Firewall != nil, p.Openapi != nil, p.Logging != nil); err != nil {
 		return nil, err
 	}
 
@@ -113,6 +115,9 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 
 	case p.Openapi != nil:
 		out.Config = &frontlinev1.Policy_Openapi{Openapi: &frontlinev1.OpenApiRequestValidation{}}
+
+	case p.Logging != nil:
+		out.Config = &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}}
 	}
 
 	return out, nil
