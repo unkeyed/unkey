@@ -68,6 +68,15 @@ func TestAlreadyAttached(t *testing.T) {
 	requireCode(t, codes.Data.Domain.Duplicate, domaingate.AlreadyAttached("api.acme.com"))
 }
 
+// Both layers pass the outcome of their own lookup, so a nil error meaning "free" and a
+// found row meaning "taken" is decided here rather than at each call site.
+func TestCheckAvailable(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, domaingate.CheckAvailable("api.acme.com", false))
+	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckAvailable("api.acme.com", true))
+}
+
 func TestCheckAllowance(t *testing.T) {
 	t.Parallel()
 

@@ -112,16 +112,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceID: principal.WorkspaceID,
 		Domain:      domain,
 	})
-	if err == nil {
-		return domaingate.AlreadyAttached(domain)
-	}
-	if !db.IsNotFound(err) {
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to check whether the domain is available."),
 		)
+	}
+	if err = domaingate.CheckAvailable(domain, err == nil); err != nil {
+		return err
 	}
 
 	limits, hit, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {

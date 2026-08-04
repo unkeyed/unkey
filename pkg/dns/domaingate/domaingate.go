@@ -42,6 +42,17 @@ func AlreadyAttached(domain string) error {
 	)
 }
 
+// CheckAvailable reports whether domain is still free to attach. Callers pass the
+// outcome of their own existence lookup, so both layers decide from the same rule
+// instead of each turning a nil error into a rejection at the call site.
+func CheckAvailable(domain string, attached bool) error {
+	if !attached {
+		return nil
+	}
+
+	return AlreadyAttached(domain)
+}
+
 // CheckAllowance reports whether the workspace may attach one more domain. The
 // counts stay internal: the way out is the same either way.
 func CheckAllowance(attached int64, allowed uint32) error {

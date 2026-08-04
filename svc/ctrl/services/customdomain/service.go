@@ -110,11 +110,14 @@ func (s *Service) AddCustomDomain(
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
-	if err == nil {
-		return nil, gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyAttached(domain))
-	}
-	if !db.IsNotFound(err) {
+	if err != nil && !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
+	}
+	if gateErr := gatefault.ConnectWith(
+		connect.CodeAlreadyExists,
+		domaingate.CheckAvailable(domain, err == nil),
+	); gateErr != nil {
+		return nil, gateErr
 	}
 
 	// Before Domain Connect discovery, so a workspace at its allowance cannot use
