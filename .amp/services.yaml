@@ -55,6 +55,14 @@ services:
       title: Deployed Local API
       description: Active production deployment routed through Frontline.
 
+  deployment-portals:
+    command: >-
+      python3 -u .amp/frontline-portals.py "$PORT" "$PUBLIC_URL"
+    port: 19081
+    portal:
+      title: Deployment Portals
+      description: Automatically exposed environment deployments.
+
   portal:
     command: >-
       "$HOME/.local/bin/mise" exec --
