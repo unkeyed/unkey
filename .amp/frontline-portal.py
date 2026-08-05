@@ -95,6 +95,8 @@ FROM frontline_routes AS portal
 JOIN frontline_routes AS source
   ON source.fully_qualified_domain_name = '{SOURCE_HOSTNAME}'
   AND portal.environment_id = source.environment_id
+  AND portal.deployment_id = source.deployment_id
+  AND portal.sticky = source.sticky
 WHERE portal.fully_qualified_domain_name = '{hostname}';
 """
     result = run_kubectl(
