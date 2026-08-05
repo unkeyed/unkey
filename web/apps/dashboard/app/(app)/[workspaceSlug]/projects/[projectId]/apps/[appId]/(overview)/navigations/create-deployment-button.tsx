@@ -155,7 +155,7 @@ export const CreateDeploymentButton = ({
   const branches = repoDetails.data?.branches ?? [];
 
   const defaultEnvironmentSlug =
-    environments.find((e) => e.slug === "preview")?.slug ?? environments[0]?.slug ?? "";
+    environments.find((e) => e.kind === "preview")?.slug ?? environments[0]?.slug ?? "";
 
   const formSchema = createFormSchema(repo, isCliApp);
 

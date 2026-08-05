@@ -39,6 +39,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -464,6 +465,24 @@ func Run(ctx context.Context, cfg Config) error {
 		pprofPassword = cfg.Pprof.Password
 	}
 
+	// A real GitHub client is only built when the App ID and private key are
+	// both configured. Without them the repo-connection path on apps.createApp /
+	// apps.updateApp reports the feature as unconfigured; the Noop stand-in keeps
+	// the handlers non-nil and returns that "not configured" error on use.
+	var githubClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+		ghc, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			// Repo connection never verifies webhooks, so no secret is needed.
+			WebhookSecret: "",
+		})
+		if ghErr != nil {
+			return fmt.Errorf("unable to create github client: %w", ghErr)
+		}
+		githubClient = ghc
+	}
+
 	routes.Register(srv, &routes.Services{
 		Database:             database,
 		ClickHouse:           ch,
@@ -489,6 +508,9 @@ func Run(ctx context.Context, cfg Config) error {
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
 		PortalBaseURL:              cfg.PortalBaseURL,
+		GitHubAppName:              cfg.GitHub.AppName,
+		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
+		GitHubClient:               githubClient,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

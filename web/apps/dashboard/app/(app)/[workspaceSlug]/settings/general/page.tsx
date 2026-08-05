@@ -3,6 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { CopyWorkspaceId } from "./copy-workspace-id";
+import { GithubConnection } from "./github-connection";
 import { UpdateWorkspaceName } from "./update-workspace-name";
 
 export default function SettingsPage() {
@@ -20,6 +21,9 @@ export default function SettingsPage() {
           <UpdateWorkspaceName />
           {/* <UpdateWorkspaceImage /> */}
           <CopyWorkspaceId workspaceId={workspace.id} />
+        </div>
+        <div className="w-full flex flex-col mt-6">
+          <GithubConnection />
         </div>
       </PageBody>
     </PageContainer>

@@ -19,16 +19,17 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// envSpec defines the slug and human-readable description for a default environment.
+// envSpec defines a default environment created with an app.
 type envSpec struct {
 	slug        string
 	description string
+	kind        dbtype.EnvironmentKind
 }
 
 // defaultEnvironments are the environments created automatically for every new app.
 var defaultEnvironments = []envSpec{
-	{slug: "production", description: "Production"},
-	{slug: "preview", description: "Preview"},
+	{slug: "production", description: "Production", kind: dbtype.EnvironmentKindProduction},
+	{slug: "preview", description: "Preview", kind: dbtype.EnvironmentKindPreview},
 }
 
 // CreateApp creates an app with default environments and their
@@ -89,6 +90,7 @@ func (s *Service) CreateApp(
 				AppID:       appID,
 				Slug:        env.slug,
 				Description: env.description,
+				Kind:        env.kind,
 				CreatedAt:   now,
 				UpdatedAt:   sql.NullInt64{Valid: false},
 			}); txErr != nil {

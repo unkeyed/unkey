@@ -18,10 +18,6 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
-// envProduction is the environment whose deployment serves production traffic:
-// promote/rollback require it, stop/start reject it.
-const envProduction = "production"
-
 // Each check takes its own input holding exactly the fields it needs. Status and
 // DesiredState are typed to the shared pkg/mysql/types enums that the generated db
 // row fields already use, so callers pass their db row fields directly without casting.
@@ -30,7 +26,7 @@ const envProduction = "production"
 type PromoteInput struct {
 	Status              dbtype.DeploymentsStatus
 	DesiredState        dbtype.DeploymentsDesiredState
-	EnvironmentSlug     string
+	EnvironmentKind     dbtype.EnvironmentKind
 	CurrentDeploymentID string
 	DeploymentID        string
 	IsRolledBack        bool
@@ -40,7 +36,7 @@ type PromoteInput struct {
 type RollbackInput struct {
 	Status              dbtype.DeploymentsStatus
 	DesiredState        dbtype.DeploymentsDesiredState
-	EnvironmentSlug     string
+	EnvironmentKind     dbtype.EnvironmentKind
 	CurrentDeploymentID string
 	DeploymentID        string
 }
@@ -49,13 +45,13 @@ type RollbackInput struct {
 type StopInput struct {
 	Status          dbtype.DeploymentsStatus
 	DesiredState    dbtype.DeploymentsDesiredState
-	EnvironmentSlug string
+	EnvironmentKind dbtype.EnvironmentKind
 }
 
 // StartInput is the state CheckStartTarget needs.
 type StartInput struct {
 	DesiredState    dbtype.DeploymentsDesiredState
-	EnvironmentSlug string
+	EnvironmentKind dbtype.EnvironmentKind
 	SpendSuspended  bool
 }
 
@@ -134,14 +130,15 @@ func targetFault(r TargetFailureReason) error {
 func targetCore(
 	status dbtype.DeploymentsStatus,
 	desiredState dbtype.DeploymentsDesiredState,
-	environmentSlug, currentDeploymentID string,
+	environmentKind dbtype.EnvironmentKind,
+	currentDeploymentID string,
 ) TargetFailureReason {
 	switch {
 	case status != dbtype.DeploymentsStatusReady:
 		return TargetNotReady
 	case desiredState != dbtype.DeploymentsDesiredStateRunning:
 		return TargetIsDraining
-	case environmentSlug != envProduction:
+	case !environmentKind.IsProduction():
 		return TargetNotProduction
 	case currentDeploymentID == "":
 		return TargetNoCurrentDeployment
@@ -154,7 +151,7 @@ func targetCore(
 // Promoting the deployment that is already current is rejected, unless the app
 // is in a rolled-back state (then it is a rollback confirmation, allowed).
 func CheckPromoteTarget(in PromoteInput) error {
-	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentSlug, in.CurrentDeploymentID); r != TargetOK {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentKind, in.CurrentDeploymentID); r != TargetOK {
 		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) && !in.IsRolledBack {
@@ -166,7 +163,7 @@ func CheckPromoteTarget(in PromoteInput) error {
 // CheckRollbackTarget validates a deployment may be rolled back to. Rolling back
 // to the deployment that is already current is always a no-op, so it is rejected.
 func CheckRollbackTarget(in RollbackInput) error {
-	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentSlug, in.CurrentDeploymentID); r != TargetOK {
+	if r := targetCore(in.Status, in.DesiredState, in.EnvironmentKind, in.CurrentDeploymentID); r != TargetOK {
 		return targetFault(r)
 	}
 	if isCurrent(in.CurrentDeploymentID, in.DeploymentID) {
@@ -234,7 +231,7 @@ func CheckStopTarget(in StopInput) error {
 		return stopFault(StopNotRunning)
 	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
-	case in.EnvironmentSlug == envProduction:
+	case in.EnvironmentKind.IsProduction():
 		return stopFault(StopIsProduction)
 	default:
 		return nil
@@ -304,7 +301,7 @@ func CheckStartTarget(in StartInput) error {
 	switch {
 	case in.DesiredState != dbtype.DeploymentsDesiredStateStopped:
 		return startFault(StartNotStopped)
-	case in.EnvironmentSlug == envProduction:
+	case in.EnvironmentKind.IsProduction():
 		return startFault(StartIsProduction)
 	case in.SpendSuspended:
 		return startFault(StartSpendSuspended)

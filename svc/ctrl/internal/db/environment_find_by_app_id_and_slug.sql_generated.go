@@ -10,7 +10,7 @@ import (
 )
 
 const findEnvironmentByAppIdAndSlug = `-- name: FindEnvironmentByAppIdAndSlug :one
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 WHERE app_id = ? AND slug = ?
 `
 
@@ -25,7 +25,7 @@ type FindEnvironmentByAppIdAndSlugRow struct {
 
 // FindEnvironmentByAppIdAndSlug
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 //	WHERE app_id = ? AND slug = ?
 func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error) {
 	row := q.db.QueryRowContext(ctx, findEnvironmentByAppIdAndSlug, arg.AppID, arg.Slug)
@@ -38,6 +38,7 @@ func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnv
 		&i.Environment.AppID,
 		&i.Environment.Slug,
 		&i.Environment.Description,
+		&i.Environment.Kind,
 		&i.Environment.DeleteProtection,
 		&i.Environment.CreatedAt,
 		&i.Environment.UpdatedAt,

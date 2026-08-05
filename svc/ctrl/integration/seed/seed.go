@@ -57,7 +57,7 @@ func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Se
 //
 // Integration tests share one MySQL container across test processes and across
 // runs, and the ctrl crons scan the whole database rather than one workspace:
-// the idle-preview scan pages over every environment with slug 'preview', and
+// the idle-preview scan pages over every preview environment, and
 // the quota and billing handlers walk every workspace. Rows a test leaves
 // behind are therefore rescanned by every later run, which makes each run
 // slower until a scan outlives the harness timeout. Deleting only the ids this
@@ -99,6 +99,25 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err = s.DB.InsertWorkspaceBilling(ctx, db.InsertWorkspaceBillingParams{
 		WorkspaceID: params.ID,
 		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(s.t, err)
+
+	err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
+		WorkspaceID:                           params.ID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                4,
 	})
 	require.NoError(s.t, err)
 
@@ -220,12 +239,17 @@ type CreateEnvironmentRequest struct {
 	AppID            string
 	Slug             string
 	Description      string
+	Kind             dbtype.EnvironmentKind
 	SentinelConfig   []byte
 	DeleteProtection bool
 }
 
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	now := time.Now().UnixMilli()
+	kind := req.Kind
+	if kind == "" {
+		kind = dbtype.EnvironmentKindPreview
+	}
 
 	err := s.DB.InsertEnvironment(ctx, db.InsertEnvironmentParams{
 		ID:          req.ID,
@@ -234,6 +258,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:       req.AppID,
 		Slug:        req.Slug,
 		Description: req.Description,
+		Kind:        kind,
 		CreatedAt:   now,
 		UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 	})
@@ -285,6 +310,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		AppID:            req.AppID,
 		Slug:             environment.Slug,
 		Description:      req.Description,
+		Kind:             environment.Kind,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
@@ -774,6 +800,25 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 			Team:                   req.Team,
 			RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
 			RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+		})
+		require.NoError(s.t, err)
+
+		err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
+			WorkspaceID:                           ws.ID,
+			ApiBillableOperationsCountMaxPerMonth: uint64(req.RequestsPerMonth),
+			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+			LogsRetentionDaysMax:                  uint16(req.LogsRetentionDays),
+			LogsAuditRetentionDaysMax:             uint16(req.AuditLogsRetentionDays),
+			TeamEnabled:                           req.Team,
+			CpuCoresMax:                           10,
+			CpuCoresMaxPerInstance:                2,
+			MemoryMibMax:                          20_480,
+			MemoryMibMaxPerInstance:               4_096,
+			StorageMibMax:                         51_200,
+			StorageMibMaxPerInstance:              10_240,
+			BuildsConcurrentMax:                   1,
+			CustomDomainsMax:                      0,
+			AutoscalingReplicasMax:                4,
 		})
 		require.NoError(s.t, err)
 	}

@@ -6,7 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 )
 
 func TestBuildGitContextURL(t *testing.T) {
@@ -156,6 +156,11 @@ func TestValidateGitBuildParams(t *testing.T) {
 		{
 			name:    "context path absolute",
 			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "/services/api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path dot prefix",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "./services/api"},
 			wantErr: true,
 		},
 		{

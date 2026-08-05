@@ -136,32 +136,34 @@ func (ReportDeploymentStatusRequest_Update_Instance_Status) EnumDescriptor() ([]
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5, 0, 0, 0}
 }
 
-// RegionKey identifies a region on the wire. Every ClusterService RPC scoped
-// to a single region carries this as its first field.
-type RegionKey struct {
+// ClusterKey identifies an infrastructure cell on the wire. Every
+// ClusterService RPC scoped to a single cell carries this key.
+type ClusterKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// platform is the infrastructure provider (e.g. "aws", "gcp", "local").
 	Platform string `protobuf:"bytes,1,opt,name=platform,proto3" json:"platform,omitempty"`
-	// name is the geographic region name (e.g. "us-east-1").
-	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// region is the geographic region name (e.g. "us-east-1").
+	Region string `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
+	// cell_id uniquely identifies the cell within the Unkey network.
+	CellId        string `protobuf:"bytes,3,opt,name=cell_id,json=cellId,proto3" json:"cell_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegionKey) Reset() {
-	*x = RegionKey{}
+func (x *ClusterKey) Reset() {
+	*x = ClusterKey{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegionKey) String() string {
+func (x *ClusterKey) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegionKey) ProtoMessage() {}
+func (*ClusterKey) ProtoMessage() {}
 
-func (x *RegionKey) ProtoReflect() protoreflect.Message {
+func (x *ClusterKey) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -173,28 +175,35 @@ func (x *RegionKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegionKey.ProtoReflect.Descriptor instead.
-func (*RegionKey) Descriptor() ([]byte, []int) {
+// Deprecated: Use ClusterKey.ProtoReflect.Descriptor instead.
+func (*ClusterKey) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RegionKey) GetPlatform() string {
+func (x *ClusterKey) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
 	return ""
 }
 
-func (x *RegionKey) GetName() string {
+func (x *ClusterKey) GetRegion() string {
 	if x != nil {
-		return x.Name
+		return x.Region
+	}
+	return ""
+}
+
+func (x *ClusterKey) GetCellId() string {
+	if x != nil {
+		return x.CellId
 	}
 	return ""
 }
 
 type WatchDeploymentChangesRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Region          *RegionKey             `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	Cluster         *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	VersionLastSeen uint64                 `protobuf:"varint,2,opt,name=version_last_seen,json=versionLastSeen,proto3" json:"version_last_seen,omitempty"`
 	// When true and version_last_seen is 0, replay all changes from the
 	// beginning instead of jumping to the current max version. Default false.
@@ -233,9 +242,9 @@ func (*WatchDeploymentChangesRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *WatchDeploymentChangesRequest) GetRegion() *RegionKey {
+func (x *WatchDeploymentChangesRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -256,7 +265,7 @@ func (x *WatchDeploymentChangesRequest) GetReplay() bool {
 
 type SyncDesiredStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Region        *RegionKey             `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	Cluster       *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -291,9 +300,9 @@ func (*SyncDesiredStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *SyncDesiredStateRequest) GetRegion() *RegionKey {
+func (x *SyncDesiredStateRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -374,7 +383,7 @@ func (*DeploymentChangeEvent_Deployment) isDeploymentChangeEvent_Event() {}
 
 type GetDesiredDeploymentStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Region        *RegionKey             `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	Cluster       *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	DeploymentId  string                 `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -410,9 +419,9 @@ func (*GetDesiredDeploymentStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetDesiredDeploymentStateRequest) GetRegion() *RegionKey {
+func (x *GetDesiredDeploymentStateRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -427,8 +436,8 @@ func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
 // Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
 type ReportDeploymentStatusRequest struct {
-	state  protoimpl.MessageState `protogen:"open.v1"`
-	Region *RegionKey             `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Cluster *ClusterKey            `protobuf:"bytes,3,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	// Types that are valid to be assigned to Change:
 	//
 	//	*ReportDeploymentStatusRequest_Update_
@@ -468,9 +477,9 @@ func (*ReportDeploymentStatusRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ReportDeploymentStatusRequest) GetRegion() *RegionKey {
+func (x *ReportDeploymentStatusRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -975,9 +984,9 @@ func (x *Waiting) GetMessage() string {
 type ReportInstanceEventsRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Events []*InstanceEvent       `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
-	// region scopes the report to one cluster's krane agent. Same convention as
-	// every other ClusterService RPC (ReportDeploymentStatus, ReportSentinelStatus).
-	Region        *RegionKey `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
+	// cluster scopes the report to one cell's krane agent. Same convention as
+	// every other ClusterService RPC.
+	Cluster       *ClusterKey `protobuf:"bytes,2,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1019,9 +1028,9 @@ func (x *ReportInstanceEventsRequest) GetEvents() []*InstanceEvent {
 	return nil
 }
 
-func (x *ReportInstanceEventsRequest) GetRegion() *RegionKey {
+func (x *ReportInstanceEventsRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -1071,7 +1080,7 @@ type DeploymentState struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// version is the deployment-specific resource version for this state update.
 	// Clients should track the max version seen and use it when reconnecting to
-	// the WatchDeployments stream to resume from the correct position.
+	// the WatchDeploymentChanges stream to resume from the correct position.
 	// When returned from GetDesiredDeploymentState, this field is not set.
 	Version uint64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	// state contains the specific deployment operation to perform.
@@ -1573,7 +1582,7 @@ func (x *DeleteDeployment) GetK8SName() string {
 // clusters tables.
 type HeartbeatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Region        *RegionKey             `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
+	Cluster       *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1608,9 +1617,9 @@ func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *HeartbeatRequest) GetRegion() *RegionKey {
+func (x *HeartbeatRequest) GetCluster() *ClusterKey {
 	if x != nil {
-		return x.Region
+		return x.Cluster
 	}
 	return nil
 }
@@ -1827,27 +1836,29 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\x1a\x18ctrl/v1/deployment.proto\";\n" +
-	"\tRegionKey\x12\x1a\n" +
-	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x8f\x01\n" +
-	"\x1dWatchDeploymentChangesRequest\x12*\n" +
-	"\x06region\x18\x01 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\x12*\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\x1a\x18ctrl/v1/deployment.proto\"Y\n" +
+	"\n" +
+	"ClusterKey\x12\x1a\n" +
+	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x16\n" +
+	"\x06region\x18\x02 \x01(\tR\x06region\x12\x17\n" +
+	"\acell_id\x18\x03 \x01(\tR\x06cellId\"\x92\x01\n" +
+	"\x1dWatchDeploymentChangesRequest\x12-\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12*\n" +
 	"\x11version_last_seen\x18\x02 \x01(\x04R\x0fversionLastSeen\x12\x16\n" +
-	"\x06replay\x18\x03 \x01(\bR\x06replay\"E\n" +
-	"\x17SyncDesiredStateRequest\x12*\n" +
-	"\x06region\x18\x01 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\"v\n" +
+	"\x06replay\x18\x03 \x01(\bR\x06replay\"H\n" +
+	"\x17SyncDesiredStateRequest\x12-\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"v\n" +
 	"\x15DeploymentChangeEvent\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x04R\aversion\x12:\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
 	"deploymentB\a\n" +
-	"\x05event\"s\n" +
-	" GetDesiredDeploymentStateRequest\x12*\n" +
-	"\x06region\x18\x01 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc4\x05\n" +
-	"\x1dReportDeploymentStatusRequest\x12*\n" +
-	"\x06region\x18\x03 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\x12G\n" +
+	"\x05event\"v\n" +
+	" GetDesiredDeploymentStateRequest\x12-\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x05\n" +
+	"\x1dReportDeploymentStatusRequest\x12-\n" +
+	"\acluster\x18\x03 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12G\n" +
 	"\x06update\x18\x01 \x01(\v2-.ctrl.v1.ReportDeploymentStatusRequest.UpdateH\x00R\x06update\x12G\n" +
 	"\x06delete\x18\x02 \x01(\v2-.ctrl.v1.ReportDeploymentStatusRequest.DeleteH\x00R\x06delete\x1a\xb5\x03\n" +
 	"\x06Update\x12\x19\n" +
@@ -1906,10 +1917,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\amessage\x18\x04 \x01(\tR\amessage\";\n" +
 	"\aWaiting\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"y\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"|\n" +
 	"\x1bReportInstanceEventsRequest\x12.\n" +
-	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12*\n" +
-	"\x06region\x18\x02 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\"\x1e\n" +
+	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12-\n" +
+	"\acluster\x18\x02 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x1e\n" +
 	"\x1cReportInstanceEventsResponse\"\x9b\x01\n" +
 	"\x0fDeploymentState\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\x04R\aversion\x120\n" +
@@ -1963,9 +1974,9 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x11_memory_threshold\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\">\n" +
-	"\x10HeartbeatRequest\x12*\n" +
-	"\x06region\x18\x01 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\"\x13\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"A\n" +
+	"\x10HeartbeatRequest\x12-\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x13\n" +
 	"\x11HeartbeatResponse*]\n" +
 	"\x06Health\x12\x16\n" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
@@ -1998,7 +2009,7 @@ var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(Health)(0), // 0: ctrl.v1.Health
 	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	(*RegionKey)(nil),                                     // 2: ctrl.v1.RegionKey
+	(*ClusterKey)(nil),                                    // 2: ctrl.v1.ClusterKey
 	(*WatchDeploymentChangesRequest)(nil),                 // 3: ctrl.v1.WatchDeploymentChangesRequest
 	(*SyncDesiredStateRequest)(nil),                       // 4: ctrl.v1.SyncDesiredStateRequest
 	(*DeploymentChangeEvent)(nil),                         // 5: ctrl.v1.DeploymentChangeEvent
@@ -2024,11 +2035,11 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*EphemeralStorage)(nil), // 25: ctrl.v1.EphemeralStorage
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.region:type_name -> ctrl.v1.RegionKey
-	2,  // 1: ctrl.v1.SyncDesiredStateRequest.region:type_name -> ctrl.v1.RegionKey
+	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	2,  // 1: ctrl.v1.SyncDesiredStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	15, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
-	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.region:type_name -> ctrl.v1.RegionKey
-	2,  // 4: ctrl.v1.ReportDeploymentStatusRequest.region:type_name -> ctrl.v1.RegionKey
+	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	2,  // 4: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	21, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
 	22, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
 	10, // 7: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
@@ -2036,12 +2047,12 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	12, // 9: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
 	24, // 10: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
 	9,  // 11: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
-	2,  // 12: ctrl.v1.ReportInstanceEventsRequest.region:type_name -> ctrl.v1.RegionKey
+	2,  // 12: ctrl.v1.ReportInstanceEventsRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	16, // 13: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
 	18, // 14: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
 	17, // 15: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
 	25, // 16: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 17: ctrl.v1.HeartbeatRequest.region:type_name -> ctrl.v1.RegionKey
+	2,  // 17: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	23, // 18: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
 	1,  // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
 	3,  // 20: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest

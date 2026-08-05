@@ -2,7 +2,9 @@ package smoke_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -27,8 +29,6 @@ func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
 	require.NotEmpty(t, rerolled.Key)
 	require.NotEqual(t, original.KeyID, rerolled.KeyID)
 	require.NotEqual(t, original.Key, rerolled.Key)
-	waitForPropagation()
-
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
 			KeyID:     rerolled.KeyID,
@@ -37,10 +37,12 @@ func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	verification, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: rerolled.Key})
-	require.NoError(t, err)
-	require.NotNil(t, verification.V2KeysVerifyKeyResponseBody)
-	require.True(t, verification.V2KeysVerifyKeyResponseBody.Data.Valid)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		verification, verifyErr := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: rerolled.Key})
+		require.NoError(c, verifyErr)
+		require.NotNil(c, verification.V2KeysVerifyKeyResponseBody)
+		require.True(c, verification.V2KeysVerifyKeyResponseBody.Data.Valid)
+	}, 30*time.Second, time.Second)
 }
 
 func TestRerollKey_PreservesConfiguration(t *testing.T) {
@@ -77,7 +79,6 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysRerollKeyResponseBody)
 	rerolled := response.V2KeysRerollKeyResponseBody.Data
-	waitForPropagation()
 
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
@@ -87,14 +88,19 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	getResponse, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: rerolled.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, getResponse.V2KeysGetKeyResponseBody)
-	persisted := getResponse.V2KeysGetKeyResponseBody.Data
-	require.Equal(t, &name, persisted.Name)
-	require.Equal(t, metadata, persisted.Meta)
-	require.NotNil(t, persisted.Identity)
-	require.Equal(t, identity.ExternalID, persisted.Identity.ExternalID)
-	require.Len(t, persisted.Ratelimits, 1)
-	require.Equal(t, ratelimit.Name, persisted.Ratelimits[0].Name)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		getResponse, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: rerolled.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody)
+		persisted := getResponse.V2KeysGetKeyResponseBody.Data
+		require.Equal(c, &name, persisted.Name)
+		require.Equal(c, metadata, persisted.Meta)
+		require.NotNil(c, persisted.Identity)
+		require.Equal(c, identity.ExternalID, persisted.Identity.ExternalID)
+		require.Len(c, persisted.Ratelimits, 1)
+		require.Equal(c, ratelimit.Name, persisted.Ratelimits[0].Name)
+		require.Equal(c, ratelimit.Limit, persisted.Ratelimits[0].Limit)
+		require.Equal(c, ratelimit.Duration, persisted.Ratelimits[0].Duration)
+		require.True(c, persisted.Ratelimits[0].AutoApply)
+	}, 30*time.Second, time.Second)
 }

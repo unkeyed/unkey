@@ -58,6 +58,7 @@ type newDomain struct {
 func buildDomains(
 	workspaceSlug, projectSlug, appSlug, environmentSlug,
 	gitSha, branchName, forkOwner, apex string,
+	isProduction bool,
 	uniquifyCommitDomain bool,
 	deploymentID string,
 ) []newDomain {
@@ -127,7 +128,7 @@ func buildDomains(
 		},
 	)
 
-	if environmentSlug == "production" {
+	if isProduction {
 		domains = append(domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),

@@ -2,7 +2,9 @@ package smoke_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -25,12 +27,13 @@ func TestUpdateCredits_SetsRemainingCredits(t *testing.T) {
 	require.NotNil(t, response.V2KeysUpdateCreditsResponseBody)
 	require.Equal(t, &remaining, response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
 
-	waitForPropagation()
-	getResponse, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
-	require.NoError(t, err)
-	require.NotNil(t, getResponse.V2KeysGetKeyResponseBody)
-	require.NotNil(t, getResponse.V2KeysGetKeyResponseBody.Data.Credits)
-	require.Equal(t, &remaining, getResponse.V2KeysGetKeyResponseBody.Data.Credits.Remaining)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		getResponse, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody.Data.Credits)
+		require.Equal(c, &remaining, getResponse.V2KeysGetKeyResponseBody.Data.Credits.Remaining)
+	}, 30*time.Second, time.Second)
 }
 
 func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
@@ -49,7 +52,13 @@ func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	waitForPropagation()
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		getResponse, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody.Data.Credits)
+		require.Equal(c, &initial, getResponse.V2KeysGetKeyResponseBody.Data.Credits.Remaining)
+	}, 30*time.Second, time.Second)
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationIncrement,
@@ -76,7 +85,13 @@ func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	waitForPropagation()
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		getResponse, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody.Data.Credits)
+		require.Equal(c, &initial, getResponse.V2KeysGetKeyResponseBody.Data.Credits.Remaining)
+	}, 30*time.Second, time.Second)
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationDecrement,
@@ -102,7 +117,13 @@ func TestUpdateCredits_CanMakeKeyUnlimited(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	waitForPropagation()
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		getResponse, getErr := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})
+		require.NoError(c, getErr)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody)
+		require.NotNil(c, getResponse.V2KeysGetKeyResponseBody.Data.Credits)
+		require.Equal(c, &initial, getResponse.V2KeysGetKeyResponseBody.Data.Credits.Remaining)
+	}, 30*time.Second, time.Second)
 	response, err := client.Keys.UpdateCredits(ctx, components.V2KeysUpdateCreditsRequestBody{
 		KeyID:     key.KeyID,
 		Operation: components.OperationSet,

@@ -19,9 +19,9 @@ SELECT
    b.stripe_customer_id,
    b.tier,
    w.enabled,
-   q.requests_per_month
+   l.api_billable_operations_count_max_per_month AS requests_per_month
 FROM ` + "`" + `workspaces` + "`" + ` w
-LEFT JOIN quota q ON q.workspace_id = w.id
+LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
 LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
 WHERE w.id IN (/*SLICE:workspace_ids*/?)
 `
@@ -45,9 +45,9 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	   b.stripe_customer_id,
 //	   b.tier,
 //	   w.enabled,
-//	   q.requests_per_month
+//	   l.api_billable_operations_count_max_per_month AS requests_per_month
 //	FROM `workspaces` w
-//	LEFT JOIN quota q ON q.workspace_id = w.id
+//	LEFT JOIN `limits` l ON l.workspace_id = w.id
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {

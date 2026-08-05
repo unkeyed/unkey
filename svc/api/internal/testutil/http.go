@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -311,10 +312,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       authService,
-			Database:   database,
-			QuotaCache: caches.WorkspaceQuota,
-			Ratelimit:  ratelimitService,
+			Auth:        authService,
+			Database:    database,
+			LimitsCache: caches.WorkspaceLimits,
+			Ratelimit:   ratelimitService,
 		}),
 	}
 	h.portalMiddleware = []zen.Middleware{
@@ -323,10 +324,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       portalAuthService,
-			Database:   database,
-			QuotaCache: caches.WorkspaceQuota,
-			Ratelimit:  ratelimitService,
+			Auth:        portalAuthService,
+			Database:    database,
+			LimitsCache: caches.WorkspaceLimits,
+			Ratelimit:   ratelimitService,
 		}),
 	}
 
@@ -480,6 +481,7 @@ type CreateTestDeploymentSetupOptions struct {
 	ProjectName     string
 	ProjectSlug     string
 	EnvironmentSlug string
+	EnvironmentKind mysqltype.EnvironmentKind
 	SkipEnvironment bool
 	Permissions     []string
 }
@@ -496,6 +498,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectName:     "test-project",
 		ProjectSlug:     "production",
 		EnvironmentSlug: "production",
+		EnvironmentKind: mysqltype.EnvironmentKindProduction,
 		SkipEnvironment: false,
 		Permissions:     nil,
 	}
@@ -509,6 +512,9 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		}
 		if opts[0].EnvironmentSlug != "" {
 			config.EnvironmentSlug = opts[0].EnvironmentSlug
+		}
+		if opts[0].EnvironmentKind != "" {
+			config.EnvironmentKind = opts[0].EnvironmentKind
 		}
 		config.SkipEnvironment = opts[0].SkipEnvironment
 		if opts[0].Permissions != nil {
@@ -552,6 +558,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
+			Kind:             config.EnvironmentKind,
 			DeleteProtection: false,
 			SentinelConfig:   nil,
 		})
@@ -661,6 +668,25 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		Team:                   false,
 		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
 		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+	})
+	require.NoError(h.t, err)
+
+	err = db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           workspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  uint16(config.RetentionDays),
+		LogsAuditRetentionDaysMax:             uint16(config.RetentionDays),
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                4,
 	})
 	require.NoError(h.t, err)
 

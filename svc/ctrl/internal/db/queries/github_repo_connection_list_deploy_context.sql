@@ -10,11 +10,11 @@ FROM github_repo_connections gc
 INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
-  AND e.slug = CASE
-    WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN 'preview'
+  AND CASE
+    WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN e.kind = 'preview'
     WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
-    THEN 'production'
-    ELSE 'preview'
+    THEN e.kind = 'production'
+    ELSE e.kind = 'preview'
   END
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
