@@ -30,3 +30,5 @@ CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
 
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 
+CREATE INDEX `environment_id_id_idx` ON `custom_domains` (`environment_id`,`id`);
+
