@@ -33,7 +33,7 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID, api.ProjectID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

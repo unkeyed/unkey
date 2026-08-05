@@ -94,7 +94,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -246,7 +246,6 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
 		"api.*.create_key",
-		"api.*.encrypt_key",
 	)
 
 	headers := http.Header{
@@ -310,7 +309,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -477,7 +476,10 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		createAnyKeyPermission(t, h.Resources().UserWorkspace.ID, "*"),
+	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -604,12 +606,12 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	})
 }
 
-func createKeyPermission(t *testing.T, workspaceID string, keyspaceID string) string {
+func createKeyPermission(t *testing.T, workspaceID string, projectID string, keyspaceID string) string {
 	t.Helper()
-	return rbac.U(urn.New().Workspace(workspaceID).Keyspace(keyspaceID).Key("*"), permissions.CreateKey{}).Value
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID).Key("*"), permissions.CreateKey{}).Value
 }
 
-func createAnyKeyPermission(t *testing.T, workspaceID string) string {
+func createAnyKeyPermission(t *testing.T, workspaceID string, projectID string) string {
 	t.Helper()
-	return rbac.U(urn.New().Workspace(workspaceID).Keyspace("*").Key("*"), permissions.CreateKey{}).Value
+	return rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace("*").Key("*"), permissions.CreateKey{}).Value
 }

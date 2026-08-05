@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -105,15 +104,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(req.KeyId),
+			urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(req.KeyId),
 			permissions.UpdateKey{},
 		),
 	))
-	if err != nil {
-		return err
-	}
-
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
@@ -163,7 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
 					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
+					ProjectID:   key.KeyAuth.ProjectID,
 					Environment: "default",
 					CreatedAt:   time.Now().UnixMilli(),
 					Meta:        []byte("{}"),
@@ -419,7 +413,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 					PermissionID: newPermID,
 					WorkspaceID:  principal.WorkspaceID,
-					ProjectID:    projectID,
+					ProjectID:    key.KeyAuth.ProjectID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
 					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},

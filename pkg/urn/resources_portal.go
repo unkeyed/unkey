@@ -10,19 +10,19 @@ import "fmt"
 //	└── portals/{portal_id}
 type Portal struct {
 	workspaceID string
-	path        string
+	portalID    string
 }
 
 // String returns this portal resource path.
 func (p Portal) String() string {
-	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
+	return V1{WorkspaceID: p.workspaceID, Resource: fmt.Sprintf("portals/%s", p.portalID)}.String()
 }
 
 // SessionToken returns a portal session token resource path.
 func (p Portal) SessionToken(tokenID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    fmt.Sprintf("%s/session_tokens/%s", p.path, tokenID),
+		Resource:    fmt.Sprintf("portals/%s/session_tokens/%s", p.portalID, tokenID),
 	}
 }
 
@@ -30,7 +30,7 @@ func (p Portal) SessionToken(tokenID string) V1 {
 func (p Portal) Session(sessionID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    fmt.Sprintf("%s/sessions/%s", p.path, sessionID),
+		Resource:    fmt.Sprintf("portals/%s/sessions/%s", p.portalID, sessionID),
 	}
 }
 
@@ -38,7 +38,7 @@ func (p Portal) Session(sessionID string) V1 {
 func (p Portal) Branding() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    fmt.Sprintf("%s/branding", p.path),
+		Resource:    fmt.Sprintf("portals/%s/branding", p.portalID),
 	}
 }
 
@@ -46,6 +46,6 @@ func (p Portal) Branding() V1 {
 func (p Portal) Any() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    fmt.Sprintf("%s/**", p.path),
+		Resource:    fmt.Sprintf("portals/%s/**", p.portalID),
 	}
 }

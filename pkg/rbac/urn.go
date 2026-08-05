@@ -35,7 +35,8 @@ func (u UnkeyPermission) String() string {
 // operation whose resource ID is not known yet should pass the created resource
 // with "*" as its ID. That requirement is covered by a matching wildcard grant,
 // not by a grant for one existing resource. Broader grants such as
-// "unkey:v1:ws_123:ratelimits/**#read_override" are matched during evaluation.
+// "unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override" are matched
+// during evaluation.
 func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,

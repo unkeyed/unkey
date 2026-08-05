@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -87,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key(key.ID),
 				permissions.UpdateKey{},
 			),
 			rbac.And(
@@ -111,11 +110,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			),
 		),
 	)
-	if err != nil {
-		return err
-	}
-
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
@@ -169,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for perm := range missingPermissions {
 		err = principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"),
+				urn.New().Workspace(principal.WorkspaceID).Project(key.KeyAuth.ProjectID).RBAC().Permission("*"),
 				permissions.CreatePermission{},
 			),
 			rbac.T(rbac.Tuple{
@@ -188,7 +182,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			PermissionID: permissionID,
 			Name:         perm,
 			WorkspaceID:  principal.WorkspaceID,
-			ProjectID:    projectID,
+			ProjectID:    key.KeyAuth.ProjectID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
@@ -199,7 +193,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          permissionID,
 			Name:        perm,
 			WorkspaceID: principal.WorkspaceID,
-			ProjectID:   projectID,
+			ProjectID:   key.KeyAuth.ProjectID,
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,

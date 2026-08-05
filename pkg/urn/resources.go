@@ -20,7 +20,6 @@ type Builder struct{}
 func (Builder) Workspace(workspaceID string) Workspace {
 	return Workspace{
 		workspaceID: workspaceID,
-		Team:        team{workspaceID: workspaceID, path: "team"},
-		RBAC:        RBAC{workspaceID: workspaceID, path: "rbac"},
+		Team:        team{workspaceID: workspaceID},
 	}
 }

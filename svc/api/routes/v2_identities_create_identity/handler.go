@@ -65,21 +65,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.CreateIdentity,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-			permissions.CreateIdentity{},
-		),
-	))
-	if err != nil {
-		return err
-	}
-
 	meta := []byte("{}")
 	if req.Meta != nil {
 		rawMeta, metaErr := json.Marshal(req.Meta)
@@ -103,6 +88,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
+		}
+
+		authorizeErr := principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{ResourceType: rbac.Identity, ResourceID: "*", Action: rbac.CreateIdentity}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project(projectID).Identity("*"),
+				permissions.CreateIdentity{},
+			),
+		))
+		if authorizeErr != nil {
+			return authorizeErr
 		}
 
 		args := db.InsertIdentityParams{

@@ -286,7 +286,7 @@ func TestRerollRecoverableKeyWithURNPermission(t *testing.T) {
 	})
 
 	createKeyPermission := rbac.U(
-		urn.New().Workspace(workspace.ID).Keyspace(api.KeyAuthID.String).Key("*"),
+		urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
 		permissions.CreateKey{},
 	).Value
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)

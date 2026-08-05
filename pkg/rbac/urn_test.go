@@ -15,7 +15,7 @@ import (
 func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	t.Parallel()
 
-	resource := urn.New().Workspace("ws_123").RatelimitNamespace("ns_123").Override("ov_123")
+	resource := urn.New().Workspace("ws_123").Project("proj_123").RatelimitNamespace("ns_123").Override("ov_123")
 	query := U(resource, permissions.ReadOverride{})
 	stringQuery := S(UnkeyPermission{
 		Resource: resource.V1(),
@@ -28,7 +28,7 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	createVariableQuery := U(environment.Variable("variable_123"), permissions.CreateVariable{})
 	installGithubQuery := U(urn.New().Workspace("ws_123"), permissions.InstallGithub{})
 
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override", query.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override", query.Value)
 	require.Equal(t, query.Value, stringQuery.Value)
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#create_key", createKeyQuery.Value)
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/domain_123#create_domain", createDomainQuery.Value)
@@ -36,7 +36,7 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:workspace#install_github", installGithubQuery.Value)
 
 	result, err := New().EvaluatePermissions(query, []string{
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
 	})
 	require.NoError(t, err)
 	require.True(t, result.Valid)
@@ -47,9 +47,9 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 	t.Parallel()
 
-	required := "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override"
+	required := "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override"
 	grants := []string{
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/*#read_override",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/*#read_override",
 	}
 
 	stringResult, err := New().EvaluatePermissions(S(required), grants)
@@ -60,6 +60,7 @@ func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 		U(
 			urn.New().
 				Workspace("ws_123").
+				Project("proj_123").
 				RatelimitNamespace("ns_123").
 				Override("ov_123"),
 			permissions.ReadOverride{},
@@ -265,6 +266,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 	query := U(
 		urn.New().
 			Workspace("ws_123").
+			Project("proj_123").
 			RatelimitNamespace("ns_123").
 			Override("ov_123"),
 		permissions.ReadOverride{},
@@ -278,28 +280,28 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 		{
 			name: "exact permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "namespace override wildcard permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/*#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/*#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "workos wildcard namespace permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/*/overrides/*#read_override",
 			},
 			wantValid: true,
 		},
 		{
 			name: "ratelimits descendant permission",
 			permissions: []string{
-				"unkey:v1:ws_123:ratelimits/**#read_override",
+				"unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override",
 			},
 			wantValid: true,
 		},

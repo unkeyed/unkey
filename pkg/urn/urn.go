@@ -33,17 +33,18 @@ func (v V1) String() string {
 // resource in the workspace; the standalone path "*" covers only resources
 // with single-segment paths.
 //
-// These patterns cover unkey:v1:ws_1:keyspaces/ks_1/keys/k_1:
+// These patterns cover
+// unkey:v1:ws_1:projects/proj_123/keyspaces/ks_1/keys/k_1:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1/keys/k_1   (itself)
-//	unkey:v1:ws_1:keyspaces/*/keys/*
-//	unkey:v1:ws_1:keyspaces/ks_1/**
+//	unkey:v1:ws_1:projects/proj_123/keyspaces/ks_1/keys/k_1   (itself)
+//	unkey:v1:ws_1:projects/proj_123/keyspaces/*/keys/*
+//	unkey:v1:ws_1:projects/proj_123/keyspaces/ks_1/**
 //	unkey:v1:ws_1:**
 //
 // and these do not:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1            (concrete name, not the same resource)
-//	unkey:v1:ws_1:keyspaces/*               ("*" does not cross into keys/k_1)
+//	unkey:v1:ws_1:projects/proj_123/keyspaces/ks_1 (concrete name, not the same resource)
+//	unkey:v1:ws_1:projects/proj_123/keyspaces/*    ("*" does not cross into keys/k_1)
 //	unkey:v1:ws_1:*                         ("*" is one segment, not a global wildcard)
 //	unkey:v1:ws_2:**                        (different workspace)
 func (v V1) Covers(target V1) bool {

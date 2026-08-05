@@ -28,7 +28,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "exact override permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#read_override",
+				"unkey:v1:%s:projects/proj_123/ratelimits/namespaces/%s/overrides/%s#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 				setup.overrideID,
@@ -37,7 +37,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "namespace override wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override",
+				"unkey:v1:%s:projects/proj_123/ratelimits/namespaces/%s/overrides/*#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 			),
@@ -45,7 +45,7 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "namespace descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/**#read_override",
+				"unkey:v1:%s:projects/proj_123/ratelimits/namespaces/%s/**#read_override",
 				setup.workspaceID,
 				setup.namespaceID,
 			),
@@ -53,14 +53,14 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "ratelimits descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/**#read_override",
+				"unkey:v1:%s:projects/proj_123/ratelimits/**#read_override",
 				setup.workspaceID,
 			),
 		},
 		{
 			name: "workos wildcard namespace permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/*/overrides/*#read_override",
+				"unkey:v1:%s:projects/proj_123/ratelimits/namespaces/*/overrides/*#read_override",
 				setup.workspaceID,
 			),
 		},
@@ -163,6 +163,7 @@ func setupGetOverrideURNPermissionTest(t *testing.T, ctx context.Context) getOve
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: workspaceID,
+		ProjectID:   "proj_123",
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
