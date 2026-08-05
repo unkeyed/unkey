@@ -213,7 +213,6 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:team/memberships/mbr_123", workspace.Team.Membership("mbr_123").String())
 	require.Equal(t, "unkey:v1:ws_123:team/invitations/inv_123", workspace.Team.Invitation("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
-	require.Equal(t, "unkey:v1:ws_123:billing/quotas", workspace.Billing().Quotas().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", workspace.Project("proj_123").Identity("id_123").String())

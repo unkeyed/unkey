@@ -26,17 +26,3 @@ func (b billing) Invoice(invoiceID string) V1 {
 		Resource:    fmt.Sprintf("%s/invoices/%s", b.path, invoiceID),
 	}
 }
-
-// Quotas returns the workspace billing quotas resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── billing
-//	    └── quotas
-func (b billing) Quotas() V1 {
-	return V1{
-		WorkspaceID: b.workspaceID,
-		Resource:    fmt.Sprintf("%s/quotas", b.path),
-	}
-}
