@@ -505,9 +505,9 @@ type Domain struct {
 	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
 	CreatedAt int64 `json:"createdAt"`
 
-	// DnsRecords The DNS records this domain needs, rebuilt from stored state so they match what
-	// domains.createDomain returned. Useful for recovering the values without re-creating the domain,
-	// and each entry's `verified` flag shows which records are still outstanding.
+	// DnsRecords The DNS records this domain needs. Create each record at your DNS provider.
+	// Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+	// so it tells you which records are still missing.
 	DnsRecords []DnsRecord `json:"dnsRecords"`
 
 	// Domain Fully qualified domain name attached to the environment.
@@ -524,16 +524,12 @@ type Domain struct {
 	// ProjectId The project the domain's environment belongs to.
 	ProjectId string `json:"projectId"`
 
-	// Status Where the domain is in verification.
+	// Status The verification status of the domain.
 	//
-	// - `pending`: created, no DNS check has completed yet
-	// - `verifying`: DNS is being polled, roughly once a minute
-	// - `verified`: verification passed and a certificate has been requested
-	// - `failed`: the required records did not appear within 24 hours of creation
-	//
-	// `verified` means verification passed, so Unkey has provisioned routing and requested a
-	// certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
-	// that proof came from.
+	// - `pending`: the domain is created. No DNS check has completed yet.
+	// - `verifying`: Unkey checks the DNS records approximately each minute.
+	// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
 	Status DomainStatus `json:"status"`
 
 	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
@@ -544,16 +540,12 @@ type Domain struct {
 	VerificationError *string `json:"verificationError,omitempty"`
 }
 
-// DomainStatus Where the domain is in verification.
+// DomainStatus The verification status of the domain.
 //
-// - `pending`: created, no DNS check has completed yet
-// - `verifying`: DNS is being polled, roughly once a minute
-// - `verified`: verification passed and a certificate has been requested
-// - `failed`: the required records did not appear within 24 hours of creation
-//
-// `verified` means verification passed, so Unkey has provisioned routing and requested a
-// certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
-// that proof came from.
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
 type DomainStatus string
 
 // DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
@@ -2106,13 +2098,12 @@ type V2DomainsCreateDomainResponseData struct {
 
 // V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
 type V2DomainsGetDomainRequestBody struct {
-	// Domain Identifies a domain by either its Unkey ID or the domain name itself.
-	// Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-	// without a scheme, port, or path. Internationalized names may be given in Unicode or
-	// Punycode form; both address the same domain.
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
 	//
-	// Domain names are unique per workspace, so the name alone is enough to address a domain and no
-	// project, app, or environment needs to be supplied.
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
 	Domain string `json:"domain"`
 }
 

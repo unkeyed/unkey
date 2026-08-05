@@ -10,18 +10,14 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
 
 /**
- * Where the domain is in verification.
+ * The verification status of the domain.
  *
  * @remarks
  *
- * - `pending`: created, no DNS check has completed yet
- * - `verifying`: DNS is being polled, roughly once a minute
- * - `verified`: verification passed and a certificate has been requested
- * - `failed`: the required records did not appear within 24 hours of creation
- *
- * `verified` means verification passed, so Unkey has provisioned routing and requested a
- * certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
- * that proof came from.
+ * - `pending`: the domain is created. No DNS check has completed yet.
+ * - `verifying`: Unkey checks the DNS records approximately each minute.
+ * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+ * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
  */
 export const DomainStatus = {
   Pending: "pending",
@@ -30,18 +26,14 @@ export const DomainStatus = {
   Failed: "failed",
 } as const;
 /**
- * Where the domain is in verification.
+ * The verification status of the domain.
  *
  * @remarks
  *
- * - `pending`: created, no DNS check has completed yet
- * - `verifying`: DNS is being polled, roughly once a minute
- * - `verified`: verification passed and a certificate has been requested
- * - `failed`: the required records did not appear within 24 hours of creation
- *
- * `verified` means verification passed, so Unkey has provisioned routing and requested a
- * certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
- * that proof came from.
+ * - `pending`: the domain is created. No DNS check has completed yet.
+ * - `verifying`: Unkey checks the DNS records approximately each minute.
+ * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+ * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
  */
 export type DomainStatus = ClosedEnum<typeof DomainStatus>;
 
@@ -73,18 +65,14 @@ export type Domain = {
    */
   environmentId: string;
   /**
-   * Where the domain is in verification.
+   * The verification status of the domain.
    *
    * @remarks
    *
-   * - `pending`: created, no DNS check has completed yet
-   * - `verifying`: DNS is being polled, roughly once a minute
-   * - `verified`: verification passed and a certificate has been requested
-   * - `failed`: the required records did not appear within 24 hours of creation
-   *
-   * `verified` means verification passed, so Unkey has provisioned routing and requested a
-   * certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
-   * that proof came from.
+   * - `pending`: the domain is created. No DNS check has completed yet.
+   * - `verifying`: Unkey checks the DNS records approximately each minute.
+   * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+   * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
    */
   status: DomainStatus;
   /**
@@ -95,11 +83,11 @@ export type Domain = {
    */
   verificationError?: string | undefined;
   /**
-   * The DNS records this domain needs, rebuilt from stored state so they match what
+   * The DNS records this domain needs. Create each record at your DNS provider.
    *
    * @remarks
-   * domains.createDomain returned. Useful for recovering the values without re-creating the domain,
-   * and each entry's `verified` flag shows which records are still outstanding.
+   * Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+   * so it tells you which records are still missing.
    */
   dnsRecords: Array<DnsRecord>;
   /**

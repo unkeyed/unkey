@@ -6,15 +6,14 @@ import * as z from "zod/v3";
 
 export type V2DomainsGetDomainRequestBody = {
   /**
-   * Identifies a domain by either its Unkey ID or the domain name itself.
+   * Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
    *
    * @remarks
-   * Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-   * without a scheme, port, or path. Internationalized names may be given in Unicode or
-   * Punycode form; both address the same domain.
+   * qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+   * internationalized name in Unicode or Punycode form. Both forms address the same domain.
    *
-   * Domain names are unique per workspace, so the name alone is enough to address a domain and no
-   * project, app, or environment needs to be supplied.
+   * Domain names are unique per workspace, so the name alone addresses the domain. You do not
+   * need to supply a project, app, or environment.
    */
   domain: string;
 };

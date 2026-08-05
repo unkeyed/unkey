@@ -48,25 +48,26 @@ export class Domains extends ClientSDK {
    * Get domain
    *
    * @remarks
-   * Retrieve a custom domain and where it stands in verification.
+   * Retrieve a custom domain and its verification status.
    *
-   * Address the domain by its id or by the name itself. Names are unique per workspace, so
-   * `api.acme.com` is enough and no project, app, or environment is needed.
+   * Address the domain by its id or by its name. Names are unique per workspace, so
+   * `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
    *
-   * Use this to poll after `domains.createDomain`. Verification runs in the background and polls DNS
-   * roughly once a minute, so the result is eventually consistent.
+   * Use this endpoint to poll after `domains.createDomain`. Verification runs in the background
+   * and checks DNS approximately each minute.
    *
-   * `status: verified` means verification passed, so Unkey has provisioned routing and requested a
-   * certificate. Each entry in `dnsRecords` carries a `verified` flag, so a domain still being set up
-   * shows exactly which record is outstanding. A record a provider does not expose to a DNS lookup,
-   * such as a proxied or flattened routing record, stays `false` for as long as it serves.
-   * `verificationError` explains the most recent failed attempt.
+   * `status: verified` means the domain is verified. Unkey has configured routing and requested a
+   * certificate. Each entry in `dnsRecords` has a `verified` flag. The flag shows which records
+   * Unkey has read back, so you can see which records are still missing. Some providers hide a
+   * record from DNS lookups, for example a proxied or flattened routing record. Such a record stays
+   * `false` while it serves traffic. `verificationError` gives the reason for the last failed
+   * attempt.
    *
-   * `dnsRecords` is rebuilt from stored state and matches what `domains.createDomain` returned, so
-   * the values are recoverable without creating the domain again.
+   * `dnsRecords` contains the same values that `domains.createDomain` returned. Use it to recover
+   * the values without creating the domain again.
    *
-   * **Important**: verification stops 24 hours after the domain was created and the status becomes
-   * `failed`. The window runs from `createdAt`, not from the last attempt.
+   * **Important**: verification stops 24 hours after the domain was created, and the status becomes
+   * `failed`. The window starts at `createdAt`, not at the last attempt.
    *
    * **Required Permissions**
    *

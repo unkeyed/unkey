@@ -884,13 +884,12 @@ components:
                     minLength: 4
                     maxLength: 253
                     description: |
-                        Identifies a domain by either its Unkey ID or the domain name itself.
-                        Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-                        without a scheme, port, or path. Internationalized names may be given in Unicode or
-                        Punycode form; both address the same domain.
+                        Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+                        internationalized name in Unicode or Punycode form. Both forms address the same domain.
 
-                        Domain names are unique per workspace, so the name alone is enough to address a domain and no
-                        project, app, or environment needs to be supplied.
+                        Domain names are unique per workspace, so the name alone addresses the domain. You do not
+                        need to supply a project, app, or environment.
                     example: api.acme.com
             additionalProperties: false
         V2DomainsGetDomainResponseBody:
@@ -4658,16 +4657,12 @@ components:
                         - DomainStatusVerified
                         - DomainStatusFailed
                     description: |
-                        Where the domain is in verification.
+                        The verification status of the domain.
 
-                        - `pending`: created, no DNS check has completed yet
-                        - `verifying`: DNS is being polled, roughly once a minute
-                        - `verified`: verification passed and a certificate has been requested
-                        - `failed`: the required records did not appear within 24 hours of creation
-
-                        `verified` means verification passed, so Unkey has provisioned routing and requested a
-                        certificate. Each entry in `dnsRecords` carries its own `verified` flag showing which record
-                        that proof came from.
+                        - `pending`: the domain is created. No DNS check has completed yet.
+                        - `verifying`: Unkey checks the DNS records approximately each minute.
+                        - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+                        - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
                     example: verified
                 verificationError:
                     type: string
@@ -4682,9 +4677,9 @@ components:
                     items:
                         "$ref": "#/components/schemas/DnsRecord"
                     description: |
-                        The DNS records this domain needs, rebuilt from stored state so they match what
-                        domains.createDomain returned. Useful for recovering the values without re-creating the domain,
-                        and each entry's `verified` flag shows which records are still outstanding.
+                        The DNS records this domain needs. Create each record at your DNS provider.
+                        Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+                        so it tells you which records are still missing.
                 createdAt:
                     type: integer
                     format: int64
@@ -8930,25 +8925,26 @@ paths:
     /v2/domains.getDomain:
         post:
             description: |
-                Retrieve a custom domain and where it stands in verification.
+                Retrieve a custom domain and its verification status.
 
-                Address the domain by its id or by the name itself. Names are unique per workspace, so
-                `api.acme.com` is enough and no project, app, or environment is needed.
+                Address the domain by its id or by its name. Names are unique per workspace, so
+                `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
 
-                Use this to poll after `domains.createDomain`. Verification runs in the background and polls DNS
-                roughly once a minute, so the result is eventually consistent.
+                Use this endpoint to poll after `domains.createDomain`. Verification runs in the background
+                and checks DNS approximately each minute.
 
-                `status: verified` means verification passed, so Unkey has provisioned routing and requested a
-                certificate. Each entry in `dnsRecords` carries a `verified` flag, so a domain still being set up
-                shows exactly which record is outstanding. A record a provider does not expose to a DNS lookup,
-                such as a proxied or flattened routing record, stays `false` for as long as it serves.
-                `verificationError` explains the most recent failed attempt.
+                `status: verified` means the domain is verified. Unkey has configured routing and requested a
+                certificate. Each entry in `dnsRecords` has a `verified` flag. The flag shows which records
+                Unkey has read back, so you can see which records are still missing. Some providers hide a
+                record from DNS lookups, for example a proxied or flattened routing record. Such a record stays
+                `false` while it serves traffic. `verificationError` gives the reason for the last failed
+                attempt.
 
-                `dnsRecords` is rebuilt from stored state and matches what `domains.createDomain` returned, so
-                the values are recoverable without creating the domain again.
+                `dnsRecords` contains the same values that `domains.createDomain` returned. Use it to recover
+                the values without creating the domain again.
 
-                **Important**: verification stops 24 hours after the domain was created and the status becomes
-                `failed`. The window runs from `createdAt`, not from the last attempt.
+                **Important**: verification stops 24 hours after the domain was created, and the status becomes
+                `failed`. The window starts at `createdAt`, not at the last attempt.
 
                 **Required Permissions**
 
@@ -8961,12 +8957,12 @@ paths:
                     application/json:
                         examples:
                             byId:
-                                description: Uses the id returned by domains.createDomain
+                                description: Uses the id that domains.createDomain returned
                                 summary: Retrieve by domain ID
                                 value:
                                     domain: dom_1234abcd
                             byName:
-                                description: The name is unique per workspace, so it addresses the domain on its own
+                                description: The name is unique per workspace. It addresses the domain on its own
                                 summary: Retrieve by domain name
                                 value:
                                     domain: api.acme.com
@@ -8979,7 +8975,7 @@ paths:
                         application/json:
                             examples:
                                 failed:
-                                    description: The records did not appear within 24 hours of creation
+                                    description: The required DNS records did not appear within 24 hours
                                     summary: Verification timed out
                                     value:
                                         data:
@@ -9008,7 +9004,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 pending:
-                                    description: No DNS check has run, so neither record is verified and updatedAt is absent
+                                    description: No DNS check has run yet. Neither record is verified, and updatedAt is absent
                                     summary: Domain created, not checked yet
                                     value:
                                         data:
@@ -9017,11 +9013,13 @@ paths:
                                             dnsRecords:
                                                 - name: api.acme.com
                                                   note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
                                                   type: CNAME
                                                   value: a1b2c3d4e5f6g7h8.cname.unkey.com
                                                   verified: false
                                                 - name: _unkey.api.acme.com
                                                   note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
                                                   type: TXT
                                                   value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
                                                   verified: false
@@ -9033,7 +9031,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 verified:
-                                    description: Verification passed through the routing record, so the TXT record was never consulted
+                                    description: The routing record verified the domain. Unkey did not need the TXT record
                                     summary: Domain serving traffic
                                     value:
                                         data:
@@ -9061,7 +9059,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 verifiedThroughOwnership:
-                                    description: An apex routes through an alias that cannot be read back, so only its TXT record reports verified while it serves
+                                    description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic
                                     summary: Apex domain serving, routing record unreadable
                                     value:
                                         data:
@@ -9097,14 +9095,15 @@ paths:
                         application/json:
                             examples:
                                 invalidIdentifier:
-                                    summary: Malformed domain identifier
+                                    description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+                                    summary: Identifier too short
                                     value:
                                         error:
-                                            detail: The domain identifier is not a valid domain name or domain ID.
+                                            detail: The domain identifier must be between 4 and 253 characters.
                                             errors:
-                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd', without a scheme, port, or path
+                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
                                                   location: body.domain
-                                                  message: must match ^([a-zA-Z0-9_]+|([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$
+                                                  message: minLength must be at least 4 characters
                                             status: 400
                                             title: Bad Request
                                             type: validation-error

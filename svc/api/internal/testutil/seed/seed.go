@@ -351,10 +351,10 @@ type CreateCustomDomainRequest struct {
 // through ctrl, so this seeds the row directly. TargetCname is generated when omitted
 // because it is unique-constrained across workspaces.
 func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainRequest) db.FindCustomDomainByIdRow {
-	require.NoError(s.t, assert.NotEmpty(req.ID, "CustomDomain ID must be set"))
-	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "CustomDomain WorkspaceID must be set"))
-	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "CustomDomain EnvironmentID must be set"))
-	require.NoError(s.t, assert.NotEmpty(req.Domain, "CustomDomain Domain must be set"))
+	require.NotEmpty(s.t, req.ID, "CustomDomain ID must be set")
+	require.NotEmpty(s.t, req.WorkspaceID, "CustomDomain WorkspaceID must be set")
+	require.NotEmpty(s.t, req.EnvironmentID, "CustomDomain EnvironmentID must be set")
+	require.NotEmpty(s.t, req.Domain, "CustomDomain Domain must be set")
 
 	status := req.VerificationStatus
 	if status == "" {

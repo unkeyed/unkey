@@ -171,6 +171,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Domain:            domainName,
 			TargetCname:       res.GetTargetCname(),
 			VerificationToken: res.GetVerificationToken(),
+			RoutingVerified:   false,
+			OwnershipVerified: false,
 		}),
 		DomainConnect: nil,
 	}

@@ -11,7 +11,7 @@ additionalProperties: false
 examples:
   verified:
     summary: Domain serving traffic
-    description: Verification passed through the routing record, so the TXT record was never consulted
+    description: The routing record verified the domain. Unkey did not need the TXT record
     value:
       meta:
         requestId: req_1234abcd
@@ -39,7 +39,7 @@ examples:
         updatedAt: 1704067260000
   pending:
     summary: Domain created, not checked yet
-    description: No DNS check has run, so neither record is verified and updatedAt is absent
+    description: No DNS check has run yet. Neither record is verified, and updatedAt is absent
     value:
       meta:
         requestId: req_1234abcd
@@ -96,7 +96,7 @@ examples:
         updatedAt: 1704067260000
   failed:
     summary: Verification timed out
-    description: The records did not appear within 24 hours of creation
+    description: The required DNS records did not appear within 24 hours
     value:
       meta:
         requestId: req_1234abcd
