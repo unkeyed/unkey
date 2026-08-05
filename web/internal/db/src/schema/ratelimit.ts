@@ -9,7 +9,7 @@ export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
+    id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull().default(""),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
@@ -39,9 +39,9 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
+    id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
-    namespaceId: caseSensitiveVarchar("namespace_id", { length: 33 }).notNull(),
+    namespaceId: id("namespace_id").notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),

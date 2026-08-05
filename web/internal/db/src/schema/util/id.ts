@@ -4,6 +4,6 @@ export const id = customType<{
   data: string;
 }>({
   dataType() {
-    return "varchar(32) COLLATE utf8mb4_0900_as_cs";
+    return "varchar(36) COLLATE utf8mb4_0900_as_cs";
   },
 });
