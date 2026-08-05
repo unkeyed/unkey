@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, int, mysqlTable } from "drizzle-orm/mysql-core";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 import { workspaces } from "./workspaces";
 
 /**
@@ -18,8 +17,7 @@ export const quotas = mysqlTable("quota", {
    * workspaceId is the primary identifier for the quota record,
    * matching the ID of the workspace it belongs to.
    */
-  // workspaceId: id("workspace_id").notNull().unique(),
-  workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+  workspaceId: id("workspace_id").notNull().unique(),
 
   /**
    * requestsPerMonth specifies the maximum number of billable API requests

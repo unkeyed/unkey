@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -9,12 +9,9 @@ export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // projectId: id("project_id").notNull().default(""),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull().default(""),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
@@ -42,12 +39,9 @@ export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // namespaceId: id("namespace_id").notNull(),
-    namespaceId: caseSensitiveVarchar("namespace_id", { length: 256 }).notNull(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    namespaceId: id("namespace_id").notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),

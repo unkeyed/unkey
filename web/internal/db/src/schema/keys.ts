@@ -175,10 +175,8 @@ export const keyMigrations = mysqlTable(
   "key_migrations",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],

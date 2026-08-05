@@ -1,8 +1,8 @@
 CREATE TABLE `ratelimit_overrides` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`namespace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`namespace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`identifier` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`limit` bigint unsigned NOT NULL,
 	`duration` bigint unsigned NOT NULL,
