@@ -360,13 +360,6 @@ type Querier interface {
 	//    AND domain = ?
 	//  LIMIT 1
 	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
-	//FindCustomDomainsMaxByWorkspaceID
-	//
-	//  SELECT custom_domains_max
-	//  FROM `limits`
-	//  WHERE workspace_id = ?
-	//  LIMIT 1
-	FindCustomDomainsMaxByWorkspaceID(ctx context.Context, workspaceID string) (uint32, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//

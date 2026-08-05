@@ -447,14 +447,14 @@ func (f fixture) seedChain(t *testing.T, workspaceID string, customDomainsMax ui
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspaceID,
 		Name:        "Atomic AddCustomDomain",
-		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("project"), "_", "-")),
+		Slug:        uid.DNS1035(16),
 	})
 	app := f.seeder.CreateApp(ctx, seed.CreateAppRequest{
 		ID:            uid.New(uid.AppPrefix),
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
 		Name:          "Atomic App",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
+		Slug:          uid.DNS1035(16),
 		DefaultBranch: "main",
 	})
 	environment := f.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
@@ -509,7 +509,7 @@ func (f fixture) newEnvironment(t *testing.T) chain {
 		WorkspaceID: f.workspaceID,
 		ProjectID:   f.projectID,
 		AppID:       f.appID,
-		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("env"), "_", "-")),
+		Slug:        uid.DNS1035(16),
 		Description: "Second environment",
 	})
 
@@ -594,7 +594,7 @@ func acceptingIngress(t *testing.T) string {
 
 // randomDomain keeps names unique across runs sharing one database.
 func randomDomain() string {
-	return strings.ToLower(strings.ReplaceAll(uid.New("d"), "_", "")) + ".example.com"
+	return uid.DNS1035(16) + ".example.com"
 }
 
 type failingAuditLogService struct {

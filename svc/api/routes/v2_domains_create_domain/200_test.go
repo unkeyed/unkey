@@ -138,7 +138,7 @@ func TestCreateDomainApexRecords(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
 
 	// No subdomain label, so this is a zone apex.
-	apex := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")) + ".com"
+	apex := uid.DNS1035(16) + ".com"
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, apex))
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data.DnsRecords, 2, "received: %s", res.RawBody)

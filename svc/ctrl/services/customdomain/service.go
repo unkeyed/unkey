@@ -122,7 +122,7 @@ func (s *Service) AddCustomDomain(
 
 	// Before Domain Connect discovery, so a workspace at its allowance cannot use
 	// rejected requests to drive outbound discovery traffic.
-	allowed, err := s.db.FindCustomDomainsMaxByWorkspaceID(ctx, req.Msg.GetWorkspaceId())
+	limits, err := s.db.FindLimitsByWorkspaceID(ctx, req.Msg.GetWorkspaceId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, gatefault.ConnectWith(
@@ -141,7 +141,7 @@ func (s *Service) AddCustomDomain(
 	}
 	if err := gatefault.ConnectWith(
 		connect.CodeResourceExhausted,
-		domaingate.CheckAllowance(attached, allowed),
+		domaingate.CheckAllowance(attached, limits.CustomDomainsMax),
 	); err != nil {
 		return nil, err
 	}
