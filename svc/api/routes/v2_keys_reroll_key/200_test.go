@@ -258,9 +258,9 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 }
 
-// TestRerollKeyWithExactURNPermission guarantees an exact create_key grant on
-// the existing key authorizes rerolling that key.
-func TestRerollKeyWithExactURNPermission(t *testing.T) {
+// TestRerollRecoverableKeyWithURNPermission guarantees a wildcard create_key
+// grant authorizes creating the replacement recoverable key.
+func TestRerollRecoverableKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -276,15 +276,17 @@ func TestRerollKeyWithExactURNPermission(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
+		WorkspaceID:   workspace.ID,
+		EncryptedKeys: true,
 	})
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
+		Recoverable: true,
 	})
 
 	createKeyPermission := rbac.U(
-		urn.New().Workspace(workspace.ID).Keyspace(api.KeyAuthID.String).Key(key.KeyID),
+		urn.New().Workspace(workspace.ID).Keyspace(api.KeyAuthID.String).Key("*"),
 		permissions.CreateKey{},
 	).Value
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)

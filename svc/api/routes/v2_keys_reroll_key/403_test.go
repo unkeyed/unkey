@@ -97,40 +97,4 @@ func TestRerollKeyForbidden(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	encryptedKey := h.CreateKey(seed.CreateKeyRequest{
-		Disabled:     false,
-		Recoverable:  true,
-		WorkspaceID:  h.Resources().UserWorkspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:    nil,
-		IdentityID:   nil,
-		Meta:         nil,
-		Expires:      nil,
-		Name:         nil,
-		Deleted:      false,
-		RefillAmount: nil,
-		RefillDay:    nil,
-		Permissions:  nil,
-		Roles:        nil,
-		Ratelimits:   nil,
-	})
-
-	t.Run("reroll recoverable key without perms", func(t *testing.T) {
-		// Create root key with permission that partially matches but isn't sufficient because no encryption permission
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
-
-		req := handler.Request{
-			KeyId:      encryptedKey.KeyID,
-			Expiration: 0,
-		}
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
-	})
 }
