@@ -18,11 +18,11 @@ additionalProperties: false
 examples:
   byName:
     summary: Retrieve by domain name
-    description: The name is unique per workspace. It addresses the domain on its own
+    description: The name is unique per workspace. It addresses the domain on its own.
     value:
       domain: api.acme.com
   byId:
     summary: Retrieve by domain ID
-    description: Uses the id that domains.createDomain returned
+    description: Uses the id that domains.createDomain returned.
     value:
       domain: dom_1234abcd

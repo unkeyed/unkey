@@ -42,12 +42,12 @@ post:
         examples:
           byName:
             summary: Retrieve by domain name
-            description: The name is unique per workspace. It addresses the domain on its own
+            description: The name is unique per workspace. It addresses the domain on its own.
             value:
               domain: api.acme.com
           byId:
             summary: Retrieve by domain ID
-            description: Uses the id that domains.createDomain returned
+            description: Uses the id that domains.createDomain returned.
             value:
               domain: dom_1234abcd
     required: true
@@ -62,7 +62,7 @@ post:
           examples:
             verified:
               summary: Domain serving traffic
-              description: The routing record verified the domain. Unkey did not need the TXT record
+              description: The routing record verified the domain. Unkey did not need the TXT record.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -90,7 +90,7 @@ post:
                   updatedAt: 1704067260000
             pending:
               summary: Domain created, not checked yet
-              description: No DNS check has run yet. Neither record is verified, and updatedAt is absent
+              description: No DNS check has run yet. Neither record is verified, and updatedAt is absent.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -117,7 +117,7 @@ post:
                   createdAt: 1704067200000
             verifiedThroughOwnership:
               summary: Apex domain serving, routing record unreadable
-              description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic
+              description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -145,7 +145,7 @@ post:
                   updatedAt: 1704067260000
             failed:
               summary: Verification timed out
-              description: The required DNS records did not appear within 24 hours
+              description: The required DNS records did not appear within 24 hours.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -233,7 +233,7 @@ post:
                   type: forbidden
     "404":
       description: |
-        Not Found - The domain does not exist in your workspace, or your root key may not read it
+        Not Found - The domain does not exist in your workspace, or your root key may not read it.
       content:
         application/json:
           schema:

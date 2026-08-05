@@ -8957,12 +8957,12 @@ paths:
                     application/json:
                         examples:
                             byId:
-                                description: Uses the id that domains.createDomain returned
+                                description: Uses the id that domains.createDomain returned.
                                 summary: Retrieve by domain ID
                                 value:
                                     domain: dom_1234abcd
                             byName:
-                                description: The name is unique per workspace. It addresses the domain on its own
+                                description: The name is unique per workspace. It addresses the domain on its own.
                                 summary: Retrieve by domain name
                                 value:
                                     domain: api.acme.com
@@ -8975,7 +8975,7 @@ paths:
                         application/json:
                             examples:
                                 failed:
-                                    description: The required DNS records did not appear within 24 hours
+                                    description: The required DNS records did not appear within 24 hours.
                                     summary: Verification timed out
                                     value:
                                         data:
@@ -9004,7 +9004,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 pending:
-                                    description: No DNS check has run yet. Neither record is verified, and updatedAt is absent
+                                    description: No DNS check has run yet. Neither record is verified, and updatedAt is absent.
                                     summary: Domain created, not checked yet
                                     value:
                                         data:
@@ -9031,7 +9031,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 verified:
-                                    description: The routing record verified the domain. Unkey did not need the TXT record
+                                    description: The routing record verified the domain. Unkey did not need the TXT record.
                                     summary: Domain serving traffic
                                     value:
                                         data:
@@ -9059,7 +9059,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 verifiedThroughOwnership:
-                                    description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic
+                                    description: An apex domain routes through an alias that Unkey cannot read back. Only its TXT record reports verified while the domain serves traffic.
                                     summary: Apex domain serving, routing record unreadable
                                     value:
                                         data:
@@ -9166,7 +9166,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The domain does not exist in your workspace, or your root key may not read it
+                        Not Found - The domain does not exist in your workspace, or your root key may not read it.
                 "429":
                     content:
                         application/json:
