@@ -40,7 +40,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:           env.appID,
 			Environment:   env.environmentID,
 			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
-			RootDirectory: ptr("./app"),
+			RootDirectory: ptr("app"),
 			WatchPaths:    ptr([]string{"src/**"}),
 			AutoDeploy:    ptr(false),
 		})
@@ -51,7 +51,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, got.Dockerfile.Valid)
 		require.Equal(t, "Dockerfile.prod", got.Dockerfile.String)
-		require.Equal(t, "./app", got.DockerContext)
+		require.Equal(t, "app", got.DockerContext)
 		require.Equal(t, []string{"src/**"}, []string(got.WatchPaths))
 		require.False(t, got.AutoDeploy)
 	})
