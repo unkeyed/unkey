@@ -33,13 +33,10 @@ import { Result } from "../types/fp.js";
  * Delete a custom domain from your workspace.
  *
  * Address the domain by its id or by its name. Names are unique per workspace, so
- * `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
+ * `api.acme.com` is enough.
  *
- * Deletion is immediate. Unkey removes the domain, its routing, and its pending certificate
- * challenge in one transaction. A running verification stops. Traffic to the domain no longer
- * reaches your deployment when the response returns.
- *
- * Deleting a domain twice is safe. The first call deletes it, and each later call returns a 404.
+ * Traffic to the domain stops shortly after deletion. A running verification stops. Unkey
+ * does not change the DNS records at your provider. Remove them yourself.
  *
  * **Required Permissions**
  *

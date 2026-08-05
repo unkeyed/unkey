@@ -98,10 +98,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The row read above came from a replica and is advisory only: the control
-	// plane re-resolves the domain on the primary inside its transaction. A row
-	// that vanished in between comes back as NotFound, the same answer a second
-	// delete of an already deleted domain gets.
 	_, err = h.CtrlClient.DeleteCustomDomain(ctx, &ctrlv1.DeleteCustomDomainRequest{
 		WorkspaceId: principal.WorkspaceID,
 		ProjectId:   row.ProjectID,
@@ -109,8 +105,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Actor:       actor,
 	})
 	if err != nil {
-		// The same answer a missing row gets above: a row that vanished between the
-		// advisory read and ctrl's authoritative lookup is already deleted.
 		if connect.CodeOf(err) == connect.CodeNotFound {
 			return fault.Wrap(
 				err,
