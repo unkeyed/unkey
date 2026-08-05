@@ -9026,12 +9026,12 @@ paths:
                     application/json:
                         examples:
                             byId:
-                                description: Uses the id that domains.createDomain returned
+                                description: Uses the id that domains.createDomain returned.
                                 summary: Delete by domain ID
                                 value:
                                     domain: dom_1234abcd
                             byName:
-                                description: The name is unique per workspace. It addresses the domain on its own
+                                description: The name is unique per workspace. It addresses the domain on its own.
                                 summary: Delete by domain name
                                 value:
                                     domain: api.acme.com
@@ -9044,7 +9044,7 @@ paths:
                         application/json:
                             examples:
                                 success:
-                                    description: The domain and its routing were removed before the response returned
+                                    description: The domain and its routing were removed before the response returned.
                                     summary: Domain deleted
                                     value:
                                         data: {}
@@ -9131,7 +9131,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-                        root key may not delete it
+                        root key may not delete it.
                 "429":
                     content:
                         application/json:
