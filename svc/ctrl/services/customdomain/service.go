@@ -16,7 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
-	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/retry"
@@ -115,7 +115,7 @@ func (s *Service) AddCustomDomain(
 	}
 	if gateErr := gatefault.ConnectWith(
 		connect.CodeAlreadyExists,
-		domaingate.CheckNotAttached(domain, err == nil),
+		domaingate.CheckNotExists(domain, err == nil),
 	); gateErr != nil {
 		return nil, gateErr
 	}

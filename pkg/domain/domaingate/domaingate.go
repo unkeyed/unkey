@@ -42,15 +42,15 @@ func AlreadyExists(domain string) error {
 	)
 }
 
-// CheckNotAttached reports whether domain is free for this workspace to attach. Callers
+// CheckNotExists reports whether domain is free for this workspace to attach. Callers
 // pass the outcome of their own existence lookup, so both layers decide from the same
 // rule instead of each turning a nil error into a rejection at the call site.
 //
 // Scoped to the workspace, not to Unkey: the unique index is (workspace_id, domain), and
 // a name another workspace holds can still be claimed here by proving ownership. So this
 // is not domain availability in the registrar sense.
-func CheckNotAttached(domain string, attached bool) error {
-	if !attached {
+func CheckNotExists(domain string, exists bool) error {
+	if !exists {
 		return nil
 	}
 

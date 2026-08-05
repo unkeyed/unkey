@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
-	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -120,7 +120,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to check whether the domain is already attached."),
 		)
 	}
-	if err = domaingate.CheckNotAttached(domain, err == nil); err != nil {
+	if err = domaingate.CheckNotExists(domain, err == nil); err != nil {
 		return err
 	}
 

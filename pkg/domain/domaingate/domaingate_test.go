@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/dns"
-	"github.com/unkeyed/unkey/pkg/dns/domaingate"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
@@ -70,11 +70,11 @@ func TestAlreadyExists(t *testing.T) {
 
 // Both layers pass the outcome of their own lookup, so a nil error meaning "free" and a
 // found row meaning "taken" is decided here rather than at each call site.
-func TestCheckNotAttached(t *testing.T) {
+func TestCheckNotExists(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, domaingate.CheckNotAttached("api.acme.com", false))
-	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckNotAttached("api.acme.com", true))
+	require.NoError(t, domaingate.CheckNotExists("api.acme.com", false))
+	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckNotExists("api.acme.com", true))
 }
 
 func TestCheckAllowance(t *testing.T) {
