@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
 )
 
@@ -107,4 +108,39 @@ func TestCreateAppByProjectId(t *testing.T) {
 
 	require.Len(t, ctrlClient.CreateAppCalls, 1)
 	require.Equal(t, project.ID, ctrlClient.CreateAppCalls[0].GetProjectId())
+}
+
+func TestCreateDockerImageApp(t *testing.T) {
+	h := testutil.NewHarness(t)
+	appID := uid.New(uid.AppPrefix)
+	ctrlClient := &testutil.MockAppClient{
+		CreateAppFunc: func(_ context.Context, _ *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
+			return &ctrlv1.CreateAppResponse{Id: appID}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}, handler.Request{
+		Project: project.ID,
+		Name:    "Payments API",
+		Slug:    "payments-api",
+		Image:   &openapi.AppDockerImageCreateInput{DockerImage: "ghcr.io/acme/payments:v1.2.3"},
+	})
+
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, ctrlClient.CreateAppCalls, 1)
+	require.Equal(t, "ghcr.io/acme/payments:v1.2.3", ctrlClient.CreateAppCalls[0].GetDockerImage().GetImageReference())
 }
