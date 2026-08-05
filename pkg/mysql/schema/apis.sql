@@ -1,9 +1,9 @@
 CREATE TABLE `apis` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(36) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(256) NOT NULL,
-	`workspace_id` varchar(36) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`project_id` varchar(36) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`project_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
 	`ip_whitelist` varchar(512),
 	`auth_type` enum('key','jwt'),
 	`key_auth_id` varchar(37) COLLATE utf8mb4_0900_as_cs,

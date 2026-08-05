@@ -1,6 +1,6 @@
 CREATE TABLE `billing_subscriptions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(36) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`product` enum('api','compute') NOT NULL,
 	`stripe_subscription_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`created_at` bigint NOT NULL DEFAULT 0,
