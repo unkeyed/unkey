@@ -54,14 +54,11 @@ properties:
   token:
     type: string
     x-unkey-redact: true
-  displayName:
-    type: string
-    x-unkey-redact: false
 ```
 
-Set `x-unkey-redact: false` when this field does not need redaction. This value
-does not disable other redaction rules. Frontline always redacts authorization
-headers and credentials that a KeyAuth policy defines.
+Omit `x-unkey-redact` when a field does not need redaction. A value of `false`
+has the same effect. Frontline always redacts authorization headers and
+credentials that a KeyAuth policy defines.
 
 ## View logs
 
