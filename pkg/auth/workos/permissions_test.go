@@ -37,13 +37,20 @@ func TestTranslatePermissions(t *testing.T) {
 	})
 	require.Equal(t, []string{
 		"unkey:v1:ws_123:keyspaces/*#create_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:keyspaces/*#create_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
 		"unkey:v1:ws_123:keyspaces/*#read_keyspace",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#read_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*#read_keyspace",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#update_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#verify_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#delete_key",
 		"unkey:v1:ws_123:projects/*/identities/*#create_identity",
 		"unkey:v1:ws_123:projects/*/identities/*#read_identity",
 		"unkey:v1:ws_123:projects/*/identities/*#update_identity",
@@ -121,6 +128,31 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			name: "admin",
 			in:   "admin:*",
 			want: "unkey:v1:ws_123:**#*",
+		},
+		{
+			name: "deployment promote",
+			in:   "deployments:promote",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#promote_deployment",
+		},
+		{
+			name: "environment variables",
+			in:   "environments:set_variables",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#set_variables",
+		},
+		{
+			name: "gateway policy update",
+			in:   "gateway:update_policy",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#update_policy",
+		},
+		{
+			name: "rate limit override set",
+			in:   "ratelimits:set_override",
+			want: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#set_override",
+		},
+		{
+			name: "permission definition create",
+			in:   "permissions:create",
+			want: "unkey:v1:ws_123:projects/*/rbac/permissions/*#create_permission",
 		},
 	}
 

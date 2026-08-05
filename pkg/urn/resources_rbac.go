@@ -2,15 +2,37 @@ package urn
 
 import "fmt"
 
-// rbac builds RBAC resource paths.
+// RBAC builds RBAC resource paths.
 //
 // Hierarchy:
 //
 //	workspace
 //	└── rbac
-type rbac struct {
+type RBAC struct {
 	workspaceID string
 	path        string
+}
+
+type rbac = RBAC
+
+// Role is an RBAC role resource path.
+type Role struct {
+	workspaceID string
+	path        string
+}
+
+func (r Role) String() string {
+	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
+}
+
+// PermissionDefinition is an RBAC permission definition resource path.
+type PermissionDefinition struct {
+	workspaceID string
+	path        string
+}
+
+func (p PermissionDefinition) String() string {
+	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }
 
 // Role returns an RBAC role resource path.
@@ -19,11 +41,8 @@ type rbac struct {
 //
 //	rbac
 //	└── roles/{role_id}
-func (r rbac) Role(roleID string) V1 {
-	return V1{
-		WorkspaceID: r.workspaceID,
-		Resource:    fmt.Sprintf("%s/roles/%s", r.path, roleID),
-	}
+func (r RBAC) Role(roleID string) Role {
+	return Role{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/roles/%s", r.path, roleID)}
 }
 
 // Permission returns an RBAC permission resource path.
@@ -32,9 +51,6 @@ func (r rbac) Role(roleID string) V1 {
 //
 //	rbac
 //	└── permissions/{permission_id}
-func (r rbac) Permission(permissionID string) V1 {
-	return V1{
-		WorkspaceID: r.workspaceID,
-		Resource:    fmt.Sprintf("%s/permissions/%s", r.path, permissionID),
-	}
+func (r RBAC) Permission(permissionID string) PermissionDefinition {
+	return PermissionDefinition{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/permissions/%s", r.path, permissionID)}
 }

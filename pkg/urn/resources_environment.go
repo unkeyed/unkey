@@ -61,6 +61,11 @@ func (e Environment) Variable(variableID string) V1 {
 	}
 }
 
+// Gateway returns the environment's gateway resource namespace.
+func (e Environment) Gateway() Gateway {
+	return Gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
+}
+
 // Any returns a descendant pattern below this environment.
 func (e Environment) Any() V1 {
 	return V1{

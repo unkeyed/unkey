@@ -20,11 +20,11 @@ func (UpdateEnvironment) String() string            { return "update_environment
 
 // CreateDeployment authorizes creating deployments in an environment.
 //
-// Valid resource: urn.Environment.
+// Valid resource: urn.Deployment.
 type CreateDeployment struct{}
 
-func (CreateDeployment) ActionFor(urn.Environment) {}
-func (CreateDeployment) String() string            { return "create_deployment" }
+func (CreateDeployment) ActionFor(urn.Deployment) {}
+func (CreateDeployment) String() string           { return "create_deployment" }
 
 // CreateDomain authorizes creating domains in an environment.
 //
@@ -41,3 +41,21 @@ type CreateVariable struct{}
 
 func (CreateVariable) ActionFor(urn.Environment) {}
 func (CreateVariable) String() string            { return "create_variable" }
+
+// ReadVariables authorizes reading an environment's variable collection.
+type ReadVariables struct{}
+
+func (ReadVariables) ActionFor(urn.Environment) {}
+func (ReadVariables) String() string            { return "read_variables" }
+
+// SetVariables authorizes replacing or upserting environment variables.
+type SetVariables struct{}
+
+func (SetVariables) ActionFor(urn.Environment) {}
+func (SetVariables) String() string            { return "set_variables" }
+
+// RemoveVariables authorizes removing environment variables.
+type RemoveVariables struct{}
+
+func (RemoveVariables) ActionFor(urn.Environment) {}
+func (RemoveVariables) String() string            { return "remove_variables" }
