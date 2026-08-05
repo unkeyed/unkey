@@ -45,6 +45,16 @@ services:
       url: /health/live
       description: Local Deploy control-plane API from the minikube stack.
 
+  deployment:
+    command: >-
+      python3 -u .amp/frontline-portal.py
+      "$PORT" "$PUBLIC_URL" local-api-production-local.unkey.local
+    port: 19080
+    health: /_unkey/internal/health/ready
+    portal:
+      title: Deployed Local API
+      description: Active production deployment routed through Frontline.
+
   portal:
     command: >-
       "$HOME/.local/bin/mise" exec --
