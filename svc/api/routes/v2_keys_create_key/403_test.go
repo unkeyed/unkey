@@ -115,7 +115,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 
 	t.Run("create permission for different keyspace", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			createKeyPermission(h.Resources().UserWorkspace.ID, otherKeySpaceID),
+			createKeyPermission(t, h.Resources().UserWorkspace.ID, otherKeySpaceID),
 		)
 
 		headers := http.Header{
@@ -130,7 +130,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("create recoverable key without perms", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(t, h.Resources().UserWorkspace.ID, keySpaceID))
 
 		req := handler.Request{
 			ApiId:       apiID,

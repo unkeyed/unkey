@@ -2,11 +2,11 @@ package urn
 
 import "fmt"
 
-// RBAC builds RBAC resource paths.
+// RBAC builds role and permission definition resource paths beneath a parent.
 //
 // Hierarchy:
 //
-//	workspace
+//	{parent_resource}
 //	└── rbac
 type RBAC struct {
 	workspaceID string
@@ -19,6 +19,7 @@ type Role struct {
 	path        string
 }
 
+// String returns this role resource path.
 func (r Role) String() string {
 	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
 }
@@ -29,6 +30,7 @@ type PermissionDefinition struct {
 	path        string
 }
 
+// String returns this permission definition resource path.
 func (p PermissionDefinition) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }

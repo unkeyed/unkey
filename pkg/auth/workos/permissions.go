@@ -352,14 +352,14 @@ func sortedPermissionSlugs() []string {
 // translatePermissions translates WorkOS permission strings into canonical
 // Unkey resource permissions. Unknown permissions are ignored but logged.
 //
-// For workspaceID "ws_1":
+// A WorkOS permission may add several grants while old and new resource scopes
+// coexist during migration. For workspaceID "ws_1", "keys:create" adds:
 //
-//	keys:create        => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#create_key
-//	keys:read          => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key
-//	keys:update        => unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#update_key
-//	identities:read    => unkey:v1:ws_1:projects/*/identities/*#read_identity
-//	admin:*            => unkey:v1:ws_1:**#*
-//	unknown:permission => dropped with a warning log
+//	unkey:v1:ws_1:keyspaces/*/keys/*#create_key
+//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#create_key
+//
+// "admin:*" adds "unkey:v1:ws_1:**#*". Unknown permissions are dropped with a
+// warning. The complete translation table is permissionMappings.
 func translatePermissions(workspaceID string, permissions []string) []string {
 	var out []string
 

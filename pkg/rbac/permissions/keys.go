@@ -2,6 +2,14 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// CreateKey authorizes creating a key resource.
+//
+// Valid resource: urn.Key.
+type CreateKey struct{}
+
+func (CreateKey) ActionFor(urn.Key) {}
+func (CreateKey) String() string    { return "create_key" }
+
 // ReadKey authorizes reading key resources.
 //
 // Valid resource: urn.Key.

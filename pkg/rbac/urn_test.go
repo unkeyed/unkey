@@ -21,11 +21,17 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 		Resource: resource.V1(),
 		Action:   "read_override",
 	}.String())
-	createQuery := U(urn.New().Workspace("ws_123").Project("proj_123").Keyspace("ks_123").Key("key_123"), permissions.CreateKey{})
+	project := urn.New().Workspace("ws_123").Project("proj_123")
+	environment := project.App("app_123").Environment("env_123")
+	createKeyQuery := U(project.Keyspace("ks_123").Key("key_123"), permissions.CreateKey{})
+	createDomainQuery := U(environment.Domain("domain_123"), permissions.CreateDomain{})
+	createVariableQuery := U(environment.Variable("variable_123"), permissions.CreateVariable{})
 
 	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override", query.Value)
 	require.Equal(t, query.Value, stringQuery.Value)
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#create_key", createQuery.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123#create_key", createKeyQuery.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/domain_123#create_domain", createDomainQuery.Value)
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/variable_123#create_variable", createVariableQuery.Value)
 
 	result, err := New().EvaluatePermissions(query, []string{
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123#read_override",

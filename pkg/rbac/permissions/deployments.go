@@ -2,6 +2,12 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// CreateDeployment authorizes creating a deployment resource.
+type CreateDeployment struct{}
+
+func (CreateDeployment) ActionFor(urn.Deployment) {}
+func (CreateDeployment) String() string           { return "create_deployment" }
+
 // ReadDeployment authorizes reading a deployment.
 type ReadDeployment struct{}
 

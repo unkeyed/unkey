@@ -6,11 +6,11 @@ import "fmt"
 //
 // Hierarchy:
 //
-//	workspace
+//	{parent_resource}
 //	└── ratelimits/namespaces/{namespace_id}
 //
 // The namespace is intentionally below the literal "ratelimits" segment so all
-// rate limit resources can share one top-level workspace branch.
+// rate limit resources can share one branch beneath their parent.
 type RatelimitNamespace struct {
 	workspaceID string
 	path        string
@@ -20,7 +20,7 @@ type RatelimitNamespace struct {
 //
 // Subresource:
 //
-//	workspace
+//	{parent_resource}
 //	└── ratelimits/namespaces/{namespace_id}
 func (r RatelimitNamespace) String() string {
 	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()

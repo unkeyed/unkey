@@ -2,6 +2,14 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// CreateEnvironment authorizes creating an environment resource.
+//
+// Valid resource: urn.Environment.
+type CreateEnvironment struct{}
+
+func (CreateEnvironment) ActionFor(urn.Environment) {}
+func (CreateEnvironment) String() string            { return "create_environment" }
+
 // ReadEnvironment authorizes reading a specific environment.
 //
 // Valid resource: urn.Environment.
@@ -18,29 +26,21 @@ type UpdateEnvironment struct{}
 func (UpdateEnvironment) ActionFor(urn.Environment) {}
 func (UpdateEnvironment) String() string            { return "update_environment" }
 
-// CreateDeployment authorizes creating deployments in an environment.
+// CreateDomain authorizes creating a domain resource.
 //
-// Valid resource: urn.Deployment.
-type CreateDeployment struct{}
-
-func (CreateDeployment) ActionFor(urn.Deployment) {}
-func (CreateDeployment) String() string           { return "create_deployment" }
-
-// CreateDomain authorizes creating domains in an environment.
-//
-// Valid resource: urn.Environment.
+// Valid resource: urn.Domain.
 type CreateDomain struct{}
 
-func (CreateDomain) ActionFor(urn.Environment) {}
-func (CreateDomain) String() string            { return "create_domain" }
+func (CreateDomain) ActionFor(urn.Domain) {}
+func (CreateDomain) String() string       { return "create_domain" }
 
-// CreateVariable authorizes creating variables in an environment.
+// CreateVariable authorizes creating a variable resource.
 //
-// Valid resource: urn.Environment.
+// Valid resource: urn.Variable.
 type CreateVariable struct{}
 
-func (CreateVariable) ActionFor(urn.Environment) {}
-func (CreateVariable) String() string            { return "create_variable" }
+func (CreateVariable) ActionFor(urn.Variable) {}
+func (CreateVariable) String() string         { return "create_variable" }
 
 // ReadVariables authorizes reading an environment's variable collection.
 type ReadVariables struct{}

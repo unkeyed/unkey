@@ -6,7 +6,7 @@ import "fmt"
 //
 // Hierarchy:
 //
-//	workspace
+//	{parent_resource}
 //	└── keyspaces/{keyspace_id}
 //
 // A keyspace can also produce a descendant pattern for grants covering every
@@ -20,7 +20,7 @@ type Keyspace struct {
 //
 // Subresource:
 //
-//	workspace
+//	{parent_resource}
 //	└── keyspaces/{keyspace_id}
 func (k Keyspace) String() string {
 	return V1{WorkspaceID: k.workspaceID, Resource: k.path}.String()

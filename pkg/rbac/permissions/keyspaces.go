@@ -27,11 +27,3 @@ type ReadKeyspaceLogs struct{}
 
 func (ReadKeyspaceLogs) ActionFor(urn.Keyspace) {}
 func (ReadKeyspaceLogs) String() string         { return "read_logs" }
-
-// CreateKey authorizes creating a key resource.
-//
-// Valid resource: urn.Key.
-type CreateKey struct{}
-
-func (CreateKey) ActionFor(urn.Key) {}
-func (CreateKey) String() string    { return "create_key" }

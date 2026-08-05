@@ -29,7 +29,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -67,7 +67,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 
 		// Create root key for the other workspace with proper permissions
-		otherRootKey := h.CreateRootKey(otherWorkspace.ID, createAnyKeyPermission(otherWorkspace.ID))
+		otherRootKey := h.CreateRootKey(otherWorkspace.ID, createAnyKeyPermission(t, otherWorkspace.ID))
 
 		// But try to access API from user workspace
 		// First we need to create an API in user workspace
@@ -176,7 +176,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		permissions []string
 	}{
 		{name: "no permissions", permissions: nil},
-		{name: "create permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, uid.New(uid.KeySpacePrefix))}},
+		{name: "create permission for a different keyspace", permissions: []string{createKeyPermission(t, workspaceID, uid.New(uid.KeySpacePrefix))}},
 		{name: "unrelated permission", permissions: []string{"workspace.read"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -8,6 +8,7 @@ type Gateway struct {
 	path        string
 }
 
+// String returns this gateway resource path.
 func (g Gateway) String() string {
 	return V1{WorkspaceID: g.workspaceID, Resource: g.path}.String()
 }
@@ -18,6 +19,7 @@ type GatewayPolicy struct {
 	path        string
 }
 
+// String returns this gateway policy resource path.
 func (p GatewayPolicy) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }

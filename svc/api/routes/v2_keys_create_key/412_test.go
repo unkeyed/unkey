@@ -47,8 +47,8 @@ func TestPreconditionError(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+		createKeyPermission(t, h.Resources().UserWorkspace.ID, keySpaceID),
+		encryptKeyPermission(t, h.Resources().UserWorkspace.ID, keySpaceID),
 	)
 
 	// Set up request headers

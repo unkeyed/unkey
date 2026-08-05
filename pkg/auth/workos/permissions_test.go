@@ -74,7 +74,7 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		{
 			name: "key create",
 			in:   "keys:create",
-			want: "unkey:v1:ws_123:keyspaces/*#create_key",
+			want: "unkey:v1:ws_123:keyspaces/*/keys/*#create_key",
 		},
 		{
 			name: "key encrypt",

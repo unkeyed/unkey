@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
@@ -255,7 +258,9 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 }
 
-func TestRerollKeyWithURNPermission(t *testing.T) {
+// TestRerollKeyWithExactURNPermission guarantees an exact create_key grant on
+// the existing key authorizes rerolling that key.
+func TestRerollKeyWithExactURNPermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -278,7 +283,10 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	createKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#create_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	createKeyPermission := rbac.U(
+		urn.New().Workspace(workspace.ID).Keyspace(api.KeyAuthID.String).Key(key.KeyID),
+		permissions.CreateKey{},
+	).Value
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

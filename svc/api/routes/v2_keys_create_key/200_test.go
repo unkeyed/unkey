@@ -12,6 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -69,8 +72,8 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
-// permissions authorize basic key creation without legacy API tuple grants.
+// TestCreateKeyWithURNPermission guarantees a canonical create_key grant
+// authorizes basic key creation without legacy API tuple grants.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -91,7 +94,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -284,9 +287,9 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
-// `keys:create` and `keys:encrypt` permissions authorize recoverable key
-// creation without legacy API tuple grants.
+// TestCreateRecoverableKeyWithURNPermissions guarantees canonical create_key
+// and encrypt_key grants authorize recoverable key creation without legacy API
+// tuple grants.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
@@ -308,8 +311,8 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		encryptKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -476,7 +479,7 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -603,14 +606,17 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	})
 }
 
-func createKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#create_key", workspaceID, keyspaceID)
+func createKeyPermission(t *testing.T, workspaceID string, keyspaceID string) string {
+	t.Helper()
+	return rbac.U(urn.New().Workspace(workspaceID).Keyspace(keyspaceID).Key("*"), permissions.CreateKey{}).Value
 }
 
-func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#create_key", workspaceID)
+func createAnyKeyPermission(t *testing.T, workspaceID string) string {
+	t.Helper()
+	return rbac.U(urn.New().Workspace(workspaceID).Keyspace("*").Key("*"), permissions.CreateKey{}).Value
 }
 
-func encryptKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", workspaceID, keyspaceID)
+func encryptKeyPermission(t *testing.T, workspaceID string, keyspaceID string) string {
+	t.Helper()
+	return rbac.U(urn.New().Workspace(workspaceID).Keyspace(keyspaceID).Key("*"), permissions.EncryptKey{}).Value
 }
