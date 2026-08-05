@@ -9,9 +9,9 @@ unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*#rollback_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#start_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#stop_deployment
+unkey:v1:ws_123:projects/*/apps/*/environments/*#delete_variables
 unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment
 unkey:v1:ws_123:projects/*/apps/*/environments/*#read_variables
-unkey:v1:ws_123:projects/*/apps/*/environments/*#remove_variables
 unkey:v1:ws_123:projects/*/apps/*/environments/*#set_variables
 unkey:v1:ws_123:projects/*/apps/*/environments/*#update_environment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read_policy

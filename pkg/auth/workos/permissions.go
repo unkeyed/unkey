@@ -96,6 +96,11 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows stopping deployments.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})}},
 	},
+	"environments:delete_variables": {
+		name:        "Delete Environment Variables",
+		description: "Allows deleting environment variables.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.DeleteVariables{})}},
+	},
 	"environments:read": {
 		name:        "Read Environments",
 		description: "Allows reading environments.",
@@ -105,11 +110,6 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Read Environment Variables",
 		description: "Allows reading environment variables.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadVariables{})}},
-	},
-	"environments:remove_variables": {
-		name:        "Remove Environment Variables",
-		description: "Allows removing environment variables.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RemoveVariables{})}},
 	},
 	"environments:set_variables": {
 		name:        "Set Environment Variables",

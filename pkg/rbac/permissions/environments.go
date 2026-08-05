@@ -54,8 +54,8 @@ type SetVariables struct{}
 func (SetVariables) ActionFor(urn.Environment) {}
 func (SetVariables) String() string            { return "set_variables" }
 
-// RemoveVariables authorizes removing environment variables.
-type RemoveVariables struct{}
+// DeleteVariables authorizes deleting environment variables.
+type DeleteVariables struct{}
 
-func (RemoveVariables) ActionFor(urn.Environment) {}
-func (RemoveVariables) String() string            { return "remove_variables" }
+func (DeleteVariables) ActionFor(urn.Environment) {}
+func (DeleteVariables) String() string            { return "delete_variables" }
