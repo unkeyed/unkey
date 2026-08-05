@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -105,9 +104,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	domain := strings.ToLower(req.Domain)
-
-	if err = domaingate.CheckDomain(domain); err != nil {
+	domain, err := domaingate.ParseDomain(req.Domain)
+	if err != nil {
 		return err
 	}
 

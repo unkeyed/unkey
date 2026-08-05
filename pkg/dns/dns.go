@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -23,38 +22,7 @@ const (
 
 	// ownershipTXTPrefix precedes the verification token in the TXT record value.
 	ownershipTXTPrefix = "unkey-domain-verify="
-
-	// FQDNPattern matches a fully qualified domain name with no scheme, port, or
-	// path. Labels hold letters, digits, and hyphens, and cannot start or end with
-	// one.
-	//
-	// The repetition bounds spell out the 63-octet label limit from RFC 1035
-	// section 2.3.4, because a JSON Schema pattern cannot count. Length alone does
-	// not imply it: an over-long label inside [MaxFQDNLength] would otherwise be
-	// accepted here and fail later at the DNS provider or during certificate
-	// issuance, far from the input that caused it.
-	//
-	// The `domain` pattern in V2DomainsCreateDomainRequestBody is this same string,
-	// pinned by TestSpecDomainConstraintsMatchDNS. Two copies that drift either 500
-	// on a domain the spec advertises or reject one it accepts.
-	FQDNPattern = `^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$`
-
-	// MaxFQDNLength is the longest a fully qualified domain name may be, and the
-	// `domain` maxLength in the spec. RFC 1035 section 2.3.4 caps a name at 255
-	// octets on the wire, where every label carries a length prefix and the root
-	// carries a terminating zero byte. A name written without its trailing dot
-	// spends two fewer bytes than the wire form, so 253 is the same limit in
-	// presentation form.
-	MaxFQDNLength = 253
 )
-
-var fqdnRegex = regexp.MustCompile(FQDNPattern)
-
-// IsValidFQDN reports whether domain is a well-formed fully qualified domain name
-// within [MaxFQDNLength].
-func IsValidFQDN(domain string) bool {
-	return len(domain) <= MaxFQDNLength && fqdnRegex.MatchString(domain)
-}
 
 // OwnershipTXTName returns the fully qualified name of the ownership-proof TXT
 // record for domain.

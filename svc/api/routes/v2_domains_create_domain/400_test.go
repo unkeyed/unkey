@@ -18,13 +18,12 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
 )
 
-// TestCreateDomainBadRequest covers the spec layer only: the OpenAPI middleware
-// rejects every case below against V2DomainsCreateDomainRequestBody before the
-// handler runs. `domain` carries minLength 4, maxLength 253, and the FQDN
-// pattern, which also bounds each label to 63 characters; project/app/environment
-// are ResourceIdentifier (minLength 3,
-// maxLength 255, ^[a-zA-Z0-9_-]+$). Handler-layer 400s come from ctrl and are
-// covered by TestCreateDomainCtrlRejectsDomain.
+// TestCreateDomainBadRequest covers both rejection layers as one contract: the
+// OpenAPI middleware enforces `domain` minLength 4 and maxLength 253 plus the
+// ResourceIdentifier shape of project/app/environment, and the handler's
+// domaingate.ParseDomain rejects everything the schema cannot express — IDNA
+// violations, IP-shaped names, wildcards, and public suffixes. The caller sees
+// a 400 either way.
 func TestCreateDomainBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -52,6 +51,10 @@ func TestCreateDomainBadRequest(t *testing.T) {
 		{name: "port included", req: makeRequest(env, "api.acme.com:8080")},
 		{name: "whitespace", req: makeRequest(env, "api acme.com")},
 		{name: "wildcard", req: makeRequest(env, "*.acme.com")},
+		{name: "ip address", req: makeRequest(env, "127.0.0.1")},
+		{name: "hex ip lookalike", req: makeRequest(env, "0x7f.0.0.1")},
+		{name: "public suffix", req: makeRequest(env, "co.uk")},
+		{name: "private-section public suffix", req: makeRequest(env, "github.io")},
 		{name: "over 253 chars", req: makeRequest(env, strings.Repeat("a", 250)+".com")},
 		{name: "label over 63 chars", req: makeRequest(env, strings.Repeat("kebap", 13)+".acme.com")},
 		{name: "empty project", req: handler.Request{Project: "", App: env.appID, Environment: env.environmentID, Domain: "api.acme.com"}},
@@ -94,17 +97,17 @@ func TestCreateDomainBadRequest(t *testing.T) {
 
 // TestCreateDomainCtrlRejectsDomain covers the race: ctrl re-validates the domain
 // and an InvalidArgument it returns after the handler's own check passed must
-// surface as a 400, not a 500. Reaching this in production would mean the spec
-// pattern and the shared gate have drifted, which TestSpecDomainConstraintsMatchDNS
-// exists to prevent.
+// surface as a 400, not a 500. Both layers parse through domaingate.ParseDomain,
+// so reaching this in production would mean the two builds have drifted.
 func TestCreateDomainCtrlRejectsDomain(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockCustomDomainClient{
 		AddCustomDomainFunc: func(_ context.Context, req *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			_, parseErr := domaingate.ParseDomain(req.GetDomain() + "/nope")
 			return nil, connect.NewError(
 				connect.CodeInvalidArgument,
-				errors.New(fault.UserFacingMessage(domaingate.CheckDomain(req.GetDomain()+"/nope"))),
+				errors.New(fault.UserFacingMessage(parseErr)),
 			)
 		},
 	}

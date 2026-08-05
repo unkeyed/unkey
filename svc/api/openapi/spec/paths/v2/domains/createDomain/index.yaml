@@ -141,13 +141,19 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: The domain must be a fully qualified domain name.
+                  detail: The domain 'https://api.acme.com' is not a valid fully qualified domain name. Pass a name such as 'api.acme.com', without a scheme, port, or path.
                   status: 400
-                  type: validation-error
-                  errors:
-                    - location: body.domain
-                      message: must match ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$
-                      fix: Pass a fully qualified domain name such as 'api.acme.com', without a scheme, port, or path
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+            publicSuffix:
+              summary: Public suffix rejected
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain 'co.uk' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
     "401":
       description: Unauthorized
       content:

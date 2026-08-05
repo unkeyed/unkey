@@ -48,7 +48,7 @@ func TestMapCtrlErrorRoundTripsGateOutcomes(t *testing.T) {
 		{
 			name:        "invalid domain",
 			connectCode: connect.CodeInvalidArgument,
-			gateErr:     domaingate.CheckDomain("not a domain"),
+			gateErr:     parseErrOf("not a domain"),
 			wantCode:    codes.App.Validation.InvalidInput.URN(),
 		},
 		{
@@ -108,4 +108,11 @@ func TestMapCtrlErrorDoesNotReflectUnmappedCodes(t *testing.T) {
 		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), got)
 		require.Equal(t, "Failed to create custom domain.", fault.UserFacingMessage(mapped))
 	}
+}
+
+// parseErrOf returns the fault ParseDomain produces for input, which the table
+// above needs as a value.
+func parseErrOf(input string) error {
+	_, err := domaingate.ParseDomain(input)
+	return err
 }

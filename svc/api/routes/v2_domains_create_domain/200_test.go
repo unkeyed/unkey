@@ -217,6 +217,44 @@ func TestCreateDomainNormalizesCase(t *testing.T) {
 	require.Equal(t, "_unkey."+lower, res.Body.Data.DnsRecords[1].Name)
 }
 
+// TestCreateDomainPunycodesUnicode pins that an internationalized name is
+// accepted in Unicode form and everything downstream — ctrl, the stored row, the
+// DNS records the caller must create — runs on the Punycode form, which is the
+// only form DNS resolves.
+func TestCreateDomainPunycodesUnicode(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	ctrlClient := &testutil.MockCustomDomainClient{
+		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			return &ctrlv1.AddCustomDomainResponse{
+				DomainId:          uid.New(uid.DomainPrefix),
+				TargetCname:       "a1b2c3d4e5f6g7h8.cname.unkey.com",
+				VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+			}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+
+	// Unique parent keeps parallel runs from colliding on the shared database.
+	parent := randomDomain()
+	unicode := "münchen." + parent
+	canonical := "xn--mnchen-3ya." + parent
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, unicode))
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+	require.Len(t, ctrlClient.AddCustomDomainCalls, 1)
+	require.Equal(t, canonical, ctrlClient.AddCustomDomainCalls[0].GetDomain(),
+		"ctrl must receive the Punycode form")
+
+	require.Equal(t, canonical, res.Body.Data.DnsRecords[0].Name)
+	require.Equal(t, "_unkey."+canonical, res.Body.Data.DnsRecords[1].Name)
+}
+
 func TestCreateDomainWithSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 

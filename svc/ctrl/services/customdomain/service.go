@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -94,9 +93,9 @@ func (s *Service) AddCustomDomain(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	domain := strings.ToLower(req.Msg.GetDomain())
-	if err := gatefault.ConnectWith(connect.CodeInvalidArgument, domaingate.CheckDomain(domain)); err != nil {
-		return nil, err
+	domain, parseErr := domaingate.ParseDomain(req.Msg.GetDomain())
+	if parseErr != nil {
+		return nil, gatefault.ConnectWith(connect.CodeInvalidArgument, parseErr)
 	}
 
 	// Generate unique CNAME target for this domain

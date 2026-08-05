@@ -31,8 +31,11 @@ export type V2DomainsCreateDomainRequestBody = {
    *
    * @remarks
    * Must be unique across your entire workspace: the same name cannot be attached to two environments.
-   * Labels may contain letters, digits, and hyphens, cannot start or end with a hyphen, and are
-   * limited to 63 characters each. Internationalized names must already be Punycode encoded.
+   *
+   * The name must sit under a registrable domain: 'api.acme.co.uk' is accepted, the public suffix
+   * 'co.uk' itself is not. Internationalized names may be sent in Unicode or Punycode form; either
+   * way the domain is stored and returned in its canonical form, lowercase ASCII with Unicode labels
+   * Punycode encoded, and the DNS records in the response use that form.
    */
   domain: string;
 };

@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -20,28 +19,68 @@ func requireCode(t *testing.T, want codes.Code, err error) {
 	require.Equal(t, want.URN(), got)
 }
 
-func TestCheckDomain(t *testing.T) {
+// requireParseRejects asserts ParseDomain rejects input with the validation code.
+func requireParseRejects(t *testing.T, input string) {
+	t.Helper()
+	_, err := domaingate.ParseDomain(input)
+	requireCode(t, codes.App.Validation.InvalidInput, err)
+}
+
+func TestParseDomainCanonicalizes(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, domaingate.CheckDomain("api.acme.com"))
-	require.NoError(t, domaingate.CheckDomain("acme.com"))
-	require.NoError(t, domaingate.CheckDomain("a-b.c-d.example.com"))
-	require.NoError(t, domaingate.CheckDomain(strings.Repeat("k", 63)+".acme.com"))
+	// input → canonical form. Persisting the canonical form is what makes
+	// 'MÜNCHEN.DE' and 'xn--mnchen-3ya.de' collide on the unique index instead of
+	// coexisting as two rows for one name.
+	for input, want := range map[string]string{
+		"api.acme.com":        "api.acme.com",
+		"API.ACME.COM":        "api.acme.com",
+		"acme.com":            "acme.com",
+		"a-b.c-d.example.com": "a-b.c-d.example.com",
+		"münchen.de":          "xn--mnchen-3ya.de",
+		"MÜNCHEN.DE":          "xn--mnchen-3ya.de",
+		"xn--mnchen-3ya.de":   "xn--mnchen-3ya.de",
+		"日本.jp":               "xn--wgv71a.jp",
+		// Registrable multi-part suffixes: the name under them is fine, the
+		// suffix itself is not (covered in TestParseDomainRejectsPublicSuffixes).
+		"acme.co.uk":     "acme.co.uk",
+		"api.acme.co.uk": "api.acme.co.uk",
+		// github.io sits on the public suffix list's private section, so a
+		// user site under it is registrable in PSL terms.
+		"acme.github.io": "acme.github.io",
+		// Unknown TLD: the PSL default rule makes the TLD itself the suffix, so
+		// anything one level below it passes.
+		"acme.notarealtld": "acme.notarealtld",
+	} {
+		got, err := domaingate.ParseDomain(input)
+		require.NoError(t, err, "input %q", input)
+		require.Equal(t, want, got, "input %q", input)
+	}
 
-	// The total-length cap is the only thing rejecting this: every label is well
-	// under 63, so the pattern alone would accept it. Built to land exactly on
-	// MaxFQDNLength and then one octet past it.
+	// 63-octet label and 253-octet total are the RFC 1035 caps, enforced by the
+	// IDNA profile rather than by counting here.
+	require.NotPanics(t, func() {
+		longestLabel := strings.Repeat("k", 63) + ".acme.com"
+		got, err := domaingate.ParseDomain(longestLabel)
+		require.NoError(t, err)
+		require.Equal(t, longestLabel, got)
+	})
 	label := strings.Repeat("k", 49)
 	longest := strings.Join([]string{label, label, label, label, label}, ".") + ".com"
-	require.Len(t, longest, dns.MaxFQDNLength)
-	require.NoError(t, domaingate.CheckDomain(longest))
-	requireCode(t, codes.App.Validation.InvalidInput, domaingate.CheckDomain("k"+longest))
+	require.Len(t, longest, 253)
+	_, err := domaingate.ParseDomain(longest)
+	require.NoError(t, err)
+}
+
+func TestParseDomainRejectsMalformed(t *testing.T) {
+	t.Parallel()
 
 	for _, invalid := range []string{
 		"",
 		"localhost",
 		".acme.com",
 		"acme.com.",
+		"a..com",
 		"-api.acme.com",
 		"api-.acme.com",
 		"api_v2.acme.com",
@@ -50,16 +89,63 @@ func TestCheckDomain(t *testing.T) {
 		"api.acme.com/v1",
 		"api.acme.com:8080",
 		"api acme.com",
+		" api.acme.com",
+		"api.acme.com ",
 		"*.acme.com",
+		"xn--a.com",
 		strings.Repeat("a", 250) + ".com",
-		// Each of these fits inside MaxFQDNLength, so only the per-label cap
-		// rejects them. Total length alone would let all three through.
 		strings.Repeat("kebap", 13) + ".acme.com",
-		"api." + strings.Repeat("kebap", 13) + ".com",
 		"acme." + strings.Repeat("k", 64),
 	} {
-		requireCode(t, codes.App.Validation.InvalidInput, domaingate.CheckDomain(invalid))
+		requireParseRejects(t, invalid)
 	}
+
+	// IDNA maps U+3002 (ideographic full stop) to a label separator, so this only
+	// gains its trailing dot after canonicalization. The raw-input check alone
+	// would wave it through.
+	requireParseRejects(t, "acme.com。")
+
+	// One octet past the 253-octet cap, with every label individually valid.
+	label := strings.Repeat("k", 49)
+	longest := strings.Join([]string{label, label, label, label, label}, ".") + ".com"
+	requireParseRejects(t, "k"+longest)
+}
+
+// WHATWG URL parsing treats a decimal or hexadecimal final label as IPv4-like,
+// and such values resolve differently across clients.
+func TestParseDomainRejectsIPLikeNames(t *testing.T) {
+	t.Parallel()
+
+	for _, invalid := range []string{
+		"1.2.3.4",
+		"127.0.0.1",
+		"012.0.0.1",
+		"0x7f.0.0.1",
+		"acme.0x7f",
+		"acme.1",
+	} {
+		requireParseRejects(t, invalid)
+	}
+}
+
+// A public suffix is a valid DNS name nobody can register, so verification
+// could never succeed against it.
+func TestParseDomainRejectsPublicSuffixes(t *testing.T) {
+	t.Parallel()
+
+	for _, suffix := range []string{
+		"com",
+		"uk",
+		"co.uk",
+		"github.io",
+	} {
+		requireParseRejects(t, suffix)
+	}
+
+	_, err := domaingate.ParseDomain("co.uk")
+	require.Equal(t,
+		"The domain 'co.uk' is a public suffix that nobody can own. Pass a domain registered to you, such as 'api.acme.com'.",
+		fault.UserFacingMessage(err))
 }
 
 func TestAlreadyExists(t *testing.T) {
@@ -89,9 +175,10 @@ func TestCheckAllowance(t *testing.T) {
 func TestFaultUserFacingMessage(t *testing.T) {
 	t.Parallel()
 
+	_, parseErr := domaingate.ParseDomain("bad domain")
 	require.Equal(t,
 		"The domain 'bad domain' is not a valid fully qualified domain name. Pass a name such as 'api.acme.com', without a scheme, port, or path.",
-		fault.UserFacingMessage(domaingate.CheckDomain("bad domain")))
+		fault.UserFacingMessage(parseErr))
 
 	require.Equal(t,
 		"The domain 'api.acme.com' is already attached to this workspace.",
