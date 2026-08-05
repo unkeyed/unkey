@@ -21,7 +21,9 @@ UPSTREAM_PORT = 9443
 BUFFER_SIZE = 64 * 1024
 HEALTH_PATH = b"/_unkey/internal/health/ready"
 HOSTNAME_PATTERN = re.compile(r"^[a-zA-Z0-9.-]+$")
-ROUTE_READY = threading.Event()
+E2B_HOSTNAME_PATTERN = re.compile(r"^[0-9]+-[a-z0-9]+\.e2b\.app$")
+REGISTERED_HOSTNAMES: set[str] = set()
+ROUTE_LOCK = threading.Lock()
 
 if PUBLIC_HOSTNAME is None or not HOSTNAME_PATTERN.fullmatch(PUBLIC_HOSTNAME):
     raise ValueError("PUBLIC_URL must contain a valid hostname")
@@ -29,7 +31,6 @@ if not HOSTNAME_PATTERN.fullmatch(SOURCE_HOSTNAME):
     raise ValueError("source route must be a valid hostname")
 
 MISE = os.path.expanduser("~/.local/bin/mise")
-ROUTE_ID = "flr_orb_" + hashlib.sha256(PUBLIC_HOSTNAME.encode()).hexdigest()[:24]
 
 
 def run_kubectl(*args: str) -> subprocess.CompletedProcess[str]:
@@ -42,7 +43,7 @@ def run_kubectl(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def register_route() -> bool:
+def register_route(hostname: str) -> bool:
     pod = run_kubectl(
         "-n",
         "unkey",
@@ -56,6 +57,7 @@ def register_route() -> bool:
     if not pod:
         return False
 
+    route_id = "flr_orb_" + hashlib.sha256(hostname.encode()).hexdigest()[:24]
     query = f"""
 INSERT INTO frontline_routes (
   id,
@@ -69,12 +71,12 @@ INSERT INTO frontline_routes (
   updated_at
 )
 SELECT
-  '{ROUTE_ID}',
+  '{route_id}',
   project_id,
   app_id,
   deployment_id,
   environment_id,
-  '{PUBLIC_HOSTNAME}',
+  '{hostname}',
   sticky,
   CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS SIGNED),
   NULL
@@ -93,7 +95,7 @@ FROM frontline_routes AS portal
 JOIN frontline_routes AS source
   ON source.fully_qualified_domain_name = '{SOURCE_HOSTNAME}'
   AND portal.environment_id = source.environment_id
-WHERE portal.fully_qualified_domain_name = '{PUBLIC_HOSTNAME}';
+WHERE portal.fully_qualified_domain_name = '{hostname}';
 """
     result = run_kubectl(
         "-n",
@@ -114,15 +116,24 @@ WHERE portal.fully_qualified_domain_name = '{PUBLIC_HOSTNAME}';
     return result.stdout.strip().endswith("1")
 
 
-def register_route_when_available() -> None:
-    while True:
+def ensure_route(hostname: str) -> bool:
+    with ROUTE_LOCK:
+        if hostname in REGISTERED_HOSTNAMES:
+            return True
+
         try:
-            ready = register_route()
+            ready = register_route(hostname)
         except (OSError, subprocess.SubprocessError):
-            ready = False
+            return False
 
         if ready:
-            ROUTE_READY.set()
+            REGISTERED_HOSTNAMES.add(hostname)
+        return ready
+
+
+def register_public_route_when_available() -> None:
+    while True:
+        if ensure_route(PUBLIC_HOSTNAME):
             print(
                 f"Frontline route ready: https://{PUBLIC_HOSTNAME} -> {SOURCE_HOSTNAME}",
                 flush=True,
@@ -156,6 +167,18 @@ def request_path(request: bytes) -> bytes:
     return request_line[1].partition(b"?")[0]
 
 
+def request_hostname(request: bytes) -> str:
+    for header in request.split(b"\r\n")[1:]:
+        name, separator, value = header.partition(b":")
+        if separator and name.lower() == b"host":
+            return value.strip().decode("ascii", errors="ignore").partition(":")[0]
+    return ""
+
+
+def is_portal_hostname(hostname: str) -> bool:
+    return hostname == PUBLIC_HOSTNAME or E2B_HOSTNAME_PATTERN.fullmatch(hostname) is not None
+
+
 class ProxyHandler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         try:
@@ -166,7 +189,11 @@ class ProxyHandler(socketserver.BaseRequestHandler):
         if not initial_request:
             return
 
-        if not ROUTE_READY.is_set() and request_path(initial_request) != HEALTH_PATH:
+        path = request_path(initial_request)
+        hostname = request_hostname(initial_request)
+        if path != HEALTH_PATH and (
+            not is_portal_hostname(hostname) or not ensure_route(hostname)
+        ):
             body = f"Waiting for deployment route {SOURCE_HOSTNAME}\n".encode()
             self.request.sendall(
                 b"HTTP/1.1 503 Service Unavailable\r\n"
@@ -218,5 +245,5 @@ class ProxyServer(socketserver.ThreadingTCPServer):
     daemon_threads = True
 
 
-threading.Thread(target=register_route_when_available, daemon=True).start()
+threading.Thread(target=register_public_route_when_available, daemon=True).start()
 ProxyServer(("0.0.0.0", LISTEN_PORT), ProxyHandler).serve_forever()
