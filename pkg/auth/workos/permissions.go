@@ -46,11 +46,6 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "**", action: "*"},
 		},
 	},
-	"apps:connect_repository": {
-		name:        "Connect App Repositories",
-		description: "Allows connecting or disconnecting app repositories.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*", action: action(rbacpermissions.ConnectRepository{})}},
-	},
 	"apps:create": {
 		name:        "Create Apps",
 		description: "Allows creating apps.",
@@ -65,6 +60,11 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Read Apps",
 		description: "Allows reading apps.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*", action: action(rbacpermissions.ReadApp{})}},
+	},
+	"apps:set_repository": {
+		name:        "Set App Repositories",
+		description: "Allows setting or clearing app repositories.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*", action: action(rbacpermissions.SetRepository{})}},
 	},
 	"apps:update": {
 		name:        "Update Apps",

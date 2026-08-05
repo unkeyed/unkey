@@ -72,9 +72,9 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		want string
 	}{
 		{
-			name: "app repository connection",
-			in:   "apps:connect_repository",
-			want: "unkey:v1:ws_123:projects/*/apps/*#connect_repository",
+			name: "app repository setting",
+			in:   "apps:set_repository",
+			want: "unkey:v1:ws_123:projects/*/apps/*#set_repository",
 		},
 		{
 			name: "key create",
@@ -251,10 +251,10 @@ func TestPermissionDefinitionsCoverMigrationCatalog(t *testing.T) {
 
 	want := []string{
 		"admin:*",
-		"apps:connect_repository",
 		"apps:create",
 		"apps:delete",
 		"apps:read",
+		"apps:set_repository",
 		"apps:update",
 		"deployments:create",
 		"deployments:promote",

@@ -2,12 +2,6 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
-// ConnectRepository authorizes connecting or disconnecting an app repository.
-type ConnectRepository struct{}
-
-func (ConnectRepository) ActionFor(urn.App) {}
-func (ConnectRepository) String() string    { return "connect_repository" }
-
 // CreateApp authorizes creating an app resource.
 type CreateApp struct{}
 
@@ -19,6 +13,12 @@ type ReadApp struct{}
 
 func (ReadApp) ActionFor(urn.App) {}
 func (ReadApp) String() string    { return "read_app" }
+
+// SetRepository authorizes setting or clearing an app repository.
+type SetRepository struct{}
+
+func (SetRepository) ActionFor(urn.App) {}
+func (SetRepository) String() string    { return "set_repository" }
 
 // UpdateApp authorizes updating an app resource.
 type UpdateApp struct{}
