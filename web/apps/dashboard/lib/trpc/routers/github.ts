@@ -903,7 +903,6 @@ export const githubRouter = t.router({
           await tx
             .update(schema.apps)
             .set({
-              sourceType: "github",
               ...(branchToStore ? { defaultBranch: branchToStore } : {}),
               updatedAt,
             })
