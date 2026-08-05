@@ -19,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -244,7 +243,6 @@ func (s *Service) AddCustomDomain(
 		return nil, err
 	}
 
-	// Domain ID is the virtual object key (not domain name, since domains are workspace-scoped)
 	sendResp, sendErr := s.startVerification(ctx, domainID)
 	if sendErr != nil {
 		logger.Error(
@@ -429,15 +427,8 @@ func (s *Service) RetryVerification(
 }
 
 // startVerification submits the verification workflow for domainID.
-//
-// Restate owns retries only once it has accepted the invocation, so a submit that fails
-// leaves nothing running and nothing for the workflow's own retry policy to act on, hence
-// the attempts here. Re-submitting is safe because the invocation is keyed by domainID,
-// making it a virtual object Restate runs one at a time per domain.
 func (s *Service) startVerification(ctx context.Context, domainID string) (restateingress.SimpleSendResponse, error) {
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
 
-	return retry.DoWithResultContext(retry.New(), ctx, func() (restateingress.SimpleSendResponse, error) {
-		return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
-	})
+	return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 }
