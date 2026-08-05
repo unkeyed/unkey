@@ -17,7 +17,7 @@ export const portalConfigurations = mysqlTable(
     slug: varchar("slug", { length: 64 }).notNull(),
     // appId: id("app_id"),
     appId: caseSensitiveVarchar("app_id", { length: 64 }),
-    // keyAuthId: id("key_auth_id"),
+    // keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }),
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 64 }),
     enabled: boolean("enabled").notNull().default(true),
     returnUrl: varchar("return_url", { length: 500 }),

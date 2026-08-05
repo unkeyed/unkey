@@ -11,7 +11,7 @@ export const keyAuth = mysqlTable(
   "key_auth",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
+    // id: caseSensitiveVarchar("id", { length: 37 }).notNull().unique(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     // workspaceId: id("workspace_id").notNull(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),

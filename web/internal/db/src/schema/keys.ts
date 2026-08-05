@@ -29,7 +29,7 @@ export const keys = mysqlTable(
     // id: id("id").notNull().unique(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
 
-    // keyAuthId: id("key_auth_id").notNull(),
+    // keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).notNull(),
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
