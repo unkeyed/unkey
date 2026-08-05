@@ -116,13 +116,14 @@ export default function Layout({ children }: LayoutProps) {
         <MobileNavDrawer />
         <div className="relative flex flex-1 overflow-hidden">
           {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
-          {/* Reserve the scrollbar gutter so content doesn't shift horizontally
-              when the scrollbar appears/disappears (e.g. a dialog locking scroll
-              or content height changing). Without this the centered layout
-              "shakes" and buttons move out from under the cursor (ENG-2884). */}
+          {/* Keep overflow on this scrolling parent so sticky descendants use it as
+              their scroll container. Reserve the scrollbar gutter so content doesn't
+              shift horizontally when the scrollbar appears/disappears (e.g. a dialog
+              locking scroll or content height changing). Without this the centered
+              layout "shakes" and buttons move out from under the cursor (ENG-2884). */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-base-12 w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>

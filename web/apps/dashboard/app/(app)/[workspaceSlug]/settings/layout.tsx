@@ -22,20 +22,22 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">
-      <SecondaryNav aria-label="Settings">
-        <SecondaryNavTitle>Settings</SecondaryNavTitle>
-        <SecondaryNavGroup>
-          {ITEMS.map((item) => (
-            <SecondaryNavItem
-              key={item.segment}
-              active={active === item.segment}
-              render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} />}
-            >
-              {item.label}
-            </SecondaryNavItem>
-          ))}
-        </SecondaryNavGroup>
-      </SecondaryNav>
+      <div className="shrink-0 md:w-60 md:border-r md:border-grayA-4">
+        <SecondaryNav aria-label="Settings" className="md:sticky md:top-0 md:w-full md:border-r-0">
+          <SecondaryNavTitle>Settings</SecondaryNavTitle>
+          <SecondaryNavGroup>
+            {ITEMS.map((item) => (
+              <SecondaryNavItem
+                key={item.segment}
+                active={active === item.segment}
+                render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} />}
+              >
+                {item.label}
+              </SecondaryNavItem>
+            ))}
+          </SecondaryNavGroup>
+        </SecondaryNav>
+      </div>
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
