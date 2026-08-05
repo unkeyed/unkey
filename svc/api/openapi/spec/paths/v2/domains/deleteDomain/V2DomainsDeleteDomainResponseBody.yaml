@@ -11,7 +11,7 @@ additionalProperties: false
 examples:
   success:
     summary: Domain deleted
-    description: The domain and its routing were removed before the response returned
+    description: The domain and its routing were removed before the response returned.
     value:
       meta:
         requestId: req_1234abcd

@@ -29,12 +29,12 @@ post:
         examples:
           byName:
             summary: Delete by domain name
-            description: The name is unique per workspace. It addresses the domain on its own
+            description: The name is unique per workspace. It addresses the domain on its own.
             value:
               domain: api.acme.com
           byId:
             summary: Delete by domain ID
-            description: Uses the id that domains.createDomain returned
+            description: Uses the id that domains.createDomain returned.
             value:
               domain: dom_1234abcd
     required: true
@@ -49,7 +49,7 @@ post:
           examples:
             success:
               summary: Domain deleted
-              description: The domain and its routing were removed before the response returned
+              description: The domain and its routing were removed before the response returned.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -116,7 +116,7 @@ post:
     "404":
       description: |
         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-        root key may not delete it
+        root key may not delete it.
       content:
         application/json:
           schema:
