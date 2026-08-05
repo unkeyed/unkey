@@ -95,6 +95,18 @@ func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image s
 	require.NoError(t, err)
 }
 
+func setDeploymentSource(t *testing.T, h *testutil.Harness, deploymentID string, source db.DeploymentsSource, requestedImage string) {
+	t.Helper()
+	_, err := h.DB.RW().ExecContext(
+		context.Background(),
+		"UPDATE deployments SET source = ?, requested_image = ? WHERE id = ?",
+		source,
+		sql.NullString{String: requestedImage, Valid: requestedImage != ""},
+		deploymentID,
+	)
+	require.NoError(t, err)
+}
+
 // seedDeployableRegion attaches a schedulable region to the setup's environment
 // so it clears the create handler's deployability pre-flight and reaches ctrl.
 // The seeder gives an environment sane runtime settings but no region.

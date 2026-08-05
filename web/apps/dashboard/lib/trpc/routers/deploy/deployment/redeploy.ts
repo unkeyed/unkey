@@ -26,7 +26,6 @@ export const redeploy = workspaceProcedure
           projectId: true,
           appId: true,
           source: true,
-          requestedImage: true,
           image: true,
           gitCommitSha: true,
           gitBranch: true,
@@ -60,11 +59,11 @@ export const redeploy = workspaceProcedure
         })
         .exhaustive();
 
-      const dockerImage = deployment.image ?? deployment.requestedImage;
+      const dockerImage = deployment.image;
       if (!isGitSourced && !dockerImage) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: "Deployment has no Docker image to redeploy",
+          message: "Deployment has no resolved Docker image to redeploy",
         });
       }
 
