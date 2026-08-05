@@ -96,6 +96,11 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows stopping deployments.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/deployments/*", action: action(rbacpermissions.StopDeployment{})}},
 	},
+	"environments:create_variables": {
+		name:        "Create Environment Variables",
+		description: "Allows creating or replacing environment variables.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.CreateVariables{})}},
+	},
 	"environments:delete_variables": {
 		name:        "Delete Environment Variables",
 		description: "Allows deleting environment variables.",
@@ -111,25 +116,20 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows reading environment variables.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadVariables{})}},
 	},
-	"environments:set_variables": {
-		name:        "Set Environment Variables",
-		description: "Allows setting environment variables.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.SetVariables{})}},
-	},
 	"environments:update": {
 		name:        "Update Environments",
 		description: "Allows updating environment settings.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})}},
 	},
+	"gateway:create_policies": {
+		name:        "Create Gateway Policies",
+		description: "Allows creating or replacing gateway policies.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/gateway", action: action(rbacpermissions.CreatePolicies{})}},
+	},
 	"gateway:read_policies": {
 		name:        "Read Gateway Policies",
 		description: "Allows reading gateway policies.",
 		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/gateway/policies/*", action: action(rbacpermissions.ReadPolicy{})}},
-	},
-	"gateway:set_policies": {
-		name:        "Set Gateway Policies",
-		description: "Allows replacing an environment's gateway policies.",
-		permissions: []permissionGrant{{resource: "projects/*/apps/*/environments/*/gateway", action: action(rbacpermissions.SetPolicies{})}},
 	},
 	"gateway:update_policy": {
 		name:        "Update Gateway Policies",
@@ -282,6 +282,11 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows creating rate limit namespaces.",
 		permissions: []permissionGrant{{resource: "projects/*/ratelimits/namespaces/*", action: action(rbacpermissions.CreateNamespace{})}},
 	},
+	"ratelimits:create_override": {
+		name:        "Create Rate Limit Overrides",
+		description: "Allows creating or replacing rate limit overrides.",
+		permissions: []permissionGrant{{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.CreateOverride{})}},
+	},
 	"ratelimits:delete_override": {
 		name:        "Delete Rate Limit Overrides",
 		description: "Allows deleting rate limit overrides.",
@@ -301,11 +306,6 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Read Rate Limit Overrides",
 		description: "Allows reading rate limit overrides.",
 		permissions: []permissionGrant{{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.ReadOverride{})}},
-	},
-	"ratelimits:set_override": {
-		name:        "Set Rate Limit Overrides",
-		description: "Allows setting rate limit overrides.",
-		permissions: []permissionGrant{{resource: "projects/*/ratelimits/namespaces/*/overrides/*", action: action(rbacpermissions.SetOverride{})}},
 	},
 	"roles:create": {
 		name:        "Create Roles",

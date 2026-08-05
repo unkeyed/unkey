@@ -42,20 +42,20 @@ type CreateVariable struct{}
 func (CreateVariable) ActionFor(urn.Variable) {}
 func (CreateVariable) String() string         { return "create_variable" }
 
-// ReadVariables authorizes reading an environment's variable collection.
-type ReadVariables struct{}
+// CreateVariables authorizes creating or replacing environment variables.
+type CreateVariables struct{}
 
-func (ReadVariables) ActionFor(urn.Environment) {}
-func (ReadVariables) String() string            { return "read_variables" }
-
-// SetVariables authorizes replacing or upserting environment variables.
-type SetVariables struct{}
-
-func (SetVariables) ActionFor(urn.Environment) {}
-func (SetVariables) String() string            { return "set_variables" }
+func (CreateVariables) ActionFor(urn.Environment) {}
+func (CreateVariables) String() string            { return "create_variables" }
 
 // DeleteVariables authorizes deleting environment variables.
 type DeleteVariables struct{}
 
 func (DeleteVariables) ActionFor(urn.Environment) {}
 func (DeleteVariables) String() string            { return "delete_variables" }
+
+// ReadVariables authorizes reading an environment's variable collection.
+type ReadVariables struct{}
+
+func (ReadVariables) ActionFor(urn.Environment) {}
+func (ReadVariables) String() string            { return "read_variables" }

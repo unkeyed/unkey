@@ -2,6 +2,12 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// CreatePolicies authorizes creating or replacing a gateway's policy collection.
+type CreatePolicies struct{}
+
+func (CreatePolicies) ActionFor(urn.Gateway) {}
+func (CreatePolicies) String() string        { return "create_policies" }
+
 // ReadPolicy authorizes reading a gateway policy.
 type ReadPolicy struct{}
 
@@ -13,9 +19,3 @@ type UpdatePolicy struct{}
 
 func (UpdatePolicy) ActionFor(urn.GatewayPolicy) {}
 func (UpdatePolicy) String() string              { return "update_policy" }
-
-// SetPolicies authorizes replacing a gateway's complete policy collection.
-type SetPolicies struct{}
-
-func (SetPolicies) ActionFor(urn.Gateway) {}
-func (SetPolicies) String() string        { return "set_policies" }
