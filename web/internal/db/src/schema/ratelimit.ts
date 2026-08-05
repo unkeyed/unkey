@@ -94,11 +94,7 @@ export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
     pk: primaryKey(),
-    // workspaceId is varchar(191) instead of the project-wide 256 because the
-    // unique index spans six columns (the four key fields plus sequence and
-    // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
     namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),
