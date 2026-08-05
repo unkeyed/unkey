@@ -169,6 +169,7 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows creating keys.",
 		permissions: []permissionGrant{
 			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.CreateKey{})},
 			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.CreateKey{})},
 		},
 	},

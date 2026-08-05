@@ -604,11 +604,11 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 }
 
 func createKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, keyspaceID)
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#create_key", workspaceID, keyspaceID)
 }
 
 func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*#create_key", workspaceID)
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#create_key", workspaceID)
 }
 
 func encryptKeyPermission(workspaceID string, keyspaceID string) string {

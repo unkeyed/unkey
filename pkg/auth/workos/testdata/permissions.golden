@@ -22,6 +22,7 @@ unkey:v1:ws_123:projects/*/identities/*#delete_identity
 unkey:v1:ws_123:projects/*/identities/*#read_identity
 unkey:v1:ws_123:projects/*/identities/*#update_identity
 unkey:v1:ws_123:keyspaces/*#create_key
+unkey:v1:ws_123:keyspaces/*/keys/*#create_key
 unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#create_key
 unkey:v1:ws_123:keyspaces/*/keys/*#decrypt_key
 unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#decrypt_key

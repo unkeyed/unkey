@@ -35,11 +35,3 @@ type CreateKey struct{}
 
 func (CreateKey) ActionFor(urn.Key) {}
 func (CreateKey) String() string    { return "create_key" }
-
-// CreateKeyInKeyspace preserves the parent-targeted create check used by
-// routes that have not migrated to prospective key resources yet.
-// Deprecated: use CreateKey with a concrete or wildcard urn.Key.
-type CreateKeyInKeyspace struct{}
-
-func (CreateKeyInKeyspace) ActionFor(urn.Keyspace) {}
-func (CreateKeyInKeyspace) String() string         { return "create_key" }

@@ -97,8 +97,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 3. Permission check. Creating a key is authorized against the keyspace
-	// because the key does not exist until after the operation succeeds. The
+	// 3. Permission check. The key ID is unknown until the transaction starts,
+	// so creating a key is authorized against the keyspace's key wildcard. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -112,8 +112,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
-			permissions.CreateKeyInKeyspace{},
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+			permissions.CreateKey{},
 		),
 	))
 	if err != nil {

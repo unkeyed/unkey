@@ -37,8 +37,10 @@ func TestTranslatePermissions(t *testing.T) {
 	})
 	require.Equal(t, []string{
 		"unkey:v1:ws_123:keyspaces/*#create_key",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:keyspaces/*#create_key",
+		"unkey:v1:ws_123:keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/keys/*#create_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
 		"unkey:v1:ws_123:keyspaces/*#read_keyspace",

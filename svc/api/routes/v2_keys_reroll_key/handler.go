@@ -412,8 +412,8 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
-			permissions.CreateKeyInKeyspace{},
+			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+			permissions.CreateKey{},
 		),
 	)
 
