@@ -26,11 +26,6 @@ func (w Workspace) String() string {
 	return V1{WorkspaceID: w.workspaceID, Resource: "workspace"}.String()
 }
 
-// Billing returns builders for billing resource paths.
-func (w Workspace) Billing() billing {
-	return billing{workspaceID: w.workspaceID, path: "billing"}
-}
-
 // Keyspace returns builders for keyspace resource paths.
 func (w Workspace) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: w.workspaceID, path: fmt.Sprintf("keyspaces/%s", keyspaceID)}
