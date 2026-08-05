@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, mysqlTable } from "drizzle-orm/mysql-core";
 import { regions } from "./regions";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 
 // clusters tracks our kubernetes clusters
 // each krane instance will heartbeat against the control plane, which then writes to this table
@@ -11,12 +11,10 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 export const clusters = mysqlTable("clusters", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-  // id: id("id").notNull().unique(),
-  id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+  id: id("id").notNull().unique(),
   // Nullable until an existing cluster reports its cell identity by heartbeat.
   cellId: caseSensitiveVarchar("cell_id", { length: 64 }).unique(),
-  // regionId: id("region_id").notNull().unique(),
-  regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull().unique(),
+  regionId: id("region_id").notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",

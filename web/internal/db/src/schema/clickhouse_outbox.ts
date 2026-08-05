@@ -1,6 +1,5 @@
 import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 
 // clickhouse_outbox is the transactional outbox for ClickHouse export.
 // Writers insert one row per logical event in the same MySQL transaction
@@ -35,10 +34,8 @@ export const clickhouseOutbox = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     version: varchar("version", { length: 64 }).notNull(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // eventId: id("event_id").notNull(),
-    eventId: caseSensitiveVarchar("event_id", { length: 256 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    eventId: id("event_id").notNull(),
     payload: json("payload").notNull(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()

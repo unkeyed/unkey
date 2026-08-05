@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, int, mysqlTable, text } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -11,8 +11,7 @@ import { workspaces } from "./workspaces";
  */
 export const clickhouseWorkspaceSettings = mysqlTable("clickhouse_workspace_settings", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  // workspaceId: id("workspace_id").notNull().unique(),
-  workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+  workspaceId: id("workspace_id").notNull().unique(),
 
   // Authentication
   username: caseSensitiveVarchar("username", { length: 256 }).notNull().unique(),
