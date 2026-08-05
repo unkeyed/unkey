@@ -73,7 +73,7 @@ examples:
         hasMore: false
   paginatedResponse:
     summary: Paginated domain listing with more results
-    description: The response when the environment has more domains than the limit
+    description: The response when the environment has more domains than the limit.
     value:
       meta:
         requestId: req_5678efgh
@@ -103,7 +103,7 @@ examples:
         hasMore: true
   empty:
     summary: No domains attached
-    description: An environment with no custom domains returns an empty array, not a 404
+    description: An environment with no custom domains returns an empty array, not a 404.
     value:
       meta:
         requestId: req_1234abcd

@@ -9287,21 +9287,21 @@ paths:
                     application/json:
                         examples:
                             byIds:
-                                description: Uses the ids returned by the corresponding list endpoints
+                                description: Uses the ids returned by the corresponding list endpoints.
                                 summary: List an environment's domains by ID
                                 value:
                                     app: app_1234abcd
                                     environment: env_1234abcd
                                     project: proj_1234abcd
                             bySlugs:
-                                description: Uses the project, app, and environment slugs
+                                description: Uses the project, app, and environment slugs.
                                 summary: List an environment's domains by slugs
                                 value:
                                     app: payments-api
                                     environment: production
                                     project: payments
                             paginated:
-                                description: Get a smaller page and continue from a cursor
+                                description: Get a smaller page and continue from a cursor.
                                 summary: Paginate with a smaller page size
                                 value:
                                     app: payments-api
@@ -9310,7 +9310,7 @@ paths:
                                     limit: 20
                                     project: payments
                             search:
-                                description: Returns only domains whose id or name contains the search string
+                                description: Returns only domains whose id or name contains the search string.
                                 summary: Filter by name
                                 value:
                                     app: payments-api
@@ -9326,7 +9326,7 @@ paths:
                         application/json:
                             examples:
                                 domainList:
-                                    description: Two verified domains. The routing record verified the subdomain. The TXT record verified the apex domain, because Unkey cannot read its alias back
+                                    description: Two verified domains. The routing record verified the subdomain. The TXT record verified the apex domain, because Unkey cannot read its alias back.
                                     summary: Domain list
                                     value:
                                         data:
@@ -9377,7 +9377,7 @@ paths:
                                         pagination:
                                             hasMore: false
                                 empty:
-                                    description: An environment with no custom domains returns an empty array, not a 404
+                                    description: An environment with no custom domains returns an empty array, not a 404.
                                     summary: No domains attached
                                     value:
                                         data: []
@@ -9465,7 +9465,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The environment does not exist in your workspace, or your root key may not read it
+                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
                 "429":
                     content:
                         application/json:

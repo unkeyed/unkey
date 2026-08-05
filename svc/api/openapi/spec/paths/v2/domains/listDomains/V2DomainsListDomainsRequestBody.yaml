@@ -34,21 +34,21 @@ additionalProperties: false
 examples:
   bySlugs:
     summary: List an environment's domains by slugs
-    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand
+    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand.
     value:
       project: payments
       app: payments-api
       environment: production
   byIds:
     summary: List an environment's domains by ID
-    description: Uses the ids returned by the corresponding list endpoints
+    description: Uses the ids returned by the corresponding list endpoints.
     value:
       project: proj_1234abcd
       app: app_1234abcd
       environment: env_1234abcd
   search:
     summary: Filter by name
-    description: Returns only domains whose id or name contains the search string
+    description: Returns only domains whose id or name contains the search string.
     value:
       project: payments
       app: payments-api
@@ -56,7 +56,7 @@ examples:
       search: acme.com
   paginated:
     summary: Paginate with a smaller page size
-    description: Get a smaller page and continue from a cursor
+    description: Get a smaller page and continue from a cursor.
     value:
       project: payments
       app: payments-api
