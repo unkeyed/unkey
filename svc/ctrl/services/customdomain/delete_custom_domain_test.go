@@ -24,7 +24,8 @@ func TestDeleteCustomDomainWritesAuditLog(t *testing.T) {
 	created, err := svc.AddCustomDomain(ctx, f.request(f.domain))
 	require.NoError(t, err)
 
-	_, err = svc.DeleteCustomDomain(ctx, f.deleteRequest(f.domain, f.projectID))
+	deleteReq := f.deleteRequest(f.domain, f.projectID)
+	_, err = svc.DeleteCustomDomain(ctx, deleteReq)
 	require.NoError(t, err)
 
 	_, err = f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
@@ -36,7 +37,7 @@ func TestDeleteCustomDomainWritesAuditLog(t *testing.T) {
 	logged := f.findAuditEvent(t, auditlog.DomainDeleteEvent)
 	require.Equal(t, f.workspaceID, logged.WorkspaceID)
 	require.Equal(t, string(auditlog.UserActor), logged.Actor.Type)
-	require.Equal(t, "user_test", logged.Actor.ID)
+	require.Equal(t, deleteReq.Msg.GetActor().GetId(), logged.Actor.ID)
 	require.Len(t, logged.Targets, 1)
 	require.Equal(t, string(auditlog.DomainResourceType), logged.Targets[0].Type)
 	require.Equal(t, created.Msg.GetDomainId(), logged.Targets[0].ID)
@@ -175,7 +176,7 @@ func (f fixture) deleteRequest(domain, projectID string) *connect.Request[ctrlv1
 		ProjectId:   projectID,
 		Domain:      domain,
 		Actor: &ctrlv1.ActorInfo{
-			Id:        "user_test",
+			Id:        uid.New("user"),
 			Name:      "Test User",
 			Type:      ctrlv1.ActorType_ACTOR_TYPE_USER,
 			RemoteIp:  "127.0.0.1",
