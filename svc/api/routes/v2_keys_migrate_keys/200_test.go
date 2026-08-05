@@ -153,6 +153,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		permissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Slugs:       []string{"test"},
 		})
 		require.NoError(t, err)
@@ -161,6 +162,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 
 		roles, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Names:       []string{"admin"},
 		})
 		require.NoError(t, err)
@@ -198,6 +200,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// Verify no duplicate permissions were created
 		allPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Slugs:       []string{"test"},
 		})
 		require.NoError(t, err)
@@ -206,6 +209,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		// Verify no duplicate roles were created
 		allRoles, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   api.ProjectID,
 			Names:       []string{"admin"},
 		})
 		require.NoError(t, err)
@@ -232,4 +236,100 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		require.Contains(t, res.Body.Data.Failed, keyToMigrate.Hash, "Hash has to be in failed array")
 		require.Empty(t, res.Body.Data.Migrated)
 	})
+}
+
+// TestMigrateKeysUsesKeyspaceProject guarantees migrated identities and RBAC
+// definitions are owned by the destination keyspace's project.
+func TestMigrateKeysUsesKeyspaceProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+	workspaceID := h.Resources().UserWorkspace.ID
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		ApiCache:  h.Caches.LiveApiByID,
+	}
+	h.Register(route)
+
+	// Establish a different default project before creating the destination API.
+	h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	destinationProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "Migration Destination",
+		Slug:        "migration-destination",
+	})
+	destinationAPI := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspaceID,
+		ProjectID:   destinationProject.ID,
+	})
+
+	migrationID := uid.New(uid.TestPrefix)
+	err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
+		ID:          migrationID,
+		WorkspaceID: workspaceID,
+		Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
+	})
+	require.NoError(t, err)
+
+	generatedKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
+		KeyPrefix: "unkeyed",
+	})
+	require.NoError(t, err)
+
+	rootKey := h.CreateRootKey(workspaceID, "api.*.create_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	permissionSlug := "migration.destination.permission"
+	roleName := "migration_destination_role"
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       destinationAPI.ID,
+		MigrationId: migrationID,
+		Keys: []openapi.V2KeysMigrateKeyData{
+			{
+				Hash:        generatedKey.LongTokenHash,
+				ExternalId:  ptr.P("migration_destination_identity"),
+				Permissions: ptr.P([]string{permissionSlug}),
+				Roles:       ptr.P([]string{roleName}),
+			},
+		},
+	})
+	require.Equal(t, http.StatusOK, res.Status)
+	require.Len(t, res.Body.Data.Migrated, 1)
+
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), res.Body.Data.Migrated[0].KeyId)
+	require.NoError(t, err)
+	keyData := db.ToKeyData(key)
+	require.NotNil(t, keyData.Identity)
+	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
+		WorkspaceID: workspaceID,
+		IdentityID:  keyData.Identity.ID,
+		Deleted:     false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, destinationProject.ID, identity.ProjectID)
+	require.Len(t, keyData.Permissions, 1)
+	permissionRows, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
+		WorkspaceID: workspaceID,
+		ProjectID:   destinationProject.ID,
+		Slugs:       []string{permissionSlug},
+	})
+	require.NoError(t, err)
+	require.Len(t, permissionRows, 1)
+	require.Equal(t, permissionRows[0].ID, keyData.Permissions[0].ID)
+	require.Len(t, keyData.Roles, 1)
+	roleRows, err := db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
+		WorkspaceID: workspaceID,
+		ProjectID:   destinationProject.ID,
+		Names:       []string{roleName},
+	})
+	require.NoError(t, err)
+	require.Len(t, roleRows, 1)
+	require.Equal(t, roleRows[0].ID, keyData.Roles[0].ID)
+	role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), roleRows[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, destinationProject.ID, role.ProjectID)
 }

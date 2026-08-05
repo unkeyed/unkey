@@ -111,6 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
 		WorkspaceID: principal.WorkspaceID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Names:       req.Roles,
 	})
 	if err != nil {

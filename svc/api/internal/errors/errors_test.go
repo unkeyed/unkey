@@ -1,9 +1,12 @@
 package errors
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestHumanizeBytes(t *testing.T) {
@@ -27,4 +30,48 @@ func TestHumanizeBytes(t *testing.T) {
 	for _, tc := range cases {
 		require.Equal(t, tc.want, humanizeBytes(tc.in), "humanizeBytes(%d)", tc.in)
 	}
+}
+
+func TestMaskInsufficientPermissionsAsNotFound(t *testing.T) {
+	t.Run("masks insufficient permissions", func(t *testing.T) {
+		authorizationErr := fault.New("missing permission",
+			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
+		)
+
+		err := MaskInsufficientPermissionsAsNotFound(
+			authorizationErr,
+			codes.Data.Identity.NotFound.URN(),
+			"This identity does not exist.",
+		)
+
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.Data.Identity.NotFound.URN(), code)
+	})
+
+	t.Run("preserves other coded errors", func(t *testing.T) {
+		systemErr := fault.New("database unavailable",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+		)
+
+		err := MaskInsufficientPermissionsAsNotFound(
+			systemErr,
+			codes.Data.Identity.NotFound.URN(),
+			"This identity does not exist.",
+		)
+
+		require.Equal(t, systemErr, err)
+	})
+
+	t.Run("preserves untagged errors", func(t *testing.T) {
+		originalErr := errors.New("authorization evaluator failed")
+
+		err := MaskInsufficientPermissionsAsNotFound(
+			originalErr,
+			codes.Data.Identity.NotFound.URN(),
+			"This identity does not exist.",
+		)
+
+		require.ErrorIs(t, err, originalErr)
+	})
 }

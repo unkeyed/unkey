@@ -28,11 +28,14 @@ SELECT pk, id, workspace_id, project_id, name, description, created_at_m, update
         JSON_ARRAY()
 ) as permissions
 FROM roles r
-WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+WHERE r.workspace_id = ?
+  AND r.project_id = ?
+  AND r.name IN (/*SLICE:names*/?)
 `
 
 type FindManyRolesByNamesWithPermsParams struct {
 	WorkspaceID string   `db:"workspace_id"`
+	ProjectID   string   `db:"project_id"`
 	Names       []string `db:"names"`
 }
 
@@ -66,11 +69,14 @@ type FindManyRolesByNamesWithPermsRow struct {
 //	        JSON_ARRAY()
 //	) as permissions
 //	FROM roles r
-//	WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+//	WHERE r.workspace_id = ?
+//	  AND r.project_id = ?
+//	  AND r.name IN (/*SLICE:names*/?)
 func (q *Queries) FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error) {
 	query := findManyRolesByNamesWithPerms
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.Names) > 0 {
 		for _, v := range arg.Names {
 			queryParams = append(queryParams, v)

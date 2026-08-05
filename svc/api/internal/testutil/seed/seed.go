@@ -111,6 +111,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
 		WorkspaceID:   s.Resources.RootWorkspace.ID,
+		ProjectID:     "",
 		IpWhitelist:   "",
 		EncryptedKeys: false,
 		Name:          nil,
@@ -126,6 +127,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 // CreateApiRequest configures the API to create.
 type CreateApiRequest struct {
 	WorkspaceID   string
+	ProjectID     string
 	IpWhitelist   string
 	EncryptedKeys bool
 	Name          *string
@@ -138,7 +140,10 @@ type CreateApiRequest struct {
 // first since the API references it. Returns the created API which includes the
 // KeyAuthID linking to the key space.
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
-	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
+	projectID := req.ProjectID
+	if projectID == "" {
+		projectID = s.defaultProjectID(ctx, req.WorkspaceID)
+	}
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keySpaceID,

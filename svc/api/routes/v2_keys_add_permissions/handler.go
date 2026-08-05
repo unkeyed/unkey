@@ -124,6 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
 		WorkspaceID: principal.WorkspaceID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {

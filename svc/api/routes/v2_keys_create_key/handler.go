@@ -413,6 +413,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   keySpace.ProjectID,
 					Slugs:       *req.Permissions,
 				})
 				if err != nil {
@@ -529,6 +530,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   keySpace.ProjectID,
 					Names:       *req.Roles,
 				})
 				if err != nil {
