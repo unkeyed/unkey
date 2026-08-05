@@ -10,10 +10,6 @@ import "fmt"
 //	└── projects/{project_id}
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
-//	            ├── deployments/{deployment_id}
-//	            ├── domains/{domain_id}
-//	            ├── variables/{variable_id}
-//	            └── gateway
 type Environment struct {
 	workspaceID string
 	path        string
@@ -30,6 +26,14 @@ func (e Environment) Deployment(deploymentID string) Deployment {
 }
 
 // Domain is a domain resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── domains/{domain_id}
 type Domain struct {
 	workspaceID string
 	path        string
@@ -46,6 +50,14 @@ func (e Environment) Domain(domainID string) Domain {
 }
 
 // Variable is an environment variable resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── variables/{variable_id}
 type Variable struct {
 	workspaceID string
 	path        string

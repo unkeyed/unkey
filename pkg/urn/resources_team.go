@@ -8,8 +8,6 @@ import "fmt"
 //
 //	workspace
 //	└── team
-//	    ├── memberships/{membership_id}
-//	    └── invitations/{invitation_id}
 type team struct {
 	workspaceID string
 	path        string

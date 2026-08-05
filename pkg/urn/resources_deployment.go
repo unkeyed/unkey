@@ -11,13 +11,21 @@ import "fmt"
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── deployments/{deployment_id}
-//	                └── instances/{instance_id}
 type Deployment struct {
 	workspaceID string
 	path        string
 }
 
 // DeploymentInstance is a deployment instance resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── deployments/{deployment_id}
+//	                └── instances/{instance_id}
 type DeploymentInstance struct {
 	workspaceID string
 	path        string

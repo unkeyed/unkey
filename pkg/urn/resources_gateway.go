@@ -11,8 +11,6 @@ import "fmt"
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── gateway
-//	                ├── policies/{policy_id}
-//	                └── routes/{route_id}
 type Gateway struct {
 	workspaceID string
 	path        string
@@ -24,6 +22,15 @@ func (g Gateway) String() string {
 }
 
 // GatewayPolicy is a gateway policy resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── gateway
+//	                └── policies/{policy_id}
 type GatewayPolicy struct {
 	workspaceID string
 	path        string
@@ -35,6 +42,15 @@ func (p GatewayPolicy) String() string {
 }
 
 // GatewayRoute is a gateway route resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── gateway
+//	                └── routes/{route_id}
 type GatewayRoute struct {
 	workspaceID string
 	path        string

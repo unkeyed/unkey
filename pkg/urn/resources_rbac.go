@@ -9,14 +9,19 @@ import "fmt"
 //	workspace
 //	└── projects/{project_id}
 //	    └── rbac
-//	        ├── roles/{role_id}
-//	        └── permissions/{permission_id}
 type RBAC struct {
 	workspaceID string
 	path        string
 }
 
 // Role is an RBAC role resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── rbac
+//	        └── roles/{role_id}
 type Role struct {
 	workspaceID string
 	path        string
@@ -28,6 +33,13 @@ func (r Role) String() string {
 }
 
 // PermissionDefinition is an RBAC permission definition resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── rbac
+//	        └── permissions/{permission_id}
 type PermissionDefinition struct {
 	workspaceID string
 	path        string

@@ -8,7 +8,6 @@ import "fmt"
 //
 //	workspace
 //	└── billing
-//	    └── invoices/{invoice_id}
 type billing struct {
 	workspaceID string
 	path        string

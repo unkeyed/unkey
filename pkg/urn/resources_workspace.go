@@ -8,13 +8,6 @@ import "fmt"
 // Hierarchy:
 //
 //	workspace
-//	├── team
-//	├── billing
-//	├── keyspaces/{keyspace_id}
-//	├── ratelimits/namespaces/{namespace_id}
-//	├── rbac
-//	├── projects/{project_id}
-//	└── portals/{portal_id}
 //
 // Children with their own descendants return another typed builder. Leaf
 // resources return V1 directly.

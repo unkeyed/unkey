@@ -9,7 +9,6 @@ import "fmt"
 //	workspace
 //	└── projects/{project_id}
 //	    └── ratelimits/namespaces/{namespace_id}
-//	        └── overrides/{override_id}
 //
 // The namespace is intentionally below the literal "ratelimits" segment so all
 // rate limit resources can share one branch beneath their parent.
@@ -24,6 +23,13 @@ func (r RatelimitNamespace) String() string {
 }
 
 // RatelimitOverride is a rate limit override resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── ratelimits/namespaces/{namespace_id}
+//	        └── overrides/{override_id}
 type RatelimitOverride struct {
 	workspaceID string
 	path        string

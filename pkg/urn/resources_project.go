@@ -8,11 +8,6 @@ import "fmt"
 //
 //	workspace
 //	└── projects/{project_id}
-//	    ├── apps/{app_id}
-//	    ├── identities/{identity_id}
-//	    ├── keyspaces/{keyspace_id}
-//	    ├── ratelimits/namespaces/{namespace_id}
-//	    └── rbac
 //
 // Projects are owned by a workspace.
 type Project struct {

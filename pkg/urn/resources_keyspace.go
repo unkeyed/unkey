@@ -9,7 +9,6 @@ import "fmt"
 //	workspace
 //	└── projects/{project_id}
 //	    └── keyspaces/{keyspace_id}
-//	        └── keys/{key_id}
 //
 // A keyspace can also produce a descendant pattern for grants covering every
 // key and future keyspace child.
@@ -24,6 +23,13 @@ func (k Keyspace) String() string {
 }
 
 // Key is a key resource path.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── keyspaces/{keyspace_id}
+//	        └── keys/{key_id}
 type Key struct {
 	workspaceID string
 	path        string

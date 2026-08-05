@@ -8,9 +8,6 @@ import "fmt"
 //
 //	workspace
 //	└── portals/{portal_id}
-//	    ├── session_tokens/{portal_session_token_id}
-//	    ├── sessions/{session_id}
-//	    └── branding
 type Portal struct {
 	workspaceID string
 	path        string
