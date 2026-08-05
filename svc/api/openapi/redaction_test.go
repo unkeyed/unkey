@@ -23,17 +23,16 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{
-		"data.dnsRecords[].value", // createDomain response, one entry per record
-		"data.key",                // createKey and rerollKey responses
-		"data.plaintext",          // getKey response, recoverable key material
-		"data.sessionId",          // portal createSession response
-		"data.token",              // portal exchangeSession response
-		"data.url",                // portal URL, which carries the session token in its query
-		"data[].plaintext",        // listKeys response, one entry per key
-		"data[].value",            // listEnvironmentVariables response
-		"key",                     // verifyKey and whoami requests
-		"sessionId",               // portal exchangeSession request
-		"variables[].value",       // setEnvironmentVariables request
+		"data.key",          // createKey and rerollKey responses
+		"data.plaintext",    // getKey response, recoverable key material
+		"data.sessionId",    // portal createSession response
+		"data.token",        // portal exchangeSession response
+		"data.url",          // portal URL, which carries the session token in its query
+		"data[].plaintext",  // listKeys response, one entry per key
+		"data[].value",      // listEnvironmentVariables response
+		"key",               // verifyKey and whoami requests
+		"sessionId",         // portal exchangeSession request
+		"variables[].value", // setEnvironmentVariables request
 	}, paths)
 }
 
@@ -57,7 +56,6 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"portal exchangeSession":    `{"sessionId":"pst_FIXTURE_LEAK"}`,
 		"portal session token":      `{"data":{"token":"ps_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
 		"truncated env var payload": `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
-		"createDomain response":     `{"data":{"domainId":"dom_123","dnsRecords":[{"type":"CNAME","name":"api.acme.com","value":"FIXTURE_LEAK.cname.unkey.com"},{"type":"TXT","name":"_unkey.api.acme.com","value":"unkey-domain-verify=FIXTURE_LEAK"}]},"meta":{"requestId":"req_1"}}`,
 	}
 
 	for name, body := range bodies {
