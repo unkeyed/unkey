@@ -72,6 +72,11 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		want string
 	}{
 		{
+			name: "app repository connection",
+			in:   "apps:connect_repository",
+			want: "unkey:v1:ws_123:projects/*/apps/*#connect_repository",
+		},
+		{
 			name: "key create",
 			in:   "keys:create",
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#create_key",
@@ -161,6 +166,11 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			in:   "permissions:create",
 			want: "unkey:v1:ws_123:projects/*/rbac/permissions/*#create_permission",
 		},
+		{
+			name: "workspace GitHub installation",
+			in:   "workspaces:install_github",
+			want: "unkey:v1:ws_123:workspace#install_github",
+		},
 	}
 
 	for _, tt := range tests {
@@ -231,6 +241,70 @@ func TestSortedPermissionSlugs(t *testing.T) {
 		_, ok := permissionMappings[permission]
 		require.True(t, ok, "permission %q must exist in mapping table", permission)
 	}
+}
+
+// TestPermissionDefinitionsCoverMigrationCatalog guarantees every product
+// capability needed by the route migration can be assigned before routes move
+// from tuple permissions to resource permissions.
+func TestPermissionDefinitionsCoverMigrationCatalog(t *testing.T) {
+	t.Parallel()
+
+	want := []string{
+		"admin:*",
+		"apps:connect_repository",
+		"apps:create",
+		"apps:delete",
+		"apps:read",
+		"apps:update",
+		"deployments:create",
+		"deployments:promote",
+		"deployments:read",
+		"deployments:rollback",
+		"deployments:start",
+		"deployments:stop",
+		"environments:read",
+		"environments:read_variables",
+		"environments:remove_variables",
+		"environments:set_variables",
+		"environments:update",
+		"gateway:read_policies",
+		"gateway:set_policies",
+		"gateway:update_policy",
+		"identities:create",
+		"identities:delete",
+		"identities:read",
+		"identities:update",
+		"keys:create",
+		"keys:decrypt",
+		"keys:delete",
+		"keys:encrypt",
+		"keys:read",
+		"keys:update",
+		"keys:verify",
+		"keyspaces:create",
+		"keyspaces:delete",
+		"keyspaces:read",
+		"keyspaces:read_logs",
+		"permissions:create",
+		"permissions:delete",
+		"permissions:read",
+		"projects:create",
+		"projects:delete",
+		"projects:read",
+		"projects:update",
+		"ratelimits:create_namespace",
+		"ratelimits:delete_override",
+		"ratelimits:limit",
+		"ratelimits:read_logs",
+		"ratelimits:read_overrides",
+		"ratelimits:set_override",
+		"roles:create",
+		"roles:delete",
+		"roles:read",
+		"workspaces:install_github",
+	}
+
+	require.Equal(t, want, sortedPermissionSlugs())
 }
 
 // TestPermissionDefinitions guarantees WorkOS display metadata is sourced from

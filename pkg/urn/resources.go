@@ -17,8 +17,8 @@ type Builder struct{}
 // Every builder below this point stays inside this workspace. A wildcard such
 // as "**" can cover every resource in this workspace, but never crosses into
 // another workspace.
-func (Builder) Workspace(workspaceID string) workspace {
-	return workspace{
+func (Builder) Workspace(workspaceID string) Workspace {
+	return Workspace{
 		workspaceID: workspaceID,
 		Team:        team{workspaceID: workspaceID, path: "team"},
 		RBAC:        RBAC{workspaceID: workspaceID, path: "rbac"},

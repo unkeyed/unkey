@@ -2,7 +2,8 @@ package urn
 
 import "fmt"
 
-// workspace builds resource paths inside one workspace.
+// Workspace builds resource paths inside one workspace. It is also the
+// concrete target for operations that affect the workspace itself.
 //
 // Hierarchy:
 //
@@ -17,7 +18,7 @@ import "fmt"
 //
 // Children with their own descendants return another typed builder. Leaf
 // resources return V1 directly.
-type workspace struct {
+type Workspace struct {
 	workspaceID string
 
 	// Team builds team resource paths in this workspace.
@@ -27,13 +28,18 @@ type workspace struct {
 	RBAC RBAC
 }
 
+// String returns the workspace resource path.
+func (w Workspace) String() string {
+	return V1{WorkspaceID: w.workspaceID, Resource: "workspace"}.String()
+}
+
 // Billing returns builders for billing resource paths.
 //
 // Subresource:
 //
 //	workspace
 //	└── billing
-func (w workspace) Billing() billing {
+func (w Workspace) Billing() billing {
 	return billing{workspaceID: w.workspaceID, path: "billing"}
 }
 
@@ -43,7 +49,7 @@ func (w workspace) Billing() billing {
 //
 //	workspace
 //	└── keyspaces/{keyspace_id}
-func (w workspace) Keyspace(keyspaceID string) Keyspace {
+func (w Workspace) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: w.workspaceID, path: fmt.Sprintf("keyspaces/%s", keyspaceID)}
 }
 
@@ -53,7 +59,7 @@ func (w workspace) Keyspace(keyspaceID string) Keyspace {
 //
 //	workspace
 //	└── ratelimits/namespaces/{namespace_id}
-func (w workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
+func (w Workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 	return RatelimitNamespace{workspaceID: w.workspaceID, path: fmt.Sprintf("ratelimits/namespaces/%s", namespaceID)}
 }
 
@@ -63,7 +69,7 @@ func (w workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 //
 //	workspace
 //	└── projects/{project_id}
-func (w workspace) Project(projectID string) Project {
+func (w Workspace) Project(projectID string) Project {
 	return Project{workspaceID: w.workspaceID, path: fmt.Sprintf("projects/%s", projectID)}
 }
 
@@ -73,6 +79,6 @@ func (w workspace) Project(projectID string) Project {
 //
 //	workspace
 //	└── portals/{portal_id}
-func (w workspace) Portal(portalID string) Portal {
+func (w Workspace) Portal(portalID string) Portal {
 	return Portal{workspaceID: w.workspaceID, path: fmt.Sprintf("portals/%s", portalID)}
 }

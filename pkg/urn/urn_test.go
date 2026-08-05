@@ -209,6 +209,7 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	t.Parallel()
 
 	workspace := New().Workspace("ws_123")
+	require.Equal(t, "unkey:v1:ws_123:workspace", workspace.String())
 	require.Equal(t, "unkey:v1:ws_123:team/memberships/mbr_123", workspace.Team.Membership("mbr_123").String())
 	require.Equal(t, "unkey:v1:ws_123:team/invitations/inv_123", workspace.Team.Invitation("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
@@ -233,6 +234,7 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Variable("var_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway", workspace.Project("proj_123").App("app_123").Environment("env_123").Gateway().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Gateway().Policy("pol_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/routes/route_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Gateway().Route("route_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/session_tokens/token_123", workspace.Portal("portal_123").SessionToken("token_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/sessions/session_123", workspace.Portal("portal_123").Session("session_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/branding", workspace.Portal("portal_123").Branding().String())

@@ -1,4 +1,5 @@
 unkey:v1:ws_123:**#*
+unkey:v1:ws_123:projects/*/apps/*#connect_repository
 unkey:v1:ws_123:projects/*/apps/*#create_app
 unkey:v1:ws_123:projects/*/apps/*#delete_app
 unkey:v1:ws_123:projects/*/apps/*#read_app
@@ -57,3 +58,4 @@ unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#set_override
 unkey:v1:ws_123:projects/*/rbac/roles/*#create_role
 unkey:v1:ws_123:projects/*/rbac/roles/*#delete_role
 unkey:v1:ws_123:projects/*/rbac/roles/*#read_role
+unkey:v1:ws_123:workspace#install_github

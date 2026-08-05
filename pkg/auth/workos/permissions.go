@@ -46,6 +46,11 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "**", action: "*"},
 		},
 	},
+	"apps:connect_repository": {
+		name:        "Connect App Repositories",
+		description: "Allows connecting or disconnecting app repositories.",
+		permissions: []permissionGrant{{resource: "projects/*/apps/*", action: action(rbacpermissions.ConnectRepository{})}},
+	},
 	"apps:create": {
 		name:        "Create Apps",
 		description: "Allows creating apps.",
@@ -321,6 +326,11 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Read Roles",
 		description: "Allows reading roles.",
 		permissions: []permissionGrant{{resource: "projects/*/rbac/roles/*", action: action(rbacpermissions.ReadRole{})}},
+	},
+	"workspaces:install_github": {
+		name:        "Install GitHub App",
+		description: "Allows installing the Unkey GitHub App for a workspace.",
+		permissions: []permissionGrant{{resource: "workspace", action: action(rbacpermissions.InstallGithub{})}},
 	},
 }
 

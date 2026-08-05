@@ -16,6 +16,17 @@ type Deployment struct {
 	path        string
 }
 
+// DeploymentInstance is a deployment instance resource path.
+type DeploymentInstance struct {
+	workspaceID string
+	path        string
+}
+
+// String returns this deployment instance resource path.
+func (i DeploymentInstance) String() string {
+	return V1{WorkspaceID: i.workspaceID, Resource: i.path}.String()
+}
+
 // String returns this deployment resource path.
 //
 // Subresource:
@@ -32,11 +43,8 @@ func (d Deployment) String() string {
 //
 //	deployments/{deployment_id}
 //	└── instances/{instance_id}
-func (d Deployment) Instance(instanceID string) V1 {
-	return V1{
-		WorkspaceID: d.workspaceID,
-		Resource:    fmt.Sprintf("%s/instances/%s", d.path, instanceID),
-	}
+func (d Deployment) Instance(instanceID string) DeploymentInstance {
+	return DeploymentInstance{workspaceID: d.workspaceID, path: fmt.Sprintf("%s/instances/%s", d.path, instanceID)}
 }
 
 // Any returns a descendant pattern below this deployment.
