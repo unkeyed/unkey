@@ -1,6 +1,6 @@
 CREATE TABLE `github_app_installations` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`installation_id` bigint NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,

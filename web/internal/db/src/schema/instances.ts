@@ -13,8 +13,7 @@ import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { regions } from "./regions";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 
 //id, deplyoment_id, health, kube_dns_addr, mem, cpu, region
 
@@ -51,19 +50,13 @@ export const instances = mysqlTable(
   "instances",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    // deploymentId: id("deployment_id").notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 255 }).notNull(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
-    // projectId: id("project_id").notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 255 }).notNull(),
-    // appId: id("app_id").notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    id: id("id").notNull().unique(),
+    deploymentId: id("deployment_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
 
-    // regionId: id("region_id").notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    regionId: id("region_id").notNull(),
 
     // used to apply updates from the kubernetes watch events
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull(),

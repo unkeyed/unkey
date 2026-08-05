@@ -17,8 +17,8 @@ import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
+import { id } from "./util/id";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -26,19 +26,16 @@ export const keys = mysqlTable(
   "keys",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    id: id("id").notNull().unique(),
 
-    // keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).notNull(),
-    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 256 }).notNull(),
+    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
     /**
      * This is the workspace that owns the key.
      */
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -48,12 +45,10 @@ export const keys = mysqlTable(
      *
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
-    // forWorkspaceId: id("for_workspace_id"),
-    forWorkspaceId: caseSensitiveVarchar("for_workspace_id", { length: 256 }),
+    forWorkspaceId: id("for_workspace_id"),
     name: caseInsensitiveVarchar("name", { length: 256 }),
     ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
-    // identityId: id("identity_id"),
-    identityId: caseSensitiveVarchar("identity_id", { length: 256 }),
+    identityId: id("identity_id"),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
@@ -92,8 +87,7 @@ export const keys = mysqlTable(
 
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
 
-    // pendingMigrationId: id("pending_migration_id"),
-    pendingMigrationId: caseSensitiveVarchar("pending_migration_id", { length: 256 }),
+    pendingMigrationId: id("pending_migration_id"),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -156,10 +150,8 @@ export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // keyId: id("key_id").notNull(),
-    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    keyId: id("key_id").notNull(),
     ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },
