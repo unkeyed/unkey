@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/nullable"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -16,6 +18,7 @@ import (
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -26,8 +29,9 @@ type (
 )
 
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
+	DB         db.Database
+	Auditlogs  auditlogs.AuditLogService
+	CtrlClient ctrl.AppServiceClient
 
 	// GitHubClient resolves and verifies repositories for the `git` connection.
 	// GitHubAppName is the App slug used to build actionable install URLs in
@@ -53,6 +57,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
+	}
+	if req.Image != nil && (req.Git.IsSpecified() || req.Name != nil || req.Slug != nil || req.DeleteProtection != nil) {
+		return fault.New(
+			"Docker image update combined with other changes",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("image updates must be standalone"),
+			fault.Public("Update the Docker image in a separate request."),
+		)
 	}
 
 	// Group the app.update and repository connect/disconnect events this request
@@ -101,6 +113,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// connect_repository gates every git change, disconnect included.
 		gitSpecified := req.Git.IsSpecified()
+		if gitSpecified && app.SourceType == db.AppsSourceTypeDockerImage {
+			return openapi.App{}, fault.New(
+				"git update is incompatible with app source",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("cannot update git configuration for a Docker-sourced app"),
+				fault.Public("Git configuration can only be updated for GitHub or legacy apps."),
+			)
+		}
+		if req.Image != nil && app.SourceType != db.AppsSourceTypeDockerImage {
+			return openapi.App{}, fault.New(
+				"image update is incompatible with app source",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("cannot update Docker image configuration for a non-Docker app"),
+				fault.Public("Docker image configuration can only be updated for Docker-sourced apps."),
+			)
+		}
 		if gitSpecified {
 			err = principal.Authorize(rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -271,6 +299,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if req.Image != nil {
+		actor, actorErr := ctrlclient.Actor(s)
+		if actorErr != nil {
+			return actorErr
+		}
+		_, ctrlErr := h.CtrlClient.UpdateDockerImageSource(ctx, &ctrlv1.UpdateDockerImageSourceRequest{
+			WorkspaceId:    principal.WorkspaceID,
+			AppId:          data.Id,
+			ImageReference: req.Image.DockerImage,
+			Actor:          actor,
+		})
+		if ctrlErr != nil {
+			return ctrlclient.HandleError(ctrlErr, "update Docker image source")
+		}
 	}
 
 	return s.JSON(http.StatusOK, Response{

@@ -598,6 +598,13 @@ components:
                     anyOf:
                         - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
+                image:
+                    description: |
+                        Change the default image reference for a Docker-sourced app. This does not
+                        create a deployment. Image updates cannot be combined with other changes,
+                        and source switching is not supported.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppDockerImageCreateInput"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -605,6 +612,20 @@ components:
                         Omit this field to leave the current setting unchanged.
                     example: true
             additionalProperties: false
+            not:
+                anyOf:
+                    - required:
+                        - git
+                        - image
+                    - required:
+                        - name
+                        - image
+                    - required:
+                        - slug
+                        - image
+                    - required:
+                        - deleteProtection
+                        - image
         V2AppsUpdateAppResponseBody:
             type: object
             required:

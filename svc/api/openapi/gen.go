@@ -1875,6 +1875,11 @@ type V2AppsUpdateAppRequestBody struct {
 	// branch it tracks. Fields are independent, so send only the one you change.
 	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
 
+	// Image Change the default image reference for a Docker-sourced app. This does not
+	// create a deployment. Image updates cannot be combined with other changes,
+	// and source switching is not supported.
+	Image *AppDockerImageCreateInput `json:"image,omitempty"`
+
 	// Name New human-readable name for the app.
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`

@@ -216,6 +216,7 @@ type CreateAppRequest struct {
 	ProjectID        string
 	Name             string
 	Slug             string
+	SourceType       db.AppsSourceType
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -223,6 +224,10 @@ type CreateAppRequest struct {
 // CreateApp creates an app within a project.
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
+	sourceType := req.SourceType
+	if sourceType == "" {
+		sourceType = db.AppsSourceTypeLegacy
+	}
 
 	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
 		ID:               req.ID,
@@ -230,7 +235,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		SourceType:       db.AppsSourceTypeLegacy,
+		SourceType:       sourceType,
 		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,

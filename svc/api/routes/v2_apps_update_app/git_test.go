@@ -341,6 +341,139 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
 
+func TestUpdateAppDockerImage(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctrlClient := &testutil.MockAppClient{}
+	route := &handler.Handler{
+		DB:         h.DB,
+		Auditlogs:  h.Auditlogs,
+		CtrlClient: ctrlClient,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Docker",
+		Slug:        appSlug(),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Docker app",
+		Slug:        appSlug(),
+		SourceType:  db.AppsSourceTypeDockerImage,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		App:     app.ID,
+		Image: &openapi.AppDockerImageCreateInput{
+			DockerImage: "ghcr.io/acme/api:v2",
+		},
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, ctrlClient.UpdateDockerImageSourceCalls, 1)
+	call := ctrlClient.UpdateDockerImageSourceCalls[0]
+	require.Equal(t, workspace.ID, call.GetWorkspaceId())
+	require.Equal(t, app.ID, call.GetAppId())
+	require.Equal(t, "ghcr.io/acme/api:v2", call.GetImageReference())
+	require.NotNil(t, call.GetActor())
+}
+
+func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctrlClient := &testutil.MockAppClient{}
+	route := &handler.Handler{
+		DB:         h.DB,
+		Auditlogs:  h.Auditlogs,
+		CtrlClient: ctrlClient,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app", "app.*.connect_repository")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Sources",
+		Slug:        appSlug(),
+	})
+	createApp := func(t *testing.T, sourceType db.AppsSourceType) db.App {
+		t.Helper()
+		return h.CreateApp(seed.CreateAppRequest{
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        "App",
+			Slug:        appSlug(),
+			SourceType:  sourceType,
+		})
+	}
+
+	t.Run("git update on Docker app", func(t *testing.T) {
+		app := createApp(t, db.AppsSourceTypeDockerImage)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+			Project: project.ID,
+			App:     app.ID,
+			Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
+		})
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	})
+
+	for _, sourceType := range []db.AppsSourceType{db.AppsSourceTypeGithub, db.AppsSourceTypeLegacy} {
+		t.Run("image update on "+string(sourceType)+" app", func(t *testing.T) {
+			app := createApp(t, sourceType)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+				Project: project.ID,
+				App:     app.ID,
+				Image:   &openapi.AppDockerImageCreateInput{DockerImage: "ghcr.io/acme/api:v2"},
+			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		})
+	}
+
+	t.Run("git and image together", func(t *testing.T) {
+		app := createApp(t, db.AppsSourceTypeDockerImage)
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+			Project: project.ID,
+			App:     app.ID,
+			Git:     nullable.NewNullNullable[openapi.AppGitUpdateInput](),
+			Image:   &openapi.AppDockerImageCreateInput{DockerImage: "ghcr.io/acme/api:v2"},
+		})
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	})
+
+	t.Run("metadata and image together", func(t *testing.T) {
+		app := createApp(t, db.AppsSourceTypeDockerImage)
+		originalName := app.Name
+		newName := "New name"
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+			Project: project.ID,
+			App:     app.ID,
+			Name:    &newName,
+			Image:   &openapi.AppDockerImageCreateInput{DockerImage: "ghcr.io/acme/api:v2"},
+		})
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+		reloaded, err := db.Query.FindAppById(context.Background(), h.DB.RO(), app.ID)
+		require.NoError(t, err)
+		require.Equal(t, originalName, reloaded.Name)
+	})
+
+	require.Empty(t, ctrlClient.UpdateDockerImageSourceCalls)
+}
+
 func requireAuditEvent(ctx context.Context, t *testing.T, h *testutil.Harness, targetID, event string) {
 	t.Helper()
 	logs := h.FindAuditLogsByTargetID(ctx, t, targetID)
