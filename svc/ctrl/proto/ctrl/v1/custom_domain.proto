@@ -34,12 +34,14 @@ message DomainConnect {
 }
 
 message AddCustomDomainResponse {
-  reserved 4, 5;
-  reserved "domain_connect_provider", "domain_connect_url";
-
   string domain_id = 1;
   string target_cname = 2; // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
   CustomDomainStatus status = 3;
+  // Deprecated: read domain_connect instead. Kept populated so a dashboard
+  // deployed against an older ctrl keeps receiving the values; reserve these
+  // fields once every caller reads domain_connect.
+  string domain_connect_provider = 4 [deprecated = true];
+  string domain_connect_url = 5 [deprecated = true];
   // Ownership proof token the caller publishes as a TXT record on
   // "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
   // apex domains, which cannot carry a CNAME.

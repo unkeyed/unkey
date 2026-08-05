@@ -275,6 +275,9 @@ func (s *Service) AddCustomDomain(
 	}
 	if dcProvider != "" && dcURL != "" {
 		res.DomainConnect = &ctrlv1.DomainConnect{Provider: dcProvider, Url: dcURL}
+
+		res.DomainConnectProvider = dcProvider
+		res.DomainConnectUrl = dcURL
 	}
 
 	return connect.NewResponse(res), nil

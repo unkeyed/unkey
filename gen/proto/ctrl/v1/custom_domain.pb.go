@@ -223,6 +223,14 @@ type AddCustomDomainResponse struct {
 	DomainId    string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
 	TargetCname string                 `protobuf:"bytes,2,opt,name=target_cname,json=targetCname,proto3" json:"target_cname,omitempty"` // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
 	Status      CustomDomainStatus     `protobuf:"varint,3,opt,name=status,proto3,enum=ctrl.v1.CustomDomainStatus" json:"status,omitempty"`
+	// Deprecated: read domain_connect instead. Kept populated so a dashboard
+	// deployed against an older ctrl keeps receiving the values; reserve these
+	// fields once every caller reads domain_connect.
+	//
+	// Deprecated: Marked as deprecated in ctrl/v1/custom_domain.proto.
+	DomainConnectProvider string `protobuf:"bytes,4,opt,name=domain_connect_provider,json=domainConnectProvider,proto3" json:"domain_connect_provider,omitempty"`
+	// Deprecated: Marked as deprecated in ctrl/v1/custom_domain.proto.
+	DomainConnectUrl string `protobuf:"bytes,5,opt,name=domain_connect_url,json=domainConnectUrl,proto3" json:"domain_connect_url,omitempty"`
 	// Ownership proof token the caller publishes as a TXT record on
 	// "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
 	// apex domains, which cannot carry a CNAME.
@@ -282,6 +290,22 @@ func (x *AddCustomDomainResponse) GetStatus() CustomDomainStatus {
 		return x.Status
 	}
 	return CustomDomainStatus_CUSTOM_DOMAIN_STATUS_UNSPECIFIED
+}
+
+// Deprecated: Marked as deprecated in ctrl/v1/custom_domain.proto.
+func (x *AddCustomDomainResponse) GetDomainConnectProvider() string {
+	if x != nil {
+		return x.DomainConnectProvider
+	}
+	return ""
+}
+
+// Deprecated: Marked as deprecated in ctrl/v1/custom_domain.proto.
+func (x *AddCustomDomainResponse) GetDomainConnectUrl() string {
+	if x != nil {
+		return x.DomainConnectUrl
+	}
+	return ""
 }
 
 func (x *AddCustomDomainResponse) GetVerificationToken() string {
@@ -513,13 +537,15 @@ const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"\x05actor\x18\x06 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"=\n" +
 	"\rDomainConnect\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x10\n" +
-	"\x03url\x18\x02 \x01(\tR\x03url\"\xb5\x02\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\"\xea\x02\n" +
 	"\x17AddCustomDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x123\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\x12-\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\x12:\n" +
+	"\x17domain_connect_provider\x18\x04 \x01(\tB\x02\x18\x01R\x15domainConnectProvider\x120\n" +
+	"\x12domain_connect_url\x18\x05 \x01(\tB\x02\x18\x01R\x10domainConnectUrl\x12-\n" +
 	"\x12verification_token\x18\x06 \x01(\tR\x11verificationToken\x12=\n" +
-	"\x0edomain_connect\x18\a \x01(\v2\x16.ctrl.v1.DomainConnectR\rdomainConnectJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x17domain_connect_providerR\x12domain_connect_url\"u\n" +
+	"\x0edomain_connect\x18\a \x01(\v2\x16.ctrl.v1.DomainConnectR\rdomainConnect\"u\n" +
 	"\x19DeleteCustomDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
