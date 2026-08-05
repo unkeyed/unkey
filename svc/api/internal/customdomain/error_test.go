@@ -36,7 +36,7 @@ func TestMapCtrlErrorRoundTripsGateOutcomes(t *testing.T) {
 		{
 			name:        "duplicate",
 			connectCode: connect.CodeAlreadyExists,
-			gateErr:     domaingate.AlreadyAttached("api.acme.com"),
+			gateErr:     domaingate.AlreadyExists("api.acme.com"),
 			wantCode:    codes.Data.Domain.Duplicate.URN(),
 		},
 		{

@@ -204,7 +204,7 @@ func (s *Service) AddCustomDomain(
 			CreatedAt:             now,
 		}); txErr != nil {
 			if db.IsDuplicateKeyError(txErr) {
-				return gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyAttached(domain))
+				return gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyExists(domain))
 			}
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert custom domain: %w", txErr))
 		}

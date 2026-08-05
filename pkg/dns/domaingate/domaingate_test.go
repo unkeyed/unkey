@@ -62,10 +62,10 @@ func TestCheckDomain(t *testing.T) {
 	}
 }
 
-func TestAlreadyAttached(t *testing.T) {
+func TestAlreadyExists(t *testing.T) {
 	t.Parallel()
 
-	requireCode(t, codes.Data.Domain.Duplicate, domaingate.AlreadyAttached("api.acme.com"))
+	requireCode(t, codes.Data.Domain.Duplicate, domaingate.AlreadyExists("api.acme.com"))
 }
 
 // Both layers pass the outcome of their own lookup, so a nil error meaning "free" and a
@@ -104,7 +104,7 @@ func TestFaultUserFacingMessage(t *testing.T) {
 
 	require.Equal(t,
 		"The domain 'api.acme.com' is already attached to this workspace.",
-		fault.UserFacingMessage(domaingate.AlreadyAttached("api.acme.com")))
+		fault.UserFacingMessage(domaingate.AlreadyExists("api.acme.com")))
 
 	require.Equal(t,
 		"Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.",

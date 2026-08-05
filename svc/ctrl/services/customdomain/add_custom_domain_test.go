@@ -211,7 +211,7 @@ func TestAddCustomDomainConcurrentDuplicateReadsTheSame(t *testing.T) {
 	f := newFixture(t, 5)
 	svc := f.newService(t)
 
-	want := fault.UserFacingMessage(domaingate.AlreadyAttached(f.domain))
+	want := fault.UserFacingMessage(domaingate.AlreadyExists(f.domain))
 
 	type result struct {
 		err error

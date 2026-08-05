@@ -32,9 +32,9 @@ func CheckDomain(domain string) error {
 	)
 }
 
-// AlreadyAttached is the outcome for a domain the workspace already holds. Domains
+// AlreadyExists is the outcome for a domain the workspace already holds. Domains
 // are unique per workspace, so the same name cannot serve two environments.
-func AlreadyAttached(domain string) error {
+func AlreadyExists(domain string) error {
 	return fault.New("domain already exists",
 		fault.Code(codes.Data.Domain.Duplicate.URN()),
 		fault.Internal(fmt.Sprintf("domain %q is already attached to this workspace", domain)),
@@ -54,7 +54,7 @@ func CheckNotAttached(domain string, attached bool) error {
 		return nil
 	}
 
-	return AlreadyAttached(domain)
+	return AlreadyExists(domain)
 }
 
 // CheckAllowance reports whether the workspace may attach one more domain. The

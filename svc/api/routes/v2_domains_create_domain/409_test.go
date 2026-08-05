@@ -28,7 +28,7 @@ func TestCreateDomainDuplicate(t *testing.T) {
 		AddCustomDomainFunc: func(_ context.Context, req *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
 			return nil, connect.NewError(
 				connect.CodeAlreadyExists,
-				errors.New(fault.UserFacingMessage(domaingate.AlreadyAttached(req.GetDomain()))),
+				errors.New(fault.UserFacingMessage(domaingate.AlreadyExists(req.GetDomain()))),
 			)
 		},
 	}
