@@ -119,9 +119,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			EnvironmentId:     row.EnvironmentID,
 			Status:            domain.Status(row.VerificationStatus),
 			VerificationError: nil,
-			DnsRecords:        domain.DnsRecords(row.Domain, row.TargetCname, row.VerificationToken, row.CnameVerified, row.OwnershipVerified),
-			CreatedAt:         row.CreatedAt,
-			UpdatedAt:         nil,
+			DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
+				Domain:            row.Domain,
+				TargetCname:       row.TargetCname,
+				VerificationToken: row.VerificationToken,
+				RoutingVerified:   row.CnameVerified,
+				OwnershipVerified: row.OwnershipVerified,
+			}),
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: nil,
 		}
 		if row.VerificationError.Valid && row.VerificationError.String != "" {
 			d.VerificationError = ptr.P(row.VerificationError.String)

@@ -3,7 +3,6 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -98,16 +97,15 @@ func makeRequest(env seededEnv) handler.Request {
 	}
 }
 
-// randomSlug produces a lowercase-dashed value. Parallel packages share one
+// randomSlug produces a unique lowercase slug. Parallel packages share one
 // database, so a hardcoded slug would collide across runs.
 func randomSlug() string {
-	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+	return uid.DNS1035(16)
 }
 
-// randomDomain produces a unique hostname satisfying the FQDN pattern. The label is
-// prefixed so it cannot start with a digit-only accident of uid.
+// randomDomain produces a unique hostname that satisfies the spec's FQDN pattern.
 func randomDomain() string {
-	return fmt.Sprintf("d%s.example.com", strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")))
+	return uid.DNS1035(16) + ".example.com"
 }
 
 func authHeaders(rootKey string) http.Header {

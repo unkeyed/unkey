@@ -17,8 +17,8 @@ examples:
   domainList:
     summary: Domain list
     description: |
-      Two domains in one environment. The apex verified on its TXT record, so only that record reports verified.
-      despite reporting verified.
+      Two verified domains in one environment. The routing record verified the subdomain. The TXT
+      record verified the apex domain, because Unkey cannot read its alias back.
     value:
       meta:
         requestId: req_1234abcd
@@ -67,7 +67,7 @@ examples:
           updatedAt: 1704067260000
   empty:
     summary: No domains attached
-    description: An environment with no custom domains returns an empty array rather than a 404
+    description: An environment with no custom domains returns an empty array, not a 404
     value:
       meta:
         requestId: req_1234abcd

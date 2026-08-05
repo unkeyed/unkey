@@ -9246,19 +9246,16 @@ paths:
     /v2/domains.listDomains:
         post:
             description: |
-                List the custom domains attached to an environment, with where each one stands in verification.
+                List the custom domains attached to an environment and their verification status.
 
-                Returns up to 10 domains, ordered by domain id. An environment holding more than that gets the first ten. An environment with no domains returns an empty
-                array, not a 404.
+                Returns up to 10 domains, ordered by domain id. An environment with no domains returns an
+                empty array, not a 404.
 
-                `status: verified` means verification passed, so Unkey has provisioned routing and requested a
-                certificate. Each entry's `dnsRecords` carry their own `verified` flag, so a half-configured
-                environment shows exactly which record each domain is still missing. A record a provider does not
-                expose to a DNS lookup, such as a proxied or flattened routing record, stays `false` for as long
-                as it serves.
-
-                Each entry carries its full `dnsRecords`, so the records still outstanding for a half-configured
-                domain are visible without a second call.
+                `status: verified` means the domain is verified. Unkey has configured routing and requested a
+                certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
+                The flag shows which records Unkey has read back, so you can see which records are still
+                missing without a second call. Some providers hide a record from DNS lookups, for example a
+                proxied or flattened routing record. Such a record stays `false` while it serves traffic.
 
                 **Required Permissions**
 
@@ -9301,7 +9298,7 @@ paths:
                         application/json:
                             examples:
                                 domainList:
-                                    description: The apex verified on its TXT record, so only that record reports verified while it serves
+                                    description: Two verified domains. The routing record verified the subdomain. The TXT record verified the apex domain, because Unkey cannot read its alias back
                                     summary: Domain list
                                     value:
                                         data:
@@ -9350,7 +9347,7 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                 empty:
-                                    description: An environment with no custom domains returns an empty array rather than a 404
+                                    description: An environment with no custom domains returns an empty array, not a 404
                                     summary: No domains attached
                                     value:
                                         data: []

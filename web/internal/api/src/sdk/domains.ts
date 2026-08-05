@@ -91,18 +91,16 @@ export class Domains extends ClientSDK {
    * List domains
    *
    * @remarks
-   * List the custom domains attached to an environment, with where each one stands in verification.
+   * List the custom domains attached to an environment and their verification status.
    *
-   * Returns up to 10 domains, ordered by domain id. An environment with no domains returns an empty
-   * array, not a 404.
+   * Returns up to 10 domains, ordered by domain id. An environment with no domains returns an
+   * empty array, not a 404.
    *
-   * **Read `routingVerified` before sending traffic.** `status` summarises verification, and
-   * verification can pass on proof of ownership alone, so a domain with `status: verified` and
-   * `routingVerified: false` is claimed by your workspace but routes nothing. Scanning a list is where
-   * that difference shows up: two domains can both report `verified` while only one serves traffic.
-   *
-   * Each entry carries its full `dnsRecords`, so the records still outstanding for a half-configured
-   * domain are visible without a second call.
+   * `status: verified` means the domain is verified. Unkey has configured routing and requested a
+   * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
+   * The flag shows which records Unkey has read back, so you can see which records are still
+   * missing without a second call. Some providers hide a record from DNS lookups, for example a
+   * proxied or flattened routing record. Such a record stays `false` while it serves traffic.
    *
    * **Required Permissions**
    *
