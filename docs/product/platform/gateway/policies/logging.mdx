@@ -43,10 +43,11 @@ The gateway captures the following for each request:
 
 ## Redact body fields
 
-When an OpenAPI validation policy matches a request, the logging policy uses
-the same OpenAPI specification to redact sensitive JSON properties. Add
-`x-unkey-redact: true` to a schema property to replace its value with
-`[REDACTED]` in logged request and response bodies:
+When an OpenAPI validation policy matches a request, the logging policy reads
+`x-unkey-redact` from the OpenAPI specification.
+
+Set `x-unkey-redact: true` on a sensitive JSON property. Frontline replaces its
+value with `[REDACTED]` in stored request and response bodies.
 
 ```yaml
 properties:
@@ -58,10 +59,9 @@ properties:
     x-unkey-redact: false
 ```
 
-The extension enables redaction only when its value is `true`. Setting it to
-`false` doesn't override other redaction rules. Authorization headers and
-credentials configured through a KeyAuth policy remain redacted regardless of
-the OpenAPI setting.
+Set `x-unkey-redact: false` when this field does not need redaction. This value
+does not disable other redaction rules. Frontline always redacts authorization
+headers and credentials that a KeyAuth policy defines.
 
 ## View logs
 
