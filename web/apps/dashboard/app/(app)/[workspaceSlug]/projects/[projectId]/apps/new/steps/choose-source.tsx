@@ -61,18 +61,21 @@ export const ChooseSourceStep = ({
         queryClient.invalidateQueries({ queryKey: ["projects"] }),
       ]);
 
-      try {
-        const regions =
-          availableRegions ?? (await utils.deploy.environmentSettings.getAvailableRegions.fetch());
-        const environments = await trpcClient.deploy.environment.list.query({ projectId });
-        const mutations = environments
-          .filter((environment) => environment.appId === app.id)
-          .flatMap((environment) => buildDefaultSettingsMutations(environment.id, regions));
-        await Promise.all(mutations);
-      } catch (error) {
-        toast.error("Failed to initialize settings", {
-          description: error instanceof Error ? error.message : "An unexpected error occurred",
-        });
+      if (source.kind === "github") {
+        try {
+          const regions =
+            availableRegions ??
+            (await utils.deploy.environmentSettings.getAvailableRegions.fetch());
+          const environments = await trpcClient.deploy.environment.list.query({ projectId });
+          const mutations = environments
+            .filter((environment) => environment.appId === app.id)
+            .flatMap((environment) => buildDefaultSettingsMutations(environment.id, regions));
+          await Promise.all(mutations);
+        } catch (error) {
+          toast.error("Failed to initialize settings", {
+            description: error instanceof Error ? error.message : "An unexpected error occurred",
+          });
+        }
       }
 
       return app.id;
