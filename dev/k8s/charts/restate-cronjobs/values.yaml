@@ -66,7 +66,10 @@ jobs:
   # normally runs it at the period roll. Keyed by the CLOSED period (yesterday's
   # month, hence the epoch math). The idempotency key carries the run timestamp
   # so this is a fresh retry, not a replay of the webhook's invocation. Runs at
-  # 00:30 UTC to beat Stripe's ~1h draft auto-finalize.
+  # 00:30 UTC so it claims any draft the webhook missed (pushing Stripe's
+  # finalization out to period end + 48h) before Stripe's own ~1h auto-finalize
+  # fires. The claim happens first precisely because the close then sleeps 24h
+  # waiting for late usage, which is far longer than that ~1h window.
   #
   # NOTE: local/test schedule; the production cron lives in the infra repo too.
   deploy-billing-close:

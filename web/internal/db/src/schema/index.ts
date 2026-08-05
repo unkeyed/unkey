@@ -6,6 +6,7 @@ export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
 export * from "./quota";
+export * from "./limits";
 export * from "./workspace_billing";
 export * from "./billing_subscriptions";
 export * from "./clickhouse_outbox";

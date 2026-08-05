@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertRatelimitNamespace is the base query for bulk insert
-const bulkInsertRatelimitNamespace = `INSERT INTO ` + "`" + `ratelimit_namespaces` + "`" + ` ( id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m ) VALUES %s`
+const bulkInsertRatelimitNamespace = `INSERT INTO ` + "`" + `ratelimit_namespaces` + "`" + ` ( id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m ) VALUES %s`
 
 // InsertRatelimitNamespaces performs bulk insert in a single query
 func (q *BulkQueries) InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertRatelimitNamespaces(ctx context.Context, db DBTX, ar
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, NULL, NULL )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, NULL, NULL )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertRatelimitNamespace, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertRatelimitNamespaces(ctx context.Context, db DBTX, ar
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}

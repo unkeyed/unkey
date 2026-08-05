@@ -22,7 +22,7 @@ SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, delet
                                        'duration', ro.duration
                                )
                        )
-                from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+                from ratelimit_overrides ro where ns.id = ro.namespace_id AND ro.deleted_at_m IS NULL),
                json_array()
        ) as overrides
 FROM ` + "`" + `ratelimit_namespaces` + "`" + ` ns
@@ -59,7 +59,7 @@ type FindManyRatelimitNamespacesRow struct {
 //	                                       'duration', ro.duration
 //	                               )
 //	                       )
-//	                from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
+//	                from ratelimit_overrides ro where ns.id = ro.namespace_id AND ro.deleted_at_m IS NULL),
 //	               json_array()
 //	       ) as overrides
 //	FROM `ratelimit_namespaces` ns

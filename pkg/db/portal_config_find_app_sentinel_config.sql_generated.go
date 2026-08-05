@@ -12,7 +12,7 @@ import (
 const findAppSentinelConfigByID = `-- name: FindAppSentinelConfigByID :one
 SELECT d.sentinel_config
 FROM apps a
-JOIN deployments d ON d.id = a.current_deployment_id
+JOIN deployments d ON a.current_deployment_id = d.id
 WHERE a.id = ?
   AND a.workspace_id = ?
 `
@@ -29,7 +29,7 @@ type FindAppSentinelConfigByIDParams struct {
 //
 //	SELECT d.sentinel_config
 //	FROM apps a
-//	JOIN deployments d ON d.id = a.current_deployment_id
+//	JOIN deployments d ON a.current_deployment_id = d.id
 //	WHERE a.id = ?
 //	  AND a.workspace_id = ?
 func (q *Queries) FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error) {

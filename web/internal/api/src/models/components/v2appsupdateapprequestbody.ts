@@ -3,6 +3,11 @@
  */
 
 import * as z from "zod/v3";
+import {
+  AppGitUpdateInput,
+  AppGitUpdateInput$Outbound,
+  AppGitUpdateInput$outboundSchema,
+} from "./appgitupdateinput.js";
 
 export type V2AppsUpdateAppRequestBody = {
   /**
@@ -34,12 +39,14 @@ export type V2AppsUpdateAppRequestBody = {
    */
   slug?: string | undefined;
   /**
-   * New default git branch deployments track for this app.
+   * Connect, reconfigure, or disconnect this app's GitHub repository.
    *
    * @remarks
-   * Omit this field to leave the current branch unchanged.
+   * Omit to leave unchanged, set null to disconnect, or set an object with a
+   * "repository" to connect or replace it and/or a "defaultBranch" to set which
+   * branch it tracks. Fields are independent, so send only the one you change.
    */
-  defaultBranch?: string | undefined;
+  git?: AppGitUpdateInput | null | undefined;
   /**
    * Enable or disable delete protection for the app.
    *
@@ -55,7 +62,7 @@ export type V2AppsUpdateAppRequestBody$Outbound = {
   app: string;
   name?: string | undefined;
   slug?: string | undefined;
-  defaultBranch?: string | undefined;
+  git?: AppGitUpdateInput$Outbound | null | undefined;
   deleteProtection?: boolean | undefined;
 };
 
@@ -69,7 +76,7 @@ export const V2AppsUpdateAppRequestBody$outboundSchema: z.ZodType<
   app: z.string(),
   name: z.string().optional(),
   slug: z.string().optional(),
-  defaultBranch: z.string().optional(),
+  git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
   deleteProtection: z.boolean().optional(),
 });
 

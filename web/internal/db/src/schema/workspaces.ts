@@ -8,6 +8,7 @@ import { githubAppInstallations } from "./github_app";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { limits } from "./limits";
 import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
@@ -77,6 +78,11 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   identities: many(identities),
   githubAppInstallations: many(githubAppInstallations),
   quotas: one(quotas),
+  limits: one(limits, {
+    relationName: "workspace_limit_relation",
+    fields: [workspaces.id],
+    references: [limits.workspaceId],
+  }),
   billing: one(workspaceBilling),
   billingSubscriptions: many(billingSubscriptions),
   clickhouseSettings: one(clickhouseWorkspaceSettings),

@@ -6,7 +6,7 @@ CREATE TABLE `instances` (
 	`project_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`app_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`region_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`k8s_name` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`k8s_name` varchar(255) NOT NULL,
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,

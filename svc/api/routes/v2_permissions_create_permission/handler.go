@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -65,10 +66,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Create permission in a transaction with audit log
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		if resolveErr != nil {
+			return resolveErr
+		}
+
 		// Insert the permission
 		err = db.Query.InsertPermission(ctx, tx, db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  principal.WorkspaceID,
+			ProjectID:    projectID,
 			Name:         req.Name,
 			Slug:         req.Slug,
 			Description:  dbtype.NullString{Valid: description != "", String: description},

@@ -92,11 +92,11 @@ type Querier interface {
 	//         ws.enabled      as workspace_enabled,
 	//         fws.enabled     as for_workspace_enabled
 	//  from `keys` k
-	//           JOIN apis a USING (key_auth_id)
+	//           JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//           JOIN key_auth ka ON ka.id = k.key_auth_id
 	//           JOIN workspaces ws ON ws.id = k.workspace_id
 	//           LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
+	//           LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
 	//  where k.hash = ?
 	//    and k.deleted_at_m is null
 	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
@@ -112,14 +112,15 @@ type Querier interface {
 	//  WHERE id = ?
 	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
-	// FindQuotaByWorkspaceID returns the quota row for a workspace, used to
+	// FindLimitsByWorkspaceID returns the limits row for a workspace, used to
 	// enforce per-workspace API rate limits on root key requests. NULL
-	// limit/duration means unlimited; zero means explicitly blocked.
+	// api_requests_count_max_per_minute means unlimited; zero means explicitly
+	// blocked.
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
-	//  FROM `quota`
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  FROM `limits`
 	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
+	FindLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error)
 	// UpdateKeyHashAndMigration re-hashes a key to SHA-256 after a successful
 	// on-demand migration and clears the pending migration marker so future
 	// lookups use the standard hash path.

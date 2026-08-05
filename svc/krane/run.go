@@ -65,7 +65,7 @@ func Run(ctx context.Context, cfg Config) error {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "krane",
 			InstanceID:         cfg.InstanceID,
-			CloudRegion:        cfg.Region,
+			CloudRegion:        cfg.Cluster.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
 			PrometheusGatherer: nil,
 		})
@@ -77,7 +77,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Add base attributes to global logger
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
-		slog.String("region", cfg.Region),
+		slog.String("region", cfg.Cluster.Region),
 		slog.String("version", buildinfo.Version),
 	))
 
@@ -196,8 +196,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ClientSet:           clientset,
 		DynamicClient:       dynamicClient,
 		Cluster:             cluster,
-		Region:              cfg.Region,
-		Platform:            cfg.Platform,
+		CellID:              cfg.Cluster.CellID,
+		Region:              cfg.Cluster.Region,
+		Platform:            cfg.Cluster.Platform,
 		Vault:               vaultClient,
 		Registry:            registryCfg,
 		Fingerprints:        fingerprintCache,
@@ -215,17 +216,19 @@ func Run(ctx context.Context, cfg Config) error {
 	w := watcher.New(watcher.Config{
 		Cluster:     cluster,
 		Deployments: deploymentCtrl,
-		Region:      cfg.Region,
-		Platform:    cfg.Platform,
+		CellID:      cfg.Cluster.CellID,
+		Region:      cfg.Cluster.Region,
+		Platform:    cfg.Cluster.Platform,
 	})
 	r.Go(w.Watch)
 
 	// Start heartbeat loop to register this cluster with the control plane
 	stopHeartbeat := repeat.Every(30*time.Second, func() {
 		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
-			Region: &ctrlv1.RegionKey{
-				Platform: cfg.Platform,
-				Name:     cfg.Region,
+			Cluster: &ctrlv1.ClusterKey{
+				CellId:   cfg.Cluster.CellID,
+				Platform: cfg.Cluster.Platform,
+				Region:   cfg.Cluster.Region,
 			},
 		}); err != nil {
 			logger.Warn("heartbeat failed", "error", err)

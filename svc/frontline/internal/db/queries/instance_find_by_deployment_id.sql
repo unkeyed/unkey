@@ -6,5 +6,5 @@ SELECT
   r.name AS region_name,
   r.platform AS region_platform
 FROM instances i
-INNER JOIN regions r ON i.region_id = r.id
+INNER JOIN regions r ON r.id = i.region_id
 WHERE i.deployment_id = sqlc.arg(deployment_id);

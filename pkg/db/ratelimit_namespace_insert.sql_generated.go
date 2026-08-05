@@ -14,6 +14,7 @@ INSERT INTO
     ` + "`" + `ratelimit_namespaces` + "`" + ` (
         id,
         workspace_id,
+        project_id,
         name,
         created_at_m,
         updated_at_m,
@@ -21,6 +22,7 @@ INSERT INTO
         )
 VALUES
     (
+        ?,
         ?,
         ?,
         ?,
@@ -33,6 +35,7 @@ VALUES
 type InsertRatelimitNamespaceParams struct {
 	ID          string `db:"id"`
 	WorkspaceID string `db:"workspace_id"`
+	ProjectID   string `db:"project_id"`
 	Name        string `db:"name"`
 	CreatedAt   int64  `db:"created_at"`
 }
@@ -43,6 +46,7 @@ type InsertRatelimitNamespaceParams struct {
 //	    `ratelimit_namespaces` (
 //	        id,
 //	        workspace_id,
+//	        project_id,
 //	        name,
 //	        created_at_m,
 //	        updated_at_m,
@@ -50,6 +54,7 @@ type InsertRatelimitNamespaceParams struct {
 //	        )
 //	VALUES
 //	    (
+//	        ?,
 //	        ?,
 //	        ?,
 //	        ?,
@@ -61,6 +66,7 @@ func (q *Queries) InsertRatelimitNamespace(ctx context.Context, db DBTX, arg Ins
 	_, err := db.ExecContext(ctx, insertRatelimitNamespace,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Name,
 		arg.CreatedAt,
 	)

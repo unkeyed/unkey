@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { workspaces } from "./workspaces";
 
@@ -11,7 +12,7 @@ export const permissions = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
-    name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -81,7 +82,7 @@ export const roles = mysqlTable(
     id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
-    name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
+    name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()

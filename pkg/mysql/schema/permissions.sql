@@ -3,7 +3,7 @@ CREATE TABLE `permissions` (
 	`id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`project_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
-	`name` varchar(512) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`name` varchar(512) NOT NULL,
 	`slug` varchar(128) NOT NULL,
 	`description` varchar(512),
 	`created_at_m` bigint NOT NULL DEFAULT 0,

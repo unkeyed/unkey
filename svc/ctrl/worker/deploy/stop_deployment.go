@@ -42,7 +42,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:          deployment.Status,
 		DesiredState:    deployment.DesiredState,
-		EnvironmentSlug: environment.Slug,
+		EnvironmentKind: environment.Kind,
 	}); err != nil {
 		return nil, gatefault.Terminal(err)
 	}

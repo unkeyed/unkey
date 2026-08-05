@@ -4,8 +4,8 @@ import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { Ram } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
-// Memory tiers on the slider. resolveStrategy bounds these to the workspace quota
-// and adds the exact quota value as a stop when it is not one of these tiers.
+// Memory tiers on the slider. resolveStrategy bounds these to the workspace limit
+// and adds the exact limit value as a stop when it is not one of these tiers.
 const MEMORY_OPTIONS = [
   { label: "256 MiB", value: 256 },
   { label: "512 MiB", value: 512 },
@@ -31,7 +31,7 @@ const memoryConfig = defineResourceSlider({
   write: (draft, value) => {
     draft.memoryMib = value;
   },
-  quotaKey: "maxMemoryMibPerInstance",
+  limitKey: "memoryMibMaxPerInstance",
 });
 
 export const Memory = () => <ResourceSliderSetting config={memoryConfig} />;

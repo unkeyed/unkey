@@ -11,6 +11,10 @@ import {
   EnvironmentBuild$inboundSchema,
 } from "./environmentbuild.js";
 import {
+  EnvironmentKind,
+  EnvironmentKind$inboundSchema,
+} from "./environmentkind.js";
+import {
   EnvironmentRegion,
   EnvironmentRegion$inboundSchema,
 } from "./environmentregion.js";
@@ -39,6 +43,13 @@ export type Environment = {
    * Empty string if none was provided.
    */
   description: string;
+  /**
+   * The deployment lifecycle role of an environment.
+   *
+   * @remarks
+   * Production environments serve production traffic. Preview environments support preview lifecycle automation.
+   */
+  kind: EnvironmentKind;
   /**
    * Whether delete protection is enabled for this environment.
    *
@@ -91,6 +102,7 @@ export const Environment$inboundSchema: z.ZodType<
   id: z.string(),
   slug: z.string(),
   description: z.string(),
+  kind: EnvironmentKind$inboundSchema,
   deleteProtection: z.boolean(),
   createdAt: z.number().int(),
   updatedAt: z.number().int().optional(),

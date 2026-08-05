@@ -222,7 +222,10 @@
           },
           {
             "group": "Runbooks",
-            "pages": ["infra/runbooks/key-migration"]
+            "pages": [
+              "infra/runbooks/key-migration",
+              "infra/runbooks/legacy-billing"
+            ]
           },
           {
             "group": "ClickHouse",

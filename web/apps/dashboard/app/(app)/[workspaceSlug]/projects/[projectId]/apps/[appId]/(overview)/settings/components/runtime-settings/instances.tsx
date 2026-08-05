@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/quotas";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,11 +23,14 @@ import { EnvironmentSliderSection } from "../shared/resource-slider/environment-
 const REPLICAS_MIN = 1;
 const COLOR_VAR = "featureA";
 
-// Per-region instance cap from the workspace quota, or the free-tier default
-// until quotas load.
+// Per-region instance cap from the workspace limit, or the free-tier default
+// until limits load.
 const useReplicasMax = () => {
-  const { quotas } = useWorkspace();
-  return quotas?.maxReplicasPerRegion ?? freeTierQuotas.maxReplicasPerRegion;
+  const { limits } = useWorkspace();
+  return Math.max(
+    REPLICAS_MIN,
+    limits?.autoscalingReplicasMax ?? freeTierLimits.autoscalingReplicasMax,
+  );
 };
 
 const formatRangeParts = (replicasMin: number, replicasMax: number) => ({

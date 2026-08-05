@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
@@ -50,10 +51,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -177,20 +178,22 @@ func Run(ctx context.Context, cfg Config) error {
 	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
 	// ClickHouse is configured, which leaves the billing push disabled.
 	var billingUsageReader deploybilling.UsageReader
+	var clickhouseClient *clickhouse.Client
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
 	if cfg.ClickHouse.URL != "" {
-		chClient, chErr := clickhouse.New(clickhouse.Config{
+		var chErr error
+		clickhouseClient, chErr = clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
-			ch = chClient
-			billingUsageReader = chClient
+			ch = clickhouseClient
+			billingUsageReader = clickhouseClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -199,7 +202,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](clickhouseClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -210,7 +213,7 @@ func Run(ctx context.Context, cfg Config) error {
 			})
 
 			// Close connection last (LIFO: first registered closes last)
-			r.Defer(chClient.Close)
+			r.Defer(clickhouseClient.Close)
 			r.Defer(func() error { buildSteps.Close(); return nil })
 			r.Defer(func() error { buildStepLogs.Close(); return nil })
 		}
@@ -223,6 +226,18 @@ func Run(ctx context.Context, cfg Config) error {
 	// panics) still surface, its routine success noise is dropped, and the
 	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
 	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
+	if clickhouseClient == nil {
+		logger.Info("LegacyBillingWorkflow disabled: real ClickHouse client not configured")
+	} else if cfg.Billing.StripeSecretKey == "" {
+		logger.Info("LegacyBillingWorkflow disabled: Stripe secret key not configured")
+	} else {
+		restateSrv.Bind(hydrav1.NewLegacyBillingWorkflowServer(legacybilling.New(
+			database,
+			clickhouseClient,
+			cfg.Billing.StripeSecretKey,
+		)))
+		logger.Info("LegacyBillingWorkflow enabled")
+	}
 
 	// Shared Restate admin client used both for service registration and
 	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
@@ -578,12 +593,23 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// DeployBillingClose is idempotent and cron-backed; per-workspace
-	// failures are journaled as deferred so one bad customer cannot wedge
-	// the period VO. Kill on exhaustion so the backup cron can retry with
-	// a fresh idempotency key instead of sitting behind a wedged webhook
-	// invocation.
-	cronDeployBillingCloseRetry := restate.WithInvocationRetryPolicy(
+	// The fleet close runs once per month and is the fallback for webhook-driven
+	// workspace closes, so a brief infrastructure outage must not exhaust it in
+	// seconds. Nine attempts span roughly 75 minutes while staying well inside
+	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
+	// the period VO never remains wedged.
+	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(1*time.Minute),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(15*time.Minute),
+		restate.WithMaxAttempts(9),
+		restate.KillOnMaxAttempts(),
+	)
+	// The per-workspace close is dispatched by invoice.created and backed up by
+	// the fleet close. Its handler turns customer-specific push and finalization
+	// failures into deferred work, so this short policy only covers failures that
+	// escape those bounds.
+	cronDeployBillingWorkspaceCloseRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
@@ -637,8 +663,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// ~1440 dead invocations/day.
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
-		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
-		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
 		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
 	logger.Info("CronService enabled")

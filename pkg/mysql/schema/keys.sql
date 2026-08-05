@@ -6,7 +6,7 @@ CREATE TABLE `keys` (
 	`start` varchar(256) NOT NULL,
 	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`for_workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs,
-	`name` varchar(256) COLLATE utf8mb4_0900_as_cs,
+	`name` varchar(256),
 	`owner_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`identity_id` varchar(32) COLLATE utf8mb4_0900_as_cs,
 	`meta` text,

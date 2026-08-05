@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertKeySpace is the base query for bulk insert
-const bulkInsertKeySpace = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, workspace_id, created_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at ) VALUES %s`
+const bulkInsertKeySpace = `INSERT INTO ` + "`" + `key_auth` + "`" + ` ( id, workspace_id, project_id, created_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at ) VALUES %s`
 
 // InsertKeySpaces performs bulk insert in a single query
 func (q *BulkQueries) InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertKeySpaces(ctx context.Context, db DBTX, args []Inser
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, 0, 0 )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, 0, 0 )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertKeySpace, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertKeySpaces(ctx context.Context, db DBTX, args []Inser
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.ProjectID)
 		allArgs = append(allArgs, arg.CreatedAtM)
 		allArgs = append(allArgs, arg.StoreEncryptedKeys)
 		allArgs = append(allArgs, arg.DefaultPrefix)

@@ -15,6 +15,7 @@ import {
 import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
@@ -44,7 +45,7 @@ export const keys = mysqlTable(
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
     forWorkspaceId: caseSensitiveVarchar("for_workspace_id", { length: 32 }),
-    name: caseSensitiveVarchar("name", { length: 256 }),
+    name: caseInsensitiveVarchar("name", { length: 256 }),
     ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
     identityId: caseSensitiveVarchar("identity_id", { length: 32 }),
     meta: text("meta"),

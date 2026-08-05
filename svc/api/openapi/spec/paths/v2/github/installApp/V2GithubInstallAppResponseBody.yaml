@@ -1,0 +1,20 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    $ref: "./V2GithubInstallAppResponseData.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Install URL created
+    description: Open the returned url to install the GitHub App
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        url: https://github.com/apps/unkey/installations/new?state=eyJ...
+        expiresAt: 1700000900000

@@ -1,3 +1,5 @@
+import { type PlanLimits, limitsByPlan } from "@/lib/quotas";
+import type { Quotas } from "@unkey/db";
 import type Stripe from "stripe";
 
 /**
@@ -11,6 +13,70 @@ import type Stripe from "stripe";
  */
 export const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
 export type DeployPlan = (typeof DEPLOY_PLANS)[number];
+
+type ComputeQuotas = Pick<
+  Quotas,
+  | "logsRetentionDays"
+  | "auditLogsRetentionDays"
+  | "team"
+  | "maxCpuMillicoresPerInstance"
+  | "maxMemoryMibPerInstance"
+  | "maxStorageMibPerInstance"
+  | "maxConcurrentBuilds"
+>;
+
+type ComputeOnlyQuotas = Pick<
+  ComputeQuotas,
+  | "maxCpuMillicoresPerInstance"
+  | "maxMemoryMibPerInstance"
+  | "maxStorageMibPerInstance"
+  | "maxConcurrentBuilds"
+>;
+
+function computeQuotasFromLimits(limits: PlanLimits): ComputeQuotas {
+  return {
+    logsRetentionDays: limits.logsRetentionDaysMax,
+    auditLogsRetentionDays: limits.logsAuditRetentionDaysMax,
+    team: limits.teamEnabled,
+    maxCpuMillicoresPerInstance: limits.cpuCoresMaxPerInstance * 1_000,
+    maxMemoryMibPerInstance: limits.memoryMibMaxPerInstance,
+    maxStorageMibPerInstance: limits.storageMibMaxPerInstance,
+    maxConcurrentBuilds: limits.buildsConcurrentMax,
+  };
+}
+
+export function computeQuotasForPlan(plan: DeployPlan | null): ComputeQuotas {
+  return computeQuotasFromLimits(limitsByPlan[plan ?? "free"]);
+}
+
+/**
+ * Returns the quota fields a Compute subscription may safely update. A paid
+ * API plan owns the shared retention and team fields, so Compute must preserve
+ * those while still applying its resource limits.
+ */
+export function computeQuotaUpdateForPlan(
+  plan: DeployPlan | null,
+  preserveApiQuotas: boolean,
+): ComputeQuotas | ComputeOnlyQuotas {
+  const quotas = computeQuotasForPlan(plan);
+  if (!preserveApiQuotas) {
+    return quotas;
+  }
+  return {
+    maxCpuMillicoresPerInstance: quotas.maxCpuMillicoresPerInstance,
+    maxMemoryMibPerInstance: quotas.maxMemoryMibPerInstance,
+    maxStorageMibPerInstance: quotas.maxStorageMibPerInstance,
+    maxConcurrentBuilds: quotas.maxConcurrentBuilds,
+  };
+}
+
+export function deployPlanGrantsTeam(plan: string | null): boolean {
+  return plan === "pro" || plan === "business";
+}
+
+export function parseDeployPlan(plan: string | null): DeployPlan | null {
+  return plan !== null && isDeployPlan(plan) ? plan : null;
+}
 
 function isDeployPlan(value: string): value is DeployPlan {
   return (DEPLOY_PLANS as readonly string[]).includes(value);

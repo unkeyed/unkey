@@ -43,5 +43,8 @@ export type InsertIdentity = InferInsertModel<typeof schema.identities>;
 export type Quotas = InferSelectModel<typeof schema.quotas>;
 export type InsertQuotas = InferInsertModel<typeof schema.quotas>;
 
+export type Limits = InferSelectModel<typeof schema.limits>;
+export type InsertLimits = InferInsertModel<typeof schema.limits>;
+
 export type Instance = InferSelectModel<typeof schema.instances>;
 export type InsertInstance = InferInsertModel<typeof schema.instances>;

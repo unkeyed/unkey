@@ -1,5 +1,6 @@
 "use client";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
@@ -29,6 +30,9 @@ type DeploymentListTableActionsProps = {
   environment?: Environment;
 };
 
+const isItemDisabled = (disabled: MenuItem["disabled"]): boolean =>
+  typeof disabled === "function" ? disabled() : Boolean(disabled);
+
 export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
@@ -36,6 +40,7 @@ export const DeploymentListTableActions = ({
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { getDeploymentById, project } = useProjectData();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
 
   const currentDeploymentId = project?.currentDeploymentId ?? null;
   const isRolledBack = Boolean(project?.isRolledBack);
@@ -49,11 +54,18 @@ export const DeploymentListTableActions = ({
         selectedDeployment,
         currentDeploymentId,
         isRolledBack,
-        environmentSlug: environment?.slug ?? null,
+        environmentKind: environment?.kind ?? null,
       });
 
+    // Without a Compute plan, actions that build or activate compute open the
+    // paywall instead of their dialog. Cancel/stop de-escalate, so stay usable.
+    const gateAction = (item: MenuItem): MenuItem =>
+      gated && !isItemDisabled(item.disabled)
+        ? { ...item, ActionComponent: undefined, onClick: () => openPaywall() }
+        : item;
+
     return [
-      {
+      gateAction({
         id: "rollback",
         label: "Rollback",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
@@ -67,8 +79,8 @@ export const DeploymentListTableActions = ({
               />
             )
           : undefined,
-      },
-      {
+      }),
+      gateAction({
         id: "Promote",
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
@@ -82,14 +94,14 @@ export const DeploymentListTableActions = ({
               />
             )
           : undefined,
-      },
-      {
+      }),
+      gateAction({
         id: "wake",
         label: "Wake deployment",
         icon: <Bolt iconSize="md-regular" />,
         disabled: !canWake,
         ActionComponent: (props) => <WakeDialog {...props} deployment={selectedDeployment} />,
-      },
+      }),
       {
         id: "stop",
         label: "Stop deployment",
@@ -97,7 +109,7 @@ export const DeploymentListTableActions = ({
         disabled: !canStop,
         ActionComponent: (props) => <StopDialog {...props} deployment={selectedDeployment} />,
       },
-      {
+      gateAction({
         id: "redeploy",
         label: "Redeploy",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
@@ -105,7 +117,7 @@ export const DeploymentListTableActions = ({
         ActionComponent: (props) => (
           <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
         ),
-      },
+      }),
       {
         id: "cancel",
         label: "Cancel deployment",
@@ -166,7 +178,14 @@ export const DeploymentListTableActions = ({
     isRolledBack,
     environment?.slug,
     hasCurrentDeployment,
+    gated,
+    openPaywall,
   ]);
 
-  return <TableActionPopover items={menuItems} />;
+  return (
+    <>
+      <TableActionPopover items={menuItems} />
+      {planGate}
+    </>
+  );
 };

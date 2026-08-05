@@ -6,6 +6,7 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import { AppGit, AppGit$inboundSchema } from "./appgit.js";
 
 export type App = {
   /**
@@ -28,11 +29,13 @@ export type App = {
    */
   slug: string;
   /**
-   * The default git branch deployments track for this app.
+   * The connected GitHub repository and the branch its deployments track.
    *
    * @remarks
+   * Omitted when the app has no repository connected (for example a
+   * Docker-based app).
    */
-  defaultBranch: string;
+  git?: AppGit | undefined;
   /**
    * The identifier of the deployment currently serving this app.
    *
@@ -74,7 +77,7 @@ export const App$inboundSchema: z.ZodType<App, z.ZodTypeDef, unknown> = z
     id: z.string(),
     name: z.string(),
     slug: z.string(),
-    defaultBranch: z.string(),
+    git: AppGit$inboundSchema.optional(),
     currentDeploymentId: z.string().optional(),
     isRolledBack: z.boolean(),
     deleteProtection: z.boolean(),

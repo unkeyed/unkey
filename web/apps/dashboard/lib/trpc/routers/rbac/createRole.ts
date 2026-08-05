@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -30,6 +31,7 @@ export const createRole = workspaceProcedure
     const correlationId = newId("correlation");
     await db
       .transaction(async (tx) => {
+        const projectId = await ensureDefaultProjectId(tx, ctx.workspace.id);
         const existing = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
@@ -66,6 +68,7 @@ export const createRole = workspaceProcedure
             name: input.name,
             description: input.description,
             workspaceId: ctx.workspace.id,
+            projectId,
           })
           .catch((_err) => {
             throw new TRPCError({

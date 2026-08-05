@@ -39,6 +39,7 @@ type Controller struct {
 	imagePullSecrets []corev1.LocalObjectReference
 	cb               circuitbreaker.CircuitBreaker[any]
 	done             chan struct{}
+	cellID           string
 	region           string
 	platform         string
 
@@ -80,9 +81,12 @@ type Config struct {
 	// resources that don't have generated Go types.
 	DynamicClient dynamic.Interface
 
-	// Cluster is the control plane RPC client for WatchDeployments and
+	// Cluster is the control plane RPC client for watching deployments and
 	// ReportDeploymentStatus calls.
 	Cluster ctrl.ClusterServiceClient
+
+	// CellID uniquely identifies the infrastructure cell.
+	CellID string
 
 	// Region identifies the cluster region for filtering deployment streams.
 	Region string
@@ -135,6 +139,7 @@ func New(cfg Config) *Controller {
 		imagePullSecrets: pullSecrets,
 		cb:               circuitbreaker.New[any]("deployment_state_update"),
 		done:             make(chan struct{}),
+		cellID:           cfg.CellID,
 		region:           cfg.Region,
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
@@ -177,8 +182,8 @@ func (c *Controller) Stop() error {
 	return nil
 }
 
-func (c *Controller) regionKey() *ctrlv1.RegionKey {
-	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
+func (c *Controller) clusterKey() *ctrlv1.ClusterKey {
+	return &ctrlv1.ClusterKey{CellId: c.cellID, Platform: c.platform, Region: c.region}
 }
 
 // reportDeploymentStatus reports actual deployment state to the control plane
@@ -188,7 +193,7 @@ func (c *Controller) regionKey() *ctrlv1.RegionKey {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
-	status.Region = c.regionKey()
+	status.Cluster = c.clusterKey()
 	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportDeploymentStatus(innerCtx, status)

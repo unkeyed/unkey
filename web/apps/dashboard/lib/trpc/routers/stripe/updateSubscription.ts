@@ -2,8 +2,11 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
+import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -106,17 +109,33 @@ export const updateSubscription = workspaceProcedure
         message: `Product ${newProduct.id} is missing a default price.`,
       });
     }
+    const newPriceId =
+      typeof newProduct.default_price === "string"
+        ? newProduct.default_price
+        : newProduct.default_price.id;
+    const newPrice =
+      typeof newProduct.default_price === "string"
+        ? await stripe.prices.retrieve(newPriceId)
+        : newProduct.default_price;
+    const upgraded =
+      item.price.unit_amount !== null &&
+      newPrice.unit_amount !== null &&
+      newPrice.unit_amount > item.price.unit_amount;
 
-    /**
-     * `error_if_incomplete` rejects the call with a 402 if the proration invoice cannot
-     * be charged. We surface that to the user so they know to fix their payment method
-     * before the plan switch is applied.
-     */
+    if (sub.cancel_at_period_end) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Resume your API plan before changing it.",
+      });
+    }
+
+    let result: Awaited<ReturnType<typeof changeSubscriptionPrice>>;
     try {
-      await stripe.subscriptionItems.update(item.id, {
-        price: newProduct.default_price.toString(),
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
+      result = await changeSubscriptionPrice(stripe, {
+        subscriptionId: sub.id,
+        subscriptionItemId: item.id,
+        newPriceId,
+        prorationBehavior: "always_invoice",
       });
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
@@ -138,11 +157,14 @@ export const updateSubscription = workspaceProcedure
       throw err;
     }
 
-    if (sub.cancel_at) {
-      await stripe.subscriptions.update(sub.id, {
-        cancel_at_period_end: false,
-      });
+    if (result.kind === "payment_required") {
+      return result;
     }
+
+    // Workspace API rate limits are manually applied safety limits, not plan
+    // quotas. Clear them when a customer pays for a higher tier, but preserve
+    // deliberate limits on same-price changes and downgrades.
+    const rateLimitReset = upgraded ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
 
     await db.transaction(async (tx) => {
       await tx
@@ -152,23 +174,20 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
-      await tx
-        .insert(schema.quotas)
-        .values({
-          workspaceId: ctx.workspace.id,
+      await setComputeQuotas(tx, {
+        workspaceId: ctx.workspace.id,
+        plan:
+          parseDeployPlan(ctx.workspace.deployPlanOverride) ??
+          parseDeployPlan(ctx.workspace.deployPlan),
+        preserveApiQuotas: true,
+        quotaUpdate: {
           requestsPerMonth: newQuotas.requestsPerMonth,
           logsRetentionDays: newQuotas.logsRetentionDays,
           auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
           team: true,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            requestsPerMonth: newQuotas.requestsPerMonth,
-            logsRetentionDays: newQuotas.logsRetentionDays,
-            auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-            team: true,
-          },
-        });
+          ...rateLimitReset,
+        },
+      });
 
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,
@@ -185,4 +204,6 @@ export const updateSubscription = workspaceProcedure
         },
       });
     });
+
+    return result;
   });

@@ -11,9 +11,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 )
 
@@ -57,6 +59,7 @@ func TestGetEnvironment(t *testing.T) {
 			AppID:       app.ID,
 			Slug:        "production",
 			Description: "Production environment",
+			Kind:        mysqltype.EnvironmentKindProduction,
 		})
 
 		for _, tc := range []struct {
@@ -81,6 +84,7 @@ func TestGetEnvironment(t *testing.T) {
 				require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
 				require.Equal(t, "production", res.Body.Data.Slug)
 				require.Equal(t, "Production environment", res.Body.Data.Description)
+				require.Equal(t, openapi.Production, res.Body.Data.Kind)
 				require.False(t, res.Body.Data.DeleteProtection)
 				require.Greater(t, res.Body.Data.CreatedAt, int64(0))
 				require.Zero(t, res.Body.Data.UpdatedAt, "never-updated environment should have zero (omitted) updatedAt")

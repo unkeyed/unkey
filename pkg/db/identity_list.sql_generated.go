@@ -31,7 +31,7 @@ SELECT
             )
         )
         FROM ratelimits r
-        WHERE r.identity_id = i.id),
+        WHERE i.id = r.identity_id),
         JSON_ARRAY()
     ) as ratelimits
 FROM identities i
@@ -89,7 +89,7 @@ type ListIdentitiesRow struct {
 //	            )
 //	        )
 //	        FROM ratelimits r
-//	        WHERE r.identity_id = i.id),
+//	        WHERE i.id = r.identity_id),
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM identities i

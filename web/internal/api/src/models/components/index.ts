@@ -3,6 +3,9 @@
  */
 
 export * from "./app.js";
+export * from "./appgit.js";
+export * from "./appgitcreateinput.js";
+export * from "./appgitupdateinput.js";
 export * from "./authenticatedsubjectkey.js";
 export * from "./badrequesterrordetails.js";
 export * from "./baseerror.js";
@@ -22,6 +25,7 @@ export * from "./emptyresponse.js";
 export * from "./environment.js";
 export * from "./environmentbuild.js";
 export * from "./environmenthealthcheck.js";
+export * from "./environmentkind.js";
 export * from "./environmentregion.js";
 export * from "./environmentruntime.js";
 export * from "./environmentshutdownsignal.js";
@@ -133,6 +137,8 @@ export * from "./v2gatewaysetpoliciesrequestbody.js";
 export * from "./v2gatewaysetpoliciesresponsebody.js";
 export * from "./v2gatewayupdatepolicyrequestbody.js";
 export * from "./v2gatewayupdatepolicyresponsebody.js";
+export * from "./v2githubinstallappresponsebody.js";
+export * from "./v2githubinstallappresponsedata.js";
 export * from "./v2identitiescreateidentityrequestbody.js";
 export * from "./v2identitiescreateidentityresponsebody.js";
 export * from "./v2identitiescreateidentityresponsedata.js";

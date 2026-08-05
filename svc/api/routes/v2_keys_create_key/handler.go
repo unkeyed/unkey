@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 type (
@@ -239,6 +240,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	now := time.Now().UnixMilli()
 
 	txErr := retry.New(
@@ -282,6 +288,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   projectID,
 					Environment: "default",
 					CreatedAt:   now,
 					Meta:        []byte("{}"),
@@ -459,6 +466,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 						PermissionID: newPermID,
 						WorkspaceID:  principal.WorkspaceID,
+						ProjectID:    projectID,
 						Name:         requestedSlug,
 						Slug:         requestedSlug,
 						Description:  dbtype.NullString{String: "", Valid: false},
@@ -472,7 +480,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Slug:        requestedSlug,
 						CreatedAtM:  now,
 						WorkspaceID: principal.WorkspaceID,
-						ProjectID:   "",
+						ProjectID:   projectID,
 						Description: dbtype.NullString{String: "", Valid: false},
 						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
 					})

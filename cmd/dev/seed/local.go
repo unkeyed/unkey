@@ -17,6 +17,7 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -120,6 +121,24 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create workspaces: %w", err)
 		}
 
+		err = db.Query.UpsertWorkspaceBillingPlanOverride(ctx, tx, db.UpsertWorkspaceBillingPlanOverrideParams{
+			WorkspaceID:  workspaceID,
+			PlanOverride: sql.NullString{String: "starter", Valid: true},
+			CreatedAtM:   now,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create workspace billing: %w", err)
+		}
+
+		rootDefaultProjectID, err := ensureDefaultProject(ctx, tx, rootWorkspaceID, now)
+		if err != nil {
+			return fmt.Errorf("failed to ensure root default project: %w", err)
+		}
+		userDefaultProjectID, err := ensureDefaultProject(ctx, tx, workspaceID, now)
+		if err != nil {
+			return fmt.Errorf("failed to ensure user default project: %w", err)
+		}
+
 		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
 			ID:               projectID,
 			WorkspaceID:      workspaceID,
@@ -178,6 +197,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "preview",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindPreview,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			}, {
@@ -187,6 +207,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				AppID:       appID,
 				Slug:        "production",
 				Description: "",
+				Kind:        mysqltype.EnvironmentKindProduction,
 				CreatedAt:   time.Now().UnixMilli(),
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			},
@@ -361,6 +382,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 rootKeySpaceID,
 				WorkspaceID:        rootWorkspaceID,
+				ProjectID:          rootDefaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "unkey", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -369,6 +391,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				ID:                 userKeySpaceID,
 				WorkspaceID:        workspaceID,
+				ProjectID:          userDefaultProjectID,
 				CreatedAtM:         now,
 				DefaultPrefix:      sql.NullString{String: "sk", Valid: true},
 				DefaultBytes:       sql.NullInt32{Int32: 16, Valid: true},
@@ -384,6 +407,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          rootApiID,
 				Name:        "Unkey",
 				WorkspaceID: rootWorkspaceID,
+				ProjectID:   rootDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: rootKeySpaceID, Valid: true},
@@ -393,6 +417,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ID:          userApiID,
 				Name:        fmt.Sprintf("%s API", titleCase),
 				WorkspaceID: workspaceID,
+				ProjectID:   userDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
@@ -471,6 +496,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			permissionParams[i] = db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  rootWorkspaceID,
+				ProjectID:    rootDefaultProjectID,
 				Name:         perm,
 				Slug:         perm,
 				Description:  dbtype.NullString{Valid: false, String: ""},
@@ -585,4 +611,35 @@ UNKEY_ROOT_KEY=%s
 	)
 
 	return nil
+}
+
+// ensureDefaultProject returns the workspace's exact default project, creating
+// it when absent so local seed writers never persist empty ownership.
+func ensureDefaultProject(ctx context.Context, database db.DBTX, workspaceID string, createdAtM int64) (string, error) {
+	projectID, err := db.Query.FindDefaultProjectByWorkspaceID(ctx, database, workspaceID)
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsNotFound(err) {
+		return "", err
+	}
+
+	projectID = uid.New(uid.ProjectPrefix)
+	err = db.Query.InsertProject(ctx, database, db.InsertProjectParams{
+		ID:               projectID,
+		WorkspaceID:      workspaceID,
+		Name:             "Default",
+		Slug:             "default",
+		DeleteProtection: sql.NullBool{Valid: true, Bool: true},
+		CreatedAt:        createdAtM,
+		UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
+	})
+	if err == nil {
+		return projectID, nil
+	}
+	if !db.IsDuplicateKeyError(err) {
+		return "", err
+	}
+
+	return db.Query.FindDefaultProjectByWorkspaceID(ctx, database, workspaceID)
 }

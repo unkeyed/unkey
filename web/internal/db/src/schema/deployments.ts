@@ -14,6 +14,7 @@ import { environments } from "./environments";
 import { instances } from "./instances";
 import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
+import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
@@ -24,7 +25,7 @@ export const deployments = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
-    k8sName: caseSensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
+    k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
     workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
     projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
