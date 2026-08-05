@@ -1,7 +1,7 @@
 CREATE TABLE `acme_users` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(128) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`workspace_id` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`encrypted_key` text NOT NULL,
 	`registration_uri` text,
 	`created_at` bigint NOT NULL,

@@ -2,8 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -12,12 +11,9 @@ export const appBuildSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // appId: id("app_id").notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    // environmentId: id("environment_id").notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     // NULL means "no Dockerfile configured": the deploy worker then builds
     // the app with Railpack instead of a Dockerfile.

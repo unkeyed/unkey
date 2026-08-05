@@ -8,26 +8,22 @@ import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 
 export const apps = mysqlTable(
   "apps",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // id: id("id").notNull().unique(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    // projectId: id("project_id").notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()
       .default("main"),
-    // currentDeploymentId: id("current_deployment_id"),
-    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),
+    currentDeploymentId: id("current_deployment_id"),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,
