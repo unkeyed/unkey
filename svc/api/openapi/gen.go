@@ -2121,9 +2121,17 @@ type V2DomainsListDomainsRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	App ResourceIdentifier `json:"app"`
 
+	// Cursor The pagination cursor from the response that came before.
+	// Send it to get the next page when that response has `hasMore: true`.
+	Cursor *string `json:"cursor,omitempty"`
+
 	// Environment Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Environment ResourceIdentifier `json:"environment"`
+
+	// Limit The maximum number of domains one response contains.
+	// A small limit makes the response smaller, but makes more requests necessary.
+	Limit *int `json:"limit,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2135,12 +2143,15 @@ type V2DomainsListDomainsRequestBody struct {
 
 // V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
 type V2DomainsListDomainsResponseBody struct {
-	// Data Up to 10 domains attached to the environment, ordered by domain id.
-	// Empty when the environment has none, which is not an error.
+	// Data The domains attached to the environment, in order of domain id.
+	// The array is empty when the environment has no domains. This is not an error.
 	Data []Domain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.

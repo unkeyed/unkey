@@ -18,6 +18,7 @@ FROM custom_domains
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND project_id = sqlc.arg(project_id)
   AND environment_id = sqlc.arg(environment_id)
+  AND id >= sqlc.arg(id_cursor)
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (sqlc.narg(search) IS NULL OR LOWER(id) LIKE LOWER(sqlc.narg(search)) OR LOWER(domain) LIKE LOWER(sqlc.narg(search)))
 ORDER BY id ASC

@@ -41,6 +41,8 @@ func TestListDomainsBadRequest(t *testing.T) {
 		{name: "project with illegal character", req: withEnv(func(r *handler.Request) { r.Project = "pay ments" })},
 		{name: "environment with a dot", req: withEnv(func(r *handler.Request) { r.Environment = "prod.uction" })},
 		{name: "search over 256 chars", req: withEnv(func(r *handler.Request) { r.Search = ptr.P(strings.Repeat("a", 257)) })},
+		{name: "limit below minimum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(0) })},
+		{name: "limit above maximum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(101) })},
 	}
 
 	for _, tc := range testCases {

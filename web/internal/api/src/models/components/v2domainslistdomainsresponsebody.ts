@@ -8,6 +8,7 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { Domain, Domain$inboundSchema } from "./domain.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
+import { Pagination, Pagination$inboundSchema } from "./pagination.js";
 
 export type V2DomainsListDomainsResponseBody = {
   /**
@@ -15,12 +16,16 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * Up to 10 domains attached to the environment, ordered by domain id.
+   * The domains attached to the environment, in order of domain id.
    *
    * @remarks
-   * Empty when the environment has none, which is not an error.
+   * The array is empty when the environment has no domains. This is not an error.
    */
   data: Array<Domain>;
+  /**
+   * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+   */
+  pagination: Pagination;
 };
 
 /** @internal */
@@ -31,6 +36,7 @@ export const V2DomainsListDomainsResponseBody$inboundSchema: z.ZodType<
 > = z.object({
   meta: Meta$inboundSchema,
   data: z.array(Domain$inboundSchema),
+  pagination: Pagination$inboundSchema,
 });
 
 export function v2DomainsListDomainsResponseBodyFromJSON(

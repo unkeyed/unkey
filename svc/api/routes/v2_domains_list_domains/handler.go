@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/domain"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -22,10 +23,6 @@ type (
 	Request  = openapi.V2DomainsListDomainsRequestBody
 	Response = openapi.V2DomainsListDomainsResponseBody
 )
-
-// maxDomains bounds the response rather than paginating it. An environment holding more
-// than this gets the first ten by id. Raise it as plans allow more.
-const maxDomains = 10
 
 type Handler struct {
 	DB db.Database
@@ -92,14 +89,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListCustomDomainsByEnvironment(ctx, h.DB.RO(), db.ListCustomDomainsByEnvironmentParams{
 		WorkspaceID:   principal.WorkspaceID,
 		ProjectID:     env.ProjectID,
 		EnvironmentID: env.ID,
+		IDCursor:      p.Cursor,
 		Search:        search,
-		Limit:         maxDomains,
+		Limit:         p.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -109,6 +108,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve domains."),
 		)
 	}
+
+	rows, pg := pagination.Paginate(rows, p, func(r db.ListCustomDomainsByEnvironmentRow) string { return r.ID })
 
 	data := array.Map(rows, func(row db.ListCustomDomainsByEnvironmentRow) openapi.Domain {
 		d := openapi.Domain{
@@ -142,6 +143,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
+		Data:       data,
+		Pagination: pg,
 	})
 }

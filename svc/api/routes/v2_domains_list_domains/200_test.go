@@ -32,6 +32,8 @@ func TestListDomains(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 	require.Len(t, res.Body.Data, 2, "received: %s", res.RawBody)
+	require.False(t, res.Body.Pagination.HasMore)
+	require.Nil(t, res.Body.Pagination.Cursor)
 
 	byID := map[string]openapi.Domain{}
 	for _, d := range res.Body.Data {
@@ -96,23 +98,114 @@ func TestListDomainsStableOrder(t *testing.T) {
 	require.Equal(t, first, ids(), "repeated calls must return the same order")
 }
 
-// TestListDomainsCapped pins the bound at 10, since the endpoint has no cursor to reach
-// past it. An environment holding more gets a truncated list, so the number must not drift
-// without the response description changing with it.
-func TestListDomainsCapped(t *testing.T) {
+// TestListDomainsPagination walks all pages with a small limit. Each domain must
+// appear on exactly one page, and the walk must stop when hasMore is false.
+func TestListDomainsPagination(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
-	for range 12 {
+	total := 5
+	for range total {
 		attachDomain(t, h, env, nil)
 	}
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+	headers := authHeaders(rootKey)
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
+	seen := map[string]struct{}{}
+	cursor := (*string)(nil)
+	pages := 0
+	for {
+		req := makeRequest(env)
+		req.Limit = ptr.P(2)
+		req.Cursor = cursor
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		require.LessOrEqual(t, len(res.Body.Data), 2)
+
+		for _, d := range res.Body.Data {
+			_, dup := seen[d.Id]
+			require.False(t, dup, "domain %s returned on more than one page", d.Id)
+			seen[d.Id] = struct{}{}
+		}
+
+		pages++
+		require.LessOrEqual(t, pages, total+1, "pagination did not terminate")
+
+		if !res.Body.Pagination.HasMore {
+			require.Nil(t, res.Body.Pagination.Cursor)
+			break
+		}
+		require.NotNil(t, res.Body.Pagination.Cursor)
+		cursor = res.Body.Pagination.Cursor
+	}
+
+	require.Len(t, seen, total)
+}
+
+// A cursor that does not match a domain is not an error. The query continues
+// from the given value and returns the domains with a larger or equal id.
+func TestListDomainsUnknownCursor(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	attachDomain(t, h, env, nil)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+
+	req := makeRequest(env)
+	req.Cursor = ptr.P("dom_doesnotexist")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Len(t, res.Body.Data, 10, "the response must be capped at 10, received: %s", res.RawBody)
+	require.False(t, res.Body.Pagination.HasMore)
+}
+
+// TestListDomainsCursorStaysScoped pins that a cursor borrowed from a different
+// environment does not widen the results. The query filters by environment_id,
+// so the sibling domain can never appear.
+func TestListDomainsCursorStaysScoped(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	attachDomain(t, h, env, nil)
+
+	sibling := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		AppID:       env.appID,
+		Slug:        "staging",
+		Description: "Staging environment",
+	})
+	siblingDomain := h.CreateCustomDomain(seed.CreateCustomDomainRequest{
+		ID:                 uid.New(uid.DomainPrefix),
+		WorkspaceID:        env.workspaceID,
+		ProjectID:          env.projectID,
+		AppID:              env.appID,
+		EnvironmentID:      sibling.ID,
+		Domain:             randomDomain(),
+		VerificationStatus: db.CustomDomainsVerificationStatusVerified,
+		VerificationToken:  "",
+		TargetCname:        "",
+		OwnershipVerified:  true,
+		CnameVerified:      true,
+		VerificationError:  "",
+		LastCheckedAt:      0,
+	})
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+
+	req := makeRequest(env)
+	req.Cursor = ptr.P(siblingDomain.ID)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.NotContains(t, res.RawBody, siblingDomain.ID, "the sibling environment's domain leaked: %s", res.RawBody)
 }
 
 // TestListDomainsEmpty pins that an environment with no domains is a 200 with an

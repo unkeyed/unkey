@@ -916,6 +916,20 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 environment:
                     "$ref": "#/components/schemas/ResourceIdentifier"
+                limit:
+                    type: integer
+                    description: |
+                        The maximum number of domains one response contains.
+                        A small limit makes the response smaller, but makes more requests necessary.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        The pagination cursor from the response that came before.
+                        Send it to get the next page when that response has `hasMore: true`.
+                    example: dom_1234abcd
                 search:
                     type: string
                     maxLength: 256
@@ -927,16 +941,20 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     type: array
+                    maxItems: 100
                     items:
                         "$ref": "#/components/schemas/Domain"
                     description: |
-                        Up to 10 domains attached to the environment, ordered by domain id.
-                        Empty when the environment has none, which is not an error.
+                        The domains attached to the environment, in order of domain id.
+                        The array is empty when the environment has no domains. This is not an error.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
@@ -9248,8 +9266,9 @@ paths:
             description: |
                 List the custom domains attached to an environment and their verification status.
 
-                Returns up to 10 domains, ordered by domain id. An environment with no domains returns an
-                empty array, not a 404.
+                The results are in order of domain id, and the response is paginated. When `hasMore` is
+                true, send the returned `cursor` to get the next page. An environment with no domains
+                returns an empty array, not a 404.
 
                 `status: verified` means the domain is verified. Unkey has configured routing and requested a
                 certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -9280,6 +9299,15 @@ paths:
                                 value:
                                     app: payments-api
                                     environment: production
+                                    project: payments
+                            paginated:
+                                description: Get a smaller page and continue from a cursor
+                                summary: Paginate with a smaller page size
+                                value:
+                                    app: payments-api
+                                    cursor: dom_1234abcd
+                                    environment: production
+                                    limit: 20
                                     project: payments
                             search:
                                 description: Returns only domains whose id or name contains the search string
@@ -9346,6 +9374,8 @@ paths:
                                               updatedAt: 1704067260000
                                         meta:
                                             requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
                                 empty:
                                     description: An environment with no custom domains returns an empty array, not a 404
                                     summary: No domains attached
@@ -9353,6 +9383,9 @@ paths:
                                         data: []
                                         meta:
                                             requestId: req_1234abcd
+                                        pagination:
+                                            cursor: null
+                                            hasMore: false
                             schema:
                                 $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
                     description: |

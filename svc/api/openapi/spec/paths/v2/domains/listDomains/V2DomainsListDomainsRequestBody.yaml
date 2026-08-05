@@ -10,6 +10,20 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   environment:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
+  limit:
+    type: integer
+    description: |
+      The maximum number of domains one response contains.
+      A small limit makes the response smaller, but makes more requests necessary.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      The pagination cursor from the response that came before.
+      Send it to get the next page when that response has `hasMore: true`.
+    example: dom_1234abcd
   search:
     type: string
     maxLength: 256
@@ -40,3 +54,12 @@ examples:
       app: payments-api
       environment: production
       search: acme.com
+  paginated:
+    summary: Paginate with a smaller page size
+    description: Get a smaller page and continue from a cursor
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      limit: 20
+      cursor: dom_1234abcd

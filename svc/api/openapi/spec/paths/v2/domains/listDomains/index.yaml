@@ -5,8 +5,9 @@ post:
   description: |
     List the custom domains attached to an environment and their verification status.
 
-    Returns up to 10 domains, ordered by domain id. An environment with no domains returns an
-    empty array, not a 404.
+    The results are in order of domain id, and the response is paginated. When `hasMore` is
+    true, send the returned `cursor` to get the next page. An environment with no domains
+    returns an empty array, not a 404.
 
     `status: verified` means the domain is verified. Unkey has configured routing and requested a
     certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -52,6 +53,15 @@ post:
               app: payments-api
               environment: production
               search: acme.com
+          paginated:
+            summary: Paginate with a smaller page size
+            description: Get a smaller page and continue from a cursor
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              limit: 20
+              cursor: dom_1234abcd
     required: true
   responses:
     "200":
@@ -111,6 +121,8 @@ post:
                         note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
                     createdAt: 1704067200000
                     updatedAt: 1704067260000
+                pagination:
+                  hasMore: false
             empty:
               summary: No domains attached
               description: An environment with no custom domains returns an empty array, not a 404
@@ -118,6 +130,9 @@ post:
                 meta:
                   requestId: req_1234abcd
                 data: []
+                pagination:
+                  cursor: null
+                  hasMore: false
     "400":
       description: Bad request
       content:

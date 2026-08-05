@@ -27,6 +27,20 @@ export type V2DomainsListDomainsRequestBody = {
    */
   environment: string;
   /**
+   * The maximum number of domains one response contains.
+   *
+   * @remarks
+   * A small limit makes the response smaller, but makes more requests necessary.
+   */
+  limit?: number | undefined;
+  /**
+   * The pagination cursor from the response that came before.
+   *
+   * @remarks
+   * Send it to get the next page when that response has `hasMore: true`.
+   */
+  cursor?: string | undefined;
+  /**
    * Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
    */
   search?: string | undefined;
@@ -37,6 +51,8 @@ export type V2DomainsListDomainsRequestBody$Outbound = {
   project: string;
   app: string;
   environment: string;
+  limit: number;
+  cursor?: string | undefined;
   search?: string | undefined;
 };
 
@@ -49,6 +65,8 @@ export const V2DomainsListDomainsRequestBody$outboundSchema: z.ZodType<
   project: z.string(),
   app: z.string(),
   environment: z.string(),
+  limit: z.number().int().default(100),
+  cursor: z.string().optional(),
   search: z.string().optional(),
 });
 
