@@ -14,6 +14,10 @@ post:
     Bucket granularity is chosen automatically from the window size.
   operationId: portal.getVerifications
   x-speakeasy-name-override: getVerifications
+  # Unlaunched: kept out of the published docs (Mintlify honors
+  # x-excluded). Deliberately no x-speakeasy-ignore, so the operation still
+  # generates into the SDK that web/apps/portal builds against.
+  x-excluded: true
   security:
     - portalSession: []
   requestBody:

@@ -1,61 +1,61 @@
 post:
-  x-excluded: true
   tags:
     - portal
-  summary: Reroll portal key
+  summary: Delete portal configuration
   description: |
-    Reroll an API key owned by the authenticated portal session's end user,
-    issuing a new key while preserving its configuration.
+    Delete a Customer Portal configuration and its branding. This does not
+    invalidate sessions already issued against the configuration.
 
-    This is the portal-scoped variant of `keys.rerollKey`. It authenticates only
-    with a portal session cookie and may only reroll keys owned by the session's
-    external identity; any other key returns 404.
-  operationId: portal.rerollKey
-  x-speakeasy-name-override: rerollKey
+    **Authentication**
+
+    Requires a root key. Only configurations in the root key's workspace can be
+    deleted.
+  operationId: portal.deleteConfiguration
+  x-speakeasy-name-override: deleteConfiguration
   # Unlaunched: kept out of the published docs (Mintlify honors
   # x-excluded). Deliberately no x-speakeasy-ignore, so the operation still
   # generates into the SDK that web/apps/portal builds against.
   x-excluded: true
   security:
-    - portalSession: []
+    - bearer: []
   requestBody:
     content:
       application/json:
         schema:
-          "$ref": "../../keys/rerollKey/V2KeysRerollKeyRequestBody.yaml"
+          "$ref": "./V2PortalDeleteConfigurationRequestBody.yaml"
     required: true
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "../../keys/rerollKey/V2KeysRerollKeyResponseBody.yaml"
+            "$ref": "./V2PortalDeleteConfigurationResponseBody.yaml"
       description: |
-        Key rerolled successfully. The new plaintext key is returned exactly once.
+        Portal configuration deleted successfully.
     "400":
       description: Bad request
       content:
         application/json:
           schema:
-            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
       description: Forbidden
       content:
         application/json:
           schema:
-            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
-      description: Not Found
+      description: Not Found - no configuration with this id in the workspace
       content:
         application/json:
           schema:
-            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:
@@ -67,4 +67,4 @@ post:
       content:
         application/json:
           schema:
-            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

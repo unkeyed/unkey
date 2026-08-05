@@ -181,6 +181,9 @@ const (
 
 	// NotFound indicates the requested portal configuration was not found.
 	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+	// Duplicate indicates a portal configuration with the same slug, app, or
+	// keyspace already exists in the workspace.
+	UnkeyDataErrorsPortalConfigDuplicate URN = "err:unkey:data:portal_config_already_exists"
 
 	// Analytics
 

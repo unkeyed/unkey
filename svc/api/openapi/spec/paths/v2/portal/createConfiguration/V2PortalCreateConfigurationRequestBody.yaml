@@ -1,0 +1,61 @@
+type: object
+required:
+  - slug
+properties:
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    description: |
+      Human-readable slug for the configuration, unique within the workspace.
+      Must be 3-64 characters, lowercase alphanumeric and hyphens only, must not
+      start or end with a hyphen, and must not contain consecutive hyphens.
+    example: my-portal
+  keyspaceId:
+    type: string
+    maxLength: 64
+    description: |
+      The keyspace the configuration maps to. Provide exactly one of
+      `keyspaceId` or `appId`.
+    example: ks_1234abcd
+  appId:
+    type: string
+    maxLength: 64
+    description: |
+      The app the configuration maps to. Provide exactly one of `keyspaceId` or
+      `appId`.
+    example: app_1234abcd
+  enabled:
+    type: boolean
+    default: true
+    description: |
+      Whether the configuration is enabled. Disabled configurations reject new
+      session creation.
+  returnUrl:
+    type: string
+    format: uri
+    maxLength: 500
+    description: |
+      URL the end user is returned to when they exit the portal.
+    example: "https://app.example.com/dashboard"
+  branding:
+    "$ref": "../../../../common/PortalBranding.yaml"
+additionalProperties: false
+examples:
+  keyspaceMapped:
+    summary: Create a keyspace-mapped configuration
+    description: Create a configuration bound to a keyspace, with branding
+    value:
+      slug: my-portal
+      keyspaceId: ks_1234abcd
+      branding:
+        logoUrl: "https://cdn.example.com/logo.png"
+        primaryColor: "#4f46e5"
+  appMapped:
+    summary: Create an app-mapped configuration
+    description: Create a configuration bound to an app
+    value:
+      slug: billing-portal
+      appId: app_1234abcd
+      returnUrl: "https://app.example.com/dashboard"

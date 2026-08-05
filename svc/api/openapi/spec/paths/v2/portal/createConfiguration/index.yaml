@@ -1,20 +1,23 @@
 post:
-  x-excluded: true
   tags:
     - portal
-  summary: Create portal session
+  summary: Create portal configuration
   description: |
-    Create a short-lived session token for an end user to access the Customer Portal.
+    Create a Customer Portal configuration for your workspace.
 
-    The returned session ID is valid for 15 minutes and can be exchanged exactly once
-    for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
-    to the returned URL to start the portal experience.
+    A configuration maps to exactly one keyspace (`keyspaceId`) or one app
+    (`appId`) - provide exactly one. Optionally attach branding (logo, color).
 
-    **Required Permissions**
+    **Important**: The slug must be unique within your workspace, and the mapped
+    keyspace or app must not already be used by another configuration. A
+    collision returns a 409 conflict.
 
-    Your root key must be associated with a workspace that has an enabled portal configuration.
-  operationId: portal.createSession
-  x-speakeasy-name-override: createSession
+    **Authentication**
+
+    Requires a root key. The configuration is created in the root key's
+    workspace.
+  operationId: portal.createConfiguration
+  x-speakeasy-name-override: createConfiguration
   # Unlaunched: kept out of the published docs (Mintlify honors
   # x-excluded). Deliberately no x-speakeasy-ignore, so the operation still
   # generates into the SDK that web/apps/portal builds against.
@@ -25,27 +28,16 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "./V2PortalCreateSessionRequestBody.yaml"
+          "$ref": "./V2PortalCreateConfigurationRequestBody.yaml"
     required: true
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "./V2PortalCreateSessionResponseBody.yaml"
+            "$ref": "./V2PortalCreateConfigurationResponseBody.yaml"
       description: |
-        Session token created successfully. Redirect the end user to the returned URL.
-      headers:
-        Cache-Control:
-          schema:
-            type: string
-            example: no-store
-          description: Prevents caching of the session token response.
-        Pragma:
-          schema:
-            type: string
-            example: no-cache
-          description: HTTP/1.0 backward-compatible cache prevention.
+        Portal configuration created successfully.
     "400":
       description: Bad request
       content:
@@ -70,6 +62,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: Conflict - a configuration with this slug, keyspace, or app already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:

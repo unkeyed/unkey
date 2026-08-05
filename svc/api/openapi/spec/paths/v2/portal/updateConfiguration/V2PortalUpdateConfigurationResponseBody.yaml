@@ -1,0 +1,24 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/PortalConfiguration.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Configuration updated
+    description: Successfully updated a portal configuration
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: pc_1234abcd
+        slug: renamed-portal
+        keyspaceId: ks_1234abcd
+        enabled: true
+        createdAt: 1704067200000
+        updatedAt: 1704153600000

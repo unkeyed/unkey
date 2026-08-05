@@ -874,6 +874,15 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
 type PortalConfiguration struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`

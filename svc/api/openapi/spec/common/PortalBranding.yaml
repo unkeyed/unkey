@@ -1,0 +1,22 @@
+type: object
+description: |
+  Optional branding applied to the Customer Portal for a configuration.
+properties:
+  logoUrl:
+    type: string
+    format: uri
+    maxLength: 500
+    description: |
+      URL of the logo displayed in the portal header.
+    example: "https://cdn.example.com/logo.png"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+  primaryColor:
+    type: string
+    pattern: "^#[0-9a-fA-F]{6}$"
+    description: |
+      Primary accent color for the portal, as a 6-digit hex color.
+    example: "#4f46e5"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+additionalProperties: false
