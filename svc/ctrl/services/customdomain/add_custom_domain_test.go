@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -66,10 +67,10 @@ func TestAddCustomDomainWritesAuditLog(t *testing.T) {
 	require.Equal(t, f.environmentID, logged.Targets[0].Meta["environmentId"])
 }
 
-// Restate retries only an invocation it has accepted, so nothing is running here and
-// nothing will start on its own. Answering OK would send the caller off to poll a
-// verification that cannot progress. The row stays, marked `failed`, which is what
-// RetryVerification resets from.
+// The workflow submit happens inside the insert's transaction, so a submit that
+// fails rolls the row and its audit entry back. The error then means nothing was
+// written, and calling createDomain again is the recovery — a surviving row would
+// turn every retried create into a 409 pointing at a domain that was never attached.
 func TestAddCustomDomainFailsWhenVerificationCannotStart(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
@@ -83,16 +84,58 @@ func TestAddCustomDomainFailsWhenVerificationCannotStart(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeInternal, connectErr.Code())
 
-	stored, err := f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+	_, err = f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: f.workspaceID,
 		Domain:      f.domain,
 	})
-	require.NoError(t, err, "the domain row must survive so the caller can retry verification")
-	require.Equal(t, db.CustomDomainsVerificationStatusFailed, stored.VerificationStatus,
-		"a domain whose verification workflow never started must not stay pending")
-	require.True(t, stored.VerificationError.Valid)
-	require.NotEmpty(t, stored.VerificationError.String)
-	require.False(t, stored.InvocationID.Valid, "no invocation was accepted, so none may be recorded")
+	require.Error(t, err, "the transaction must roll back when the workflow never started")
+	require.True(t, db.IsNotFound(err), "expected the domain row to be deleted, got: %v", err)
+
+	// The audit entry commits with the row, so it must roll back with it too: an
+	// "Added custom domain" trail for a domain that was never attached is a lie.
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, outboxRows, "the audit entry must roll back with the row")
+
+	// The payoff: with the row gone, retrying the create is the recovery, rather
+	// than a 409 pointing at a domain that was never attached.
+	res, err := f.newService(t).AddCustomDomain(ctx, f.request(f.domain))
+	require.NoError(t, err, "retrying the create must succeed once Restate is reachable")
+	require.NotEmpty(t, res.Msg.GetDomainId())
+}
+
+// The submit happens inside the insert's transaction, and TxRetry rolls the
+// transaction back whenever its closure errors. An ingress that answers 500 is a
+// permanent error, so the closure runs exactly once: one submit attempt, one
+// rollback, nothing persisted. The counter proves the submit really ran — without
+// it, rolling back a transaction that never reached the submit would pass the
+// absence checks too.
+func TestAddCustomDomainRollsBackWhenIngressRejects(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+
+	var submits atomic.Int32
+	svc := f.newServiceWithRestate(t, rejectingIngress(t, &submits))
+
+	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
+	require.Error(t, err)
+
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeInternal, connectErr.Code())
+
+	require.Equal(t, int32(1), submits.Load(),
+		"a rejected submit is permanent, so the transaction must not rerun")
+
+	_, err = f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: f.workspaceID,
+		Domain:      f.domain,
+	})
+	require.True(t, db.IsNotFound(err), "the row must roll back with the failed submit, got: %v", err)
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, outboxRows, "the audit entry must roll back with the row")
 }
 
 // TestAddCustomDomainRollsBackWhenAuditInsertFails verifies the production
@@ -567,6 +610,23 @@ func (f fixture) newServiceWithRestate(t *testing.T, ingressURL string) *Service
 		DomainConnectPrivateKeyPEM: nil,
 		Bearer:                     testBearer,
 	})
+}
+
+// rejectingIngress refuses every send with a 500 and counts the attempts. Unlike an
+// unreachable address, an explicit rejection is a permanent error to TxRetry, so it
+// pins that the transaction runs its closure exactly once.
+func rejectingIngress(t *testing.T, submits *atomic.Int32) string {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/send") {
+			submits.Add(1)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	return server.URL
 }
 
 // acceptingIngress answers every send with an accepted invocation. A create only reports

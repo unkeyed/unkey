@@ -236,47 +236,36 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert audit log: %w", txErr))
 		}
 
+		// Submitting inside the transaction makes the RPC all-or-nothing: a failed
+		// submit rolls the row and its audit entry back, so retrying createDomain is
+		// the recovery. The workflow tolerates reading before the commit lands (see
+		// rowVisibilityGrace in the worker), and a TxRetry rerun re-submitting is
+		// safe because the invocation is keyed by domainID, a virtual object Restate
+		// runs one at a time per domain.
+		sendResp, sendErr := s.startVerification(txCtx, domainID)
+		if sendErr != nil {
+			logger.Error(
+				"failed to trigger verification workflow",
+				"domain", domain,
+				"domain_id", domainID,
+				"error", sendErr,
+			)
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
+		}
+
+		if txErr := db.NewQueries(tx).UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
+			ID:           domainID,
+			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+		}); txErr != nil {
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("record invocation id: %w", txErr))
+		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	sendResp, sendErr := s.startVerification(ctx, domainID)
-	if sendErr != nil {
-		logger.Error(
-			"failed to trigger verification workflow",
-			"domain", domain,
-			"domain_id", domainID,
-			"error", sendErr,
-		)
-
-		// The 24 hour window is only evaluated inside the workflow, so a domain whose
-		// workflow never started would sit in `pending` forever, indistinguishable
-		// from one still polling DNS. `failed` is what RetryVerification resets from.
-		if failErr := s.db.UpdateCustomDomainFailed(ctx, db.UpdateCustomDomainFailedParams{
-			ID:                 domainID,
-			VerificationStatus: db.CustomDomainsVerificationStatusFailed,
-			VerificationError:  sql.NullString{Valid: true, String: "verification could not be started, retry verification"},
-			UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
-		}); failErr != nil {
-			logger.Error(
-				"failed to record unstarted verification",
-				"domain_id", domainID,
-				"error", failErr,
-			)
-		}
-
-		// Reporting success would tell the caller to poll a verification that is not
-		// running. The row is left in place so RetryVerification can pick it up.
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
-	}
-
-	_ = s.db.UpdateCustomDomainInvocationID(ctx, db.UpdateCustomDomainInvocationIDParams{
-		ID:           domainID,
-		InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
-		UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-	})
 
 	res := &ctrlv1.AddCustomDomainResponse{
 		DomainId:          domainID,
