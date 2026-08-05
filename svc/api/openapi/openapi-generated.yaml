@@ -8564,7 +8564,7 @@ paths:
                                     environment: production
                                     project: payments
                             byId:
-                                description: Uses the ids returned by the corresponding list endpoints
+                                description: Uses the ids returned by the corresponding list endpoints.
                                 summary: Attach a domain, locating the environment by ID
                                 value:
                                     app: app_1234abcd
@@ -8572,7 +8572,7 @@ paths:
                                     environment: env_1234abcd
                                     project: proj_1234abcd
                             bySlug:
-                                description: Uses the project, app, and environment slugs
+                                description: Uses the project, app, and environment slugs.
                                 summary: Attach a domain, locating the environment by slug
                                 value:
                                     app: payments-api
@@ -8744,7 +8744,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The environment does not exist in your workspace, or your root key may not read it
+                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
                 "409":
                     content:
                         application/json:
@@ -8761,7 +8761,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ConflictErrorResponse'
-                    description: Conflict - The domain is already attached to an environment in this workspace
+                    description: Conflict - The domain is already attached to an environment in this workspace.
                 "429":
                     content:
                         application/json:

@@ -35,7 +35,7 @@ post:
         examples:
           bySlug:
             summary: Attach a domain, locating the environment by slug
-            description: Uses the project, app, and environment slugs
+            description: Uses the project, app, and environment slugs.
             value:
               project: payments
               app: payments-api
@@ -43,7 +43,7 @@ post:
               domain: api.acme.com
           byId:
             summary: Attach a domain, locating the environment by ID
-            description: Uses the ids returned by the corresponding list endpoints
+            description: Uses the ids returned by the corresponding list endpoints.
             value:
               project: proj_1234abcd
               app: app_1234abcd
@@ -205,7 +205,7 @@ post:
                   type: https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded
     "404":
       description: |
-        Not Found - The environment does not exist in your workspace, or your root key may not read it
+        Not Found - The environment does not exist in your workspace, or your root key may not read it.
       content:
         application/json:
           schema:
@@ -222,7 +222,7 @@ post:
                   status: 404
                   type: not-found
     "409":
-      description: Conflict - The domain is already attached to an environment in this workspace
+      description: Conflict - The domain is already attached to an environment in this workspace.
       content:
         application/json:
           schema:

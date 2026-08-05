@@ -28,7 +28,7 @@ additionalProperties: false
 examples:
   bySlug:
     summary: Attach a domain, locating the environment by slug
-    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand
+    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand.
     value:
       project: payments
       app: payments-api
@@ -36,7 +36,7 @@ examples:
       domain: api.acme.com
   byId:
     summary: Attach a domain, locating the environment by ID
-    description: Uses the ids returned by projects.listProjects, apps.listApps, and environments.listEnvironments
+    description: Uses the ids returned by projects.listProjects, apps.listApps, and environments.listEnvironments.
     value:
       project: proj_1234abcd
       app: app_1234abcd
