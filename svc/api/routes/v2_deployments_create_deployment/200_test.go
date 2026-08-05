@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -166,6 +167,7 @@ func TestRedeployImageReuse(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
+	setDeploymentImage(t, h, dep.ID, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
 
@@ -173,6 +175,7 @@ func TestRedeployImageReuse(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.True(t, capture.called)
 	require.Nil(t, capture.req.GitCommit, "an app without a repo connection reuses the image instead of rebuilding")
+	require.Equal(t, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", capture.req.DockerImage)
 }
 
 // TestRedeployForkDeployment covers redeploying a deployment that was built from
@@ -283,6 +286,63 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.False(t, capture.called, "ctrl must not be called for an unreproducible deployment")
+}
+
+func TestRedeployDockerDeploymentRequiresResolvedImage(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceDockerImage, "nginx:stable")
+
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.False(t, capture.called, "the mutable requested image must not be redeployed")
+}
+
+func TestRedeployGitDeploymentRequiresRepositoryConnection(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	seedDeployableRegion(t, h, setup)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		GitCommitSha:  "9f2c1a7",
+		GitBranch:     "main",
+	})
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceGitBuild, "")
+	setDeploymentImage(t, h, dep.ID, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+
+	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.False(t, capture.called, "a Git deployment must not fall back to its built image")
 }
 
 func TestSpecificEnvironmentPermission(t *testing.T) {
