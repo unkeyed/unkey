@@ -72,11 +72,6 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		want string
 	}{
 		{
-			name: "app repository setting",
-			in:   "apps:set_repository",
-			want: "unkey:v1:ws_123:projects/*/apps/*#set_repository",
-		},
-		{
 			name: "key create",
 			in:   "keys:create",
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#create_key",
@@ -254,7 +249,6 @@ func TestPermissionDefinitionsCoverMigrationCatalog(t *testing.T) {
 		"apps:create",
 		"apps:delete",
 		"apps:read",
-		"apps:set_repository",
 		"apps:update",
 		"deployments:create",
 		"deployments:promote",

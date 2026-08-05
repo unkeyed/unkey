@@ -14,12 +14,6 @@ type ReadApp struct{}
 func (ReadApp) ActionFor(urn.App) {}
 func (ReadApp) String() string    { return "read_app" }
 
-// SetRepository authorizes setting or clearing an app repository.
-type SetRepository struct{}
-
-func (SetRepository) ActionFor(urn.App) {}
-func (SetRepository) String() string    { return "set_repository" }
-
 // UpdateApp authorizes updating an app resource.
 type UpdateApp struct{}
 
