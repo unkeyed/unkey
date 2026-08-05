@@ -1044,6 +1044,30 @@ func TestLogging_EnabledMatchingPolicySetsLogRequest(t *testing.T) {
 	require.True(t, result.LogRequest)
 }
 
+// TestLogging_NoMatchConditionsLogsEveryRequest pins the catch-all
+// semantics: a policy with an empty match list matches every request, so a
+// logging policy without match conditions turns logging on for all traffic.
+func TestLogging_NoMatchConditionsLogsEveryRequest(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/any/path/at/all", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-everything",
+			Name:    "Log everything",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequest)
+}
+
 func TestLogging_NonMatchingPolicyLeavesLogRequestOff(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()

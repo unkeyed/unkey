@@ -860,9 +860,10 @@ type KeysVerifyKeyRatelimit struct {
 // LoggingPolicy Records the full HTTP request and response of matching requests, including
 // headers, bodies, and a latency breakdown, viewable in the dashboard's
 // Requests tab. Has no configuration of its own; scope what gets logged via
-// the policy's `match` expressions. Without an enabled logging policy no
-// request logs are recorded. Authorization headers and configured key
-// locations are always redacted before storage.
+// the policy's `match` expressions. A policy without `match` expressions
+// matches every request and logs all traffic. Without an enabled logging
+// policy no request logs are recorded. Authorization headers and configured
+// key locations are always redacted before storage.
 type LoggingPolicy = map[string]interface{}
 
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
@@ -977,9 +978,10 @@ type Policy struct {
 	// Logging Records the full HTTP request and response of matching requests, including
 	// headers, bodies, and a latency breakdown, viewable in the dashboard's
 	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. Without an enabled logging policy no
-	// request logs are recorded. Authorization headers and configured key
-	// locations are always redacted before storage.
+	// the policy's `match` expressions. A policy without `match` expressions
+	// matches every request and logs all traffic. Without an enabled logging
+	// policy no request logs are recorded. Authorization headers and configured
+	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
@@ -1016,9 +1018,10 @@ type PolicyResponse struct {
 	// Logging Records the full HTTP request and response of matching requests, including
 	// headers, bodies, and a latency breakdown, viewable in the dashboard's
 	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. Without an enabled logging policy no
-	// request logs are recorded. Authorization headers and configured key
-	// locations are always redacted before storage.
+	// the policy's `match` expressions. A policy without `match` expressions
+	// matches every request and logs all traffic. Without an enabled logging
+	// policy no request logs are recorded. Authorization headers and configured
+	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
@@ -2261,9 +2264,10 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Logging Records the full HTTP request and response of matching requests, including
 	// headers, bodies, and a latency breakdown, viewable in the dashboard's
 	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. Without an enabled logging policy no
-	// request logs are recorded. Authorization headers and configured key
-	// locations are always redacted before storage.
+	// the policy's `match` expressions. A policy without `match` expressions
+	// matches every request and logs all traffic. Without an enabled logging
+	// policy no request logs are recorded. Authorization headers and configured
+	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Replaces all match expressions. Set null to remove them so the policy

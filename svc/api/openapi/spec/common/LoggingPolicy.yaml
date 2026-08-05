@@ -5,7 +5,8 @@ description: |-
   Records the full HTTP request and response of matching requests, including
   headers, bodies, and a latency breakdown, viewable in the dashboard's
   Requests tab. Has no configuration of its own; scope what gets logged via
-  the policy's `match` expressions. Without an enabled logging policy no
-  request logs are recorded. Authorization headers and configured key
-  locations are always redacted before storage.
+  the policy's `match` expressions. A policy without `match` expressions
+  matches every request and logs all traffic. Without an enabled logging
+  policy no request logs are recorded. Authorization headers and configured
+  key locations are always redacted before storage.
 example: {}

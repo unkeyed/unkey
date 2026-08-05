@@ -220,8 +220,9 @@ export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
 // Opts matching requests into the ClickHouse request log (Requests tab).
 // Config-less: the policy's `enabled` flag and `match` expressions carry all
-// the semantics. Without an enabled logging policy the gateway records no
-// request logs for the environment.
+// the semantics. An empty `match` list matches every request, so a policy
+// without match conditions logs all traffic. Without an enabled logging
+// policy the gateway records no request logs for the environment.
 export const loggingPolicySchema = z
   .object({
     ...policyBase,

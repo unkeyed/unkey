@@ -32,6 +32,9 @@ const (
 // match expressions (e.g. exclude health checks or high-volume endpoints),
 // and toggle it without a redeploy via the enabled flag.
 //
+// An empty match list matches every request — an enabled logging policy
+// with no match expressions logs all traffic for the environment.
+//
 // Sensitive values are redacted before persistence regardless of this
 // policy's configuration: the Authorization header is always redacted, and
 // any header or query parameter configured as a KeyAuth key location is
