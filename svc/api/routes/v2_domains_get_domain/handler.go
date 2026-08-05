@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -43,9 +44,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Domains are stored in their canonical form, so a name-shaped identifier is
+	// canonicalized before lookup and 'münchen.de' finds the row stored as
+	// 'xn--mnchen-3ya.de'. An identifier ParseDomain rejects can only be an ID,
+	// which the query compares as given.
+	identifier := req.Domain
+	if canonical, parseErr := domaingate.ParseDomain(req.Domain); parseErr == nil {
+		identifier = canonical
+	}
+
 	row, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
 		WorkspaceID: principal.WorkspaceID,
-		Domain:      req.Domain,
+		Domain:      identifier,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -91,9 +101,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentId:     row.EnvironmentID,
 		Status:            domain.Status(row.VerificationStatus),
 		VerificationError: nil,
-		DnsRecords:        domain.DnsRecords(row.Domain, row.TargetCname, row.VerificationToken, row.CnameVerified, row.OwnershipVerified),
-		CreatedAt:         row.CreatedAt,
-		UpdatedAt:         nil,
+		DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
+			Domain:            row.Domain,
+			TargetCname:       row.TargetCname,
+			VerificationToken: row.VerificationToken,
+			RoutingVerified:   row.CnameVerified,
+			OwnershipVerified: row.OwnershipVerified,
+		}),
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: nil,
 	}
 	if row.VerificationError.Valid && row.VerificationError.String != "" {
 		data.VerificationError = ptr.P(row.VerificationError.String)

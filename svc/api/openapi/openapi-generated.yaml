@@ -880,7 +880,18 @@ components:
                 - domain
             properties:
                 domain:
-                    "$ref": "#/components/schemas/DomainIdentifier"
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Identifies a domain by either its Unkey ID or the domain name itself.
+                        Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
+                        without a scheme, port, or path. Internationalized names may be given in Unicode or
+                        Punycode form; both address the same domain.
+
+                        Domain names are unique per workspace, so the name alone is enough to address a domain and no
+                        project, app, or environment needs to be supplied.
+                    example: api.acme.com
             additionalProperties: false
         V2DomainsGetDomainResponseBody:
             type: object
@@ -4591,19 +4602,6 @@ components:
                         so nothing depends on completing that return trip.
                     example: https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=acme.com&host=api
             additionalProperties: false
-        DomainIdentifier:
-            type: string
-            minLength: 4
-            maxLength: 253
-            pattern: "^([a-zA-Z0-9_]+|([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,})$"
-            description: |
-                Identifies a domain by either its Unkey ID or the domain name itself.
-                Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-                without a scheme, port, or path.
-
-                Domain names are unique per workspace, so the name alone is enough to address a domain and no
-                project, app, or environment needs to be supplied.
-            example: api.acme.com
         Domain:
             type: object
             required:

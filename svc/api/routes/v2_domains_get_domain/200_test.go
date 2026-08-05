@@ -91,6 +91,32 @@ func TestGetDomainByNameIsCaseInsensitive(t *testing.T) {
 	}
 }
 
+// TestGetDomainByUnicodeName pins that the Unicode form addresses a domain stored in
+// its canonical Punycode form, the same canonicalization createDomain applies. Without
+// it a customer could create 'münchen.example.com' and never fetch it back by the name
+// they typed.
+func TestGetDomainByUnicodeName(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	// Unique parent keeps parallel runs from colliding on the shared database.
+	parent := randomDomain()
+	canonical := "xn--mnchen-3ya." + parent
+
+	seeded := seedDomain(t, h, func(req *seed.CreateCustomDomainRequest) {
+		req.Domain = canonical
+	})
+	rootKey := h.CreateRootKey(seeded.workspaceID, "environment.*.read_domain")
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
+		Domain: "münchen." + parent,
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, seeded.domainID, res.Body.Data.Id)
+	require.Equal(t, canonical, res.Body.Data.Domain, "the canonical stored name is returned, received: %s", res.RawBody)
+}
+
 // TestGetDomainDnsRecordsMatchCreate pins that the returned records are rebuilt from
 // stored state with the same values domains.createDomain produced. A caller that lost
 // the create response recovers them here, so a divergence would send them to records

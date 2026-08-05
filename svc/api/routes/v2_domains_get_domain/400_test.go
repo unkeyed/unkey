@@ -11,10 +11,11 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_get_domain"
 )
 
-// TestGetDomainBadRequest covers the spec layer: the OpenAPI middleware rejects every
-// case below against DomainIdentifier before the handler runs. The identifier accepts
-// either an id (^[a-zA-Z0-9_]+$) or an FQDN, and nothing in between, so a malformed
-// name fails here rather than becoming a lookup that can never match.
+// TestGetDomainBadRequest covers the spec layer: DomainIdentifier carries only length
+// bounds, since neither a Punycode-aware name rule nor the id shape is expressible as
+// one pattern. Everything shape-related is the handler's job — an identifier that is
+// neither a parseable name nor a stored id misses the lookup and 404s, covered in
+// TestGetDomainNotFound.
 func TestGetDomainBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
@@ -30,20 +31,6 @@ func TestGetDomainBadRequest(t *testing.T) {
 	}{
 		{name: "empty", identifier: ""},
 		{name: "below min length", identifier: "ab"},
-		{name: "leading dot", identifier: ".acme.com"},
-		{name: "trailing dot", identifier: "api.acme.com."},
-		{name: "consecutive dots", identifier: "api..acme.com"},
-		{name: "label starts with hyphen", identifier: "-api.acme.com"},
-		{name: "label ends with hyphen", identifier: "api-.acme.com"},
-		{name: "single letter tld", identifier: "api.acme.c"},
-		{name: "scheme included", identifier: "https://api.acme.com"},
-		{name: "path included", identifier: "api.acme.com/v1"},
-		{name: "port included", identifier: "api.acme.com:8080"},
-		{name: "whitespace", identifier: "api acme.com"},
-		{name: "leading whitespace", identifier: " api.acme.com"},
-		{name: "wildcard", identifier: "*.acme.com"},
-		{name: "traversal", identifier: "../api.acme.com"},
-		{name: "id with a hyphen is neither form", identifier: "dom-1234abcd"},
 		{name: "over 253 chars", identifier: strings.Repeat("a", 250) + ".com"},
 	}
 

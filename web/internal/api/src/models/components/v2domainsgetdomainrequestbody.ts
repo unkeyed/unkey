@@ -10,7 +10,8 @@ export type V2DomainsGetDomainRequestBody = {
    *
    * @remarks
    * Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-   * without a scheme, port, or path.
+   * without a scheme, port, or path. Internationalized names may be given in Unicode or
+   * Punycode form; both address the same domain.
    *
    * Domain names are unique per workspace, so the name alone is enough to address a domain and no
    * project, app, or environment needs to be supplied.

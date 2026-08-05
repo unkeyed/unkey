@@ -247,11 +247,15 @@ type Querier interface {
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+	//  SELECT
+	//      id,
+	//      domain,
+	//      verification_token,
+	//      target_cname
 	//  FROM custom_domains
 	//  WHERE id = ?
 	//  LIMIT 1
-	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
+	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
 	// Names are stored lowercase, so the name half is lowered here rather than left to the
 	// column's collation. The id half is compared as given: ids are case-sensitive.
 	//

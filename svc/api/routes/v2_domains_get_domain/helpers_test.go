@@ -3,7 +3,6 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/unkeyed/unkey/pkg/db"
@@ -88,16 +87,16 @@ func seedDomain(t *testing.T, h *testutil.Harness, mutate func(*seed.CreateCusto
 
 // Parallel packages share one database, so a hardcoded slug would collide across runs.
 func randomSlug() string {
-	return strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+	return uid.DNS1035(16)
 }
 
-// The label is prefixed so it cannot start with a digit-only accident of uid.
+// randomDomain produces a unique hostname that satisfies the spec's FQDN pattern.
 func randomDomain() string {
-	return fmt.Sprintf("d%s.example.com", strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")))
+	return uid.DNS1035(16) + ".example.com"
 }
 
 func randomApexDomain() string {
-	return fmt.Sprintf("d%s.com", strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "")))
+	return uid.DNS1035(16) + ".com"
 }
 
 func authHeaders(rootKey string) http.Header {

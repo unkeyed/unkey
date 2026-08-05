@@ -165,8 +165,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data := openapi.V2DomainsCreateDomainResponseData{
 		DomainId: res.GetDomainId(),
-		// Nothing has been published yet, so neither record can have been read back.
-		DnsRecords:    domain.DnsRecords(domainName, res.GetTargetCname(), res.GetVerificationToken(), false, false),
+		// Verified flags stay false: nothing has been published yet, so neither
+		// record can have been read back.
+		DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
+			Domain:            domainName,
+			TargetCname:       res.GetTargetCname(),
+			VerificationToken: res.GetVerificationToken(),
+		}),
 		DomainConnect: nil,
 	}
 

@@ -577,14 +577,6 @@ type DomainConnect struct {
 	Url string `json:"url"`
 }
 
-// DomainIdentifier Identifies a domain by either its Unkey ID or the domain name itself.
-// Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-// without a scheme, port, or path.
-//
-// Domain names are unique per workspace, so the name alone is enough to address a domain and no
-// project, app, or environment needs to be supplied.
-type DomainIdentifier = string
-
 // EmptyResponse Empty response object by design. A successful response indicates this operation was successfully executed.
 type EmptyResponse = map[string]interface{}
 
@@ -2116,11 +2108,12 @@ type V2DomainsCreateDomainResponseData struct {
 type V2DomainsGetDomainRequestBody struct {
 	// Domain Identifies a domain by either its Unkey ID or the domain name itself.
 	// Accepts a 'dom_'-prefixed ID, or a fully qualified domain name such as 'api.acme.com'
-	// without a scheme, port, or path.
+	// without a scheme, port, or path. Internationalized names may be given in Unicode or
+	// Punycode form; both address the same domain.
 	//
 	// Domain names are unique per workspace, so the name alone is enough to address a domain and no
 	// project, app, or environment needs to be supplied.
-	Domain DomainIdentifier `json:"domain"`
+	Domain string `json:"domain"`
 }
 
 // V2DomainsGetDomainResponseBody defines model for V2DomainsGetDomainResponseBody.

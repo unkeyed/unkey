@@ -54,14 +54,13 @@ export class Domains extends ClientSDK {
    * `api.acme.com` is enough and no project, app, or environment is needed.
    *
    * Use this to poll after `domains.createDomain`. Verification runs in the background and polls DNS
-   * roughly once a minute, so the result is eventually consistent; `lastCheckedAt` tells you when it
-   * was last looked at.
+   * roughly once a minute, so the result is eventually consistent.
    *
    * `status: verified` means verification passed, so Unkey has provisioned routing and requested a
-   * certificate. `routingVerified` and `ownershipVerified` report which proof it passed on rather
-   * than whether traffic arrives: a proxied, flattened, or apex domain routes through a record that
-   * cannot be read back, so it verifies on its TXT record and keeps `routingVerified: false` for as
-   * long as it serves. `verificationError` explains the most recent failed attempt.
+   * certificate. Each entry in `dnsRecords` carries a `verified` flag, so a domain still being set up
+   * shows exactly which record is outstanding. A record a provider does not expose to a DNS lookup,
+   * such as a proxied or flattened routing record, stays `false` for as long as it serves.
+   * `verificationError` explains the most recent failed attempt.
    *
    * `dnsRecords` is rebuilt from stored state and matches what `domains.createDomain` returned, so
    * the values are recoverable without creating the domain again.
