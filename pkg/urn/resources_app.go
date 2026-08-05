@@ -38,6 +38,6 @@ func (a App) Environment(environmentID string) Environment {
 func (a App) Any() V1 {
 	return V1{
 		WorkspaceID: a.workspaceID,
-		Resource:    a.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", a.path),
 	}
 }

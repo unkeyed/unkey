@@ -35,6 +35,6 @@ func (b billing) Invoice(invoiceID string) V1 {
 func (b billing) Quotas() V1 {
 	return V1{
 		WorkspaceID: b.workspaceID,
-		Resource:    b.path + "/quotas",
+		Resource:    fmt.Sprintf("%s/quotas", b.path),
 	}
 }

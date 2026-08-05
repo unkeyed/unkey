@@ -43,6 +43,6 @@ func (d Deployment) Instance(instanceID string) V1 {
 func (d Deployment) Any() V1 {
 	return V1{
 		WorkspaceID: d.workspaceID,
-		Resource:    d.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", d.path),
 	}
 }

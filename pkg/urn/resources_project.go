@@ -62,13 +62,13 @@ func (p Project) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 
 // RBAC returns builders for project-owned role and permission definition paths.
 func (p Project) RBAC() RBAC {
-	return RBAC{workspaceID: p.workspaceID, path: p.path + "/rbac"}
+	return RBAC{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/rbac", p.path)}
 }
 
 // Any returns a descendant pattern below this project.
 func (p Project) Any() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    p.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", p.path),
 	}
 }

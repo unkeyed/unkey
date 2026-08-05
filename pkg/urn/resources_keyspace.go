@@ -56,6 +56,6 @@ func (k Keyspace) Key(keyID string) Key {
 func (k Keyspace) Any() V1 {
 	return V1{
 		WorkspaceID: k.workspaceID,
-		Resource:    k.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", k.path),
 	}
 }

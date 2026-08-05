@@ -58,7 +58,7 @@ func (p Portal) Session(sessionID string) V1 {
 func (p Portal) Branding() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    p.path + "/branding",
+		Resource:    fmt.Sprintf("%s/branding", p.path),
 	}
 }
 
@@ -66,6 +66,6 @@ func (p Portal) Branding() V1 {
 func (p Portal) Any() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
-		Resource:    p.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", p.path),
 	}
 }

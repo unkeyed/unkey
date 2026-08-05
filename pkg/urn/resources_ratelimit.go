@@ -56,6 +56,6 @@ func (r RatelimitNamespace) Override(overrideID string) RatelimitOverride {
 func (r RatelimitNamespace) Any() V1 {
 	return V1{
 		WorkspaceID: r.workspaceID,
-		Resource:    r.path + "/**",
+		Resource:    fmt.Sprintf("%s/**", r.path),
 	}
 }
