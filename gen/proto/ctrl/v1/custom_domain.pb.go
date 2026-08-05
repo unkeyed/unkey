@@ -161,26 +161,81 @@ func (x *AddCustomDomainRequest) GetActor() *ActorInfo {
 	return nil
 }
 
+// One-click setup at the domain's DNS provider. Discovery yields a provider and
+// its signed redirect URL together or not at all, so the message is absent when
+// the shortcut is unavailable rather than half-filled.
+type DomainConnect struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Provider name (e.g. "Cloudflare").
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// Fully signed Domain Connect redirect URL.
+	Url           string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DomainConnect) Reset() {
+	*x = DomainConnect{}
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DomainConnect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DomainConnect) ProtoMessage() {}
+
+func (x *DomainConnect) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DomainConnect.ProtoReflect.Descriptor instead.
+func (*DomainConnect) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *DomainConnect) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *DomainConnect) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 type AddCustomDomainResponse struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	DomainId    string                 `protobuf:"bytes,1,opt,name=domain_id,json=domainId,proto3" json:"domain_id,omitempty"`
 	TargetCname string                 `protobuf:"bytes,2,opt,name=target_cname,json=targetCname,proto3" json:"target_cname,omitempty"` // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
 	Status      CustomDomainStatus     `protobuf:"varint,3,opt,name=status,proto3,enum=ctrl.v1.CustomDomainStatus" json:"status,omitempty"`
-	// Domain Connect provider name (e.g. "Cloudflare"). Empty if unsupported.
-	DomainConnectProvider string `protobuf:"bytes,4,opt,name=domain_connect_provider,json=domainConnectProvider,proto3" json:"domain_connect_provider,omitempty"`
-	// Fully signed Domain Connect redirect URL. Empty if unavailable.
-	DomainConnectUrl string `protobuf:"bytes,5,opt,name=domain_connect_url,json=domainConnectUrl,proto3" json:"domain_connect_url,omitempty"`
 	// Ownership proof token the caller publishes as a TXT record on
 	// "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
 	// apex domains, which cannot carry a CNAME.
 	VerificationToken string `protobuf:"bytes,6,opt,name=verification_token,json=verificationToken,proto3" json:"verification_token,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Absent when the DNS provider does not support Domain Connect.
+	DomainConnect *DomainConnect `protobuf:"bytes,7,opt,name=domain_connect,json=domainConnect,proto3" json:"domain_connect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddCustomDomainResponse) Reset() {
 	*x = AddCustomDomainResponse{}
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[1]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -192,7 +247,7 @@ func (x *AddCustomDomainResponse) String() string {
 func (*AddCustomDomainResponse) ProtoMessage() {}
 
 func (x *AddCustomDomainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[1]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,7 +260,7 @@ func (x *AddCustomDomainResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCustomDomainResponse.ProtoReflect.Descriptor instead.
 func (*AddCustomDomainResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{1}
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AddCustomDomainResponse) GetDomainId() string {
@@ -229,25 +284,18 @@ func (x *AddCustomDomainResponse) GetStatus() CustomDomainStatus {
 	return CustomDomainStatus_CUSTOM_DOMAIN_STATUS_UNSPECIFIED
 }
 
-func (x *AddCustomDomainResponse) GetDomainConnectProvider() string {
-	if x != nil {
-		return x.DomainConnectProvider
-	}
-	return ""
-}
-
-func (x *AddCustomDomainResponse) GetDomainConnectUrl() string {
-	if x != nil {
-		return x.DomainConnectUrl
-	}
-	return ""
-}
-
 func (x *AddCustomDomainResponse) GetVerificationToken() string {
 	if x != nil {
 		return x.VerificationToken
 	}
 	return ""
+}
+
+func (x *AddCustomDomainResponse) GetDomainConnect() *DomainConnect {
+	if x != nil {
+		return x.DomainConnect
+	}
+	return nil
 }
 
 type DeleteCustomDomainRequest struct {
@@ -261,7 +309,7 @@ type DeleteCustomDomainRequest struct {
 
 func (x *DeleteCustomDomainRequest) Reset() {
 	*x = DeleteCustomDomainRequest{}
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[2]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -273,7 +321,7 @@ func (x *DeleteCustomDomainRequest) String() string {
 func (*DeleteCustomDomainRequest) ProtoMessage() {}
 
 func (x *DeleteCustomDomainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[2]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -286,7 +334,7 @@ func (x *DeleteCustomDomainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCustomDomainRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCustomDomainRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{2}
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeleteCustomDomainRequest) GetWorkspaceId() string {
@@ -318,7 +366,7 @@ type DeleteCustomDomainResponse struct {
 
 func (x *DeleteCustomDomainResponse) Reset() {
 	*x = DeleteCustomDomainResponse{}
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[3]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +378,7 @@ func (x *DeleteCustomDomainResponse) String() string {
 func (*DeleteCustomDomainResponse) ProtoMessage() {}
 
 func (x *DeleteCustomDomainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[3]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +391,7 @@ func (x *DeleteCustomDomainResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCustomDomainResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCustomDomainResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{3}
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{4}
 }
 
 type RetryVerificationRequest struct {
@@ -357,7 +405,7 @@ type RetryVerificationRequest struct {
 
 func (x *RetryVerificationRequest) Reset() {
 	*x = RetryVerificationRequest{}
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[4]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +417,7 @@ func (x *RetryVerificationRequest) String() string {
 func (*RetryVerificationRequest) ProtoMessage() {}
 
 func (x *RetryVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[4]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +430,7 @@ func (x *RetryVerificationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RetryVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RetryVerificationRequest) GetWorkspaceId() string {
@@ -415,7 +463,7 @@ type RetryVerificationResponse struct {
 
 func (x *RetryVerificationResponse) Reset() {
 	*x = RetryVerificationResponse{}
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[5]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -427,7 +475,7 @@ func (x *RetryVerificationResponse) String() string {
 func (*RetryVerificationResponse) ProtoMessage() {}
 
 func (x *RetryVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[5]
+	mi := &file_ctrl_v1_custom_domain_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -440,7 +488,7 @@ func (x *RetryVerificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryVerificationResponse.ProtoReflect.Descriptor instead.
 func (*RetryVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_custom_domain_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RetryVerificationResponse) GetStatus() CustomDomainStatus {
@@ -462,14 +510,16 @@ const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12\x16\n" +
 	"\x06domain\x18\x04 \x01(\tR\x06domain\x12\x15\n" +
 	"\x06app_id\x18\x05 \x01(\tR\x05appId\x12(\n" +
-	"\x05actor\x18\x06 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\xa3\x02\n" +
+	"\x05actor\x18\x06 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"=\n" +
+	"\rDomainConnect\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\"\xb5\x02\n" +
 	"\x17AddCustomDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x123\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\x126\n" +
-	"\x17domain_connect_provider\x18\x04 \x01(\tR\x15domainConnectProvider\x12,\n" +
-	"\x12domain_connect_url\x18\x05 \x01(\tR\x10domainConnectUrl\x12-\n" +
-	"\x12verification_token\x18\x06 \x01(\tR\x11verificationToken\"u\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status\x12-\n" +
+	"\x12verification_token\x18\x06 \x01(\tR\x11verificationToken\x12=\n" +
+	"\x0edomain_connect\x18\a \x01(\v2\x16.ctrl.v1.DomainConnectR\rdomainConnectJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x17domain_connect_providerR\x12domain_connect_url\"u\n" +
 	"\x19DeleteCustomDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -508,32 +558,34 @@ func file_ctrl_v1_custom_domain_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_custom_domain_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ctrl_v1_custom_domain_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ctrl_v1_custom_domain_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ctrl_v1_custom_domain_proto_goTypes = []any{
 	(CustomDomainStatus)(0),            // 0: ctrl.v1.CustomDomainStatus
 	(*AddCustomDomainRequest)(nil),     // 1: ctrl.v1.AddCustomDomainRequest
-	(*AddCustomDomainResponse)(nil),    // 2: ctrl.v1.AddCustomDomainResponse
-	(*DeleteCustomDomainRequest)(nil),  // 3: ctrl.v1.DeleteCustomDomainRequest
-	(*DeleteCustomDomainResponse)(nil), // 4: ctrl.v1.DeleteCustomDomainResponse
-	(*RetryVerificationRequest)(nil),   // 5: ctrl.v1.RetryVerificationRequest
-	(*RetryVerificationResponse)(nil),  // 6: ctrl.v1.RetryVerificationResponse
-	(*ActorInfo)(nil),                  // 7: ctrl.v1.ActorInfo
+	(*DomainConnect)(nil),              // 2: ctrl.v1.DomainConnect
+	(*AddCustomDomainResponse)(nil),    // 3: ctrl.v1.AddCustomDomainResponse
+	(*DeleteCustomDomainRequest)(nil),  // 4: ctrl.v1.DeleteCustomDomainRequest
+	(*DeleteCustomDomainResponse)(nil), // 5: ctrl.v1.DeleteCustomDomainResponse
+	(*RetryVerificationRequest)(nil),   // 6: ctrl.v1.RetryVerificationRequest
+	(*RetryVerificationResponse)(nil),  // 7: ctrl.v1.RetryVerificationResponse
+	(*ActorInfo)(nil),                  // 8: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_custom_domain_proto_depIdxs = []int32{
-	7, // 0: ctrl.v1.AddCustomDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
+	8, // 0: ctrl.v1.AddCustomDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
 	0, // 1: ctrl.v1.AddCustomDomainResponse.status:type_name -> ctrl.v1.CustomDomainStatus
-	0, // 2: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
-	1, // 3: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
-	3, // 4: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
-	5, // 5: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
-	2, // 6: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
-	4, // 7: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
-	6, // 8: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 2: ctrl.v1.AddCustomDomainResponse.domain_connect:type_name -> ctrl.v1.DomainConnect
+	0, // 3: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
+	1, // 4: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
+	4, // 5: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
+	6, // 6: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
+	3, // 7: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
+	5, // 8: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
+	7, // 9: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_custom_domain_proto_init() }
@@ -548,7 +600,7 @@ func file_ctrl_v1_custom_domain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_custom_domain_proto_rawDesc), len(file_ctrl_v1_custom_domain_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

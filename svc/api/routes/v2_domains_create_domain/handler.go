@@ -111,20 +111,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// A found row means the domain is taken, so a nil error is the rejection here
+	// and NotFound is the path that proceeds.
 	_, err = db.Query.FindCustomDomainIDByWorkspaceAndDomain(ctx, h.DB.RO(), db.FindCustomDomainIDByWorkspaceAndDomainParams{
 		WorkspaceID: principal.WorkspaceID,
 		Domain:      domain,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	if err == nil {
+		return domaingate.AlreadyExists(domain)
+	}
+	if !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to check whether the domain is already attached."),
 		)
-	}
-	if err = domaingate.CheckNotExists(domain, err == nil); err != nil {
-		return err
 	}
 
 	limits, hit, err := h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
@@ -197,14 +199,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		DomainConnect: nil,
 	}
 
-	// Discovery inside ctrl is best-effort and yields a provider and a URL together or
-	// neither, so a half-filled object would mean ctrl changed, not that the shortcut is
-	// partly available. Both are required in the schema, hence the pair check.
-	provider, dcURL := res.GetDomainConnectProvider(), res.GetDomainConnectUrl()
-	if provider != "" && dcURL != "" {
+	// Absent when the DNS provider does not support Domain Connect.
+	if dc := res.GetDomainConnect(); dc != nil {
 		data.DomainConnect = &openapi.DomainConnect{
-			Provider: provider,
-			Url:      dcURL,
+			Provider: dc.GetProvider(),
+			Url:      dc.GetUrl(),
 		}
 	}
 

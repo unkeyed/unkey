@@ -106,18 +106,17 @@ func (s *Service) AddCustomDomain(
 	// Generate verification token for TXT record ownership verification
 	verificationToken := uid.Secure(24)
 
+	// A found row means the domain is taken, so a nil error is the rejection here
+	// and NotFound is the path that proceeds.
 	_, err := s.db.FindCustomDomainIDByWorkspaceAndDomain(ctx, db.FindCustomDomainIDByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
 		Domain:      domain,
 	})
-	if err != nil && !db.IsNotFound(err) {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
+	if err == nil {
+		return nil, gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyExists(domain))
 	}
-	if gateErr := gatefault.ConnectWith(
-		connect.CodeAlreadyExists,
-		domaingate.CheckNotExists(domain, err == nil),
-	); gateErr != nil {
-		return nil, gateErr
+	if !db.IsNotFound(err) {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
 	}
 
 	// Before Domain Connect discovery, so a workspace at its allowance cannot use
@@ -282,14 +281,17 @@ func (s *Service) AddCustomDomain(
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 	})
 
-	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{
-		DomainId:              domainID,
-		TargetCname:           targetCname,
-		Status:                ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
-		DomainConnectProvider: dcProvider,
-		DomainConnectUrl:      dcURL,
-		VerificationToken:     verificationToken,
-	}), nil
+	res := &ctrlv1.AddCustomDomainResponse{
+		DomainId:          domainID,
+		TargetCname:       targetCname,
+		Status:            ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
+		VerificationToken: verificationToken,
+	}
+	if dcProvider != "" && dcURL != "" {
+		res.DomainConnect = &ctrlv1.DomainConnect{Provider: dcProvider, Url: dcURL}
+	}
+
+	return connect.NewResponse(res), nil
 }
 
 // DeleteCustomDomain deletes a custom domain and its associated resources.

@@ -68,15 +68,6 @@ func TestAlreadyExists(t *testing.T) {
 	requireCode(t, codes.Data.Domain.Duplicate, domaingate.AlreadyExists("api.acme.com"))
 }
 
-// Both layers pass the outcome of their own lookup, so a nil error meaning "free" and a
-// found row meaning "taken" is decided here rather than at each call site.
-func TestCheckNotExists(t *testing.T) {
-	t.Parallel()
-
-	require.NoError(t, domaingate.CheckNotExists("api.acme.com", false))
-	requireCode(t, codes.Data.Domain.Duplicate, domaingate.CheckNotExists("api.acme.com", true))
-}
-
 func TestCheckAllowance(t *testing.T) {
 	t.Parallel()
 

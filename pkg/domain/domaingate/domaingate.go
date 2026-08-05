@@ -34,27 +34,15 @@ func CheckDomain(domain string) error {
 
 // AlreadyExists is the outcome for a domain the workspace already holds. Domains
 // are unique per workspace, so the same name cannot serve two environments.
+//
+// Scoped to the workspace, not to Unkey: the unique index is (workspace_id, domain), and
+// a name another workspace holds can still be claimed here by proving ownership.
 func AlreadyExists(domain string) error {
 	return fault.New("domain already exists",
 		fault.Code(codes.Data.Domain.Duplicate.URN()),
 		fault.Internal(fmt.Sprintf("domain %q is already attached to this workspace", domain)),
 		fault.Public(fmt.Sprintf("The domain '%s' is already attached to this workspace.", domain)),
 	)
-}
-
-// CheckNotExists reports whether domain is free for this workspace to attach. Callers
-// pass the outcome of their own existence lookup, so both layers decide from the same
-// rule instead of each turning a nil error into a rejection at the call site.
-//
-// Scoped to the workspace, not to Unkey: the unique index is (workspace_id, domain), and
-// a name another workspace holds can still be claimed here by proving ownership. So this
-// is not domain availability in the registrar sense.
-func CheckNotExists(domain string, exists bool) error {
-	if !exists {
-		return nil
-	}
-
-	return AlreadyExists(domain)
 }
 
 // CheckAllowance reports whether the workspace may attach one more domain. The

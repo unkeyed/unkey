@@ -160,11 +160,13 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 	ctrlClient := &testutil.MockCustomDomainClient{
 		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
 			return &ctrlv1.AddCustomDomainResponse{
-				DomainId:              uid.New(uid.DomainPrefix),
-				TargetCname:           "a1b2c3d4e5f6g7h8.cname.unkey.com",
-				VerificationToken:     "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
-				DomainConnectProvider: "Cloudflare",
-				DomainConnectUrl:      "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com",
+				DomainId:          uid.New(uid.DomainPrefix),
+				TargetCname:       "a1b2c3d4e5f6g7h8.cname.unkey.com",
+				VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+				DomainConnect: &ctrlv1.DomainConnect{
+					Provider: "Cloudflare",
+					Url:      "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com",
+				},
 			}, nil
 		},
 	}
@@ -179,47 +181,6 @@ func TestCreateDomainWithDomainConnect(t *testing.T) {
 	require.NotNil(t, res.Body.Data.DomainConnect, "expected the domainConnect object, received: %s", res.RawBody)
 	require.Equal(t, "Cloudflare", res.Body.Data.DomainConnect.Provider)
 	require.Equal(t, "https://dash.cloudflare.com/domainconnect/v2/domaintemplates/apply?domain=example.com", res.Body.Data.DomainConnect.Url)
-}
-
-// TestCreateDomainOmitsPartialDomainConnect pins that a provider without a URL, or a URL
-// without a provider, yields no object at all. Both fields are required inside it, so
-// emitting a half-filled one would put a response on the wire that its own schema rejects.
-func TestCreateDomainOmitsPartialDomainConnect(t *testing.T) {
-	testCases := []struct {
-		name     string
-		provider string
-		url      string
-	}{
-		{name: "provider without url", provider: "Cloudflare", url: ""},
-		{name: "url without provider", provider: "", url: "https://dash.cloudflare.com/domainconnect"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			h := testutil.NewHarness(t)
-
-			ctrlClient := &testutil.MockCustomDomainClient{
-				AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
-					return &ctrlv1.AddCustomDomainResponse{
-						DomainId:              uid.New(uid.DomainPrefix),
-						TargetCname:           "a1b2c3d4e5f6g7h8.cname.unkey.com",
-						VerificationToken:     "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
-						DomainConnectProvider: tc.provider,
-						DomainConnectUrl:      tc.url,
-					}, nil
-				},
-			}
-			route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
-			h.Register(route)
-
-			env := seedEnvironment(t, h)
-			rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
-
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
-			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Nil(t, res.Body.Data.DomainConnect, "a half-filled object must be omitted, received: %s", res.RawBody)
-		})
-	}
 }
 
 // TestCreateDomainNormalizesCase pins that a mixed-case name is stored and echoed
