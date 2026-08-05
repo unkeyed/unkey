@@ -276,15 +276,13 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	// Temporary staged-collation bridge: the native-collation term preserves
-	// index lookup while the as_cs term enforces exact ID equality. Remove after
-	// all counterpart columns are utf8mb4_0900_as_cs.
+	//FindAppWithRuntimeSettings
 	//
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
-	//  INNER JOIN app_runtime_settings ars ON (ars.app_id = a.id COLLATE utf8mb4_0900_ai_ci AND ars.app_id = a.id COLLATE utf8mb4_0900_as_cs) AND ars.environment_id = ?
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
 	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
