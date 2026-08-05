@@ -1,12 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, text } from "drizzle-orm/mysql-core";
+import { index, mysqlTable, text } from "drizzle-orm/mysql-core";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 
 export const acmeUsers = mysqlTable(
   "acme_users",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     encryptedKey: text("encrypted_key").notNull(),

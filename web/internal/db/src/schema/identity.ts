@@ -4,12 +4,13 @@ import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const identities = mysqlTable(
   "identities",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     /**
      * The external id is used to create a reference to the user's existing data.
@@ -48,7 +49,7 @@ export const identitiesRelations = relations(identities, ({ one, many }) => ({
 export const ratelimits = mysqlTable(
   "ratelimits",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     /**
      * The name is used to reference this limit when verifying a key.

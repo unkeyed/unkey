@@ -1,6 +1,5 @@
 import { relations, sql } from "drizzle-orm";
 import {
-  bigint,
   index,
   int,
   json,
@@ -14,6 +13,7 @@ import { projects } from "./projects";
 import { regions } from "./regions";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 
 //id, deplyoment_id, health, kube_dns_addr, mem, cpu, region
 
@@ -49,7 +49,7 @@ export type ContainerStatus = {
 export const instances = mysqlTable(
   "instances",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     deploymentId: id("deployment_id").notNull(),
     workspaceId: id("workspace_id").notNull(),

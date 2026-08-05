@@ -4,6 +4,7 @@ import { customDomains } from "./custom_domains";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const challengeType = mysqlEnum("challenge_type", ["HTTP-01", "DNS-01"]).notNull();
@@ -11,7 +12,7 @@ export const challengeType = mysqlEnum("challenge_type", ["HTTP-01", "DNS-01"]).
 export const acmeChallenges = mysqlTable(
   "acme_challenges",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
     domainId: id("domain_id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),

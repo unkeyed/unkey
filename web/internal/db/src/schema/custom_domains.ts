@@ -12,6 +12,7 @@ import { challengeType } from "./acme_challenges";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 
 export const verificationStatus = mysqlEnum("verification_status", [
   "pending",
@@ -23,7 +24,7 @@ export const verificationStatus = mysqlEnum("verification_status", [
 export const customDomains = mysqlTable(
   "custom_domains",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),

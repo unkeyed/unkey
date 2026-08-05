@@ -3,12 +3,13 @@ import { bigint, boolean, index, json, mysqlTable } from "drizzle-orm/mysql-core
 import { portalConfigurations } from "./portal_configurations";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const portalSessionTokens = mysqlTable(
   "portal_session_tokens",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     portalConfigId: id("portal_config_id").notNull(),

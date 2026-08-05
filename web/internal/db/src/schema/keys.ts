@@ -20,12 +20,13 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { id } from "./util/id";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
   "keys",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
 
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).notNull(),
@@ -149,7 +150,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
 export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     workspaceId: id("workspace_id").notNull(),
     keyId: id("key_id").notNull(),
     ...lifecycleDatesV2,
@@ -174,7 +175,7 @@ export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
 export const keyMigrations = mysqlTable(
   "key_migrations",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),

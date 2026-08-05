@@ -1,5 +1,6 @@
 import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 
 // clickhouse_outbox is the transactional outbox for ClickHouse export.
 // Writers insert one row per logical event in the same MySQL transaction
@@ -32,7 +33,7 @@ import { id } from "./util/id";
 export const clickhouseOutbox = mysqlTable(
   "clickhouse_outbox",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     version: varchar("version", { length: 64 }).notNull(),
     workspaceId: id("workspace_id").notNull(),
     eventId: id("event_id").notNull(),

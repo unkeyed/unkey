@@ -19,12 +19,13 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const deployments = mysqlTable(
   "deployments",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 

@@ -3,6 +3,7 @@ import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-c
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 // import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -19,7 +20,7 @@ import { workspaces } from "./workspaces";
 export const workspaceBilling = mysqlTable(
   "workspace_billing",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
     /**
      * workspaceId is the primary identifier for the billing record,

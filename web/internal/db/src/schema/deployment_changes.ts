@@ -1,10 +1,11 @@
 import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 
 export const deploymentChanges = mysqlTable(
   "deployment_changes",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     resourceType: mysqlEnum("resource_type", [
       "deployment_topology",
       "sentinel",

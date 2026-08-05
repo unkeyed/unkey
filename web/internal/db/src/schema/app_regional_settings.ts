@@ -1,11 +1,12 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, int, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { index, int, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -17,7 +18,7 @@ import { workspaces } from "./workspaces";
 export const appRegionalSettings = mysqlTable(
   "app_regional_settings",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
     workspaceId: id("workspace_id").notNull(),
     appId: id("app_id").notNull(),

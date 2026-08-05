@@ -1,16 +1,17 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const ciliumNetworkPolicies = mysqlTable(
   "cilium_network_policies",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),

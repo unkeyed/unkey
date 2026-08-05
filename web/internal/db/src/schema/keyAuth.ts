@@ -5,12 +5,13 @@ import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable(
   "key_auth",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 37 }).notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull().default(""),

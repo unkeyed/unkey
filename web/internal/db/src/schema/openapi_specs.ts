@@ -1,15 +1,16 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     deploymentId: id("deployment_id"),

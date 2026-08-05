@@ -1,22 +1,15 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  tinyint,
-  uniqueIndex,
-} from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, tinyint, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const deploymentTopology = mysqlTable(
   "deployment_topology",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     workspaceId: id("workspace_id").notNull(),
     deploymentId: id("deployment_id").notNull(),
     regionId: id("region_id").notNull(),

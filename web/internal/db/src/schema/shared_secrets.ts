@@ -3,6 +3,7 @@ import { bigint, index, mysqlTable } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 // import { id } from "./util/id";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 // One-time links for sharing a secret. Holds only the vault ciphertext (keyring
@@ -11,7 +12,7 @@ import { workspaces } from "./workspaces";
 export const sharedSecrets = mysqlTable(
   "shared_secrets",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     // id: id("id").notNull().unique(),
     id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
     // workspaceId: id("workspace_id").notNull(),

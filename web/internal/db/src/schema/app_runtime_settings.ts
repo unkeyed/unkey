@@ -1,13 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import {
-  bigint,
-  int,
-  json,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { int, json, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 
@@ -22,12 +14,13 @@ export type Healthcheck = {
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const appRuntimeSettings = mysqlTable(
   "app_runtime_settings",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
     workspaceId: id("workspace_id").notNull(),
     appId: id("app_id").notNull(),

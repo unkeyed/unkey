@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -10,10 +10,11 @@ import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 export const projects = mysqlTable(
   "projects",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
 

@@ -1,14 +1,15 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { boolean, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { clusters } from "./clusters";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { primaryKey } from "./util/primary_key";
 // import { id } from "./util/id";
 
 export const regions = mysqlTable(
   "regions",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     // id: id("id").notNull().unique(),
     id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
     // e.g. us-east-1, us-west-2, etc.

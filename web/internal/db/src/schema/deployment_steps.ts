@@ -4,12 +4,13 @@ import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { projects } from "./projects";
 import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const deploymentSteps = mysqlTable(
   "deployment_steps",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),
     environmentId: id("environment_id").notNull(),

@@ -3,12 +3,13 @@ import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysq
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const ratelimitNamespaces = mysqlTable(
   "ratelimit_namespaces",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull().default(""),
@@ -38,7 +39,7 @@ export const ratelimitNamespaceRelations = relations(ratelimitNamespaces, ({ one
 export const ratelimitOverrides = mysqlTable(
   "ratelimit_overrides",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     namespaceId: caseSensitiveVarchar("namespace_id", { length: 33 }).notNull(),
@@ -92,7 +93,7 @@ export const ratelimitOverridesRelations = relations(ratelimitOverrides, ({ one 
 export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
     // workspaceId is varchar(191) instead of the project-wide 256 because the
     // unique index spans six columns (the four key fields plus sequence and
     // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
