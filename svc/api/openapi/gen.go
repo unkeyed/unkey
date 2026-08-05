@@ -2143,7 +2143,7 @@ type V2DomainsListDomainsRequestBody struct {
 
 // V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
 type V2DomainsListDomainsResponseBody struct {
-	// Data The domains attached to the environment, in order of domain id.
+	// Data The domains attached to the environment, sorted by their id.
 	// The array is empty when the environment has no domains. This is not an error.
 	Data []Domain `json:"data"`
 

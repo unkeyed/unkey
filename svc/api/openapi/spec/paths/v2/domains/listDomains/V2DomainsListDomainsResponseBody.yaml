@@ -12,7 +12,7 @@ properties:
     items:
       "$ref": "../../../../common/Domain.yaml"
     description: |
-      The domains attached to the environment, in order of domain id.
+      The domains attached to the environment, sorted by their id.
       The array is empty when the environment has no domains. This is not an error.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
