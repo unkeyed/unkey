@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,4 +76,28 @@ func TestRedactBody_AppliesOpenAPIRedactors(t *testing.T) {
 
 	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, got)
 	require.Equal(t, `{"secret":"hide-me","visible":"keep-me"}`, string(body))
+}
+
+var benchmarkRedactedBody string
+
+func BenchmarkRedactBody(b *testing.B) {
+	body := []byte(`{"message":"` + strings.Repeat("a", 1024) + `","token":"hide-me","visible":"keep-me"}`)
+	tests := []struct {
+		name      string
+		redactors []*redaction.Redactor
+	}{
+		{name: "before", redactors: nil},
+		{name: "redaction_on", redactors: []*redaction.Redactor{redaction.New([]string{"token"})}},
+		{name: "redaction_off", redactors: nil},
+	}
+
+	for _, test := range tests {
+		b.Run(test.name, func(b *testing.B) {
+			b.ReportAllocs()
+			b.SetBytes(int64(len(body)))
+			for b.Loop() {
+				benchmarkRedactedBody = redactBody(body, test.redactors)
+			}
+		})
+	}
 }
