@@ -102,6 +102,25 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	})
 	require.NoError(s.t, err)
 
+	err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
+		WorkspaceID:                           params.ID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                4,
+	})
+	require.NoError(s.t, err)
+
 	ws, err := s.DB.FindWorkspaceByID(ctx, params.ID)
 	require.NoError(s.t, err)
 
@@ -781,6 +800,25 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 			Team:                   req.Team,
 			RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
 			RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+		})
+		require.NoError(s.t, err)
+
+		err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
+			WorkspaceID:                           ws.ID,
+			ApiBillableOperationsCountMaxPerMonth: uint64(req.RequestsPerMonth),
+			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+			LogsRetentionDaysMax:                  uint16(req.LogsRetentionDays),
+			LogsAuditRetentionDaysMax:             uint16(req.AuditLogsRetentionDays),
+			TeamEnabled:                           req.Team,
+			CpuCoresMax:                           10,
+			CpuCoresMaxPerInstance:                2,
+			MemoryMibMax:                          20_480,
+			MemoryMibMaxPerInstance:               4_096,
+			StorageMibMax:                         51_200,
+			StorageMibMaxPerInstance:              10_240,
+			BuildsConcurrentMax:                   1,
+			CustomDomainsMax:                      0,
+			AutoscalingReplicasMax:                4,
 		})
 		require.NoError(s.t, err)
 	}

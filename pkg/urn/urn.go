@@ -87,6 +87,7 @@ func segmentsMatch(pattern []string, target []string) bool {
 //
 //	unkey:v1:ws_123:keyspaces/ks_1/keys/k_1    concrete resource name
 //	unkey:v1:ws_123:keyspaces/*/keys/*         one wildcard per segment
+//	unkey:v1:ws_123:projects/*/apps/app_123    concrete child below a wildcard parent
 //	unkey:v1:ws_123:ratelimits/**              descendant scope
 //	unkey:v1:ws_123:**                         everything in the workspace
 //
@@ -96,7 +97,6 @@ func segmentsMatch(pattern []string, target []string) bool {
 //	unkey:v1:ws_123:keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
 //	unkey:v1:ws_123:keyspaces/ks_*             "*" must be a whole segment
 //	unkey:v1:ws_123:ratelimits/**/overrides    "**" must be the last segment
-//	unkey:v1:ws_123:projects/*/apps/app_123    specific selector nested under "*"
 func ParseV1(value string) (V1, error) {
 	parts := strings.SplitN(value, ":", 4)
 	if len(parts) != 4 {
@@ -136,7 +136,7 @@ func validateWorkspaceID(value string) error {
 	return nil
 }
 
-// validateResourcePath enforces five invariants on every "/"-separated path
+// validateResourcePath enforces four invariants on every "/"-separated path
 // segment:
 //
 //  1. No segment is empty. This subsumes rejecting an empty path and paths
@@ -147,14 +147,8 @@ func validateWorkspaceID(value string) error {
 //     can only ever expand to exactly one segment.
 //  4. "**" appears only as the final segment, so a descendant scope cannot
 //     have a suffix constraint the matcher would have to guess about.
-//  5. Once an id selector is "*", later id selectors must also be "*" or a
-//     trailing "**" descendant scope. A path may continue through concrete
-//     collection labels, such as "projects/*/apps/*" or "projects/*/apps/**",
-//     but it cannot narrow again to a specific child like
-//     "projects/*/apps/app_123".
 func validateResourcePath(path string) error {
 	segments := strings.Split(path, "/")
-	seenWildcardSelector := false
 	for i, segment := range segments {
 		isLastSegment := i == len(segments)-1
 
@@ -164,17 +158,13 @@ func validateResourcePath(path string) error {
 		case strings.ContainsAny(segment, ":#"):
 			return errors.New(`must not contain ":" or "#"`)
 		case segment == "*":
-			seenWildcardSelector = true
+			continue
 		case segment == "**":
 			if !isLastSegment {
 				return errors.New(`"**" must be the last segment`)
 			}
 		case strings.Contains(segment, "*"):
 			return errors.New(`"*" must be a whole segment`)
-		case seenWildcardSelector:
-			if isLastSegment || (segments[i+1] != "*" && segments[i+1] != "**") {
-				return errors.New(`specific selectors must not appear below "*"`)
-			}
 		}
 	}
 	return nil

@@ -13,13 +13,13 @@ import (
 )
 
 // All bad input returns 400, whether rejected by the OpenAPI validation
-// middleware (shapes, patterns, bounds, array caps) or by the handler (quota,
-// region logic). The seeded quota row uses the schema defaults (cpu 2000, memory
-// 4096, storage 10240), so requests above those exceed quota.
+// middleware (shapes, patterns, bounds, array caps) or by the handler (limits,
+// region logic). The seeded limits row uses the test defaults (cpu 2000, memory
+// 4096, storage 10240), so requests above those exceed limits.
 func TestUpdateSettings400(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, QuotaCache: h.Caches.WorkspaceQuota}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
@@ -53,10 +53,14 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
 		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},
 
-		// Path patterns (spec). dockerfile/rootDirectory are unconstrained strings;
-		// only openapiSpecPath and the healthcheck path are guarded.
+		// Path validation. Dockerfile is constrained by the spec; rootDirectory is
+		// additionally checked by the handler against the control-plane contract.
 		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
 		{name: "rootDirectory empty", req: handler.Request{RootDirectory: ptr("")}},
+		{name: "rootDirectory absolute", req: handler.Request{RootDirectory: ptr("/api")}},
+		{name: "rootDirectory dot prefix", req: handler.Request{RootDirectory: ptr("./api")}},
+		{name: "rootDirectory traversal", req: handler.Request{RootDirectory: ptr("services/../api")}},
+		{name: "rootDirectory fragment", req: handler.Request{RootDirectory: ptr("services/api#main")}},
 		{name: "buildCommand empty", req: handler.Request{BuildCommand: nullable.NewNullableWithValue("")}},
 		{name: "buildCommand over maxLength", req: handler.Request{BuildCommand: nullable.NewNullableWithValue(strings.Repeat("x", 1001))}},
 		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
