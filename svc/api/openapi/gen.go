@@ -364,7 +364,8 @@ type DeploymentAction string
 
 // DeploymentDocker defines model for DeploymentDocker.
 type DeploymentDocker struct {
-	// Image The Docker image this deployment runs.
+	// Image The Docker image reference requested for this deployment. A mutable tag is
+	// resolved to an immutable digest before rollout.
 	Image string `json:"image"`
 }
 
@@ -439,9 +440,9 @@ type DeploymentSourceGit struct {
 	Repository *string `json:"repository,omitempty"`
 }
 
-// DeploymentSourceImage Deploy a prebuilt Docker image as-is.
+// DeploymentSourceImage Deploy a prebuilt Docker image without a build.
 type DeploymentSourceImage struct {
-	// DockerImage Docker image to deploy as-is.
+	// DockerImage Docker image to deploy. Mutable tags are resolved to immutable digests before rollout.
 	DockerImage string `json:"dockerImage"`
 }
 
@@ -1849,7 +1850,7 @@ type V2DeploymentsCreateDeploymentRequestBody struct {
 	// Git Build from the app's connected GitHub repository.
 	Git *DeploymentSourceGit `json:"git,omitempty"`
 
-	// Image Deploy a prebuilt Docker image as-is.
+	// Image Deploy a prebuilt Docker image without a build.
 	Image *DeploymentSourceImage `json:"image,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
