@@ -11,7 +11,7 @@ additionalProperties: false
 examples:
   subdomain:
     summary: Subdomain attached
-    description: A subdomain verifies from its CNAME alone, so the TXT record is optional
+    description: A subdomain can hold a CNAME, so it gets the CNAME record for routing and the TXT record for ownership.
     value:
       meta:
         requestId: req_1234abcd
@@ -30,7 +30,7 @@ examples:
             note: Proves ownership. Create it alongside the routing record.
   apex:
     summary: Apex domain attached
-    description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record
+    description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record.
     value:
       meta:
         requestId: req_1234abcd
@@ -49,7 +49,7 @@ examples:
             note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
   domainConnect:
     summary: Attached at a Domain Connect provider
-    description: The provider supports Domain Connect, so the records can be applied through the returned URL
+    description: The provider supports Domain Connect, so the records can be applied through the returned URL.
     value:
       meta:
         requestId: req_1234abcd

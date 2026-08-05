@@ -48,12 +48,14 @@ func TestCreateDomainSuccessfully(t *testing.T) {
 	require.Equal(t, openapi.CNAME, routing.Type)
 	require.Equal(t, domain, routing.Name)
 	require.Equal(t, "a1b2c3d4e5f6g7h8.cname.unkey.com", routing.Value)
+	require.Equal(t, 60, routing.Ttl)
 	require.NotNil(t, routing.Note)
 
 	txt := res.Body.Data.DnsRecords[1]
 	require.Equal(t, openapi.TXT, txt.Type)
 	require.Equal(t, "_unkey."+domain, txt.Name)
 	require.Equal(t, "unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL", txt.Value)
+	require.Equal(t, 60, txt.Ttl)
 	require.NotNil(t, txt.Note)
 
 	// Nothing has been published yet, so neither record can have been read back. A caller

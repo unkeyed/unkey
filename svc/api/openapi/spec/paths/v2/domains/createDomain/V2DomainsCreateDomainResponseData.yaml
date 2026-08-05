@@ -4,7 +4,7 @@ required:
   - dnsRecords
 properties:
   domainId:
-    "$ref": "../../../../common/DomainId.yaml"
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   dnsRecords:
     type: array
     minItems: 1

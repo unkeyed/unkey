@@ -60,6 +60,25 @@ export type DnsRecord = {
    */
   value: string;
   /**
+   * Seconds a resolver may cache this record. Set it in your provider alongside the record's
+   *
+   * @remarks
+   * name and value.
+   */
+  ttl: number;
+  /**
+   * Whether Unkey has read this record back with the expected value. Use it to see which
+   *
+   * @remarks
+   * records are still outstanding.
+   *
+   * False does not always mean the record is missing. A provider that does not expose the
+   * published value to a DNS lookup, such as a proxied or flattened routing record, leaves
+   * this false for as long as it serves traffic; such a domain verifies through its TXT
+   * record instead. Always false on a domain no check has run against yet.
+   */
+  verified: boolean;
+  /**
    * What this record is for and any provider-specific caveat that applies to it.
    *
    * @remarks
@@ -83,6 +102,8 @@ export const DnsRecord$inboundSchema: z.ZodType<
   type: Type$inboundSchema,
   name: z.string(),
   value: z.string(),
+  ttl: z.number().int(),
+  verified: z.boolean(),
   note: z.string().optional(),
 });
 

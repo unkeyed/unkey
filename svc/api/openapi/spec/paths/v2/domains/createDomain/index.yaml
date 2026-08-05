@@ -51,7 +51,7 @@ post:
               domain: api.acme.com
           apex:
             summary: Attach an apex domain
-            description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership
+            description: An apex domain receives an apex-compatible alias, which the provider resolves to the A or AAAA records that carry traffic, plus a TXT record proving ownership.
             value:
               project: payments
               app: payments-api
@@ -67,7 +67,7 @@ post:
           examples:
             subdomain:
               summary: Subdomain attached
-              description: A subdomain routes through a CNAME and proves ownership through the TXT record. Create both.
+              description: A subdomain can hold a CNAME, so it gets the CNAME record for routing and the TXT record for ownership.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -86,7 +86,7 @@ post:
                       note: Proves ownership. Create it alongside the routing record.
             apex:
               summary: Apex domain attached
-              description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record
+              description: An apex domain cannot hold a CNAME, so it needs an apex-compatible alias and the TXT record.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -105,7 +105,7 @@ post:
                       note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
             domainConnect:
               summary: Domain attached at a Domain Connect provider
-              description: The same records can be applied through the returned URL
+              description: The same records can be applied through the returned URL.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -188,7 +188,7 @@ post:
                   type: forbidden
             allowanceExceeded:
               summary: Plan allowance reached
-              description: The workspace already holds every custom domain its plan permits
+              description: The workspace already holds every custom domain its plan permits.
               value:
                 meta:
                   requestId: req_1234abcd

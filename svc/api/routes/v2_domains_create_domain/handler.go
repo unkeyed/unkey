@@ -30,6 +30,9 @@ type (
 	Response = openapi.V2DomainsCreateDomainResponseBody
 )
 
+// dnsRecordTTLSeconds is the TTL returned alongside each created record.
+const dnsRecordTTLSeconds = 60
+
 type Handler struct {
 	DB          db.Database
 	CtrlClient  ctrl.CustomDomainServiceClient
@@ -169,6 +172,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Type:     openapi.CNAME,
 		Name:     domain,
 		Value:    res.GetTargetCname(),
+		Ttl:      dnsRecordTTLSeconds,
 		Verified: false,
 		Note:     ptr.P("Create as DNS-only if your provider offers the choice."),
 	}
@@ -176,6 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Type:     openapi.TXT,
 		Name:     dns.OwnershipTXTName(domain),
 		Value:    dns.OwnershipTXTValue(res.GetVerificationToken()),
+		Ttl:      dnsRecordTTLSeconds,
 		Verified: false,
 		Note:     ptr.P("Proves ownership. Create it alongside the routing record."),
 	}
