@@ -24,7 +24,7 @@ type workspace struct {
 	Team team
 
 	// RBAC builds RBAC resource paths in this workspace.
-	RBAC rbac
+	RBAC RBAC
 }
 
 // Billing returns builders for billing resource paths.

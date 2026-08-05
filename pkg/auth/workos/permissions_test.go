@@ -132,7 +132,12 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		{
 			name: "deployment promote",
 			in:   "deployments:promote",
-			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#promote_deployment",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#promote_deployment",
+		},
+		{
+			name: "deployment rollback",
+			in:   "deployments:rollback",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#rollback_deployment",
 		},
 		{
 			name: "environment variables",

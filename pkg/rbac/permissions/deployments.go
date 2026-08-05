@@ -20,14 +20,14 @@ type StopDeployment struct{}
 func (StopDeployment) ActionFor(urn.Deployment) {}
 func (StopDeployment) String() string           { return "stop_deployment" }
 
-// PromoteDeployment authorizes promoting a deployment.
+// PromoteDeployment authorizes changing an environment's current deployment.
 type PromoteDeployment struct{}
 
-func (PromoteDeployment) ActionFor(urn.Deployment) {}
-func (PromoteDeployment) String() string           { return "promote_deployment" }
+func (PromoteDeployment) ActionFor(urn.Environment) {}
+func (PromoteDeployment) String() string            { return "promote_deployment" }
 
-// RollbackDeployment authorizes rolling back a deployment.
+// RollbackDeployment authorizes restoring an environment's previous deployment.
 type RollbackDeployment struct{}
 
-func (RollbackDeployment) ActionFor(urn.Deployment) {}
-func (RollbackDeployment) String() string           { return "rollback_deployment" }
+func (RollbackDeployment) ActionFor(urn.Environment) {}
+func (RollbackDeployment) String() string            { return "rollback_deployment" }

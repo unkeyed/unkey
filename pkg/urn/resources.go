@@ -21,6 +21,6 @@ func (Builder) Workspace(workspaceID string) workspace {
 	return workspace{
 		workspaceID: workspaceID,
 		Team:        team{workspaceID: workspaceID, path: "team"},
-		RBAC:        rbac{workspaceID: workspaceID, path: "rbac"},
+		RBAC:        RBAC{workspaceID: workspaceID, path: "rbac"},
 	}
 }

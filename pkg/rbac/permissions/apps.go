@@ -2,6 +2,12 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// CreateApp authorizes creating an app resource.
+type CreateApp struct{}
+
+func (CreateApp) ActionFor(urn.App) {}
+func (CreateApp) String() string    { return "create_app" }
+
 // ReadApp authorizes reading an app resource.
 type ReadApp struct{}
 

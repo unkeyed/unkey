@@ -13,8 +13,6 @@ type RBAC struct {
 	path        string
 }
 
-type rbac = RBAC
-
 // Role is an RBAC role resource path.
 type Role struct {
 	workspaceID string
