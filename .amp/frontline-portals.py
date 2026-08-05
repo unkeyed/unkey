@@ -16,32 +16,20 @@ from urllib.parse import urlparse
 
 
 LISTEN_PORT = int(sys.argv[1])
-PUBLIC_HOSTNAME = urlparse(sys.argv[2]).hostname
-STATIC_SOURCE_HOSTNAME = "local-api-production-local.unkey.local"
 DYNAMIC_PORT_START = 20_000
 DYNAMIC_PORT_COUNT = 10_000
 POLL_SECONDS = 5
 HOSTNAME_PATTERN = re.compile(r"^[a-zA-Z0-9.-]+$")
 THREAD_HOST_PATTERN = re.compile(r"^t-([0-9a-f-]{36})-p[0-9]+\.(.+)$")
 PORTAL_NAME_PATTERN = re.compile(r"[^a-zA-Z0-9-]+")
-
-if PUBLIC_HOSTNAME is None:
-    raise ValueError("PUBLIC_URL must contain a hostname")
-
-thread_host_match = THREAD_HOST_PATTERN.fullmatch(PUBLIC_HOSTNAME)
-if thread_host_match is None:
-    raise ValueError("PUBLIC_URL must contain an Amp thread portal hostname")
-
-THREAD_ID = "T-" + thread_host_match.group(1)
-PORTAL_DOMAIN = thread_host_match.group(2)
 AMP = os.path.expanduser("~/.amp/bin/amp")
 MISE = os.path.expanduser("~/.local/bin/mise")
 PORTALS_DIR = Path(".amp/portals")
 
 
 @dataclass(frozen=True)
-class EnvironmentRoute:
-    environment_id: str
+class DeploymentRoute:
+    deployment_id: str
     source_hostname: str
     project_slug: str
     app_slug: str
@@ -51,7 +39,7 @@ class EnvironmentRoute:
 
 @dataclass(frozen=True)
 class ActivePortal:
-    environment_id: str
+    deployment_id: str
     source_hostname: str
     name: str
     port: int
@@ -65,6 +53,34 @@ PORTAL_PROCESSES: dict[str, subprocess.Popen[bytes]] = {}
 LAST_ERROR = ""
 
 
+def portal_context() -> tuple[str, str]:
+    deadline = time.monotonic() + 60
+    while True:
+        public_urls = list(sys.argv[2:])
+        if not public_urls:
+            for manifest in sorted(PORTALS_DIR.glob("*.json")):
+                try:
+                    data = json.loads(manifest.read_text())
+                    public_urls.extend(link["url"] for link in data.get("links", []))
+                except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                    continue
+
+        for public_url in public_urls:
+            public_hostname = urlparse(public_url).hostname
+            if public_hostname is None:
+                continue
+            thread_host_match = THREAD_HOST_PATTERN.fullmatch(public_hostname)
+            if thread_host_match is not None:
+                return "T-" + thread_host_match.group(1), thread_host_match.group(2)
+
+        if sys.argv[2:] or time.monotonic() >= deadline:
+            raise ValueError("no Amp thread portal hostname is available")
+        time.sleep(1)
+
+
+THREAD_ID, PORTAL_DOMAIN = portal_context()
+
+
 def run_kubectl(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [MISE, "exec", "--", "kubectl", *args],
@@ -75,7 +91,7 @@ def run_kubectl(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def list_environment_routes() -> list[EnvironmentRoute]:
+def list_deployment_routes() -> list[DeploymentRoute]:
     pod = run_kubectl(
         "-n",
         "unkey",
@@ -91,20 +107,29 @@ def list_environment_routes() -> list[EnvironmentRoute]:
 
     query = """
 SELECT
-  route.environment_id,
+  route.deployment_id,
   route.fully_qualified_domain_name,
   project.slug,
   app.slug,
   environment.slug,
   workspace.slug
 FROM frontline_routes AS route
+JOIN deployments AS deployment ON deployment.id = route.deployment_id
 JOIN environments AS environment ON environment.id = route.environment_id
 JOIN apps AS app ON app.id = route.app_id
 JOIN projects AS project ON project.id = route.project_id
 JOIN workspaces AS workspace ON workspace.id = project.workspace_id
-WHERE route.sticky = 'environment'
+WHERE route.sticky = 'deployment'
   AND route.fully_qualified_domain_name LIKE '%.unkey.local'
-ORDER BY route.environment_id, route.created_at;
+  AND deployment.status = 'ready'
+  AND deployment.desired_state = 'running'
+  AND EXISTS (
+    SELECT 1
+    FROM instances AS instance
+    WHERE instance.deployment_id = deployment.id
+      AND instance.status = 'running'
+  )
+ORDER BY route.deployment_id, route.created_at;
 """
     result = run_kubectl(
         "-n",
@@ -123,32 +148,32 @@ ORDER BY route.environment_id, route.created_at;
         query,
     )
 
-    routes: list[EnvironmentRoute] = []
-    seen_environments: set[str] = set()
+    routes: list[DeploymentRoute] = []
+    seen_deployments: set[str] = set()
     for line in result.stdout.splitlines():
         fields = line.split("\t")
-        if len(fields) != 6 or fields[0] in seen_environments:
+        if len(fields) != 6 or fields[0] in seen_deployments:
             continue
-        route = EnvironmentRoute(*fields)
+        route = DeploymentRoute(*fields)
         if not HOSTNAME_PATTERN.fullmatch(route.source_hostname):
             continue
         routes.append(route)
-        seen_environments.add(route.environment_id)
+        seen_deployments.add(route.deployment_id)
     return routes
 
 
-def portal_name(environment_id: str) -> str:
-    suffix = PORTAL_NAME_PATTERN.sub("-", environment_id).strip("-").lower()
-    return "deployment-env-" + suffix
+def portal_name(deployment_id: str) -> str:
+    suffix = PORTAL_NAME_PATTERN.sub("-", deployment_id).strip("-").lower()
+    return "deployment-id-" + suffix
 
 
-def portal_title(route: EnvironmentRoute) -> str:
+def portal_title(route: DeploymentRoute) -> str:
     app = "" if route.app_slug == "default" else f"/{route.app_slug}"
-    return f"{route.project_slug}{app} · {route.environment_slug}"
+    return f"{route.project_slug}{app} · {route.environment_slug} · {route.deployment_id}"
 
 
-def allocate_port(environment_id: str, used_ports: set[int]) -> int:
-    digest = hashlib.sha256(environment_id.encode()).digest()
+def allocate_port(deployment_id: str, used_ports: set[int]) -> int:
+    digest = hashlib.sha256(deployment_id.encode()).digest()
     offset = int.from_bytes(digest[:4], "big") % DYNAMIC_PORT_COUNT
     for step in range(DYNAMIC_PORT_COUNT):
         port = DYNAMIC_PORT_START + (offset + step) % DYNAMIC_PORT_COUNT
@@ -196,9 +221,9 @@ def wait_until_listening(port: int, process: subprocess.Popen[bytes]) -> None:
 
 
 def start_portal(
-    route: EnvironmentRoute, port: int
+    route: DeploymentRoute, port: int
 ) -> tuple[ActivePortal, subprocess.Popen[bytes]]:
-    name = portal_name(route.environment_id)
+    name = portal_name(route.deployment_id)
     title = portal_title(route)
     public_url = f"https://t-{THREAD_ID[2:].lower()}-p{port}.{PORTAL_DOMAIN}/"
     process = subprocess.Popen(
@@ -229,7 +254,7 @@ def start_portal(
                 "--title",
                 title,
                 "--description",
-                f"{route.workspace_slug} deployment routed through Frontline.",
+                f"{route.workspace_slug} deployment {route.deployment_id} routed through Frontline.",
             ],
             check=True,
             capture_output=True,
@@ -250,7 +275,7 @@ def start_portal(
         raise
 
     portal = ActivePortal(
-        environment_id=route.environment_id,
+        deployment_id=route.deployment_id,
         source_hostname=route.source_hostname,
         name=name,
         port=port,
@@ -268,23 +293,22 @@ def stop_portal(portal: ActivePortal, process: subprocess.Popen[bytes]) -> None:
 
 def clean_stale_manifests() -> None:
     PORTALS_DIR.mkdir(parents=True, exist_ok=True)
-    for manifest in PORTALS_DIR.glob("deployment-env-*.json"):
-        manifest.unlink()
+    for pattern in ("deployment-env-*.json", "deployment-id-*.json"):
+        for manifest in PORTALS_DIR.glob(pattern):
+            manifest.unlink()
+    for legacy_manifest in ("deployment.json", "deployment-portals.json"):
+        (PORTALS_DIR / legacy_manifest).unlink(missing_ok=True)
 
 
-def reconcile(routes: list[EnvironmentRoute]) -> None:
-    dynamic_routes = {
-        route.environment_id: route
-        for route in routes
-        if route.source_hostname != STATIC_SOURCE_HOSTNAME
-    }
+def reconcile(routes: list[DeploymentRoute]) -> None:
+    dynamic_routes = {route.deployment_id: route for route in routes}
 
     with STATE_LOCK:
         current_portals = list(ACTIVE_PORTALS.items())
-    for environment_id, portal in current_portals:
+    for deployment_id, portal in current_portals:
         with STATE_LOCK:
-            process = PORTAL_PROCESSES[environment_id]
-        route = dynamic_routes.get(environment_id)
+            process = PORTAL_PROCESSES[deployment_id]
+        route = dynamic_routes.get(deployment_id)
         if (
             route is not None
             and route.source_hostname == portal.source_hostname
@@ -294,21 +318,21 @@ def reconcile(routes: list[EnvironmentRoute]) -> None:
 
         stop_portal(portal, process)
         with STATE_LOCK:
-            ACTIVE_PORTALS.pop(environment_id, None)
-            PORTAL_PROCESSES.pop(environment_id, None)
+            ACTIVE_PORTALS.pop(deployment_id, None)
+            PORTAL_PROCESSES.pop(deployment_id, None)
 
     with STATE_LOCK:
         used_ports = {portal.port for portal in ACTIVE_PORTALS.values()}
-        active_environment_ids = set(ACTIVE_PORTALS)
-    for environment_id, route in sorted(dynamic_routes.items()):
-        if environment_id in active_environment_ids:
+        active_deployment_ids = set(ACTIVE_PORTALS)
+    for deployment_id, route in sorted(dynamic_routes.items()):
+        if deployment_id in active_deployment_ids:
             continue
-        port = allocate_port(environment_id, used_ports)
+        port = allocate_port(deployment_id, used_ports)
         portal, process = start_portal(route, port)
         used_ports.add(port)
         with STATE_LOCK:
-            ACTIVE_PORTALS[environment_id] = portal
-            PORTAL_PROCESSES[environment_id] = process
+            ACTIVE_PORTALS[deployment_id] = portal
+            PORTAL_PROCESSES[deployment_id] = process
 
 
 def watch_routes() -> None:
@@ -320,7 +344,7 @@ def watch_routes() -> None:
             if not cleaned:
                 clean_stale_manifests()
                 cleaned = True
-            reconcile(list_environment_routes())
+            reconcile(list_deployment_routes())
             with STATE_LOCK:
                 LAST_ERROR = ""
         except (OSError, RuntimeError, subprocess.SubprocessError) as error:
