@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
 import { customDomains } from "./custom_domains";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -12,8 +13,10 @@ export const acmeChallenges = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    domainId: caseSensitiveVarchar("domain_id", { length: 32 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // domainId: id("domain_id").notNull().unique(),
+    domainId: caseSensitiveVarchar("domain_id", { length: 255 }).notNull().unique(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 255 }).notNull(),
     token: caseSensitiveVarchar("token", { length: 255 }).notNull(),
     type: challengeType,
     authorization: caseSensitiveVarchar("authorization", { length: 255 }).notNull(),

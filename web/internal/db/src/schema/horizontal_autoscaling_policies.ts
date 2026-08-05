@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, int, mysqlTable, tinyint } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -14,9 +15,11 @@ export const horizontalAutoscalingPolicies = mysqlTable(
   "horizontal_autoscaling_policies",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     replicasMin: int("replicas_min").notNull(),
     replicasMax: int("replicas_max").notNull(),

@@ -16,6 +16,7 @@ import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -24,17 +25,22 @@ export const deployments = mysqlTable(
   "deployments",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    // projectId: id("project_id").notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
+    // environmentId: id("environment_id").notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
 
     // App this deployment belongs to
-    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
+    // appId: id("app_id").notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
 
     // the docker image
     // null until the build is done

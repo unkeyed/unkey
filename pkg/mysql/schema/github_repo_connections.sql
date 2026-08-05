@@ -1,8 +1,8 @@
 CREATE TABLE `github_repo_connections` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`project_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`app_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`project_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`app_id` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`installation_id` bigint NOT NULL,
 	`repository_id` bigint NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,

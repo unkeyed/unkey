@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
 export const verificationStatus = mysqlEnum("verification_status", [
@@ -23,11 +24,16 @@ export const customDomains = mysqlTable(
   "custom_domains",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    // projectId: id("project_id").notNull(),
+    projectId: caseSensitiveVarchar("project_id", { length: 256 }).notNull(),
+    // appId: id("app_id").notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    // environmentId: id("environment_id").notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 256 }).notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,

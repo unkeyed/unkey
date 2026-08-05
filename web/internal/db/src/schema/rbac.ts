@@ -3,15 +3,19 @@ import { bigint, index, mysqlTable, unique, uniqueIndex, varchar } from "drizzle
 import { keys } from "./keys";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { workspaces } from "./workspaces";
 
 export const permissions = mysqlTable(
   "permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    // projectId: id("project_id").notNull().default(""),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
     description: varchar("description", { length: 512 }),
@@ -43,9 +47,12 @@ export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: caseSensitiveVarchar("key_id", { length: 32 }).notNull(),
-    permissionId: caseSensitiveVarchar("permission_id", { length: 32 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // keyId: id("key_id").notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
+    // permissionId: id("permission_id").notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -79,9 +86,12 @@ export const roles = mysqlTable(
   "roles",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 32 }).notNull().default(""),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    // projectId: id("project_id").notNull().default(""),
+    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull().default(""),
     name: caseInsensitiveVarchar("name", { length: 512 }).notNull(),
     description: varchar("description", { length: 512 }),
     createdAtM: bigint("created_at_m", { mode: "number" })
@@ -114,9 +124,12 @@ export const rolesPermissions = mysqlTable(
   "roles_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    roleId: caseSensitiveVarchar("role_id", { length: 32 }).notNull(),
-    permissionId: caseSensitiveVarchar("permission_id", { length: 32 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // roleId: id("role_id").notNull(),
+    roleId: caseSensitiveVarchar("role_id", { length: 256 }).notNull(),
+    // permissionId: id("permission_id").notNull(),
+    permissionId: caseSensitiveVarchar("permission_id", { length: 256 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()
@@ -151,9 +164,12 @@ export const keysRoles = mysqlTable(
   "keys_roles",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    keyId: caseSensitiveVarchar("key_id", { length: 32 }).notNull(),
-    roleId: caseSensitiveVarchar("role_id", { length: 32 }).notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // keyId: id("key_id").notNull(),
+    keyId: caseSensitiveVarchar("key_id", { length: 256 }).notNull(),
+    // roleId: id("role_id").notNull(),
+    roleId: caseSensitiveVarchar("role_id", { length: 256 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     createdAtM: bigint("created_at_m", { mode: "number" })
       .notNull()

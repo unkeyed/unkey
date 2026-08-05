@@ -10,12 +10,15 @@ import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 export const projects = mysqlTable(
   "projects",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 32 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
+    // id: id("id").notNull().unique(),
+    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace

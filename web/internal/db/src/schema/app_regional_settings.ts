@@ -5,6 +5,7 @@ import { environments } from "./environments";
 import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+// import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -19,16 +20,21 @@ export const appRegionalSettings = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
 
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 32 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 32 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 32 }).notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 32 }).notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    // appId: id("app_id").notNull(),
+    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
+    // environmentId: id("environment_id").notNull(),
+    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    // regionId: id("region_id").notNull(),
+    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
 
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
+    // horizontalAutoscalingPolicyId: id("horizontal_autoscaling_policy_id"),
     horizontalAutoscalingPolicyId: caseSensitiveVarchar("horizontal_autoscaling_policy_id", {
-      length: 32,
+      length: 64,
     }),
 
     ...lifecycleDates,
