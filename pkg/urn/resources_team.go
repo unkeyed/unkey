@@ -8,18 +8,14 @@ import "fmt"
 //
 //	workspace
 //	└── team
+//	    ├── memberships/{membership_id}
+//	    └── invitations/{invitation_id}
 type team struct {
 	workspaceID string
 	path        string
 }
 
 // Membership returns a team membership resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── team
-//	    └── memberships/{membership_id}
 func (t team) Membership(membershipID string) V1 {
 	return V1{
 		WorkspaceID: t.workspaceID,
@@ -28,12 +24,6 @@ func (t team) Membership(membershipID string) V1 {
 }
 
 // Invitation returns a team invitation resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── team
-//	    └── invitations/{invitation_id}
 func (t team) Invitation(invitationID string) V1 {
 	return V1{
 		WorkspaceID: t.workspaceID,

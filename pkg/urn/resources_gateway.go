@@ -11,6 +11,8 @@ import "fmt"
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
 //	            └── gateway
+//	                ├── policies/{policy_id}
+//	                └── routes/{route_id}
 type Gateway struct {
 	workspaceID string
 	path        string
@@ -44,29 +46,11 @@ func (r GatewayRoute) String() string {
 }
 
 // Policy returns a policy beneath this gateway.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
-//	        └── environments/{environment_id}
-//	            └── gateway
-//	                └── policies/{policy_id}
 func (g Gateway) Policy(policyID string) GatewayPolicy {
 	return GatewayPolicy{workspaceID: g.workspaceID, path: fmt.Sprintf("%s/policies/%s", g.path, policyID)}
 }
 
 // Route returns a route beneath this gateway.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
-//	        └── environments/{environment_id}
-//	            └── gateway
-//	                └── routes/{route_id}
 func (g Gateway) Route(routeID string) GatewayRoute {
 	return GatewayRoute{workspaceID: g.workspaceID, path: fmt.Sprintf("%s/routes/%s", g.path, routeID)}
 }

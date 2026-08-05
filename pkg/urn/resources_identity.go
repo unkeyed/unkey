@@ -13,12 +13,6 @@ type Identity struct {
 }
 
 // String returns this identity resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── identities/{identity_id}
 func (i Identity) String() string {
 	return V1{WorkspaceID: i.workspaceID, Resource: i.path}.String()
 }

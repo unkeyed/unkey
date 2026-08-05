@@ -9,6 +9,8 @@ import "fmt"
 //	workspace
 //	└── projects/{project_id}
 //	    └── rbac
+//	        ├── roles/{role_id}
+//	        └── permissions/{permission_id}
 type RBAC struct {
 	workspaceID string
 	path        string
@@ -37,25 +39,11 @@ func (p PermissionDefinition) String() string {
 }
 
 // Role returns an RBAC role resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── rbac
-//	        └── roles/{role_id}
 func (r RBAC) Role(roleID string) Role {
 	return Role{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/roles/%s", r.path, roleID)}
 }
 
 // Permission returns an RBAC permission resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── rbac
-//	        └── permissions/{permission_id}
 func (r RBAC) Permission(permissionID string) PermissionDefinition {
 	return PermissionDefinition{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/permissions/%s", r.path, permissionID)}
 }

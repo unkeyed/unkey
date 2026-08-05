@@ -15,24 +15,11 @@ type App struct {
 }
 
 // String returns this app resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
 func (a App) String() string {
 	return V1{WorkspaceID: a.workspaceID, Resource: a.path}.String()
 }
 
 // Environment returns builders for environment resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
-//	        └── environments/{environment_id}
 func (a App) Environment(environmentID string) Environment {
 	return Environment{workspaceID: a.workspaceID, path: fmt.Sprintf("%s/environments/%s", a.path, environmentID)}
 }

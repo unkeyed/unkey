@@ -21,66 +21,31 @@ type Project struct {
 }
 
 // String returns this project resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
 func (p Project) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }
 
 // App returns builders for app resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── apps/{app_id}
 func (p Project) App(appID string) App {
 	return App{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/apps/%s", p.path, appID)}
 }
 
 // Identity returns an identity resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── identities/{identity_id}
 func (p Project) Identity(identityID string) Identity {
 	return Identity{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/identities/%s", p.path, identityID)}
 }
 
 // Keyspace returns builders for project-owned keyspace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── keyspaces/{keyspace_id}
 func (p Project) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/keyspaces/%s", p.path, keyspaceID)}
 }
 
 // RatelimitNamespace returns builders for project-owned rate limit namespace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── ratelimits/namespaces/{namespace_id}
 func (p Project) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 	return RatelimitNamespace{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/ratelimits/namespaces/%s", p.path, namespaceID)}
 }
 
 // RBAC returns builders for project-owned role and permission definition paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── rbac
 func (p Project) RBAC() RBAC {
 	return RBAC{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/rbac", p.path)}
 }

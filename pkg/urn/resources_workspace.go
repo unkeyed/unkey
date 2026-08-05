@@ -34,51 +34,26 @@ func (w Workspace) String() string {
 }
 
 // Billing returns builders for billing resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── billing
 func (w Workspace) Billing() billing {
 	return billing{workspaceID: w.workspaceID, path: "billing"}
 }
 
 // Keyspace returns builders for keyspace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── keyspaces/{keyspace_id}
 func (w Workspace) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: w.workspaceID, path: fmt.Sprintf("keyspaces/%s", keyspaceID)}
 }
 
 // RatelimitNamespace returns builders for rate limit namespace resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── ratelimits/namespaces/{namespace_id}
 func (w Workspace) RatelimitNamespace(namespaceID string) RatelimitNamespace {
 	return RatelimitNamespace{workspaceID: w.workspaceID, path: fmt.Sprintf("ratelimits/namespaces/%s", namespaceID)}
 }
 
 // Project returns builders for project resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── projects/{project_id}
 func (w Workspace) Project(projectID string) Project {
 	return Project{workspaceID: w.workspaceID, path: fmt.Sprintf("projects/%s", projectID)}
 }
 
 // Portal returns builders for portal resource paths.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
 func (w Workspace) Portal(portalID string) Portal {
 	return Portal{workspaceID: w.workspaceID, path: fmt.Sprintf("portals/%s", portalID)}
 }

@@ -8,28 +8,20 @@ import "fmt"
 //
 //	workspace
 //	└── portals/{portal_id}
+//	    ├── session_tokens/{portal_session_token_id}
+//	    ├── sessions/{session_id}
+//	    └── branding
 type Portal struct {
 	workspaceID string
 	path        string
 }
 
 // String returns this portal resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
 func (p Portal) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }
 
 // SessionToken returns a portal session token resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
-//	    └── session_tokens/{portal_session_token_id}
 func (p Portal) SessionToken(tokenID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
@@ -38,12 +30,6 @@ func (p Portal) SessionToken(tokenID string) V1 {
 }
 
 // Session returns a portal session resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
-//	    └── sessions/{session_id}
 func (p Portal) Session(sessionID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
@@ -52,12 +38,6 @@ func (p Portal) Session(sessionID string) V1 {
 }
 
 // Branding returns a portal branding resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
-//	    └── branding
 func (p Portal) Branding() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
