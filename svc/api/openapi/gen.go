@@ -205,6 +205,13 @@ type App struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
+// AppDockerImageCreateInput Configure a Docker image as the app source. The image reference must include
+// an explicit tag or digest.
+type AppDockerImageCreateInput struct {
+	// DockerImage The default Docker image reference for new deployments.
+	DockerImage string `json:"dockerImage"`
+}
+
 // AppGit defines model for AppGit.
 type AppGit struct {
 	// DefaultBranch The branch this app's deployments track.
@@ -1570,11 +1577,16 @@ type V2ApisListKeysResponseBody struct {
 // V2ApisListKeysResponseData Array of API keys with complete configuration and metadata.
 type V2ApisListKeysResponseData = []KeyResponseData
 
-// V2AppsCreateAppRequestBody defines model for V2AppsCreateAppRequestBody.
+// V2AppsCreateAppRequestBody Create an app with an optional GitHub or Docker image source. Provide at most
+// one of `git` or `image`. Omit both only for compatibility with source-less apps.
 type V2AppsCreateAppRequestBody struct {
 	// Git Connect a GitHub repository to the app on creation. Omit to create the app
 	// without a repository and connect one later with apps.updateApp.
 	Git *AppGitCreateInput `json:"git,omitempty"`
+
+	// Image Configure a Docker image as the app source. The image reference must include
+	// an explicit tag or digest.
+	Image *AppDockerImageCreateInput `json:"image,omitempty"`
 
 	// Name Human-readable name for this app.
 	// Use a descriptive name like 'Payments API' to identify its purpose.

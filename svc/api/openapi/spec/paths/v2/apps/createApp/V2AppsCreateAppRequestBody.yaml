@@ -18,7 +18,14 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   git:
     "$ref": "../../../../common/AppGitCreateInput.yaml"
+  image:
+    "$ref": "../../../../common/AppDockerImageCreateInput.yaml"
 additionalProperties: false
+not:
+  required: [git, image]
+description: |
+  Create an app with an optional GitHub or Docker image source. Provide at most
+  one of `git` or `image`. Omit both only for compatibility with source-less apps.
 examples:
   byProjectSlug:
     summary: Create within a project by slug
@@ -43,3 +50,12 @@ examples:
       slug: payments-api
       git:
         repository: unkeyed/unkey
+  dockerImage:
+    summary: Create from a Docker image
+    description: Create a Docker-sourced app with a default image reference.
+    value:
+      project: payments
+      name: Payments API
+      slug: payments-api
+      image:
+        dockerImage: ghcr.io/acme/payments:v1.2.3

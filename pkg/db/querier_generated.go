@@ -2742,10 +2742,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2760,6 +2762,7 @@ type Querier interface {
 	//      installation_id = VALUES(installation_id),
 	//      repository_id = VALUES(repository_id),
 	//      repository_full_name = VALUES(repository_full_name),
+	//      default_branch = VALUES(default_branch),
 	//      updated_at = VALUES(updated_at)
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, arg UpsertGithubRepoConnectionParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.

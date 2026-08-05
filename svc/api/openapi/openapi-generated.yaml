@@ -395,7 +395,16 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
+                image:
+                    "$ref": "#/components/schemas/AppDockerImageCreateInput"
             additionalProperties: false
+            not:
+                required:
+                    - git
+                    - image
+            description: |
+                Create an app with an optional GitHub or Docker image source. Provide at most
+                one of `git` or `image`. Omit both only for compatibility with source-less apps.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -3833,6 +3842,22 @@ components:
                         default branch on GitHub.
                     example: main
             additionalProperties: false
+        AppDockerImageCreateInput:
+            type: object
+            description: |
+                Configure a Docker image as the app source. The image reference must include
+                an explicit tag or digest.
+            required:
+                - dockerImage
+            properties:
+                dockerImage:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    pattern: "\\S"
+                    description: The default Docker image reference for new deployments.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -7001,6 +7026,8 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
+                Set `git` to create a GitHub-sourced app and connect its repository. Set `image` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
+
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
                 **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -7019,6 +7046,15 @@ paths:
                                 description: Create an app within a project
                                 summary: Basic app creation
                                 value:
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            dockerImage:
+                                description: Create an app from a Docker image
+                                summary: Docker image app
+                                value:
+                                    image:
+                                        dockerImage: ghcr.io/acme/payments:v1.2.3
                                     name: Payments API
                                     project: payments
                                     slug: payments-api
