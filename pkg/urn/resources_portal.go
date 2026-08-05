@@ -27,8 +27,9 @@ func (p Portal) String() string {
 //
 // Subresource:
 //
-//	portals/{portal_id}
-//	└── session_tokens/{portal_session_token_id}
+//	workspace
+//	└── portals/{portal_id}
+//	    └── session_tokens/{portal_session_token_id}
 func (p Portal) SessionToken(tokenID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
@@ -40,8 +41,9 @@ func (p Portal) SessionToken(tokenID string) V1 {
 //
 // Subresource:
 //
-//	portals/{portal_id}
-//	└── sessions/{session_id}
+//	workspace
+//	└── portals/{portal_id}
+//	    └── sessions/{session_id}
 func (p Portal) Session(sessionID string) V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,
@@ -53,8 +55,9 @@ func (p Portal) Session(sessionID string) V1 {
 //
 // Subresource:
 //
-//	portals/{portal_id}
-//	└── branding
+//	workspace
+//	└── portals/{portal_id}
+//	    └── branding
 func (p Portal) Branding() V1 {
 	return V1{
 		WorkspaceID: p.workspaceID,

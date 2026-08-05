@@ -17,8 +17,9 @@ type team struct {
 //
 // Subresource:
 //
-//	team
-//	└── memberships/{membership_id}
+//	workspace
+//	└── team
+//	    └── memberships/{membership_id}
 func (t team) Membership(membershipID string) V1 {
 	return V1{
 		WorkspaceID: t.workspaceID,
@@ -30,8 +31,9 @@ func (t team) Membership(membershipID string) V1 {
 //
 // Subresource:
 //
-//	team
-//	└── invitations/{invitation_id}
+//	workspace
+//	└── team
+//	    └── invitations/{invitation_id}
 func (t team) Invitation(invitationID string) V1 {
 	return V1{
 		WorkspaceID: t.workspaceID,

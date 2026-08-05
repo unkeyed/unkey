@@ -6,8 +6,9 @@ import "fmt"
 //
 // Hierarchy:
 //
-//	{parent_resource}
-//	└── ratelimits/namespaces/{namespace_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── ratelimits/namespaces/{namespace_id}
 //
 // The namespace is intentionally below the literal "ratelimits" segment so all
 // rate limit resources can share one branch beneath their parent.
@@ -20,8 +21,9 @@ type RatelimitNamespace struct {
 //
 // Subresource:
 //
-//	{parent_resource}
-//	└── ratelimits/namespaces/{namespace_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── ratelimits/namespaces/{namespace_id}
 func (r RatelimitNamespace) String() string {
 	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
 }
@@ -46,8 +48,10 @@ func (r RatelimitOverride) V1() V1 {
 //
 // Subresource:
 //
-//	ratelimits/namespaces/{namespace_id}
-//	└── overrides/{override_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── ratelimits/namespaces/{namespace_id}
+//	        └── overrides/{override_id}
 func (r RatelimitNamespace) Override(overrideID string) RatelimitOverride {
 	return RatelimitOverride{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/overrides/%s", r.path, overrideID)}
 }

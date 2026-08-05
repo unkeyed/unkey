@@ -17,8 +17,9 @@ type billing struct {
 //
 // Subresource:
 //
-//	billing
-//	└── invoices/{invoice_id}
+//	workspace
+//	└── billing
+//	    └── invoices/{invoice_id}
 func (b billing) Invoice(invoiceID string) V1 {
 	return V1{
 		WorkspaceID: b.workspaceID,
@@ -30,8 +31,9 @@ func (b billing) Invoice(invoiceID string) V1 {
 //
 // Subresource:
 //
-//	billing
-//	└── quotas
+//	workspace
+//	└── billing
+//	    └── quotas
 func (b billing) Quotas() V1 {
 	return V1{
 		WorkspaceID: b.workspaceID,

@@ -19,8 +19,10 @@ type Environment struct {
 //
 // Subresource:
 //
-//	apps/{app_id}
-//	└── environments/{environment_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
 func (e Environment) String() string {
 	return V1{WorkspaceID: e.workspaceID, Resource: e.path}.String()
 }
@@ -29,8 +31,11 @@ func (e Environment) String() string {
 //
 // Subresource:
 //
-//	environments/{environment_id}
-//	└── deployments/{deployment_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── deployments/{deployment_id}
 func (e Environment) Deployment(deploymentID string) Deployment {
 	return Deployment{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/deployments/%s", e.path, deploymentID)}
 }
@@ -50,8 +55,11 @@ func (d Domain) String() string {
 //
 // Subresource:
 //
-//	environments/{environment_id}
-//	└── domains/{domain_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── domains/{domain_id}
 func (e Environment) Domain(domainID string) Domain {
 	return Domain{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/domains/%s", e.path, domainID)}
 }
@@ -71,13 +79,24 @@ func (v Variable) String() string {
 //
 // Subresource:
 //
-//	environments/{environment_id}
-//	└── variables/{variable_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── variables/{variable_id}
 func (e Environment) Variable(variableID string) Variable {
 	return Variable{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/variables/%s", e.path, variableID)}
 }
 
 // Gateway returns the environment's gateway resource namespace.
+//
+// Subresource:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── gateway
 func (e Environment) Gateway() Gateway {
 	return Gateway{workspaceID: e.workspaceID, path: fmt.Sprintf("%s/gateway", e.path)}
 }

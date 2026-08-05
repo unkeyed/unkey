@@ -6,8 +6,9 @@ import "fmt"
 //
 // Hierarchy:
 //
-//	{parent_resource}
-//	└── rbac
+//	workspace
+//	└── projects/{project_id}
+//	    └── rbac
 type RBAC struct {
 	workspaceID string
 	path        string
@@ -39,8 +40,10 @@ func (p PermissionDefinition) String() string {
 //
 // Subresource:
 //
-//	rbac
-//	└── roles/{role_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── rbac
+//	        └── roles/{role_id}
 func (r RBAC) Role(roleID string) Role {
 	return Role{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/roles/%s", r.path, roleID)}
 }
@@ -49,8 +52,10 @@ func (r RBAC) Role(roleID string) Role {
 //
 // Subresource:
 //
-//	rbac
-//	└── permissions/{permission_id}
+//	workspace
+//	└── projects/{project_id}
+//	    └── rbac
+//	        └── permissions/{permission_id}
 func (r RBAC) Permission(permissionID string) PermissionDefinition {
 	return PermissionDefinition{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/permissions/%s", r.path, permissionID)}
 }
