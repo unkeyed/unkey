@@ -211,7 +211,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.CreateKey{}),
 		))
 		if err != nil {
 			return apierrors.MaskInsufficientPermissionsAsNotFound(

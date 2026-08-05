@@ -287,9 +287,8 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees canonical create_key
-// and encrypt_key grants authorize recoverable key creation without legacy API
-// tuple grants.
+// TestCreateRecoverableKeyWithURNPermissions guarantees a canonical create_key
+// grant authorizes recoverable key creation without legacy API tuple grants.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
@@ -312,7 +311,6 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
 		createKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
-		encryptKeyPermission(t, h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -614,9 +612,4 @@ func createKeyPermission(t *testing.T, workspaceID string, keyspaceID string) st
 func createAnyKeyPermission(t *testing.T, workspaceID string) string {
 	t.Helper()
 	return rbac.U(urn.New().Workspace(workspaceID).Keyspace("*").Key("*"), permissions.CreateKey{}).Value
-}
-
-func encryptKeyPermission(t *testing.T, workspaceID string, keyspaceID string) string {
-	t.Helper()
-	return rbac.U(urn.New().Workspace(workspaceID).Keyspace(keyspaceID).Key("*"), permissions.EncryptKey{}).Value
 }

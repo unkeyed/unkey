@@ -167,80 +167,55 @@ var permissionMappings = map[string]permissionMapping{
 	"keys:create": {
 		name:        "Create keys",
 		description: "Allows creating keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.CreateKey{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.CreateKey{})},
-		},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.CreateKey{})}},
 	},
 	"keys:decrypt": {
 		name:        "Decrypt keys",
 		description: "Allows reading recoverable key material.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
-		},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.DecryptKey{})}},
 	},
 	"keys:delete": {
 		name:        "Delete keys",
 		description: "Allows deleting keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
-		},
-	},
-	"keys:encrypt": {
-		name:        "Encrypt keys",
-		description: "Allows creating recoverable keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.EncryptKey{})},
-		},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.DeleteKey{})}},
 	},
 	"keys:read": {
 		name:        "Read keys",
 		description: "Allows reading keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
-			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
-			{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
+			{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.ReadKey{})},
+			{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.ReadKeyspace{})},
 		},
 	},
 	"keys:update": {
 		name:        "Update keys",
 		description: "Allows updating keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
-		},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.UpdateKey{})}},
 	},
 	"keys:verify": {
 		name:        "Verify keys",
 		description: "Allows verifying keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
-			{resource: "projects/*/keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
-		},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.VerifyKey{})}},
 	},
 	"keyspaces:create": {
 		name:        "Create Keyspaces",
 		description: "Allows creating keyspaces.",
-		permissions: []permissionGrant{{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.CreateKeyspace{})}},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.CreateKeyspace{})}},
 	},
 	"keyspaces:delete": {
 		name:        "Delete Keyspaces",
 		description: "Allows deleting keyspaces.",
-		permissions: []permissionGrant{{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.DeleteKeyspace{})}},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.DeleteKeyspace{})}},
 	},
 	"keyspaces:read": {
 		name:        "Read Keyspaces",
 		description: "Allows reading keyspaces.",
-		permissions: []permissionGrant{{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})}},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.ReadKeyspace{})}},
 	},
 	"keyspaces:read_logs": {
 		name:        "Read Keyspace Logs",
 		description: "Allows reading key verification logs.",
-		permissions: []permissionGrant{{resource: "projects/*/keyspaces/*", action: action(rbacpermissions.ReadKeyspaceLogs{})}},
+		permissions: []permissionGrant{{resource: "projects/*/keyspaces/**", action: action(rbacpermissions.ReadKeyspaceLogs{})}},
 	},
 	"permissions:create": {
 		name:        "Create Permission Definitions",
@@ -360,8 +335,7 @@ func sortedPermissionSlugs() []string {
 // A WorkOS permission may add several grants while old and new resource scopes
 // coexist during migration. For workspaceID "ws_1", "keys:create" adds:
 //
-//	unkey:v1:ws_1:keyspaces/*/keys/*#create_key
-//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#create_key
+//	unkey:v1:ws_1:projects/*/keyspaces/**#create_key
 //
 // "admin:*" adds "unkey:v1:ws_1:**#*". Unknown permissions are dropped with a
 // warning. The complete translation table is permissionMappings.
