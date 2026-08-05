@@ -2096,6 +2096,26 @@ type V2DomainsCreateDomainResponseData struct {
 	DomainId ResourceIdentifier `json:"domainId"`
 }
 
+// V2DomainsDeleteDomainRequestBody defines model for V2DomainsDeleteDomainRequestBody.
+type V2DomainsDeleteDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsDeleteDomainResponseBody defines model for V2DomainsDeleteDomainResponseBody.
+type V2DomainsDeleteDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
 type V2DomainsGetDomainRequestBody struct {
 	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
@@ -4413,6 +4433,9 @@ type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentReque
 
 // DomainsCreateDomainJSONRequestBody defines body for DomainsCreateDomain for application/json ContentType.
 type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
+
+// DomainsDeleteDomainJSONRequestBody defines body for DomainsDeleteDomain for application/json ContentType.
+type DomainsDeleteDomainJSONRequestBody = V2DomainsDeleteDomainRequestBody
 
 // DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
 type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody

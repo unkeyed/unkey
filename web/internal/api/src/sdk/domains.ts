@@ -3,6 +3,7 @@
  */
 
 import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
+import { domainsDeleteDomain } from "../funcs/domainsDeleteDomain.js";
 import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
 import { domainsListDomains } from "../funcs/domainsListDomains.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
@@ -39,6 +40,38 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsCreateDomainResponseBody> {
     return unwrapAsync(domainsCreateDomain(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Delete domain
+   *
+   * @remarks
+   * Delete a custom domain from your workspace.
+   *
+   * Address the domain by its id or by its name. Names are unique per workspace, so
+   * `api.acme.com` is sufficient. You do not need to supply a project, app, or environment.
+   *
+   * Deletion is immediate. Unkey removes the domain, its routing, and its pending certificate
+   * challenge in one transaction. A running verification stops. Traffic to the domain no longer
+   * reaches your deployment when the response returns.
+   *
+   * Deleting a domain twice is safe. The first call deletes it, and each later call returns a 404.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.delete_domain` (to delete domains in any environment)
+   * - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
+   */
+  async deleteDomain(
+    request: components.V2DomainsDeleteDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsDeleteDomainResponseBody> {
+    return unwrapAsync(domainsDeleteDomain(
       this,
       request,
       options,
