@@ -3406,22 +3406,26 @@ components:
             properties:
                 location:
                     description: |-
-                        JSON path indicating exactly where in the request the error occurred. This helps pinpoint the problematic field or parameter. Examples include:
+                        Path to the part of the request that was rejected. The first segment says which part of the request to look at: `body`, `query`, `path`, `header`, `cookie`, or `request` when the problem is with the request as a whole. Examples include:
                         - 'body.name' (field in request body)
                         - 'body.items[3].tags' (nested array element)
                         - 'path.apiId' (path parameter)
                         - 'query.limit' (query parameter)
+                        - 'header.Content-Type' (request header)
+                        A `*` segment stands for a property name that came from your request, such as a key inside a free-form object. Those names are never echoed back, because this response is also written to your request logs.
                         Use this location to identify exactly which part of your request needs correction.
                     type: string
                     example: body.permissions[0].name
                 message:
-                    description: Detailed error message explaining what validation rule was violated. This provides specific information about why the field or parameter was rejected, such as format errors, invalid values, or constraint violations.
+                    description: |-
+                        What the field must satisfy, phrased so that it reads as a sentence after the location: "body.name must be at least 3 characters long". It states the rule from the API schema, never the value you sent: values, their lengths, and property names you chose are left out on purpose, since this response is returned to you and written to your request logs.
                     type: string
-                    example: Must be at least 3 characters long
+                    example: must be at least 3 characters long
                 fix:
-                    description: A human-readable suggestion describing how to fix the error. This provides practical guidance on what changes would satisfy the validation requirements. Not all validation errors include fix suggestions, but when present, they offer specific remediation advice.
+                    description: |-
+                        A human-readable suggestion describing how to fix the error. Most messages are specific enough on their own, so a fix is present mainly where the message had to leave out a detail that came from your request: a property this operation does not define is answered with the names it does accept, rather than with the name you sent.
                     type: string
-                    example: Ensure the name uses only alphanumeric characters, underscores, and hyphens
+                    example: "Remove any property that is not one of: apiId, byteLength, name."
             required:
                 - location
                 - message

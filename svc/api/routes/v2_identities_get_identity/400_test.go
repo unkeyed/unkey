@@ -34,7 +34,7 @@ func TestBadRequests(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
 		require.Equal(t, "POST request body for '/v2/identities.getIdentity' failed to validate schema", res.Body.Error.Detail)
 		require.GreaterOrEqual(t, len(res.Body.Error.Errors), 1)
-		require.Equal(t, "/properties/identity/minLength", res.Body.Error.Errors[0].Location)
+		require.Equal(t, "body.identity", res.Body.Error.Errors[0].Location)
 		require.Equal(t, 400, res.Body.Error.Status)
 		require.Equal(t, "Bad Request", res.Body.Error.Title)
 		require.NotEmpty(t, res.Body.Meta.RequestId)

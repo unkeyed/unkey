@@ -57,10 +57,13 @@ func (e *Executor) Execute(
 		return nil
 	}
 
-	publicMsg := result.Detail
-	if len(result.Errors) > 0 {
-		publicMsg = result.Detail + ": " + result.Errors[0].Message
-	}
+	// A policy failure carries one line, so that line has to name the fields as
+	// well as the constraints: every message is a predicate about a location, so
+	// "failed to validate schema: must be at least 1 character long" would not say
+	// which field. Summary joins them, and nothing it renders comes from the
+	// request, which is what makes it safe to put a customer's request through
+	// this at all. See the package comment on pkg/openapi/validation.
+	publicMsg := result.Summary()
 
 	return fault.New("request validation failed",
 		fault.Code(codes.Frontline.OpenApi.InvalidRequest.URN()),
