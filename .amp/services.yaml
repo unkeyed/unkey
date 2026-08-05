@@ -19,24 +19,30 @@ services:
     command: >-
       python3 -u .amp/service-proxy.py "$PORT" 7070
     port: 17070
+    health: /health/live
     portal:
       title: Unkey API
+      url: /v2/liveness
       description: Local API from the minikube Deploy stack.
 
   vault:
     command: >-
       python3 -u .amp/service-proxy.py "$PORT" 8060
     port: 18060
+    health: /health/live
     portal:
       title: Vault RPC
+      url: /health/live
       description: Local Vault Connect RPC service from the minikube stack.
 
   control-api:
     command: >-
       python3 -u .amp/service-proxy.py "$PORT" 7091
     port: 17091
+    health: /health/live
     portal:
       title: Control API
+      url: /health/live
       description: Local Deploy control-plane API from the minikube stack.
 
   portal:
