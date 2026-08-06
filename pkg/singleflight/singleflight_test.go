@@ -65,6 +65,94 @@ func TestDoDeduplicatesConcurrentCalls(t *testing.T) {
 	})
 }
 
+// TestScheduleReservesBeforeEnqueue guarantees that queued work remains
+// deduplicated before a worker begins executing it.
+func TestScheduleReservesBeforeEnqueue(t *testing.T) {
+	group := New[string, string]()
+	var scheduled func()
+	schedule := func(function func()) {
+		scheduled = function
+	}
+
+	require.True(t, group.Schedule(context.Background(), "key", schedule, func(context.Context) (string, error) {
+		return "value", nil
+	}))
+	require.False(t, group.Schedule(context.Background(), "key", schedule, func(context.Context) (string, error) {
+		return "duplicate", nil
+	}))
+	require.NotNil(t, scheduled)
+	scheduled()
+
+	value, err := group.Do(context.Background(), "key", func(context.Context) (string, error) {
+		return "next", nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, "next", value)
+}
+
+// TestScheduleManyReservesOverlappingKeys guarantees that overlapping batches
+// execute each key at most once while preserving non-overlapping batch work.
+func TestScheduleManyReservesOverlappingKeys(t *testing.T) {
+	group := New[string, string]()
+	var scheduled []func()
+	schedule := func(function func()) {
+		scheduled = append(scheduled, function)
+	}
+	executedKeys := make(chan []string, 2)
+	function := func(_ context.Context, keys []string) (map[string]string, error) {
+		executedKeys <- append([]string(nil), keys...)
+		values := make(map[string]string, len(keys))
+		for _, key := range keys {
+			values[key] = key
+		}
+		return values, nil
+	}
+
+	require.True(t, group.ScheduleMany(context.Background(), []string{"a", "b", "a"}, schedule, function))
+	require.True(t, group.ScheduleMany(context.Background(), []string{"b", "c"}, schedule, function))
+	require.Len(t, scheduled, 2)
+	scheduled[0]()
+	scheduled[1]()
+	require.Equal(t, []string{"a", "b"}, <-executedKeys)
+	require.Equal(t, []string{"c"}, <-executedKeys)
+}
+
+func TestSchedulePanicReleasesKey(t *testing.T) {
+	group := New[string, string]()
+	require.Panics(t, func() {
+		group.Schedule(context.Background(), "key", func(func()) {
+			panic("scheduler failed")
+		}, func(context.Context) (string, error) {
+			return "unreachable", nil
+		})
+	})
+
+	value, err := group.Do(context.Background(), "key", func(context.Context) (string, error) {
+		return "recovered", nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, "recovered", value)
+}
+
+func TestScheduleManyPanicReleasesKeys(t *testing.T) {
+	group := New[string, string]()
+	require.Panics(t, func() {
+		group.ScheduleMany(context.Background(), []string{"a", "b"}, func(func()) {
+			panic("scheduler failed")
+		}, func(context.Context, []string) (map[string]string, error) {
+			return nil, nil
+		})
+	})
+
+	for _, key := range []string{"a", "b"} {
+		value, err := group.Do(context.Background(), key, func(context.Context) (string, error) {
+			return key, nil
+		})
+		require.NoError(t, err)
+		require.Equal(t, key, value)
+	}
+}
+
 // TestCanceledWaiterStopsWaiting guarantees that one waiting caller can cancel
 // without interrupting the call shared by other waiters.
 func TestCanceledWaiterStopsWaiting(t *testing.T) {

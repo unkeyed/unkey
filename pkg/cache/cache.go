@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/maypok86/otter"
@@ -29,8 +28,6 @@ type cache[K comparable, V any] struct {
 
 	revalidateC chan func()
 
-	inflightMu        sync.Mutex
-	inflightRefreshes map[K]bool
 	// Origin deduplicates concurrent cache misses for the same key.
 	origin *singleflight.Group[K, missResult[V]]
 }
@@ -92,15 +89,13 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		return nil, err
 	}
 	c := &cache[K, V]{
-		otter:             otter,
-		fresh:             config.Fresh,
-		stale:             config.Stale,
-		resource:          config.Resource,
-		clock:             config.Clock,
-		revalidateC:       make(chan func(), 1000),
-		inflightMu:        sync.Mutex{},
-		inflightRefreshes: make(map[K]bool),
-		origin:            singleflight.New[K, missResult[V]](),
+		otter:       otter,
+		fresh:       config.Fresh,
+		stale:       config.Stale,
+		resource:    config.Resource,
+		clock:       config.Clock,
+		revalidateC: make(chan func(), 1000),
+		origin:      singleflight.New[K, missResult[V]](),
 	}
 
 	for range 10 {
@@ -289,35 +284,6 @@ func (c *cache[K, V]) Name() string {
 	return c.resource
 }
 
-func (c *cache[K, V]) revalidate(
-	ctx context.Context,
-	key K, refreshFromOrigin func(context.Context) (V, error),
-	op func(error) Op,
-) {
-	c.inflightMu.Lock()
-	_, ok := c.inflightRefreshes[key]
-	if ok {
-		c.inflightMu.Unlock()
-		return
-	}
-
-	c.inflightRefreshes[key] = true
-	c.inflightMu.Unlock()
-
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, key)
-		c.inflightMu.Unlock()
-	}()
-
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-	result := c.loadFromOrigin(ctx, key, refreshFromOrigin, op)
-
-	if result.err != nil && !db.IsNotFound(result.err) {
-		logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
-	}
-}
-
 func (c *cache[K, V]) SWR(
 	ctx context.Context,
 	key K,
@@ -336,11 +302,22 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.revalidateC <- func() {
-				// If we don't uncancel the context, the revalidation will get canceled when
-				// the api response is returned.
-				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
-			}
+			c.origin.Schedule(
+				context.WithoutCancel(ctx),
+				key,
+				c.scheduleRevalidation,
+				func(ctx context.Context) (missResult[V], error) {
+					if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Fresh) {
+						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+					}
+					metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+					result := c.loadFromOrigin(ctx, key, refreshFromOrigin, op)
+					if result.err != nil && !db.IsNotFound(result.err) {
+						logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
+					}
+					return result, nil
+				},
+			)
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -440,9 +417,28 @@ func (c *cache[K, V]) SWRMany(
 
 	// Queue stale keys for background refresh
 	if len(staleKeys) > 0 {
-		c.revalidateC <- func() {
-			c.revalidateMany(context.WithoutCancel(ctx), staleKeys, refreshFromOrigin, op)
-		}
+		c.origin.ScheduleMany(
+			context.WithoutCancel(ctx),
+			staleKeys,
+			c.scheduleRevalidation,
+			func(ctx context.Context, keys []K) (map[K]missResult[V], error) {
+				results := make(map[K]missResult[V], len(keys))
+				keysToRefresh := make([]K, 0, len(keys))
+				for _, key := range keys {
+					if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Fresh) {
+						results[key] = missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}
+						continue
+					}
+					keysToRefresh = append(keysToRefresh, key)
+				}
+				if len(keysToRefresh) > 0 {
+					for key, result := range c.revalidateMany(ctx, keysToRefresh, refreshFromOrigin, op) {
+						results[key] = result
+					}
+				}
+				return results, nil
+			},
+		)
 	}
 
 	// Fetch missing keys synchronously
@@ -516,15 +512,19 @@ func (c *cache[K, V]) SWRWithFallback(
 
 		if now.Before(e.Stale) {
 			// Stale - return but queue background revalidation with deduplication
-			c.inflightMu.Lock()
-			if !c.inflightRefreshes[key] {
-				c.inflightRefreshes[key] = true
-				dedupeKey := key // capture for closure
-				c.revalidateC <- func() {
-					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
-				}
-			}
-			c.inflightMu.Unlock()
+			c.origin.Schedule(
+				context.WithoutCancel(ctx),
+				key,
+				c.scheduleRevalidation,
+				func(ctx context.Context) (missResult[V], error) {
+					for _, candidate := range candidates {
+						if entry, ok := c.get(ctx, candidate); ok && c.clock.Now().Before(entry.Fresh) {
+							return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
+						}
+					}
+					return c.revalidateWithCanonicalKey(ctx, refreshFromOrigin, op), nil
+				},
+			)
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -561,32 +561,32 @@ func (c *cache[K, V]) SWRWithFallback(
 
 func (c *cache[K, V]) revalidateWithCanonicalKey(
 	ctx context.Context,
-	dedupeKey K,
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
-) {
-	defer func() {
-		c.inflightMu.Lock()
-		delete(c.inflightRefreshes, dedupeKey)
-		c.inflightMu.Unlock()
-	}()
-
+) missResult[V] {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
 		logger.Warn("failed to revalidate with canonical key", "error", err.Error())
-		return
+		return missResult[V]{value: v, hit: Miss, err: err}
 	}
 
+	hit := Miss
 	switch op(err) {
 	case WriteValue:
 		c.Set(ctx, canonicalKey, v)
+		hit = Hit
 	case WriteNull:
 		c.SetNull(ctx, canonicalKey)
+		hit = Null
 	case Noop:
 		break
 	}
+	if err != nil {
+		hit = Miss
+	}
+	return missResult[V]{value: v, hit: hit, err: err}
 }
 
 func (c *cache[K, V]) revalidateMany(
@@ -594,38 +594,17 @@ func (c *cache[K, V]) revalidateMany(
 	keys []K,
 	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
 	op func(error) Op,
-) {
-	// Lock to prevent duplicate revalidations
-	c.inflightMu.Lock()
-	var keysToRefresh []K
-	for _, key := range keys {
-		if !c.inflightRefreshes[key] {
-			c.inflightRefreshes[key] = true
-			keysToRefresh = append(keysToRefresh, key)
-		}
-	}
-	c.inflightMu.Unlock()
-
-	if len(keysToRefresh) == 0 {
-		return
-	}
-
-	defer func() {
-		c.inflightMu.Lock()
-		for _, key := range keysToRefresh {
-			delete(c.inflightRefreshes, key)
-		}
-		c.inflightMu.Unlock()
-	}()
-
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keysToRefresh)))
-	values, err := refreshFromOrigin(ctx, keysToRefresh)
+) map[K]missResult[V] {
+	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keys)))
+	values, err := refreshFromOrigin(ctx, keys)
 
 	if err != nil && !db.IsNotFound(err) {
-		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keysToRefresh)
+		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keys)
 	}
 
-	switch op(err) {
+	operation := op(err)
+	results := make(map[K]missResult[V], len(keys))
+	switch operation {
 	case WriteValue:
 		if values != nil {
 			// Write the values we got
@@ -633,7 +612,7 @@ func (c *cache[K, V]) revalidateMany(
 
 			// Automatically write NULL for keys that weren't returned
 			var notFoundKeys []K
-			for _, key := range keysToRefresh {
+			for _, key := range keys {
 				if _, found := values[key]; !found {
 					notFoundKeys = append(notFoundKeys, key)
 				}
@@ -643,8 +622,38 @@ func (c *cache[K, V]) revalidateMany(
 			}
 		}
 	case WriteNull:
-		c.SetNullMany(ctx, keysToRefresh)
+		c.SetNullMany(ctx, keys)
 	case Noop:
 		// Don't cache anything
 	}
+
+	var zero V
+	for _, key := range keys {
+		value, found := values[key]
+		hit := Miss
+		if err == nil {
+			switch operation {
+			case WriteValue:
+				if found {
+					hit = Hit
+				} else if values != nil {
+					hit = Null
+				}
+			case WriteNull:
+				hit = Null
+			case Noop:
+				break
+			}
+		}
+		if !found {
+			value = zero
+		}
+		results[key] = missResult[V]{value: value, hit: hit, err: err}
+	}
+	return results
+}
+
+// scheduleRevalidation adds reserved origin work to the bounded worker queue.
+func (c *cache[K, V]) scheduleRevalidation(revalidate func()) {
+	c.revalidateC <- revalidate
 }
