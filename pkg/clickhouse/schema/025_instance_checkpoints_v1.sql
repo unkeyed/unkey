@@ -3,8 +3,17 @@
 --      un-merged duplicate rows are visible to plain queries. Pair-integration
 --      over duplicates is NOT idempotent.
 --      At scale, also set:
---        SETTINGS do_not_merge_across_partitions_select_final = 1
---      or query performance collapses as partition count grows.
+--        SETTINGS
+--          do_not_merge_across_partitions_select_final = 1,
+--          max_final_threads = 1,
+--          optimize_read_in_order = 1,
+--          optimize_read_in_window_order = 1
+--      Independent FINAL processing avoids performance collapse as partition
+--      count grows. It is safe because the replacement key includes ts, which
+--      also determines the partition, so duplicates cannot cross partitions.
+--      The read-in-window-order settings deliberately trade parallel window
+--      execution for bounded memory by streaming in the table's key order;
+--      single-threaded FINAL further bounds the live merge/read state.
 --   2. Group by container_uid. Never mix counter values across a container
 --      restart boundary. container_uid = pod_uid + restart_count.
 --   3. Integrate over consecutive checkpoint pairs and drop any pair with
@@ -12,8 +21,11 @@
 --      agent was down: dropping the interval makes an outage under-count
 --      rather than over-charge. This applies to every meter below.
 --
--- Prefer the `instance_checkpoints` VIEW over this table directly — the view
--- already applies FINAL.
+-- Prefer the `instance_checkpoints` VIEW for ordinary queries because it
+-- already applies FINAL. Order-sensitive queries whose window order matches
+-- this table's primary key should use this table with FINAL directly. Some
+-- ClickHouse versions do not propagate input order through a regular view and
+-- add a redundant full sort.
 --
 -- Every meter is summed over the in-gap pairs of one container_uid, so all
 -- four share the leadInFrame(...) OVER (PARTITION BY container_uid ORDER BY

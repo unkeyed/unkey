@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"golang.org/x/sync/semaphore"
 )
 
 // UsageReader returns billable Deploy usage for a time window, one row per
@@ -32,7 +33,16 @@ const (
 	// disjoint workspace-id range, matching the table's leading sort key, so the
 	// reads run in parallel without scanning or billing any row twice.
 	maxInstanceUsageShards = 8
+	// maxConcurrentInstanceUsageShards limits the actual ClickHouse calls while
+	// retaining eight disjoint shards to bound each query's input.
+	maxConcurrentInstanceUsageShards = 2
 )
+
+// instanceUsageQueries is process-wide rather than invocation-local because
+// the billing push, spend check, and invoice close use independent Restate
+// objects and can overlap. ClickHouse user/server limits remain the backstop
+// across worker replicas and other services.
+var instanceUsageQueries = semaphore.NewWeighted(maxConcurrentInstanceUsageShards)
 
 // Per-unit Deploy meter rates in cents, mirroring the canonical catalog in
 // tools/pricing/catalog.go (CentsPerUnit), which the reconciler writes to
@@ -164,6 +174,11 @@ func FleetMeterValues(
 	futures := make([]restate.Selectable, len(shards))
 	for shard, shardReq := range shards {
 		futures[shard] = restate.RunAsync(ctx, func(rc restate.RunContext) (instanceMeterUsageShardResult, error) {
+			if err := instanceUsageQueries.Acquire(rc, 1); err != nil {
+				return instanceMeterUsageShardResult{Shard: shard, Rows: nil}, err
+			}
+			defer instanceUsageQueries.Release(1)
+
 			rows, err := usage.GetInstanceMeterUsage(rc, shardReq)
 			if err != nil {
 				return instanceMeterUsageShardResult{}, fmt.Errorf(
