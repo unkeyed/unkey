@@ -94,8 +94,7 @@ export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
     pk: primaryKey(),
-    // workspaceId: id("workspace_id").notNull(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
+    workspaceId: id("workspace_id").notNull(),
     namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),

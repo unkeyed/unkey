@@ -15,15 +15,14 @@ import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
-// import { id } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: primaryKey(),
-  // id: id("id").notNull().unique(),
-  id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+  id: id("id").notNull().unique(),
 
   orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
