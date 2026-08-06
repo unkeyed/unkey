@@ -24,9 +24,7 @@ export function MeterValue({ className, ...props }: React.HTMLAttributes<HTMLSpa
 }
 
 export type MeterTrackProps = Omit<React.HTMLAttributes<HTMLDivElement>, "children"> & {
-  /** Fill fraction in [0, 1], or null to render the track with no fill. */
   fraction: number | null;
-  /** Background class for the fill, e.g. "bg-info-9". The caller owns the tone. */
   fillClassName?: string;
 };
 
