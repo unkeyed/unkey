@@ -241,7 +241,8 @@ func (s *Service) AddCustomDomain(
 		// runs one at a time per domain.
 		sendResp, sendErr := s.startVerification(txCtx, domainID)
 		if sendErr != nil {
-			logger.Error("failed to trigger verification workflow",
+			logger.Error(
+				"failed to trigger verification workflow",
 				"domain", domain,
 				"domain_id", domainID,
 				"error", sendErr,
@@ -308,7 +309,8 @@ func (s *Service) DeleteCustomDomain(
 	// Cancel any running verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			logger.Warn("failed to cancel verification workflow",
+			logger.Warn(
+				"failed to cancel verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,
@@ -412,7 +414,8 @@ func (s *Service) RetryVerification(
 	// Cancel any existing verification workflow
 	if domain.InvocationID.Valid && s.restateAdmin != nil {
 		if cancelErr := s.restateAdmin.CancelInvocation(ctx, domain.InvocationID.String); cancelErr != nil {
-			logger.Warn("failed to cancel old verification workflow",
+			logger.Warn(
+				"failed to cancel old verification workflow",
 				"domain", domain.Domain,
 				"invocation_id", domain.InvocationID.String,
 				"error", cancelErr,
