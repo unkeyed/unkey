@@ -383,8 +383,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Service Unavailable errors
 			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
-				logger.Error(
-					"analytics connection error",
+				logger.Error("analytics connection error",
 					errorLogAttrs(s, err, http.StatusServiceUnavailable, urn)...,
 				)
 

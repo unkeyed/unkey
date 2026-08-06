@@ -83,8 +83,7 @@ func (s *Service) VerifyDomain(
 			// The domain row was deleted (DeleteCustomDomain, environment cascade,
 			// etc.) while verification was still running. Stop retrying instead of
 			// surfacing a retryable internal error for up to 24 hours.
-			logger.Info(
-				"domain record deleted, stopping verification workflow",
+			logger.Info("domain record deleted, stopping verification workflow",
 				"domain_id", domainID,
 			)
 			return nil, restate.TerminalError(fmt.Errorf("domain record not found: %s", domainID), 404)
@@ -111,8 +110,7 @@ func (s *Service) VerifyDomain(
 	// Apex domains (CNAME flattening, ALIAS/ANAME, CF proxy) won't have a visible CNAME.
 	cnameVerified, cnameErr := s.checkCNAME(dom.Domain, dom.TargetCname)
 	if cnameErr != nil {
-		logger.Warn(
-			"CNAME check error",
+		logger.Warn("CNAME check error",
 			"domain", dom.Domain,
 			"error", cnameErr,
 			"elapsed", elapsed,
@@ -147,8 +145,7 @@ func (s *Service) VerifyDomain(
 		var txtErr error
 		txtVerified, txtErr = s.checkTXTRecord(dom.Domain, dom.VerificationToken)
 		if txtErr != nil {
-			logger.Warn(
-				"TXT check error",
+			logger.Warn("TXT check error",
 				"domain", dom.Domain,
 				"error", txtErr,
 				"elapsed", elapsed,
@@ -167,8 +164,7 @@ func (s *Service) VerifyDomain(
 		var recordsErr error
 		apexHasRecords, recordsErr = s.hasAddressRecords(dom.Domain)
 		if recordsErr != nil {
-			logger.Warn(
-				"apex DNS lookup error",
+			logger.Warn("apex DNS lookup error",
 				"domain", dom.Domain,
 				"error", recordsErr,
 				"elapsed", elapsed,
@@ -198,8 +194,7 @@ func (s *Service) VerifyDomain(
 	}
 
 	// Log current status
-	logger.Info(
-		"DNS verification check complete",
+	logger.Info("DNS verification check complete",
 		"domain", dom.Domain,
 		"is_apex", isApex,
 		"contested", contested,
@@ -393,8 +388,7 @@ func (s *Service) onVerificationSuccess(
 			return findErr
 		}
 
-		logger.Info(
-			"revoking domain from previous workspace",
+		logger.Info("revoking domain from previous workspace",
 			"domain", dom.Domain,
 			"old_workspace", oldDom.WorkspaceID,
 			"new_workspace", dom.WorkspaceID,
@@ -455,8 +449,7 @@ func (s *Service) onVerificationSuccess(
 		return nil, fault.Wrap(err, fault.Internal("failed to create frontline route"))
 	}
 
-	logger.Info(
-		"domain verification completed successfully",
+	logger.Info("domain verification completed successfully",
 		"domain", dom.Domain,
 	)
 
@@ -482,8 +475,7 @@ func (s *Service) onVerificationFailed(
 		return nil, fault.Wrap(err, fault.Internal("failed to mark domain as failed"))
 	}
 
-	logger.Info(
-		"domain verification failed",
+	logger.Info("domain verification failed",
 		"domain", dom.Domain,
 		"error", errorMsg,
 	)
