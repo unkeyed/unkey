@@ -7,7 +7,6 @@ CREATE TABLE `keys` (
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`for_workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`name` varchar(256),
-	`owner_id` varchar(256) COLLATE utf8mb4_0900_as_cs,
 	`identity_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`meta` text,
 	`expires` datetime(3),
@@ -36,8 +35,6 @@ CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
-
-CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
 
