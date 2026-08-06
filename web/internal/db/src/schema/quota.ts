@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, int, mysqlTable } from "drizzle-orm/mysql-core";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -11,13 +12,13 @@ import { workspaces } from "./workspaces";
  * These settings control service availability and billing for the workspace.
  */
 export const quotas = mysqlTable("quota", {
-  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  pk: primaryKey(),
 
   /**
    * workspaceId is the primary identifier for the quota record,
    * matching the ID of the workspace it belongs to.
    */
-  workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+  workspaceId: id("workspace_id").notNull().unique(),
 
   /**
    * requestsPerMonth specifies the maximum number of billable API requests
