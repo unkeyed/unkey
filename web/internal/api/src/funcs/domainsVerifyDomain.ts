@@ -35,14 +35,13 @@ import { Result } from "../types/fp.js";
  * Address the domain by its ID or by its name. Names are unique per workspace, so
  * `api.acme.com` is enough.
  *
- * Use this after you correct the DNS records of a domain that shows `failed`. Verification
- * runs as a durable workflow. This endpoint returns when Unkey accepts the retry. Poll
- * `domains.getDomain` to see the result.
+ * Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+ * `pending` domain a new 24-hour verification period. Each call replaces the check in
+ * progress.
  *
- * Each call stops the previous workflow and starts a new 24-hour verification window. A
- * `pending` domain thus gets more time.
+ * The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
  *
- * A domain that is already `verified` returns a 412. Unkey does not verify it again.
+ * A domain that is already `verified` returns a 412.
  *
  * **Required Permissions**
  *
