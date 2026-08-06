@@ -18,7 +18,7 @@ import { keysPermissions, keysRoles } from "./rbac";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
-import { id, legacyId } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -176,8 +176,8 @@ export const keyMigrations = mysqlTable(
   "key_migrations",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
-    workspaceId: legacyId("workspace_id").notNull(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],
