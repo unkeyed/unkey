@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
 
-// Mirrors the portal_branding schema columns so this can be wired to trpc later.
+// Mirrors the portal branding columns so this can be wired to trpc later.
 // For MVP the customer hosts their own logo image and provides its URL; when
 // empty the portal falls back to a plain-text logo using `name`.
 export type PortalBrandingValue = {

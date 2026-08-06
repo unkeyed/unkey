@@ -874,42 +874,34 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
-type PortalConfiguration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Slug        string         `db:"slug"`
-	AppID       sql.NullString `db:"app_id"`
-	KeyAuthID   sql.NullString `db:"key_auth_id"`
-	Enabled     bool           `db:"enabled"`
-	ReturnUrl   sql.NullString `db:"return_url"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+type Portal struct {
+	Pk           uint64         `db:"pk"`
+	ID           string         `db:"id"`
+	WorkspaceID  string         `db:"workspace_id"`
+	Slug         string         `db:"slug"`
+	AppID        sql.NullString `db:"app_id"`
+	KeyspaceID   sql.NullString `db:"keyspace_id"`
+	Enabled      bool           `db:"enabled"`
+	ReturnUrl    sql.NullString `db:"return_url"`
+	LogoUrl      sql.NullString `db:"logo_url"`
+	PrimaryColor sql.NullString `db:"primary_color"`
+	CreatedAt    int64          `db:"created_at"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
 }
 
 type PortalSession struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
-}
-
-type PortalSessionToken struct {
-	Pk             uint64          `db:"pk"`
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
+	Pk                    uint64          `db:"pk"`
+	ID                    string          `db:"id"`
+	WorkspaceID           string          `db:"workspace_id"`
+	PortalID              string          `db:"portal_id"`
+	ExternalID            string          `db:"external_id"`
+	Permissions           json.RawMessage `db:"permissions"`
+	ExchangeCodeHash      sql.NullString  `db:"exchange_code_hash"`
+	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
+	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
+	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
+	CreatedAt             int64           `db:"created_at"`
 }
 
 type Project struct {

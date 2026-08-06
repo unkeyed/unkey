@@ -9,13 +9,13 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 export type V2PortalCreateSessionResponseData = {
   /**
-   * The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+   * The stable, non-secret identifier for the portal session.
    *
    * @remarks
    */
   sessionId: string;
   /**
-   * The full portal URL with the session parameter. Redirect the end user to this URL.
+   * The full portal URL with the exchange code in its query string. Redirect the end user to this URL.
    *
    * @remarks
    */

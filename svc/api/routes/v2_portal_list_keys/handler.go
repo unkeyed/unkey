@@ -20,18 +20,17 @@ import (
 )
 
 type (
-	// Request is the portal.listKeys public contract. Unlike apis.listKeys it has
-	// no externalId or apiId: the listing is always scoped to the session's own
-	// end user, within the keyspaces configured on the portal configuration.
+	// Request is the portal.listKeys public contract. The listing is always scoped
+	// to the session's end user and configured keyspaces, neither of which can be
+	// overridden by the request.
 	Request  = openapi.V2PortalListKeysRequestBody
 	Response = openapi.V2PortalListKeysResponseBody
 )
 
 // Handler serves the portal-scoped key listing. It authenticates only portal
 // sessions and lists the session end user's keys across the keyspaces the portal
-// configuration is scoped to. It does not reuse the apis.listKeys core because
-// that core is keyed by a caller-supplied apiId; here the keyspaces come from the
-// session, so it queries them directly and reuses only the shared response shape.
+// configuration is scoped to. The keyspaces come from the session, so the
+// handler queries them directly and reuses only the shared key response shape.
 type Handler struct {
 	DB db.Database
 }

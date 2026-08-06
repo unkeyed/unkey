@@ -1,6 +1,6 @@
 ---
 title: "portal_session_not_found"
-description: "The provided portal session was not found, has expired, or has already been exchanged. Create a new session from your backend and redirect the user again."
+description: "The portal exchange code or access token is invalid, expired, or already used. Create a new session from your backend and redirect the user again."
 ---
 
 <Danger>`err:unkey:authentication:portal_session_not_found`</Danger>
@@ -21,11 +21,11 @@ description: "The provided portal session was not found, has expired, or has alr
 
 ## What Happened?
 
-This error is returned by `POST /v2/portal.exchangeSession` and any portal-authenticated endpoint when the supplied session identifier cannot be resolved. There are three common reasons:
+This error is returned by `POST /v2/portal.exchangeCode` and any portal-authenticated endpoint when the supplied credential cannot be resolved. There are three common reasons:
 
-- **Expired session ID** — The short-lived session ID returned by `portal.createSession` is valid for **15 minutes**. After that it can no longer be exchanged.
-- **Already-used session ID** — Session IDs are **single-use**. Once a browser exchanges it, the same ID cannot be exchanged again.
-- **Expired browser session** — After exchange, the browser session is valid for **24 hours**. Once it expires, requests using that token return this error.
+- **Expired exchange code**: The exchange code returned by `portal.createSession` is valid for 15 minutes. After that it can no longer be exchanged.
+- **Already-used exchange code**: Exchange codes are single-use. After the portal exchanges a code, it cannot be exchanged again.
+- **Expired access token**: The access token is valid for 24 hours. After that, requests using it return this error.
 
 ## How To Fix
 
@@ -42,7 +42,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   }'
 ```
 
-Then redirect the user to the returned `url`. The portal will exchange the new session ID for a 24-hour browser cookie.
+Then redirect the user to the returned `url`. The portal redeems the exchange code for a 24-hour access token stored in an httpOnly cookie.
 
 If you have configured a `return_url` on your portal, expired browser sessions will automatically redirect there with `?reason=session_expired`. Use that hook to re-mint a session and bounce the user back into the portal seamlessly.
 
@@ -56,13 +56,13 @@ if (request.url.searchParams.get("reason") === "session_expired") {
 
 ## Common Mistakes
 
-- **Reusing a session ID**: Session IDs are single-use. Generate a new one for every redirect.
-- **Storing session IDs**: Don't persist session IDs — they are short-lived and meant to be consumed immediately.
-- **Skipping the exchange**: The portal frontend must call `portal.exchangeSession` to convert the session ID into a browser session.
+- **Reusing an exchange code**: Exchange codes are single-use. Create a new session for every redirect.
+- **Persisting exchange codes**: Don't persist exchange codes. They are short-lived and meant to be consumed immediately.
+- **Skipping the exchange**: The portal must call `portal.exchangeCode` to redeem the exchange code for an access token.
 - **Long-running tabs**: Users who keep the portal open beyond 24 hours need a fresh session.
 
 ## Related Errors
 
-- [err:unkey:authentication:portal_token_missing](./portal_token_missing) - When no portal session token is supplied at all
-- [err:unkey:data:portal_config_not_found](../data/portal_config_not_found) - When the portal configuration referenced by `slug` does not exist
+- [err:unkey:authentication:portal_token_missing](./portal_token_missing) - When no portal access token is supplied
+- [err:unkey:data:portal_not_found](../data/portal_not_found) - When the portal referenced by `slug` does not exist
 - [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided to a non-portal endpoint

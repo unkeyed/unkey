@@ -45,7 +45,7 @@ func ExternalID(s *zen.Session) (string, error) {
 }
 
 // KeyspaceIDs returns the keyspaces the portal session is scoped to, resolved
-// from the portal configuration at session creation. Key listings must be bound
+// from the portal at session creation. Key listings must be bound
 // to these; the request never supplies a keyspace or api id.
 //
 // A non-portal principal is a broken invariant (portal routes only run behind

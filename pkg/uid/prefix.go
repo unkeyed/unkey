@@ -26,9 +26,8 @@ const (
 	OrgPrefix                 Prefix = "org"
 
 	// Portal prefixes
-	PortalSessionTokenPrefix Prefix = "pst"
-	PortalSessionPrefix      Prefix = "ps"
-	PortalConfigPrefix       Prefix = "pc"
+	PortalSessionPrefix Prefix = "ps"
+	PortalPrefix        Prefix = "portal"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix         Prefix = "oas"

@@ -23,15 +23,14 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{
+		"code",              // portal exchangeCode request
+		"data.accessToken",  // portal exchangeCode response
 		"data.key",          // createKey and rerollKey responses
 		"data.plaintext",    // getKey response, recoverable key material
-		"data.sessionId",    // portal createSession response
-		"data.token",        // portal exchangeSession response
-		"data.url",          // portal URL, which carries the session token in its query
+		"data.url",          // portal URL, which carries the exchange code in its query string
 		"data[].plaintext",  // listKeys response, one entry per key
 		"data[].value",      // listEnvironmentVariables response
 		"key",               // verifyKey and whoami requests
-		"sessionId",         // portal exchangeSession request
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)
 }
@@ -52,9 +51,9 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"listKeys response":         `{"data":[{"keyId":"key_1","plaintext":"FIXTURE_LEAK"},{"keyId":"key_2"}],"meta":{"requestId":"req_1"}}`,
 		"setEnvironmentVariables":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK@host/db"}]}`,
 		"listEnvironmentVariables":  `{"data":[{"key":"DATABASE_URL","kind":"recoverable","value":"postgresql://user:FIXTURE_LEAK@host/db"}],"meta":{"requestId":"req_1"}}`,
-		"portal createSession":      `{"data":{"sessionId":"pst_FIXTURE_LEAK","url":"https://portal.unkey.com/?session=pst_FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
-		"portal exchangeSession":    `{"sessionId":"pst_FIXTURE_LEAK"}`,
-		"portal session token":      `{"data":{"token":"ps_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
+		"portal createSession":      `{"data":{"sessionId":"ps_fixture","url":"https://portal.unkey.com/?code=EXCHANGE_CODE_FIXTURE_LEAK"},"meta":{"requestId":"req_1"}}`,
+		"portal exchangeCode":       `{"code":"EXCHANGE_CODE_FIXTURE_LEAK"}`,
+		"portal access token":       `{"data":{"accessToken":"ACCESS_TOKEN_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
 		"truncated env var payload": `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
 	}
 

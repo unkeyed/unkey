@@ -126,17 +126,17 @@ func (JWTSource) principalSource() {}
 // This shape is a WIP placeholder for portal auth. It keeps the permissions
 // granted by the portal session until the final portal principal contract lands.
 type PortalSessionSource struct {
-	// SessionID is the portal browser session token ID.
+	// SessionID is the stable, non-secret portal session resource ID.
 	SessionID string
 
-	// PortalConfigID is the portal configuration that issued the session.
-	PortalConfigID string
+	// PortalID is the portal that issued the session.
+	PortalID string
 
 	// ExternalID is the caller-assigned end-user identifier for the portal session.
 	ExternalID string
 
 	// KeyspaceIDs are the keyspaces the session is scoped to, resolved from the
-	// portal configuration at session creation. Portal key listings are bounded to
+	// portal at session creation. Portal key listings are bounded to
 	// these; the request never carries a keyspace or api id.
 	KeyspaceIDs []string
 

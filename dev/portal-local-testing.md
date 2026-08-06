@@ -92,10 +92,11 @@ The portal is port-forwarded to `http://localhost:3100`.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "awesome", "externalId": "user_123", "permissions": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
-Open `http://localhost:3100/?session=pst_xxx` in the browser.
+Open the `url` from the response in the browser. It contains the short-lived
+exchange code.
 
 ---
 
@@ -124,13 +125,10 @@ Runs on `http://localhost:3100`. Port 3100 avoids conflict with the dashboard.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "awesome", "externalId": "user_123", "permissions": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
-Take the `sessionId` from the response and open:
-```text
-http://localhost:3100/?session=pst_xxx
-```
+Open the `url` from the response.
 
 ---
 
@@ -156,9 +154,9 @@ In the app's environment settings (production or preview), set:
 
 ### 3. Seed portal data
 
-The target database needs `portal_configurations` and `portal_branding`
-rows for the workspace you're testing with. If using the production DB,
-insert them manually or via the dashboard (once the config UI is built).
+The target database needs a `portals` row for the workspace you're testing
+with. If using the production DB, insert it manually or via the dashboard
+(once the portal UI is built).
 
 For staging, you can run the seed tool against the staging DB:
 ```bash
@@ -180,7 +178,7 @@ like `<app-slug>-<env>.unkey.com`.
 curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"portal": "<PORTAL_ID_OR_SLUG>", "externalId": "user_123", "permissions": ["keys:read", "keys:reroll", "analytics:read"]}'
 ```
 
 The response URL will point to the portal's deployment URL (or custom
@@ -201,9 +199,9 @@ domain if configured). Open it in the browser.
 
 - **Session creation fails with 400**: Make sure `slug` is included in the request body
 - **Session creation fails with 401**: Re-run `go run . dev seed local --slug awesome --portal`
-- **Session creation fails with 403**: Check `portal_configurations.enabled = TRUE`
-- **Session creation fails with 404**: The `slug` doesn't exist in the authenticated workspace. Verify the portal config was seeded and the root key matches the same workspace.
-- **"Invalid access" with session param**: Session may be expired (15 min TTL) or already exchanged (single-use). Create a fresh one.
+- **Session creation fails with 403**: Check `portals.enabled = TRUE`
+- **Session creation fails with 404**: The `slug` doesn't exist in the authenticated workspace. Verify the portal was seeded and the root key matches the same workspace.
+- **"Invalid access" with a code query parameter**: The exchange code may be expired (15 min TTL) or already exchanged (single-use). Create a fresh one.
 - **Stale seed data**: `docker volume rm unkey_mysql` and restart
 
 ---

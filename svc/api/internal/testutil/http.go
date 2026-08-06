@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -371,6 +372,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	h.t.Helper()
 
 	sessionID := uid.New(uid.PortalSessionPrefix)
+	accessToken := uid.Secure()
 
 	permsJSON, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
@@ -383,20 +385,23 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 
 	now := h.Clock.Now()
 	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    workspaceID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     externalID,
-		Permissions:    permsJSON,
-		Preview:        false,
-		ExpiresAt:      now.Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      now.UnixMilli(),
+		ID:                    sessionID,
+		WorkspaceID:           workspaceID,
+		PortalID:              uid.New(uid.PortalPrefix),
+		ExternalID:            externalID,
+		Permissions:           permsJSON,
+		ExchangeCodeHash:      sql.NullString{},
+		ExchangeCodeExpiresAt: now.UnixMilli(),
+		AccessTokenHash:       sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+		AccessTokenCreatedAt:  sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+		AccessTokenExpiresAt:  sql.NullInt64{Int64: now.Add(24 * time.Hour).UnixMilli(), Valid: true},
+		CreatedAt:             now.UnixMilli(),
 	})
 	require.NoError(h.t, err)
 
 	return http.Header{
 		"Content-Type": {"application/json"},
-		"Cookie":       {"portal_session=" + sessionID},
+		"Cookie":       {"portal_session=" + accessToken},
 	}
 }
 

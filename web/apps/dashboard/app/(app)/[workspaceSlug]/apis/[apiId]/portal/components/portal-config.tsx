@@ -63,7 +63,7 @@ function loadBranding(resourceId: string, fallbackName: string): PortalBrandingV
   }
 }
 
-// Mock save; the real implementation writes portal_branding via trpc.
+// Mock save; the real implementation updates portals via trpc.
 async function saveBranding(resourceId: string, values: PortalBrandingValue): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, SAVE_DELAY_MS));
   localStorage.setItem(brandingStorageKey(resourceId), JSON.stringify(values));

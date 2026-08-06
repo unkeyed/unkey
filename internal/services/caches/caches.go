@@ -40,8 +40,8 @@ type Caches struct {
 	// Keys are string (workspace ID) and values are keysdb.Limit.
 	WorkspaceLimits cache.Cache[string, keysdb.Limit]
 
-	// PortalSession caches portal session lookups by session token.
-	// Keys are string (session token ID) and values are db.PortalSession.
+	// PortalSession caches portal session lookups by access token hash.
+	// Keys are string (base64-encoded SHA-256 hash) and values are db.PortalSession.
 	// Short fresh window because sessions can expire; stale window allows
 	// serving slightly-stale data while revalidating in the background.
 	PortalSession cache.Cache[string, db.PortalSession]

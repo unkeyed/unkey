@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// CookieName is the browser cookie that stores a portal session token.
+// CookieName is the browser cookie that stores a portal access token.
 const CookieName = "portal_session"
 
 // Resolver authenticates customer portal browser sessions into auth principals.
@@ -54,11 +54,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		},
 		Type: principal.TypePortalSession,
 		Source: principal.PortalSessionSource{
-			SessionID:      cookie.Value,
-			PortalConfigID: session.PortalConfigID,
-			ExternalID:     session.ExternalID,
-			KeyspaceIDs:    session.KeyspaceIDs,
-			Permissions:    session.Permissions,
+			SessionID:   session.ID,
+			PortalID:    session.PortalID,
+			ExternalID:  session.ExternalID,
+			KeyspaceIDs: session.KeyspaceIDs,
+			Permissions: session.Permissions,
 		},
 		WorkspaceID: session.WorkspaceID,
 		Permissions: session.Permissions,

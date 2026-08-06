@@ -1,18 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import { sha256 } from "@unkey/hash";
 import { z } from "zod";
 import { env } from "./env";
-import type { PortalConfig } from "./portal-config";
+import type { Portal } from "./portal";
 
 export const SESSION_COOKIE_NAME = "portal_session";
 const SESSION_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours
 
 export type SessionData = {
   id: string;
-  portalConfigId: string;
+  portalId: string;
   externalId: string;
   permissions: string[];
-  preview: boolean;
   expiresAt: number;
 };
 
@@ -39,18 +39,18 @@ type ExchangeResult = { success: true } | { success: false; error: string };
 
 const exchangeResponseSchema = z.object({
   data: z.object({
-    token: z.string().min(1),
+    accessToken: z.string().min(1),
     expiresAt: z.number(),
   }),
 });
 
 /**
- * Exchange a short-lived session ID for a long-lived browser session token.
- * Sets an httpOnly cookie on success. The token is never returned to the caller.
+ * Redeem a short-lived exchange code for an access token.
+ * Sets an httpOnly cookie on success. The access token is never returned to the caller.
  */
-export const exchangeSession = createServerFn({ method: "POST" })
+export const exchangeCode = createServerFn({ method: "POST" })
   .inputValidator((d: string) => d)
-  .handler(async ({ data: sessionId }: { data: string }): Promise<ExchangeResult> => {
+  .handler(async ({ data: code }: { data: string }): Promise<ExchangeResult> => {
     const apiUrl = env().UNKEY_API_URL;
 
     const controller = new AbortController();
@@ -58,17 +58,17 @@ export const exchangeSession = createServerFn({ method: "POST" })
 
     let response: Response;
     try {
-      response = await fetch(`${apiUrl}/v2/portal.exchangeSession`, {
+      response = await fetch(`${apiUrl}/v2/portal.exchangeCode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ code }),
         signal: controller.signal,
       });
     } catch (err) {
       const message =
         err instanceof DOMException && err.name === "AbortError"
-          ? "Request timed out. Please try again."
-          : "Network error. Please check your connection and try again.";
+          ? "Request timed out. Please request a new session from your application."
+          : "Network error. Please request a new session from your application.";
       return { success: false, error: message };
     } finally {
       clearTimeout(timeoutId);
@@ -87,7 +87,7 @@ export const exchangeSession = createServerFn({ method: "POST" })
     } catch {
       return {
         success: false,
-        error: "Received an unexpected response. Please try again.",
+        error: "Received an unexpected response. Please request a new session.",
       };
     }
 
@@ -95,11 +95,11 @@ export const exchangeSession = createServerFn({ method: "POST" })
     if (!parsed.success) {
       return {
         success: false,
-        error: "Received an unexpected response. Please try again.",
+        error: "Received an unexpected response. Please request a new session.",
       };
     }
 
-    setCookie(SESSION_COOKIE_NAME, parsed.data.data.token, {
+    setCookie(SESSION_COOKIE_NAME, parsed.data.data.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
@@ -111,46 +111,47 @@ export const exchangeSession = createServerFn({ method: "POST" })
   });
 
 /**
- * Load the session + portal config from the database. Returns both in one
+ * Load the session and portal from the database. Returns both in one
  * server function call so the route only needs a single round-trip.
  */
-export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
+export const getSessionWithPortal = createServerFn({ method: "GET" }).handler(
   async (): Promise<{
     session: SessionData;
-    config: PortalConfig | null;
+    portal: Portal | null;
     logsRetentionDays: number;
   } | null> => {
-    const token = getCookie(SESSION_COOKIE_NAME);
-    if (!token) {
+    const accessToken = getCookie(SESSION_COOKIE_NAME);
+    if (!accessToken) {
       return null;
     }
 
     // Dynamic import to keep mysql2/drizzle out of the client bundle.
     const { db } = await import("./db");
-    const { loadPortalConfig } = await import("./portal-config");
+    const { loadPortal } = await import("./portal");
 
     const nowMs = Date.now();
+    const accessTokenHash = await sha256(accessToken);
     const session = await db.query.portalSessions.findFirst({
-      where: (t, { eq, gt, and }) => and(eq(t.id, token), gt(t.expiresAt, nowMs)),
+      where: (t, { eq, gt, and }) =>
+        and(eq(t.accessTokenHash, accessTokenHash), gt(t.accessTokenExpiresAt, nowMs)),
       columns: {
         id: true,
         workspaceId: true,
-        portalConfigId: true,
+        portalId: true,
         externalId: true,
         permissions: true,
-        preview: true,
-        expiresAt: true,
+        accessTokenExpiresAt: true,
       },
     });
 
-    if (!session) {
+    if (!session || session.accessTokenExpiresAt === null) {
       return null;
     }
 
-    const [config, logsRetentionDays] = await Promise.all([
-      loadPortalConfig(session.portalConfigId).catch((err) => {
-        console.error("Failed to load portal config", {
-          portalConfigId: session.portalConfigId,
+    const [portal, logsRetentionDays] = await Promise.all([
+      loadPortal(session.portalId).catch((err) => {
+        console.error("Failed to load portal", {
+          portalId: session.portalId,
           err,
         });
         return null;
@@ -176,10 +177,14 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
 
     // workspaceId is only needed server-side (limits lookup above); keep it off
     // the client-facing session, which stays as SessionData.
-    const { workspaceId: _workspaceId, ...sessionColumns } = session;
+    const { workspaceId: _workspaceId, accessTokenExpiresAt, ...sessionColumns } = session;
     return {
-      session: { ...sessionColumns, permissions: readCapabilities(session.permissions) },
-      config,
+      session: {
+        ...sessionColumns,
+        permissions: readCapabilities(session.permissions),
+        expiresAt: accessTokenExpiresAt,
+      },
+      portal,
       logsRetentionDays,
     };
   },

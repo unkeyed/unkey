@@ -556,7 +556,7 @@ type Querier interface {
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOpenApiSpecByDeploymentID
 	//
-	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	//  SELECT pk, id, workspace_id, deployment_id, portal_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
@@ -2189,7 +2189,7 @@ type Querier interface {
 	UpsertLimit(ctx context.Context, arg UpsertLimitParams) error
 	//UpsertOpenApiSpec
 	//
-	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_id, content, created_at, updated_at)
 	//  VALUES (?,?, ?, ?,
 	//          ?, ?, ?)
 	//  ON DUPLICATE KEY UPDATE

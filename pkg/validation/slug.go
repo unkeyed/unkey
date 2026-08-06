@@ -16,7 +16,7 @@ const (
 		"must not start or end with a hyphen, and must not contain consecutive hyphens"
 )
 
-// ValidateSlug reports whether s is a valid portal configuration slug.
+// ValidateSlug reports whether s is a valid portal slug.
 func ValidateSlug(s string) bool {
 	if len(s) < SlugMinLength || len(s) > SlugMaxLength {
 		return false

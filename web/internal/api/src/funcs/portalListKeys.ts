@@ -40,11 +40,10 @@ import {
  * Retrieve a paginated list of API keys owned by the authenticated portal
  * session's end user.
  *
- * This is the portal-scoped variant of `apis.listKeys`. It authenticates only
- * with a portal session cookie and always restricts results to the keys owned
- * by the session's external identity, within the keyspaces configured on the
- * portal configuration. Both the identity and the keyspaces come from the
- * session, so the request body has no `externalId` or `apiId` field.
+ * It authenticates only with a portal session cookie and always restricts
+ * results to keys owned by the session's external identity, within the
+ * keyspaces configured on the portal. Both the identity and keyspaces come
+ * from the session and cannot be overridden by the request.
  */
 export function portalListKeys(
   client: UnkeyCore,

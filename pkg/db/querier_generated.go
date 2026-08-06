@@ -10,6 +10,20 @@ import (
 )
 
 type Querier interface {
+	//ConsumePortalSessionExchangeCode
+	//
+	//  UPDATE portal_sessions
+	//  SET
+	//      exchange_code_hash = NULL,
+	//      access_token_hash = ?,
+	//      access_token_created_at = ?,
+	//      access_token_expires_at = ?
+	//  WHERE id = ?
+	//    AND exchange_code_hash = ?
+	//    AND access_token_created_at IS NULL
+	//    AND access_token_hash IS NULL
+	//    AND exchange_code_expires_at > ?
+	ConsumePortalSessionExchangeCode(ctx context.Context, db DBTX, arg ConsumePortalSessionExchangeCodeParams) (sql.Result, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -135,14 +149,6 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
-	//ExchangePortalSessionToken
-	//
-	//  UPDATE portal_session_tokens
-	//  SET exchanged_at = ?
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	ExchangePortalSessionToken(ctx context.Context, db DBTX, arg ExchangePortalSessionTokenParams) (sql.Result, error)
 	//FindApiByID
 	//
 	//  SELECT pk, id, name, workspace_id, project_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
@@ -221,7 +227,7 @@ type Querier interface {
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
 	// Returns the sentinel_config of an app's current deployment, scoped to the
 	// workspace. Used by portal.createSession to resolve the keyspaces an
-	// app-mapped portal config grants access to (the keyauth policies carry the
+	// app-mapped portal grants access to (the keyauth policies carry the
 	// keySpaceIds verified at the gateway).
 	//
 	//  SELECT d.sentinel_config
@@ -699,11 +705,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPortalConfigByWorkspaceAndSlug
+	//FindPortalByWorkspaceAndIdOrSlug
 	//
-	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
-	//  WHERE workspace_id = ? AND slug = ?
-	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
+	//  SELECT pk, id, workspace_id, slug, app_id, keyspace_id, enabled, return_url, logo_url, primary_color, created_at, updated_at FROM portals
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR slug = ?)
+	//  LIMIT 1
+	FindPortalByWorkspaceAndIdOrSlug(ctx context.Context, db DBTX, arg FindPortalByWorkspaceAndIdOrSlugParams) (Portal, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
@@ -839,17 +847,17 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindValidPortalSession
 	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
-	//  WHERE id = ?
-	//    AND expires_at > ?
+	//  SELECT pk, id, workspace_id, portal_id, external_id, permissions, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, created_at FROM portal_sessions
+	//  WHERE access_token_hash = ?
+	//    AND access_token_expires_at > ?
 	FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error)
-	//FindValidPortalSessionToken
+	//FindValidPortalSessionByExchangeCode
 	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	FindValidPortalSessionToken(ctx context.Context, db DBTX, arg FindValidPortalSessionTokenParams) (PortalSessionToken, error)
+	//  SELECT pk, id, workspace_id, portal_id, external_id, permissions, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, created_at FROM portal_sessions
+	//  WHERE exchange_code_hash = ?
+	//    AND access_token_created_at IS NULL
+	//    AND exchange_code_expires_at > ?
+	FindValidPortalSessionByExchangeCode(ctx context.Context, db DBTX, arg FindValidPortalSessionByExchangeCodeParams) (PortalSession, error)
 	//FindVerifiedCustomDomainByAppID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1416,16 +1424,18 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, db DBTX, arg InsertPermissionParams) error
-	//InsertPortalConfig
+	//InsertPortal
 	//
-	//  INSERT INTO portal_configurations (
+	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
 	//      slug,
 	//      app_id,
-	//      key_auth_id,
+	//      keyspace_id,
 	//      enabled,
 	//      return_url,
+	//      logo_url,
+	//      primary_color,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
@@ -1437,21 +1447,29 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
+	//      ?,
 	//      ?
 	//  )
-	InsertPortalConfig(ctx context.Context, db DBTX, arg InsertPortalConfigParams) error
+	InsertPortal(ctx context.Context, db DBTX, arg InsertPortalParams) error
 	//InsertPortalSession
 	//
 	//  INSERT INTO portal_sessions (
 	//      id,
 	//      workspace_id,
-	//      portal_config_id,
+	//      portal_id,
 	//      external_id,
 	//      permissions,
-	//      preview,
-	//      expires_at,
+	//      exchange_code_hash,
+	//      exchange_code_expires_at,
+	//      access_token_hash,
+	//      access_token_created_at,
+	//      access_token_expires_at,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1462,28 +1480,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertPortalSession(ctx context.Context, db DBTX, arg InsertPortalSessionParams) error
-	//InsertPortalSessionToken
-	//
-	//  INSERT INTO portal_session_tokens (
-	//      id,
-	//      workspace_id,
-	//      portal_config_id,
-	//      external_id,
-	//      permissions,
-	//      preview,
-	//      expires_at,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertPortalSessionToken(ctx context.Context, db DBTX, arg InsertPortalSessionTokenParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -2734,26 +2730,6 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
-	//UpsertPortalBranding
-	//
-	//  INSERT INTO portal_branding (
-	//      portal_config_id,
-	//      logo_url,
-	//      primary_color,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      logo_url = VALUES(logo_url),
-	//      primary_color = VALUES(primary_color),
-	//      updated_at = VALUES(updated_at)
-	UpsertPortalBranding(ctx context.Context, db DBTX, arg UpsertPortalBrandingParams) error
 	// Inserts a region or does nothing if it already exists.
 	//
 	//  INSERT INTO regions (

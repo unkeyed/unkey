@@ -7,36 +7,40 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findValidPortalSession = `-- name: FindValidPortalSession :one
-SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
-WHERE id = ?
-  AND expires_at > ?
+SELECT pk, id, workspace_id, portal_id, external_id, permissions, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, created_at FROM portal_sessions
+WHERE access_token_hash = ?
+  AND access_token_expires_at > ?
 `
 
 type FindValidPortalSessionParams struct {
-	ID  string `db:"id"`
-	Now int64  `db:"now"`
+	AccessTokenHash sql.NullString `db:"access_token_hash"`
+	Now             sql.NullInt64  `db:"now"`
 }
 
 // FindValidPortalSession
 //
-//	SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
-//	WHERE id = ?
-//	  AND expires_at > ?
+//	SELECT pk, id, workspace_id, portal_id, external_id, permissions, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, created_at FROM portal_sessions
+//	WHERE access_token_hash = ?
+//	  AND access_token_expires_at > ?
 func (q *Queries) FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error) {
-	row := db.QueryRowContext(ctx, findValidPortalSession, arg.ID, arg.Now)
+	row := db.QueryRowContext(ctx, findValidPortalSession, arg.AccessTokenHash, arg.Now)
 	var i PortalSession
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
-		&i.PortalConfigID,
+		&i.PortalID,
 		&i.ExternalID,
 		&i.Permissions,
-		&i.Preview,
-		&i.ExpiresAt,
+		&i.ExchangeCodeHash,
+		&i.ExchangeCodeExpiresAt,
+		&i.AccessTokenHash,
+		&i.AccessTokenCreatedAt,
+		&i.AccessTokenExpiresAt,
 		&i.CreatedAt,
 	)
 	return i, err

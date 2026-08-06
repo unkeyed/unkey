@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -14,13 +15,19 @@ const insertPortalSession = `-- name: InsertPortalSession :exec
 INSERT INTO portal_sessions (
     id,
     workspace_id,
-    portal_config_id,
+    portal_id,
     external_id,
     permissions,
-    preview,
-    expires_at,
+    exchange_code_hash,
+    exchange_code_expires_at,
+    access_token_hash,
+    access_token_created_at,
+    access_token_expires_at,
     created_at
 ) VALUES (
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -33,14 +40,17 @@ INSERT INTO portal_sessions (
 `
 
 type InsertPortalSessionParams struct {
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
+	ID                    string          `db:"id"`
+	WorkspaceID           string          `db:"workspace_id"`
+	PortalID              string          `db:"portal_id"`
+	ExternalID            string          `db:"external_id"`
+	Permissions           json.RawMessage `db:"permissions"`
+	ExchangeCodeHash      sql.NullString  `db:"exchange_code_hash"`
+	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
+	AccessTokenCreatedAt  sql.NullInt64   `db:"access_token_created_at"`
+	AccessTokenExpiresAt  sql.NullInt64   `db:"access_token_expires_at"`
+	CreatedAt             int64           `db:"created_at"`
 }
 
 // InsertPortalSession
@@ -48,13 +58,19 @@ type InsertPortalSessionParams struct {
 //	INSERT INTO portal_sessions (
 //	    id,
 //	    workspace_id,
-//	    portal_config_id,
+//	    portal_id,
 //	    external_id,
 //	    permissions,
-//	    preview,
-//	    expires_at,
+//	    exchange_code_hash,
+//	    exchange_code_expires_at,
+//	    access_token_hash,
+//	    access_token_created_at,
+//	    access_token_expires_at,
 //	    created_at
 //	) VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -68,11 +84,14 @@ func (q *Queries) InsertPortalSession(ctx context.Context, db DBTX, arg InsertPo
 	_, err := db.ExecContext(ctx, insertPortalSession,
 		arg.ID,
 		arg.WorkspaceID,
-		arg.PortalConfigID,
+		arg.PortalID,
 		arg.ExternalID,
 		arg.Permissions,
-		arg.Preview,
-		arg.ExpiresAt,
+		arg.ExchangeCodeHash,
+		arg.ExchangeCodeExpiresAt,
+		arg.AccessTokenHash,
+		arg.AccessTokenCreatedAt,
+		arg.AccessTokenExpiresAt,
 		arg.CreatedAt,
 	)
 	return err

@@ -412,7 +412,7 @@ func TestWithMetrics_RedactsBufferedBodies(t *testing.T) {
 }
 
 // Portal routes authenticate with a session cookie, so the token the spec redacts
-// from the exchangeSession response would otherwise be written in the clear by
+// from the exchangeCode response would otherwise be written in the clear by
 // every request that used it afterwards.
 func TestWithMetrics_RedactsCredentialHeaders(t *testing.T) {
 	eventBuffer := &mockEventBuffer{}

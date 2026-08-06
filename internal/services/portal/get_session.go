@@ -2,33 +2,36 @@ package portal
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
-// GetSession validates a portal session token and returns session info
+// GetSession validates a portal access token and returns session info
 // for scoping existing handlers by workspace and external user identity.
-func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, error) {
+func (s *service) GetSession(ctx context.Context, accessToken string) (*SessionInfo, error) {
 	ctx, span := tracing.Start(ctx, "portal.GetSession")
 	defer span.End()
 
-	if token == "" {
-		return nil, fault.New("empty session token",
+	if accessToken == "" {
+		return nil, fault.New("empty access token",
 			fault.Code(codes.Portal.Session.TokenMissing.URN()),
-			fault.Internal("portal session token is empty"),
-			fault.Public("A valid portal session token is required."),
+			fault.Internal("portal access token is empty"),
+			fault.Public("A valid portal access token is required."),
 		)
 	}
 
-	row, hit, err := s.sessionCache.SWR(ctx, token, func(ctx context.Context) (db.PortalSession, error) {
+	accessTokenHash := hash.Sha256(accessToken)
+	row, hit, err := s.sessionCache.SWR(ctx, accessTokenHash, func(ctx context.Context) (db.PortalSession, error) {
 		return db.Query.FindValidPortalSession(ctx, s.db.RO(), db.FindValidPortalSessionParams{
-			ID:  token,
-			Now: s.clock.Now().UnixMilli(),
+			AccessTokenHash: sql.NullString{String: accessTokenHash, Valid: true},
+			Now:             sql.NullInt64{Int64: s.clock.Now().UnixMilli(), Valid: true},
 		})
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -52,7 +55,7 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 			fault.Public("The portal session is invalid or has expired."),
 		)
 	}
-	if row.ExpiresAt <= s.clock.Now().UnixMilli() {
+	if !row.AccessTokenExpiresAt.Valid || row.AccessTokenExpiresAt.Int64 <= s.clock.Now().UnixMilli() {
 		return nil, fault.New("invalid or expired portal session",
 			fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 			fault.Internal("portal session cached after expiry"),
@@ -63,6 +66,12 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 	// The permissions column stores the simplified capability model as a JSON
 	// object {keyspaceIds, permissions:[verbs]}, written by portal.createSession.
 	// The resolver expands the verbs into RBAC via portalrbac.
+	//
+	// TODO: Re-evaluate this grant against the portal's current configuration
+	// before authorization. Sessions snapshot keyspace IDs and permissions when
+	// created, so configuration changes do not affect active sessions until they
+	// expire. Intersect with the current configuration or add grant versioning
+	// before configuration changes are expected to take effect immediately.
 	grant, err := db.UnmarshalNullableJSONTo[storedGrant](row.Permissions)
 	if err != nil {
 		return nil, fault.Wrap(err,
@@ -73,12 +82,12 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 	}
 
 	return &SessionInfo{
-		WorkspaceID:    row.WorkspaceID,
-		ExternalID:     row.ExternalID,
-		PortalConfigID: row.PortalConfigID,
-		Preview:        row.Preview,
-		KeyspaceIDs:    grant.KeyspaceIDs,
-		Permissions:    grant.Permissions,
+		ID:          row.ID,
+		WorkspaceID: row.WorkspaceID,
+		ExternalID:  row.ExternalID,
+		PortalID:    row.PortalID,
+		KeyspaceIDs: grant.KeyspaceIDs,
+		Permissions: grant.Permissions,
 	}, nil
 }
 

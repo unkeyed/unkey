@@ -21,7 +21,7 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	req := handler.Request{
-		Slug:        "test-portal",
+		Portal:      "test-portal",
 		ExternalId:  "user_123",
 		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}

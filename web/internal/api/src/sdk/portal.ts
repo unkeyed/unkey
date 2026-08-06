@@ -3,7 +3,7 @@
  */
 
 import { portalCreateSession } from "../funcs/portalCreateSession.js";
-import { portalExchangeSession } from "../funcs/portalExchangeSession.js";
+import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
@@ -18,15 +18,15 @@ export class Portal extends ClientSDK {
    * Create portal session
    *
    * @remarks
-   * Create a short-lived session token for an end user to access the Customer Portal.
+   * Create a portal session and short-lived exchange code for an end user.
    *
-   * The returned session ID is valid for 15 minutes and can be exchanged exactly once
-   * for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
-   * to the returned URL to start the portal experience.
+   * The exchange code is valid for 15 minutes and can be exchanged exactly once
+   * for a 24-hour access token via `portal.exchangeCode`. Redirect the end user to
+   * the returned URL to start the portal experience.
    *
    * **Required Permissions**
    *
-   * Your root key must be associated with a workspace that has an enabled portal configuration.
+   * Your root key must be associated with a workspace that has an enabled portal.
    */
   async createSession(
     request: components.V2PortalCreateSessionRequestBody,
@@ -40,22 +40,22 @@ export class Portal extends ClientSDK {
   }
 
   /**
-   * Exchange session token
+   * Exchange portal code
    *
    * @remarks
-   * Exchange a short-lived session token for a long-lived browser session.
+   * Consume a short-lived exchange code to issue a portal access token.
    *
-   * This endpoint is unauthenticated. The session token itself serves as proof of authorization.
-   * Each token can only be exchanged once; subsequent attempts return 401.
+   * This endpoint is unauthenticated. The exchange code itself serves as proof of authorization.
+   * Each code can only be exchanged once; subsequent attempts return 401.
    *
-   * The returned browser session token is valid for 24 hours and should be stored as an
-   * httpOnly cookie or used in the Authorization header for subsequent API calls.
+   * The returned access token is valid for 24 hours. The hosted portal stores it
+   * in an httpOnly cookie and uses its server-side proxy for subsequent requests.
    */
-  async exchangeSession(
-    request: components.V2PortalExchangeSessionRequestBody,
+  async exchangeCode(
+    request: components.V2PortalExchangeCodeRequestBody,
     options?: RequestOptions,
-  ): Promise<operations.PortalExchangeSessionResponse> {
-    return unwrapAsync(portalExchangeSession(
+  ): Promise<operations.PortalExchangeCodeResponse> {
+    return unwrapAsync(portalExchangeCode(
       this,
       request,
       options,
@@ -95,11 +95,10 @@ export class Portal extends ClientSDK {
    * Retrieve a paginated list of API keys owned by the authenticated portal
    * session's end user.
    *
-   * This is the portal-scoped variant of `apis.listKeys`. It authenticates only
-   * with a portal session cookie and always restricts results to the keys owned
-   * by the session's external identity, within the keyspaces configured on the
-   * portal configuration. Both the identity and the keyspaces come from the
-   * session, so the request body has no `externalId` or `apiId` field.
+   * It authenticates only with a portal session cookie and always restricts
+   * results to keys owned by the session's external identity, within the
+   * keyspaces configured on the portal. Both the identity and keyspaces come
+   * from the session and cannot be overridden by the request.
    */
   async listKeys(
     security: operations.PortalListKeysSecurity,

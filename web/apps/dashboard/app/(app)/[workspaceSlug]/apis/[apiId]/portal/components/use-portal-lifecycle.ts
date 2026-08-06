@@ -6,7 +6,7 @@ export type PortalLifecycleState = "disabled" | "enabling" | "enabled";
 
 const ENABLE_DELAY_MS = 800;
 
-// Prototype-only persistence; the real implementation reads portal_configurations.
+// Prototype-only persistence; the real implementation reads portals.
 export function usePortalLifecycle(resourceId: string) {
   const storageKey = `unkey:portal-enabled:${resourceId}`;
 

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -23,7 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// TestCreateSessionAppMapped verifies that an app-mapped portal config resolves
+// TestCreateSessionAppMapped verifies that an app-mapped portal resolves
 // its keyspaces from the app's current deployment sentinel config (the keyauth
 // policies' keySpaceIds) rather than from the public request.
 func TestCreateSessionAppMapped(t *testing.T) {
@@ -120,9 +121,9 @@ func TestCreateSessionAppMapped(t *testing.T) {
 		AppID:               app.ID,
 	}))
 
-	// App-mapped portal config: app_id set, key_auth_id left null.
-	require.NoError(t, db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          uid.New(uid.PortalConfigPrefix),
+	// App-mapped portal: app_id set, keyspace_id left null.
+	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
+		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
 		Slug:        "app-portal",
 		AppID:       sql.NullString{Valid: true, String: app.ID},
@@ -137,7 +138,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	}
 
 	req := handler.Request{
-		Slug:        "app-portal",
+		Portal:      "app-portal",
 		ExternalId:  "user_app",
 		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
@@ -145,19 +146,21 @@ func TestCreateSessionAppMapped(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Data.SessionId)
+	exchangeCode := exchangeCodeFromPortalURL(t, res.Body.Data.Url)
 
 	// The persisted grant must be scoped to the keyspace resolved from the app's
 	// sentinel config, not anything in the request.
-	token, err := db.Query.FindValidPortalSessionToken(ctx, h.DB.RO(), db.FindValidPortalSessionTokenParams{
-		ID:  res.Body.Data.SessionId,
-		Now: time.Now().UnixMilli(),
+	session, err := db.Query.FindValidPortalSessionByExchangeCode(ctx, h.DB.RO(), db.FindValidPortalSessionByExchangeCodeParams{
+		ExchangeCodeHash: sql.NullString{String: hash.Sha256(exchangeCode), Valid: true},
+		Now:              time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
+	require.Equal(t, res.Body.Data.SessionId, session.ID)
 
 	var grant struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
 		Permissions []string `json:"permissions"`
 	}
-	require.NoError(t, json.Unmarshal(token.Permissions, &grant))
+	require.NoError(t, json.Unmarshal(session.Permissions, &grant))
 	require.Equal(t, []string{keySpaceID}, grant.KeyspaceIDs)
 }

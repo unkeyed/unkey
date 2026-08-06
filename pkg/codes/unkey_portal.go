@@ -2,7 +2,7 @@ package codes
 
 // portalSession defines errors related to portal session operations.
 type portalSession struct {
-	// TokenMissing indicates a portal session token was not provided.
+	// TokenMissing indicates a portal access token was not provided.
 	TokenMissing Code
 
 	// SessionNotFound indicates the portal session was not found or has expired.

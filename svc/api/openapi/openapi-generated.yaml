@@ -23,7 +23,7 @@ components:
             x-speakeasy-name-override: rootKey
         portalSession:
             description: |-
-                Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+                Browser session cookie for the Customer Portal. Set by `portal.exchangeCode`
                 and sent automatically by the browser on `portal.*` requests. Portal sessions
                 are scoped to a single end user (external identity) and can only access the
                 `portal.*` routes.
@@ -2725,20 +2725,14 @@ components:
         V2PortalCreateSessionRequestBody:
             type: object
             required:
-                - slug
+                - portal
                 - externalId
                 - permissions
             properties:
-                slug:
-                    type: string
-                    minLength: 3
-                    maxLength: 64
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
-                        The human-readable slug of the portal configuration to create the session against.
-                        Identifies which app's portal the end user will access.
-                        Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-                        must not start or end with a hyphen, and must not contain consecutive hyphens.
+                        The portal to create the session for, identified by its ID or slug.
                     example: my-portal
                 externalId:
                     type: string
@@ -2762,20 +2756,15 @@ components:
                         The capabilities granted to the end user in the Portal, from a fixed
                         vocabulary. All capabilities are scoped to this end user: key capabilities
                         (`keys:*`) apply only to keys the end user owns within the keyspace
-                        configured on the portal configuration, and `analytics:read` returns only
+                        configured on the portal, and `analytics:read` returns only
                         the end user's own verification events. An end user can never see another
                         identity's keys or analytics.
 
                         Tab visibility is derived from the capabilities:
-                        - Keys tab: any `keys:*` capability
+                        - Keys tab: `keys:read`
                         - Analytics tab: `analytics:read`
                         - Docs tab: visible when any capability is present
                     example: ["keys:read", "keys:reroll", "analytics:read"]
-                preview:
-                    type: boolean
-                    default: false
-                    description: |
-                        When true, creates a preview session for testing the portal experience.
             additionalProperties: false
         V2PortalCreateSessionResponseBody:
             type: object
@@ -2788,21 +2777,21 @@ components:
                 data:
                     $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
             additionalProperties: false
-        V2PortalExchangeSessionRequestBody:
+        V2PortalExchangeCodeRequestBody:
             type: object
             required:
-                - sessionId
+                - code
             properties:
-                sessionId:
+                code:
                     type: string
                     minLength: 1
                     x-unkey-redact: true
                     description: |
-                        The session token ID received from `portal.createSession`.
+                        The one-time exchange code received from `portal.createSession`.
                         Must be valid, unexpired, and not previously exchanged.
-                    example: pst_abc123def456
+                    example: abc123def456ghi789
             additionalProperties: false
-        V2PortalExchangeSessionResponseBody:
+        V2PortalExchangeCodeResponseBody:
             type: object
             required:
                 - meta
@@ -2811,7 +2800,7 @@ components:
                 meta:
                     $ref: "#/components/schemas/Meta"
                 data:
-                    $ref: "#/components/schemas/V2PortalExchangeSessionResponseData"
+                    $ref: "#/components/schemas/V2PortalExchangeCodeResponseData"
             additionalProperties: false
         V2PortalGetVerificationsRequestBody:
             type: object
@@ -5943,35 +5932,34 @@ components:
             properties:
                 sessionId:
                     type: string
-                    x-unkey-redact: true
                     description: |
-                        The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
-                    example: pst_abc123def456
+                        The stable, non-secret identifier for the portal session.
+                    example: ps_abc123def
                 url:
                     type: string
                     format: uri
                     x-unkey-redact: true
                     description: |
-                        The full portal URL with the session parameter. Redirect the end user to this URL.
-                    example: "https://portal.unkey.com/?session=pst_abc123def456"
+                        The full portal URL with the exchange code in its query string. Redirect the end user to this URL.
+                    example: "https://portal.unkey.com/?code=abc123def456ghi789"
             additionalProperties: false
-        V2PortalExchangeSessionResponseData:
+        V2PortalExchangeCodeResponseData:
             type: object
             required:
-                - token
+                - accessToken
                 - expiresAt
             properties:
-                token:
+                accessToken:
                     type: string
                     x-unkey-redact: true
                     description: |
-                        The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
-                    example: ps_xyz789abc123
+                        The access token. Store this as an httpOnly cookie for subsequent portal requests.
+                    example: xyz789abc123def456
                 expiresAt:
                     type: integer
                     format: int64
                     description: |
-                        Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
+                        Unix timestamp in milliseconds when the access token expires (24 hours from the code exchange).
                     example: 1711386400000
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
@@ -11789,15 +11777,15 @@ paths:
     /v2/portal.createSession:
         post:
             description: |
-                Create a short-lived session token for an end user to access the Customer Portal.
+                Create a portal session and short-lived exchange code for an end user.
 
-                The returned session ID is valid for 15 minutes and can be exchanged exactly once
-                for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
-                to the returned URL to start the portal experience.
+                The exchange code is valid for 15 minutes and can be exchanged exactly once
+                for a 24-hour access token via `portal.exchangeCode`. Redirect the end user to
+                the returned URL to start the portal experience.
 
                 **Required Permissions**
 
-                Your root key must be associated with a workspace that has an enabled portal configuration.
+                Your root key must be associated with a workspace that has an enabled portal.
             operationId: portal.createSession
             requestBody:
                 content:
@@ -11812,10 +11800,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2PortalCreateSessionResponseBody'
                     description: |
-                        Session token created successfully. Redirect the end user to the returned URL.
+                        Portal session created successfully. Redirect the end user to the returned URL.
                     headers:
                         Cache-Control:
-                            description: Prevents caching of the session token response.
+                            description: Prevents caching of the exchange code response.
                             schema:
                                 example: no-store
                                 type: string
@@ -11869,34 +11857,34 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: createSession
-    /v2/portal.exchangeSession:
+    /v2/portal.exchangeCode:
         post:
             description: |
-                Exchange a short-lived session token for a long-lived browser session.
+                Consume a short-lived exchange code to issue a portal access token.
 
-                This endpoint is unauthenticated. The session token itself serves as proof of authorization.
-                Each token can only be exchanged once; subsequent attempts return 401.
+                This endpoint is unauthenticated. The exchange code itself serves as proof of authorization.
+                Each code can only be exchanged once; subsequent attempts return 401.
 
-                The returned browser session token is valid for 24 hours and should be stored as an
-                httpOnly cookie or used in the Authorization header for subsequent API calls.
-            operationId: portal.exchangeSession
+                The returned access token is valid for 24 hours. The hosted portal stores it
+                in an httpOnly cookie and uses its server-side proxy for subsequent requests.
+            operationId: portal.exchangeCode
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2PortalExchangeSessionRequestBody'
+                            $ref: '#/components/schemas/V2PortalExchangeCodeRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2PortalExchangeSessionResponseBody'
+                                $ref: '#/components/schemas/V2PortalExchangeCodeResponseBody'
                     description: |
-                        Session exchanged successfully. Use the returned token for subsequent API calls.
+                        Exchange code consumed successfully. The hosted portal stores the returned access token in an httpOnly cookie.
                     headers:
                         Cache-Control:
-                            description: Prevents caching of the session token response.
+                            description: Prevents caching of the access token response.
                             schema:
                                 example: no-store
                                 type: string
@@ -11932,11 +11920,11 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security: []
-            summary: Exchange session token
+            summary: Exchange portal code
             tags:
                 - portal
             x-excluded: true
-            x-speakeasy-name-override: exchangeSession
+            x-speakeasy-name-override: exchangeCode
     /v2/portal.getVerifications:
         post:
             description: |
@@ -12012,11 +12000,10 @@ paths:
                 Retrieve a paginated list of API keys owned by the authenticated portal
                 session's end user.
 
-                This is the portal-scoped variant of `apis.listKeys`. It authenticates only
-                with a portal session cookie and always restricts results to the keys owned
-                by the session's external identity, within the keyspaces configured on the
-                portal configuration. Both the identity and the keyspaces come from the
-                session, so the request body has no `externalId` or `apiId` field.
+                It authenticates only with a portal session cookie and always restricts
+                results to keys owned by the session's external identity, within the
+                keyspaces configured on the portal. Both the identity and keyspaces come
+                from the session and cannot be overridden by the request.
             operationId: portal.listKeys
             requestBody:
                 content:

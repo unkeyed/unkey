@@ -33,11 +33,12 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	resolver := NewResolver(stubPortal{
 		token: "portal_session_123",
 		info: &portal.SessionInfo{
-			WorkspaceID:    "ws_123",
-			ExternalID:     "customer_123",
-			PortalConfigID: "pc_123",
-			KeyspaceIDs:    []string{"ks_1"},
-			Permissions:    []string{"keys:reroll"},
+			ID:          "ps_123",
+			WorkspaceID: "ws_123",
+			ExternalID:  "customer_123",
+			PortalID:    "portal_123",
+			KeyspaceIDs: []string{"ks_1"},
+			Permissions: []string{"keys:reroll"},
 		},
 	})
 
@@ -54,8 +55,8 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, "ws_123", principal.WorkspaceID)
 	source, ok := principal.Source.(authprincipal.PortalSessionSource)
 	require.True(t, ok)
-	require.Equal(t, "portal_session_123", source.SessionID)
-	require.Equal(t, "pc_123", source.PortalConfigID)
+	require.Equal(t, "ps_123", source.SessionID)
+	require.Equal(t, "portal_123", source.PortalID)
 
 	// Portal principals carry the product capability directly. Resource scope is
 	// enforced separately by portal handlers.

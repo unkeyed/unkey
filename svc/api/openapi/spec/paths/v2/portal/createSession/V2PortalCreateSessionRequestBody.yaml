@@ -1,19 +1,13 @@
 type: object
 required:
-  - slug
+  - portal
   - externalId
   - permissions
 properties:
-  slug:
-    type: string
-    minLength: 3
-    maxLength: 64
-    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
-      The human-readable slug of the portal configuration to create the session against.
-      Identifies which app's portal the end user will access.
-      Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-      must not start or end with a hyphen, and must not contain consecutive hyphens.
+      The portal to create the session for, identified by its ID or slug.
     example: my-portal
   externalId:
     type: string
@@ -37,18 +31,13 @@ properties:
       The capabilities granted to the end user in the Portal, from a fixed
       vocabulary. All capabilities are scoped to this end user: key capabilities
       (`keys:*`) apply only to keys the end user owns within the keyspace
-      configured on the portal configuration, and `analytics:read` returns only
+      configured on the portal, and `analytics:read` returns only
       the end user's own verification events. An end user can never see another
       identity's keys or analytics.
 
       Tab visibility is derived from the capabilities:
-      - Keys tab: any `keys:*` capability
+      - Keys tab: `keys:read`
       - Analytics tab: `analytics:read`
       - Docs tab: visible when any capability is present
     example: ["keys:read", "keys:reroll", "analytics:read"]
-  preview:
-    type: boolean
-    default: false
-    description: |
-      When true, creates a preview session for testing the portal experience.
 additionalProperties: false

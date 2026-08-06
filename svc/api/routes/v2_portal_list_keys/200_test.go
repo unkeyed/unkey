@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -242,6 +243,7 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 
 	setup := setupPortalSessionTest(t, h)
 	sessionID := uid.New(uid.PortalSessionPrefix)
+	accessToken := uid.Secure()
 	permissions, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
 		Permissions []string `json:"permissions"`
@@ -253,18 +255,21 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 
 	expiresAt := h.Clock.Now().Add(time.Minute)
 	require.NoError(t, db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    setup.workspace.ID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     setup.identity1ExternalID,
-		Permissions:    permissions,
-		ExpiresAt:      expiresAt.UnixMilli(),
-		CreatedAt:      h.Clock.Now().UnixMilli(),
+		ID:                    sessionID,
+		WorkspaceID:           setup.workspace.ID,
+		PortalID:              uid.New(uid.PortalPrefix),
+		ExternalID:            setup.identity1ExternalID,
+		Permissions:           permissions,
+		ExchangeCodeExpiresAt: h.Clock.Now().UnixMilli(),
+		AccessTokenCreatedAt:  sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true},
+		AccessTokenHash:       sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+		AccessTokenExpiresAt:  sql.NullInt64{Int64: expiresAt.UnixMilli(), Valid: true},
+		CreatedAt:             h.Clock.Now().UnixMilli(),
 	}))
 
 	headers := http.Header{
 		"Content-Type": {"application/json"},
-		"Cookie":       {"portal_session=" + sessionID},
+		"Cookie":       {"portal_session=" + accessToken},
 	}
 	warm := testutil.CallRoute[Request, Response](h, route, headers, Request{})
 	require.Equal(t, http.StatusOK, warm.Status)
@@ -273,5 +278,5 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 	expired := testutil.CallRoute[Request, openapi.UnauthorizedErrorResponse](h, route, headers, Request{})
 	require.Equal(t, http.StatusUnauthorized, expired.Status)
 	require.Equal(t, "The portal session is invalid or has expired.", expired.Body.Error.Detail)
-	require.NotContains(t, expired.RawBody, sessionID)
+	require.NotContains(t, expired.RawBody, accessToken)
 }

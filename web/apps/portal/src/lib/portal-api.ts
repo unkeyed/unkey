@@ -19,12 +19,12 @@ import { SESSION_COOKIE_NAME } from "./session";
  * Server-side proxy for the internal `v2/portal.*` data endpoints, over the
  * vendored `@unkey/api` SDK.
  *
- * The portal session token is an httpOnly cookie the browser cannot read, and
+ * The portal access token is an httpOnly cookie the browser cannot read, and
  * the API's portal auth service only claims cookie-authenticated requests (it
  * bails if an `Authorization` header is present). The SDK's portal operations
  * model auth as the `portal_session` cookie credential, so these server
  * functions run on the portal's server, read the cookie, and hand it to the SDK
- * as `portalSession` — never as a bearer token. The token never reaches client
+ * as `portalSession` — never as a bearer token. The access token never reaches client
  * code.
  */
 

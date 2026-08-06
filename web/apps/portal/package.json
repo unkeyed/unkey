@@ -19,6 +19,7 @@
     "@tanstack/react-table": "8.21.3",
     "@unkey/api": "workspace:*",
     "@unkey/db": "workspace:^",
+    "@unkey/hash": "workspace:^",
     "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
     "class-variance-authority": "0.7.1",

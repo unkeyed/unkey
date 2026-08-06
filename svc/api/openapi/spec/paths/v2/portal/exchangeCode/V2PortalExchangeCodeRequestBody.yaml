@@ -1,0 +1,13 @@
+type: object
+required:
+  - code
+properties:
+  code:
+    type: string
+    minLength: 1
+    x-unkey-redact: true
+    description: |
+      The one-time exchange code received from `portal.createSession`.
+      Must be valid, unexpired, and not previously exchanged.
+    example: abc123def456ghi789
+additionalProperties: false

@@ -11,10 +11,10 @@ import (
 // SessionInfo contains the resolved identity from a portal browser session.
 // It provides workspace and user scoping for existing API handlers.
 type SessionInfo struct {
-	WorkspaceID    string
-	ExternalID     string
-	PortalConfigID string
-	Preview        bool
+	ID          string
+	WorkspaceID string
+	ExternalID  string
+	PortalID    string
 
 	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
 	KeyspaceIDs []string
@@ -27,9 +27,9 @@ type SessionInfo struct {
 
 // Service defines the interface for portal session operations.
 type Service interface {
-	// GetSession validates a portal session token and returns session info
+	// GetSession validates a portal access token and returns session info
 	// for scoping existing handlers by workspace and external user identity.
-	GetSession(ctx context.Context, token string) (*SessionInfo, error)
+	GetSession(ctx context.Context, accessToken string) (*SessionInfo, error)
 }
 
 // Config holds the configuration for creating a new portal service instance.
