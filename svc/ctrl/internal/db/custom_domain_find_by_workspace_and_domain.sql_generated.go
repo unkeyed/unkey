@@ -17,6 +17,7 @@ SELECT
     app_id,
     environment_id,
     domain,
+    verification_status,
     invocation_id
 FROM custom_domains
 WHERE workspace_id = ? AND domain = ?
@@ -28,12 +29,13 @@ type FindCustomDomainByWorkspaceAndDomainParams struct {
 }
 
 type FindCustomDomainByWorkspaceAndDomainRow struct {
-	ID            string         `db:"id"`
-	ProjectID     string         `db:"project_id"`
-	AppID         string         `db:"app_id"`
-	EnvironmentID string         `db:"environment_id"`
-	Domain        string         `db:"domain"`
-	InvocationID  sql.NullString `db:"invocation_id"`
+	ID                 string                          `db:"id"`
+	ProjectID          string                          `db:"project_id"`
+	AppID              string                          `db:"app_id"`
+	EnvironmentID      string                          `db:"environment_id"`
+	Domain             string                          `db:"domain"`
+	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
+	InvocationID       sql.NullString                  `db:"invocation_id"`
 }
 
 // FindCustomDomainByWorkspaceAndDomain
@@ -44,6 +46,7 @@ type FindCustomDomainByWorkspaceAndDomainRow struct {
 //	    app_id,
 //	    environment_id,
 //	    domain,
+//	    verification_status,
 //	    invocation_id
 //	FROM custom_domains
 //	WHERE workspace_id = ? AND domain = ?
@@ -56,6 +59,7 @@ func (q *Queries) FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg 
 		&i.AppID,
 		&i.EnvironmentID,
 		&i.Domain,
+		&i.VerificationStatus,
 		&i.InvocationID,
 	)
 	return i, err
