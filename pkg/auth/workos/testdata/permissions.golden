@@ -1,6 +1,7 @@
 unkey:v1:ws_123:**#*
 unkey:v1:ws_123:projects/*/apps/*#create_app
 unkey:v1:ws_123:projects/*/apps/*#delete_app
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#create_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#promote_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#rollback_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#start_deployment
