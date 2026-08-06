@@ -302,7 +302,7 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.origin.Schedule(
+			c.origin.DoAsync(
 				context.WithoutCancel(ctx),
 				key,
 				c.scheduleRevalidation,
@@ -417,7 +417,7 @@ func (c *cache[K, V]) SWRMany(
 
 	// Queue stale keys for background refresh
 	if len(staleKeys) > 0 {
-		c.origin.ScheduleMany(
+		c.origin.DoManyAsync(
 			context.WithoutCancel(ctx),
 			staleKeys,
 			c.scheduleRevalidation,
@@ -512,7 +512,7 @@ func (c *cache[K, V]) SWRWithFallback(
 
 		if now.Before(e.Stale) {
 			// Stale - return but queue background revalidation with deduplication
-			c.origin.Schedule(
+			c.origin.DoAsync(
 				context.WithoutCancel(ctx),
 				key,
 				c.scheduleRevalidation,

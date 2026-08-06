@@ -65,19 +65,19 @@ func TestDoDeduplicatesConcurrentCalls(t *testing.T) {
 	})
 }
 
-// TestScheduleReservesBeforeEnqueue guarantees that queued work remains
+// TestDoAsyncReservesBeforeEnqueue guarantees that queued work remains
 // deduplicated before a worker begins executing it.
-func TestScheduleReservesBeforeEnqueue(t *testing.T) {
+func TestDoAsyncReservesBeforeEnqueue(t *testing.T) {
 	group := New[string, string]()
 	var scheduled func()
 	schedule := func(function func()) {
 		scheduled = function
 	}
 
-	require.True(t, group.Schedule(context.Background(), "key", schedule, func(context.Context) (string, error) {
+	require.True(t, group.DoAsync(context.Background(), "key", schedule, func(context.Context) (string, error) {
 		return "value", nil
 	}))
-	require.False(t, group.Schedule(context.Background(), "key", schedule, func(context.Context) (string, error) {
+	require.False(t, group.DoAsync(context.Background(), "key", schedule, func(context.Context) (string, error) {
 		return "duplicate", nil
 	}))
 	require.NotNil(t, scheduled)
@@ -90,9 +90,9 @@ func TestScheduleReservesBeforeEnqueue(t *testing.T) {
 	require.Equal(t, "next", value)
 }
 
-// TestScheduleManyReservesOverlappingKeys guarantees that overlapping batches
+// TestDoManyAsyncReservesOverlappingKeys guarantees that overlapping batches
 // execute each key at most once while preserving non-overlapping batch work.
-func TestScheduleManyReservesOverlappingKeys(t *testing.T) {
+func TestDoManyAsyncReservesOverlappingKeys(t *testing.T) {
 	group := New[string, string]()
 	var scheduled []func()
 	schedule := func(function func()) {
@@ -108,8 +108,8 @@ func TestScheduleManyReservesOverlappingKeys(t *testing.T) {
 		return values, nil
 	}
 
-	require.True(t, group.ScheduleMany(context.Background(), []string{"a", "b", "a"}, schedule, function))
-	require.True(t, group.ScheduleMany(context.Background(), []string{"b", "c"}, schedule, function))
+	require.True(t, group.DoManyAsync(context.Background(), []string{"a", "b", "a"}, schedule, function))
+	require.True(t, group.DoManyAsync(context.Background(), []string{"b", "c"}, schedule, function))
 	require.Len(t, scheduled, 2)
 	scheduled[0]()
 	scheduled[1]()
@@ -117,10 +117,10 @@ func TestScheduleManyReservesOverlappingKeys(t *testing.T) {
 	require.Equal(t, []string{"c"}, <-executedKeys)
 }
 
-func TestSchedulePanicReleasesKey(t *testing.T) {
+func TestDoAsyncPanicReleasesKey(t *testing.T) {
 	group := New[string, string]()
 	require.Panics(t, func() {
-		group.Schedule(context.Background(), "key", func(func()) {
+		group.DoAsync(context.Background(), "key", func(func()) {
 			panic("scheduler failed")
 		}, func(context.Context) (string, error) {
 			return "unreachable", nil
@@ -134,10 +134,10 @@ func TestSchedulePanicReleasesKey(t *testing.T) {
 	require.Equal(t, "recovered", value)
 }
 
-func TestScheduleManyPanicReleasesKeys(t *testing.T) {
+func TestDoManyAsyncPanicReleasesKeys(t *testing.T) {
 	group := New[string, string]()
 	require.Panics(t, func() {
-		group.ScheduleMany(context.Background(), []string{"a", "b"}, func(func()) {
+		group.DoManyAsync(context.Background(), []string{"a", "b"}, func(func()) {
 			panic("scheduler failed")
 		}, func(context.Context, []string) (map[string]string, error) {
 			return nil, nil

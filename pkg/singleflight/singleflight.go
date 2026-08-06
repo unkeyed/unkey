@@ -64,10 +64,10 @@ func (g *Group[K, V]) Do(
 	}
 }
 
-// Schedule reserves key before passing its work to schedule. It returns true
+// DoAsync reserves key before passing its work to schedule. It returns true
 // when work was scheduled and false when another call already reserved key.
-// Schedule must accept the work without executing it before returning.
-func (g *Group[K, V]) Schedule(
+// DoAsync must accept the work without executing it before returning.
+func (g *Group[K, V]) DoAsync(
 	ctx context.Context,
 	key K,
 	schedule func(func()),
@@ -99,11 +99,11 @@ func (g *Group[K, V]) Schedule(
 	return true
 }
 
-// ScheduleMany reserves every currently inactive key before passing one batch
+// DoManyAsync reserves every currently inactive key before passing one batch
 // to schedule. It returns true when at least one key was scheduled. The
 // function must return a result for each key that it receives.
-// ScheduleMany must accept the work without executing it before returning.
-func (g *Group[K, V]) ScheduleMany(
+// DoManyAsync must accept the work without executing it before returning.
+func (g *Group[K, V]) DoManyAsync(
 	ctx context.Context,
 	keys []K,
 	schedule func(func()),
