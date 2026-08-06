@@ -24,7 +24,9 @@ _If there is not an issue for this, create one first. This is used for tracking 
 
 ## Screenshots / recordings
 
-<!-- Required for any visual change. Add a screenshot for a static change and a screen recording for a flow or an interaction. Show before and after when you change something that exists. Read the guide: ../docs/engineering/contributing/quality/screenshots-and-recordings.mdx -->
+<!-- Required for any visual change. Add a screenshot for a static change and a screen recording for a flow or an interaction. Show before and after when you change something that exists. 
+
+For taking good screenshots / videos - **read** the guide: ../docs/engineering/contributing/quality/screenshots-and-recordings.mdx -->
 
 _Not applicable: this PR makes no visual change._
 
