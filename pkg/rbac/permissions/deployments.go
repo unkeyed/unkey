@@ -26,3 +26,11 @@ type StartDeployment struct{}
 
 func (StartDeployment) ActionFor(urn.Deployment) {}
 func (StartDeployment) String() string           { return "start_deployment" }
+
+// RollbackDeployment authorizes rolling live traffic back to a previous deployment.
+//
+// Valid resource: urn.Deployment, the rollback target.
+type RollbackDeployment struct{}
+
+func (RollbackDeployment) ActionFor(urn.Deployment) {}
+func (RollbackDeployment) String() string           { return "rollback_deployment" }
