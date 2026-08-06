@@ -185,12 +185,14 @@ message RegionalConfig {
 message RollbackRequest {
   string source_deployment_id = 1;
   string target_deployment_id = 2;
+  ActorInfo actor = 3;
 }
 
 message RollbackResponse {}
 
 message PromoteRequest {
   string target_deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message PromoteResponse {}
@@ -209,12 +211,14 @@ message CancelDeploymentResponse {}
 
 message StopDeploymentRequest {
   string deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message StopDeploymentResponse {}
 
 message WakeDeploymentRequest {
   string deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message WakeDeploymentResponse {}
