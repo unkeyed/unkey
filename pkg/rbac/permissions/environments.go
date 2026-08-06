@@ -34,6 +34,14 @@ type StopDeployment struct{}
 func (StopDeployment) ActionFor(urn.Environment) {}
 func (StopDeployment) String() string            { return "stop_deployment" }
 
+// StartDeployment authorizes starting a stopped deployment in an environment.
+//
+// Valid resource: urn.Environment.
+type StartDeployment struct{}
+
+func (StartDeployment) ActionFor(urn.Environment) {}
+func (StartDeployment) String() string            { return "start_deployment" }
+
 // CreateDomain authorizes creating domains in an environment.
 //
 // Valid resource: urn.Environment.
