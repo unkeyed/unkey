@@ -8,14 +8,13 @@ post:
     Address the domain by its ID or by its name. Names are unique per workspace, so
     `api.acme.com` is enough.
 
-    Use this after you correct the DNS records of a domain that shows `failed`. Verification
-    runs as a durable workflow. This endpoint returns when Unkey accepts the retry. Poll
-    `domains.getDomain` to see the result.
+    Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+    `pending` domain a new 24-hour verification period. Each call replaces the check in
+    progress.
 
-    Each call stops the previous workflow and starts a new 24-hour verification window. A
-    `pending` domain thus gets more time.
+    The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
 
-    A domain that is already `verified` returns a 412. Unkey does not verify it again.
+    A domain that is already `verified` returns a 412.
 
     **Required Permissions**
 
@@ -102,8 +101,7 @@ post:
     "403":
       description: |
         Forbidden - The root key or its workspace is disabled. A root key that only lacks
-        `environment.*.verify_domain` receives a 404 instead. Permissions thus cannot show
-        which domains exist.
+        `environment.*.verify_domain` receives a 404 instead.
       content:
         application/json:
           schema:
@@ -140,8 +138,7 @@ post:
                   type: not-found
     "412":
       description: |
-        Precondition Failed - The domain is already verified. A second verification of a domain
-        that serves traffic can interrupt it, thus there is nothing to retry.
+        Precondition Failed - The domain is already verified. There is nothing to retry.
       content:
         application/json:
           schema:
