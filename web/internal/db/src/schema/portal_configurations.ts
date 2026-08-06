@@ -1,19 +1,20 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portalBranding } from "./portal_branding";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const portalConfigurations = mysqlTable(
   "portal_configurations",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
     slug: varchar("slug", { length: 64 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }),
-    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 64 }),
+    appId: id("app_id"),
+    keyAuthId: id("key_auth_id"),
     enabled: boolean("enabled").notNull().default(true),
     returnUrl: varchar("return_url", { length: 500 }),
     ...lifecycleDates,

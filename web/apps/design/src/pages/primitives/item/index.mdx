@@ -1,0 +1,34 @@
+---
+layout: ../../../layouts/layout.astro
+title: Item — Unkey Design
+---
+import { Preview } from "../../../components/preview.tsx";
+import { ItemLink } from "./_item-link.tsx";
+import { InternalLink } from "./_internal-link.tsx";
+import { ExternalLink } from "./_external-link.tsx";
+import itemLinkSource from "./_item-link.tsx?highlight";
+import internalLinkSource from "./_internal-link.tsx?highlight";
+import externalLinkSource from "./_external-link.tsx?highlight";
+
+# Item
+
+A versatile component used for displaying content like media, links and howto information.
+
+
+<Preview client:load code={itemLinkSource}>
+  <ItemLink />
+</Preview>
+
+## Examples
+
+### Internal link
+
+<Preview client:load code={internalLinkSource}>
+  <InternalLink />
+</Preview>
+
+### External link
+
+<Preview client:load code={externalLinkSource}>
+  <ExternalLink />
+</Preview>

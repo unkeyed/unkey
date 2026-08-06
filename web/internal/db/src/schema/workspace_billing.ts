@@ -1,7 +1,9 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -9,22 +11,22 @@ import { workspaces } from "./workspaces";
  * the legacy API tier, the Compute (Deploy) plan entitlement, and the Compute
  * spend budget / spend-cap state.
  *
- * One row per workspace (keyed by workspace_id), mirroring the quota table. It
- * exists so billing concerns live in one place instead of accreting as columns
- * on the hot workspaces row. Stripe stays the source of truth for subscription
- * state; the columns here are local mirrors read by the dashboard, the deploy
- * gate, and the billing/spend-cap crons.
+ * One row per workspace (keyed by workspace_id), so billing concerns live in
+ * one place instead of accreting as columns on the hot workspaces row. Stripe
+ * stays the source of truth for subscription state; the columns here are local
+ * mirrors read by the dashboard, the deploy gate, and the billing/spend-cap
+ * crons.
  */
 export const workspaceBilling = mysqlTable(
   "workspace_billing",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pk: primaryKey(),
 
     /**
      * workspaceId is the primary identifier for the billing record,
      * matching the ID of the workspace it belongs to.
      */
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
+    workspaceId: id("workspace_id").notNull().unique(),
 
     /**
      * tier is the legacy API-product tier (Free/Pro/…), synced from Stripe by

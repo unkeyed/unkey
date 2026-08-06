@@ -1,19 +1,20 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
+import { mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 128 }),
-    portalConfigId: caseSensitiveVarchar("portal_config_id", { length: 256 }),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    deploymentId: id("deployment_id"),
+    portalConfigId: id("portal_config_id"),
     content: longblob("content").notNull(),
     ...lifecycleDates,
   },

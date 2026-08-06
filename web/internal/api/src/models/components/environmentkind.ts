@@ -7,17 +7,27 @@ import { ClosedEnum } from "../../types/enums.js";
 
 /**
  * The deployment lifecycle role of an environment.
+ *
+ * @remarks
+ *
+ * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+ * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
  */
 export const EnvironmentKind = {
   Production: "production",
   Preview: "preview",
 } as const;
-
 /**
  * The deployment lifecycle role of an environment.
+ *
+ * @remarks
+ *
+ * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+ * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
  */
 export type EnvironmentKind = ClosedEnum<typeof EnvironmentKind>;
 
 /** @internal */
-export const EnvironmentKind$inboundSchema: z.ZodNativeEnum<typeof EnvironmentKind> =
-  z.nativeEnum(EnvironmentKind);
+export const EnvironmentKind$inboundSchema: z.ZodNativeEnum<
+  typeof EnvironmentKind
+> = z.nativeEnum(EnvironmentKind);
