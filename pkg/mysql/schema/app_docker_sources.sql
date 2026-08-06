@@ -8,3 +8,4 @@ CREATE TABLE `app_docker_sources` (
 	CONSTRAINT `app_docker_sources_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `app_docker_sources_app_id_idx` UNIQUE(`app_id`)
 );
+
