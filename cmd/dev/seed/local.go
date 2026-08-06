@@ -354,28 +354,44 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
-		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
+		err = db.BulkQuery.UpsertLimit(ctx, tx, []db.UpsertLimitParams{
 			{
-				WorkspaceID:            workspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           workspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 			{
-				WorkspaceID:            rootWorkspaceID,
-				RequestsPerMonth:       150000,
-				AuditLogsRetentionDays: 30,
-				LogsRetentionDays:      7,
-				Team:                   false,
-				RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-				RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+				WorkspaceID:                           rootWorkspaceID,
+				ApiBillableOperationsCountMaxPerMonth: 150_000,
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				LogsRetentionDaysMax:                  7,
+				LogsAuditRetentionDaysMax:             30,
+				TeamEnabled:                           false,
+				CpuCoresMax:                           10,
+				CpuCoresMaxPerInstance:                2,
+				MemoryMibMax:                          20_480,
+				MemoryMibMaxPerInstance:               4_096,
+				StorageMibMax:                         51_200,
+				StorageMibMaxPerInstance:              10_240,
+				BuildsConcurrentMax:                   1,
+				CustomDomainsMax:                      0,
+				AutoscalingReplicasMax:                0,
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create quotas: %w", err)
+			return fmt.Errorf("failed to create limits: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertKeySpace(ctx, tx, []db.UpsertKeySpaceParams{

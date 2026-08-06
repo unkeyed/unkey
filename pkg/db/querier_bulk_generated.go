@@ -42,7 +42,6 @@ type BulkQuerier interface {
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
 	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
-	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error

@@ -67,17 +67,6 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
 	require.NoError(s.t, err)
 
-	err = db.Query.UpsertQuota(ctx, s.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            params.ID,
-		LogsRetentionDays:      30,
-		AuditLogsRetentionDays: 30,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
-	})
-	require.NoError(s.t, err)
-
 	err = db.Query.UpsertLimit(ctx, s.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           params.ID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
@@ -93,7 +82,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
 		CustomDomainsMax:                      0,
-		AutoscalingReplicasMax:                4,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(s.t, err)
 

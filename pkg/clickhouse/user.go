@@ -60,7 +60,7 @@ type UserConfig struct {
 	MaxQueryMemoryBytes   int64
 	MaxQueryResultRows    int32
 
-	// Data retention (in days) - read from quotas table
+	// Data retention in days, read from the limits table.
 	RetentionDays int32
 }
 

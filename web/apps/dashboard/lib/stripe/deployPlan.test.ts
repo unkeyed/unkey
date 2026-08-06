@@ -1,8 +1,8 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
-  computeQuotaUpdateForPlan,
-  computeQuotasForPlan,
+  computeLimitUpdateForPlan,
+  computeLimitsForPlan,
   deployPlanGrantsTeam,
   detectDeployPlan,
   parseDeployPlan,
@@ -61,55 +61,55 @@ describe("detectDeployPlan", () => {
   });
 });
 
-describe("computeQuotasForPlan", () => {
-  it("returns the advertised plan quotas", () => {
-    expect(computeQuotasForPlan("starter")).toEqual({
-      logsRetentionDays: 3,
-      auditLogsRetentionDays: 7,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 2_048,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
+describe("computeLimitsForPlan", () => {
+  it("returns the advertised plan limits", () => {
+    expect(computeLimitsForPlan("starter")).toEqual({
+      logsRetentionDaysMax: 3,
+      logsAuditRetentionDaysMax: 7,
+      teamEnabled: false,
+      cpuCoresMaxPerInstance: 2,
+      memoryMibMaxPerInstance: 2_048,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
     });
-    expect(computeQuotasForPlan("pro")).toEqual({
-      logsRetentionDays: 7,
-      auditLogsRetentionDays: 14,
-      team: true,
-      maxCpuMillicoresPerInstance: 8_000,
-      maxMemoryMibPerInstance: 8_192,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
+    expect(computeLimitsForPlan("pro")).toEqual({
+      logsRetentionDaysMax: 7,
+      logsAuditRetentionDaysMax: 14,
+      teamEnabled: true,
+      cpuCoresMaxPerInstance: 8,
+      memoryMibMaxPerInstance: 8_192,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
     });
-    expect(computeQuotasForPlan("business")).toEqual({
-      logsRetentionDays: 14,
-      auditLogsRetentionDays: 30,
-      team: true,
-      maxCpuMillicoresPerInstance: 16_000,
-      maxMemoryMibPerInstance: 32_768,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
+    expect(computeLimitsForPlan("business")).toEqual({
+      logsRetentionDaysMax: 14,
+      logsAuditRetentionDaysMax: 30,
+      teamEnabled: true,
+      cpuCoresMaxPerInstance: 16,
+      memoryMibMaxPerInstance: 32_768,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
     });
   });
 
   it("returns the default Compute limits without a plan", () => {
-    expect(computeQuotasForPlan(null)).toEqual({
-      logsRetentionDays: 7,
-      auditLogsRetentionDays: 30,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 4_096,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
+    expect(computeLimitsForPlan(null)).toEqual({
+      logsRetentionDaysMax: 7,
+      logsAuditRetentionDaysMax: 30,
+      teamEnabled: false,
+      cpuCoresMaxPerInstance: 2,
+      memoryMibMaxPerInstance: 4_096,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
     });
   });
 
-  it("preserves API-owned team and retention quotas when an API plan is paid", () => {
-    expect(computeQuotaUpdateForPlan("business", true)).toEqual({
-      maxCpuMillicoresPerInstance: 16_000,
-      maxMemoryMibPerInstance: 32_768,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
+  it("preserves API-owned team and retention limits when an API plan is paid", () => {
+    expect(computeLimitUpdateForPlan("business", true)).toEqual({
+      cpuCoresMaxPerInstance: 16,
+      memoryMibMaxPerInstance: 32_768,
+      storageMibMaxPerInstance: 10_240,
+      buildsConcurrentMax: 1,
     });
   });
 });
