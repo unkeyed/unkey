@@ -13,6 +13,7 @@ import {
   InfoTooltip,
   Meter,
   MeterHeader,
+  MeterIndicator,
   MeterLabel,
   MeterTrack,
   MeterValue,
@@ -242,17 +243,16 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </InfoTooltip>
             </div>
           ) : null}
-          <Meter>
+          <Meter value={usage ? used : 0} max={quota > 0 ? quota : 1}>
             <MeterHeader>
               <MeterLabel>Verifications & ratelimits this month</MeterLabel>
               <MeterValue>
-                {usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—"}
+                {() => (usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—")}
               </MeterValue>
             </MeterHeader>
-            <MeterTrack
-              fraction={usage && quota > 0 ? used / quota : null}
-              fillClassName="bg-info-9"
-            />
+            <MeterTrack>
+              <MeterIndicator className="bg-info-9" />
+            </MeterTrack>
           </Meter>
         </div>
       </ProductCard>
