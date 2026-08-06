@@ -51,9 +51,11 @@ type RateLimit struct {
 	// header-based limiting relies on client-supplied values, and subject-based
 	// limiting requires an upstream authn policy to have produced a [Principal].
 	//
-	// Exactly one of identifier or identifiers is set; the API layer enforces
-	// this at write time. identifier is the original single-dimension form and
-	// is kept for policies stored before compound identifiers existed.
+	// Deprecated: writers must use identifiers; the API layer normalizes all
+	// writes to the repeated form. Readers still accept this field for
+	// policies stored before compound identifiers existed.
+	//
+	// Deprecated: Marked as deprecated in frontline/policies/v1/ratelimit.proto.
 	Identifier *RateLimitIdentifier `protobuf:"bytes,3,opt,name=identifier,proto3" json:"identifier,omitempty"`
 	// Compound form: an ordered list of identifier sources. Each request
 	// resolves every source and the combination of resolved values selects the
@@ -109,6 +111,7 @@ func (x *RateLimit) GetWindowMs() int64 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in frontline/policies/v1/ratelimit.proto.
 func (x *RateLimit) GetIdentifier() *RateLimitIdentifier {
 	if x != nil {
 		return x.Identifier
@@ -508,12 +511,12 @@ var File_frontline_policies_v1_ratelimit_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"%frontline/policies/v1/ratelimit.proto\x12\ffrontline.v1\"\xc6\x01\n" +
+	"%frontline/policies/v1/ratelimit.proto\x12\ffrontline.v1\"\xca\x01\n" +
 	"\tRateLimit\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\x12\x1b\n" +
-	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12A\n" +
+	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12E\n" +
 	"\n" +
-	"identifier\x18\x03 \x01(\v2!.frontline.v1.RateLimitIdentifierR\n" +
+	"identifier\x18\x03 \x01(\v2!.frontline.v1.RateLimitIdentifierB\x02\x18\x01R\n" +
 	"identifier\x12C\n" +
 	"\videntifiers\x18\x04 \x03(\v2!.frontline.v1.RateLimitIdentifierR\videntifiers\"\xe3\x02\n" +
 	"\x13RateLimitIdentifier\x128\n" +

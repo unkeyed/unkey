@@ -220,8 +220,8 @@ const ratelimitFormSchema = z.object({
   type: z.literal("ratelimit"),
   limit: z.number().int().min(1, "Limit must be at least 1"),
   windowMs: z.number().int().min(1, "Window must be at least 1ms"),
-  // One row = the classic single identifier; 2+ rows form a compound key
-  // where each unique combination of resolved values gets its own counter.
+  // Rows form the identifiers list; 2+ rows form a compound key where each
+  // unique combination of resolved values gets its own counter.
   identifiers: z
     .array(ratelimitIdentifierRowSchema)
     .min(1, "Add at least one identifier")
@@ -426,13 +426,10 @@ export function toSentinelPolicy(
       ratelimit: {
         limit: v.limit,
         windowMs: v.windowMs,
-        // One row serializes to the classic single identifier so existing
-        // policies keep their wire shape; 2+ rows use the compound list.
-        ...(v.identifiers.length === 1
-          ? { identifier: toRateLimitIdentifier(v.identifiers[0].source, v.identifiers[0].value) }
-          : {
-              identifiers: v.identifiers.map((row) => toRateLimitIdentifier(row.source, row.value)),
-            }),
+        // Always serialize the identifiers array, even for one row, so all
+        // writes converge on the target shape. Deserialization still reads
+        // the deprecated single identifier from old stored policies.
+        identifiers: v.identifiers.map((row) => toRateLimitIdentifier(row.source, row.value)),
       },
       match: matchExprs,
     }))

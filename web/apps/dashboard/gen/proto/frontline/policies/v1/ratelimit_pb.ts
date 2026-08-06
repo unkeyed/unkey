@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/ratelimit.proto.
  */
 export const file_frontline_policies_v1_ratelimit: GenFile = /*@__PURE__*/
-  fileDesc("CiVmcm9udGxpbmUvcG9saWNpZXMvdjEvcmF0ZWxpbWl0LnByb3RvEgxmcm9udGxpbmUudjEinAEKCVJhdGVMaW1pdBINCgVsaW1pdBgBIAEoAxIRCgl3aW5kb3dfbXMYAiABKAMSNQoKaWRlbnRpZmllchgDIAEoCzIhLmZyb250bGluZS52MS5SYXRlTGltaXRJZGVudGlmaWVyEjYKC2lkZW50aWZpZXJzGAQgAygLMiEuZnJvbnRsaW5lLnYxLlJhdGVMaW1pdElkZW50aWZpZXIipQIKE1JhdGVMaW1pdElkZW50aWZpZXISLgoJcmVtb3RlX2lwGAEgASgLMhkuZnJvbnRsaW5lLnYxLlJlbW90ZUlwS2V5SAASKQoGaGVhZGVyGAIgASgLMhcuZnJvbnRsaW5lLnYxLkhlYWRlcktleUgAEkYKFWF1dGhlbnRpY2F0ZWRfc3ViamVjdBgDIAEoCzIlLmZyb250bGluZS52MS5BdXRoZW50aWNhdGVkU3ViamVjdEtleUgAEiUKBHBhdGgYBCABKAsyFS5mcm9udGxpbmUudjEuUGF0aEtleUgAEjoKD3ByaW5jaXBhbF9maWVsZBgFIAEoCzIfLmZyb250bGluZS52MS5QcmluY2lwYWxGaWVsZEtleUgAQggKBnNvdXJjZSINCgtSZW1vdGVJcEtleSIZCglIZWFkZXJLZXkSDAoEbmFtZRgBIAEoCSIZChdBdXRoZW50aWNhdGVkU3ViamVjdEtleSIJCgdQYXRoS2V5IiEKEVByaW5jaXBhbEZpZWxkS2V5EgwKBHBhdGgYASABKAlCsAEKEGNvbS5mcm9udGxpbmUudjFCDlJhdGVsaW1pdFByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z");
+  fileDesc("CiVmcm9udGxpbmUvcG9saWNpZXMvdjEvcmF0ZWxpbWl0LnByb3RvEgxmcm9udGxpbmUudjEioAEKCVJhdGVMaW1pdBINCgVsaW1pdBgBIAEoAxIRCgl3aW5kb3dfbXMYAiABKAMSOQoKaWRlbnRpZmllchgDIAEoCzIhLmZyb250bGluZS52MS5SYXRlTGltaXRJZGVudGlmaWVyQgIYARI2CgtpZGVudGlmaWVycxgEIAMoCzIhLmZyb250bGluZS52MS5SYXRlTGltaXRJZGVudGlmaWVyIqUCChNSYXRlTGltaXRJZGVudGlmaWVyEi4KCXJlbW90ZV9pcBgBIAEoCzIZLmZyb250bGluZS52MS5SZW1vdGVJcEtleUgAEikKBmhlYWRlchgCIAEoCzIXLmZyb250bGluZS52MS5IZWFkZXJLZXlIABJGChVhdXRoZW50aWNhdGVkX3N1YmplY3QYAyABKAsyJS5mcm9udGxpbmUudjEuQXV0aGVudGljYXRlZFN1YmplY3RLZXlIABIlCgRwYXRoGAQgASgLMhUuZnJvbnRsaW5lLnYxLlBhdGhLZXlIABI6Cg9wcmluY2lwYWxfZmllbGQYBSABKAsyHy5mcm9udGxpbmUudjEuUHJpbmNpcGFsRmllbGRLZXlIAEIICgZzb3VyY2UiDQoLUmVtb3RlSXBLZXkiGQoJSGVhZGVyS2V5EgwKBG5hbWUYASABKAkiGQoXQXV0aGVudGljYXRlZFN1YmplY3RLZXkiCQoHUGF0aEtleSIhChFQcmluY2lwYWxGaWVsZEtleRIMCgRwYXRoGAEgASgJQrABChBjb20uZnJvbnRsaW5lLnYxQg5SYXRlbGltaXRQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
 
 /**
  * RateLimit enforces request rate limits at the gateway, protecting upstream
@@ -56,11 +56,12 @@ export type RateLimit = Message<"frontline.v1.RateLimit"> & {
    * header-based limiting relies on client-supplied values, and subject-based
    * limiting requires an upstream authn policy to have produced a [Principal].
    *
-   * Exactly one of identifier or identifiers is set; the API layer enforces
-   * this at write time. identifier is the original single-dimension form and
-   * is kept for policies stored before compound identifiers existed.
+   * Deprecated: writers must use identifiers; the API layer normalizes all
+   * writes to the repeated form. Readers still accept this field for
+   * policies stored before compound identifiers existed.
    *
-   * @generated from field: frontline.v1.RateLimitIdentifier identifier = 3;
+   * @generated from field: frontline.v1.RateLimitIdentifier identifier = 3 [deprecated = true];
+   * @deprecated
    */
   identifier?: RateLimitIdentifier;
 

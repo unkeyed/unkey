@@ -205,3 +205,24 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 		})
 	}
 }
+
+// The deprecated single identifier input must normalize to a one-entry
+// repeated identifiers proto field, so no write path populates the
+// deprecated proto field anymore.
+func TestLegacyIdentifierNormalizesToRepeated(t *testing.T) {
+	got, err := ToProto([]openapi.Policy{{
+		Name: "rl", Enabled: true,
+		Ratelimit: &openapi.RatelimitPolicy{
+			Limit: 10, WindowMs: 1000,
+			Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+		},
+	}})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	ratelimit := got[0].GetRatelimit()
+	require.NotNil(t, ratelimit)
+	require.Nil(t, ratelimit.GetIdentifier())
+	require.Len(t, ratelimit.GetIdentifiers(), 1)
+	require.NotNil(t, ratelimit.GetIdentifiers()[0].GetRemoteIp())
+}

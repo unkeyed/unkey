@@ -65,28 +65,26 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 			Identifier:  nil,
 			Identifiers: nil,
 		}
-		// Stored policies carry either the single identifier or the compound
-		// list, mirroring how they were written; render whichever is present.
-		switch {
-		case len(config.Ratelimit.GetIdentifiers()) > 0:
-			identifiers := make([]openapi.RatelimitIdentifier, 0, len(config.Ratelimit.GetIdentifiers()))
-			for _, id := range config.Ratelimit.GetIdentifiers() {
-				mapped, err := mapRatelimitIdentifierFromProto(p.GetId(), id)
-				if err != nil {
-					return openapi.PolicyResponse{}, err
-				}
-				identifiers = append(identifiers, mapped)
-			}
-			ratelimit.Identifiers = &identifiers
-		case config.Ratelimit.GetIdentifier() != nil:
-			mapped, err := mapRatelimitIdentifierFromProto(p.GetId(), config.Ratelimit.GetIdentifier())
+		// Stored policies carry either the deprecated single identifier or the
+		// repeated list. Responses always render the identifiers array -- a
+		// stored single identifier becomes a one-entry list -- so clients only
+		// ever see the target shape.
+		protoIdentifiers := config.Ratelimit.GetIdentifiers()
+		if len(protoIdentifiers) == 0 && config.Ratelimit.GetIdentifier() != nil {
+			protoIdentifiers = []*frontlinev1.RateLimitIdentifier{config.Ratelimit.GetIdentifier()}
+		}
+		if len(protoIdentifiers) == 0 {
+			return openapi.PolicyResponse{}, unmappable(p.GetId(), "ratelimit without identifier")
+		}
+		identifiers := make([]openapi.RatelimitIdentifier, 0, len(protoIdentifiers))
+		for _, id := range protoIdentifiers {
+			mapped, err := mapRatelimitIdentifierFromProto(p.GetId(), id)
 			if err != nil {
 				return openapi.PolicyResponse{}, err
 			}
-			ratelimit.Identifier = &mapped
-		default:
-			return openapi.PolicyResponse{}, unmappable(p.GetId(), "ratelimit without identifier")
+			identifiers = append(identifiers, mapped)
 		}
+		ratelimit.Identifiers = &identifiers
 		out.Ratelimit = ratelimit
 
 	case *frontlinev1.Policy_Firewall:

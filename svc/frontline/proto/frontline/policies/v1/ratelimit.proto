@@ -35,10 +35,10 @@ message RateLimit {
   // header-based limiting relies on client-supplied values, and subject-based
   // limiting requires an upstream authn policy to have produced a [Principal].
   //
-  // Exactly one of identifier or identifiers is set; the API layer enforces
-  // this at write time. identifier is the original single-dimension form and
-  // is kept for policies stored before compound identifiers existed.
-  RateLimitIdentifier identifier = 3;
+  // Deprecated: writers must use identifiers; the API layer normalizes all
+  // writes to the repeated form. Readers still accept this field for
+  // policies stored before compound identifiers existed.
+  RateLimitIdentifier identifier = 3 [deprecated = true];
 
   // Compound form: an ordered list of identifier sources. Each request
   // resolves every source and the combination of resolved values selects the

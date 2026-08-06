@@ -136,9 +136,13 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 				require.NotNil(t, got.Ratelimit)
 				require.Equal(t, int64(100), got.Ratelimit.Limit)
 				require.Equal(t, int64(60000), got.Ratelimit.WindowMs)
-				require.NotNil(t, got.Ratelimit.Identifier)
-				require.Nil(t, got.Ratelimit.Identifiers)
-				tc.check(t, *got.Ratelimit.Identifier)
+				// The deprecated stored single identifier renders as a
+				// one-entry identifiers array in responses.
+				require.Nil(t, got.Ratelimit.Identifier)
+				require.NotNil(t, got.Ratelimit.Identifiers)
+				identifiers := *got.Ratelimit.Identifiers
+				require.Len(t, identifiers, 1)
+				tc.check(t, identifiers[0])
 			})
 		}
 	})

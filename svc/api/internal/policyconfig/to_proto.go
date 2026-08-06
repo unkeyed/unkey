@@ -101,10 +101,11 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 }
 
 // mapRatelimitToProto validates the single/compound identifier duality:
-// exactly one of identifier or identifiers must be set. The single form maps
-// to the proto identifier field, the compound form to the repeated
-// identifiers field, so responses can render policies in the shape they were
-// written.
+// exactly one of identifier or identifiers must be set on input. Both forms
+// normalize to the repeated identifiers proto field -- the legacy single
+// identifier becomes a one-entry list -- so stored policies converge on the
+// array shape and the deprecated proto field can be removed later without a
+// data migration.
 func mapRatelimitToProto(path string, r openapi.RatelimitPolicy) (*frontlinev1.RateLimit, error) {
 	hasList := r.Identifiers != nil && len(*r.Identifiers) > 0
 	if err := exactlyOne(path, "identifier or identifiers", r.Identifier != nil, hasList); err != nil {
@@ -121,7 +122,7 @@ func mapRatelimitToProto(path string, r openapi.RatelimitPolicy) (*frontlinev1.R
 		if err != nil {
 			return nil, err
 		}
-		out.Identifier = identifier
+		out.Identifiers = []*frontlinev1.RateLimitIdentifier{identifier}
 		return out, nil
 	}
 

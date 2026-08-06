@@ -978,8 +978,9 @@ type Policy struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
-	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1010,8 +1011,9 @@ type PolicyResponse struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
-	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1114,11 +1116,13 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
-// RatelimitPolicy Rate limits matching requests. Set exactly one of `identifier` (one
-// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
+// RatelimitPolicy Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+// The deprecated `identifier` field is accepted in place of a one-entry
+// `identifiers` list; set exactly one of the two.
 type RatelimitPolicy struct {
-	// Identifier One source that supplies the rate limit key. Equal to `identifiers`
-	// with one entry.
+	// Identifier Deprecated. Accepted for compatibility with old clients. Use
+	// `identifiers` with one entry. Responses always return `identifiers`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Identifier *RatelimitIdentifier `json:"identifier,omitempty"`
 
 	// Identifiers Ordered list of sources that form a compound rate limit key. The
@@ -2264,8 +2268,9 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
-	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 

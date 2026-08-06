@@ -15,8 +15,16 @@ RateLimit defines gateway-level rate limiting with configurable identifiers. Fro
   Time window in milliseconds. For example, `limit: 100` with `window_ms: 60000` means 100 requests per minute.
 </ResponseField>
 
-<ResponseField name="identifier" type="RateLimitIdentifier">
-  Determines how requests are bucketed for rate limiting.
+<ResponseField name="identifiers" type="RateLimitIdentifier[]">
+  Ordered list of 1 to 5 sources that form the rate limit key. Each unique
+  combination of resolved values gets its own counter with the same limit and
+  window.
+</ResponseField>
+
+<ResponseField name="identifier" type="RateLimitIdentifier" deprecated>
+  Deprecated single-source form. Frontline still reads it from policies stored
+  before compound identifiers existed; the API normalizes all writes to
+  `identifiers`.
 </ResponseField>
 
 ## Examples
@@ -34,7 +42,7 @@ RateLimit defines gateway-level rate limiting with configurable identifiers. Fro
       "ratelimit": {
         "limit": 1000,
         "window_ms": 60000,
-        "identifier": { "remote_ip": {} }
+        "identifiers": [{ "remote_ip": {} }]
       }
     }
   ]
@@ -53,7 +61,7 @@ RateLimit defines gateway-level rate limiting with configurable identifiers. Fro
       "ratelimit": {
         "limit": 500,
         "window_ms": 60000,
-        "identifier": { "authenticated_subject": {} }
+        "identifiers": [{ "authenticated_subject": {} }]
       }
     }
   ]
@@ -74,7 +82,7 @@ Requires a KeyAuth or JWTAuth policy earlier in the list to set the Principal.
       "ratelimit": {
         "limit": 5000,
         "window_ms": 60000,
-        "identifier": { "header": { "name": "X-Tenant-Id" } }
+        "identifiers": [{ "header": { "name": "X-Tenant-Id" } }]
       }
     }
   ]
@@ -95,7 +103,7 @@ Use only when the header is set by a trusted upstream proxy.
       "ratelimit": {
         "limit": 10000,
         "window_ms": 60000,
-        "identifier": { "principal_field": { "path": "source.key.meta.org_id" } }
+        "identifiers": [{ "principal_field": { "path": "source.key.meta.org_id" } }]
       }
     }
   ]
@@ -118,7 +126,7 @@ Creates a shared bucket for all keys that resolve to the same `org_id` meta valu
       "ratelimit": {
         "limit": 100,
         "window_ms": 60000,
-        "identifier": { "path": {} }
+        "identifiers": [{ "path": {} }]
       }
     }
   ]
@@ -126,6 +134,30 @@ Creates a shared bucket for all keys that resolve to the same `org_id` meta valu
 ```
 
 Creates a separate bucket per URL path, protecting expensive endpoints without a separate policy for each.
+</Tab>
+<Tab title="Per subject and path">
+```json
+{
+  "policies": [
+    {
+      "id": "subject-path-ratelimit",
+      "name": "Rate limit per user per endpoint",
+      "enabled": true,
+      "match": [],
+      "ratelimit": {
+        "limit": 100,
+        "window_ms": 60000,
+        "identifiers": [
+          { "authenticated_subject": {} },
+          { "path": {} }
+        ]
+      }
+    }
+  ]
+}
+```
+
+A compound key: each subject gets a separate counter on each path. Parts join with `:` after escaping, so tuple boundaries stay unambiguous.
 </Tab>
 </Tabs>
 

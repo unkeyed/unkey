@@ -168,10 +168,11 @@ const rateLimitIdentifierSchema = z.union([
 ]);
 export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
 
-// A ratelimit carries either the single `identifier` or the compound
-// `identifiers` list (2+ dimensions combined into one bucket key). The Go
-// side enforces exactly-one at write time; the refine mirrors it so locally
-// constructed blobs fail fast instead of on save.
+// A ratelimit carries the `identifiers` list (1-5 dimensions combined into
+// one bucket key). The deprecated single `identifier` is still readable for
+// old stored blobs; the Go side enforces exactly-one at write time and the
+// refine mirrors it so locally constructed blobs fail fast instead of on
+// save. New writes always use `identifiers`.
 export const ratelimitPolicySchema = z
   .object({
     ...policyBase,
