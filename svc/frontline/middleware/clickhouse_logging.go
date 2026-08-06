@@ -38,7 +38,7 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			// The base row is written unconditionally — the traffic and
 			// latency charts depend on it. Headers, query data, and bodies
 			// are only included when an enabled logging policy opted the
-			// request in (tracking.LogHeaders / tracking.LogBodies).
+			// request in via the tracking.Log* capture flags.
 			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
 				return err
 			}
@@ -56,11 +56,18 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 
 			// Headers and query data are opt-in: URLs and headers routinely
 			// carry secrets, so they only reach ClickHouse when an enabled
-			// logging policy with headers capture matched the request.
+			// logging policy opted the request in.
 			var queryString string
 			var queryParams url.Values
 			var requestHeaders, responseHeaders []string
-			if tracking.LogHeaders {
+			var userAgent, ipAddress string
+			if tracking.LogRequestHeaders {
+				// User agent is a request header and the client IP is
+				// client-identifying data of the same sensitivity class, so
+				// both ride on the request-headers opt-in rather than the
+				// always-on base row.
+				userAgent = req.UserAgent()
+				ipAddress = s.Location()
 				// Redact API keys delivered via custom header or query
 				// parameter. The handler records the configured KeyAuth
 				// locations on tracking; without this, keys would be
@@ -79,6 +86,8 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 					queryString = queryParams.Encode()
 				}
 				requestHeaders = formatHeaders(req.Header, secretHeaders)
+			}
+			if tracking.LogResponseHeaders {
 				responseHeaders = formatHeaders(s.ResponseWriter().Header(), nil)
 			}
 
@@ -105,8 +114,8 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				ResponseStatus:   int32(s.StatusCode()),
 				ResponseHeaders:  responseHeaders,
 				ResponseBody:     unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
-				UserAgent:        req.UserAgent(),
-				IPAddress:        s.Location(),
+				UserAgent:        userAgent,
+				IPAddress:        ipAddress,
 				TotalLatency:     totalLatency,
 				InstanceLatency:  instanceLatency,
 				FrontlineLatency: frontlineLatency,

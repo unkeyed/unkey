@@ -88,8 +88,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		if evalErr != nil {
 			return evalErr
 		}
-		tracking.LogHeaders = result.LogHeaders
-		tracking.LogBodies = result.LogBodies
+		tracking.LogRequestHeaders = result.LogRequestHeaders
+		tracking.LogResponseHeaders = result.LogResponseHeaders
+		tracking.LogRequestBody = result.LogRequestBody
+		tracking.LogResponseBody = result.LogResponseBody
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
@@ -110,7 +112,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// successful attempt drains it and the tee captures from that drain.
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
-	if tracking.LogBodies && req.Body != nil {
+	if tracking.LogRequestBody && req.Body != nil {
 		var buf bytes.Buffer
 		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
 		defer func() {

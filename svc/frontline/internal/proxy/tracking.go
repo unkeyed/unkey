@@ -29,17 +29,16 @@ type RequestTracking struct {
 	AppID         string
 	EnvironmentID string
 
-	// LogHeaders is set by the handler when an enabled logging policy with
-	// headers capture matched the request. When false (the default), the
-	// ClickHouse logging middleware omits headers, query string, and query
-	// parameters from the row. The base row is always written.
-	LogHeaders bool
-
-	// LogBodies is set by the handler when an enabled logging policy with
-	// body capture matched the request. When false (the default), the
-	// handler and proxy skip request/response body capture and the row
-	// carries empty bodies.
-	LogBodies bool
+	// Capture flags set by the handler from matching enabled logging
+	// policies; each defaults to off and the base row is always written.
+	// LogRequestHeaders also covers the query string, query parameters,
+	// user agent, and client IP.
+	// LogRequestBody and LogResponseBody gate the TeeReader body capture in
+	// the handler and the proxy respectively.
+	LogRequestHeaders  bool
+	LogResponseHeaders bool
+	LogRequestBody     bool
+	LogResponseBody    bool
 
 	// Credential locations derived from the route's KeyAuth policies, set by
 	// the handler. The ClickHouse logging middleware redacts the value of any

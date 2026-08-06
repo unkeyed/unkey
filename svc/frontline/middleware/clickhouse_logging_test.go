@@ -16,10 +16,17 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
+type captureFlags struct {
+	requestHeaders  bool
+	responseHeaders bool
+	requestBody     bool
+	responseBody    bool
+}
+
 // runClickHouseLoggingRequest runs one request through the ClickHouse logging
 // middleware with a handler that populates tracking the way the proxy handler
 // does, and returns the rows flushed to the batch processor.
-func runClickHouseLoggingRequest(t *testing.T, logHeaders, logBodies bool) []schema.FrontlineRequest {
+func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.FrontlineRequest {
 	t.Helper()
 
 	var rows []schema.FrontlineRequest
@@ -42,18 +49,27 @@ func runClickHouseLoggingRequest(t *testing.T, logHeaders, logBodies bool) []sch
 		require.True(t, ok)
 		tracking.DeploymentID = "dep_123"
 		tracking.InstanceID = "inst_123"
-		tracking.LogHeaders = logHeaders
-		tracking.LogBodies = logBodies
-		if logBodies {
+		tracking.LogRequestHeaders = capture.requestHeaders
+		tracking.LogResponseHeaders = capture.responseHeaders
+		tracking.LogRequestBody = capture.requestBody
+		tracking.LogResponseBody = capture.responseBody
+		if capture.requestBody {
 			// The proxy handler's TeeReader only captures the body when
-			// LogBodies is set; emulate that here.
+			// LogRequestBody is set; emulate that here.
 			tracking.RequestBody = []byte(`{"hello":"world"}`)
 		}
+		if capture.responseBody {
+			// The proxy only captures the upstream body when
+			// LogResponseBody is set; emulate that here.
+			tracking.ResponseBody = []byte(`{"status":"ok"}`)
+		}
+		s.ResponseWriter().Header().Set("X-Upstream", "upstream-value")
 		return nil
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test?page=2", nil)
 	req.Header.Set("X-Custom", "custom-value")
+	req.Header.Set("User-Agent", "test-agent/1.0")
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 	require.NoError(t, handler(context.Background(), sess))
@@ -74,7 +90,7 @@ func runClickHouseLoggingRequest(t *testing.T, logHeaders, logBodies bool) []sch
 // even without any logging policy: the traffic and latency charts depend on
 // it. Headers, query data, and bodies must stay empty without an opt-in.
 func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
-	rows := runClickHouseLoggingRequest(t, false, false)
+	rows := runClickHouseLoggingRequest(t, captureFlags{})
 
 	require.Len(t, rows, 1)
 	require.Equal(t, "dep_123", rows[0].DeploymentID)
@@ -85,24 +101,48 @@ func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
 	require.Empty(t, rows[0].ResponseHeaders)
 	require.Empty(t, rows[0].RequestBody)
 	require.Empty(t, rows[0].ResponseBody)
+	require.Empty(t, rows[0].UserAgent, "user agent identifies the client and rides on the request-headers opt-in")
+	require.Empty(t, rows[0].IPAddress, "client IP identifies the client and rides on the request-headers opt-in")
 }
 
-func TestClickHouseLogging_HeadersCaptureIsOptIn(t *testing.T) {
-	rows := runClickHouseLoggingRequest(t, true, false)
+func TestClickHouseLogging_RequestHeadersCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{requestHeaders: true})
 
 	require.Len(t, rows, 1)
 	require.Equal(t, "page=2", rows[0].QueryString)
 	require.Contains(t, rows[0].RequestHeaders, "X-Custom: custom-value")
+	require.Equal(t, "test-agent/1.0", rows[0].UserAgent)
+	require.Empty(t, rows[0].ResponseHeaders, "response headers are a separate opt-in")
 	require.Empty(t, rows[0].RequestBody)
 }
 
-func TestClickHouseLogging_BodiesCaptureIsOptIn(t *testing.T) {
-	rows := runClickHouseLoggingRequest(t, false, true)
+func TestClickHouseLogging_ResponseHeadersCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{responseHeaders: true})
+
+	require.Len(t, rows, 1)
+	require.Empty(t, rows[0].RequestHeaders, "request headers are a separate opt-in")
+	require.Empty(t, rows[0].QueryString, "query data belongs to request headers capture")
+	require.Contains(t, rows[0].ResponseHeaders, "X-Upstream: upstream-value")
+}
+
+func TestClickHouseLogging_RequestBodyCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{requestBody: true})
 
 	require.Len(t, rows, 1)
 	require.Equal(t, `{"hello":"world"}`, rows[0].RequestBody)
+	require.Empty(t, rows[0].ResponseBody, "response body is a separate opt-in")
 	require.Empty(t, rows[0].RequestHeaders)
 	require.Empty(t, rows[0].QueryString)
+}
+
+func TestClickHouseLogging_ResponseBodyCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{responseBody: true})
+
+	require.Len(t, rows, 1)
+	require.Equal(t, `{"status":"ok"}`, rows[0].ResponseBody)
+	require.Empty(t, rows[0].RequestBody, "request body is a separate opt-in")
+	require.Empty(t, rows[0].RequestHeaders)
+	require.Empty(t, rows[0].ResponseHeaders)
 }
 
 func TestFormatHeaders_RedactsAuthorization(t *testing.T) {

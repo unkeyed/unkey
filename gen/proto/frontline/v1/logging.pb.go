@@ -26,14 +26,13 @@ const (
 //
 // Frontline always writes a base log row for every proxied request: request
 // id, workspace/project/app/environment/deployment ids, method, host, path,
-// response status, latency breakdown, user agent, and client IP. This base
-// row cannot be turned off — the dashboard's traffic and latency charts are
-// built from it.
+// response status, and latency breakdown. This base row cannot be turned
+// off — the dashboard's traffic and latency charts are built from it.
 //
 // A logging policy adds the sensitive parts on top, scoped to matching
-// requests: headers and query parameters (headers = true) and request and
-// response bodies (bodies = true). Without an enabled matching logging
-// policy, only the base row is stored.
+// requests. Each direction and kind is a separate opt-in: request headers,
+// response headers, request body, and response body. Without an enabled
+// matching logging policy, only the base row is stored.
 //
 // An empty match list matches every request — an enabled logging policy
 // with no match expressions captures the configured extras for all traffic
@@ -45,12 +44,17 @@ const (
 // redacted too.
 type Logging struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Capture request and response headers, plus the query string and query
-	// parameters. Query data lives here rather than in the base row because
-	// URLs routinely carry secrets (e.g. ?api_key=...).
-	Headers bool `protobuf:"varint,1,opt,name=headers,proto3" json:"headers,omitempty"`
-	// Capture request and response bodies, capped at the body-capture limit.
-	Bodies        bool `protobuf:"varint,2,opt,name=bodies,proto3" json:"bodies,omitempty"`
+	// Capture request headers, plus the query string, query parameters,
+	// user agent, and client IP. Query data lives here rather than in the
+	// base row because URLs routinely carry secrets (e.g. ?api_key=...);
+	// user agent and client IP live here because they identify the client.
+	RequestHeaders bool `protobuf:"varint,1,opt,name=request_headers,json=requestHeaders,proto3" json:"request_headers,omitempty"`
+	// Capture response headers.
+	ResponseHeaders bool `protobuf:"varint,2,opt,name=response_headers,json=responseHeaders,proto3" json:"response_headers,omitempty"`
+	// Capture the request body, capped at the body-capture limit.
+	RequestBody bool `protobuf:"varint,3,opt,name=request_body,json=requestBody,proto3" json:"request_body,omitempty"`
+	// Capture the response body, capped at the body-capture limit.
+	ResponseBody  bool `protobuf:"varint,4,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -85,16 +89,30 @@ func (*Logging) Descriptor() ([]byte, []int) {
 	return file_frontline_policies_v1_logging_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Logging) GetHeaders() bool {
+func (x *Logging) GetRequestHeaders() bool {
 	if x != nil {
-		return x.Headers
+		return x.RequestHeaders
 	}
 	return false
 }
 
-func (x *Logging) GetBodies() bool {
+func (x *Logging) GetResponseHeaders() bool {
 	if x != nil {
-		return x.Bodies
+		return x.ResponseHeaders
+	}
+	return false
+}
+
+func (x *Logging) GetRequestBody() bool {
+	if x != nil {
+		return x.RequestBody
+	}
+	return false
+}
+
+func (x *Logging) GetResponseBody() bool {
+	if x != nil {
+		return x.ResponseBody
 	}
 	return false
 }
@@ -103,10 +121,12 @@ var File_frontline_policies_v1_logging_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_logging_proto_rawDesc = "" +
 	"\n" +
-	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\";\n" +
-	"\aLogging\x12\x18\n" +
-	"\aheaders\x18\x01 \x01(\bR\aheaders\x12\x16\n" +
-	"\x06bodies\x18\x02 \x01(\bR\x06bodiesB\xae\x01\n" +
+	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\"\xa5\x01\n" +
+	"\aLogging\x12'\n" +
+	"\x0frequest_headers\x18\x01 \x01(\bR\x0erequestHeaders\x12)\n" +
+	"\x10response_headers\x18\x02 \x01(\bR\x0fresponseHeaders\x12!\n" +
+	"\frequest_body\x18\x03 \x01(\bR\vrequestBody\x12#\n" +
+	"\rresponse_body\x18\x04 \x01(\bR\fresponseBodyB\xae\x01\n" +
 	"\x10com.frontline.v1B\fLoggingProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
 var (

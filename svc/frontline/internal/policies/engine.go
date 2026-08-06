@@ -56,16 +56,14 @@ var _ Evaluator = (*Engine)(nil)
 type Result struct {
 	Principal *principal.Principal
 
-	// LogHeaders reports whether an enabled logging policy with headers
-	// capture matched the request: headers and query parameters should be
-	// included in the ClickHouse request log row. The base row itself is
-	// always written regardless of logging policies.
-	LogHeaders bool
-
-	// LogBodies reports whether an enabled logging policy with body capture
-	// matched the request: request and response bodies should be captured
-	// and included in the ClickHouse request log row.
-	LogBodies bool
+	// Capture flags set by matching enabled logging policies. Each is a
+	// separate opt-in; the base ClickHouse row is always written regardless
+	// of logging policies. LogRequestHeaders also covers the query string
+	// and query parameters.
+	LogRequestHeaders  bool
+	LogResponseHeaders bool
+	LogRequestBody     bool
+	LogResponseBody    bool
 }
 
 // New creates a new Engine with the given configuration.
@@ -214,8 +212,10 @@ func (e *Engine) Evaluate(
 			// policies OR their capture flags. The actual capture and
 			// emission happen in the handler and the ClickHouse logging
 			// middleware.
-			result.LogHeaders = result.LogHeaders || cfg.Logging.GetHeaders()
-			result.LogBodies = result.LogBodies || cfg.Logging.GetBodies()
+			result.LogRequestHeaders = result.LogRequestHeaders || cfg.Logging.GetRequestHeaders()
+			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
+			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
+			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
 			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:

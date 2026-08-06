@@ -97,8 +97,10 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 
 	case *frontlinev1.Policy_Logging:
 		out.Logging = &openapi.LoggingPolicy{
-			Headers: ptr.P(config.Logging.GetHeaders()),
-			Bodies:  ptr.P(config.Logging.GetBodies()),
+			RequestHeaders:  ptr.P(config.Logging.GetRequestHeaders()),
+			ResponseHeaders: ptr.P(config.Logging.GetResponseHeaders()),
+			RequestBody:     ptr.P(config.Logging.GetRequestBody()),
+			ResponseBody:    ptr.P(config.Logging.GetResponseBody()),
 		}
 
 	default:

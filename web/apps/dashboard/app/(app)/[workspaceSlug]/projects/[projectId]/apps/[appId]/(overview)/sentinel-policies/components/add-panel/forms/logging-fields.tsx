@@ -12,7 +12,7 @@ function CaptureToggle({
   label,
   description,
 }: {
-  name: "headers" | "bodies";
+  name: "requestHeaders" | "responseHeaders" | "requestBody" | "responseBody";
   label: string;
   description: string;
 }) {
@@ -41,14 +41,24 @@ export function LoggingFields() {
         before it stores them.
       </div>
       <CaptureToggle
-        name="headers"
-        label="Headers"
-        description="Store request and response headers, the query string, and query parameters."
+        name="requestHeaders"
+        label="Request headers"
+        description="Store request headers, the query string, and query parameters."
       />
       <CaptureToggle
-        name="bodies"
-        label="Bodies"
-        description="Store request and response bodies."
+        name="responseHeaders"
+        label="Response headers"
+        description="Store response headers."
+      />
+      <CaptureToggle
+        name="requestBody"
+        label="Request body"
+        description="Store the request body."
+      />
+      <CaptureToggle
+        name="responseBody"
+        label="Response body"
+        description="Store the response body."
       />
     </div>
   );
@@ -56,10 +66,17 @@ export function LoggingFields() {
 
 export function LoggingPolicySummary() {
   const { control } = useFormContext<LoggingFormValues>();
-  const headers = useWatch({ control, name: "headers" });
-  const bodies = useWatch({ control, name: "bodies" });
+  const requestHeaders = useWatch({ control, name: "requestHeaders" });
+  const responseHeaders = useWatch({ control, name: "responseHeaders" });
+  const requestBody = useWatch({ control, name: "requestBody" });
+  const responseBody = useWatch({ control, name: "responseBody" });
 
-  const parts = [headers && "headers", bodies && "bodies"].filter(Boolean);
+  const parts = [
+    requestHeaders && "req headers",
+    responseHeaders && "res headers",
+    requestBody && "req body",
+    responseBody && "res body",
+  ].filter(Boolean);
 
   return (
     <span className="text-gray-11">

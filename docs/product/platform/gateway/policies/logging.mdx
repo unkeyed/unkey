@@ -9,7 +9,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 The gateway always records a basic log entry for each request. This entry powers the traffic and latency charts in the dashboard. You cannot turn it off.
 
-The logging policy adds sensitive data to the log entries of matched requests: headers and bodies. This capture is opt-in. Without an enabled logging policy, the gateway stores only the basic entries.
+The logging policy adds sensitive data to the log entries of matched requests: headers and bodies. This capture is opt-in. Each direction is a separate setting. Without an enabled logging policy, the gateway stores only the basic entries.
 
 Add a logging policy with no match conditions to capture data for all traffic, or scope it with match conditions to capture data only for specific routes.
 
@@ -21,7 +21,6 @@ The gateway records this data for every request:
 - Status code
 - Request ID and timestamp
 - Deployment and instance identifiers
-- Client IP address and user agent
 - Region
 - Latency breakdown
 
@@ -33,18 +32,18 @@ The gateway records this data for every request:
 
 ## Opt-in capture
 
-A logging policy has two settings. Each one adds data to the log entries of matched requests:
+A logging policy has four independent settings. Each one adds data to the log entries of matched requests:
 
-**Headers**
+| Setting          | Captured data                                                                    |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Request headers  | Request headers, query string, query parameters, user agent, and client IP       |
+| Response headers | Response headers                                                                  |
+| Request body     | Request body, up to the capture limit                                             |
+| Response body    | Response body, up to the capture limit                                            |
 
-- Request and response headers
-- Query string and query parameters
+Query data is grouped with request headers because URLs often carry secrets, for example `?api_key=...`. The user agent and client IP are grouped with request headers because they identify the client.
 
-Query data is grouped with headers because URLs often carry secrets, for example `?api_key=...`.
-
-**Bodies**
-
-- Request and response bodies, up to the capture limit
+If more than one enabled logging policy matches a request, the gateway captures the union of their settings.
 
 The gateway redacts sensitive values before it stores them. The `Authorization` header is always redacted. Headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key) are redacted too.
 
