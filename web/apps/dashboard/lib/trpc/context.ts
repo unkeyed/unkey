@@ -14,7 +14,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   let ws: Awaited<
     ReturnType<
       typeof db.query.workspaces.findFirst<{
-        with: { quotas: true; billing: true; billingSubscriptions: true };
+        with: { limits: true; billing: true; billingSubscriptions: true };
       }>
     >
   > = undefined;
@@ -27,7 +27,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
         where: (table, { eq, and, isNull }) =>
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         with: {
-          quotas: true,
+          limits: true,
           billing: true,
           billingSubscriptions: true,
         },

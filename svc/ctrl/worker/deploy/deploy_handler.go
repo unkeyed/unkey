@@ -150,7 +150,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
 	}
-	isProduction := gateEnvironment.Slug == "production"
+	isProduction := gateEnvironment.Kind.IsProduction()
 
 	// Register the slot release as a durable compensation BEFORE calling
 	// AcquireOrWait. This ensures the slot is returned on ANY failure path:
@@ -327,12 +327,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		switch environment.Slug {
-		case "production":
+		if environment.Kind.IsProduction() {
 			if err = w.swapLiveDeployment(ctx, deployment, app, environment); err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 			}
-		case "preview":
+		} else if environment.Kind.IsPreview() {
 			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
 				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
 				logger.Error("unable to spin down previous preview deployments", "error", err)
@@ -546,10 +545,10 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// --- Quota check ---
-	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-		return w.db.FindQuotaByWorkspaceID(runCtx, deployment.WorkspaceID)
-	}, restate.WithName("find workspace quota"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	// --- Limits check ---
+	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Limit, error) {
+		return w.db.FindLimitsByWorkspaceID(runCtx, deployment.WorkspaceID)
+	}, restate.WithName("find workspace limits"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
@@ -570,21 +569,22 @@ func (w *Workflow) createTopologies(
 		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * maxReplicas)
 		allocatedResources.TotalStorageMib += int64(deployment.StorageMib) * int64(maxReplicas)
 	}
-	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
+	cpuMillicoresMax := int64(limits.CpuCoresMax) * 1_000
+	if allocatedResources.TotalCpuMillicores > cpuMillicoresMax {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
+			restate.TerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
 			fault.Public(deployfail.MsgCPUQuotaExceeded),
 		)
 	}
-	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
+	if allocatedResources.TotalMemoryMib > int64(limits.MemoryMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
+			restate.TerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
 			fault.Public(deployfail.MsgMemoryQuotaExceeded),
 		)
 	}
-	if allocatedResources.TotalStorageMib > int64(quota.AllocatedStorageMibTotal) {
+	if allocatedResources.TotalStorageMib > int64(limits.StorageMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Storage quota exceeded: consumed %d, quota %d", allocatedResources.TotalStorageMib, quota.AllocatedStorageMibTotal)),
+			restate.TerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
 			fault.Public(deployfail.MsgStorageQuotaExceeded),
 		)
 	}
@@ -734,6 +734,7 @@ func (w *Workflow) configureRouting(
 		deployment.GitBranch.String,
 		forkOwner,
 		w.defaultDomain,
+		environment.Kind.IsProduction(),
 		uniquifyCommitDomain,
 		deployment.ID,
 	)
@@ -887,7 +888,7 @@ func (w *Workflow) swapLiveDeployment(
 	app db.App,
 	environment db.Environment,
 ) error {
-	if app.IsRolledBack || environment.Slug != "production" {
+	if app.IsRolledBack || !environment.Kind.IsProduction() {
 		return nil
 	}
 
@@ -1006,7 +1007,7 @@ func (w *Workflow) initGitHubStatus(
 		EnvironmentLabel:           envLabel,
 		EnvironmentUrl:             envURL,
 		LogUrl:                     logURL,
-		IsProduction:               environment.Slug == "production",
+		IsProduction:               environment.Kind.IsProduction(),
 		ProjectSlug:                project.Slug,
 		AppSlug:                    app.Slug,
 		EnvSlug:                    environment.Slug,

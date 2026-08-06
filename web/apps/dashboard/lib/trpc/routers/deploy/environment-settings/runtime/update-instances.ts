@@ -1,7 +1,7 @@
 import { and, db, eq } from "@/lib/db";
-import { freeTierQuotas } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import { TRPCError } from "@trpc/server";
-import { appRegionalSettings, horizontalAutoscalingPolicies, quotas } from "@unkey/db/src/schema";
+import { appRegionalSettings, horizontalAutoscalingPolicies, limits } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
@@ -20,12 +20,15 @@ export const updateInstances = workspaceProcedure
       }),
   )
   .mutation(async ({ ctx, input }) => {
-    const quota = await db.query.quotas.findFirst({
-      where: eq(quotas.workspaceId, ctx.workspace.id),
-      columns: { maxReplicasPerRegion: true },
+    const workspaceLimits = await db.query.limits.findFirst({
+      where: eq(limits.workspaceId, ctx.workspace.id),
+      columns: { autoscalingReplicasMax: true },
     });
 
-    const maxPerRegion = quota?.maxReplicasPerRegion ?? freeTierQuotas.maxReplicasPerRegion;
+    const maxPerRegion = Math.max(
+      1,
+      workspaceLimits?.autoscalingReplicasMax ?? freeTierLimits.autoscalingReplicasMax,
+    );
     if (input.replicasMax > maxPerRegion) {
       throw new TRPCError({
         code: "BAD_REQUEST",

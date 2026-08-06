@@ -8,7 +8,7 @@ import {
   findPlanFeeItem,
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -278,10 +278,10 @@ export const subscribeDeploy = workspaceProcedure
           .update(schema.workspaceBilling)
           .set(workspaceUpdate)
           .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-        await setComputeQuotas(tx, {
+        await setWorkspaceLimits(tx, {
           workspaceId: ctx.workspace.id,
           plan: input.plan,
-          preserveApiQuotas: ctx.workspace.tier !== "Free",
+          preserveApiLimits: ctx.workspace.tier !== "Free",
         });
         if (createdDeploySubscriptionId) {
           await upsertBillingSubscription(tx, {

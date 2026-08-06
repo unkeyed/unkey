@@ -2,6 +2,7 @@
   "name": "@unkey/migrate",
   "version": "1.0.0",
   "scripts": {
+    "environment-kind": "tsx ./environment-kind.ts",
     "migrate": "dotenv -e .env npx tsx ./main.ts",
     "project-ownership": "tsx ./project-ownership.ts"
   },

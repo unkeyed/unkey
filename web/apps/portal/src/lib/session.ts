@@ -159,14 +159,14 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       // the analytics page uses it to only offer periods within retention. A
       // failed/missing lookup falls back to 0 ("unknown"), which the UI treats
       // as uncapped rather than blocking the page.
-      db.query.quotas
+      db.query.limits
         .findFirst({
           where: (t, { eq }) => eq(t.workspaceId, session.workspaceId),
-          columns: { logsRetentionDays: true },
+          columns: { logsRetentionDaysMax: true },
         })
-        .then((quota) => quota?.logsRetentionDays ?? 0)
+        .then((limits) => limits?.logsRetentionDaysMax ?? 0)
         .catch((err) => {
-          console.error("Failed to load workspace quota", {
+          console.error("Failed to load workspace limits", {
             workspaceId: session.workspaceId,
             err,
           });
@@ -174,7 +174,7 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
         }),
     ]);
 
-    // workspaceId is only needed server-side (quota lookup above); keep it off
+    // workspaceId is only needed server-side (limits lookup above); keep it off
     // the client-facing session, which stays as SessionData.
     const { workspaceId: _workspaceId, ...sessionColumns } = session;
     return {

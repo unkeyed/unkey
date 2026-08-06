@@ -4,6 +4,7 @@ SELECT
   p.slug AS project_slug,
   a.slug AS app_slug,
   e.slug AS environment_slug,
+  e.kind AS environment_kind,
   a.current_deployment_id AS app_current_deployment_id,
   a.is_rolled_back AS app_is_rolled_back
 FROM deployments d

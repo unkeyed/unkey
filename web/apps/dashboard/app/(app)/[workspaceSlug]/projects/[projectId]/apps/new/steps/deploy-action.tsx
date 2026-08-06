@@ -4,6 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { Button, toast, useStepWizard } from "@unkey/ui";
+import { useProjectData } from "../../[appId]/(overview)/data-provider";
 
 type DeployActionProps = {
   projectId: string;
@@ -20,6 +21,10 @@ export const DeployAction = ({
 }: DeployActionProps) => {
   const { goTo } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const { environments } = useProjectData();
+  const productionEnvironment = environments.find(
+    (environment) => environment.kind === "production",
+  );
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: async (data) => {
@@ -42,12 +47,18 @@ export const DeployAction = ({
         variant="primary"
         size="xlg"
         className="rounded-lg"
-        disabled={deploy.isLoading || disabled}
+        disabled={deploy.isLoading || disabled || !productionEnvironment}
         loading={deploy.isLoading}
         onClick={() =>
           gated
             ? openPaywall()
-            : deploy.mutate({ projectId, appId, environmentSlug: "production", source: "default" })
+            : productionEnvironment &&
+              deploy.mutate({
+                projectId,
+                appId,
+                environmentSlug: productionEnvironment.slug,
+                source: "default",
+              })
         }
       >
         Deploy

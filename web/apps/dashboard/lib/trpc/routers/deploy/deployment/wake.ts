@@ -30,7 +30,7 @@ export const wakeDeployment = workspaceProcedure
         },
         environment: {
           columns: {
-            slug: true,
+            kind: true,
           },
         },
       },
@@ -50,7 +50,7 @@ export const wakeDeployment = workspaceProcedure
       });
     }
 
-    if (deployment.environment?.slug === "production") {
+    if (deployment.environment?.kind === "production") {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "Production deployments cannot be woken",

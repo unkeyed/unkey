@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, int, mysqlTable, smallint } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 /**
@@ -19,7 +20,7 @@ import { workspaces } from "./workspaces";
  * from the resource name.
  */
 export const limits = mysqlTable("limits", {
-  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  pk: primaryKey(),
   workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull().unique(),
 
   /**

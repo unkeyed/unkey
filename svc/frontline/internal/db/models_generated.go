@@ -755,6 +755,48 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
+type EnvironmentsKind string
+
+const (
+	EnvironmentsKindProduction EnvironmentsKind = "production"
+	EnvironmentsKindPreview    EnvironmentsKind = "preview"
+)
+
+func (e *EnvironmentsKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnvironmentsKind(s)
+	case string:
+		*e = EnvironmentsKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnvironmentsKind: %T", src)
+	}
+	return nil
+}
+
+type NullEnvironmentsKind struct {
+	EnvironmentsKind EnvironmentsKind
+	Valid            bool // Valid is true if EnvironmentsKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnvironmentsKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnvironmentsKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnvironmentsKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnvironmentsKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnvironmentsKind), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -1177,16 +1219,17 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AppID            string           `db:"app_id"`
+	Slug             string           `db:"slug"`
+	Description      string           `db:"description"`
+	Kind             EnvironmentsKind `db:"kind"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+	CreatedAt        int64            `db:"created_at"`
+	UpdatedAt        sql.NullInt64    `db:"updated_at"`
 }
 
 type FrontlineRoute struct {
@@ -1430,25 +1473,6 @@ type Project struct {
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`
-}
-
-type Quotum struct {
-	Pk                          uint64        `db:"pk"`
-	WorkspaceID                 string        `db:"workspace_id"`
-	RequestsPerMonth            int64         `db:"requests_per_month"`
-	LogsRetentionDays           int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
-	Team                        bool          `db:"team"`
-	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
-	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
-	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
-	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
-	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
-	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
-	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
-	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
-	MaxReplicasPerRegion        uint32        `db:"max_replicas_per_region"`
 }
 
 type Ratelimit struct {

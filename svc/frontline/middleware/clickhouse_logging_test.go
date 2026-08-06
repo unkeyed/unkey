@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/redaction"
 )
 
 func TestFormatHeaders_RedactsAuthorization(t *testing.T) {
@@ -65,4 +66,13 @@ func TestToSet(t *testing.T) {
 	set := toSet([]string{"a", "b"})
 	require.Contains(t, set, "a")
 	require.Contains(t, set, "b")
+}
+
+func TestRedactBody_AppliesOpenAPIRedactors(t *testing.T) {
+	body := []byte(`{"secret":"hide-me","visible":"keep-me"}`)
+
+	got := redactBody(body, []*redaction.Redactor{redaction.New([]string{"secret"})})
+
+	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, got)
+	require.Equal(t, `{"secret":"hide-me","visible":"keep-me"}`, string(body))
 }

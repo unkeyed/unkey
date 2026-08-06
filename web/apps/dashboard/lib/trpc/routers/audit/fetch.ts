@@ -2,8 +2,8 @@ import { auditLogsQueryPayload } from "@/components/audit-logs-table/schema/audi
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
 import { clickhouse } from "@/lib/clickhouse";
-import type { Quotas, Workspace } from "@/lib/db";
-import { freeTierQuotas } from "@/lib/quotas";
+import type { Limits, Workspace } from "@/lib/db";
+import { freeTierLimits } from "@/lib/limits";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -143,7 +143,7 @@ export const fetchAuditLog = workspaceProcedure
 
 function buildQueryArgs(
   params: Omit<AuditQueryLogsParams, "workspaceId">,
-  workspace: Workspace & { quotas: Quotas | null },
+  workspace: Workspace & { limits: Limits | null },
   limit: number,
   offset: number,
 ) {
@@ -153,7 +153,7 @@ function buildQueryArgs(
   const actorIds = [...userValues, ...rootKeyValues];
 
   const retentionDays =
-    workspace.quotas?.auditLogsRetentionDays || freeTierQuotas.auditLogsRetentionDays;
+    workspace.limits?.logsAuditRetentionDaysMax || freeTierLimits.logsAuditRetentionDaysMax;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   const startTime = Math.max(

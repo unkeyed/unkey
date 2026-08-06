@@ -5,7 +5,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS, deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -118,10 +118,10 @@ export const changeDeployPlan = workspaceProcedure
         .update(schema.workspaceBilling)
         .set({ plan: input.plan })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: ctx.workspace.id,
         plan: input.plan,
-        preserveApiQuotas: ctx.workspace.tier !== "Free",
+        preserveApiLimits: ctx.workspace.tier !== "Free",
       });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,

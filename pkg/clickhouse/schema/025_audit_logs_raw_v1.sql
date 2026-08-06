@@ -90,7 +90,7 @@ ORDER BY (workspace_id, bucket, time, event_id)
 -- Flat 90-day retention for ALL workspaces, measured from CH insert
 -- time so backfilled and late-drained rows aren't born expired.
 -- Per-plan retention is enforced at the dashboard read layer
--- (audit/fetch.ts filters by workspace.quotas.auditLogsRetentionDays);
+-- (audit/fetch.ts filters by workspace.limits.logsAuditRetentionDaysMax);
 -- this TTL is the outer bound: we never keep audit logs longer than
 -- 90 days after CH first saw them. Bump if the most generous plan
 -- grows past 90d.

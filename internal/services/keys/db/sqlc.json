@@ -17,7 +17,7 @@
         "../../../../pkg/mysql/schema/roles_permissions.sql",
         "../../../../pkg/mysql/schema/ratelimits.sql",
         "../../../../pkg/mysql/schema/key_migrations.sql",
-        "../../../../pkg/mysql/schema/quota.sql"
+        "../../../../pkg/mysql/schema/limits.sql"
       ],
       "gen": {
         "go": {
@@ -35,9 +35,6 @@
           "output_batch_file_name": "batch_generated",
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "deleteme",
-          "rename": {
-            "quotum": "Quotas"
-          },
           "overrides": [
             {
               "db_type": "json",

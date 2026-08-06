@@ -6,7 +6,7 @@ import type { Router } from "@/lib/trpc/routers";
 import { baseQueryOptions, createRetryFn, isAuthError } from "@/lib/utils/trpc";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { Quotas } from "@unkey/db";
+import type { Limits } from "@unkey/db";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import {
@@ -27,7 +27,7 @@ type CurrentWorkspace = inferRouterOutputs<Router>["workspace"]["getCurrent"];
 interface WorkspaceContextType {
   user: AuthenticatedUser | null;
   workspace: CurrentWorkspace | null;
-  quotas: Quotas | null;
+  limits: Limits | null;
   isLoading: boolean;
   error: TRPCClientErrorLike<Router> | null;
   /**
@@ -111,7 +111,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     return {
       user: user ?? null,
       workspace: workspace ?? null,
-      quotas: workspace?.quotas ?? null,
+      limits: workspace?.limits ?? null,
       isLoading,
       error: error ?? null,
       workspaceMissing: !isLoading && workspaceMissing,

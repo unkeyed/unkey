@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -8,21 +8,23 @@ import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
+import { primaryKey } from "./util/primary_key";
 
 export const apps = mysqlTable(
   "apps",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 64 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    projectId: caseSensitiveVarchar("project_id", { length: 64 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()
       .default("main"),
-    currentDeploymentId: caseSensitiveVarchar("current_deployment_id", { length: 256 }),
+    currentDeploymentId: id("current_deployment_id"),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,

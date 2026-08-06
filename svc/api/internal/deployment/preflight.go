@@ -13,8 +13,8 @@ import (
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
 // cross-workspace match is masked as not found so a caller can't probe for
-// deployments it can't see. The row carries EnvironmentSlug (joined) so
-// lifecycle handlers can gate on the environment without a second query.
+// deployments it can't see. The row carries the joined environment's slug and
+// kind so lifecycle handlers can gate without a second query.
 //
 // It deliberately does no authorization: each handler authorizes inline so the
 // exact permission checked stays visible at the call site.
