@@ -34,3 +34,11 @@ type RollbackDeployment struct{}
 
 func (RollbackDeployment) ActionFor(urn.Deployment) {}
 func (RollbackDeployment) String() string           { return "rollback_deployment" }
+
+// PromoteDeployment authorizes promoting a deployment to live.
+//
+// Valid resource: urn.Deployment.
+type PromoteDeployment struct{}
+
+func (PromoteDeployment) ActionFor(urn.Deployment) {}
+func (PromoteDeployment) String() string           { return "promote_deployment" }
