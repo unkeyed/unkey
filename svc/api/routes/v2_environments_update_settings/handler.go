@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -34,6 +36,9 @@ const platform = "aws"
 const cpuThreshold = 80
 
 const minReplicasPerRegion = 1
+
+// dockerContextSegmentRegex allows only portable repository path segment characters.
+var dockerContextSegmentRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 type Handler struct {
 	DB          db.Database
@@ -259,6 +264,14 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.RootDirectory != nil {
+		if !isValidDockerContext(*req.RootDirectory) {
+			return fault.New(
+				"invalid root directory",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("root directory is not a valid repository-relative path"),
+				fault.Public("Root directory must be a relative path like 'api' or 'services/api'."),
+			)
+		}
 		params.DockerContextSpecified = 1
 		params.DockerContext = *req.RootDirectory
 	}
@@ -286,6 +299,24 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		)
 	}
 	return nil
+}
+
+func isValidDockerContext(path string) bool {
+	if path != strings.TrimSpace(path) {
+		return false
+	}
+	if path == "." {
+		return true
+	}
+	if path == "" || strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if segment == "." || segment == ".." || !dockerContextSegmentRegex.MatchString(segment) {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request, now int64) error {

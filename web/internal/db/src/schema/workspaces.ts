@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { billingSubscriptions } from "./billing_subscriptions";
 import { certificates } from "./certificates";
@@ -14,12 +14,14 @@ import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
+import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaceBilling } from "./workspace_billing";
 
 export const workspaces = mysqlTable("workspaces", {
-  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  id: caseSensitiveVarchar("id", { length: 256 }).notNull().unique(),
+  pk: primaryKey(),
+  id: id("id").notNull().unique(),
 
   orgId: caseSensitiveVarchar("org_id", { length: 256 }).notNull().unique(),
   name: varchar("name", { length: 256 }).notNull(),
