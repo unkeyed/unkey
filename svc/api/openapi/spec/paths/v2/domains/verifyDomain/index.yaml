@@ -9,8 +9,8 @@ post:
     `api.acme.com` is enough.
 
     Call this after you correct the DNS records of a domain that shows `failed`, or to give a
-    `pending` domain a new 24-hour verification period. Each call replaces the check in
-    progress.
+    `pending` domain a new 24-hour verification period. Each call stops a check that still
+    runs and sets the domain back to `pending`.
 
     The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
 
