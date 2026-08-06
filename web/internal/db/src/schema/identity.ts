@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -11,14 +11,14 @@ export const identities = mysqlTable(
   "identities",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
+    id: id("id").notNull().unique(),
     /**
      * The external id is used to create a reference to the user's existing data.
      * They likely have an organization or user id at hand
      */
     externalId: caseSensitiveVarchar("external_id", { length: 256 }).notNull(),
-    workspaceId: legacyId("workspace_id").notNull(),
-    projectId: legacyId("project_id").notNull().default(""),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull().default(""),
     environment: caseSensitiveVarchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
@@ -50,22 +50,22 @@ export const ratelimits = mysqlTable(
   "ratelimits",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
+    id: id("id").notNull().unique(),
     /**
      * The name is used to reference this limit when verifying a key.
      */
     name: caseSensitiveVarchar("name", { length: 256 }).notNull(),
 
-    workspaceId: legacyId("workspace_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
     ...lifecycleDates,
     /**
      * Either keyId or identityId may be defined, not both
      */
-    keyId: legacyId("key_id"),
+    keyId: id("key_id"),
     /**
      * Either keyId or identityId may be defined, not both
      */
-    identityId: legacyId("identity_id"),
+    identityId: id("identity_id"),
     limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     // milliseconds
     duration: bigint("duration", { mode: "number", unsigned: true }).notNull(),

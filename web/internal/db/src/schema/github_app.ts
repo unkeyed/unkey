@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { projects } from "./projects";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -11,7 +11,7 @@ export const githubAppInstallations = mysqlTable(
   "github_app_installations",
   {
     pk: primaryKey(),
-    workspaceId: legacyId("workspace_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
     installationId: bigint("installation_id", { mode: "number" }).notNull(),
     ...lifecycleDates,
   },
@@ -31,9 +31,9 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: primaryKey(),
-    workspaceId: legacyId("workspace_id").notNull(),
-    projectId: legacyId("project_id").notNull(),
-    appId: legacyId("app_id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull().unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),
