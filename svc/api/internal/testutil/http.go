@@ -545,6 +545,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		ProjectID:        project.ID,
 		Name:             "Default",
 		Slug:             "default",
+		SourceType:       db.AppsSourceTypeLegacy,
 		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})

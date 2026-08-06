@@ -452,6 +452,7 @@ func (h *Handler) applyGitChange(
 		InstallationID:     resolved.InstallationID,
 		RepositoryID:       resolved.Repository.ID,
 		RepositoryFullName: resolved.Repository.FullName,
+		DefaultBranch:      sql.NullString{Valid: true, String: branch},
 		CreatedAt:          now,
 		UpdatedAt:          sql.NullInt64{Valid: true, Int64: now},
 	}); err != nil {
