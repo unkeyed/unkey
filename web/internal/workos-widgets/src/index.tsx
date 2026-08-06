@@ -43,6 +43,12 @@ const UNKEY_WORKOS_ELEMENTS = {
   dropdown: {
     color: "gray",
     highContrast: true,
+    /*
+     * Without it, selects use Radix's item-aligned mode and open as a trigger-width sheet on top
+     * of the trigger; popper opens them below the trigger like every other
+     * dashboard select.
+     */
+    position: "popper",
     size: "2",
     variant: "solid",
   },
@@ -96,7 +102,9 @@ const UNKEY_WORKOS_ELEMENTS = {
     size: "2",
     variant: "surface",
   },
-} satisfies NonNullable<WorkOsWidgetsProps["elements"]>;
+} satisfies NonNullable<WorkOsWidgetsProps["elements"]> & {
+  dropdown: { position: "popper" };
+};
 
 function UnkeyWorkOsWidgets({ children }: { children: React.ReactNode }) {
   return (

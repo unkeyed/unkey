@@ -35,7 +35,6 @@
   --focus-a8: hsla(var(--grayA-8));
   --accent-contrast: hsl(var(--background));
   --success-color: hsl(var(--success-9));
-
   --gray-1: hsl(var(--background));
   --gray-2: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 2%);
   --gray-3: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 6%);
@@ -126,6 +125,40 @@
   color: hsla(var(--grayA-11));
 }
 
+/*
+ * The widget scope remaps --accent-12 and --gray-* to color-mix ramps for Radix
+ * internals, which only approximate the dashboard's real gray tokens (close in
+ * light mode, visibly off in dark). Capture the real triples outside the scope
+ * so controls that must match @unkey/ui exactly (buttons, inputs) can reference
+ * them as hsl(var(--unkey-*)).
+ */
+:where(body) {
+  --unkey-accent-12: var(--accent-12);
+  --unkey-gray-2: var(--gray-2);
+  --unkey-gray-5: var(--gray-5);
+  --unkey-gray-8: var(--gray-8);
+}
+
+/*
+ * WorkOS DataList rows size to their tallest child, so a row without an Edit
+ * button (e.g. Connected accounts) collapses shorter than the button rows. A
+ * uniform floor keeps every profile row the same height.
+ */
+.unkey-workos-widgets .rt-DataListItem {
+  min-height: 1.5rem;
+  padding-left: 1rem;
+}
+
+/* Row labels match native settings-row labels (13px medium, not 14px bold). */
+.unkey-workos-widgets .rt-DataListLabel,
+.unkey-workos-widgets .rt-DataListLabel .rt-Strong,
+.unkey-workos-widgets .rt-Text:where(.rt-r-weight-bold) {
+  color: hsla(var(--grayA-12));
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1rem;
+}
+
 /* Cards and list rows mirror @unkey/ui Card and SettingCardGroup. */
 .unkey-workos-widgets .rt-Card {
   border-radius: 0.5rem;
@@ -148,7 +181,8 @@
 
 /* Buttons follow the @unkey/ui primary, outline, danger, and icon variants. */
 .woswidgets-button {
-  min-height: 2rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
   border: 1px solid transparent;
   border-radius: 0.375rem;
   box-shadow: 0 1px 2px hsla(var(--grayA-3));
@@ -166,18 +200,18 @@
 .woswidgets-button[data-woswidgets-element="primary-button"],
 .woswidgets-button--primary {
   border-color: hsla(var(--grayA-4));
-  background-color: hsl(var(--content));
-  color: hsl(var(--background));
+  background-color: hsl(var(--unkey-accent-12));
+  color: light-dark(white, black);
 }
 
 .woswidgets-button[data-woswidgets-element="primary-button"]:hover:not(:disabled),
 .woswidgets-button--primary:hover:not(:disabled) {
-  background-color: color-mix(in srgb, hsl(var(--content)) 90%, hsl(var(--background)));
+  background-color: hsla(var(--unkey-accent-12), 0.9);
 }
 
 .woswidgets-button[data-woswidgets-element="primary-button"]:active:not(:disabled),
 .woswidgets-button--primary:active:not(:disabled) {
-  background-color: color-mix(in srgb, hsl(var(--content)) 80%, hsl(var(--background)));
+  background-color: hsla(var(--unkey-accent-12), 0.8);
 }
 
 .woswidgets-button[data-woswidgets-element="secondary-button"],
@@ -251,9 +285,14 @@
 .woswidgets-text-field,
 .woswidgets-select {
   min-height: 2.25rem;
-  border: 1px solid hsla(var(--grayA-5));
+  /*
+   * The real dashboard gray tokens (escaped from the scope's color-mix ramp)
+   * so inputs match @unkey/ui's Input exactly in both themes: solid gray-5
+   * border, gray-2 (light) / black (dark) fill.
+   */
+  border: 1px solid hsl(var(--unkey-gray-5));
   border-radius: 0.5rem;
-  background-color: light-dark(hsla(var(--grayA-2)), hsl(var(--background)));
+  background-color: light-dark(hsl(var(--unkey-gray-2)), black);
   color: hsl(var(--content));
   box-shadow: none;
   font-family: var(--font-geist-sans);
@@ -267,7 +306,7 @@
 
 .woswidgets-text-field:hover:not(:has(input:disabled)),
 .woswidgets-select:hover:not(:disabled) {
-  border-color: hsla(var(--grayA-8));
+  border-color: hsl(var(--unkey-gray-8));
 }
 
 .woswidgets-text-field:has(input:focus-visible),
@@ -275,7 +314,7 @@
 .woswidgets-select[data-state="open"] {
   border-color: hsl(var(--content));
   outline: none;
-  box-shadow: 0 0 0 3px hsla(var(--grayA-5));
+  box-shadow: 0 0 0 3px hsl(var(--unkey-gray-5));
 }
 
 .woswidgets-text-field input::placeholder {
@@ -293,14 +332,14 @@
 .woswidgets-select-dropdown {
   z-index: 200;
   overflow: hidden;
-  padding: 0.25rem;
+  padding: 0.5rem;
   border: 1px solid hsla(var(--grayA-6));
   border-radius: 0.5rem;
   background-color: hsl(var(--background));
   color: hsl(var(--content));
   box-shadow:
-    0 10px 24px hsla(var(--grayA-4)),
-    0 2px 6px hsla(var(--grayA-3));
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .woswidgets-menu-item,
@@ -309,7 +348,7 @@
   border-radius: 0.375rem;
   color: hsl(var(--content));
   font-family: var(--font-geist-sans);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.25rem;
   transition:
     background-color 150ms,
@@ -336,37 +375,55 @@
 }
 
 /*
- * WorkOS adds its overlay class with document.querySelector, which only marks
- * the first overlay when dialogs are nested. Match each overlay through its own
- * WorkOS dialog content so nested MFA dialogs keep the same portal layer.
+ * WorkOS adds its overlay class with document.querySelector(".rt-DialogOverlay"),
+ * which only marks the first overlay when dialogs are nested and misses alert
+ * dialogs entirely (their overlay is rt-AlertDialogOverlay, so e.g. the
+ * remove-user confirm would sit below the z-10 navigation without the explicit
+ * selector). Match each overlay through its own WorkOS dialog content instead.
  */
+.rt-AlertDialogOverlay:has(.woswidgets-dialog),
 .woswidgets-dialog-overlay,
 .rt-DialogOverlay:has(.woswidgets-dialog) {
   z-index: 50;
   background-color: hsl(var(--black) / 30%);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
+/*
+ * Mirrors @unkey/ui DialogContainer: a 16px-radius shell with an opaque header
+ * bar, a grayA-2 tinted body, and an opaque footer zone. The tint is painted on
+ * the dialog itself; the header (title) and footer (trailing action row) lay
+ * opaque background strips over it with negative margins, since the inner DOM
+ * belongs to WorkOS.
+ */
 .woswidgets-dialog {
-  max-width: min(32rem, calc(100vw - 2rem));
-  max-height: calc(100svh - 2rem);
-  padding: 1.5rem;
+  --unkey-dialog-pad-x: 1.5rem;
+  --unkey-dialog-pad-y: 1.5rem;
+  max-width: min(37.5rem, calc(100vw - 2rem));
+  max-height: 90svh;
+  padding: var(--unkey-dialog-pad-y) var(--unkey-dialog-pad-x);
   border: 1px solid hsla(var(--grayA-4));
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   background-color: hsl(var(--background));
+  background-image: linear-gradient(hsla(var(--grayA-3)), hsla(var(--grayA-3)));
   color: hsl(var(--content));
-  box-shadow:
-    0 24px 48px hsla(var(--grayA-6)),
-    0 4px 12px hsla(var(--grayA-4));
+  box-shadow: 0 25px 25px rgb(0 0 0 / 0.15);
 }
 
 .woswidgets-dialog .rt-DialogTitle,
-.woswidgets-dialog .rt-AlertDialogTitle {
+.woswidgets-dialog .rt-AlertDialogTitle,
+.woswidgets-dialog > .rt-Heading {
+  margin: calc(var(--unkey-dialog-pad-y) * -1) calc(var(--unkey-dialog-pad-x) * -1)
+    var(--unkey-dialog-pad-y);
+  padding: 1rem var(--unkey-dialog-pad-x);
+  border-bottom: 1px solid hsla(var(--grayA-4));
+  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  background-color: hsl(var(--background));
   color: hsl(var(--content));
   font-family: var(--font-geist-sans);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 500;
-  line-height: 1.5rem;
+  line-height: 2rem;
 }
 
 .woswidgets-dialog .rt-DialogDescription,
@@ -375,6 +432,43 @@
   font-family: var(--font-geist-sans);
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+/*
+ * The action row is a direct trailing Flex in alert dialogs but a nested
+ * justify-end Flex inside the <form> in form dialogs (and not the form's last
+ * child there), so match it by "a Flex directly holding buttons". This lays the
+ * white footer strip with a divider, bled to the dialog's horizontal edges.
+ */
+.woswidgets-dialog .rt-Flex:has(> .woswidgets-button) {
+  margin-top: var(--unkey-dialog-pad-y);
+  margin-right: calc(var(--unkey-dialog-pad-x) * -1);
+  margin-left: calc(var(--unkey-dialog-pad-x) * -1);
+  padding: 1.5rem var(--unkey-dialog-pad-x);
+  border-top: 1px solid hsla(var(--grayA-4));
+  background-color: hsl(var(--background));
+}
+
+/* Only the alert-dialog footer is the dialog's last child: bleed to the bottom
+ * edge and round the bottom corners. Form dialogs keep the strip above their
+ * trailing error slot. */
+.woswidgets-dialog > .rt-Flex:last-child {
+  margin-bottom: calc(var(--unkey-dialog-pad-y) * -1);
+  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
+}
+
+/*
+ * Form dialogs render the action row inside the <form> (with a collapsed error
+ * slot after it), so the dialog's own bottom padding would show tinted body
+ * below the white footer. Drop it here — the footer's padding provides the
+ * spacing — and round the footer's bottom corners to meet the dialog radius.
+ */
+.woswidgets-dialog:has(> form) {
+  padding-bottom: 0;
+}
+
+.woswidgets-dialog:has(> form) .rt-Flex:has(> .woswidgets-button) {
+  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
 }
 
 /* Remaining WorkOS element hooks use their closest @unkey/ui counterparts. */
@@ -460,6 +554,7 @@
   }
 
   .woswidgets-dialog {
-    padding: 1rem;
+    --unkey-dialog-pad-x: 1rem;
+    --unkey-dialog-pad-y: 1rem;
   }
 }
