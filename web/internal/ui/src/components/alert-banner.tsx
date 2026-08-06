@@ -13,7 +13,7 @@ const alertBannerVariants = cva(
     variants: {
       variant: {
         default:
-          "border-grayA-4 bg-grayA-2 [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
+          "border-grayA-4 bg-background [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
         error:
           "border-errorA-4 bg-errorA-2 [&>svg]:text-error-11 *:data-[slot=alert-banner-title]:text-error-11",
         warning:

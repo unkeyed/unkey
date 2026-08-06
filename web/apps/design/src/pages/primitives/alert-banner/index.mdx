@@ -3,15 +3,15 @@ layout: ../../../layouts/layout.astro
 title: Alert banner — Unkey Design
 ---
 import { Preview } from "../../../components/preview.tsx";
-import { PlanGateBanner } from "./_plan-gate.tsx";
-import planGateSource from "./_plan-gate.tsx?highlight";
+import { AlertBannerExamples } from "./_examples.tsx";
+import examplesSource from "./_examples.tsx?highlight";
 
 # Alert banner
 
 An in-page banner for a state the user has to act on. 
 
-<Preview client:load code={planGateSource}>
-  <PlanGateBanner client:load />
+<Preview client:load code={examplesSource}>
+  <AlertBannerExamples client:load />
 </Preview>
 
 ## Best practices
