@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, mysqlTable } from "drizzle-orm/mysql-core";
 import { regions } from "./regions";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
 // clusters tracks our kubernetes clusters
@@ -12,10 +12,10 @@ import { primaryKey } from "./util/primary_key";
 export const clusters = mysqlTable("clusters", {
   pk: primaryKey(),
 
-  id: legacyId("id").notNull().unique(),
+  id: id("id").notNull().unique(),
   // Nullable until an existing cluster reports its cell identity by heartbeat.
   cellId: caseSensitiveVarchar("cell_id", { length: 64 }).unique(),
-  regionId: legacyId("region_id").notNull().unique(),
+  regionId: id("region_id").notNull().unique(),
 
   lastHeartbeatAt: bigint("last_heartbeat_at", {
     mode: "number",

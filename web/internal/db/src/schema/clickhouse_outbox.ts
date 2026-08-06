@@ -1,5 +1,5 @@
 import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
 // clickhouse_outbox is the transactional outbox for ClickHouse export.
@@ -35,8 +35,8 @@ export const clickhouseOutbox = mysqlTable(
   {
     pk: primaryKey(),
     version: varchar("version", { length: 64 }).notNull(),
-    workspaceId: legacyId("workspace_id").notNull(),
-    eventId: legacyId("event_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    eventId: id("event_id").notNull(),
     payload: json("payload").notNull(),
     createdAt: bigint("created_at", { mode: "number" })
       .notNull()

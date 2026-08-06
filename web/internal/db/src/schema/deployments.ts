@@ -16,7 +16,7 @@ import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
@@ -26,17 +26,17 @@ export const deployments = mysqlTable(
   "deployments",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
+    id: id("id").notNull().unique(),
     k8sName: caseInsensitiveVarchar("k8s_name", { length: 255 }).notNull().unique(),
 
-    workspaceId: legacyId("workspace_id").notNull(),
-    projectId: legacyId("project_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
 
     // Environment configuration (production, preview, etc.)
-    environmentId: legacyId("environment_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     // App this deployment belongs to
-    appId: legacyId("app_id").notNull(),
+    appId: id("app_id").notNull(),
 
     // the docker image
     // null until the build is done

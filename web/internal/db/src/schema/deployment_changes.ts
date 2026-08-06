@@ -1,5 +1,5 @@
 import { bigint, index, mysqlEnum, mysqlTable } from "drizzle-orm/mysql-core";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
 export const deploymentChanges = mysqlTable(
@@ -11,8 +11,8 @@ export const deploymentChanges = mysqlTable(
       "sentinel",
       "cilium_network_policy",
     ]).notNull(),
-    resourceId: legacyId("resource_id").notNull(),
-    regionId: legacyId("region_id").notNull(),
+    resourceId: id("resource_id").notNull(),
+    regionId: id("region_id").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => [

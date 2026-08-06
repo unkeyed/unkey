@@ -6,17 +6,17 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 export const environments = mysqlTable(
   "environments",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
+    id: id("id").notNull().unique(),
 
-    workspaceId: legacyId("workspace_id").notNull(),
-    projectId: legacyId("project_id").notNull(),
-    appId: legacyId("app_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
+    projectId: id("project_id").notNull(),
+    appId: id("app_id").notNull(),
 
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
