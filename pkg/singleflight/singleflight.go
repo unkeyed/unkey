@@ -64,41 +64,6 @@ func (g *Group[K, V]) Do(
 	}
 }
 
-// DoAsync reserves key before passing its work to schedule. It returns true
-// when work was scheduled and false when another call already reserved key.
-// DoAsync must accept the work without executing it before returning.
-func (g *Group[K, V]) DoAsync(
-	ctx context.Context,
-	key K,
-	schedule func(func()),
-	function func(context.Context) (V, error),
-) bool {
-	if g == nil || g.calls == nil {
-		panic("singleflight: Group must be constructed with New")
-	}
-	if ctx.Err() != nil {
-		return false
-	}
-
-	activeCall, shouldExecute := g.acquire(key)
-	if !shouldExecute {
-		return false
-	}
-
-	scheduled := false
-	defer func() {
-		if !scheduled {
-			var zero V
-			g.finish(key, activeCall, zero, nil, true)
-		}
-	}()
-	schedule(func() {
-		_, _ = g.execute(ctx, key, activeCall, function)
-	})
-	scheduled = true
-	return true
-}
-
 // call represents one in-flight call and its published result. Waiters must
 // read retry, value, and err only after done closes.
 type call[V any] struct {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/maypok86/otter"
@@ -26,10 +27,15 @@ type cache[K comparable, V any] struct {
 	resource string
 	clock    clock.Clock
 
-	revalidateC chan func()
-
-	// Origin deduplicates concurrent cache misses for the same key.
+	// origin deduplicates concurrent cache misses for the same key.
 	origin *singleflight.Group[K, missResult[V]]
+
+	// revalidateC carries background refreshes to the fixed worker pool.
+	revalidateC chan func()
+	// revalidationMutex protects revalidating.
+	revalidationMutex sync.Mutex
+	// revalidating contains keys with a queued or running background refresh.
+	revalidating map[K]struct{}
 }
 
 type Config[K comparable, V any] struct {
@@ -89,13 +95,15 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		return nil, err
 	}
 	c := &cache[K, V]{
-		otter:       otter,
-		fresh:       config.Fresh,
-		stale:       config.Stale,
-		resource:    config.Resource,
-		clock:       config.Clock,
-		revalidateC: make(chan func(), 1000),
-		origin:      singleflight.New[K, missResult[V]](),
+		otter:             otter,
+		fresh:             config.Fresh,
+		stale:             config.Stale,
+		resource:          config.Resource,
+		clock:             config.Clock,
+		origin:            singleflight.New[K, missResult[V]](),
+		revalidateC:       make(chan func(), 1000),
+		revalidationMutex: sync.Mutex{},
+		revalidating:      make(map[K]struct{}),
 	}
 
 	for range 10 {
@@ -302,22 +310,17 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.origin.DoAsync(
-				context.WithoutCancel(ctx),
-				key,
-				c.scheduleRevalidation,
-				func(ctx context.Context) (missResult[V], error) {
-					if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Fresh) {
-						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
-					}
-					metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
-					result := c.loadFromOrigin(ctx, key, refreshFromOrigin, op)
-					if result.err != nil && !db.IsNotFound(result.err) {
-						logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
-					}
-					return result, nil
-				},
-			)
+			c.queueRevalidation(key, func() {
+				revalidationCtx := context.WithoutCancel(ctx)
+				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
+					return
+				}
+				metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+				result := c.loadFromOrigin(revalidationCtx, key, refreshFromOrigin, op)
+				if result.err != nil && !db.IsNotFound(result.err) {
+					logger.Warn("failed to revalidate", "error", result.err.Error(), "key", key)
+				}
+			})
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -419,17 +422,13 @@ func (c *cache[K, V]) SWRMany(
 	metrics.CacheSWRManyStaleKeys.WithLabelValues(c.resource).Observe(float64(len(staleKeys)))
 	if len(staleKeys) > 0 {
 		for _, key := range staleKeys {
-			c.origin.DoAsync(
-				context.WithoutCancel(ctx),
-				key,
-				c.scheduleRevalidation,
-				func(ctx context.Context) (missResult[V], error) {
-					if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Fresh) {
-						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
-					}
-					return c.revalidateMany(ctx, []K{key}, refreshFromOrigin, op)[key], nil
-				},
-			)
+			c.queueRevalidation(key, func() {
+				revalidationCtx := context.WithoutCancel(ctx)
+				if entry, found := c.get(revalidationCtx, key); found && c.clock.Now().Before(entry.Fresh) {
+					return
+				}
+				c.revalidateMany(revalidationCtx, []K{key}, refreshFromOrigin, op)
+			})
 		}
 	}
 
@@ -504,19 +503,15 @@ func (c *cache[K, V]) SWRWithFallback(
 
 		if now.Before(e.Stale) {
 			// Stale - return but queue background revalidation with deduplication
-			c.origin.DoAsync(
-				context.WithoutCancel(ctx),
-				key,
-				c.scheduleRevalidation,
-				func(ctx context.Context) (missResult[V], error) {
-					for _, candidate := range candidates {
-						if entry, ok := c.get(ctx, candidate); ok && c.clock.Now().Before(entry.Fresh) {
-							return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
-						}
+			c.queueRevalidation(key, func() {
+				revalidationCtx := context.WithoutCancel(ctx)
+				for _, candidate := range candidates {
+					if entry, found := c.get(revalidationCtx, candidate); found && c.clock.Now().Before(entry.Fresh) {
+						return
 					}
-					return c.revalidateWithCanonicalKey(ctx, refreshFromOrigin, op), nil
-				},
-			)
+				}
+				c.revalidateWithCanonicalKey(revalidationCtx, refreshFromOrigin, op)
+			})
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -555,30 +550,23 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	ctx context.Context,
 	refreshFromOrigin func(context.Context) (V, K, error),
 	op func(error) Op,
-) missResult[V] {
+) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
 		logger.Warn("failed to revalidate with canonical key", "error", err.Error())
-		return missResult[V]{value: v, hit: Miss, err: err}
+		return
 	}
 
-	hit := Miss
 	switch op(err) {
 	case WriteValue:
 		c.Set(ctx, canonicalKey, v)
-		hit = Hit
 	case WriteNull:
 		c.SetNull(ctx, canonicalKey)
-		hit = Null
 	case Noop:
 		break
 	}
-	if err != nil {
-		hit = Miss
-	}
-	return missResult[V]{value: v, hit: hit, err: err}
 }
 
 func (c *cache[K, V]) revalidateMany(
@@ -586,7 +574,7 @@ func (c *cache[K, V]) revalidateMany(
 	keys []K,
 	refreshFromOrigin func(context.Context, []K) (map[K]V, error),
 	op func(error) Op,
-) map[K]missResult[V] {
+) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keys)))
 	values, err := refreshFromOrigin(ctx, keys)
 
@@ -594,9 +582,7 @@ func (c *cache[K, V]) revalidateMany(
 		logger.Warn("failed to revalidate many", "error", err.Error(), "keys", keys)
 	}
 
-	operation := op(err)
-	results := make(map[K]missResult[V], len(keys))
-	switch operation {
+	switch op(err) {
 	case WriteValue:
 		if values != nil {
 			// Write the values we got
@@ -618,34 +604,23 @@ func (c *cache[K, V]) revalidateMany(
 	case Noop:
 		// Don't cache anything
 	}
-
-	var zero V
-	for _, key := range keys {
-		value, found := values[key]
-		hit := Miss
-		if err == nil {
-			switch operation {
-			case WriteValue:
-				if found {
-					hit = Hit
-				} else if values != nil {
-					hit = Null
-				}
-			case WriteNull:
-				hit = Null
-			case Noop:
-				break
-			}
-		}
-		if !found {
-			value = zero
-		}
-		results[key] = missResult[V]{value: value, hit: hit, err: err}
-	}
-	return results
 }
 
-// scheduleRevalidation adds reserved origin work to the bounded worker queue.
-func (c *cache[K, V]) scheduleRevalidation(revalidate func()) {
-	c.revalidateC <- revalidate
+// queueRevalidation reserves key before adding work to the bounded worker
+// queue, preventing duplicate jobs from accumulating while workers are busy.
+func (c *cache[K, V]) queueRevalidation(key K, revalidate func()) {
+	c.revalidationMutex.Lock()
+	if _, ok := c.revalidating[key]; ok {
+		c.revalidationMutex.Unlock()
+		return
+	}
+	c.revalidating[key] = struct{}{}
+	c.revalidationMutex.Unlock()
+
+	c.revalidateC <- func() {
+		revalidate()
+		c.revalidationMutex.Lock()
+		delete(c.revalidating, key)
+		c.revalidationMutex.Unlock()
+	}
 }

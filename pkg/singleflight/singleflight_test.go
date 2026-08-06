@@ -65,48 +65,6 @@ func TestDoDeduplicatesConcurrentCalls(t *testing.T) {
 	})
 }
 
-// TestDoAsyncReservesBeforeEnqueue guarantees that queued work remains
-// deduplicated before a worker begins executing it.
-func TestDoAsyncReservesBeforeEnqueue(t *testing.T) {
-	group := New[string, string]()
-	var scheduled func()
-	schedule := func(function func()) {
-		scheduled = function
-	}
-
-	require.True(t, group.DoAsync(context.Background(), "key", schedule, func(context.Context) (string, error) {
-		return "value", nil
-	}))
-	require.False(t, group.DoAsync(context.Background(), "key", schedule, func(context.Context) (string, error) {
-		return "duplicate", nil
-	}))
-	require.NotNil(t, scheduled)
-	scheduled()
-
-	value, err := group.Do(context.Background(), "key", func(context.Context) (string, error) {
-		return "next", nil
-	})
-	require.NoError(t, err)
-	require.Equal(t, "next", value)
-}
-
-func TestDoAsyncPanicReleasesKey(t *testing.T) {
-	group := New[string, string]()
-	require.Panics(t, func() {
-		group.DoAsync(context.Background(), "key", func(func()) {
-			panic("scheduler failed")
-		}, func(context.Context) (string, error) {
-			return "unreachable", nil
-		})
-	})
-
-	value, err := group.Do(context.Background(), "key", func(context.Context) (string, error) {
-		return "recovered", nil
-	})
-	require.NoError(t, err)
-	require.Equal(t, "recovered", value)
-}
-
 // TestCanceledWaiterStopsWaiting guarantees that one waiting caller can cancel
 // without interrupting the call shared by other waiters.
 func TestCanceledWaiterStopsWaiting(t *testing.T) {
