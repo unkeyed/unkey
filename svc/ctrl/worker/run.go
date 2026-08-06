@@ -339,6 +339,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
 	// Deletion workflows write their audit logs as durable steps, so the audit

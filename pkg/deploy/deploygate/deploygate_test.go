@@ -1,6 +1,7 @@
 package deploygate
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -8,6 +9,42 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
+
+func TestWorkspaceGate(t *testing.T) {
+	null := sql.NullString{}
+	empty := sql.NullString{Valid: true}
+	plan := func(value string) sql.NullString {
+		return sql.NullString{String: value, Valid: true}
+	}
+
+	tests := []struct {
+		name     string
+		plan     sql.NullString
+		override sql.NullString
+		entitled bool
+	}{
+		{name: "no plan", plan: null, override: null, entitled: false},
+		{name: "empty values", plan: empty, override: empty, entitled: false},
+		{name: "synced plan", plan: plan("pro"), override: null, entitled: true},
+		{name: "manual override", plan: null, override: plan("business"), entitled: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.entitled, Entitled(test.plan, test.override))
+			if test.entitled {
+				require.NoError(t, CheckWorkspacePlan(test.plan, test.override))
+			} else {
+				requireCode(t, codes.App.Precondition.PreconditionFailed, CheckWorkspacePlan(test.plan, test.override))
+			}
+		})
+	}
+
+	require.NoError(t, CheckWorkspaceSpend(false))
+	requireCode(t, codes.App.Precondition.PreconditionFailed, CheckWorkspaceSpend(true))
+	require.Equal(t, "The workspace has no active Compute plan.", fault.UserFacingMessage(CheckWorkspacePlan(null, null)))
+	require.Equal(t, StartSpendSuspended.Message(), fault.UserFacingMessage(CheckWorkspaceSpend(true)))
+}
 
 func promoteBase() PromoteInput {
 	return PromoteInput{
