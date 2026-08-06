@@ -45,7 +45,7 @@ const IDENTIFIER_SOURCE_LABELS: Record<RateLimitIdentifierSource, string> = {
 };
 
 const RATE_LIMIT_DOCS_URL =
-  "https://www.unkey.com/docs/platform/sentinel/policies/rate-limiting#rate-limit-subjects";
+  "https://www.unkey.com/docs/platform/gateway/policies/rate-limiting#identifiers";
 
 const IDENTIFIER_SOURCE_OPTIONS: { value: RateLimitIdentifierSource; label: string }[] = [
   { value: "remoteIp", label: "Remote IP" },
