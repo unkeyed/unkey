@@ -9012,8 +9012,8 @@ paths:
                 Address the domain by its id or by its name. Names are unique per workspace, so
                 `api.acme.com` is enough.
 
-                Traffic to the domain stops shortly after deletion. A running verification stops. Unkey
-                does not change the DNS records at your provider. Remove them yourself.
+                Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+                records at your provider stay in place.
 
                 **Required Permissions**
 

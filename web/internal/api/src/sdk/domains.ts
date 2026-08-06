@@ -55,8 +55,8 @@ export class Domains extends ClientSDK {
    * Address the domain by its id or by its name. Names are unique per workspace, so
    * `api.acme.com` is enough.
    *
-   * Traffic to the domain stops shortly after deletion. A running verification stops. Unkey
-   * does not change the DNS records at your provider. Remove them yourself.
+   * Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+   * records at your provider stay in place.
    *
    * **Required Permissions**
    *
@@ -123,9 +123,9 @@ export class Domains extends ClientSDK {
    * @remarks
    * List the custom domains attached to an environment and their verification status.
    *
-   * The results are in order of domain id, and the response is paginated. When `hasMore` is
-   * true, send the returned `cursor` to get the next page. An environment with no domains
-   * returns an empty array, not a 404.
+   * Results are paginated and sorted by their id. When `hasMore` is true, send the
+   * returned `cursor` to get the next page. An environment with no domains returns an
+   * empty array, not a 404.
    *
    * `status: verified` means the domain is verified. Unkey has configured routing and requested a
    * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
