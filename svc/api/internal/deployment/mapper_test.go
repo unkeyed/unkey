@@ -118,6 +118,18 @@ func TestToResponseSource(t *testing.T) {
 		require.NotNil(t, got.Docker)
 		require.Equal(t, "nginx:stable", got.Docker.Image)
 	})
+
+	t.Run("unsupported source remains neutral", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: db.Deployment{
+			ID:             uid.New(uid.DeploymentPrefix),
+			Source:         db.DeploymentsSource("future_source"),
+			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
+			RequestedImage: sql.NullString{Valid: true, String: "nginx:stable"},
+			Image:          sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
+		}})
+		require.Nil(t, got.Git)
+		require.Nil(t, got.Docker)
+	})
 }
 
 func TestToResponseIsCurrent(t *testing.T) {
