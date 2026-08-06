@@ -1,0 +1,33 @@
+---
+layout: ../../../layouts/layout.astro
+title: Alert banner — Unkey Design
+---
+import { Preview } from "../../../components/preview.tsx";
+import { AlertBannerExamples } from "./_examples.tsx";
+import examplesSource from "./_examples.tsx?highlight";
+
+# Alert banner
+
+An in-page banner for a state the user has to act on. 
+
+<Preview client:load code={examplesSource}>
+  <AlertBannerExamples client:load />
+</Preview>
+
+## Best practices
+
+Use an alert banner to display callouts for user attention.
+
+Do not confuse this with `Alert`, which is the older dialog primitive in `@unkey/ui`.
+
+### Content
+
+Give the banner one job. Say what is wrong, then what to do about it, in that order. Keep the description to a sentence or two, and put the detail behind a link rather than in the banner.
+
+Use a title when a short description alone does not identify the problem. 
+
+Use icons as sparingly as possible. Only add an icon to a banner if you feel like the content is not clear enough on it's own.
+
+### Actions
+
+Keep to one action. A second is acceptable when it dismisses or defers.

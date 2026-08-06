@@ -12,6 +12,7 @@ export const nav: NavSection[] = [
   {
     title: "Primitives",
     items: [
+      { name: "Alert banner", href: "/primitives/alert-banner" },
       { name: "Item", href: "/primitives/item" },
       { name: "Resource list", href: "/primitives/resource-list" },
       { name: "Skeleton", href: "/primitives/skeleton" },
