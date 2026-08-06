@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -47,6 +48,7 @@ type RequestTracking struct {
 	// header or query parameter are not persisted in cleartext.
 	RedactedHeaders     []string
 	RedactedQueryParams []string
+	BodyRedactors       []*redaction.Redactor
 
 	// Reset by the handler before each ForwardToInstance attempt.
 	InstanceID string

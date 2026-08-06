@@ -40,9 +40,6 @@ export type InsertRatelimit = InferInsertModel<typeof schema.ratelimits>;
 export type Identity = InferSelectModel<typeof schema.identities>;
 export type InsertIdentity = InferInsertModel<typeof schema.identities>;
 
-export type Quotas = InferSelectModel<typeof schema.quotas>;
-export type InsertQuotas = InferInsertModel<typeof schema.quotas>;
-
 export type Limits = InferSelectModel<typeof schema.limits>;
 export type InsertLimits = InferInsertModel<typeof schema.limits>;
 

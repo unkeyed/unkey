@@ -47,6 +47,25 @@ If more than one enabled logging policy matches a request, the gateway captures 
 
 The gateway redacts sensitive values before it stores them. The `Authorization` header is always redacted. Headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key) are redacted too.
 
+## Redact body fields
+
+When an OpenAPI validation policy matches a request, the logging policy reads
+`x-unkey-redact` from the OpenAPI specification.
+
+Set `x-unkey-redact: true` on a sensitive JSON property. The gateway replaces
+its value with `[REDACTED]` in stored request and response bodies.
+
+```yaml
+properties:
+  token:
+    type: string
+    x-unkey-redact: true
+```
+
+Omit `x-unkey-redact` when a field does not need redaction. A value of `false`
+has the same effect. The gateway always redacts authorization headers and
+credentials that a KeyAuth policy defines.
+
 ## View logs
 
 Logs are available in the **Requests** tab of your project in the Unkey dashboard. You can filter by:

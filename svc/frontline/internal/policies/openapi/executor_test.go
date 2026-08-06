@@ -51,8 +51,9 @@ func TestExecute_EmptySpec(t *testing.T) {
 	req := httptest.NewRequest("GET", "/anything", nil)
 
 	//nolint:exhaustruct
-	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{})
+	redactor, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{})
 	require.NoError(t, err)
+	require.Nil(t, redactor)
 }
 
 func TestExecute_ValidRequest(t *testing.T) {
@@ -63,7 +64,7 @@ func TestExecute_ValidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
@@ -77,7 +78,7 @@ func TestExecute_InvalidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.Error(t, err)
@@ -93,7 +94,7 @@ func TestExecute_InvalidSpec(t *testing.T) {
 	e := newTestExecutor(t)
 	req := httptest.NewRequest("GET", "/anything", nil)
 
-	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: []byte("not valid yaml: [[["),
 	})
 	require.Error(t, err)
@@ -112,12 +113,53 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 	body := `{"name":"alice"}`
 	req1 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
-	require.NoError(t, e.Execute(context.Background(), nil, req1, cfg))
+	_, err := e.Execute(context.Background(), nil, req1, cfg)
+	require.NoError(t, err)
 
 	req2 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req2.Header.Set("Content-Type", "application/json")
-	require.NoError(t, e.Execute(context.Background(), nil, req2, cfg))
+	_, err = e.Execute(context.Background(), nil, req2, cfg)
+	require.NoError(t, err)
 
 	_, hit := e.cache.Get(context.Background(), string(minimalSpec))
 	require.Equal(t, cache.Hit, hit)
+}
+
+func TestExecute_ReturnsSpecBodyRedactor(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`
+openapi: "3.0.0"
+info:
+  title: Test
+  version: "1.0"
+paths:
+  /secrets:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret:
+                  type: string
+                  x-unkey-redact: true
+                visible:
+                  type: string
+                  x-unkey-redact: false
+      responses:
+        "200":
+          description: ok
+`)
+	body := `{"secret":"hide-me","visible":"keep-me"}`
+	req := httptest.NewRequest("POST", "/secrets", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	redactor, err := newTestExecutor(t).Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+		SpecYaml: spec,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, redactor)
+	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, string(redactor.Redact([]byte(body))))
 }
