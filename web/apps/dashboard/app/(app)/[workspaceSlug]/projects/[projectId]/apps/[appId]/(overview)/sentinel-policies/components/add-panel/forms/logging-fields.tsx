@@ -20,12 +20,18 @@ function CaptureToggle({
   const { field } = useController({ control, name });
 
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-center justify-between gap-4">
       <div className="flex flex-col gap-1">
         <span className="text-[13px] text-gray-12">{label}</span>
         <span className="text-[12px] text-gray-10">{description}</span>
       </div>
-      <Switch size="sm" checked={field.value} onCheckedChange={field.onChange} aria-label={label} />
+      <Switch
+        size="sm"
+        checked={field.value}
+        onCheckedChange={field.onChange}
+        aria-label={label}
+        className="shrink-0"
+      />
     </div>
   );
 }
