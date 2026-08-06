@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { projects } from "./projects";
+import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";

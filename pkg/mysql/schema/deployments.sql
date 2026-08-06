@@ -48,3 +48,4 @@ CREATE INDEX `workspace_idx` ON `deployments` (`workspace_id`);
 CREATE INDEX `project_idx` ON `deployments` (`project_id`);
 
 CREATE INDEX `status_idx` ON `deployments` (`status`);
+
