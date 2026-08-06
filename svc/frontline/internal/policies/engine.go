@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
@@ -54,7 +55,8 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of policy evaluation.
 type Result struct {
-	Principal *principal.Principal
+	Principal     *principal.Principal
+	BodyRedactors []*redaction.Redactor
 }
 
 // New creates a new Engine with the given configuration.
@@ -185,12 +187,15 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			bodyRedactor, execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
 				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
 				return result, execErr
+			}
+			if bodyRedactor != nil {
+				result.BodyRedactors = append(result.BodyRedactors, bodyRedactor)
 			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
