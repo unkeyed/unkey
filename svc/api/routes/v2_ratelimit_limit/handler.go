@@ -23,11 +23,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	sf "github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"golang.org/x/sync/singleflight"
 )
 
 type (
@@ -43,7 +43,7 @@ type Handler struct {
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 	TestMode        bool
-	createFlight    sf.Group[db.FindRatelimitNamespace]
+	createFlight    singleflight.Group
 }
 
 // Method returns the HTTP method this route responds to
@@ -233,7 +233,7 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 
 func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal *principal.Principal, name string) (db.FindRatelimitNamespace, error) {
 	key := principal.WorkspaceID + ":" + name
-	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
+	value, err, _ := h.createFlight.Do(key, func() (any, error) {
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
 			projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
 			if resolveErr != nil {
@@ -326,6 +326,17 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 
 		return ns, nil
 	})
+	if err != nil {
+		return db.FindRatelimitNamespace{}, err //nolint:exhaustruct
+	}
+	ns, ok := value.(db.FindRatelimitNamespace)
+	if !ok {
+		return db.FindRatelimitNamespace{}, fault.New( //nolint:exhaustruct
+			"singleflight returned an unexpected namespace type",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+		)
+	}
+	return ns, nil
 }
 
 func getLimitAndDuration(req Request, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {

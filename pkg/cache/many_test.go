@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -520,4 +521,57 @@ func TestSWRMany(t *testing.T) {
 		require.Equal(t, cache.Null, hits2["missing2"]) // Cached as null
 		require.Equal(t, "", values2["missing2"])
 	})
+}
+
+// TestSWRMany_BatchesStaleRevalidation guarantees that one request containing
+// stale and duplicate keys starts only one background origin load.
+func TestSWRMany_BatchesStaleRevalidation(t *testing.T) {
+	ctx := context.Background()
+	mockClock := clock.NewTestClock()
+	c, err := cache.New(cache.Config[string, string]{
+		Fresh:    time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  100,
+		Resource: "test",
+		Clock:    mockClock,
+	})
+	require.NoError(t, err)
+
+	keys := []string{"a", "b", "c"}
+	for _, key := range keys {
+		c.Set(ctx, key, "old_"+key)
+	}
+	mockClock.Tick(2 * time.Minute)
+
+	var loadCount atomic.Int32
+	loadedKeys := make(chan []string, 1)
+	releaseLoad := make(chan struct{})
+	loader := func(_ context.Context, keysToFetch []string) (map[string]string, error) {
+		loadCount.Add(1)
+		loadedKeys <- append([]string(nil), keysToFetch...)
+		<-releaseLoad
+		return map[string]string{"a": "new_a", "b": "new_b"}, nil
+	}
+	cacheOperation := func(error) cache.Op { return cache.WriteValue }
+
+	values, hits, err := c.SWRMany(ctx, append(keys, "a"), loader, cacheOperation)
+	require.NoError(t, err)
+	for _, key := range keys {
+		require.Equal(t, "old_"+key, values[key])
+		require.Equal(t, cache.Hit, hits[key])
+	}
+	require.Equal(t, keys, <-loadedKeys)
+
+	_, _, err = c.SWRMany(ctx, keys, loader, cacheOperation)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), loadCount.Load())
+
+	close(releaseLoad)
+	require.Eventually(t, func() bool {
+		valueA, hitA := c.Get(ctx, "a")
+		valueB, hitB := c.Get(ctx, "b")
+		_, hitC := c.Get(ctx, "c")
+		return valueA == "new_a" && hitA == cache.Hit &&
+			valueB == "new_b" && hitB == cache.Hit && hitC == cache.Null
+	}, time.Second, time.Millisecond)
 }
