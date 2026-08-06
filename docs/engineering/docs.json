@@ -38,6 +38,7 @@
             "pages": [
               "contributing/quality/code-quality",
               "contributing/quality/documentation",
+              "contributing/quality/screenshots-and-recordings",
               {
                 "group": "Testing",
                 "pages": [
