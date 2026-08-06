@@ -18,3 +18,11 @@ type StopDeployment struct{}
 
 func (StopDeployment) ActionFor(urn.Deployment) {}
 func (StopDeployment) String() string           { return "stop_deployment" }
+
+// StartDeployment authorizes starting a stopped deployment.
+//
+// Valid resource: urn.Deployment.
+type StartDeployment struct{}
+
+func (StartDeployment) ActionFor(urn.Deployment) {}
+func (StartDeployment) String() string           { return "start_deployment" }
