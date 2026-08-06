@@ -95,3 +95,40 @@ func TestExtractIdentifier(t *testing.T) {
 		require.Equal(t, "", extractIdentifier(nil, req, cfg, nil))
 	})
 }
+
+// BenchmarkExtractIdentifier runs on the per-request hot path, so key
+// composition must stay cheap: one buffer, one pass per part.
+func BenchmarkExtractIdentifier(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "http://example.com/v1/search", nil)
+	require.NoError(b, err)
+	p := &principal.Principal{Subject: "key_1234567890"}
+
+	b.Run("legacy single", func(b *testing.B) {
+		cfg := &frontlinev1.RateLimit{Identifier: pathSource()}
+		b.ReportAllocs()
+		for b.Loop() {
+			extractIdentifier(nil, req, cfg, nil)
+		}
+	})
+
+	b.Run("compound clean", func(b *testing.B) {
+		cfg := &frontlinev1.RateLimit{
+			Identifiers: []*frontlinev1.RateLimitIdentifier{subjectSource(), pathSource()},
+		}
+		b.ReportAllocs()
+		for b.Loop() {
+			extractIdentifier(nil, req, cfg, p)
+		}
+	})
+
+	b.Run("compound escaped", func(b *testing.B) {
+		cfg := &frontlinev1.RateLimit{
+			Identifiers: []*frontlinev1.RateLimitIdentifier{subjectSource(), pathSource()},
+		}
+		escaped := &principal.Principal{Subject: `key:with\separators`}
+		b.ReportAllocs()
+		for b.Loop() {
+			extractIdentifier(nil, req, cfg, escaped)
+		}
+	})
+}

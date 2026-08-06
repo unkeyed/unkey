@@ -24,22 +24,25 @@ func extractIdentifier(
 	principal *principal.Principal,
 ) string {
 	sources := cfg.GetIdentifiers()
-	if len(sources) == 0 && cfg.GetIdentifier() != nil {
-		sources = []*frontlinev1.RateLimitIdentifier{cfg.GetIdentifier()}
-	}
 	if len(sources) == 0 {
-		return ""
+		// The single-source key is the raw value, unescaped, so policies
+		// written before compound identifiers existed keep their exact
+		// bucket keys.
+		return extractIdentifierPart(sess, req, cfg.GetIdentifier(), principal)
 	}
-
-	// The single-source key is the raw value, unescaped, so policies written
-	// before compound identifiers existed keep their exact bucket keys.
 	if len(sources) == 1 {
 		return extractIdentifierPart(sess, req, sources[0], principal)
 	}
 
-	parts := make([]string, len(sources))
+	var key strings.Builder
+	// One upfront grow covers typical composed keys (subjects, paths,
+	// header values) so the builder allocates once.
+	key.Grow(96)
 	resolved := false
 	for i, source := range sources {
+		if i > 0 {
+			key.WriteByte(':')
+		}
 		part := extractIdentifierPart(sess, req, source, principal)
 		if part == "" {
 			// Missing dimensions share one bucket instead of failing the
@@ -49,20 +52,30 @@ func extractIdentifier(
 		} else {
 			resolved = true
 		}
-		parts[i] = escapeIdentifierPart(part)
+		writeEscapedIdentifierPart(&key, part)
 	}
 	if !resolved {
 		return ""
 	}
-	return strings.Join(parts, ":")
+	return key.String()
 }
 
-// escapeIdentifierPart makes the joined key unambiguous. Parts contain
+// writeEscapedIdentifierPart writes part into key, escaping the join
+// separator so the composed key is unambiguous. Parts contain
 // user-controlled bytes (header values, principal fields, paths), so without
-// escaping the tuple ("a:b") would collide with ("a","b").
-func escapeIdentifierPart(part string) string {
-	part = strings.ReplaceAll(part, `\`, `\\`)
-	return strings.ReplaceAll(part, ":", `\:`)
+// escaping the tuple ("a:b") would collide with ("a","b"). One pass; the
+// common part contains no separator bytes and copies with a single write.
+func writeEscapedIdentifierPart(key *strings.Builder, part string) {
+	start := 0
+	for i := 0; i < len(part); i++ {
+		if c := part[i]; c == '\\' || c == ':' {
+			key.WriteString(part[start:i])
+			key.WriteByte('\\')
+			key.WriteByte(c)
+			start = i + 1
+		}
+	}
+	key.WriteString(part[start:])
 }
 
 // extractIdentifierPart resolves one identifier source to its string value.
