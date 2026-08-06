@@ -9,14 +9,14 @@ import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { frontlineRoutes } from "./frontline_routes";
 import { githubRepoConnections } from "./github_app";
-import { legacyId } from "./util/id";
+import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 export const projects = mysqlTable(
   "projects",
   {
     pk: primaryKey(),
-    id: legacyId("id").notNull().unique(),
-    workspaceId: legacyId("workspace_id").notNull(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
 
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
