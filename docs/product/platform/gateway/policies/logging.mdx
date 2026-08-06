@@ -46,8 +46,8 @@ The gateway captures the following for each request:
 When an OpenAPI validation policy matches a request, the logging policy reads
 `x-unkey-redact` from the OpenAPI specification.
 
-Set `x-unkey-redact: true` on a sensitive JSON property. Frontline replaces its
-value with `[REDACTED]` in stored request and response bodies.
+Set `x-unkey-redact: true` on a sensitive JSON property. The gateway replaces
+its value with `[REDACTED]` in stored request and response bodies.
 
 ```yaml
 properties:
@@ -57,7 +57,7 @@ properties:
 ```
 
 Omit `x-unkey-redact` when a field does not need redaction. A value of `false`
-has the same effect. Frontline always redacts authorization headers and
+has the same effect. The gateway always redacts authorization headers and
 credentials that a KeyAuth policy defines.
 
 ## View logs

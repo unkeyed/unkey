@@ -108,6 +108,9 @@ func redactBody(body []byte, redactors []*redaction.Redactor) string {
 	if len(body) == 0 {
 		return ""
 	}
+	// Captured and redacted bodies are immutable after this point. The string
+	// stored in the batch keeps the backing bytes alive. Avoid a second
+	// full-body allocation when converting []byte to string.
 	return unsafe.String(unsafe.SliceData(body), len(body))
 }
 
