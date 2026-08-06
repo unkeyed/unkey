@@ -50,6 +50,14 @@ type RollbackDeployment struct{}
 func (RollbackDeployment) ActionFor(urn.Environment) {}
 func (RollbackDeployment) String() string            { return "rollback_deployment" }
 
+// PromoteDeployment authorizes promoting a deployment in an environment to live.
+//
+// Valid resource: urn.Environment.
+type PromoteDeployment struct{}
+
+func (PromoteDeployment) ActionFor(urn.Environment) {}
+func (PromoteDeployment) String() string            { return "promote_deployment" }
+
 // CreateDomain authorizes creating domains in an environment.
 //
 // Valid resource: urn.Environment.
