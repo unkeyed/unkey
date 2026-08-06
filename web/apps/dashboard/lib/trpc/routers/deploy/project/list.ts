@@ -210,7 +210,7 @@ export const listProjects = workspaceProcedure
       const currentDeployment = primaryApp
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
-      const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      const hasDeployment = currentDeployment != null;
       const projectApps = appsByProject.get(project.id) ?? [];
       const repositoryFullName = primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null;
 

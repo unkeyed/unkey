@@ -111,12 +111,7 @@ func ToResponse(in Input) openapi.Deployment {
 			setDockerSource()
 		}
 	default:
-		// Keep zero-valued rows used by older callers compatible with unknown.
-		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
-			setGitSource()
-		} else {
-			setDockerSource()
-		}
+		// Future source variants remain neutral until mapped explicitly.
 	}
 
 	if failure := deriveError(d.Status, in.Steps); failure != nil {

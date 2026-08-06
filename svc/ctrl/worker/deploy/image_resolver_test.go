@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -36,6 +37,43 @@ func TestPublicImageResolverPinsImageIndex(t *testing.T) {
 	resolved, err := resolver.Resolve(context.Background(), tag.Name())
 	require.NoError(t, err)
 	require.Equal(t, tag.Context().Digest(wantDigest.String()).Name(), resolved)
+}
+
+func TestImageResolverKeepsPersistedDigestStableAfterTagMoves(t *testing.T) {
+	server := httptest.NewTLSServer(registry.New())
+	t.Cleanup(server.Close)
+
+	transport := server.Client().Transport
+	tag, err := name.NewTag(server.Listener.Addr().String() + "/acme/api:stable")
+	require.NoError(t, err)
+	options := []remote.Option{remote.WithTransport(transport)}
+
+	firstImage, err := mutate.Config(empty.Image, v1.Config{Env: []string{"VERSION=one"}})
+	require.NoError(t, err)
+	require.NoError(t, remote.Write(tag, firstImage, options...))
+
+	resolver := &ociImageResolver{
+		internalRepository: "",
+		internalAuth:       authn.Anonymous,
+		options:            options,
+	}
+	persistedDigest, err := resolver.Resolve(context.Background(), tag.Name())
+	require.NoError(t, err)
+
+	secondImage, err := mutate.Config(empty.Image, v1.Config{Env: []string{"VERSION=two"}})
+	require.NoError(t, err)
+	require.NoError(t, remote.Write(tag, secondImage, options...))
+
+	currentDigest, err := resolver.Resolve(context.Background(), tag.Name())
+	require.NoError(t, err)
+	require.NotEqual(t, persistedDigest, currentDigest, "moving the tag must resolve to the new artifact")
+	resolvedPersistedDigest, err := resolver.Resolve(context.Background(), persistedDigest)
+	require.NoError(t, err)
+	require.Equal(t, persistedDigest, resolvedPersistedDigest, "the recorded digest must keep selecting the original artifact")
+
+	firstDigest, err := firstImage.Digest()
+	require.NoError(t, err)
+	require.Equal(t, tag.Context().Digest(firstDigest.String()).Name(), persistedDigest)
 }
 
 func TestImageResolverScopesInternalRegistryCredentialsToConfiguredRepository(t *testing.T) {
