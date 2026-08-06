@@ -533,7 +533,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		// may live on a non-default branch: defaulting would record a wrong
 		// branch alongside the right SHA.
 		if commit.SHA == "" && commit.Branch == "" {
-			commit.Branch = defaultBranch(repoConn.DefaultBranch, c.app.DefaultBranch)
+			commit.Branch = defaultBranch(repoConn.DefaultBranch)
 		}
 		if err := commit.fillFromGitHub(
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
@@ -705,14 +705,11 @@ func triggerFromProto(t ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-// defaultBranch prefers the source-owned branch while retaining the app column
-// as a compatibility fallback for writers that have not migrated yet.
-func defaultBranch(connectionDefault sql.NullString, appDefault string) string {
+// defaultBranch reads the branch owned by the repository connection. Empty
+// values default to main as a safety net for rows not yet backfilled.
+func defaultBranch(connectionDefault sql.NullString) string {
 	if connectionDefault.Valid && connectionDefault.String != "" {
 		return connectionDefault.String
-	}
-	if appDefault != "" {
-		return appDefault
 	}
 	return "main"
 }

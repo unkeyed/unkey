@@ -1510,11 +1510,7 @@ type Querier interface {
 	//    AND gc.repository_id = ?
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = CASE
-	//        WHEN gc.default_branch IS NOT NULL AND gc.default_branch <> '' THEN gc.default_branch
-	//        WHEN a.default_branch <> '' THEN a.default_branch
-	//        ELSE 'main'
-	//      END
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END
@@ -1614,11 +1610,7 @@ type Querier interface {
 	//  INNER JOIN environments e ON e.app_id = a.id
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = CASE
-	//        WHEN gc.default_branch IS NOT NULL AND gc.default_branch <> '' THEN gc.default_branch
-	//        WHEN a.default_branch <> '' THEN a.default_branch
-	//        ELSE 'main'
-	//      END
+	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 	//      THEN e.kind = 'production'
 	//      ELSE e.kind = 'preview'
 	//    END

@@ -147,7 +147,7 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
       },
       with: {
         apps: {
-          columns: { id: true, defaultBranch: true },
+          columns: { id: true },
           with: {
             githubRepoConnection: {
               columns: {
@@ -155,6 +155,7 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
                 repositoryId: true,
                 repositoryFullName: true,
                 installationId: true,
+                defaultBranch: true,
               },
             },
           },
@@ -193,13 +194,14 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
 
   return {
     appId: app?.id ?? null,
-    defaultBranch: app?.defaultBranch ?? "main",
+    defaultBranch: app?.githubRepoConnection?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
           pk: app.githubRepoConnection.pk,
           repositoryId: app.githubRepoConnection.repositoryId,
           repositoryFullName: app.githubRepoConnection.repositoryFullName,
           installationId: app.githubRepoConnection.installationId,
+          defaultBranch: app.githubRepoConnection.defaultBranch,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -899,14 +901,6 @@ export const githubRouter = t.router({
                 updatedAt,
               },
             });
-
-          await tx
-            .update(schema.apps)
-            .set({
-              ...(branchToStore ? { defaultBranch: branchToStore } : {}),
-              updatedAt,
-            })
-            .where(eq(schema.apps.id, appId));
         })
         .catch(() => {
           throw new TRPCError({
@@ -991,10 +985,6 @@ export const githubRouter = t.router({
           .update(schema.githubRepoConnections)
           .set({ defaultBranch: input.defaultBranch, updatedAt })
           .where(eq(schema.githubRepoConnections.appId, input.appId));
-        await tx
-          .update(schema.apps)
-          .set({ defaultBranch: input.defaultBranch, updatedAt })
-          .where(eq(schema.apps.id, input.appId));
       });
 
       return { success: true };

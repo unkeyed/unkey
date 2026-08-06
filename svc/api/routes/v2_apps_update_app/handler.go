@@ -156,8 +156,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Name:                      "",
 			SlugSpecified:             0,
 			Slug:                      "",
-			DefaultBranchSpecified:    0,
-			DefaultBranch:             "",
 			DeleteProtectionSpecified: 0,
 			DeleteProtection:          sql.NullBool{Valid: false, Bool: false},
 		}
@@ -185,20 +183,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// gitState is the connection echoed in the response: current when git is
 		// unspecified, nil on disconnect, the new repository on connect.
-		gitState, err := h.applyGitChange(ctx, tx, app, req.Git, &update)
+		gitState, err := h.applyGitChange(ctx, tx, app, req.Git)
 		if err != nil {
 			return openapi.App{}, err
 		}
 
-		// appColumnsChanged tracks user-facing app fields (an `app.update` event);
-		// a git connect also writes the default branch, but that is audited under
-		// the `app.connect_repository` event instead.
+		// appColumnsChanged tracks user-facing app fields (an `app.update` event).
 		appColumnsChanged := update.NameSpecified == 1 || update.SlugSpecified == 1 || update.DeleteProtectionSpecified == 1
 
-		// Persist the app row only when a user field or the default branch changed.
+		// Persist the app row only when one of its own fields changed.
 		// updatedAt is reflected in the response only when a write actually happened.
 		responseUpdatedAt := app.UpdatedAt.Int64
-		if appColumnsChanged || update.DefaultBranchSpecified == 1 {
+		if appColumnsChanged {
 			if err = db.Query.UpdateApp(ctx, tx, update); err != nil {
 				if db.IsDuplicateKeyError(err) {
 					return openapi.App{}, fault.Wrap(
@@ -326,16 +322,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 }
 
 // applyGitChange applies the `git` field to the app's repository connection and
-// returns the connection state to reflect in the response. It also stamps the
-// resulting default branch onto `update` (the resolved or overridden branch on
-// connect/retarget, empty on disconnect) so the app row is written in the same
-// transaction.
+// returns the connection state to reflect in the response.
 func (h *Handler) applyGitChange(
 	ctx context.Context,
 	tx db.DBTX,
 	app db.App,
 	git nullable.Nullable[openapi.AppGitUpdateInput],
-	update *db.UpdateAppParams,
 ) (*openapi.AppGit, error) {
 
 	if !git.IsSpecified() {
@@ -352,12 +344,11 @@ func (h *Handler) applyGitChange(
 				fault.Public("Failed to retrieve app."),
 			)
 		}
-		return githubapp.GitResponse(conn.RepositoryFullName, app.DefaultBranch), nil
+		return githubapp.GitResponse(conn.RepositoryFullName, conn.DefaultBranch.String), nil
 	}
 
 	if git.IsNull() {
-		// Disconnect: drop the connection and clear the tracked branch, which has
-		// no meaning without a repository.
+		// Disconnect: drop the connection and its source-owned branch.
 		if err := db.Query.DeleteGithubRepoConnectionsByAppId(ctx, tx, app.ID); err != nil {
 			return nil, fault.Wrap(
 				err,
@@ -366,8 +357,6 @@ func (h *Handler) applyGitChange(
 				fault.Public("Failed to disconnect the GitHub repository."),
 			)
 		}
-		update.DefaultBranch = ""
-		update.DefaultBranchSpecified = 1
 		return githubapp.GitResponse("", ""), nil
 	}
 
@@ -396,8 +385,28 @@ func (h *Handler) applyGitChange(
 		}
 
 		branch := *requested.DefaultBranch
-		update.DefaultBranch = branch
-		update.DefaultBranchSpecified = 1
+		rowsAffected, updateErr := db.Query.UpdateGithubRepoConnectionDefaultBranch(ctx, tx, db.UpdateGithubRepoConnectionDefaultBranchParams{
+			DefaultBranch: sql.NullString{Valid: true, String: branch},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			WorkspaceID:   app.WorkspaceID,
+			AppID:         app.ID,
+		})
+		if updateErr != nil {
+			return nil, fault.Wrap(
+				updateErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to update github connection default branch"),
+				fault.Public("Failed to update the branch tracked by this app."),
+			)
+		}
+		if rowsAffected != 1 {
+			return nil, fault.New(
+				"repository connection changed during update",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal(fmt.Sprintf("expected to update one github connection, updated %d", rowsAffected)),
+				fault.Public("Failed to update the branch tracked by this app."),
+			)
+		}
 		return githubapp.GitResponse(conn.RepositoryFullName, branch), nil
 	}
 
@@ -430,8 +439,10 @@ func (h *Handler) applyGitChange(
 	// swapping the repository never silently retargets it. An explicit
 	// defaultBranch always wins over both.
 	fallback := resolved.Repository.DefaultBranch
-	if _, connErr := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID); connErr == nil {
-		fallback = app.DefaultBranch
+	if existing, connErr := db.Query.FindGithubRepoConnectionByAppId(ctx, tx, app.ID); connErr == nil {
+		if existing.DefaultBranch.Valid && existing.DefaultBranch.String != "" {
+			fallback = existing.DefaultBranch.String
+		}
 	} else if !db.IsNotFound(connErr) {
 		return nil, fault.Wrap(
 			connErr,
@@ -441,8 +452,6 @@ func (h *Handler) applyGitChange(
 		)
 	}
 	branch := githubapp.DefaultBranch(fallback, requested.DefaultBranch)
-	update.DefaultBranch = branch
-	update.DefaultBranchSpecified = 1
 
 	now := time.Now().UnixMilli()
 	if err = db.Query.UpsertGithubRepoConnection(ctx, tx, db.UpsertGithubRepoConnectionParams{
@@ -463,9 +472,6 @@ func (h *Handler) applyGitChange(
 			fault.Public("Failed to connect the GitHub repository."),
 		)
 	}
-
-	update.DefaultBranch = branch
-	update.DefaultBranchSpecified = 1
 
 	return githubapp.GitResponse(resolved.Repository.FullName, branch), nil
 }

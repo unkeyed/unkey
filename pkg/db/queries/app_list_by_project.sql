@@ -1,5 +1,8 @@
 -- name: ListAppsByProject :many
-SELECT apps.*, grc.repository_full_name AS repository_full_name
+SELECT
+  apps.*,
+  grc.repository_full_name AS repository_full_name,
+  grc.default_branch AS github_default_branch
 FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 WHERE apps.project_id = sqlc.arg(project_id)

@@ -3,7 +3,7 @@
 
 UPDATE `github_repo_connections` AS `connection`
 INNER JOIN `apps` AS `app` ON `app`.`id` = `connection`.`app_id`
-SET `connection`.`default_branch` = NULLIF(`app`.`default_branch`, '')
+SET `connection`.`default_branch` = COALESCE(NULLIF(`app`.`default_branch`, ''), 'main')
 WHERE `connection`.`default_branch` IS NULL;
 
 -- A durable build ID is written only by the Git build path. Do not infer
