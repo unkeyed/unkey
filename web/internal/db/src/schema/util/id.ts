@@ -4,6 +4,15 @@ export const id = customType<{
   data: string;
 }>({
   dataType() {
+    return "varchar(48) COLLATE utf8mb4_0900_as_cs";
+  },
+});
+
+// Keeps untouched tables stable during batched migration. Remove after all batches.
+export const legacyId = customType<{
+  data: string;
+}>({
+  dataType() {
     return "varchar(32) COLLATE utf8mb4_0900_as_cs";
   },
 });

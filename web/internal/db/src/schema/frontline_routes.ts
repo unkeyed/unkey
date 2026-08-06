@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { projects } from "./projects";
-import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 
@@ -10,11 +10,11 @@ export const frontlineRoutes = mysqlTable(
   "frontline_routes",
   {
     pk: primaryKey(),
-    id: id("id").notNull().unique(),
-    projectId: id("project_id").notNull(),
-    appId: id("app_id").notNull(),
-    deploymentId: id("deployment_id").notNull(),
-    environmentId: id("environment_id").notNull(),
+    id: legacyId("id").notNull().unique(),
+    projectId: legacyId("project_id").notNull(),
+    appId: legacyId("app_id").notNull(),
+    deploymentId: legacyId("deployment_id").notNull(),
+    environmentId: legacyId("environment_id").notNull(),
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,
     })

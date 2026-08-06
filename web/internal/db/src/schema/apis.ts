@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import { index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
 import { id } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -21,7 +20,7 @@ export const apis = mysqlTable(
      */
     ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
-    keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).unique(),
+    keyAuthId: id("key_auth_id").unique(),
 
     ...lifecycleDatesMigration,
     ...deleteProtection,

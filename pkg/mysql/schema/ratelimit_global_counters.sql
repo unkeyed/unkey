@@ -1,6 +1,6 @@
 CREATE TABLE `ratelimit_global_counters` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`workspace_id` varchar(32) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(191) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`namespace` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`identifier` varchar(255) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`duration_ms` bigint unsigned NOT NULL,

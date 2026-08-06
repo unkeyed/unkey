@@ -3,7 +3,7 @@ import { bigint, boolean, index, int, mysqlTable, varchar } from "drizzle-orm/my
 import { apis } from "./apis";
 import { keys } from "./keys";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -13,8 +13,8 @@ export const keyAuth = mysqlTable(
   {
     pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 37 }).notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull().default(""),
+    workspaceId: legacyId("workspace_id").notNull(),
+    projectId: legacyId("project_id").notNull().default(""),
 
     ...lifecycleDatesMigration,
 

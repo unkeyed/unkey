@@ -1,7 +1,8 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlTable, unique, uniqueIndex } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { id } from "./util/id";
+// import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -11,8 +12,8 @@ export const ratelimitNamespaces = mysqlTable(
   {
     pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull().default(""),
+    workspaceId: legacyId("workspace_id").notNull(),
+    projectId: legacyId("project_id").notNull().default(""),
     name: caseSensitiveVarchar("name", { length: 512 }).notNull(),
 
     ...lifecycleDatesMigration,
@@ -41,7 +42,7 @@ export const ratelimitOverrides = mysqlTable(
   {
     pk: primaryKey(),
     id: caseSensitiveVarchar("id", { length: 33 }).notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
+    workspaceId: legacyId("workspace_id").notNull(),
     namespaceId: caseSensitiveVarchar("namespace_id", { length: 33 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 512 }).notNull(),
 
@@ -94,7 +95,8 @@ export const ratelimitGlobalCounters = mysqlTable(
   "ratelimit_global_counters",
   {
     pk: primaryKey(),
-    workspaceId: id("workspace_id").notNull(),
+    // workspaceId: id("workspace_id").notNull(),
+    workspaceId: caseSensitiveVarchar("workspace_id", { length: 191 }).notNull(),
     namespace: caseSensitiveVarchar("namespace", { length: 255 }).notNull(),
     identifier: caseSensitiveVarchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),

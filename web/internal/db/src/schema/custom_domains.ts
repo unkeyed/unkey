@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { challengeType } from "./acme_challenges";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
-import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 
@@ -25,11 +25,11 @@ export const customDomains = mysqlTable(
   "custom_domains",
   {
     pk: primaryKey(),
-    id: id("id").notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull(),
-    appId: id("app_id").notNull(),
-    environmentId: id("environment_id").notNull(),
+    id: legacyId("id").notNull().unique(),
+    workspaceId: legacyId("workspace_id").notNull(),
+    projectId: legacyId("project_id").notNull(),
+    appId: legacyId("app_id").notNull(),
+    environmentId: legacyId("environment_id").notNull(),
 
     domain: varchar("domain", { length: 256 }).notNull(),
     challengeType: challengeType,

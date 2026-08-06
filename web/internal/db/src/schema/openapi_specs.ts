@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { mysqlTable, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
@@ -11,10 +11,10 @@ export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
     pk: primaryKey(),
-    id: id("id").notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
-    deploymentId: id("deployment_id"),
-    portalConfigId: id("portal_config_id"),
+    id: legacyId("id").notNull().unique(),
+    workspaceId: legacyId("workspace_id").notNull(),
+    deploymentId: legacyId("deployment_id"),
+    portalConfigId: legacyId("portal_config_id"),
     content: longblob("content").notNull(),
     ...lifecycleDates,
   },

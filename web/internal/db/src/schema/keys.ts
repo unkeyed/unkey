@@ -18,7 +18,7 @@ import { keysPermissions, keysRoles } from "./rbac";
 import { caseInsensitiveVarchar } from "./util/case_insensitive_varchar";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
-import { id } from "./util/id";
+import { legacyId } from "./util/id";
 import { lifecycleDatesMigration, lifecycleDatesV2 } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
@@ -27,7 +27,7 @@ export const keys = mysqlTable(
   "keys",
   {
     pk: primaryKey(),
-    id: id("id").notNull().unique(),
+    id: legacyId("id").notNull().unique(),
 
     keyAuthId: caseSensitiveVarchar("key_auth_id", { length: 37 }).notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull(),
@@ -36,7 +36,7 @@ export const keys = mysqlTable(
     /**
      * This is the workspace that owns the key.
      */
-    workspaceId: id("workspace_id").notNull(),
+    workspaceId: legacyId("workspace_id").notNull(),
 
     /**
      * For internal keys, this is the workspace that the key is for.
@@ -46,10 +46,10 @@ export const keys = mysqlTable(
      *
      * This field is not used for user keys, only for the internal keys that are used to manage the unkey app itself.
      */
-    forWorkspaceId: id("for_workspace_id"),
+    forWorkspaceId: legacyId("for_workspace_id"),
     name: caseInsensitiveVarchar("name", { length: 256 }),
     ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
-    identityId: id("identity_id"),
+    identityId: legacyId("identity_id"),
     meta: text("meta"),
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
@@ -88,7 +88,7 @@ export const keys = mysqlTable(
 
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
 
-    pendingMigrationId: id("pending_migration_id"),
+    pendingMigrationId: legacyId("pending_migration_id"),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -151,8 +151,8 @@ export const encryptedKeys = mysqlTable(
   "encrypted_keys",
   {
     pk: primaryKey(),
-    workspaceId: id("workspace_id").notNull(),
-    keyId: id("key_id").notNull(),
+    workspaceId: legacyId("workspace_id").notNull(),
+    keyId: legacyId("key_id").notNull(),
     ...lifecycleDatesV2,
     ...embeddedEncrypted,
   },
@@ -176,8 +176,8 @@ export const keyMigrations = mysqlTable(
   "key_migrations",
   {
     pk: primaryKey(),
-    id: id("id").notNull().unique(),
-    workspaceId: id("workspace_id").notNull(),
+    id: legacyId("id").notNull().unique(),
+    workspaceId: legacyId("workspace_id").notNull(),
     algorithm: mysqlEnum("algorithm", ["sha256", "github.com/seamapi/prefixed-api-key"]).notNull(),
   },
   (table) => [unique("unique_id_per_workspace_id").on(table.id, table.workspaceId)],
