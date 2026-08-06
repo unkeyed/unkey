@@ -16,3 +16,12 @@ Here's some general rules on how to create a nice screenshot.
 - If your change only uses a tiny portion of the current view, use cleanshots annotations feature to add arrows and point out the relevant portion of a change.
 - Do not screenshot a portion of the app if at all possible, as it can make it harder for people to grep what context the item sits within.
 
+### Example
+
+Both screenshots show the same change: the email input on the sign-in page.
+
+| Bad | Good |
+| --- | --- |
+| <Frame><img src="/contributing/quality/screenshot-bad.png" alt="A cropped screenshot of an email input with no surrounding page" /></Frame> | <Frame><img src="/contributing/quality/screenshot-good.png" alt="A screenshot of the whole browser window on the sign-in page, with an arrow and a label that point at the email input" /></Frame> |
+| Cropped to the component. The reviewer cannot tell which page this is, where the component sits, or whether the rest of the page still works. | The whole browser window, so the URL and the page are visible. An arrow and a short label point at the part that changed. |
+
