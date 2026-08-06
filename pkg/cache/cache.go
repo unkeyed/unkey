@@ -417,7 +417,7 @@ func (c *cache[K, V]) SWRMany(
 
 	// Queue stale keys for background refresh
 	if len(staleKeys) > 0 {
-		c.origin.DoManyAsync(
+		c.origin.DoAsyncMany(
 			context.WithoutCancel(ctx),
 			staleKeys,
 			c.scheduleRevalidation,

@@ -99,11 +99,11 @@ func (g *Group[K, V]) DoAsync(
 	return true
 }
 
-// DoManyAsync reserves every currently inactive key before passing one batch
+// DoAsyncMany reserves every currently inactive key before passing one batch
 // to schedule. It returns true when at least one key was scheduled. The
 // function must return a result for each key that it receives.
-// DoManyAsync must accept the work without executing it before returning.
-func (g *Group[K, V]) DoManyAsync(
+// DoAsyncMany must accept the work without executing it before returning.
+func (g *Group[K, V]) DoAsyncMany(
 	ctx context.Context,
 	keys []K,
 	schedule func(func()),

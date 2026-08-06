@@ -90,9 +90,9 @@ func TestDoAsyncReservesBeforeEnqueue(t *testing.T) {
 	require.Equal(t, "next", value)
 }
 
-// TestDoManyAsyncReservesOverlappingKeys guarantees that overlapping batches
+// TestDoAsyncManyReservesOverlappingKeys guarantees that overlapping batches
 // execute each key at most once while preserving non-overlapping batch work.
-func TestDoManyAsyncReservesOverlappingKeys(t *testing.T) {
+func TestDoAsyncManyReservesOverlappingKeys(t *testing.T) {
 	group := New[string, string]()
 	var scheduled []func()
 	schedule := func(function func()) {
@@ -108,8 +108,8 @@ func TestDoManyAsyncReservesOverlappingKeys(t *testing.T) {
 		return values, nil
 	}
 
-	require.True(t, group.DoManyAsync(context.Background(), []string{"a", "b", "a"}, schedule, function))
-	require.True(t, group.DoManyAsync(context.Background(), []string{"b", "c"}, schedule, function))
+	require.True(t, group.DoAsyncMany(context.Background(), []string{"a", "b", "a"}, schedule, function))
+	require.True(t, group.DoAsyncMany(context.Background(), []string{"b", "c"}, schedule, function))
 	require.Len(t, scheduled, 2)
 	scheduled[0]()
 	scheduled[1]()
@@ -134,10 +134,10 @@ func TestDoAsyncPanicReleasesKey(t *testing.T) {
 	require.Equal(t, "recovered", value)
 }
 
-func TestDoManyAsyncPanicReleasesKeys(t *testing.T) {
+func TestDoAsyncManyPanicReleasesKeys(t *testing.T) {
 	group := New[string, string]()
 	require.Panics(t, func() {
-		group.DoManyAsync(context.Background(), []string{"a", "b"}, func(func()) {
+		group.DoAsyncMany(context.Background(), []string{"a", "b"}, func(func()) {
 			panic("scheduler failed")
 		}, func(context.Context, []string) (map[string]string, error) {
 			return nil, nil
