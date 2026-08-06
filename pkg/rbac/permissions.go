@@ -272,8 +272,8 @@ const (
 	ReadDomain ActionType = "read_domain"
 	// DeleteDomain permits removing a custom domain from a specific environment
 	DeleteDomain ActionType = "delete_domain"
-	// VerifyDomain permits restarting verification for a specific environment's
-	// custom domains
+	// VerifyDomain permits a restart of verification for the custom domains of a
+	// specific environment
 	VerifyDomain ActionType = "verify_domain"
 )
 

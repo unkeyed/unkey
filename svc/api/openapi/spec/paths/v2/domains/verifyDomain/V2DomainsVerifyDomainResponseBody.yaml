@@ -11,7 +11,7 @@ additionalProperties: false
 examples:
   accepted:
     summary: Verification restarted
-    description: The domain returned to `pending`. Poll domains.getDomain to observe the result.
+    description: The domain went back to `pending`. Poll domains.getDomain to see the result.
     value:
       meta:
         requestId: req_1234abcd
