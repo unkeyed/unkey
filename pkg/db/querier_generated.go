@@ -391,7 +391,7 @@ type Querier interface {
 	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
 	//  FROM `keys` k
 	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error)
+	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
