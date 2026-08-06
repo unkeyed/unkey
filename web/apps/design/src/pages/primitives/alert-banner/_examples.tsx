@@ -21,7 +21,7 @@ export function AlertBannerExamples() {
           Creating and deploying are paused without an active plan.
         </AlertBannerDescription>
         <AlertBannerActions>
-          <Button variant="outline" size="md" className="bg-background">
+          <Button variant="outline" size="md">
             Choose a plan
           </Button>
         </AlertBannerActions>
@@ -33,7 +33,7 @@ export function AlertBannerExamples() {
           The build could not resolve the git branch for this project.
         </AlertBannerDescription>
         <AlertBannerActions>
-          <Button variant="outline" size="md" className="bg-background">
+          <Button variant="outline" size="md">
             Redeploy
           </Button>
         </AlertBannerActions>
