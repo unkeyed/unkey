@@ -523,9 +523,9 @@ func TestSWRMany(t *testing.T) {
 	})
 }
 
-// TestSWRMany_BatchesStaleRevalidation guarantees that one request containing
-// stale and duplicate keys starts only one background origin load.
-func TestSWRMany_BatchesStaleRevalidation(t *testing.T) {
+// TestSWRMany_DeduplicatesStaleRevalidationByKey guarantees that duplicate
+// stale keys reserve only one background origin load per key.
+func TestSWRMany_DeduplicatesStaleRevalidationByKey(t *testing.T) {
 	ctx := context.Background()
 	mockClock := clock.NewTestClock()
 	c, err := cache.New(cache.Config[string, string]{
@@ -544,7 +544,7 @@ func TestSWRMany_BatchesStaleRevalidation(t *testing.T) {
 	mockClock.Tick(2 * time.Minute)
 
 	var loadCount atomic.Int32
-	loadedKeys := make(chan []string, 1)
+	loadedKeys := make(chan []string, len(keys))
 	releaseLoad := make(chan struct{})
 	loader := func(_ context.Context, keysToFetch []string) (map[string]string, error) {
 		loadCount.Add(1)
@@ -560,11 +560,17 @@ func TestSWRMany_BatchesStaleRevalidation(t *testing.T) {
 		require.Equal(t, "old_"+key, values[key])
 		require.Equal(t, cache.Hit, hits[key])
 	}
-	require.Equal(t, keys, <-loadedKeys)
+	loaded := make(map[string]bool, len(keys))
+	for range keys {
+		keysToFetch := <-loadedKeys
+		require.Len(t, keysToFetch, 1)
+		loaded[keysToFetch[0]] = true
+	}
+	require.Equal(t, map[string]bool{"a": true, "b": true, "c": true}, loaded)
 
 	_, _, err = c.SWRMany(ctx, keys, loader, cacheOperation)
 	require.NoError(t, err)
-	require.Equal(t, int32(1), loadCount.Load())
+	require.Equal(t, int32(len(keys)), loadCount.Load())
 
 	close(releaseLoad)
 	require.Eventually(t, func() bool {

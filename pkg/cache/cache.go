@@ -416,29 +416,21 @@ func (c *cache[K, V]) SWRMany(
 	}
 
 	// Queue stale keys for background refresh
+	metrics.CacheSWRManyStaleKeys.WithLabelValues(c.resource).Observe(float64(len(staleKeys)))
 	if len(staleKeys) > 0 {
-		c.origin.DoAsyncMany(
-			context.WithoutCancel(ctx),
-			staleKeys,
-			c.scheduleRevalidation,
-			func(ctx context.Context, keys []K) (map[K]missResult[V], error) {
-				results := make(map[K]missResult[V], len(keys))
-				keysToRefresh := make([]K, 0, len(keys))
-				for _, key := range keys {
+		for _, key := range staleKeys {
+			c.origin.DoAsync(
+				context.WithoutCancel(ctx),
+				key,
+				c.scheduleRevalidation,
+				func(ctx context.Context) (missResult[V], error) {
 					if entry, ok := c.get(ctx, key); ok && c.clock.Now().Before(entry.Fresh) {
-						results[key] = missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}
-						continue
+						return missResult[V]{value: entry.Value, hit: entry.Hit, err: nil}, nil
 					}
-					keysToRefresh = append(keysToRefresh, key)
-				}
-				if len(keysToRefresh) > 0 {
-					for key, result := range c.revalidateMany(ctx, keysToRefresh, refreshFromOrigin, op) {
-						results[key] = result
-					}
-				}
-				return results, nil
-			},
-		)
+					return c.revalidateMany(ctx, []K{key}, refreshFromOrigin, op)[key], nil
+				},
+			)
+		}
 	}
 
 	// Fetch missing keys synchronously

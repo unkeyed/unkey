@@ -100,6 +100,20 @@ var (
 		[]string{"resource"},
 	)
 
+	// CacheSWRManyStaleKeys tracks how many stale keys are found by each SWRMany call.
+	// The distribution shows whether batching stale background refreshes would
+	// combine enough keys to justify the additional coordination complexity.
+	CacheSWRManyStaleKeys = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "cache",
+			Name:      "swr_many_stale_keys",
+			Help:      "Distribution of stale key counts observed by SWRMany calls.",
+			Buckets:   []float64{0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000},
+		},
+		[]string{"resource"},
+	)
+
 	// CacheReadsErrorsTotal tracks the total number of cache read errors,
 	// labeled by resource type. Use this counter to monitor cache read error rates.
 	//

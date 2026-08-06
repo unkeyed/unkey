@@ -99,41 +99,6 @@ func (g *Group[K, V]) DoAsync(
 	return true
 }
 
-// DoAsyncMany reserves every currently inactive key before passing one batch
-// to schedule. It returns true when at least one key was scheduled. The
-// function must return a result for each key that it receives.
-// DoAsyncMany must accept the work without executing it before returning.
-func (g *Group[K, V]) DoAsyncMany(
-	ctx context.Context,
-	keys []K,
-	schedule func(func()),
-	function func(context.Context, []K) (map[K]V, error),
-) bool {
-	if g == nil || g.calls == nil {
-		panic("singleflight: Group must be constructed with New")
-	}
-	if ctx.Err() != nil {
-		return false
-	}
-
-	activeCalls, keysToExecute := g.acquireMany(keys)
-	if len(keysToExecute) == 0 {
-		return false
-	}
-
-	scheduled := false
-	defer func() {
-		if !scheduled {
-			g.finishMany(activeCalls, nil, nil, true)
-		}
-	}()
-	schedule(func() {
-		g.executeMany(ctx, activeCalls, keysToExecute, function)
-	})
-	scheduled = true
-	return true
-}
-
 // call represents one in-flight call and its published result. Waiters must
 // read retry, value, and err only after done closes.
 type call[V any] struct {
@@ -170,38 +135,6 @@ func (g *Group[K, V]) acquire(key K) (activeCall *call[V], shouldExecute bool) {
 	return activeCall, true
 }
 
-// acquireMany reserves each unique key that has no active call. Holding one
-// lock preserves the input batch against interleaved reservations.
-func (g *Group[K, V]) acquireMany(keys []K) (map[K]*call[V], []K) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	activeCalls := make(map[K]*call[V], len(keys))
-	keysToExecute := make([]K, 0, len(keys))
-	seen := make(map[K]struct{}, len(keys))
-	for _, key := range keys {
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		if _, ok := g.calls[key]; ok {
-			continue
-		}
-
-		var zero V
-		activeCall := &call[V]{
-			done:  make(chan struct{}),
-			retry: false,
-			value: zero,
-			err:   nil,
-		}
-		g.calls[key] = activeCall
-		activeCalls[key] = activeCall
-		keysToExecute = append(keysToExecute, key)
-	}
-	return activeCalls, keysToExecute
-}
-
 // execute runs one reserved call and always releases its waiters. A panic marks
 // the result for retry before propagating to the executing caller.
 func (g *Group[K, V]) execute(
@@ -230,36 +163,6 @@ func (g *Group[K, V]) execute(
 	return value, err
 }
 
-// executeMany runs one reserved batch and always releases every key. A panic
-// marks every result for retry before propagating to the executing caller.
-func (g *Group[K, V]) executeMany(
-	ctx context.Context,
-	activeCalls map[K]*call[V],
-	keys []K,
-	function func(context.Context, []K) (map[K]V, error),
-) {
-	if ctx.Err() != nil {
-		g.finishMany(activeCalls, nil, nil, true)
-		return
-	}
-
-	functionReturned := false
-	defer func() {
-		if !functionReturned {
-			g.finishMany(activeCalls, nil, nil, true)
-		}
-	}()
-
-	values, err := function(ctx, keys)
-	for _, key := range keys {
-		if _, ok := values[key]; !ok {
-			panic("singleflight: batch function omitted a result")
-		}
-	}
-	functionReturned = true
-	g.finishMany(activeCalls, values, err, ctx.Err() != nil)
-}
-
 // finish publishes a call result, removes its reservation, and releases its
 // waiters. Callers must invoke finish exactly once for each reserved call.
 func (g *Group[K, V]) finish(
@@ -279,32 +182,5 @@ func (g *Group[K, V]) finish(
 	activeCall.err = err
 	delete(g.calls, key)
 	close(activeCall.done)
-	g.mutex.Unlock()
-}
-
-// finishMany publishes one batch, removes its reservations, and releases its
-// waiters as one atomic state transition.
-func (g *Group[K, V]) finishMany(
-	activeCalls map[K]*call[V],
-	values map[K]V,
-	err error,
-	retry bool,
-) {
-	g.mutex.Lock()
-	for key, activeCall := range activeCalls {
-		if g.calls[key] != activeCall {
-			g.mutex.Unlock()
-			panic("singleflight: cannot finish an unregistered call")
-		}
-	}
-	for key, activeCall := range activeCalls {
-		activeCall.retry = retry
-		activeCall.value = values[key]
-		activeCall.err = err
-		delete(g.calls, key)
-	}
-	for _, activeCall := range activeCalls {
-		close(activeCall.done)
-	}
 	g.mutex.Unlock()
 }
