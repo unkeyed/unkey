@@ -9,7 +9,7 @@ type CopyableIDButtonProps = {
 };
 
 async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
-  navigator.clipboard.writeText(value);
+  await navigator.clipboard.writeText(value);
 }
 
 export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProps) => {
@@ -59,7 +59,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     // Only handle click if it wasn't a long press
     if (window.getSelection()?.toString()) {
       // If text is selected, don't trigger the copy
@@ -67,7 +67,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
     } else {
       // Copy to clipboard
       try {
-        copyToClipboardWithMeta(value, {
+        await copyToClipboardWithMeta(value, {
           component: "CopyableIDButton",
         });
         toast.success("Copied to clipboard", {
