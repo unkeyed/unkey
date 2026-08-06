@@ -19,6 +19,10 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: "Charts",
+    items: [{ name: "Meter", href: "/charts/meter" }],
+  },
+  {
     title: "Patterns",
     items: [
       { name: "Layout", href: "/patterns/layout" },

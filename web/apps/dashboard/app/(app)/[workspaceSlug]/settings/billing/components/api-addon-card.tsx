@@ -7,13 +7,22 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { Nodes, TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import {
+  Button,
+  DialogContainer,
+  InfoTooltip,
+  Meter,
+  MeterHeader,
+  MeterLabel,
+  MeterTrack,
+  MeterValue,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
-import { UsageMeter } from "./usage-meter";
 
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before upgrading the API plan";
 const FREE_TIER_QUOTA = 150_000;
@@ -233,12 +242,18 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               </InfoTooltip>
             </div>
           ) : null}
-          <UsageMeter
-            label="Verifications & ratelimits this month"
-            value={usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—"}
-            fraction={usage && quota > 0 ? used / quota : null}
-            fillClassName="bg-info-9"
-          />
+          <Meter>
+            <MeterHeader>
+              <MeterLabel>Verifications & ratelimits this month</MeterLabel>
+              <MeterValue>
+                {usage ? `${formatNumber(used)} / ${formatNumber(quota)}` : "—"}
+              </MeterValue>
+            </MeterHeader>
+            <MeterTrack
+              fraction={usage && quota > 0 ? used / quota : null}
+              fillClassName="bg-info-9"
+            />
+          </Meter>
         </div>
       </ProductCard>
 
