@@ -47,7 +47,9 @@ export type Environment = {
    * The deployment lifecycle role of an environment.
    *
    * @remarks
-   * Production environments serve production traffic. Preview environments support preview lifecycle automation.
+   *
+   * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
+   * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
    */
   kind: EnvironmentKind;
   /**
