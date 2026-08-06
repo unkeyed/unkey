@@ -32,6 +32,18 @@ export const deployBilling = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+export const showDarksoulsSuccessBanner = flag<boolean, Entities>({
+  key: "show-darksouls-success-banner",
+  description: "Show the animated deployment success easter egg.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 export const projectsNav = flag<boolean, Entities>({
   key: "projects-nav",
   description:

@@ -3,7 +3,7 @@ import { db, eq, schema } from "@/lib/db";
 import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
 import { type DeployPlan, detectDeployPlan } from "./deployPlan";
-import { setComputeQuotas } from "./setComputeQuotas";
+import { setWorkspaceLimits } from "./setWorkspaceLimits";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 /**
@@ -46,7 +46,7 @@ export type LinkDeployResult =
  * `checkout.session.completed` webhook (guaranteed, fires even if the user
  * never returns). Both entry points call this with the same session, so it is
  * idempotent: a matching already-linked subscription only reasserts its Compute
- * quotas, and a *different* existing subscription is a hard failure (never
+ * limits, and a *different* existing subscription is a hard failure (never
  * repoint/orphan a live subscription).
  *
  * The session and subscription are resolved server-side; no id is trusted from
@@ -132,21 +132,21 @@ export async function linkDeploySubscription(
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
   }
-  const preserveApiQuotas = (ws.billing?.tier ?? "Free") !== "Free";
+  const preserveApiLimits = (ws.billing?.tier ?? "Free") !== "Free";
 
   const recordedSubscriptionId = subscriptionIdsByProduct(
     ws.billingSubscriptions ?? [],
   ).stripeDeploySubscriptionId;
 
   // Idempotency + conflict: re-entry (webhook + /success, refresh, redelivery)
-  // for the same subscription only repairs its quota fields; a *different* LIVE
+  // for the same subscription only repairs its limit fields; a *different* LIVE
   // existing subscription is a hard failure so we never orphan a live one by repointing.
   // A dead recorded subscription (cancelDeploy cancels the Compute subscription
   // outright, and the deleted-webhook that clears the column may lag) is safe to
   // repoint away from — refusing would strand this checkout's paid subscription.
   if (recordedSubscriptionId === subscriptionId) {
     if (ws.billing?.plan === plan) {
-      await setComputeQuotas(db, { workspaceId: ws.id, plan, preserveApiQuotas });
+      await setWorkspaceLimits(db, { workspaceId: ws.id, plan, preserveApiLimits });
       return { ok: true, plan, alreadyLinked: true };
     }
   } else if (recordedSubscriptionId) {
@@ -172,7 +172,7 @@ export async function linkDeploySubscription(
       .update(schema.workspaceBilling)
       .set({ stripeCustomerId, plan })
       .where(eq(schema.workspaceBilling.workspaceId, ws.id));
-    await setComputeQuotas(tx, { workspaceId: ws.id, plan, preserveApiQuotas });
+    await setWorkspaceLimits(tx, { workspaceId: ws.id, plan, preserveApiLimits });
     await upsertBillingSubscription(tx, {
       workspaceId: ws.id,
       product: "compute",

@@ -25,6 +25,7 @@ export * from "./components/full-screen-layout";
 export * from "./components/id";
 export * from "./components/info-tooltip";
 export * from "./components/inline-link";
+export * from "./components/item";
 export * from "./components/loading";
 export * from "./components/page";
 export * from "./components/resource-list";

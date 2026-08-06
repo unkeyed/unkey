@@ -1,20 +1,22 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { deleteProtection } from "./util/delete_protection";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const appEnvironmentVariables = mysqlTable(
   "app_environment_variables",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: caseSensitiveVarchar("id", { length: 128 }).notNull().unique(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 256 }).notNull(),
-    appId: caseSensitiveVarchar("app_id", { length: 64 }).notNull(),
-    environmentId: caseSensitiveVarchar("environment_id", { length: 128 }).notNull(),
+    pk: primaryKey(),
+    id: id("id").notNull().unique(),
+    workspaceId: id("workspace_id").notNull(),
+    appId: id("app_id").notNull(),
+    environmentId: id("environment_id").notNull(),
 
     key: caseSensitiveVarchar("key", { length: 256 }).notNull(),
 

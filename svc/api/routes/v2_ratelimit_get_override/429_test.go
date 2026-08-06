@@ -45,22 +45,11 @@ func TestWorkspaceRateLimit_DefaultLimits_Unlimited(t *testing.T) {
 
 func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
 	// Limits exist but the API request limit is NULL = unlimited.
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            ws.ID,
-		RequestsPerMonth:       1_000_000,
-		AuditLogsRetentionDays: 30,
-		LogsRetentionDays:      30,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
-	})
-	require.NoError(t, err)
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{})
 
 	route := &handler.Handler{
@@ -85,22 +74,11 @@ func TestWorkspaceRateLimit_NullFields_Unlimited(t *testing.T) {
 
 func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
 	// limit=0 means explicitly blocked, zero requests allowed
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            ws.ID,
-		RequestsPerMonth:       1_000_000,
-		AuditLogsRetentionDays: 30,
-		LogsRetentionDays:      30,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{Valid: true, Int32: 0},
-		RatelimitApiDuration:   sql.NullInt32{Valid: true, Int32: 60000},
-	})
-	require.NoError(t, err)
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{Valid: true, Int32: 0})
 
 	route := &handler.Handler{
@@ -126,22 +104,11 @@ func TestWorkspaceRateLimit_ZeroLimit_Returns429(t *testing.T) {
 
 func TestWorkspaceRateLimit_EnforcesLimit(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	ws := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(ws.ID)
 
-	// Allow exactly 2 requests per 60s window
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            ws.ID,
-		RequestsPerMonth:       1_000_000,
-		AuditLogsRetentionDays: 30,
-		LogsRetentionDays:      30,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{Valid: true, Int32: 2},
-		RatelimitApiDuration:   sql.NullInt32{Valid: true, Int32: 60000},
-	})
-	require.NoError(t, err)
+	// Allow exactly 2 requests per 60s window.
 	upsertWorkspaceLimits(t, h, ws.ID, sql.NullInt32{Valid: true, Int32: 2})
 
 	route := &handler.Handler{
@@ -195,7 +162,7 @@ func upsertWorkspaceLimits(
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
 		CustomDomainsMax:                      0,
-		AutoscalingReplicasMax:                4,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(t, err)
 }

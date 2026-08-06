@@ -13,23 +13,7 @@ const h = vi.hoisted(() => {
   const values = vi.fn().mockReturnValue({ onDuplicateKeyUpdate });
   const insert = vi.fn().mockReturnValue({ values });
   const findFirst = vi.fn();
-  const quotaFindFirst = vi.fn().mockResolvedValue({
-    requestsPerMonth: 150_000,
-    logsRetentionDays: 3,
-    auditLogsRetentionDays: 7,
-    team: false,
-    ratelimitApiLimit: null,
-    allocatedCpuMillicoresTotal: 10_000,
-    maxCpuMillicoresPerInstance: 2_000,
-    allocatedMemoryMibTotal: 20_480,
-    maxMemoryMibPerInstance: 2_048,
-    allocatedStorageMibTotal: 10_240,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  });
-  const transaction = vi.fn(async (cb: (tx: unknown) => unknown) =>
-    cb({ update, insert, query: { quotas: { findFirst: quotaFindFirst } } }),
-  );
+  const transaction = vi.fn(async (cb: (tx: unknown) => unknown) => cb({ update, insert }));
   const insertAuditLogs = vi.fn();
   return {
     where,
@@ -39,7 +23,6 @@ const h = vi.hoisted(() => {
     values,
     onDuplicateKeyUpdate,
     findFirst,
-    quotaFindFirst,
     transaction,
     insertAuditLogs,
   };
@@ -49,7 +32,6 @@ vi.mock("@/lib/db", () => ({
   db: {
     query: {
       workspaces: { findFirst: h.findFirst },
-      quotas: { findFirst: h.quotaFindFirst },
     },
     transaction: h.transaction,
     insert: h.insert,
@@ -58,7 +40,6 @@ vi.mock("@/lib/db", () => ({
   schema: {
     workspaces: { id: {} },
     workspaceBilling: { workspaceId: {} },
-    quotas: { workspaceId: {} },
     limits: {},
   },
 }));
@@ -67,7 +48,6 @@ vi.mock("@unkey/db", () => ({
   eq: vi.fn(),
   schema: {
     billingSubscriptions: { workspaceId: {}, product: {} },
-    quotas: { workspaceId: {} },
     limits: {},
   },
 }));
@@ -104,6 +84,24 @@ function subscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.Subs
 }
 
 const customersUpdate = vi.fn(async () => ({}));
+
+const starterLimitValues = {
+  workspaceId: WORKSPACE_ID,
+  apiBillableOperationsCountMaxPerMonth: 150_000,
+  apiRequestsCountMaxPerMinute: null,
+  logsRetentionDaysMax: 3,
+  logsAuditRetentionDaysMax: 7,
+  teamEnabled: false,
+  cpuCoresMax: 10,
+  cpuCoresMaxPerInstance: 2,
+  memoryMibMax: 20_480,
+  memoryMibMaxPerInstance: 2_048,
+  storageMibMax: 51_200,
+  storageMibMaxPerInstance: 10_240,
+  buildsConcurrentMax: 1,
+  customDomainsMax: 1,
+  autoscalingReplicasMax: 4,
+};
 
 function stubStripe(opts: {
   session?: Stripe.Checkout.Session;
@@ -167,7 +165,6 @@ describe("linkDeploySubscription", () => {
     h.update.mockClear();
     h.insert.mockClear();
     h.values.mockClear();
-    h.quotaFindFirst.mockClear();
     customersUpdate.mockClear();
   });
 
@@ -288,20 +285,11 @@ describe("linkDeploySubscription", () => {
       product: "compute",
       stripeSubscriptionId: "sub_1",
     });
-    expect(h.values).toHaveBeenCalledWith({
-      workspaceId: WORKSPACE_ID,
-      logsRetentionDays: 3,
-      auditLogsRetentionDays: 7,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 2_048,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
-    });
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
 
-  it("repairs quotas without relinking when the same subscription and plan are linked", async () => {
+  it("repairs limits without relinking when the same subscription and plan are linked", async () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
@@ -316,16 +304,7 @@ describe("linkDeploySubscription", () => {
     });
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: true });
     expect(h.transaction).not.toHaveBeenCalled();
-    expect(h.values).toHaveBeenCalledWith({
-      workspaceId: WORKSPACE_ID,
-      logsRetentionDays: 3,
-      auditLogsRetentionDays: 7,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 2_048,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
-    });
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
   });
 
   it("hard-fails rather than repoint a workspace with a different LIVE subscription", async () => {
