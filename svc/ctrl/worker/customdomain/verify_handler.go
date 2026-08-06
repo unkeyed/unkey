@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -66,9 +67,7 @@ func (s *Service) VerifyDomain(
 
 	// Journaled so every retry measures the row-visibility grace from the first
 	// attempt rather than from itself, which would never let the window expire.
-	startedAt, err := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
-		return time.Now().UnixMilli(), nil
-	})
+	startedAt, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (s *Service) VerifyDomain(
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			if time.Since(time.UnixMilli(startedAt)) < rowVisibilityGrace {
+			if time.Since(startedAt) < rowVisibilityGrace {
 				return nil, fault.Wrap(err, fault.Internal("domain row not visible yet"))
 			}
 

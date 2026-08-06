@@ -8,6 +8,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -32,7 +33,7 @@ func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return("dom_notyetvisible")
-	mockCtx.EXPECT().RunAndReturn(time.Now().UnixMilli(), nil)
+	mockStartedAt(mockCtx, time.Now())
 
 	_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
 	require.Error(t, err)
@@ -55,7 +56,7 @@ func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 
 			mockCtx := mocks.NewMockContext(t)
 			mockCtx.EXPECT().Key().Return("dom_staysmissing")
-			mockCtx.EXPECT().RunAndReturn(time.Now().Add(-age).UnixMilli(), nil)
+			mockStartedAt(mockCtx, time.Now().Add(-age))
 
 			_, err := svc.VerifyDomain(restate.WithMockContext(mockCtx), &hydrav1.VerifyDomainRequest{})
 			require.Error(t, err)
@@ -63,4 +64,14 @@ func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 				"a row still missing after the grace window means deletion and must terminate, got: %v", err)
 		})
 	}
+}
+
+func mockStartedAt(mockCtx *mocks.MockContext, startedAt time.Time) {
+	mockCtx.EXPECT().
+		Run(mock.Anything, mock.AnythingOfType("*time.Time"), mock.Anything).
+		Call.
+		Run(func(args mock.Arguments) {
+			*args.Get(1).(*time.Time) = startedAt
+		}).
+		Return(nil)
 }

@@ -206,9 +206,6 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert custom domain: %w", txErr))
 		}
 
-		// An absent actor is attributed to the system rather than rejected: losing
-		// attribution on one entry beats refusing the write, since the entry and the
-		// domain commit together.
 		a := req.Msg.GetActor()
 		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
 			{
