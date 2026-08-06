@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -80,16 +82,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   environment.ID,
 			Action:       rbac.CreateDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID),
+			permissions.CreateDeployment{},
+		),
 	))
 	if err != nil {
 		return err
 	}
 
-	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
-	// Anything else (or absent) is attributed to the API.
+	// Clients announce themselves via X-Unkey-Client: the CLI as
+	// unkey-cli/<version>, the dashboard proxy as unkey-dashboard. Anything else
+	// (or absent) is attributed to the API.
+	client := s.Request().Header.Get("X-Unkey-Client")
 	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
-	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
+	switch {
+	case strings.HasPrefix(client, "unkey-cli/"):
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
+	case strings.HasPrefix(client, "unkey-dashboard"):
+		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD
 	}
 
 	actorInfo, err := ctrlclient.Actor(s)

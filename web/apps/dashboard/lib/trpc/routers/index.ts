@@ -46,14 +46,12 @@ import { retryVerification } from "./deploy/custom-domains/retry";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
-import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
-import { redeploy } from "./deploy/deployment/redeploy";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
@@ -530,8 +528,6 @@ export const router = t.router({
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
-      redeploy,
-      create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
     }),
