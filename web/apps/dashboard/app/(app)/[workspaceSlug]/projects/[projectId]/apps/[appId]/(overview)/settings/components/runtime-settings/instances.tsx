@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { freeTierLimits } from "@/lib/quotas";
+import { freeTierLimits } from "@/lib/limits";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";

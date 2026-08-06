@@ -129,7 +129,7 @@ State held in the VO:
 Acquire flow:
 
 1. Deploy handler creates a Restate awakeable and calls `AcquireOrWait(deployment_id, awakeable_id, is_production)`.
-2. The workspace's `max_concurrent_builds` quota is fetched. If `len(active_slots) < limit`, the deployment is added to `active_slots` and the awakeable is resolved immediately.
+2. The workspace's `builds_concurrent_max` limit is fetched. If `len(active_slots) < limit`, the deployment is added to `active_slots` and the awakeable is resolved immediately.
 3. Otherwise the deployment is appended to `prod_wait_list` (if production) or `preview_wait_list` (if not). The Deploy handler stays suspended on `awakeable.Result()`.
 
 Production deployments respect the same quota cap as preview — they don't bypass — but they get priority by going onto a separate wait list that Release drains first.
@@ -140,7 +140,7 @@ Release flow:
 2. If the deployment was in `active_slots`, it is removed and a waiter is promoted: `prod_wait_list` first, then `preview_wait_list`. The promoted waiter's awakeable is resolved.
 3. If the deployment was in either wait list (cancelled before it ever got a slot), it is removed.
 
-This gives push-based slot hand-off with priority — no polling. The concurrency cap is `quota.max_concurrent_builds` per workspace.
+This gives push-based slot hand-off with priority — no polling. The concurrency cap is `limits.builds_concurrent_max` per workspace.
 
 ## Commit deduplication
 

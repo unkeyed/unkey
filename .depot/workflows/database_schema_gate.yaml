@@ -2,6 +2,8 @@ name: Database Schema Gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    branches: [main]
   schedule:
     - cron: "17 3 * * *"
 concurrency:
@@ -17,7 +19,7 @@ env:
   BRANCH: schema-check-${{ github.run_id }}-${{ github.run_attempt }}
 jobs:
   gate:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     name: Compare production schema
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15

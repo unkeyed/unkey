@@ -22,6 +22,14 @@ _If there is not an issue for this, create one first. This is used for tracking 
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] This change requires a documentation update
 
+## Screenshots / recordings
+
+<!-- Required for any visual change. Add a screenshot for a static change and a screen recording for a flow or an interaction. Show before and after when you change something that exists. 
+
+For taking good screenshots / videos - **read** the guide: ../docs/engineering/contributing/quality/screenshots-and-recordings.mdx -->
+
+_Not applicable: this PR makes no visual change._
+
 ## How should this be tested?
 
 <!-- Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration -->
@@ -46,8 +54,8 @@ _If there is not an issue for this, create one first. This is used for tracking 
 - [ ] Removed all `console.logs`
 - [ ] Merged the latest changes from main onto my branch with `git pull origin main`
 - [ ] My changes don't cause any responsiveness issues
+- [ ] If I made a visual change: Filled out the "Screenshots / recordings" section, as shown in the [screenshot and recording guide](../docs/engineering/contributing/quality/screenshots-and-recordings.mdx)
 
 ### Appreciated
 
-- [ ] If a UI change was made: Added a screen recording or screenshots to this PR
 - [ ] Updated the Unkey Docs if changes were necessary

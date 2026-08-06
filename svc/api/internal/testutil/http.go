@@ -659,18 +659,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	})
 	require.NoError(h.t, err)
 
-	// Ensure quota exists with retention days
-	err = db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            workspaceID,
-		LogsRetentionDays:      config.RetentionDays,
-		AuditLogsRetentionDays: config.RetentionDays,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
-	})
-	require.NoError(h.t, err)
-
+	// Ensure limits exist with retention days.
 	err = db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
@@ -686,7 +675,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
 		CustomDomainsMax:                      0,
-		AutoscalingReplicasMax:                4,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(h.t, err)
 

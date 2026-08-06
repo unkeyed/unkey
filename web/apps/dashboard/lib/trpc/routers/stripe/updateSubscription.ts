@@ -6,7 +6,7 @@ import { changeSubscriptionPrice } from "@/lib/stripe/changeSubscriptionPrice";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -162,9 +162,9 @@ export const updateSubscription = workspaceProcedure
     }
 
     // Workspace API rate limits are manually applied safety limits, not plan
-    // quotas. Clear them when a customer pays for a higher tier, but preserve
+    // limits. Clear them when a customer pays for a higher tier, but preserve
     // deliberate limits on same-price changes and downgrades.
-    const rateLimitReset = upgraded ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+    const rateLimitReset = upgraded ? { apiRequestsCountMaxPerMinute: null } : {};
 
     await db.transaction(async (tx) => {
       await tx
@@ -174,17 +174,17 @@ export const updateSubscription = workspaceProcedure
         })
         .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: ctx.workspace.id,
         plan:
           parseDeployPlan(ctx.workspace.deployPlanOverride) ??
           parseDeployPlan(ctx.workspace.deployPlan),
-        preserveApiQuotas: true,
-        quotaUpdate: {
-          requestsPerMonth: newQuotas.requestsPerMonth,
-          logsRetentionDays: newQuotas.logsRetentionDays,
-          auditLogsRetentionDays: newQuotas.auditLogsRetentionDays,
-          team: true,
+        preserveApiLimits: true,
+        limitUpdate: {
+          apiBillableOperationsCountMaxPerMonth: newQuotas.requestsPerMonth,
+          logsRetentionDaysMax: newQuotas.logsRetentionDays,
+          logsAuditRetentionDaysMax: newQuotas.auditLogsRetentionDays,
+          teamEnabled: true,
           ...rateLimitReset,
         },
       });

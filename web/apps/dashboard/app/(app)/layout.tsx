@@ -122,7 +122,7 @@ export default function Layout({ children }: LayoutProps) {
               "shakes" and buttons move out from under the cursor (ENG-2884). */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-base-12 w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
