@@ -11,11 +11,11 @@ import { workspaces } from "./workspaces";
  * the legacy API tier, the Compute (Deploy) plan entitlement, and the Compute
  * spend budget / spend-cap state.
  *
- * One row per workspace (keyed by workspace_id), mirroring the quota table. It
- * exists so billing concerns live in one place instead of accreting as columns
- * on the hot workspaces row. Stripe stays the source of truth for subscription
- * state; the columns here are local mirrors read by the dashboard, the deploy
- * gate, and the billing/spend-cap crons.
+ * One row per workspace (keyed by workspace_id), so billing concerns live in
+ * one place instead of accreting as columns on the hot workspaces row. Stripe
+ * stays the source of truth for subscription state; the columns here are local
+ * mirrors read by the dashboard, the deploy gate, and the billing/spend-cap
+ * crons.
  */
 export const workspaceBilling = mysqlTable(
   "workspace_billing",

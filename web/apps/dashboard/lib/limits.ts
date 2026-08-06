@@ -1,4 +1,4 @@
-import type { Limits, Quotas } from "@unkey/db";
+import type { Limits } from "@unkey/db";
 import type { DeployPlan } from "./stripe/deployPlan";
 
 export type PlanLimits = Omit<Limits, "workspaceId" | "pk">;
@@ -72,20 +72,3 @@ export const limitsByPlan = {
 } satisfies Record<LimitsPlan, PlanLimits>;
 
 export const freeTierLimits: PlanLimits = limitsByPlan.free;
-
-export const freeTierQuotas: Omit<Quotas, "workspaceId" | "pk"> = {
-  requestsPerMonth: limitsByPlan.free.apiBillableOperationsCountMaxPerMonth,
-  logsRetentionDays: limitsByPlan.free.logsRetentionDaysMax,
-  auditLogsRetentionDays: limitsByPlan.free.logsAuditRetentionDaysMax,
-  team: limitsByPlan.free.teamEnabled,
-  ratelimitApiDuration: null,
-  ratelimitApiLimit: limitsByPlan.free.apiRequestsCountMaxPerMinute,
-  allocatedCpuMillicoresTotal: limitsByPlan.free.cpuCoresMax * 1_000,
-  allocatedMemoryMibTotal: limitsByPlan.free.memoryMibMax,
-  allocatedStorageMibTotal: limitsByPlan.free.storageMibMax,
-  maxCpuMillicoresPerInstance: limitsByPlan.free.cpuCoresMaxPerInstance * 1_000,
-  maxMemoryMibPerInstance: limitsByPlan.free.memoryMibMaxPerInstance,
-  maxStorageMibPerInstance: limitsByPlan.free.storageMibMaxPerInstance,
-  maxConcurrentBuilds: limitsByPlan.free.buildsConcurrentMax,
-  maxReplicasPerRegion: 4,
-};
