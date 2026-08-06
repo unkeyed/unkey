@@ -10,7 +10,6 @@ import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
 import { limits } from "./limits";
 import { projects } from "./projects";
-import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
@@ -79,7 +78,6 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   keySpaces: many(keyAuth),
   identities: many(identities),
   githubAppInstallations: many(githubAppInstallations),
-  quotas: one(quotas),
   limits: one(limits, {
     relationName: "workspace_limit_relation",
     fields: [workspaces.id],

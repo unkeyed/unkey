@@ -58,7 +58,7 @@ func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Se
 // Integration tests share one MySQL container across test processes and across
 // runs, and the ctrl crons scan the whole database rather than one workspace:
 // the idle-preview scan pages over every preview environment, and
-// the quota and billing handlers walk every workspace. Rows a test leaves
+// the usage and billing handlers walk every workspace. Rows a test leaves
 // behind are therefore rescanned by every later run, which makes each run
 // slower until a scan outlives the harness timeout. Deleting only the ids this
 // seeder created keeps that safe while other test binaries use the same
@@ -117,7 +117,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
 		CustomDomainsMax:                      0,
-		AutoscalingReplicasMax:                4,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(s.t, err)
 
@@ -773,10 +773,10 @@ type CreatePermissionRequest struct {
 	WorkspaceID string
 }
 
-// CreateWorkspaceWithQuotaRequest configures the workspace and quota to create.
-type CreateWorkspaceWithQuotaRequest struct {
+// CreateWorkspaceWithLimitsRequest configures the workspace and limits to create.
+type CreateWorkspaceWithLimitsRequest struct {
 	// RequestsPerMonth is the maximum number of requests allowed per month.
-	// Use 0 or negative to skip quota creation.
+	// Use 0 or negative to skip limit creation.
 	RequestsPerMonth int64
 	// LogsRetentionDays is the number of days to retain logs. Defaults to 0.
 	LogsRetentionDays int32
@@ -786,24 +786,13 @@ type CreateWorkspaceWithQuotaRequest struct {
 	Team bool
 }
 
-// CreateWorkspaceWithQuota creates a workspace with an associated quota.
+// CreateWorkspaceWithLimits creates a workspace with associated limits.
 // Returns the created db.Workspace for use in tests.
-func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspaceWithQuotaRequest) db.Workspace {
+func (s *Seeder) CreateWorkspaceWithLimits(ctx context.Context, req CreateWorkspaceWithLimitsRequest) db.Workspace {
 	ws := s.CreateWorkspace(ctx)
 
 	if req.RequestsPerMonth > 0 {
-		err := s.DB.UpsertQuota(ctx, db.UpsertQuotaParams{
-			WorkspaceID:            ws.ID,
-			RequestsPerMonth:       req.RequestsPerMonth,
-			AuditLogsRetentionDays: req.AuditLogsRetentionDays,
-			LogsRetentionDays:      req.LogsRetentionDays,
-			Team:                   req.Team,
-			RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-			RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
-		})
-		require.NoError(s.t, err)
-
-		err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
+		err := s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
 			WorkspaceID:                           ws.ID,
 			ApiBillableOperationsCountMaxPerMonth: uint64(req.RequestsPerMonth),
 			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
@@ -818,7 +807,7 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 			StorageMibMaxPerInstance:              10_240,
 			BuildsConcurrentMax:                   1,
 			CustomDomainsMax:                      0,
-			AutoscalingReplicasMax:                4,
+			AutoscalingReplicasMax:                0,
 		})
 		require.NoError(s.t, err)
 	}
