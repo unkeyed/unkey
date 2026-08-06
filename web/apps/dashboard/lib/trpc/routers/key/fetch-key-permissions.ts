@@ -153,6 +153,10 @@ export const fetchKeyPermissions = workspaceProcedure
           eq(schema.keys.workspaceId, ctx.workspace.id),
           isNull(schema.keys.deletedAtM),
         ),
+        columns: {
+          id: true,
+          remaining: true,
+        },
         with: {
           keyAuth: true,
           roles: {

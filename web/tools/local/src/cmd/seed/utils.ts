@@ -409,7 +409,7 @@ export function generateRandomApiRequest(workspaceId: string) {
         name: `Key for ${
           ["Production", "Development", "Staging", "Testing"][Math.floor(Math.random() * 4)]
         }`,
-        ownerId: `user_${generateRandomString(16)}`,
+        externalId: `user_${generateRandomString(16)}`,
         expires: Math.random() < 0.3 ? Date.now() + 86400000 * 30 : undefined,
         ratelimit:
           Math.random() < 0.4
@@ -430,7 +430,7 @@ export function generateRandomApiRequest(workspaceId: string) {
             apiId: apiId,
             prefix: keyId.substring(0, 8),
             name: requestBody.name,
-            ownerId: requestBody.ownerId,
+            identity: { externalId: requestBody.externalId },
             createdAt: Date.now(),
             expires: requestBody.expires,
             meta: requestBody.meta,
@@ -464,7 +464,7 @@ export function generateRandomApiRequest(workspaceId: string) {
           valid: true,
           keyId: keyId,
           apiId: apiId,
-          ownerId: `user_${generateRandomString(16)}`,
+          identity: { externalId: `user_${generateRandomString(16)}` },
           meta: meta,
           ratelimit:
             Math.random() < 0.3
@@ -534,7 +534,7 @@ export function generateRandomApiRequest(workspaceId: string) {
             id: keyId,
             apiId: apiId,
             name: requestBody.name,
-            ownerId: `user_${generateRandomString(16)}`,
+            identity: { externalId: `user_${generateRandomString(16)}` },
             updatedAt: Date.now(),
             expires: requestBody.expires,
             meta: requestBody.meta,

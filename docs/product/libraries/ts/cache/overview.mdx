@@ -185,7 +185,9 @@ const cloudflare = new CloudflareStore({
 
 type ApiKey = {
   hash: string;
-  ownerId: string;
+  identity: {
+    externalId: string;
+  };
   permissions: string[];
 };
 
@@ -209,7 +211,9 @@ async function main() {
 
   await cache.apiKey.set("hash", {
     hash: "hash",
-    ownerId: "me",
+    identity: {
+      externalId: "user_123",
+    },
     permissions: ["do_many_things"],
   });
 }
