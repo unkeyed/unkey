@@ -4,15 +4,16 @@ import { cn } from "../lib/utils";
 
 const alertBannerVariants = cva(
   [
-    "grid w-full grid-cols-[auto_1fr_auto] items-center rounded-lg border px-4 py-3",
+    "grid w-full grid-cols-[auto_1fr_auto] items-start rounded-lg border px-4 py-3",
     "has-[>[data-slot=alert-banner-title]]:p-4",
-    "[&>svg]:col-start-1 [&>svg]:row-start-1 [&>svg]:mr-3 [&>svg]:shrink-0",
-    "has-[>[data-slot=alert-banner-title]]:has-[>[data-slot=alert-banner-description]]:[&>svg]:row-end-3",
+    "[&>svg]:col-start-1 [&>svg]:row-start-1 [&>svg]:mr-3 [&>svg]:shrink-0 [&>svg]:translate-y-0.5",
     "has-[>[data-slot=alert-banner-title]]:has-[>[data-slot=alert-banner-description]]:*:data-[slot=alert-banner-actions]:row-end-3",
   ],
   {
     variants: {
       variant: {
+        default:
+          "border-grayA-4 bg-grayA-2 [&>svg]:text-gray-12 *:data-[slot=alert-banner-title]:text-gray-12",
         error:
           "border-errorA-4 bg-errorA-2 [&>svg]:text-error-11 *:data-[slot=alert-banner-title]:text-error-11",
         warning:
@@ -23,7 +24,7 @@ const alertBannerVariants = cva(
       },
     },
     defaultVariants: {
-      variant: "info",
+      variant: "default",
     },
   },
 );
@@ -74,7 +75,10 @@ function AlertBannerActions({ className, ...props }: React.ComponentProps<"div">
   return (
     <div
       data-slot="alert-banner-actions"
-      className={cn("col-start-3 row-start-1 ml-3 flex shrink-0 items-center gap-2", className)}
+      className={cn(
+        "col-start-3 row-start-1 ml-3 flex shrink-0 items-center gap-2 self-center",
+        className,
+      )}
       {...props}
     />
   );

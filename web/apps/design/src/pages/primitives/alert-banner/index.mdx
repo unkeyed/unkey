@@ -3,88 +3,12 @@ layout: ../../../layouts/layout.astro
 title: Alert banner — Unkey Design
 ---
 import { Preview } from "../../../components/preview.tsx";
-import { AlertBannerVariants } from "./_variants.tsx";
-import { AlertBannerComposition } from "./_composition.tsx";
-import { DeploymentFailedBanner } from "./_deployment-failed.tsx";
 import { PlanGateBanner } from "./_plan-gate.tsx";
-import variantsSource from "./_variants.tsx?highlight";
-import compositionSource from "./_composition.tsx?highlight";
-import deploymentFailedSource from "./_deployment-failed.tsx?highlight";
 import planGateSource from "./_plan-gate.tsx?highlight";
 
 # Alert banner
 
-An in-page banner for a state the user has to act on. It stays in the layout and keeps its message until the state changes.
-
-<Preview client:load code={planGateSource}>
-  <PlanGateBanner client:load />
-</Preview>
-
-## Anatomy
-
-- `AlertBanner` draws the frame and sets the variant colour. It has `role="alert"`.
-- An icon goes in as a plain `svg` child. Any `@unkey/icons` component works.
-- `AlertBannerTitle` is the one-line summary. It also switches the banner to roomier padding.
-- `AlertBannerDescription` is the supporting text.
-- `AlertBannerActions` holds the buttons on the right.
-
-Every part is optional except the banner itself. Put the parts in as direct children in the order above, in whatever combination the message needs. There is no wrapper element, so the layout stays flat.
-
-## Usage
-
-```tsx
-import {
-  AlertBanner,
-  AlertBannerActions,
-  AlertBannerDescription,
-  AlertBannerTitle,
-  Button,
-} from "@unkey/ui"
-import { TriangleWarning2 } from "@unkey/icons"
-
-<AlertBanner variant="warning">
-  <TriangleWarning2 iconSize="md-regular" />
-  <AlertBannerTitle>Compute is paused</AlertBannerTitle>
-  <AlertBannerDescription>Choose a plan to deploy again.</AlertBannerDescription>
-  <AlertBannerActions>
-    <Button variant="outline" size="md" className="bg-background">Choose a plan</Button>
-  </AlertBannerActions>
-</AlertBanner>
-```
-
-## Variants
-
-`variant` sets the border, the background, and the colour of the icon and title. It defaults to `info`.
-
-<Preview client:load code={variantsSource}>
-  <AlertBannerVariants client:load />
-</Preview>
-
-Pick the variant from the state, not from how much attention you want. Use `error` for something that is already broken, `warning` for something that will break, `success` to confirm a change the user cannot otherwise see, and `info` for everything else.
-
-## Composition
-
-A three-column grid places the parts: the icon, then the title and description, then the actions. The icon column collapses to zero width when there is no icon, so a banner without one has no gap on the left. The icon and the actions span both text rows, which keeps them centred whether or not a title is present.
-
-<Preview client:load code={compositionSource}>
-  <AlertBannerComposition client:load />
-</Preview>
-
-Padding tightens from 16px to 12px/16px when there is no title, so a single-line banner does not look empty.
-
-## Examples
-
-### Failed deployment
-
-A title names the failure and the description carries the reason. Links inside the title and the description are underlined for you.
-
-<Preview client:load code={deploymentFailedSource}>
-  <DeploymentFailedBanner client:load />
-</Preview>
-
-### Plan gate
-
-A title, a short description, and the action that clears the state.
+An in-page banner for a state the user has to act on. 
 
 <Preview client:load code={planGateSource}>
   <PlanGateBanner client:load />
@@ -92,7 +16,7 @@ A title, a short description, and the action that clears the state.
 
 ## Best practices
 
-Use an alert banner for a state that persists and belongs to the page it sits on. For a result the user does not have to act on, use a toast. For a decision that must block the page, use a dialog. For a surface with no content at all, use `Empty`.
+Use an alert banner to display callouts for user attention.
 
 Do not confuse this with `Alert`, which is the older dialog primitive in `@unkey/ui`.
 
@@ -100,16 +24,10 @@ Do not confuse this with `Alert`, which is the older dialog primitive in `@unkey
 
 Give the banner one job. Say what is wrong, then what to do about it, in that order. Keep the description to a sentence or two, and put the detail behind a link rather than in the banner.
 
-Use a title only when the description alone does not identify the problem. Most single-line banners read better without one.
+Use a title when a short description alone does not identify the problem. 
 
 Use icons as sparingly as possible. Only add an icon to a banner if you feel like the content is not clear enough on it's own.
 
 ### Actions
 
-Keep to one action. A second is acceptable when it dismisses or defers, but a banner with three buttons is a dialog in the wrong place. Actions stay on the right at every width.
-
-### Accessibility
-
-`role="alert"` is set for you, so screen readers announce the banner when it appears. Because of that, do not render a banner that is present on first paint and never changes, and do not use one for decorative or promotional content.
-
-The icon is decorative and adds no label of its own, so the description has to carry the whole message in words. Colour alone never states the severity.
+Keep to one action. A second is acceptable when it dismisses or defers.
