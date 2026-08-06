@@ -214,27 +214,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			if txErr := db.Query.UpdateApp(ctx, tx, db.UpdateAppParams{
-				WorkspaceID:               principal.WorkspaceID,
-				ID:                        appID,
-				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-				NameSpecified:             0,
-				Name:                      "",
-				SlugSpecified:             0,
-				Slug:                      "",
-				DefaultBranchSpecified:    1,
-				DefaultBranch:             defaultBranch,
-				DeleteProtectionSpecified: 0,
-				DeleteProtection:          sql.NullBool{Valid: false, Bool: false},
-			}); txErr != nil {
-				return fault.Wrap(
-					txErr,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("failed to set app default branch"),
-					fault.Public("Failed to connect the GitHub repository."),
-				)
-			}
-
 			return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 				{
 					WorkspaceID:   principal.WorkspaceID,

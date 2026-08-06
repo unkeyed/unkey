@@ -97,6 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	repositoryFullName := conn.RepositoryFullName
+	defaultBranch := conn.DefaultBranch.String
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -106,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
+			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,

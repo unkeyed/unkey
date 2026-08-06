@@ -23,7 +23,6 @@ export const listApps = workspaceProcedure
         name: apps.name,
         slug: apps.slug,
         sourceType: apps.sourceType,
-        defaultBranch: apps.defaultBranch,
         currentDeploymentId: apps.currentDeploymentId,
         isRolledBack: apps.isRolledBack,
       })
@@ -88,6 +87,7 @@ export const listApps = workspaceProcedure
           .select({
             appId: githubRepoConnections.appId,
             repositoryFullName: githubRepoConnections.repositoryFullName,
+            defaultBranch: githubRepoConnections.defaultBranch,
           })
           .from(githubRepoConnections)
           .where(
@@ -145,7 +145,9 @@ export const listApps = workspaceProcedure
       // Image-based deployments carry no git metadata, so gate on the
       // deployment itself, not on commit fields.
       const hasDeployment = currentDeployment != null;
-      const repositoryFullName = repoByApp.get(app.id)?.repositoryFullName ?? null;
+      const repository = repoByApp.get(app.id);
+      const repositoryFullName = repository?.repositoryFullName ?? null;
+      const defaultBranch = repository?.defaultBranch ?? "main";
 
       return {
         id: app.id,
@@ -154,7 +156,7 @@ export const listApps = workspaceProcedure
         slug: app.slug,
         sourceType: app.sourceType,
         imageReference: dockerSourceByApp.get(app.id)?.imageReference ?? null,
-        defaultBranch: app.defaultBranch,
+        defaultBranch,
         currentDeploymentId: app.currentDeploymentId ?? null,
         isRolledBack: Boolean(app.isRolledBack),
         repositoryFullName,
@@ -163,7 +165,7 @@ export const listApps = workspaceProcedure
         commitSha: currentDeployment?.gitCommitSha ?? null,
         forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
         prNumber: currentDeployment?.prNumber ?? null,
-        branch: currentDeployment?.gitBranch ?? app.defaultBranch,
+        branch: currentDeployment?.gitBranch ?? defaultBranch,
         author: currentDeployment?.gitCommitAuthorHandle ?? null,
         authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,
         commitTimestamp:

@@ -88,10 +88,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
 		require.Equal(t, int64(42), conn.RepositoryID)
 		require.Equal(t, int64(12345), conn.InstallationID)
-
-		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
-		require.NoError(t, err)
-		require.Equal(t, "main", app.DefaultBranch)
+		require.Equal(t, "main", conn.DefaultBranch.String)
 
 		requireAuditEvent(ctx, t, h, id, "app.connect_repository")
 	})
@@ -109,9 +106,9 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		git := res.Body.Data.Git
 		require.Equal(t, "develop", *git.DefaultBranch)
 
-		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
+		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), id)
 		require.NoError(t, err)
-		require.Equal(t, "develop", app.DefaultBranch)
+		require.Equal(t, "develop", conn.DefaultBranch.String)
 	})
 
 	t.Run("replace keeps the existing branch when none passed", func(t *testing.T) {
@@ -123,7 +120,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			ProjectID:     project.ID,
 			Name:          "App",
 			Slug:          appSlug(),
-			DefaultBranch: "keep-me",
+			DefaultBranch: "stale-app-value",
 		})
 		id := app.ID
 
@@ -134,6 +131,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			InstallationID:     999,
 			RepositoryID:       1,
 			RepositoryFullName: "old/repo",
+			DefaultBranch:      sql.NullString{Valid: true, String: "keep-me"},
 			CreatedAt:          time.Now().UnixMilli(),
 			UpdatedAt:          sql.NullInt64{Valid: false},
 		}))
@@ -152,10 +150,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
 		require.Equal(t, int64(12345), conn.InstallationID)
-
-		reloaded, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
-		require.NoError(t, err)
-		require.Equal(t, "keep-me", reloaded.DefaultBranch)
+		require.Equal(t, "keep-me", conn.DefaultBranch.String)
 	})
 
 	t.Run("retarget branch only, repository omitted", func(t *testing.T) {
@@ -167,6 +162,7 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 			InstallationID:     12345,
 			RepositoryID:       42,
 			RepositoryFullName: "unkeyed/unkey",
+			DefaultBranch:      sql.NullString{Valid: true, String: "main"},
 			CreatedAt:          time.Now().UnixMilli(),
 			UpdatedAt:          sql.NullInt64{Valid: false},
 		}))
@@ -181,9 +177,13 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		require.Equal(t, "unkeyed/unkey", git.Repository, "repository stays connected")
 		require.Equal(t, "release", *git.DefaultBranch)
 
+		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), id)
+		require.NoError(t, err)
+		require.Equal(t, "release", conn.DefaultBranch.String)
+
 		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
 		require.NoError(t, err)
-		require.Equal(t, "release", app.DefaultBranch)
+		require.Empty(t, app.DefaultBranch, "branch updates must not write the legacy app column")
 	})
 
 	t.Run("retarget branch without a connection fails", func(t *testing.T) {
@@ -224,11 +224,12 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:          uid.New(uid.AppPrefix),
-		WorkspaceID: workspace.ID,
-		ProjectID:   project.ID,
-		Name:        "App",
-		Slug:        appSlug(),
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
+		Name:          "App",
+		Slug:          appSlug(),
+		DefaultBranch: "stale-app-value",
 	})
 
 	require.NoError(t, db.Query.InsertGithubRepoConnection(ctx, h.DB.RW(), db.InsertGithubRepoConnectionParams{
@@ -238,6 +239,7 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 		InstallationID:     555,
 		RepositoryID:       7,
 		RepositoryFullName: "unkeyed/unkey",
+		DefaultBranch:      sql.NullString{Valid: true, String: "main"},
 		CreatedAt:          time.Now().UnixMilli(),
 		UpdatedAt:          sql.NullInt64{Valid: false},
 	}))
@@ -253,9 +255,9 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 	_, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
 	require.True(t, db.IsNotFound(err), "connection row should be deleted")
 
-	cleared, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
+	unchanged, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
 	require.NoError(t, err)
-	require.Empty(t, cleared.DefaultBranch, "default branch should be cleared on disconnect")
+	require.Equal(t, "stale-app-value", unchanged.DefaultBranch, "disconnect must not write the legacy app column")
 
 	requireAuditEvent(ctx, t, h, app.ID, "app.disconnect_repository")
 }

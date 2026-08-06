@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.DefaultBranch),
+			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.GithubDefaultBranch.String),
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
 			IsRolledBack:        row.IsRolledBack,
 			DeleteProtection:    row.DeleteProtection.Bool,
