@@ -1,19 +1,31 @@
 "use client";
 
+import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
-import { FormInput, FormSelect } from "@unkey/ui";
+import { ChevronDown, Plus, Trash } from "@unkey/icons";
+import {
+  Button,
+  FormDescription,
+  FormInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type React from "react";
 import { useState } from "react";
-import { useController, useFormContext, useWatch } from "react-hook-form";
+import {
+  useController,
+  useFieldArray,
+  useFormContext,
+  useFormState,
+  useWatch,
+} from "react-hook-form";
+import type { RateLimitIdentifierSource, RatelimitIdentifierRowValues } from "../schema";
 import { DocsLink, Sep, Strong } from "./summary-helpers";
-
-export type RateLimitIdentifierSource =
-  | "remoteIp"
-  | "header"
-  | "authenticatedSubject"
-  | "path"
-  | "principalField";
 
 type RatelimitFormValues = {
   type: "ratelimit";
@@ -21,8 +33,7 @@ type RatelimitFormValues = {
   environmentId: string;
   limit: number;
   windowMs: number;
-  identifierSource: RateLimitIdentifierSource;
-  identifierValue: string;
+  identifiers: RatelimitIdentifierRowValues[];
 };
 
 const IDENTIFIER_SOURCE_LABELS: Record<RateLimitIdentifierSource, string> = {
@@ -36,23 +47,6 @@ const IDENTIFIER_SOURCE_LABELS: Record<RateLimitIdentifierSource, string> = {
 const RATE_LIMIT_DOCS_URL =
   "https://www.unkey.com/docs/platform/sentinel/policies/rate-limiting#rate-limit-subjects";
 
-const IDENTIFIER_SOURCE_DESCRIPTIONS: Record<RateLimitIdentifierSource, React.ReactNode> = {
-  remoteIp: "Limit by client IP address.",
-  header: "Limit by a specific request header (e.g. X-Tenant-Id).",
-  authenticatedSubject: (
-    <>
-      Limit by the authenticated Principal's subject field. <DocsLink href={RATE_LIMIT_DOCS_URL} />
-    </>
-  ),
-  path: "Create separate limits per endpoint.",
-  principalField: (
-    <>
-      Limit by a field from the Principal's source (e.g. source.key.meta.org_id for per-organization
-      limits). <DocsLink href={RATE_LIMIT_DOCS_URL} />
-    </>
-  ),
-};
-
 const IDENTIFIER_SOURCE_OPTIONS: { value: RateLimitIdentifierSource; label: string }[] = [
   { value: "remoteIp", label: "Remote IP" },
   { value: "header", label: "Header" },
@@ -60,6 +54,52 @@ const IDENTIFIER_SOURCE_OPTIONS: { value: RateLimitIdentifierSource; label: stri
   { value: "path", label: "Request Path" },
   { value: "principalField", label: "Principal Field" },
 ];
+
+// Human phrase per source for the live explainer sentence below the list.
+const IDENTIFIER_SOURCE_PHRASES: Record<RateLimitIdentifierSource, string> = {
+  remoteIp: "client IP",
+  header: "header value",
+  authenticatedSubject: "authenticated subject",
+  path: "request path",
+  principalField: "principal field value",
+};
+
+function needsValue(source: RateLimitIdentifierSource): boolean {
+  return source === "header" || source === "principalField";
+}
+
+function explainIdentifiers(rows: RatelimitIdentifierRowValues[]): React.ReactNode {
+  if (rows.length === 0) {
+    return null;
+  }
+  const phrases = rows.map((row) => {
+    const phrase = IDENTIFIER_SOURCE_PHRASES[row.source];
+    return row.value ? `${phrase} (${row.value})` : phrase;
+  });
+  const needsAuth = rows.some(
+    (row) => row.source === "authenticatedSubject" || row.source === "principalField",
+  );
+  return (
+    <>
+      {rows.length === 1 ? (
+        <>
+          The policy counts requests for each <Strong>{phrases[0]}</Strong>.
+        </>
+      ) : (
+        <>
+          The policy counts requests for each unique combination of{" "}
+          <Strong>{phrases.join(" × ")}</Strong>. Each combination has its own counter.
+        </>
+      )}{" "}
+      {needsAuth && (
+        <>
+          Put a Key Auth or JWT Auth policy before this policy in the list.{" "}
+          <DocsLink href={RATE_LIMIT_DOCS_URL} />
+        </>
+      )}
+    </>
+  );
+}
 
 export function RateLimitFields() {
   const { control } = useFormContext<RatelimitFormValues>();
@@ -77,16 +117,9 @@ export function RateLimitFields() {
   const [windowDisplay, setWindowDisplay] = useState(() => formatMs(windowMs));
   const [windowParseError, setWindowParseError] = useState<string>();
 
-  const {
-    field: { value: identifierSource, onChange: onIdentifierSourceChange },
-  } = useController({ control, name: "identifierSource" });
-
-  const {
-    field: { value: identifierValue, onChange: onIdentifierValueChange },
-  } = useController({ control, name: "identifierValue" });
-
-  const needsIdentifierValue =
-    identifierSource === "header" || identifierSource === "principalField";
+  const { fields, append, remove, update } = useFieldArray({ control, name: "identifiers" });
+  const rows = useWatch({ control, name: "identifiers" }) ?? [];
+  const { errors } = useFormState({ control, name: "identifiers" });
 
   return (
     <div className="flex flex-col gap-4">
@@ -94,7 +127,7 @@ export function RateLimitFields() {
         <FormInput
           label="Limit"
           descriptionPosition="label"
-          description="Max number of requests allowed per window."
+          description="Maximum number of requests in one window."
           type="number"
           value={limit}
           onChange={(e) => onLimitChange(Number.parseInt(e.target.value) || 0)}
@@ -136,43 +169,109 @@ export function RateLimitFields() {
           descriptionPosition="label"
           description={
             windowMs > 0
-              ? `Resets every ${formatMs(windowMs, { long: true })}.`
-              : "How long before the counter resets."
+              ? `The counter resets every ${formatMs(windowMs, { long: true })}.`
+              : "The time until the counter resets."
           }
           error={windowParseError ?? windowError?.message}
         />
       </div>
 
-      <FormSelect
-        label="Identifier"
-        options={IDENTIFIER_SOURCE_OPTIONS}
-        value={identifierSource}
-        onValueChange={(v) => {
-          onIdentifierSourceChange(v as RateLimitIdentifierSource);
-          onIdentifierValueChange("");
-        }}
-        description={IDENTIFIER_SOURCE_DESCRIPTIONS[identifierSource]}
-      />
+      <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+        <div className="flex items-center justify-between">
+          <FormLabel
+            label="Identifiers"
+            htmlFor="ratelimit-identifiers"
+            tooltipContent="The policy counts requests for each unique combination of the resolved values. Example: [Subject, Path] gives each subject its own limit on each path."
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            className="font-medium"
+            disabled={fields.length >= SENTINEL_LIMITS.maxIdentifiersPerRatelimit}
+            onClick={() => append({ id: crypto.randomUUID(), source: "path", value: "" })}
+          >
+            <Plus iconSize="sm-regular" />
+            Add
+          </Button>
+        </div>
 
-      {needsIdentifierValue && (
-        <FormInput
-          label={identifierSource === "header" ? "Header Name" : "Field Path"}
-          value={identifierValue}
-          placeholder={identifierSource === "header" ? "X-Tenant-Id" : "subject"}
-          onChange={(e) => onIdentifierValueChange(e.target.value)}
-          descriptionPosition="inline"
-          description={
-            identifierSource === "header" ? (
-              "The header whose value becomes the rate limit identifier."
-            ) : (
-              <>
-                Dotted path into the principal JSON (e.g. "subject" or "source.key.meta.org_id").{" "}
-                <DocsLink href="https://www.unkey.com/docs/platform/sentinel/principal/overview" />
-              </>
-            )
-          }
-        />
-      )}
+        {fields.map((field, index) => {
+          const row = rows[index] ?? field;
+          const rowError = errors.identifiers?.[index]?.value?.message;
+          return (
+            <div key={field.id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="w-48 shrink-0">
+                  <Select
+                    value={row.source}
+                    items={IDENTIFIER_SOURCE_OPTIONS}
+                    onValueChange={(v) =>
+                      update(index, {
+                        ...row,
+                        source: v as RateLimitIdentifierSource,
+                        value: "",
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      aria-label="Identifier source"
+                      className="shrink-0 whitespace-pre"
+                      rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {IDENTIFIER_SOURCE_OPTIONS.map((opt) => (
+                        <SelectItem
+                          key={opt.value}
+                          value={opt.value}
+                          className="shrink-0 whitespace-pre"
+                        >
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {needsValue(row.source) ? (
+                  <FormInput
+                    placeholder={row.source === "header" ? "X-Tenant-Id" : "subject"}
+                    requirement="required"
+                    value={row.value}
+                    onChange={(e) => update(index, { ...row, value: e.target.value })}
+                    className="flex-1"
+                    variant={rowError ? "error" : undefined}
+                    aria-invalid={Boolean(rowError)}
+                  />
+                ) : (
+                  <span className="flex-1" />
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Remove identifier"
+                  className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
+                  disabled={fields.length === 1}
+                  onClick={() => remove(index)}
+                >
+                  <Trash iconSize="sm-regular" />
+                </Button>
+              </div>
+              {rowError && (
+                <FormDescription
+                  error={rowError}
+                  descriptionId={`identifier-${index}-desc`}
+                  errorId={`identifier-${index}-error`}
+                />
+              )}
+            </div>
+          );
+        })}
+
+        <p className="text-gray-11 text-xs leading-5">{explainIdentifiers(rows)}</p>
+      </fieldset>
     </div>
   );
 }
@@ -181,20 +280,23 @@ export function RatelimitPolicySummary() {
   const { control } = useFormContext<RatelimitFormValues>();
   const limit = useWatch({ control, name: "limit" });
   const windowMs = useWatch({ control, name: "windowMs" });
-  const identifierSource = useWatch({ control, name: "identifierSource" });
-  const identifierValue = useWatch({ control, name: "identifierValue" });
+  const identifiers = useWatch({ control, name: "identifiers" }) ?? [];
 
   return (
     <div className="max-w-75 truncate">
       <span className="text-gray-11">
         <Strong>{limit}</Strong> / {formatMs(windowMs)}
         <Sep />
-        per <Strong>{IDENTIFIER_SOURCE_LABELS[identifierSource]}</Strong>
-        {identifierValue && (
-          <>
-            : <Strong>{identifierValue}</Strong>
-          </>
-        )}
+        per{" "}
+        <Strong>
+          {identifiers
+            .map((row) =>
+              row.value
+                ? `${IDENTIFIER_SOURCE_LABELS[row.source]}: ${row.value}`
+                : IDENTIFIER_SOURCE_LABELS[row.source],
+            )
+            .join(" × ")}
+        </Strong>
       </span>
     </div>
   );

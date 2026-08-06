@@ -42,7 +42,7 @@ func (e *Executor) Execute(
 	cfg *frontlinev1.RateLimit,
 	principal *principal.Principal,
 ) error {
-	identifier := extractIdentifier(sess, req, cfg.GetIdentifier(), principal)
+	identifier := extractIdentifier(sess, req, cfg, principal)
 	if identifier == "" {
 		return fault.New("missing rate limit identifier",
 			fault.Code(codes.Frontline.Auth.RateLimited.URN()),

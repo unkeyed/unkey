@@ -50,7 +50,17 @@ type RateLimit struct {
 	// is critical: IP-based limiting can be defeated by proxies and NAT,
 	// header-based limiting relies on client-supplied values, and subject-based
 	// limiting requires an upstream authn policy to have produced a [Principal].
-	Identifier    *RateLimitIdentifier `protobuf:"bytes,3,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	//
+	// Exactly one of identifier or identifiers is set; the API layer enforces
+	// this at write time. identifier is the original single-dimension form and
+	// is kept for policies stored before compound identifiers existed.
+	Identifier *RateLimitIdentifier `protobuf:"bytes,3,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	// Compound form: an ordered list of identifier sources. Each request
+	// resolves every source and the combination of resolved values selects the
+	// rate limit bucket, so [authenticated_subject, path] limits each subject
+	// independently on each path. Every unique value tuple gets its own
+	// counter with the same limit and window.
+	Identifiers   []*RateLimitIdentifier `protobuf:"bytes,4,rep,name=identifiers,proto3" json:"identifiers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -102,6 +112,13 @@ func (x *RateLimit) GetWindowMs() int64 {
 func (x *RateLimit) GetIdentifier() *RateLimitIdentifier {
 	if x != nil {
 		return x.Identifier
+	}
+	return nil
+}
+
+func (x *RateLimit) GetIdentifiers() []*RateLimitIdentifier {
+	if x != nil {
+		return x.Identifiers
 	}
 	return nil
 }
@@ -491,13 +508,14 @@ var File_frontline_policies_v1_ratelimit_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"%frontline/policies/v1/ratelimit.proto\x12\ffrontline.v1\"\x81\x01\n" +
+	"%frontline/policies/v1/ratelimit.proto\x12\ffrontline.v1\"\xc6\x01\n" +
 	"\tRateLimit\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\x12\x1b\n" +
 	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12A\n" +
 	"\n" +
 	"identifier\x18\x03 \x01(\v2!.frontline.v1.RateLimitIdentifierR\n" +
-	"identifier\"\xe3\x02\n" +
+	"identifier\x12C\n" +
+	"\videntifiers\x18\x04 \x03(\v2!.frontline.v1.RateLimitIdentifierR\videntifiers\"\xe3\x02\n" +
 	"\x13RateLimitIdentifier\x128\n" +
 	"\tremote_ip\x18\x01 \x01(\v2\x19.frontline.v1.RemoteIpKeyH\x00R\bremoteIp\x121\n" +
 	"\x06header\x18\x02 \x01(\v2\x17.frontline.v1.HeaderKeyH\x00R\x06header\x12\\\n" +
@@ -538,16 +556,17 @@ var file_frontline_policies_v1_ratelimit_proto_goTypes = []any{
 }
 var file_frontline_policies_v1_ratelimit_proto_depIdxs = []int32{
 	1, // 0: frontline.v1.RateLimit.identifier:type_name -> frontline.v1.RateLimitIdentifier
-	2, // 1: frontline.v1.RateLimitIdentifier.remote_ip:type_name -> frontline.v1.RemoteIpKey
-	3, // 2: frontline.v1.RateLimitIdentifier.header:type_name -> frontline.v1.HeaderKey
-	4, // 3: frontline.v1.RateLimitIdentifier.authenticated_subject:type_name -> frontline.v1.AuthenticatedSubjectKey
-	5, // 4: frontline.v1.RateLimitIdentifier.path:type_name -> frontline.v1.PathKey
-	6, // 5: frontline.v1.RateLimitIdentifier.principal_field:type_name -> frontline.v1.PrincipalFieldKey
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	1, // 1: frontline.v1.RateLimit.identifiers:type_name -> frontline.v1.RateLimitIdentifier
+	2, // 2: frontline.v1.RateLimitIdentifier.remote_ip:type_name -> frontline.v1.RemoteIpKey
+	3, // 3: frontline.v1.RateLimitIdentifier.header:type_name -> frontline.v1.HeaderKey
+	4, // 4: frontline.v1.RateLimitIdentifier.authenticated_subject:type_name -> frontline.v1.AuthenticatedSubjectKey
+	5, // 5: frontline.v1.RateLimitIdentifier.path:type_name -> frontline.v1.PathKey
+	6, // 6: frontline.v1.RateLimitIdentifier.principal_field:type_name -> frontline.v1.PrincipalFieldKey
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_frontline_policies_v1_ratelimit_proto_init() }

@@ -194,28 +194,39 @@ export const rateLimitIdentifierSourceSchema = z.enum([
 ]);
 export type RateLimitIdentifierSource = z.infer<typeof rateLimitIdentifierSourceSchema>;
 
-const ratelimitFormSchema = z
+// One row of the identifiers list: a source plus its value for the sources
+// that need one (header name, principal field path). `id` is client-only for
+// React keying, minted on read and discarded on save like match conditions.
+const ratelimitIdentifierRowSchema = z
   .object({
-    ...basePolicyFields,
-    type: z.literal("ratelimit"),
-    limit: z.number().int().min(1, "Limit must be at least 1"),
-    windowMs: z.number().int().min(1, "Window must be at least 1ms"),
-    identifierSource: rateLimitIdentifierSourceSchema,
-    identifierValue: z.string(),
+    id: z.string(),
+    source: rateLimitIdentifierSourceSchema,
+    value: z.string(),
   })
-  .superRefine((v, ctx) => {
-    if (
-      (v.identifierSource === "header" || v.identifierSource === "principalField") &&
-      v.identifierValue.length === 0
-    ) {
+  .superRefine((row, ctx) => {
+    if ((row.source === "header" || row.source === "principalField") && row.value.length === 0) {
       ctx.addIssue({
         code: "custom",
-        message:
-          v.identifierSource === "header" ? "Header name is required" : "Field path is required",
-        path: ["identifierValue"],
+        message: row.source === "header" ? "Header name is required" : "Field path is required",
+        path: ["value"],
       });
     }
   });
+
+export type RatelimitIdentifierRowValues = z.infer<typeof ratelimitIdentifierRowSchema>;
+
+const ratelimitFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("ratelimit"),
+  limit: z.number().int().min(1, "Limit must be at least 1"),
+  windowMs: z.number().int().min(1, "Window must be at least 1ms"),
+  // One row = the classic single identifier; 2+ rows form a compound key
+  // where each unique combination of resolved values gets its own counter.
+  identifiers: z
+    .array(ratelimitIdentifierRowSchema)
+    .min(1, "Add at least one identifier")
+    .max(SENTINEL_LIMITS.maxIdentifiersPerRatelimit),
+});
 
 // Firewall has a single action today (DENY) and no other configuration.
 // The action is kept on the form so the wire payload stays self-describing
@@ -285,8 +296,9 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       type: "ratelimit" as const,
       limit: 100,
       windowMs: 60000,
-      identifierSource: "remoteIp" as const,
-      identifierValue: "",
+      identifiers: [
+        { id: crypto.randomUUID(), source: "remoteIp" as const, value: "" },
+      ] as RatelimitIdentifierRowValues[],
     }))
     .with("firewall", () => ({
       ...base,
@@ -414,7 +426,13 @@ export function toSentinelPolicy(
       ratelimit: {
         limit: v.limit,
         windowMs: v.windowMs,
-        identifier: toRateLimitIdentifier(v.identifierSource, v.identifierValue),
+        // One row serializes to the classic single identifier so existing
+        // policies keep their wire shape; 2+ rows use the compound list.
+        ...(v.identifiers.length === 1
+          ? { identifier: toRateLimitIdentifier(v.identifiers[0].source, v.identifiers[0].value) }
+          : {
+              identifiers: v.identifiers.map((row) => toRateLimitIdentifier(row.source, row.value)),
+            }),
       },
       match: matchExprs,
     }))
@@ -484,25 +502,26 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
     .exhaustive();
 }
 
-function fromRateLimitIdentifier(key: RateLimitIdentifier): {
-  identifierSource: RateLimitIdentifierSource;
-  identifierValue: string;
-} {
+function fromRateLimitIdentifier(key: RateLimitIdentifier): RatelimitIdentifierRowValues {
+  const id = crypto.randomUUID();
   return match(key)
-    .returnType<{ identifierSource: RateLimitIdentifierSource; identifierValue: string }>()
-    .with({ remoteIp: P._ }, () => ({ identifierSource: "remoteIp" as const, identifierValue: "" }))
+    .returnType<RatelimitIdentifierRowValues>()
+    .with({ remoteIp: P._ }, () => ({ id, source: "remoteIp" as const, value: "" }))
     .with({ header: P._ }, (k) => ({
-      identifierSource: "header" as const,
-      identifierValue: k.header.name,
+      id,
+      source: "header" as const,
+      value: k.header.name,
     }))
     .with({ authenticatedSubject: P._ }, () => ({
-      identifierSource: "authenticatedSubject" as const,
-      identifierValue: "",
+      id,
+      source: "authenticatedSubject" as const,
+      value: "",
     }))
-    .with({ path: P._ }, () => ({ identifierSource: "path" as const, identifierValue: "" }))
+    .with({ path: P._ }, () => ({ id, source: "path" as const, value: "" }))
     .with({ principalField: P._ }, (k) => ({
-      identifierSource: "principalField" as const,
-      identifierValue: k.principalField.path,
+      id,
+      source: "principalField" as const,
+      value: k.principalField.path,
     }))
     .exhaustive();
 }
@@ -557,7 +576,10 @@ export function fromSentinelPolicy(
       };
     })
     .with({ type: "ratelimit" }, (p) => {
-      const { identifierSource, identifierValue } = fromRateLimitIdentifier(p.ratelimit.identifier);
+      // Wire blobs carry either the single identifier or the compound list;
+      // both open in the same rows array.
+      const wireIdentifiers =
+        p.ratelimit.identifiers ?? (p.ratelimit.identifier ? [p.ratelimit.identifier] : []);
       return {
         type: "ratelimit" as const,
         name: p.name,
@@ -565,8 +587,7 @@ export function fromSentinelPolicy(
         matchConditions,
         limit: p.ratelimit.limit,
         windowMs: p.ratelimit.windowMs,
-        identifierSource,
-        identifierValue,
+        identifiers: wireIdentifiers.map(fromRateLimitIdentifier),
       };
     })
     .with({ type: "firewall" }, (p) => {

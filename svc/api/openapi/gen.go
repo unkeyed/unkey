@@ -978,7 +978,8 @@ type Policy struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
+	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1009,7 +1010,8 @@ type PolicyResponse struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
+	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1112,11 +1114,19 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
-// RatelimitPolicy Rate limits matching requests.
+// RatelimitPolicy Rate limits matching requests. Set exactly one of `identifier` (one
+// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
 type RatelimitPolicy struct {
-	// Identifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
-	// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
-	Identifier RatelimitIdentifier `json:"identifier"`
+	// Identifier One source that supplies the rate limit key. Equal to `identifiers`
+	// with one entry.
+	Identifier *RatelimitIdentifier `json:"identifier,omitempty"`
+
+	// Identifiers Ordered list of sources that form a compound rate limit key. The
+	// gateway resolves each source for each request. Each unique
+	// combination of resolved values has its own counter. All counters use
+	// the same limit and window. Example: `[authenticatedSubject, path]`
+	// limits each subject separately on each path.
+	Identifiers *[]RatelimitIdentifier `json:"identifiers,omitempty"`
 
 	// Limit Maximum number of requests per window.
 	Limit int64 `json:"limit"`
@@ -2254,7 +2264,8 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set exactly one of `identifier` (one
+	// dimension) or `identifiers` (a compound key of 1 to 5 dimensions).
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 

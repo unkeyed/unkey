@@ -24,7 +24,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				{Name: "kebap-keyauth", Enabled: true, Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{"ks_1"}}},
 				{Name: "ratelimit", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
 					Limit: 10, WindowMs: 1000,
-					Identifier: openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
 				}},
 				{Name: "firewall", Enabled: false, Firewall: firewall},
 				{Name: "openapi", Enabled: true, Openapi: &openapi.OpenapiPolicy{}},
@@ -139,13 +139,49 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "r", Enabled: true,
 				Ratelimit: &openapi.RatelimitPolicy{
 					Limit: 10, WindowMs: 1000,
-					Identifier: openapi.RatelimitIdentifier{
+					Identifier: &openapi.RatelimitIdentifier{
 						RemoteIp: &openapi.RemoteIpKey{},
 						Path:     &openapi.PathKey{},
 					},
 				},
 			}},
 			wantErr: "policies[0].ratelimit.identifier must set exactly one of",
+		},
+		{
+			name: "ratelimit with neither identifier nor identifiers",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{Limit: 10, WindowMs: 1000},
+			}},
+			wantErr: "policies[0].ratelimit must set exactly one of identifier or identifiers",
+		},
+		{
+			name: "ratelimit with both identifier and identifiers",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Identifiers: &[]openapi.RatelimitIdentifier{
+						{Path: &openapi.PathKey{}},
+					},
+				},
+			}},
+			wantErr: "policies[0].ratelimit must set exactly one of identifier or identifiers",
+		},
+		{
+			name: "compound identifier entry with two variants",
+			policies: []openapi.Policy{{
+				Name: "r", Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifiers: &[]openapi.RatelimitIdentifier{
+						{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+						{RemoteIp: &openapi.RemoteIpKey{}, Path: &openapi.PathKey{}},
+					},
+				},
+			}},
+			wantErr: "policies[0].ratelimit.identifiers[1] must set exactly one of",
 		},
 		{
 			name: "error names the failing index",

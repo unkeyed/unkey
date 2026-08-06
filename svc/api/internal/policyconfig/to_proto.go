@@ -80,29 +80,11 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 		out.Config = &frontlinev1.Policy_Keyauth{Keyauth: keyauth}
 
 	case p.Ratelimit != nil:
-		id := p.Ratelimit.Identifier
-		if err := exactlyOne(path+".ratelimit.identifier", "remoteIp, header, authenticatedSubject, path or principalField",
-			id.RemoteIp != nil, id.Header != nil, id.AuthenticatedSubject != nil, id.Path != nil, id.PrincipalField != nil); err != nil {
+		ratelimit, err := mapRatelimitToProto(path+".ratelimit", *p.Ratelimit)
+		if err != nil {
 			return nil, err
 		}
-		identifier := &frontlinev1.RateLimitIdentifier{}
-		switch {
-		case id.RemoteIp != nil:
-			identifier.Source = &frontlinev1.RateLimitIdentifier_RemoteIp{RemoteIp: &frontlinev1.RemoteIpKey{}}
-		case id.Header != nil:
-			identifier.Source = &frontlinev1.RateLimitIdentifier_Header{Header: &frontlinev1.HeaderKey{Name: id.Header.Name}}
-		case id.AuthenticatedSubject != nil:
-			identifier.Source = &frontlinev1.RateLimitIdentifier_AuthenticatedSubject{AuthenticatedSubject: &frontlinev1.AuthenticatedSubjectKey{}}
-		case id.Path != nil:
-			identifier.Source = &frontlinev1.RateLimitIdentifier_Path{Path: &frontlinev1.PathKey{}}
-		case id.PrincipalField != nil:
-			identifier.Source = &frontlinev1.RateLimitIdentifier_PrincipalField{PrincipalField: &frontlinev1.PrincipalFieldKey{Path: id.PrincipalField.Path}}
-		}
-		out.Config = &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
-			Limit:      p.Ratelimit.Limit,
-			WindowMs:   p.Ratelimit.WindowMs,
-			Identifier: identifier,
-		}}
+		out.Config = &frontlinev1.Policy_Ratelimit{Ratelimit: ratelimit}
 
 	case p.Firewall != nil:
 		action, ok := frontlinev1.Action_value[string(p.Firewall.Action)]
@@ -116,6 +98,70 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 	}
 
 	return out, nil
+}
+
+// mapRatelimitToProto validates the single/compound identifier duality:
+// exactly one of identifier or identifiers must be set. The single form maps
+// to the proto identifier field, the compound form to the repeated
+// identifiers field, so responses can render policies in the shape they were
+// written.
+func mapRatelimitToProto(path string, r openapi.RatelimitPolicy) (*frontlinev1.RateLimit, error) {
+	hasList := r.Identifiers != nil && len(*r.Identifiers) > 0
+	if err := exactlyOne(path, "identifier or identifiers", r.Identifier != nil, hasList); err != nil {
+		return nil, err
+	}
+
+	out := &frontlinev1.RateLimit{
+		Limit:    r.Limit,
+		WindowMs: r.WindowMs,
+	}
+
+	if r.Identifier != nil {
+		identifier, err := mapRatelimitIdentifierToProto(path+".identifier", *r.Identifier)
+		if err != nil {
+			return nil, err
+		}
+		out.Identifier = identifier
+		return out, nil
+	}
+
+	if len(*r.Identifiers) > maxCompoundIdentifiers {
+		return nil, invalid(fmt.Sprintf("%s.identifiers must not have more than %d entries.", path, maxCompoundIdentifiers))
+	}
+	for i, id := range *r.Identifiers {
+		identifier, err := mapRatelimitIdentifierToProto(fmt.Sprintf("%s.identifiers[%d]", path, i), id)
+		if err != nil {
+			return nil, err
+		}
+		out.Identifiers = append(out.Identifiers, identifier)
+	}
+	return out, nil
+}
+
+// maxCompoundIdentifiers caps the dimensions of a compound rate limit key.
+// Mirrors the OpenAPI schema's maxItems; enforced here too because the
+// conversion pass is the validation layer for anything callers bypass.
+const maxCompoundIdentifiers = 5
+
+func mapRatelimitIdentifierToProto(path string, id openapi.RatelimitIdentifier) (*frontlinev1.RateLimitIdentifier, error) {
+	if err := exactlyOne(path, "remoteIp, header, authenticatedSubject, path or principalField",
+		id.RemoteIp != nil, id.Header != nil, id.AuthenticatedSubject != nil, id.Path != nil, id.PrincipalField != nil); err != nil {
+		return nil, err
+	}
+	identifier := &frontlinev1.RateLimitIdentifier{}
+	switch {
+	case id.RemoteIp != nil:
+		identifier.Source = &frontlinev1.RateLimitIdentifier_RemoteIp{RemoteIp: &frontlinev1.RemoteIpKey{}}
+	case id.Header != nil:
+		identifier.Source = &frontlinev1.RateLimitIdentifier_Header{Header: &frontlinev1.HeaderKey{Name: id.Header.Name}}
+	case id.AuthenticatedSubject != nil:
+		identifier.Source = &frontlinev1.RateLimitIdentifier_AuthenticatedSubject{AuthenticatedSubject: &frontlinev1.AuthenticatedSubjectKey{}}
+	case id.Path != nil:
+		identifier.Source = &frontlinev1.RateLimitIdentifier_Path{Path: &frontlinev1.PathKey{}}
+	case id.PrincipalField != nil:
+		identifier.Source = &frontlinev1.RateLimitIdentifier_PrincipalField{PrincipalField: &frontlinev1.PrincipalFieldKey{Path: id.PrincipalField.Path}}
+	}
+	return identifier, nil
 }
 
 func mapKeyauthToProto(path string, k openapi.KeyauthPolicy) (*frontlinev1.KeyAuth, error) {

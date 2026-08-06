@@ -34,7 +34,18 @@ message RateLimit {
   // is critical: IP-based limiting can be defeated by proxies and NAT,
   // header-based limiting relies on client-supplied values, and subject-based
   // limiting requires an upstream authn policy to have produced a [Principal].
+  //
+  // Exactly one of identifier or identifiers is set; the API layer enforces
+  // this at write time. identifier is the original single-dimension form and
+  // is kept for policies stored before compound identifiers existed.
   RateLimitIdentifier identifier = 3;
+
+  // Compound form: an ordered list of identifier sources. Each request
+  // resolves every source and the combination of resolved values selects the
+  // rate limit bucket, so [authenticated_subject, path] limits each subject
+  // independently on each path. Every unique value tuple gets its own
+  // counter with the same limit and window.
+  repeated RateLimitIdentifier identifiers = 4;
 }
 
 // RateLimitIdentifier determines how frontline identifies the entity being rate

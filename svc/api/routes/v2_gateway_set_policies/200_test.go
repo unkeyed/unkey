@@ -52,7 +52,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				Ratelimit: &openapi.RatelimitPolicy{
 					Limit:      100,
 					WindowMs:   60000,
-					Identifier: openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
 				},
 			},
 			firewallPolicy("KEBAP", false),
@@ -226,7 +226,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			return openapi.Policy{
 				Name:      name,
 				Enabled:   true,
-				Ratelimit: &openapi.RatelimitPolicy{Limit: 100, WindowMs: 60000, Identifier: id},
+				Ratelimit: &openapi.RatelimitPolicy{Limit: 100, WindowMs: 60000, Identifier: &id},
 			}
 		}
 
