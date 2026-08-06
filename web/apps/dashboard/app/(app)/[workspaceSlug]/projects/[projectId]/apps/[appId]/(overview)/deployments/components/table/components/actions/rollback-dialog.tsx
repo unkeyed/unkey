@@ -6,7 +6,9 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
@@ -37,7 +39,9 @@ export const RollbackDialog = ({
     [projectId, appId],
   );
 
-  const rollback = trpc.deploy.deployment.rollback.useMutation({
+  const rollback = useMutation({
+    mutationFn: (deploymentId: string) =>
+      getUnkeyClient().deployments.rollbackDeployment({ deploymentId }),
     onSuccess: () => {
       utils.invalidate();
       toast.success("Rollback completed", {
@@ -57,19 +61,15 @@ export const RollbackDialog = ({
     },
     onError: (error) => {
       toast.error("Rollback failed", {
-        description: error.message,
+        description: getErrorMessage(error),
       });
     },
   });
 
   const handleRollback = async () => {
-    await rollback
-      .mutateAsync({
-        targetDeploymentId: targetDeployment.id,
-      })
-      .catch((error) => {
-        console.error("Rollback error:", error);
-      });
+    await rollback.mutateAsync(targetDeployment.id).catch((error) => {
+      console.error("Rollback error:", error);
+    });
   };
 
   return (
