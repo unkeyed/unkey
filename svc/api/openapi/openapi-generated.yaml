@@ -995,9 +995,10 @@ components:
                     minLength: 4
                     maxLength: 253
                     description: |
-                        Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
-                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
-                        internationalized name in Unicode or Punycode form. Both forms address the same domain.
+                        Identifies a domain by its ID or by its name. Send a 'dom_'-prefixed ID, or a fully
+                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can send
+                        an internationalized name in Unicode or in Punycode form. Both forms address the same
+                        domain.
 
                         Domain names are unique per workspace, so the name alone addresses the domain. You do not
                         need to supply a project, app, or environment.
@@ -9739,16 +9740,17 @@ paths:
             description: |
                 Restart verification for a custom domain.
 
-                Address the domain by its id or by its name. Names are unique per workspace, so
+                Address the domain by its ID or by its name. Names are unique per workspace, so
                 `api.acme.com` is enough.
 
-                Use this after you fix the DNS records for a domain that shows `failed`. Verification runs
-                as a durable workflow: this endpoint returns once the retry is accepted. Poll
-                `domains.getDomain` to observe the result. Each call cancels the previous workflow and
-                starts a fresh 24-hour verification window, so a `pending` domain can also be given more
-                time.
+                Use this after you correct the DNS records of a domain that shows `failed`. Verification
+                runs as a durable workflow. This endpoint returns when Unkey accepts the retry. Poll
+                `domains.getDomain` to see the result.
 
-                A domain that is already `verified` returns a 412. There is nothing to verify again.
+                Each call stops the previous workflow and starts a new 24-hour verification window. A
+                `pending` domain thus gets more time.
+
+                A domain that is already `verified` returns a 412. Unkey does not verify it again.
 
                 **Required Permissions**
 
@@ -9761,7 +9763,7 @@ paths:
                     application/json:
                         examples:
                             byId:
-                                description: Uses the id that domains.createDomain returned.
+                                description: The domains.createDomain operation returns this ID.
                                 summary: Verify by domain ID
                                 value:
                                     domain: dom_1234abcd
@@ -9779,7 +9781,7 @@ paths:
                         application/json:
                             examples:
                                 accepted:
-                                    description: The domain returned to `pending`. Poll domains.getDomain to observe the result.
+                                    description: The domain went back to `pending`. Poll domains.getDomain to see the result.
                                     summary: Verification restarted
                                     value:
                                         data: {}
@@ -9794,7 +9796,7 @@ paths:
                         application/json:
                             examples:
                                 invalidIdentifier:
-                                    description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+                                    description: The schema limits only the length of the identifier. An identifier that is neither a valid name nor a stored ID returns a 404.
                                     summary: Identifier too short
                                     value:
                                         error:
@@ -9845,9 +9847,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.verify_domain` receives a 404 instead, so permissions cannot be used to
-                        discover which domains exist.
+                        Forbidden - The root key or its workspace is disabled. A root key that only lacks
+                        `environment.*.verify_domain` receives a 404 instead. Permissions thus cannot show
+                        which domains exist.
                 "404":
                     content:
                         application/json:
@@ -9865,8 +9867,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The domain does not exist in your workspace, it was deleted, or your root
-                        key may not verify it.
+                        Not Found - The domain does not exist in your workspace, or it was deleted, or your
+                        root key is not permitted to verify it.
                 "412":
                     content:
                         application/json:
@@ -9884,8 +9886,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
-                        Precondition Failed - The domain is already verified. Re-running verification against a
-                        serving domain could disrupt it, so there is nothing to retry.
+                        Precondition Failed - The domain is already verified. A second verification of a domain
+                        that serves traffic can interrupt it, thus there is nothing to retry.
                 "429":
                     content:
                         application/json:

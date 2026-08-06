@@ -11,11 +11,11 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
 )
 
-// TestVerifyDomainBadRequest covers the spec layer: the identifier carries only length
-// bounds, since neither a Punycode-aware name rule nor the id shape is expressible as
-// one pattern. Everything shape-related is the handler's job — an identifier that is
-// neither a parseable name nor a stored id misses the lookup and 404s, covered in
-// TestVerifyDomainNotFound.
+// TestVerifyDomainBadRequest covers the spec layer. The identifier carries only
+// length bounds, because one pattern cannot express both a Punycode-aware name rule
+// and the ID shape. The handler owns every other shape decision. An identifier that
+// is neither a parseable name nor a stored ID misses the lookup and returns a 404,
+// which TestVerifyDomainNotFound covers.
 func TestVerifyDomainBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockCustomDomainClient{}

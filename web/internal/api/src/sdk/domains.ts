@@ -6,6 +6,7 @@ import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
 import { domainsDeleteDomain } from "../funcs/domainsDeleteDomain.js";
 import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
 import { domainsListDomains } from "../funcs/domainsListDomains.js";
+import { domainsVerifyDomain } from "../funcs/domainsVerifyDomain.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import { unwrapAsync } from "../types/fp.js";
@@ -144,6 +145,41 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsListDomainsResponseBody> {
     return unwrapAsync(domainsListDomains(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Verify domain
+   *
+   * @remarks
+   * Restart verification for a custom domain.
+   *
+   * Address the domain by its ID or by its name. Names are unique per workspace, so
+   * `api.acme.com` is enough.
+   *
+   * Use this after you correct the DNS records of a domain that shows `failed`. Verification
+   * runs as a durable workflow. This endpoint returns when Unkey accepts the retry. Poll
+   * `domains.getDomain` to see the result.
+   *
+   * Each call stops the previous workflow and starts a new 24-hour verification window. A
+   * `pending` domain thus gets more time.
+   *
+   * A domain that is already `verified` returns a 412. Unkey does not verify it again.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.verify_domain` (to verify domains in any environment)
+   * - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
+   */
+  async verifyDomain(
+    request: components.V2DomainsVerifyDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsVerifyDomainResponseBody> {
+    return unwrapAsync(domainsVerifyDomain(
       this,
       request,
       options,

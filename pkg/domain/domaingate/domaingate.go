@@ -102,10 +102,10 @@ func AlreadyExists(domain string) error {
 	)
 }
 
-// AlreadyVerified is the outcome for retrying verification of a domain that
-// already passed. A verified domain serves traffic, and re-running the success
-// path (frontline route creation, contested-domain revocation) against live
-// state risks breaking it, so the state is terminal for this operation.
+// AlreadyVerified is the outcome when a caller retries verification of a domain
+// that already passed. A verified domain serves traffic. A second run of the
+// success path (frontline route creation, contested-domain revocation) against
+// live state can break it, thus this state is terminal for this operation.
 func AlreadyVerified(domain string) error {
 	return fault.New("domain already verified",
 		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),

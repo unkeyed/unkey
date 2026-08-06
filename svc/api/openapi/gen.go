@@ -2176,9 +2176,10 @@ type V2DomainsListDomainsResponseBody struct {
 
 // V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
 type V2DomainsVerifyDomainRequestBody struct {
-	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
-	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
-	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	// Domain Identifies a domain by its ID or by its name. Send a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can send
+	// an internationalized name in Unicode or in Punycode form. Both forms address the same
+	// domain.
 	//
 	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
 	// need to supply a project, app, or environment.

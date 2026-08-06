@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		identifier = canonical
 	}
 
-	row, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
+	domain, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
 		WorkspaceID: principal.WorkspaceID,
 		Domain:      identifier,
 	})
@@ -82,7 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
-			ResourceID:   row.EnvironmentID,
+			ResourceID:   domain.EnvironmentID,
 			Action:       rbac.VerifyDomain,
 		}),
 	)); err != nil {
@@ -93,8 +93,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if row.VerificationStatus == db.CustomDomainsVerificationStatusVerified {
-		return domaingate.AlreadyVerified(row.Domain)
+	if domain.VerificationStatus == db.CustomDomainsVerificationStatusVerified {
+		return domaingate.AlreadyVerified(domain.Domain)
 	}
 
 	actor, err := ctrlclient.Actor(s)
@@ -104,8 +104,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	_, err = h.CtrlClient.RetryVerification(ctx, &ctrlv1.RetryVerificationRequest{
 		WorkspaceId: principal.WorkspaceID,
-		ProjectId:   row.ProjectID,
-		Domain:      row.Domain,
+		ProjectId:   domain.ProjectID,
+		Domain:      domain.Domain,
 		Actor:       actor,
 	})
 	if err != nil {
