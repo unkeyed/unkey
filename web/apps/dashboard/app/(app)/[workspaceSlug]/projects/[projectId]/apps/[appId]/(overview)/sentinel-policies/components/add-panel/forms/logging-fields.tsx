@@ -20,12 +20,12 @@ function CaptureToggle({
   const { field } = useController({ control, name });
 
   return (
-    <div className="flex items-start gap-3">
-      <Switch size="sm" checked={field.value} onCheckedChange={field.onChange} aria-label={label} />
-      <div className="flex flex-col gap-0.5">
-        <span className="text-gray-12 text-[13px] leading-5">{label}</span>
-        <span className="text-gray-11 text-[12px] leading-4">{description}</span>
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] text-gray-12">{label}</span>
+        <span className="text-[12px] text-gray-10">{description}</span>
       </div>
+      <Switch size="sm" checked={field.value} onCheckedChange={field.onChange} aria-label={label} />
     </div>
   );
 }
@@ -34,16 +34,15 @@ export function LoggingFields() {
   return (
     <div className="flex flex-col gap-4">
       <div className="text-gray-11 text-[13px] leading-5">
-        The gateway always records a basic log entry for each request: method, host, path, status,
-        and latency. You cannot turn this off. This policy adds sensitive data to the entries of
-        matched requests. A policy without match conditions applies to all requests. The gateway
-        redacts sensitive headers such as <Strong className="font-mono">Authorization</Strong>{" "}
-        before it stores them.
+        The gateway always logs the method, host, path, status, and latency of each request. This
+        policy adds more data for matched requests. If you set no match conditions, the policy
+        applies to all requests. The gateway always redacts sensitive headers such as{" "}
+        <Strong className="font-mono">Authorization</Strong>.
       </div>
       <CaptureToggle
         name="requestHeaders"
         label="Request headers"
-        description="Store request headers, query data, the user agent, and the client IP."
+        description="Also stores query parameters, the user agent, and the client IP."
       />
       <CaptureToggle
         name="responseHeaders"
