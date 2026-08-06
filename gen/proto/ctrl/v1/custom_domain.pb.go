@@ -431,6 +431,7 @@ type RetryVerificationRequest struct {
 	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -484,6 +485,13 @@ func (x *RetryVerificationRequest) GetDomain() string {
 		return x.Domain
 	}
 	return ""
+}
+
+func (x *RetryVerificationRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type RetryVerificationResponse struct {
@@ -560,12 +568,13 @@ const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
 	"\x06domain\x18\x03 \x01(\tR\x06domain\x12(\n" +
 	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x1c\n" +
-	"\x1aDeleteCustomDomainResponse\"t\n" +
+	"\x1aDeleteCustomDomainResponse\"\x9e\x01\n" +
 	"\x18RetryVerificationRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x16\n" +
-	"\x06domain\x18\x03 \x01(\tR\x06domain\"P\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\x12(\n" +
+	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"P\n" +
 	"\x19RetryVerificationResponse\x123\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1b.ctrl.v1.CustomDomainStatusR\x06status*\xc4\x01\n" +
 	"\x12CustomDomainStatus\x12$\n" +
@@ -610,18 +619,19 @@ var file_ctrl_v1_custom_domain_proto_depIdxs = []int32{
 	0, // 1: ctrl.v1.AddCustomDomainResponse.status:type_name -> ctrl.v1.CustomDomainStatus
 	2, // 2: ctrl.v1.AddCustomDomainResponse.domain_connect:type_name -> ctrl.v1.DomainConnect
 	8, // 3: ctrl.v1.DeleteCustomDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 4: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
-	1, // 5: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
-	4, // 6: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
-	6, // 7: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
-	3, // 8: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
-	5, // 9: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
-	7, // 10: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	8, // 4: ctrl.v1.RetryVerificationRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 5: ctrl.v1.RetryVerificationResponse.status:type_name -> ctrl.v1.CustomDomainStatus
+	1, // 6: ctrl.v1.CustomDomainService.AddCustomDomain:input_type -> ctrl.v1.AddCustomDomainRequest
+	4, // 7: ctrl.v1.CustomDomainService.DeleteCustomDomain:input_type -> ctrl.v1.DeleteCustomDomainRequest
+	6, // 8: ctrl.v1.CustomDomainService.RetryVerification:input_type -> ctrl.v1.RetryVerificationRequest
+	3, // 9: ctrl.v1.CustomDomainService.AddCustomDomain:output_type -> ctrl.v1.AddCustomDomainResponse
+	5, // 10: ctrl.v1.CustomDomainService.DeleteCustomDomain:output_type -> ctrl.v1.DeleteCustomDomainResponse
+	7, // 11: ctrl.v1.CustomDomainService.RetryVerification:output_type -> ctrl.v1.RetryVerificationResponse
+	9, // [9:12] is the sub-list for method output_type
+	6, // [6:9] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_custom_domain_proto_init() }

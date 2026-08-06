@@ -88,4 +88,5 @@ const (
 	// Custom domain events
 	DomainCreateEvent AuditLogEvent = "domain.create"
 	DomainDeleteEvent AuditLogEvent = "domain.delete"
+	DomainVerifyEvent AuditLogEvent = "domain.verify"
 )

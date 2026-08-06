@@ -102,6 +102,18 @@ func AlreadyExists(domain string) error {
 	)
 }
 
+// AlreadyVerified is the outcome for retrying verification of a domain that
+// already passed. A verified domain serves traffic, and re-running the success
+// path (frontline route creation, contested-domain revocation) against live
+// state risks breaking it, so the state is terminal for this operation.
+func AlreadyVerified(domain string) error {
+	return fault.New("domain already verified",
+		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+		fault.Internal(fmt.Sprintf("domain %q is already verified", domain)),
+		fault.Public(fmt.Sprintf("The domain '%s' is already verified. No action is needed.", domain)),
+	)
+}
+
 // CheckAllowance reports whether the workspace may attach one more domain. The
 // counts stay internal: the way out is the same either way.
 func CheckAllowance(attached int64, allowed uint32) error {
