@@ -43,7 +43,7 @@ type Handler struct {
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 	TestMode        bool
-	createFlight    sf.Group[db.FindRatelimitNamespace]
+	createFlight    sf.Group[string, db.FindRatelimitNamespace]
 }
 
 // Method returns the HTTP method this route responds to

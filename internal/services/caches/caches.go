@@ -92,9 +92,11 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	// Keep last-known-good keys available through database outages. Successful
+	// refreshes still apply revocations after the short fresh window.
 	verificationKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
+		Stale:    24 * time.Hour,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",
 		Clock:    config.Clock,

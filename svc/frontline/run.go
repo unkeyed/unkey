@@ -481,9 +481,11 @@ func buildEngine(
 	}
 	r.Defer(usageLimiter.Close)
 
+	// Key verification is in the request data plane. Keep last-known-good keys
+	// available through database outages while continuing to refresh normally.
 	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
+		Stale:    24 * time.Hour,
 		MaxSize:  100_000,
 		Resource: "frontline_key_cache",
 		Clock:    clk,
