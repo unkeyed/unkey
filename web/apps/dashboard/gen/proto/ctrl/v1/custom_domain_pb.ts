@@ -4,13 +4,15 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ActorInfo } from "./actor_pb";
+import { file_ctrl_v1_actor } from "./actor_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/custom_domain.proto.
  */
 export const file_ctrl_v1_custom_domain: GenFile = /*@__PURE__*/
-  fileDesc("ChtjdHJsL3YxL2N1c3RvbV9kb21haW4ucHJvdG8SB2N0cmwudjEiegoWQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgDIAEoCRIOCgZkb21haW4YBCABKAkSDgoGYXBwX2lkGAUgASgJIqwBChdBZGRDdXN0b21Eb21haW5SZXNwb25zZRIRCglkb21haW5faWQYASABKAkSFAoMdGFyZ2V0X2NuYW1lGAIgASgJEisKBnN0YXR1cxgDIAEoDjIbLmN0cmwudjEuQ3VzdG9tRG9tYWluU3RhdHVzEh8KF2RvbWFpbl9jb25uZWN0X3Byb3ZpZGVyGAQgASgJEhoKEmRvbWFpbl9jb25uZWN0X3VybBgFIAEoCSJVChlEZWxldGVDdXN0b21Eb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCSIcChpEZWxldGVDdXN0b21Eb21haW5SZXNwb25zZSJUChhSZXRyeVZlcmlmaWNhdGlvblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDgoGZG9tYWluGAMgASgJIkgKGVJldHJ5VmVyaWZpY2F0aW9uUmVzcG9uc2USKwoGc3RhdHVzGAEgASgOMhsuY3RybC52MS5DdXN0b21Eb21haW5TdGF0dXMqxAEKEkN1c3RvbURvbWFpblN0YXR1cxIkCiBDVVNUT01fRE9NQUlOX1NUQVRVU19VTlNQRUNJRklFRBAAEiAKHENVU1RPTV9ET01BSU5fU1RBVFVTX1BFTkRJTkcQARIiCh5DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRllJTkcQAhIhCh1DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRklFRBADEh8KG0NVU1RPTV9ET01BSU5fU1RBVFVTX0ZBSUxFRBAEMqwCChNDdXN0b21Eb21haW5TZXJ2aWNlElYKD0FkZEN1c3RvbURvbWFpbhIfLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBogLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2UiABJfChJEZWxldGVDdXN0b21Eb21haW4SIi5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlcXVlc3QaIy5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlc3BvbnNlIgASXAoRUmV0cnlWZXJpZmljYXRpb24SIS5jdHJsLnYxLlJldHJ5VmVyaWZpY2F0aW9uUmVxdWVzdBoiLmN0cmwudjEuUmV0cnlWZXJpZmljYXRpb25SZXNwb25zZSIAQpABCgtjb20uY3RybC52MUIRQ3VzdG9tRG9tYWluUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChtjdHJsL3YxL2N1c3RvbV9kb21haW4ucHJvdG8SB2N0cmwudjEinQEKFkFkZEN1c3RvbURvbWFpblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSFgoOZW52aXJvbm1lbnRfaWQYAyABKAkSDgoGZG9tYWluGAQgASgJEg4KBmFwcF9pZBgFIAEoCRIhCgVhY3RvchgGIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIi4KDURvbWFpbkNvbm5lY3QSEAoIcHJvdmlkZXIYASABKAkSCwoDdXJsGAIgASgJIoACChdBZGRDdXN0b21Eb21haW5SZXNwb25zZRIRCglkb21haW5faWQYASABKAkSFAoMdGFyZ2V0X2NuYW1lGAIgASgJEisKBnN0YXR1cxgDIAEoDjIbLmN0cmwudjEuQ3VzdG9tRG9tYWluU3RhdHVzEiMKF2RvbWFpbl9jb25uZWN0X3Byb3ZpZGVyGAQgASgJQgIYARIeChJkb21haW5fY29ubmVjdF91cmwYBSABKAlCAhgBEhoKEnZlcmlmaWNhdGlvbl90b2tlbhgGIAEoCRIuCg5kb21haW5fY29ubmVjdBgHIAEoCzIWLmN0cmwudjEuRG9tYWluQ29ubmVjdCJVChlEZWxldGVDdXN0b21Eb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCSIcChpEZWxldGVDdXN0b21Eb21haW5SZXNwb25zZSJUChhSZXRyeVZlcmlmaWNhdGlvblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDgoGZG9tYWluGAMgASgJIkgKGVJldHJ5VmVyaWZpY2F0aW9uUmVzcG9uc2USKwoGc3RhdHVzGAEgASgOMhsuY3RybC52MS5DdXN0b21Eb21haW5TdGF0dXMqxAEKEkN1c3RvbURvbWFpblN0YXR1cxIkCiBDVVNUT01fRE9NQUlOX1NUQVRVU19VTlNQRUNJRklFRBAAEiAKHENVU1RPTV9ET01BSU5fU1RBVFVTX1BFTkRJTkcQARIiCh5DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRllJTkcQAhIhCh1DVVNUT01fRE9NQUlOX1NUQVRVU19WRVJJRklFRBADEh8KG0NVU1RPTV9ET01BSU5fU1RBVFVTX0ZBSUxFRBAEMqwCChNDdXN0b21Eb21haW5TZXJ2aWNlElYKD0FkZEN1c3RvbURvbWFpbhIfLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVxdWVzdBogLmN0cmwudjEuQWRkQ3VzdG9tRG9tYWluUmVzcG9uc2UiABJfChJEZWxldGVDdXN0b21Eb21haW4SIi5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlcXVlc3QaIy5jdHJsLnYxLkRlbGV0ZUN1c3RvbURvbWFpblJlc3BvbnNlIgASXAoRUmV0cnlWZXJpZmljYXRpb24SIS5jdHJsLnYxLlJldHJ5VmVyaWZpY2F0aW9uUmVxdWVzdBoiLmN0cmwudjEuUmV0cnlWZXJpZmljYXRpb25SZXNwb25zZSIAQpABCgtjb20uY3RybC52MUIRQ3VzdG9tRG9tYWluUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.AddCustomDomainRequest
@@ -40,6 +42,11 @@ export type AddCustomDomainRequest = Message<"ctrl.v1.AddCustomDomainRequest"> &
    * @generated from field: string app_id = 5;
    */
   appId: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 6;
+   */
+  actor?: ActorInfo;
 };
 
 /**
@@ -48,6 +55,36 @@ export type AddCustomDomainRequest = Message<"ctrl.v1.AddCustomDomainRequest"> &
  */
 export const AddCustomDomainRequestSchema: GenMessage<AddCustomDomainRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_custom_domain, 0);
+
+/**
+ * One-click setup at the domain's DNS provider. Discovery yields a provider and
+ * its signed redirect URL together or not at all, so the message is absent when
+ * the shortcut is unavailable rather than half-filled.
+ *
+ * @generated from message ctrl.v1.DomainConnect
+ */
+export type DomainConnect = Message<"ctrl.v1.DomainConnect"> & {
+  /**
+   * Provider name (e.g. "Cloudflare").
+   *
+   * @generated from field: string provider = 1;
+   */
+  provider: string;
+
+  /**
+   * Fully signed Domain Connect redirect URL.
+   *
+   * @generated from field: string url = 2;
+   */
+  url: string;
+};
+
+/**
+ * Describes the message ctrl.v1.DomainConnect.
+ * Use `create(DomainConnectSchema)` to create a new message.
+ */
+export const DomainConnectSchema: GenMessage<DomainConnect> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_custom_domain, 1);
 
 /**
  * @generated from message ctrl.v1.AddCustomDomainResponse
@@ -71,18 +108,36 @@ export type AddCustomDomainResponse = Message<"ctrl.v1.AddCustomDomainResponse">
   status: CustomDomainStatus;
 
   /**
-   * Domain Connect provider name (e.g. "Cloudflare"). Empty if unsupported.
+   * Deprecated: read domain_connect instead. Kept populated so a dashboard
+   * deployed against an older ctrl keeps receiving the values; reserve these
+   * fields once every caller reads domain_connect.
    *
-   * @generated from field: string domain_connect_provider = 4;
+   * @generated from field: string domain_connect_provider = 4 [deprecated = true];
+   * @deprecated
    */
   domainConnectProvider: string;
 
   /**
-   * Fully signed Domain Connect redirect URL. Empty if unavailable.
-   *
-   * @generated from field: string domain_connect_url = 5;
+   * @generated from field: string domain_connect_url = 5 [deprecated = true];
+   * @deprecated
    */
   domainConnectUrl: string;
+
+  /**
+   * Ownership proof token the caller publishes as a TXT record on
+   * "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
+   * apex domains, which cannot carry a CNAME.
+   *
+   * @generated from field: string verification_token = 6;
+   */
+  verificationToken: string;
+
+  /**
+   * Absent when the DNS provider does not support Domain Connect.
+   *
+   * @generated from field: ctrl.v1.DomainConnect domain_connect = 7;
+   */
+  domainConnect?: DomainConnect;
 };
 
 /**
@@ -90,7 +145,7 @@ export type AddCustomDomainResponse = Message<"ctrl.v1.AddCustomDomainResponse">
  * Use `create(AddCustomDomainResponseSchema)` to create a new message.
  */
 export const AddCustomDomainResponseSchema: GenMessage<AddCustomDomainResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_custom_domain, 1);
+  messageDesc(file_ctrl_v1_custom_domain, 2);
 
 /**
  * @generated from message ctrl.v1.DeleteCustomDomainRequest
@@ -117,7 +172,7 @@ export type DeleteCustomDomainRequest = Message<"ctrl.v1.DeleteCustomDomainReque
  * Use `create(DeleteCustomDomainRequestSchema)` to create a new message.
  */
 export const DeleteCustomDomainRequestSchema: GenMessage<DeleteCustomDomainRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_custom_domain, 2);
+  messageDesc(file_ctrl_v1_custom_domain, 3);
 
 /**
  * @generated from message ctrl.v1.DeleteCustomDomainResponse
@@ -130,7 +185,7 @@ export type DeleteCustomDomainResponse = Message<"ctrl.v1.DeleteCustomDomainResp
  * Use `create(DeleteCustomDomainResponseSchema)` to create a new message.
  */
 export const DeleteCustomDomainResponseSchema: GenMessage<DeleteCustomDomainResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_custom_domain, 3);
+  messageDesc(file_ctrl_v1_custom_domain, 4);
 
 /**
  * @generated from message ctrl.v1.RetryVerificationRequest
@@ -157,7 +212,7 @@ export type RetryVerificationRequest = Message<"ctrl.v1.RetryVerificationRequest
  * Use `create(RetryVerificationRequestSchema)` to create a new message.
  */
 export const RetryVerificationRequestSchema: GenMessage<RetryVerificationRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_custom_domain, 4);
+  messageDesc(file_ctrl_v1_custom_domain, 5);
 
 /**
  * @generated from message ctrl.v1.RetryVerificationResponse
@@ -174,7 +229,7 @@ export type RetryVerificationResponse = Message<"ctrl.v1.RetryVerificationRespon
  * Use `create(RetryVerificationResponseSchema)` to create a new message.
  */
 export const RetryVerificationResponseSchema: GenMessage<RetryVerificationResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_custom_domain, 5);
+  messageDesc(file_ctrl_v1_custom_domain, 6);
 
 /**
  * Custom domain verification status

@@ -266,6 +266,10 @@ export const workspacePermissions = {
       description: "Read gateway policies for any environment in this workspace",
       permission: "environment.*.read_policies",
     },
+    create_domain: {
+      description: "Attach custom domains to any environment in this workspace",
+      permission: "environment.*.create_domain",
+    },
   },
   Deployments: {
     create_deployment: {
@@ -422,6 +426,10 @@ export function environmentPermissions(environmentId: string): {
       read_policies: {
         description: "Read gateway policies for this environment.",
         permission: `environment.${environmentId}.read_policies`,
+      },
+      create_domain: {
+        description: "Attach custom domains to this environment.",
+        permission: `environment.${environmentId}.create_domain`,
       },
     },
     Deployments: {

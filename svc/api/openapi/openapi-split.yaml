@@ -108,6 +108,8 @@ tags:
     description: Deployment operations
   - name: deployments
     description: Deployment operations
+  - name: domains
+    description: Custom domain operations
   - name: environments
     description: Environment management operations
   - name: identities
@@ -280,6 +282,10 @@ paths:
     $ref: "./spec/paths/v2/environments/removeEnvironmentVariables/index.yaml"
   /v2/environments.listEnvironmentVariables:
     $ref: "./spec/paths/v2/environments/listEnvironmentVariables/index.yaml"
+
+  # Domain Endpoints
+  /v2/domains.createDomain:
+    $ref: "./spec/paths/v2/domains/createDomain/index.yaml"
 
   # Gateway Endpoints
   /v2/gateway.setPolicies:

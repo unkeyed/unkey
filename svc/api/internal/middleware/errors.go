@@ -266,6 +266,22 @@ func WithErrorHandling() zen.Middleware {
 					},
 				})
 
+			// Plan allowance exhausted. Forbidden rather than 429: no amount of
+			// waiting changes the answer, the caller has to change their plan or
+			// free up an existing resource.
+			case codes.UnkeyLimitsErrorsCustomDomainExceeded:
+				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+					Meta: openapi.Meta{
+						RequestId: s.RequestID(),
+					},
+					Error: openapi.BaseError{
+						Title:  "Forbidden",
+						Type:   code.DocsURL(),
+						Detail: fault.UserFacingMessage(err),
+						Status: http.StatusForbidden,
+					},
+				})
+
 			// Insufficient Permissions
 			case codes.UnkeyAuthErrorsAuthorizationInsufficientPermissions:
 				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
@@ -285,7 +301,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRoleDuplicate,
 				codes.UnkeyDataErrorsPermissionDuplicate,
 				codes.UnkeyDataErrorsProjectDuplicate,
-				codes.UnkeyDataErrorsAppDuplicate:
+				codes.UnkeyDataErrorsAppDuplicate,
+				codes.UnkeyDataErrorsDomainDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
