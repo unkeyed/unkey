@@ -78,15 +78,18 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
 	// produces a principal, we set it here for the upstream.
 	//
-	// Request logging is opt-in: only an enabled logging policy that matches
-	// the request turns it on. Without one, the ClickHouse logging middleware
-	// skips the row and body capture below is skipped entirely.
+	// The base request log row is always written by the ClickHouse logging
+	// middleware. Capturing headers and bodies is opt-in: only an enabled
+	// logging policy that matches the request turns those on. Without one,
+	// body capture below is skipped entirely and the row carries no headers
+	// or bodies.
 	if len(decision.Policies) > 0 && h.Engine != nil {
 		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.Policies)
 		if evalErr != nil {
 			return evalErr
 		}
-		tracking.LogRequest = result.LogRequest
+		tracking.LogHeaders = result.LogHeaders
+		tracking.LogBodies = result.LogBodies
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
@@ -107,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// successful attempt drains it and the tee captures from that drain.
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
-	if tracking.LogRequest && req.Body != nil {
+	if tracking.LogBodies && req.Body != nil {
 		var buf bytes.Buffer
 		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
 		defer func() {

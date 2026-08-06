@@ -1,47 +1,52 @@
 ---
 title: Logging
-description: "Enable request and response logging through the gateway for debugging and observability. Record full HTTP headers, bodies, and metadata."
+description: "Control what the gateway stores in the request log. Add headers and bodies to the basic log entries for debugging and observability."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The logging policy records the full HTTP request and response for every matched request. Use it to debug issues, audit API usage, and understand traffic patterns without adding instrumentation to your application.
+The gateway always records a basic log entry for each request. This entry powers the traffic and latency charts in the dashboard. You cannot turn it off.
 
-Logging is opt-in. Without an enabled logging policy, the gateway does not record requests. Add a logging policy with no match conditions to log all traffic, or scope it with match conditions to log only specific routes.
+The logging policy adds sensitive data to the log entries of matched requests: headers and bodies. This capture is opt-in. Without an enabled logging policy, the gateway stores only the basic entries.
 
-## What gets logged
+Add a logging policy with no match conditions to capture data for all traffic, or scope it with match conditions to capture data only for specific routes.
 
-The gateway captures the following for each request:
+## Always logged
 
-**Request data**
+The gateway records this data for every request:
 
-- HTTP method, host, path, and query string
-- Request headers (Authorization headers are redacted)
-- Request body
-
-**Response data**
-
+- HTTP method, host, and path
 - Status code
-- Response headers
-- Response body
-
-**Metadata**
-
-- Request ID
-- Timestamp
+- Request ID and timestamp
 - Deployment and instance identifiers
 - Client IP address and user agent
 - Region
+- Latency breakdown
 
-**Latency breakdown**
+| Metric           | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| Total latency    | End-to-end time from when the gateway received the request |
+| Instance latency | Time your app spent processing the request                 |
+| Gateway latency  | Overhead added by the gateway (policy evaluation, routing) |
 
-| Metric             | Description                                                  |
-| ------------------ | ------------------------------------------------------------ |
-| Total latency      | End-to-end time from when the gateway received the request   |
-| Instance latency   | Time your app spent processing the request                |
-| Gateway latency    | Overhead added by the gateway (policy evaluation, routing)   |
+## Opt-in capture
+
+A logging policy has two settings. Each one adds data to the log entries of matched requests:
+
+**Headers**
+
+- Request and response headers
+- Query string and query parameters
+
+Query data is grouped with headers because URLs often carry secrets, for example `?api_key=...`.
+
+**Bodies**
+
+- Request and response bodies, up to the capture limit
+
+The gateway redacts sensitive values before it stores them. The `Authorization` header is always redacted. Headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key) are redacted too.
 
 ## View logs
 

@@ -218,16 +218,23 @@ export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
 // ── Logging policy ──────────────────────────────────────────────────────
 
-// Opts matching requests into the ClickHouse request log (Requests tab).
-// Config-less: the policy's `enabled` flag and `match` expressions carry all
-// the semantics. An empty `match` list matches every request, so a policy
-// without match conditions logs all traffic. Without an enabled logging
-// policy the gateway records no request logs for the environment.
+// Opts matching requests into capturing sensitive data in the request log
+// (Requests tab). The gateway always records a base log entry per request
+// (method, host, path, status, latency) — that cannot be turned off. This
+// policy adds headers/query data (`headers`) and request/response bodies
+// (`bodies`) on top. An empty `match` list matches every request, so a
+// policy without match conditions captures the extras for all traffic.
+// Both fields are optional because protojson omits false booleans.
 export const loggingPolicySchema = z
   .object({
     ...policyBase,
     type: z.literal("logging"),
-    logging: z.object({}).strict(),
+    logging: z
+      .object({
+        headers: z.boolean().optional(),
+        bodies: z.boolean().optional(),
+      })
+      .strict(),
   })
   .strict();
 export type LoggingPolicy = z.infer<typeof loggingPolicySchema>;

@@ -10,34 +10,50 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/logging.proto.
  */
 export const file_frontline_policies_v1_logging: GenFile = /*@__PURE__*/
-  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEvbG9nZ2luZy5wcm90bxIMZnJvbnRsaW5lLnYxIgkKB0xvZ2dpbmdCrgEKEGNvbS5mcm9udGxpbmUudjFCDExvZ2dpbmdQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
+  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEvbG9nZ2luZy5wcm90bxIMZnJvbnRsaW5lLnYxIioKB0xvZ2dpbmcSDwoHaGVhZGVycxgBIAEoCBIOCgZib2RpZXMYAiABKAhCrgEKEGNvbS5mcm9udGxpbmUudjFCDExvZ2dpbmdQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
 
 /**
- * Logging records the full HTTP request and response of matching requests to
- * the request log (ClickHouse), including headers, bodies, status, and a
- * latency breakdown. Without an enabled logging policy, frontline does not
- * persist request logs for a deployment at all — logging is strictly opt-in
- * per environment.
+ * Logging opts matching requests into capturing sensitive request data in
+ * the request log (ClickHouse).
  *
- * Making logging a policy rather than an always-on behavior gives operators
- * the same controls as every other policy: scope it to specific routes via
- * match expressions (e.g. exclude health checks or high-volume endpoints),
- * and toggle it without a redeploy via the enabled flag.
+ * Frontline always writes a base log row for every proxied request: request
+ * id, workspace/project/app/environment/deployment ids, method, host, path,
+ * response status, latency breakdown, user agent, and client IP. This base
+ * row cannot be turned off — the dashboard's traffic and latency charts are
+ * built from it.
+ *
+ * A logging policy adds the sensitive parts on top, scoped to matching
+ * requests: headers and query parameters (headers = true) and request and
+ * response bodies (bodies = true). Without an enabled matching logging
+ * policy, only the base row is stored.
  *
  * An empty match list matches every request — an enabled logging policy
- * with no match expressions logs all traffic for the environment.
+ * with no match expressions captures the configured extras for all traffic
+ * in the environment.
  *
  * Sensitive values are redacted before persistence regardless of this
  * policy's configuration: the Authorization header is always redacted, and
  * any header or query parameter configured as a KeyAuth key location is
  * redacted too.
  *
- * The message is intentionally empty for now. What gets captured is fixed;
- * future knobs (sampling, body capture opt-out, retention hints) belong here.
- *
  * @generated from message frontline.v1.Logging
  */
 export type Logging = Message<"frontline.v1.Logging"> & {
+  /**
+   * Capture request and response headers, plus the query string and query
+   * parameters. Query data lives here rather than in the base row because
+   * URLs routinely carry secrets (e.g. ?api_key=...).
+   *
+   * @generated from field: bool headers = 1;
+   */
+  headers: boolean;
+
+  /**
+   * Capture request and response bodies, capped at the body-capture limit.
+   *
+   * @generated from field: bool bodies = 2;
+   */
+  bodies: boolean;
 };
 
 /**

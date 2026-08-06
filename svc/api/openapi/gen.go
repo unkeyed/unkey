@@ -857,14 +857,22 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
-// LoggingPolicy Records the full HTTP request and response of matching requests, including
-// headers, bodies, and a latency breakdown, viewable in the dashboard's
-// Requests tab. Has no configuration of its own; scope what gets logged via
-// the policy's `match` expressions. A policy without `match` expressions
-// matches every request and logs all traffic. Without an enabled logging
-// policy no request logs are recorded. Authorization headers and configured
+// LoggingPolicy Opts matching requests into capturing sensitive request data in the
+// request log. The gateway always records a base log entry for every
+// request (method, host, path, status, latency, user agent, client IP) —
+// that cannot be turned off. This policy adds headers and/or bodies on top,
+// scoped via the policy's `match` expressions. A policy without `match`
+// expressions matches every request. Authorization headers and configured
 // key locations are always redacted before storage.
-type LoggingPolicy = map[string]interface{}
+type LoggingPolicy struct {
+	// Bodies Capture request and response bodies, capped at the body-capture limit.
+	Bodies *bool `json:"bodies,omitempty"`
+
+	// Headers Capture request and response headers, plus the query string and query
+	// parameters. Query data is grouped with headers because URLs routinely
+	// carry secrets.
+	Headers *bool `json:"headers,omitempty"`
+}
 
 // MatchExpr A single request match expression. Exactly one of `path`, `method`,
 // `header` or `queryParam` must be set.
@@ -975,12 +983,12 @@ type Policy struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Records the full HTTP request and response of matching requests, including
-	// headers, bodies, and a latency breakdown, viewable in the dashboard's
-	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. A policy without `match` expressions
-	// matches every request and logs all traffic. Without an enabled logging
-	// policy no request logs are recorded. Authorization headers and configured
+	// Logging Opts matching requests into capturing sensitive request data in the
+	// request log. The gateway always records a base log entry for every
+	// request (method, host, path, status, latency, user agent, client IP) —
+	// that cannot be turned off. This policy adds headers and/or bodies on top,
+	// scoped via the policy's `match` expressions. A policy without `match`
+	// expressions matches every request. Authorization headers and configured
 	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
@@ -1015,12 +1023,12 @@ type PolicyResponse struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Records the full HTTP request and response of matching requests, including
-	// headers, bodies, and a latency breakdown, viewable in the dashboard's
-	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. A policy without `match` expressions
-	// matches every request and logs all traffic. Without an enabled logging
-	// policy no request logs are recorded. Authorization headers and configured
+	// Logging Opts matching requests into capturing sensitive request data in the
+	// request log. The gateway always records a base log entry for every
+	// request (method, host, path, status, latency, user agent, client IP) —
+	// that cannot be turned off. This policy adds headers and/or bodies on top,
+	// scoped via the policy's `match` expressions. A policy without `match`
+	// expressions matches every request. Authorization headers and configured
 	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
@@ -2261,12 +2269,12 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Records the full HTTP request and response of matching requests, including
-	// headers, bodies, and a latency breakdown, viewable in the dashboard's
-	// Requests tab. Has no configuration of its own; scope what gets logged via
-	// the policy's `match` expressions. A policy without `match` expressions
-	// matches every request and logs all traffic. Without an enabled logging
-	// policy no request logs are recorded. Authorization headers and configured
+	// Logging Opts matching requests into capturing sensitive request data in the
+	// request log. The gateway always records a base log entry for every
+	// request (method, host, path, status, latency, user agent, client IP) —
+	// that cannot be turned off. This policy adds headers and/or bodies on top,
+	// scoped via the policy's `match` expressions. A policy without `match`
+	// expressions matches every request. Authorization headers and configured
 	// key locations are always redacted before storage.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 

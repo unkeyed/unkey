@@ -1018,7 +1018,7 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 
 // --- Logging integration tests ---
 
-func TestLogging_EnabledMatchingPolicySetsLogRequest(t *testing.T) {
+func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 
@@ -1035,19 +1035,43 @@ func TestLogging_EnabledMatchingPolicySetsLogRequest(t *testing.T) {
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
 				}}},
 			},
-			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{Headers: true, Bodies: true}},
 		},
 	}
 
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
-	require.True(t, result.LogRequest)
+	require.True(t, result.LogHeaders)
+	require.True(t, result.LogBodies)
 }
 
-// TestLogging_NoMatchConditionsLogsEveryRequest pins the catch-all
+// TestLogging_CaptureFlagsAreIndependent pins that headers and bodies are
+// separate opt-ins: a bodies-only policy must not turn on header capture.
+func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-bodies",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{Bodies: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogHeaders)
+	require.True(t, result.LogBodies)
+}
+
+// TestLogging_NoMatchConditionsCapturesEveryRequest pins the catch-all
 // semantics: a policy with an empty match list matches every request, so a
-// logging policy without match conditions turns logging on for all traffic.
-func TestLogging_NoMatchConditionsLogsEveryRequest(t *testing.T) {
+// logging policy without match conditions turns capture on for all traffic.
+func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 
@@ -1059,16 +1083,17 @@ func TestLogging_NoMatchConditionsLogsEveryRequest(t *testing.T) {
 			Id:      "log-everything",
 			Name:    "Log everything",
 			Enabled: proto.Bool(true),
-			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{Headers: true, Bodies: true}},
 		},
 	}
 
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
-	require.True(t, result.LogRequest)
+	require.True(t, result.LogHeaders)
+	require.True(t, result.LogBodies)
 }
 
-func TestLogging_NonMatchingPolicyLeavesLogRequestOff(t *testing.T) {
+func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 
@@ -1084,16 +1109,17 @@ func TestLogging_NonMatchingPolicyLeavesLogRequestOff(t *testing.T) {
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
 				}}},
 			},
-			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{Headers: true, Bodies: true}},
 		},
 	}
 
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
-	require.False(t, result.LogRequest)
+	require.False(t, result.LogHeaders)
+	require.False(t, result.LogBodies)
 }
 
-func TestLogging_DisabledPolicyLeavesLogRequestOff(t *testing.T) {
+func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 
@@ -1104,13 +1130,14 @@ func TestLogging_DisabledPolicyLeavesLogRequestOff(t *testing.T) {
 		{
 			Id:      "log-api",
 			Enabled: proto.Bool(false),
-			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{Headers: true, Bodies: true}},
 		},
 	}
 
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
-	require.False(t, result.LogRequest)
+	require.False(t, result.LogHeaders)
+	require.False(t, result.LogBodies)
 }
 
 func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {

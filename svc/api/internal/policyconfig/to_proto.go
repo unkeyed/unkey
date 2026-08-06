@@ -117,7 +117,10 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 		out.Config = &frontlinev1.Policy_Openapi{Openapi: &frontlinev1.OpenApiRequestValidation{}}
 
 	case p.Logging != nil:
-		out.Config = &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}}
+		out.Config = &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{
+			Headers: ptr.SafeDeref(p.Logging.Headers),
+			Bodies:  ptr.SafeDeref(p.Logging.Bodies),
+		}}
 	}
 
 	return out, nil

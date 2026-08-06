@@ -19,7 +19,7 @@ import (
 // runClickHouseLoggingRequest runs one request through the ClickHouse logging
 // middleware with a handler that populates tracking the way the proxy handler
 // does, and returns the rows flushed to the batch processor.
-func runClickHouseLoggingRequest(t *testing.T, logRequest bool) []schema.FrontlineRequest {
+func runClickHouseLoggingRequest(t *testing.T, logHeaders, logBodies bool) []schema.FrontlineRequest {
 	t.Helper()
 
 	var rows []schema.FrontlineRequest
@@ -42,12 +42,20 @@ func runClickHouseLoggingRequest(t *testing.T, logRequest bool) []schema.Frontli
 		require.True(t, ok)
 		tracking.DeploymentID = "dep_123"
 		tracking.InstanceID = "inst_123"
-		tracking.LogRequest = logRequest
+		tracking.LogHeaders = logHeaders
+		tracking.LogBodies = logBodies
+		if logBodies {
+			// The proxy handler's TeeReader only captures the body when
+			// LogBodies is set; emulate that here.
+			tracking.RequestBody = []byte(`{"hello":"world"}`)
+		}
 		return nil
 	})
 
+	req := httptest.NewRequest(http.MethodGet, "/test?page=2", nil)
+	req.Header.Set("X-Custom", "custom-value")
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil), 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 	require.NoError(t, handler(context.Background(), sess))
 
 	go func() {
@@ -62,18 +70,39 @@ func runClickHouseLoggingRequest(t *testing.T, logRequest bool) []schema.Frontli
 	return rows
 }
 
-func TestClickHouseLogging_EmitsRowWhenLoggingPolicyMatched(t *testing.T) {
-	rows := runClickHouseLoggingRequest(t, true)
+// TestClickHouseLogging_AlwaysEmitsBaseRow pins that the base row is written
+// even without any logging policy: the traffic and latency charts depend on
+// it. Headers, query data, and bodies must stay empty without an opt-in.
+func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, false, false)
 
 	require.Len(t, rows, 1)
 	require.Equal(t, "dep_123", rows[0].DeploymentID)
 	require.Equal(t, "/test", rows[0].Path)
+	require.Empty(t, rows[0].QueryString)
+	require.Empty(t, rows[0].QueryParams)
+	require.Empty(t, rows[0].RequestHeaders)
+	require.Empty(t, rows[0].ResponseHeaders)
+	require.Empty(t, rows[0].RequestBody)
+	require.Empty(t, rows[0].ResponseBody)
 }
 
-func TestClickHouseLogging_SkipsRowWithoutLoggingPolicy(t *testing.T) {
-	rows := runClickHouseLoggingRequest(t, false)
+func TestClickHouseLogging_HeadersCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, true, false)
 
-	require.Empty(t, rows)
+	require.Len(t, rows, 1)
+	require.Equal(t, "page=2", rows[0].QueryString)
+	require.Contains(t, rows[0].RequestHeaders, "X-Custom: custom-value")
+	require.Empty(t, rows[0].RequestBody)
+}
+
+func TestClickHouseLogging_BodiesCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, false, true)
+
+	require.Len(t, rows, 1)
+	require.Equal(t, `{"hello":"world"}`, rows[0].RequestBody)
+	require.Empty(t, rows[0].RequestHeaders)
+	require.Empty(t, rows[0].QueryString)
 }
 
 func TestFormatHeaders_RedactsAuthorization(t *testing.T) {

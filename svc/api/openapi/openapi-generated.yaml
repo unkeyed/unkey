@@ -4862,16 +4862,31 @@ components:
             example: {}
         LoggingPolicy:
             type: object
+            properties:
+                headers:
+                    type: boolean
+                    default: false
+                    description: |-
+                        Capture request and response headers, plus the query string and query
+                        parameters. Query data is grouped with headers because URLs routinely
+                        carry secrets.
+                bodies:
+                    type: boolean
+                    default: false
+                    description: |-
+                        Capture request and response bodies, capped at the body-capture limit.
             additionalProperties: false
             description: |-
-                Records the full HTTP request and response of matching requests, including
-                headers, bodies, and a latency breakdown, viewable in the dashboard's
-                Requests tab. Has no configuration of its own; scope what gets logged via
-                the policy's `match` expressions. A policy without `match` expressions
-                matches every request and logs all traffic. Without an enabled logging
-                policy no request logs are recorded. Authorization headers and configured
+                Opts matching requests into capturing sensitive request data in the
+                request log. The gateway always records a base log entry for every
+                request (method, host, path, status, latency, user agent, client IP) —
+                that cannot be turned off. This policy adds headers and/or bodies on top,
+                scoped via the policy's `match` expressions. A policy without `match`
+                expressions matches every request. Authorization headers and configured
                 key locations are always redacted before storage.
-            example: {}
+            example:
+                headers: true
+                bodies: true
         PathMatch:
             type: object
             required:

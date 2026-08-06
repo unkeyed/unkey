@@ -35,10 +35,11 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			// those are empty the request was forwarded cross-region and
 			// the peer logs it.
 			//
-			// LogRequest is set by the handler only when an enabled logging
-			// policy matched the request — without one, request logging is
-			// off for the deployment and no row is emitted.
-			if !s.ShouldLogRequestToClickHouse() || !tracking.LogRequest || tracking.DeploymentID == "" || tracking.InstanceID == "" {
+			// The base row is written unconditionally — the traffic and
+			// latency charts depend on it. Headers, query data, and bodies
+			// are only included when an enabled logging policy opted the
+			// request in (tracking.LogHeaders / tracking.LogBodies).
+			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
 				return err
 			}
 
@@ -53,20 +54,32 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 
 			req := s.Request()
 
-			// Redact API keys delivered via custom header or query parameter.
-			// The handler records the configured KeyAuth locations on tracking;
-			// without this, keys would be persisted verbatim in the request log.
-			secretHeaders := toSet(tracking.RedactedHeaders)
-			secretParams := toSet(tracking.RedactedQueryParams)
+			// Headers and query data are opt-in: URLs and headers routinely
+			// carry secrets, so they only reach ClickHouse when an enabled
+			// logging policy with headers capture matched the request.
+			var queryString string
+			var queryParams url.Values
+			var requestHeaders, responseHeaders []string
+			if tracking.LogHeaders {
+				// Redact API keys delivered via custom header or query
+				// parameter. The handler records the configured KeyAuth
+				// locations on tracking; without this, keys would be
+				// persisted verbatim in the request log.
+				secretHeaders := toSet(tracking.RedactedHeaders)
+				secretParams := toSet(tracking.RedactedQueryParams)
 
-			queryString := req.URL.RawQuery
-			queryParams := req.URL.Query()
-			if len(secretParams) > 0 {
-				queryParams = redactQueryParams(queryParams, secretParams)
-				// Re-encode rather than log the raw string so the secret never
-				// reaches ClickHouse. This loses the original key ordering and
-				// encoding, which is acceptable for a debug log field.
-				queryString = queryParams.Encode()
+				queryString = req.URL.RawQuery
+				queryParams = req.URL.Query()
+				if len(secretParams) > 0 {
+					queryParams = redactQueryParams(queryParams, secretParams)
+					// Re-encode rather than log the raw string so the secret
+					// never reaches ClickHouse. This loses the original key
+					// ordering and encoding, which is acceptable for a debug
+					// log field.
+					queryString = queryParams.Encode()
+				}
+				requestHeaders = formatHeaders(req.Header, secretHeaders)
+				responseHeaders = formatHeaders(s.ResponseWriter().Header(), nil)
 			}
 
 			buf.Buffer(schema.FrontlineRequest{
@@ -87,10 +100,10 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				Path:             req.URL.Path,
 				QueryString:      queryString,
 				QueryParams:      queryParams,
-				RequestHeaders:   formatHeaders(req.Header, secretHeaders),
+				RequestHeaders:   requestHeaders,
 				RequestBody:      unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
 				ResponseStatus:   int32(s.StatusCode()),
-				ResponseHeaders:  formatHeaders(s.ResponseWriter().Header(), nil),
+				ResponseHeaders:  responseHeaders,
 				ResponseBody:     unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
 				UserAgent:        req.UserAgent(),
 				IPAddress:        s.Location(),

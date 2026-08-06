@@ -151,13 +151,15 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, policy)
 
 		req := makeRequest(env, policy.GetId())
-		req.Logging = &openapi.LoggingPolicy{}
+		req.Logging = &openapi.LoggingPolicy{Headers: ptr.P(true), Bodies: ptr.P(false)}
 		call(t, req)
 
 		policies := list(t, env)
 		require.Len(t, policies, 1)
 		require.Equal(t, policy.GetId(), policies[0].Id)
 		require.NotNil(t, policies[0].Logging)
+		require.Equal(t, ptr.P(true), policies[0].Logging.Headers, "capture flags must survive storage")
+		require.Equal(t, ptr.P(false), policies[0].Logging.Bodies, "capture flags must survive storage")
 		require.Nil(t, policies[0].Firewall, "old rule must be gone")
 	})
 

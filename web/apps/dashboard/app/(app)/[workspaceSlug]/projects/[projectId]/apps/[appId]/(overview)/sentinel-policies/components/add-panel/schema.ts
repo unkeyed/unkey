@@ -235,6 +235,8 @@ const openapiFormSchema = z.object({
 const loggingFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("logging"),
+  headers: z.boolean(),
+  bodies: z.boolean(),
 });
 
 export const policyFormSchema = z.discriminatedUnion("type", [
@@ -308,6 +310,10 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .with("logging", () => ({
       ...base,
       type: "logging" as const,
+      // Someone adding a logging policy wants to capture request data, so
+      // both opt-ins default on; the base log row exists regardless.
+      headers: true,
+      bodies: true,
     }))
     .exhaustive();
 }
@@ -451,7 +457,7 @@ export function toSentinelPolicy(
       name: v.name,
       enabled: true,
       type: "logging" as const,
-      logging: {},
+      logging: { headers: v.headers, bodies: v.bodies },
       match: matchExprs,
     }))
     .exhaustive();
@@ -613,6 +619,8 @@ export function fromSentinelPolicy(
       name: p.name,
       environmentId,
       matchConditions,
+      headers: p.logging.headers ?? false,
+      bodies: p.logging.bodies ?? false,
     }))
     .exhaustive();
 }

@@ -96,7 +96,10 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 		out.Openapi = ptr.P(openapi.OpenapiPolicy{})
 
 	case *frontlinev1.Policy_Logging:
-		out.Logging = ptr.P(openapi.LoggingPolicy{})
+		out.Logging = &openapi.LoggingPolicy{
+			Headers: ptr.P(config.Logging.GetHeaders()),
+			Bodies:  ptr.P(config.Logging.GetBodies()),
+		}
 
 	default:
 		return openapi.PolicyResponse{}, unmappable(p.GetId(), "config variant")

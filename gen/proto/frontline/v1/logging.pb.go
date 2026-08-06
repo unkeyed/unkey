@@ -21,29 +21,36 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Logging records the full HTTP request and response of matching requests to
-// the request log (ClickHouse), including headers, bodies, status, and a
-// latency breakdown. Without an enabled logging policy, frontline does not
-// persist request logs for a deployment at all — logging is strictly opt-in
-// per environment.
+// Logging opts matching requests into capturing sensitive request data in
+// the request log (ClickHouse).
 //
-// Making logging a policy rather than an always-on behavior gives operators
-// the same controls as every other policy: scope it to specific routes via
-// match expressions (e.g. exclude health checks or high-volume endpoints),
-// and toggle it without a redeploy via the enabled flag.
+// Frontline always writes a base log row for every proxied request: request
+// id, workspace/project/app/environment/deployment ids, method, host, path,
+// response status, latency breakdown, user agent, and client IP. This base
+// row cannot be turned off — the dashboard's traffic and latency charts are
+// built from it.
+//
+// A logging policy adds the sensitive parts on top, scoped to matching
+// requests: headers and query parameters (headers = true) and request and
+// response bodies (bodies = true). Without an enabled matching logging
+// policy, only the base row is stored.
 //
 // An empty match list matches every request — an enabled logging policy
-// with no match expressions logs all traffic for the environment.
+// with no match expressions captures the configured extras for all traffic
+// in the environment.
 //
 // Sensitive values are redacted before persistence regardless of this
 // policy's configuration: the Authorization header is always redacted, and
 // any header or query parameter configured as a KeyAuth key location is
 // redacted too.
-//
-// The message is intentionally empty for now. What gets captured is fixed;
-// future knobs (sampling, body capture opt-out, retention hints) belong here.
 type Logging struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Capture request and response headers, plus the query string and query
+	// parameters. Query data lives here rather than in the base row because
+	// URLs routinely carry secrets (e.g. ?api_key=...).
+	Headers bool `protobuf:"varint,1,opt,name=headers,proto3" json:"headers,omitempty"`
+	// Capture request and response bodies, capped at the body-capture limit.
+	Bodies        bool `protobuf:"varint,2,opt,name=bodies,proto3" json:"bodies,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -78,12 +85,28 @@ func (*Logging) Descriptor() ([]byte, []int) {
 	return file_frontline_policies_v1_logging_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *Logging) GetHeaders() bool {
+	if x != nil {
+		return x.Headers
+	}
+	return false
+}
+
+func (x *Logging) GetBodies() bool {
+	if x != nil {
+		return x.Bodies
+	}
+	return false
+}
+
 var File_frontline_policies_v1_logging_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_logging_proto_rawDesc = "" +
 	"\n" +
-	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\"\t\n" +
-	"\aLoggingB\xae\x01\n" +
+	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\";\n" +
+	"\aLogging\x12\x18\n" +
+	"\aheaders\x18\x01 \x01(\bR\aheaders\x12\x16\n" +
+	"\x06bodies\x18\x02 \x01(\bR\x06bodiesB\xae\x01\n" +
 	"\x10com.frontline.v1B\fLoggingProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
 var (
