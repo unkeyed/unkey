@@ -857,25 +857,26 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
-// LoggingPolicy Opts matching requests into capturing sensitive request data in the
-// request log. The gateway always records a base log entry for every
-// request (method, host, path, status, latency) — that cannot be turned
-// off. This policy adds headers and bodies on top,
-// each direction as a separate opt-in, scoped via the policy's `match`
-// expressions. A policy without `match` expressions matches every request.
-// Authorization headers and configured key locations are always redacted
-// before storage.
+// LoggingPolicy Adds sensitive data to the request log for matching requests. The
+// gateway always records a base log entry for every request: method,
+// host, path, status, and latency. You cannot turn the base entry off.
+// Each capture setting is a separate opt-in. The policy's `match`
+// expressions select the requests. A policy without `match` expressions
+// matches every request. If more than one enabled logging policy matches
+// a request, the gateway combines their settings. The gateway always
+// redacts the `Authorization` header and configured key locations before
+// it stores headers or query data.
 type LoggingPolicy struct {
-	// RequestBody Capture the request body, capped at the body-capture limit.
+	// RequestBody Capture the request body, up to the capture limit.
 	RequestBody *bool `json:"requestBody,omitempty"`
 
-	// RequestHeaders Capture request headers, plus the query string, query parameters,
-	// user agent, and client IP. Query data is grouped with request
-	// headers because URLs routinely carry secrets; user agent and client
-	// IP are grouped here because they identify the client.
+	// RequestHeaders Capture request headers, the query string, query parameters, user
+	// agent, and client IP. This setting includes query data because URLs
+	// can contain secrets. It includes the user agent and client IP
+	// because they identify the client.
 	RequestHeaders *bool `json:"requestHeaders,omitempty"`
 
-	// ResponseBody Capture the response body, capped at the body-capture limit.
+	// ResponseBody Capture the response body, up to the capture limit.
 	ResponseBody *bool `json:"responseBody,omitempty"`
 
 	// ResponseHeaders Capture response headers.
@@ -991,14 +992,15 @@ type Policy struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Opts matching requests into capturing sensitive request data in the
-	// request log. The gateway always records a base log entry for every
-	// request (method, host, path, status, latency) — that cannot be turned
-	// off. This policy adds headers and bodies on top,
-	// each direction as a separate opt-in, scoped via the policy's `match`
-	// expressions. A policy without `match` expressions matches every request.
-	// Authorization headers and configured key locations are always redacted
-	// before storage.
+	// Logging Adds sensitive data to the request log for matching requests. The
+	// gateway always records a base log entry for every request: method,
+	// host, path, status, and latency. You cannot turn the base entry off.
+	// Each capture setting is a separate opt-in. The policy's `match`
+	// expressions select the requests. A policy without `match` expressions
+	// matches every request. If more than one enabled logging policy matches
+	// a request, the gateway combines their settings. The gateway always
+	// redacts the `Authorization` header and configured key locations before
+	// it stores headers or query data.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
@@ -1032,14 +1034,15 @@ type PolicyResponse struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Opts matching requests into capturing sensitive request data in the
-	// request log. The gateway always records a base log entry for every
-	// request (method, host, path, status, latency) — that cannot be turned
-	// off. This policy adds headers and bodies on top,
-	// each direction as a separate opt-in, scoped via the policy's `match`
-	// expressions. A policy without `match` expressions matches every request.
-	// Authorization headers and configured key locations are always redacted
-	// before storage.
+	// Logging Adds sensitive data to the request log for matching requests. The
+	// gateway always records a base log entry for every request: method,
+	// host, path, status, and latency. You cannot turn the base entry off.
+	// Each capture setting is a separate opt-in. The policy's `match`
+	// expressions select the requests. A policy without `match` expressions
+	// matches every request. If more than one enabled logging policy matches
+	// a request, the gateway combines their settings. The gateway always
+	// redacts the `Authorization` header and configured key locations before
+	// it stores headers or query data.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Optional request matchers. The policy applies only to requests matching
@@ -2279,14 +2282,15 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Keyauth Verifies Unkey API keys on matching requests.
 	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
 
-	// Logging Opts matching requests into capturing sensitive request data in the
-	// request log. The gateway always records a base log entry for every
-	// request (method, host, path, status, latency) — that cannot be turned
-	// off. This policy adds headers and bodies on top,
-	// each direction as a separate opt-in, scoped via the policy's `match`
-	// expressions. A policy without `match` expressions matches every request.
-	// Authorization headers and configured key locations are always redacted
-	// before storage.
+	// Logging Adds sensitive data to the request log for matching requests. The
+	// gateway always records a base log entry for every request: method,
+	// host, path, status, and latency. You cannot turn the base entry off.
+	// Each capture setting is a separate opt-in. The policy's `match`
+	// expressions select the requests. A policy without `match` expressions
+	// matches every request. If more than one enabled logging policy matches
+	// a request, the gateway combines their settings. The gateway always
+	// redacts the `Authorization` header and configured key locations before
+	// it stores headers or query data.
 	Logging *LoggingPolicy `json:"logging,omitempty"`
 
 	// Match Replaces all match expressions. Set null to remove them so the policy

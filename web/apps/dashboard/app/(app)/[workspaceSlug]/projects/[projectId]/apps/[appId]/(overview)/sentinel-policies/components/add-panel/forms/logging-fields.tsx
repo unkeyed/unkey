@@ -43,7 +43,7 @@ export function LoggingFields() {
       <CaptureToggle
         name="requestHeaders"
         label="Request headers"
-        description="Store request headers, the query string, and query parameters."
+        description="Store request headers, query data, the user agent, and the client IP."
       />
       <CaptureToggle
         name="responseHeaders"

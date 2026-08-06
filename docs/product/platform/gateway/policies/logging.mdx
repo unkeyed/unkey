@@ -1,17 +1,17 @@
 ---
 title: Logging
-description: "Control what the gateway stores in the request log. Add headers and bodies to the basic log entries for debugging and observability."
+description: "Control what the gateway stores in the request log. Add headers and bodies to the basic log entries for debugging."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The gateway always records a basic log entry for each request. This entry powers the traffic and latency charts in the dashboard. You cannot turn it off.
+The gateway always records a basic log entry for each request. The dashboard uses these entries for the traffic and latency charts. You cannot turn them off.
 
-The logging policy adds sensitive data to the log entries of matched requests: headers and bodies. This capture is opt-in. Each direction is a separate setting. Without an enabled logging policy, the gateway stores only the basic entries.
+The logging policy adds sensitive data to the log entries of matched requests: headers and bodies. Each capture is a separate opt-in setting. Without an enabled logging policy, the gateway stores only the basic entries.
 
-Add a logging policy with no match conditions to capture data for all traffic, or scope it with match conditions to capture data only for specific routes.
+To capture data for all traffic, add a logging policy with no match conditions. To capture data only for specific routes, add match conditions to the policy.
 
 ## Always logged
 
@@ -41,11 +41,11 @@ A logging policy has four independent settings. Each one adds data to the log en
 | Request body     | Request body, up to the capture limit                                             |
 | Response body    | Response body, up to the capture limit                                            |
 
-Query data is grouped with request headers because URLs often carry secrets, for example `?api_key=...`. The user agent and client IP are grouped with request headers because they identify the client.
+The request headers setting includes query data because URLs can contain secrets, for example `?api_key=...`. It includes the user agent and client IP because they identify the client.
 
-If more than one enabled logging policy matches a request, the gateway captures the union of their settings.
+If more than one enabled logging policy matches a request, the gateway combines their settings.
 
-The gateway redacts sensitive values before it stores them. The `Authorization` header is always redacted. Headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key) are redacted too.
+The gateway redacts sensitive values before it stores them. It always redacts the `Authorization` header. It also redacts headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key).
 
 ## Redact body fields
 
@@ -68,7 +68,7 @@ credentials that a KeyAuth policy defines.
 
 ## View logs
 
-Logs are available in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
+You can see the logs in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
 
 - Status code
 - HTTP method
@@ -80,4 +80,4 @@ The dashboard supports live streaming for real-time monitoring.
 
 ## Retention
 
-Logs are retained for 30 days.
+Unkey keeps logs for 30 days.

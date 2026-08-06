@@ -13,36 +13,36 @@ export const file_frontline_policies_v1_logging: GenFile = /*@__PURE__*/
   fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEvbG9nZ2luZy5wcm90bxIMZnJvbnRsaW5lLnYxImkKB0xvZ2dpbmcSFwoPcmVxdWVzdF9oZWFkZXJzGAEgASgIEhgKEHJlc3BvbnNlX2hlYWRlcnMYAiABKAgSFAoMcmVxdWVzdF9ib2R5GAMgASgIEhUKDXJlc3BvbnNlX2JvZHkYBCABKAhCrgEKEGNvbS5mcm9udGxpbmUudjFCDExvZ2dpbmdQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
 
 /**
- * Logging opts matching requests into capturing sensitive request data in
- * the request log (ClickHouse).
+ * Logging adds sensitive data to the request log (ClickHouse) for matching
+ * requests.
  *
- * Frontline always writes a base log row for every proxied request: request
- * id, workspace/project/app/environment/deployment ids, method, host, path,
- * response status, and latency breakdown. This base row cannot be turned
- * off — the dashboard's traffic and latency charts are built from it.
+ * The gateway always writes a base log row for every proxied request:
+ * request id, workspace/project/app/environment/deployment ids, method,
+ * host, path, response status, and latency breakdown. You cannot turn the
+ * base row off — the dashboard's traffic and latency charts are built
+ * from it.
  *
  * A logging policy adds the sensitive parts on top, scoped to matching
- * requests. Each direction and kind is a separate opt-in: request headers,
+ * requests. Each capture setting is a separate opt-in: request headers,
  * response headers, request body, and response body. Without an enabled
- * matching logging policy, only the base row is stored.
+ * matching logging policy, the gateway stores only the base row.
  *
  * An empty match list matches every request — an enabled logging policy
  * with no match expressions captures the configured extras for all traffic
  * in the environment.
  *
- * Sensitive values are redacted before persistence regardless of this
- * policy's configuration: the Authorization header is always redacted, and
- * any header or query parameter configured as a KeyAuth key location is
- * redacted too.
+ * The gateway redacts sensitive values before storage regardless of this
+ * policy's configuration: it always redacts the Authorization header and
+ * any header or query parameter configured as a KeyAuth key location.
  *
  * @generated from message frontline.v1.Logging
  */
 export type Logging = Message<"frontline.v1.Logging"> & {
   /**
-   * Capture request headers, plus the query string, query parameters,
-   * user agent, and client IP. Query data lives here rather than in the
-   * base row because URLs routinely carry secrets (e.g. ?api_key=...);
-   * user agent and client IP live here because they identify the client.
+   * Capture request headers, the query string, query parameters, user
+   * agent, and client IP. Query data lives here rather than in the base
+   * row because URLs can contain secrets (e.g. ?api_key=...). User agent
+   * and client IP live here because they identify the client.
    *
    * @generated from field: bool request_headers = 1;
    */
@@ -56,14 +56,14 @@ export type Logging = Message<"frontline.v1.Logging"> & {
   responseHeaders: boolean;
 
   /**
-   * Capture the request body, capped at the body-capture limit.
+   * Capture the request body, up to the capture limit.
    *
    * @generated from field: bool request_body = 3;
    */
   requestBody: boolean;
 
   /**
-   * Capture the response body, capped at the body-capture limit.
+   * Capture the response body, up to the capture limit.
    *
    * @generated from field: bool response_body = 4;
    */

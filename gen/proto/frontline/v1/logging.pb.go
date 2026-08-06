@@ -21,39 +21,39 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Logging opts matching requests into capturing sensitive request data in
-// the request log (ClickHouse).
+// Logging adds sensitive data to the request log (ClickHouse) for matching
+// requests.
 //
-// Frontline always writes a base log row for every proxied request: request
-// id, workspace/project/app/environment/deployment ids, method, host, path,
-// response status, and latency breakdown. This base row cannot be turned
-// off — the dashboard's traffic and latency charts are built from it.
+// The gateway always writes a base log row for every proxied request:
+// request id, workspace/project/app/environment/deployment ids, method,
+// host, path, response status, and latency breakdown. You cannot turn the
+// base row off — the dashboard's traffic and latency charts are built
+// from it.
 //
 // A logging policy adds the sensitive parts on top, scoped to matching
-// requests. Each direction and kind is a separate opt-in: request headers,
+// requests. Each capture setting is a separate opt-in: request headers,
 // response headers, request body, and response body. Without an enabled
-// matching logging policy, only the base row is stored.
+// matching logging policy, the gateway stores only the base row.
 //
 // An empty match list matches every request — an enabled logging policy
 // with no match expressions captures the configured extras for all traffic
 // in the environment.
 //
-// Sensitive values are redacted before persistence regardless of this
-// policy's configuration: the Authorization header is always redacted, and
-// any header or query parameter configured as a KeyAuth key location is
-// redacted too.
+// The gateway redacts sensitive values before storage regardless of this
+// policy's configuration: it always redacts the Authorization header and
+// any header or query parameter configured as a KeyAuth key location.
 type Logging struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Capture request headers, plus the query string, query parameters,
-	// user agent, and client IP. Query data lives here rather than in the
-	// base row because URLs routinely carry secrets (e.g. ?api_key=...);
-	// user agent and client IP live here because they identify the client.
+	// Capture request headers, the query string, query parameters, user
+	// agent, and client IP. Query data lives here rather than in the base
+	// row because URLs can contain secrets (e.g. ?api_key=...). User agent
+	// and client IP live here because they identify the client.
 	RequestHeaders bool `protobuf:"varint,1,opt,name=request_headers,json=requestHeaders,proto3" json:"request_headers,omitempty"`
 	// Capture response headers.
 	ResponseHeaders bool `protobuf:"varint,2,opt,name=response_headers,json=responseHeaders,proto3" json:"response_headers,omitempty"`
-	// Capture the request body, capped at the body-capture limit.
+	// Capture the request body, up to the capture limit.
 	RequestBody bool `protobuf:"varint,3,opt,name=request_body,json=requestBody,proto3" json:"request_body,omitempty"`
-	// Capture the response body, capped at the body-capture limit.
+	// Capture the response body, up to the capture limit.
 	ResponseBody  bool `protobuf:"varint,4,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
