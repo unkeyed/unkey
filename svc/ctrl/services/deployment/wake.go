@@ -42,18 +42,14 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
 	}
 
-	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, deployment.WorkspaceID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace entitlement: %w", err))
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "wake"); err != nil {
+		return nil, err
 	}
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
 		DesiredState:    deployment.DesiredState,
 		EnvironmentKind: environment.Kind,
-		SpendSuspended:  entitlement.SpendSuspended.Bool,
+		SpendSuspended:  false,
 	}); err != nil {
 		return nil, gatefault.Connect(err)
 	}

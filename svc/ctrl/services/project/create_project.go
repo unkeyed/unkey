@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
@@ -48,7 +49,7 @@ func (s *Service) CreateProject(
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
-	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
+	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
 		if s.enforceDeployGate {
 			return nil, connect.NewError(
 				connect.CodeFailedPrecondition,
