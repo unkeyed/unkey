@@ -9,7 +9,8 @@ services:
 
   dashboard:
     command: >-
-      python3 -u .amp/service-proxy.py "$PORT" 3000
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 3000
     port: 13000
     portal:
       title: Dashboard
@@ -17,7 +18,8 @@ services:
 
   api:
     command: >-
-      python3 -u .amp/service-proxy.py "$PORT" 7070
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 7070
     port: 17070
     health: /health/live
     portal:
@@ -27,7 +29,8 @@ services:
 
   vault:
     command: >-
-      python3 -u .amp/service-proxy.py "$PORT" 8060
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 8060
     port: 18060
     health: /health/live
     portal:
@@ -37,7 +40,8 @@ services:
 
   control-api:
     command: >-
-      python3 -u .amp/service-proxy.py "$PORT" 7091
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services proxy "$PORT" 7091
     port: 17091
     health: /health/live
     portal:
@@ -47,7 +51,8 @@ services:
 
   deployment-portals:
     command: >-
-      python3 -u .amp/frontline-portals.py "$PORT"
+      "$HOME/.local/bin/mise" exec --
+      go run ./tools/amp-orb-services deployment-portals "$PORT"
     port: 19081
     health: /
 
