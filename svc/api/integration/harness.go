@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -230,7 +231,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				}
 			}()
 
-			err := api.Run(ctx, cfg)
+			err := api.Run(ctx, cfg, openapivalidation.NewFromBytes)
 			if err != nil && ctx.Err() == nil {
 				h.t.Logf("API server %d failed: %v", nodeID, err)
 				select {
