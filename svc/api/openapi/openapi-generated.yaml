@@ -442,16 +442,16 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
-                image:
-                    "$ref": "#/components/schemas/AppDockerImageCreateInput"
+                docker:
+                    "$ref": "#/components/schemas/AppDockerInput"
             additionalProperties: false
             not:
                 required:
                     - git
-                    - image
+                    - docker
             description: |
                 Create an app with an optional GitHub or Docker image source. Provide at most
-                one of `git` or `image`. Omit both only for compatibility with source-less apps.
+                one of `git` or `docker`. Omit both only for compatibility with source-less apps.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -598,13 +598,13 @@ components:
                     anyOf:
                         - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
-                image:
+                docker:
                     description: |
                         Change the default image reference for a Docker-sourced app. This does not
                         create a deployment. Image updates cannot be combined with other changes,
                         and source switching is not supported.
                     allOf:
-                        - "$ref": "#/components/schemas/AppDockerImageCreateInput"
+                        - "$ref": "#/components/schemas/AppDockerInput"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -616,16 +616,16 @@ components:
                 anyOf:
                     - required:
                         - git
-                        - image
+                        - docker
                     - required:
                         - name
-                        - image
+                        - docker
                     - required:
                         - slug
-                        - image
+                        - docker
                     - required:
                         - deleteProtection
-                        - image
+                        - docker
         V2AppsUpdateAppResponseBody:
             type: object
             required:
@@ -4110,20 +4110,19 @@ components:
                         default branch on GitHub.
                     example: main
             additionalProperties: false
-        AppDockerImageCreateInput:
+        AppDockerInput:
             type: object
             description: |
-                Configure a Docker image as the app source. The image reference must include
-                an explicit tag or digest.
+                Configure Docker as the app source.
             required:
-                - dockerImage
+                - image
             properties:
-                dockerImage:
+                image:
                     type: string
                     minLength: 1
                     maxLength: 512
                     pattern: "\\S"
-                    description: The default Docker image reference for new deployments.
+                    description: The default image reference for new deployments. It must include an explicit tag or digest.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         V2AppsCreateAppResponseData:
@@ -7622,7 +7621,7 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
-                Set `git` to create a GitHub-sourced app and connect its repository. Set `image` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
+                Set `git` to create a GitHub-sourced app and connect its repository. Set `docker` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
 
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
@@ -7649,8 +7648,8 @@ paths:
                                 description: Create an app from a Docker image
                                 summary: Docker image app
                                 value:
-                                    image:
-                                        dockerImage: ghcr.io/acme/payments:v1.2.3
+                                    docker:
+                                        image: ghcr.io/acme/payments:v1.2.3
                                     name: Payments API
                                     project: payments
                                     slug: payments-api

@@ -26,13 +26,13 @@ properties:
     anyOf:
       - "$ref": "../../../../common/AppGitUpdateInput.yaml"
       - type: "null"
-  image:
+  docker:
     description: |
       Change the default image reference for a Docker-sourced app. This does not
       create a deployment. Image updates cannot be combined with other changes,
       and source switching is not supported.
     allOf:
-      - "$ref": "../../../../common/AppDockerImageCreateInput.yaml"
+      - "$ref": "../../../../common/AppDockerInput.yaml"
   deleteProtection:
     type: boolean
     description: |
@@ -92,11 +92,11 @@ examples:
     value:
       project: payments
       app: app_1234abcd
-      image:
-        dockerImage: ghcr.io/acme/payments:v2.0.0
+      docker:
+        image: ghcr.io/acme/payments:v2.0.0
 not:
   anyOf:
-    - required: [git, image]
-    - required: [name, image]
-    - required: [slug, image]
-    - required: [deleteProtection, image]
+    - required: [git, docker]
+    - required: [name, docker]
+    - required: [slug, docker]
+    - required: [deleteProtection, docker]

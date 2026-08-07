@@ -213,11 +213,10 @@ type App struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
-// AppDockerImageCreateInput Configure a Docker image as the app source. The image reference must include
-// an explicit tag or digest.
-type AppDockerImageCreateInput struct {
-	// DockerImage The default Docker image reference for new deployments.
-	DockerImage string `json:"dockerImage"`
+// AppDockerInput Configure Docker as the app source.
+type AppDockerInput struct {
+	// Image The default image reference for new deployments. It must include an explicit tag or digest.
+	Image string `json:"image"`
 }
 
 // AppGit defines model for AppGit.
@@ -1753,15 +1752,14 @@ type V2ApisListKeysResponseBody struct {
 type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2AppsCreateAppRequestBody Create an app with an optional GitHub or Docker image source. Provide at most
-// one of `git` or `image`. Omit both only for compatibility with source-less apps.
+// one of `git` or `docker`. Omit both only for compatibility with source-less apps.
 type V2AppsCreateAppRequestBody struct {
+	// Docker Configure Docker as the app source.
+	Docker *AppDockerInput `json:"docker,omitempty"`
+
 	// Git Connect a GitHub repository to the app on creation. Omit to create the app
 	// without a repository and connect one later with apps.updateApp.
 	Git *AppGitCreateInput `json:"git,omitempty"`
-
-	// Image Configure a Docker image as the app source. The image reference must include
-	// an explicit tag or digest.
-	Image *AppDockerImageCreateInput `json:"image,omitempty"`
 
 	// Name Human-readable name for this app.
 	// Use a descriptive name like 'Payments API' to identify its purpose.
@@ -1870,16 +1868,16 @@ type V2AppsUpdateAppRequestBody struct {
 	// Omit this field to leave the current setting unchanged.
 	DeleteProtection *bool `json:"deleteProtection,omitempty"`
 
+	// Docker Change the default image reference for a Docker-sourced app. This does not
+	// create a deployment. Image updates cannot be combined with other changes,
+	// and source switching is not supported.
+	Docker *AppDockerInput `json:"docker,omitempty"`
+
 	// Git Connect, reconfigure, or disconnect this app's GitHub repository.
 	// Omit to leave unchanged, set null to disconnect, or set an object with a
 	// "repository" to connect or replace it and/or a "defaultBranch" to set which
 	// branch it tracks. Fields are independent, so send only the one you change.
 	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
-
-	// Image Change the default image reference for a Docker-sourced app. This does not
-	// create a deployment. Image updates cannot be combined with other changes,
-	// and source switching is not supported.
-	Image *AppDockerImageCreateInput `json:"image,omitempty"`
 
 	// Name New human-readable name for the app.
 	// Omit this field to leave the current name unchanged.

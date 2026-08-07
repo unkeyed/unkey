@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if req.Image != nil && (req.Git.IsSpecified() || req.Name != nil || req.Slug != nil || req.DeleteProtection != nil) {
+	if req.Docker != nil && (req.Git.IsSpecified() || req.Name != nil || req.Slug != nil || req.DeleteProtection != nil) {
 		return fault.New(
 			"Docker image update combined with other changes",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Git configuration can only be updated for GitHub or legacy apps."),
 			)
 		}
-		if req.Image != nil && app.SourceType != db.AppsSourceTypeDockerImage {
+		if req.Docker != nil && app.SourceType != db.AppsSourceTypeDockerImage {
 			return openapi.App{}, fault.New(
 				"image update is incompatible with app source",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -297,7 +297,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.Image != nil {
+	if req.Docker != nil {
 		actor, actorErr := ctrlclient.Actor(s)
 		if actorErr != nil {
 			return actorErr
@@ -305,7 +305,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		_, ctrlErr := h.CtrlClient.UpdateDockerImageSource(ctx, &ctrlv1.UpdateDockerImageSourceRequest{
 			WorkspaceId:    principal.WorkspaceID,
 			AppId:          data.Id,
-			ImageReference: req.Image.DockerImage,
+			ImageReference: req.Docker.Image,
 			Actor:          actor,
 		})
 		if ctrlErr != nil {

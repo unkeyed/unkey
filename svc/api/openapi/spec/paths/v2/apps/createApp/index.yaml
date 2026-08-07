@@ -5,7 +5,7 @@ post:
   description: |
     Create an app within a project. The app is created with default `production` and `preview` environments.
 
-    Set `git` to create a GitHub-sourced app and connect its repository. Set `image` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
+    Set `git` to create a GitHub-sourced app and connect its repository. Set `docker` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
 
     The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
@@ -41,8 +41,8 @@ post:
               project: payments
               name: Payments API
               slug: payments-api
-              image:
-                dockerImage: ghcr.io/acme/payments:v1.2.3
+              docker:
+                image: ghcr.io/acme/payments:v1.2.3
     required: true
   responses:
     "200":
