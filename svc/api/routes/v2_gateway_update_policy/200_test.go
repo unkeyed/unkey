@@ -156,6 +156,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 			ResponseHeaders: ptr.P(false),
 			RequestBody:     ptr.P(true),
 			ResponseBody:    ptr.P(false),
+			Query:           ptr.P(true),
 		}
 		call(t, req)
 
@@ -167,6 +168,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseHeaders, "capture flags must survive storage")
 		require.Equal(t, ptr.P(true), policies[0].Logging.RequestBody, "capture flags must survive storage")
 		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseBody, "capture flags must survive storage")
+		require.Equal(t, ptr.P(true), policies[0].Logging.Query, "capture flags must survive storage")
 		require.Nil(t, policies[0].Firewall, "old rule must be gone")
 	})
 

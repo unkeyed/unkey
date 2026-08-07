@@ -101,6 +101,7 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 			ResponseHeaders: ptr.P(config.Logging.GetResponseHeaders()),
 			RequestBody:     ptr.P(config.Logging.GetRequestBody()),
 			ResponseBody:    ptr.P(config.Logging.GetResponseBody()),
+			Query:           ptr.P(config.Logging.GetQuery()),
 		}
 
 	default:

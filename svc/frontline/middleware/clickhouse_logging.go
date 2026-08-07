@@ -69,11 +69,15 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				// always-on base row.
 				userAgent = req.UserAgent()
 				ipAddress = s.Location()
-				// Redact API keys delivered via custom header or query
-				// parameter. The handler records the configured KeyAuth
-				// locations on tracking; without this, keys would be
-				// persisted verbatim in the request log.
-				secretHeaders := toSet(tracking.RedactedHeaders)
+				// Redact API keys delivered via custom header. The handler
+				// records the configured KeyAuth locations on tracking;
+				// without this, keys would be persisted verbatim in the
+				// request log.
+				requestHeaders = formatHeaders(req.Header, toSet(tracking.RedactedHeaders))
+			}
+			if tracking.LogQuery {
+				// Redact API keys delivered via query parameter, mirroring
+				// the header redaction above.
 				secretParams := toSet(tracking.RedactedQueryParams)
 
 				queryString = req.URL.RawQuery
@@ -86,7 +90,6 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 					// log field.
 					queryString = queryParams.Encode()
 				}
-				requestHeaders = formatHeaders(req.Header, secretHeaders)
 			}
 			if tracking.LogResponseHeaders {
 				responseHeaders = formatHeaders(s.ResponseWriter().Header(), nil)

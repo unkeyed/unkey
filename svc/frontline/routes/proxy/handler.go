@@ -92,6 +92,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		tracking.LogResponseHeaders = result.LogResponseHeaders
 		tracking.LogRequestBody = result.LogRequestBody
 		tracking.LogResponseBody = result.LogResponseBody
+		tracking.LogQuery = result.LogQuery
 		tracking.BodyRedactors = result.BodyRedactors
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()

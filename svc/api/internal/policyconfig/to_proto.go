@@ -122,6 +122,7 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 			ResponseHeaders: ptr.SafeDeref(p.Logging.ResponseHeaders),
 			RequestBody:     ptr.SafeDeref(p.Logging.RequestBody),
 			ResponseBody:    ptr.SafeDeref(p.Logging.ResponseBody),
+			Query:           ptr.SafeDeref(p.Logging.Query),
 		}}
 	}
 

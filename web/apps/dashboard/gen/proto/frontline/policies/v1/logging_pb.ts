@@ -10,11 +10,11 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/logging.proto.
  */
 export const file_frontline_policies_v1_logging: GenFile = /*@__PURE__*/
-  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEvbG9nZ2luZy5wcm90bxIMZnJvbnRsaW5lLnYxImkKB0xvZ2dpbmcSFwoPcmVxdWVzdF9oZWFkZXJzGAEgASgIEhgKEHJlc3BvbnNlX2hlYWRlcnMYAiABKAgSFAoMcmVxdWVzdF9ib2R5GAMgASgIEhUKDXJlc3BvbnNlX2JvZHkYBCABKAhCrgEKEGNvbS5mcm9udGxpbmUudjFCDExvZ2dpbmdQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
+  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEvbG9nZ2luZy5wcm90bxIMZnJvbnRsaW5lLnYxIngKB0xvZ2dpbmcSFwoPcmVxdWVzdF9oZWFkZXJzGAEgASgIEhgKEHJlc3BvbnNlX2hlYWRlcnMYAiABKAgSFAoMcmVxdWVzdF9ib2R5GAMgASgIEhUKDXJlc3BvbnNlX2JvZHkYBCABKAgSDQoFcXVlcnkYBSABKAhCrgEKEGNvbS5mcm9udGxpbmUudjFCDExvZ2dpbmdQcm90b1ABWjtnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2Zyb250bGluZS92MTtmcm9udGxpbmV2MaICA0ZYWKoCDEZyb250bGluZS5WMcoCDEZyb250bGluZVxWMeICGEZyb250bGluZVxWMVxHUEJNZXRhZGF0YeoCDUZyb250bGluZTo6VjFiBnByb3RvMw");
 
 /**
- * Logging adds sensitive data to the request log (ClickHouse) for matching
- * requests.
+ * Logging adds request data — headers, query data, and bodies — to the
+ * request log (ClickHouse) for matching requests.
  *
  * The gateway always writes a base log row for every proxied request:
  * request id, workspace/project/app/environment/deployment ids, method,
@@ -22,10 +22,10 @@ export const file_frontline_policies_v1_logging: GenFile = /*@__PURE__*/
  * base row off — the dashboard's traffic and latency charts are built
  * from it.
  *
- * A logging policy adds the sensitive parts on top, scoped to matching
+ * A logging policy adds more request data on top, scoped to matching
  * requests. Each capture setting is a separate opt-in: request headers,
- * response headers, request body, and response body. Without an enabled
- * matching logging policy, the gateway stores only the base row.
+ * response headers, request body, response body, and query data. Without
+ * an enabled matching logging policy, the gateway stores only the base row.
  *
  * An empty match list matches every request — an enabled logging policy
  * with no match expressions captures the configured extras for all traffic
@@ -39,9 +39,7 @@ export const file_frontline_policies_v1_logging: GenFile = /*@__PURE__*/
  */
 export type Logging = Message<"frontline.v1.Logging"> & {
   /**
-   * Capture request headers, the query string, query parameters, user
-   * agent, and client IP. Query data lives here rather than in the base
-   * row because URLs can contain secrets (e.g. ?api_key=...). User agent
+   * Capture request headers, the user agent, and the client IP. User agent
    * and client IP live here because they identify the client.
    *
    * @generated from field: bool request_headers = 1;
@@ -68,6 +66,15 @@ export type Logging = Message<"frontline.v1.Logging"> & {
    * @generated from field: bool response_body = 4;
    */
   responseBody: boolean;
+
+  /**
+   * Capture the query string and query parameters. Query data lives here
+   * rather than in the base row because URLs can contain secrets
+   * (e.g. ?api_key=...).
+   *
+   * @generated from field: bool query = 5;
+   */
+  query: boolean;
 };
 
 /**

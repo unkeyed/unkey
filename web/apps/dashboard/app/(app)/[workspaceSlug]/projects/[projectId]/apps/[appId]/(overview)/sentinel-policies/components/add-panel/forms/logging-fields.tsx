@@ -12,7 +12,7 @@ function CaptureToggle({
   label,
   description,
 }: {
-  name: "requestHeaders" | "responseHeaders" | "requestBody" | "responseBody";
+  name: "requestHeaders" | "responseHeaders" | "requestBody" | "responseBody" | "query";
   label: string;
   description: string;
 }) {
@@ -48,7 +48,7 @@ export function LoggingFields() {
       <CaptureToggle
         name="requestHeaders"
         label="Request headers"
-        description="Also stores query parameters, the user agent, and the client IP."
+        description="Also stores the user agent and the client IP."
       />
       <CaptureToggle
         name="responseHeaders"
@@ -65,6 +65,11 @@ export function LoggingFields() {
         label="Response body"
         description="Store the response body."
       />
+      <CaptureToggle
+        name="query"
+        label="Query data"
+        description="Store the query string and query parameters."
+      />
     </div>
   );
 }
@@ -75,12 +80,14 @@ export function LoggingPolicySummary() {
   const responseHeaders = useWatch({ control, name: "responseHeaders" });
   const requestBody = useWatch({ control, name: "requestBody" });
   const responseBody = useWatch({ control, name: "responseBody" });
+  const query = useWatch({ control, name: "query" });
 
   const parts = [
     requestHeaders && "req headers",
     responseHeaders && "res headers",
     requestBody && "req body",
     responseBody && "res body",
+    query && "query",
   ].filter(Boolean);
 
   return (

@@ -218,13 +218,14 @@ export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
 // ── Logging policy ──────────────────────────────────────────────────────
 
-// Opts matching requests into capturing sensitive data in the request log
-// (Requests tab). The gateway always records a base log entry per request
-// (method, host, path, status, latency) — that cannot be turned off. This
-// policy adds four independent captures on top: request headers (including
-// query string and query parameters), response headers, request body, and
-// response body. An empty `match` list matches every request, so a policy
-// without match conditions captures the extras for all traffic.
+// Opts matching requests into capturing more request data in the request
+// log (Requests tab). The gateway always records a base log entry per
+// request (method, host, path, status, latency) — that cannot be turned
+// off. This policy adds five independent captures on top: request headers
+// (with user agent and client IP), response headers, request body,
+// response body, and query data (query string and parameters). An empty
+// `match` list matches every request, so a policy without match conditions
+// captures the extras for all traffic.
 // All fields are optional because protojson omits false booleans.
 export const loggingPolicySchema = z
   .object({
@@ -236,6 +237,7 @@ export const loggingPolicySchema = z
         responseHeaders: z.boolean().optional(),
         requestBody: z.boolean().optional(),
         responseBody: z.boolean().optional(),
+        query: z.boolean().optional(),
       })
       .strict(),
   })

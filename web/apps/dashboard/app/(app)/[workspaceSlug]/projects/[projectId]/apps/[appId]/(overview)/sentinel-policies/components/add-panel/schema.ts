@@ -239,6 +239,7 @@ const loggingFormSchema = z.object({
   responseHeaders: z.boolean(),
   requestBody: z.boolean(),
   responseBody: z.boolean(),
+  query: z.boolean(),
 });
 
 export const policyFormSchema = z.discriminatedUnion("type", [
@@ -318,6 +319,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       responseHeaders: true,
       requestBody: true,
       responseBody: true,
+      query: true,
     }))
     .exhaustive();
 }
@@ -466,6 +468,7 @@ export function toSentinelPolicy(
         responseHeaders: v.responseHeaders,
         requestBody: v.requestBody,
         responseBody: v.responseBody,
+        query: v.query,
       },
       match: matchExprs,
     }))
@@ -632,6 +635,7 @@ export function fromSentinelPolicy(
       responseHeaders: p.logging.responseHeaders ?? false,
       requestBody: p.logging.requestBody ?? false,
       responseBody: p.logging.responseBody ?? false,
+      query: p.logging.query ?? false,
     }))
     .exhaustive();
 }

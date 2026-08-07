@@ -22,6 +22,7 @@ type captureFlags struct {
 	responseHeaders bool
 	requestBody     bool
 	responseBody    bool
+	query           bool
 }
 
 // runClickHouseLoggingRequest runs one request through the ClickHouse logging
@@ -54,6 +55,7 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 		tracking.LogResponseHeaders = capture.responseHeaders
 		tracking.LogRequestBody = capture.requestBody
 		tracking.LogResponseBody = capture.responseBody
+		tracking.LogQuery = capture.query
 		if capture.requestBody {
 			// The proxy handler's TeeReader only captures the body when
 			// LogRequestBody is set; emulate that here.
@@ -110,10 +112,22 @@ func TestClickHouseLogging_RequestHeadersCaptureIsOptIn(t *testing.T) {
 	rows := runClickHouseLoggingRequest(t, captureFlags{requestHeaders: true})
 
 	require.Len(t, rows, 1)
-	require.Equal(t, "page=2", rows[0].QueryString)
 	require.Contains(t, rows[0].RequestHeaders, "X-Custom: custom-value")
 	require.Equal(t, "test-agent/1.0", rows[0].UserAgent)
+	require.Empty(t, rows[0].QueryString, "query data is a separate opt-in")
+	require.Empty(t, rows[0].QueryParams, "query data is a separate opt-in")
 	require.Empty(t, rows[0].ResponseHeaders, "response headers are a separate opt-in")
+	require.Empty(t, rows[0].RequestBody)
+}
+
+func TestClickHouseLogging_QueryCaptureIsOptIn(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{query: true})
+
+	require.Len(t, rows, 1)
+	require.Equal(t, "page=2", rows[0].QueryString)
+	require.Equal(t, map[string][]string{"page": {"2"}}, rows[0].QueryParams)
+	require.Empty(t, rows[0].RequestHeaders, "request headers are a separate opt-in")
+	require.Empty(t, rows[0].UserAgent, "user agent rides on the request-headers opt-in")
 	require.Empty(t, rows[0].RequestBody)
 }
 
@@ -122,7 +136,7 @@ func TestClickHouseLogging_ResponseHeadersCaptureIsOptIn(t *testing.T) {
 
 	require.Len(t, rows, 1)
 	require.Empty(t, rows[0].RequestHeaders, "request headers are a separate opt-in")
-	require.Empty(t, rows[0].QueryString, "query data belongs to request headers capture")
+	require.Empty(t, rows[0].QueryString, "query data is a separate opt-in")
 	require.Contains(t, rows[0].ResponseHeaders, "X-Upstream: upstream-value")
 }
 

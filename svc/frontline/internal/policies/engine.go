@@ -60,12 +60,13 @@ type Result struct {
 
 	// Capture flags set by matching enabled logging policies. Each is a
 	// separate opt-in; the base ClickHouse row is always written regardless
-	// of logging policies. LogRequestHeaders also covers the query string
-	// and query parameters.
+	// of logging policies. LogRequestHeaders also covers the user agent and
+	// client IP; LogQuery covers the query string and query parameters.
 	LogRequestHeaders  bool
 	LogResponseHeaders bool
 	LogRequestBody     bool
 	LogResponseBody    bool
+	LogQuery           bool
 }
 
 // New creates a new Engine with the given configuration.
@@ -221,6 +222,7 @@ func (e *Engine) Evaluate(
 			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
 			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
 			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
+			result.LogQuery = result.LogQuery || cfg.Logging.GetQuery()
 			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:

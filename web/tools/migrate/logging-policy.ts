@@ -16,7 +16,7 @@ import { newUid } from "@unkey/id";
  * The gateway always logs method, host, path, status, and latency. Header and
  * body capture now requires an enabled logging policy. Before this change the
  * gateway captured everything, so every existing sentinel config gets a
- * "Log everything" policy with all four captures enabled and no match
+ * "Log everything" policy with all captures enabled and no match
  * conditions (no match conditions means all requests). This keeps the observed
  * behavior of existing apps unchanged.
  *
@@ -82,6 +82,7 @@ export function addLoggingPolicy(blob: string | null, rowRef: string): string | 
       responseHeaders: true,
       requestBody: true,
       responseBody: true,
+      query: true,
     },
   });
 

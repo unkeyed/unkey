@@ -21,8 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Logging adds sensitive data to the request log (ClickHouse) for matching
-// requests.
+// Logging adds request data — headers, query data, and bodies — to the
+// request log (ClickHouse) for matching requests.
 //
 // The gateway always writes a base log row for every proxied request:
 // request id, workspace/project/app/environment/deployment ids, method,
@@ -30,10 +30,10 @@ const (
 // base row off — the dashboard's traffic and latency charts are built
 // from it.
 //
-// A logging policy adds the sensitive parts on top, scoped to matching
+// A logging policy adds more request data on top, scoped to matching
 // requests. Each capture setting is a separate opt-in: request headers,
-// response headers, request body, and response body. Without an enabled
-// matching logging policy, the gateway stores only the base row.
+// response headers, request body, response body, and query data. Without
+// an enabled matching logging policy, the gateway stores only the base row.
 //
 // An empty match list matches every request — an enabled logging policy
 // with no match expressions captures the configured extras for all traffic
@@ -44,9 +44,7 @@ const (
 // any header or query parameter configured as a KeyAuth key location.
 type Logging struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Capture request headers, the query string, query parameters, user
-	// agent, and client IP. Query data lives here rather than in the base
-	// row because URLs can contain secrets (e.g. ?api_key=...). User agent
+	// Capture request headers, the user agent, and the client IP. User agent
 	// and client IP live here because they identify the client.
 	RequestHeaders bool `protobuf:"varint,1,opt,name=request_headers,json=requestHeaders,proto3" json:"request_headers,omitempty"`
 	// Capture response headers.
@@ -54,7 +52,11 @@ type Logging struct {
 	// Capture the request body, up to the capture limit.
 	RequestBody bool `protobuf:"varint,3,opt,name=request_body,json=requestBody,proto3" json:"request_body,omitempty"`
 	// Capture the response body, up to the capture limit.
-	ResponseBody  bool `protobuf:"varint,4,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
+	ResponseBody bool `protobuf:"varint,4,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
+	// Capture the query string and query parameters. Query data lives here
+	// rather than in the base row because URLs can contain secrets
+	// (e.g. ?api_key=...).
+	Query         bool `protobuf:"varint,5,opt,name=query,proto3" json:"query,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -117,16 +119,24 @@ func (x *Logging) GetResponseBody() bool {
 	return false
 }
 
+func (x *Logging) GetQuery() bool {
+	if x != nil {
+		return x.Query
+	}
+	return false
+}
+
 var File_frontline_policies_v1_logging_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_logging_proto_rawDesc = "" +
 	"\n" +
-	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\"\xa5\x01\n" +
+	"#frontline/policies/v1/logging.proto\x12\ffrontline.v1\"\xbb\x01\n" +
 	"\aLogging\x12'\n" +
 	"\x0frequest_headers\x18\x01 \x01(\bR\x0erequestHeaders\x12)\n" +
 	"\x10response_headers\x18\x02 \x01(\bR\x0fresponseHeaders\x12!\n" +
 	"\frequest_body\x18\x03 \x01(\bR\vrequestBody\x12#\n" +
-	"\rresponse_body\x18\x04 \x01(\bR\fresponseBodyB\xae\x01\n" +
+	"\rresponse_body\x18\x04 \x01(\bR\fresponseBody\x12\x14\n" +
+	"\x05query\x18\x05 \x01(\bR\x05queryB\xae\x01\n" +
 	"\x10com.frontline.v1B\fLoggingProtoP\x01Z;github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1\xa2\x02\x03FXX\xaa\x02\fFrontline.V1\xca\x02\fFrontline\\V1\xe2\x02\x18Frontline\\V1\\GPBMetadata\xea\x02\rFrontline::V1b\x06proto3"
 
 var (

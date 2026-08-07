@@ -1036,7 +1036,7 @@ func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
 				}}},
 			},
 			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{
-				RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true,
+				RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true,
 			}},
 		},
 	}
@@ -1047,6 +1047,7 @@ func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
 	require.True(t, result.LogResponseHeaders)
 	require.True(t, result.LogRequestBody)
 	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
 }
 
 // TestLogging_CaptureFlagsAreIndependent pins that every capture flag is a
@@ -1072,6 +1073,7 @@ func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
 	require.False(t, result.LogResponseHeaders)
 	require.False(t, result.LogRequestBody)
 	require.True(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
 }
 
 // TestLogging_NoMatchConditionsCapturesEveryRequest pins the catch-all
@@ -1089,7 +1091,7 @@ func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
 			Id:      "log-everything",
 			Name:    "Log everything",
 			Enabled: proto.Bool(true),
-			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true}},
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
 		},
 	}
 
@@ -1099,6 +1101,7 @@ func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
 	require.True(t, result.LogResponseHeaders)
 	require.True(t, result.LogRequestBody)
 	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
 }
 
 // TestLogging_MultipleMatchingPoliciesUnionFlags pins that capture flags from
@@ -1120,7 +1123,7 @@ func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
 		{
 			Id:      "log-response-body",
 			Enabled: proto.Bool(true),
-			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true}},
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true, Query: true}},
 		},
 	}
 
@@ -1130,6 +1133,7 @@ func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
 	require.False(t, result.LogResponseHeaders)
 	require.False(t, result.LogRequestBody)
 	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
 }
 
 func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
@@ -1148,7 +1152,7 @@ func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
 				}}},
 			},
-			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true}},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
 		},
 	}
 
@@ -1158,6 +1162,7 @@ func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
 	require.False(t, result.LogResponseHeaders)
 	require.False(t, result.LogRequestBody)
 	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
 }
 
 func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
@@ -1171,7 +1176,7 @@ func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
 		{
 			Id:      "log-api",
 			Enabled: proto.Bool(false),
-			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true}},
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
 		},
 	}
 
@@ -1181,6 +1186,7 @@ func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
 	require.False(t, result.LogResponseHeaders)
 	require.False(t, result.LogRequestBody)
 	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
 }
 
 func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
