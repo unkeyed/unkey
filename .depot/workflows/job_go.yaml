@@ -9,9 +9,9 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 30
     env:
-      RASK_CACHE_DIR: ${{ runner.temp }}/rask-${{ github.run_id }}-${{ github.run_attempt }}
+      RASK_CACHE_DIR: ./.rask-cache #/mnt/depot-cache/rask
       RASK_REMOTE_CACHE_BUCKET: rask
-      RASK_REMOTE_CACHE_PREFIX: cold/${{ github.run_id }}-${{ github.run_attempt }}
+      RASK_REMOTE_CACHE_PREFIX: ""
       RASK_REMOTE_CACHE_REGION: auto
       RASK_REMOTE_CACHE_ENDPOINT: ${{ secrets.RASK_REMOTE_CACHE_ENDPOINT }}
       RASK_REMOTE_CACHE_ACCESS_KEY_ID: ${{ secrets.RASK_REMOTE_CACHE_ACCESS_KEY_ID }}
