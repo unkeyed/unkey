@@ -16,7 +16,7 @@ import {
 /**
  * Current deployment status
  */
-export const Status = {
+export const V2DeployGetDeploymentResponseDataStatus = {
   Unspecified: "UNSPECIFIED",
   Pending: "PENDING",
   Starting: "STARTING",
@@ -35,7 +35,9 @@ export const Status = {
 /**
  * Current deployment status
  */
-export type Status = OpenEnum<typeof Status>;
+export type V2DeployGetDeploymentResponseDataStatus = OpenEnum<
+  typeof V2DeployGetDeploymentResponseDataStatus
+>;
 
 export type V2DeployGetDeploymentResponseData = {
   /**
@@ -45,7 +47,7 @@ export type V2DeployGetDeploymentResponseData = {
   /**
    * Current deployment status
    */
-  status: Status;
+  status: V2DeployGetDeploymentResponseDataStatus;
   /**
    * Error message if deployment failed
    */
@@ -61,8 +63,11 @@ export type V2DeployGetDeploymentResponseData = {
 };
 
 /** @internal */
-export const Status$inboundSchema: z.ZodType<Status, z.ZodTypeDef, unknown> =
-  openEnums.inboundSchema(Status);
+export const V2DeployGetDeploymentResponseDataStatus$inboundSchema: z.ZodType<
+  V2DeployGetDeploymentResponseDataStatus,
+  z.ZodTypeDef,
+  unknown
+> = openEnums.inboundSchema(V2DeployGetDeploymentResponseDataStatus);
 
 /** @internal */
 export const V2DeployGetDeploymentResponseData$inboundSchema: z.ZodType<
@@ -71,7 +76,7 @@ export const V2DeployGetDeploymentResponseData$inboundSchema: z.ZodType<
   unknown
 > = z.object({
   id: z.string(),
-  status: Status$inboundSchema,
+  status: V2DeployGetDeploymentResponseDataStatus$inboundSchema,
   errorMessage: z.string().optional(),
   hostnames: z.array(z.string()).optional(),
   steps: z.array(V2DeployDeploymentStep$inboundSchema).optional(),

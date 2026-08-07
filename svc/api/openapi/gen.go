@@ -59,6 +59,14 @@ const (
 	TXT   DnsRecordType = "TXT"
 )
 
+// Defines values for DomainStatus.
+const (
+	DomainStatusFailed    DomainStatus = "failed"
+	DomainStatusPending   DomainStatus = "pending"
+	DomainStatusVerified  DomainStatus = "verified"
+	DomainStatusVerifying DomainStatus = "verifying"
+)
+
 // Defines values for EnvironmentHealthcheckMethod.
 const (
 	EnvironmentHealthcheckMethodGET  EnvironmentHealthcheckMethod = "GET"
@@ -488,6 +496,57 @@ type DnsRecord struct {
 // alias, which providers expose as ALIAS, ANAME, or a flattened CNAME. Apex domains cannot
 // hold a plain CNAME, so they receive `ALIAS` where a subdomain receives `CNAME`.
 type DnsRecordType string
+
+// Domain defines model for Domain.
+type Domain struct {
+	// AppId The app the domain's environment belongs to.
+	AppId string `json:"appId"`
+
+	// CreatedAt Unix timestamp in milliseconds when the domain was created. The 24 hour verification window runs from here.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DnsRecords The DNS records this domain needs. Create each record at your DNS provider.
+	// Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
+	// so it tells you which records are still missing.
+	DnsRecords []DnsRecord `json:"dnsRecords"`
+
+	// Domain Fully qualified domain name attached to the environment.
+	Domain string `json:"domain"`
+
+	// EnvironmentId The environment this domain serves. Traffic to the domain reaches whatever is currently
+	// deployed to this environment.
+	EnvironmentId string `json:"environmentId"`
+
+	// Id Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Id ResourceIdentifier `json:"id"`
+
+	// ProjectId The project the domain's environment belongs to.
+	ProjectId string `json:"projectId"`
+
+	// Status The verification status of the domain.
+	//
+	// - `pending`: the domain is created. No DNS check has completed yet.
+	// - `verifying`: Unkey checks the DNS records approximately each minute.
+	// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+	// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+	Status DomainStatus `json:"status"`
+
+	// UpdatedAt Unix timestamp in milliseconds of the last change to this domain. Omitted if it has never changed.
+	UpdatedAt *int64 `json:"updatedAt,omitempty"`
+
+	// VerificationError Why the most recent verification attempt did not succeed, in plain language.
+	// Omitted while verification is progressing normally.
+	VerificationError *string `json:"verificationError,omitempty"`
+}
+
+// DomainStatus The verification status of the domain.
+//
+// - `pending`: the domain is created. No DNS check has completed yet.
+// - `verifying`: Unkey checks the DNS records approximately each minute.
+// - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
+// - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+type DomainStatus string
 
 // DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
 // Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
@@ -2035,6 +2094,25 @@ type V2DomainsCreateDomainResponseData struct {
 	// DomainId Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	DomainId ResourceIdentifier `json:"domainId"`
+}
+
+// V2DomainsGetDomainRequestBody defines model for V2DomainsGetDomainRequestBody.
+type V2DomainsGetDomainRequestBody struct {
+	// Domain Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+	// internationalized name in Unicode or Punycode form. Both forms address the same domain.
+	//
+	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
+	// need to supply a project, app, or environment.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsGetDomainResponseBody defines model for V2DomainsGetDomainResponseBody.
+type V2DomainsGetDomainResponseBody struct {
+	Data Domain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
@@ -4296,6 +4374,9 @@ type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentReque
 
 // DomainsCreateDomainJSONRequestBody defines body for DomainsCreateDomain for application/json ContentType.
 type DomainsCreateDomainJSONRequestBody = V2DomainsCreateDomainRequestBody
+
+// DomainsGetDomainJSONRequestBody defines body for DomainsGetDomain for application/json ContentType.
+type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody

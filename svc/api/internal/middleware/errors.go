@@ -82,6 +82,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsApiNotFound,
 				codes.UnkeyDataErrorsAppNotFound,
 				codes.UnkeyDataErrorsEnvironmentNotFound,
+				codes.UnkeyDataErrorsDomainNotFound,
 				codes.UnkeyDataErrorsDeploymentNotFound,
 				codes.UnkeyDataErrorsPolicyNotFound,
 				codes.UnkeyDataErrorsMigrationNotFound,

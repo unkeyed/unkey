@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -328,6 +329,70 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
 	}
+}
+
+type CreateCustomDomainRequest struct {
+	ID                 string
+	WorkspaceID        string
+	ProjectID          string
+	AppID              string
+	EnvironmentID      string
+	Domain             string
+	VerificationStatus db.CustomDomainsVerificationStatus
+	VerificationToken  string
+	TargetCname        string
+	OwnershipVerified  bool
+	CnameVerified      bool
+	VerificationError  string
+	LastCheckedAt      int64
+}
+
+// CreateCustomDomain attaches a custom domain to an environment. Production writes go
+// through ctrl, so this seeds the row directly. TargetCname is generated when omitted
+// because it is unique-constrained across workspaces.
+func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainRequest) db.FindCustomDomainByIdRow {
+	require.NotEmpty(s.t, req.ID, "CustomDomain ID must be set")
+	require.NotEmpty(s.t, req.WorkspaceID, "CustomDomain WorkspaceID must be set")
+	require.NotEmpty(s.t, req.EnvironmentID, "CustomDomain EnvironmentID must be set")
+	require.NotEmpty(s.t, req.Domain, "CustomDomain Domain must be set")
+
+	status := req.VerificationStatus
+	if status == "" {
+		status = db.CustomDomainsVerificationStatusPending
+	}
+	verificationToken := req.VerificationToken
+	if verificationToken == "" {
+		verificationToken = uid.Secure(24)
+	}
+	targetCname := req.TargetCname
+	if targetCname == "" {
+		targetCname = fmt.Sprintf("%s.cname.unkey.local", uid.DNS1035(16))
+	}
+
+	now := time.Now().UnixMilli()
+	err := db.Query.InsertCustomDomain(ctx, s.DB.RW(), db.InsertCustomDomainParams{
+		ID:                 req.ID,
+		WorkspaceID:        req.WorkspaceID,
+		ProjectID:          req.ProjectID,
+		AppID:              req.AppID,
+		EnvironmentID:      req.EnvironmentID,
+		Domain:             req.Domain,
+		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus: status,
+		VerificationToken:  verificationToken,
+		OwnershipVerified:  req.OwnershipVerified,
+		CnameVerified:      req.CnameVerified,
+		TargetCname:        targetCname,
+		VerificationError:  sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
+		LastCheckedAt:      sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
+		CreatedAt:          now,
+	})
+	require.NoError(s.t, err)
+
+	row, err := db.Query.FindCustomDomainById(ctx, s.DB.RO(), req.ID)
+	require.NoError(s.t, err)
+
+	return row
 }
 
 // CreateRootKey creates a root key that authorizes operations on the specified
