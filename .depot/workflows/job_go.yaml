@@ -11,7 +11,7 @@ jobs:
     env:
       RASK_CACHE_DIR: ./.rask-cache #/mnt/depot-cache/rask
       RASK_REMOTE_CACHE_BUCKET: rask
-      RASK_REMOTE_CACHE_PREFIX: ""
+      RASK_REMOTE_CACHE_PREFIX: benchmark-baseline-20260807-a1
       RASK_REMOTE_CACHE_REGION: auto
       RASK_REMOTE_CACHE_ENDPOINT: ${{ secrets.RASK_REMOTE_CACHE_ENDPOINT }}
       RASK_REMOTE_CACHE_ACCESS_KEY_ID: ${{ secrets.RASK_REMOTE_CACHE_ACCESS_KEY_ID }}
