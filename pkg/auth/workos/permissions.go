@@ -81,6 +81,20 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*", action: action(rbacpermissions.DeleteApp{})},
 		},
 	},
+	"environments:read": {
+		name:        "Read environments",
+		description: "Allows reading environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.ReadEnvironment{})},
+		},
+	},
+	"environments:update": {
+		name:        "Update environments",
+		description: "Allows updating environment build and runtime settings.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.UpdateEnvironment{})},
+		},
+	},
 	"identities:create": {
 		name:        "Create identities",
 		description: "Allows creating identities.",
