@@ -26,6 +26,30 @@ func NewClickHouseSeeder(t *testing.T, conn ch.Conn) *ClickHouseSeeder {
 	return &ClickHouseSeeder{t: t, conn: conn}
 }
 
+// InsertBillableVerifications inserts the aggregate read by quota and billing
+// jobs. Tests of those consumers do not need to manufacture hundreds of
+// thousands of raw events to exercise the materialized-view pipeline.
+func (s *ClickHouseSeeder) InsertBillableVerifications(ctx context.Context, workspaceID string, count int64, timestamp time.Time) {
+	s.t.Helper()
+
+	err := s.conn.Exec(ctx,
+		"INSERT INTO default.billable_verifications_per_month_v2 (year, month, workspace_id, count) VALUES (?, ?, ?, ?)",
+		timestamp.Year(), int(timestamp.Month()), workspaceID, count,
+	)
+	require.NoError(s.t, err)
+}
+
+// InsertBillableRatelimits inserts the aggregate read by quota and billing jobs.
+func (s *ClickHouseSeeder) InsertBillableRatelimits(ctx context.Context, workspaceID string, count int64, timestamp time.Time) {
+	s.t.Helper()
+
+	err := s.conn.Exec(ctx,
+		"INSERT INTO default.billable_ratelimits_per_month_v2 (year, month, workspace_id, count) VALUES (?, ?, ?, ?)",
+		timestamp.Year(), int(timestamp.Month()), workspaceID, count,
+	)
+	require.NoError(s.t, err)
+}
+
 // InsertVerifications inserts key verification records for a workspace.
 func (s *ClickHouseSeeder) InsertVerifications(ctx context.Context, workspaceID string, count int, timestamp time.Time, outcome string) {
 	const batchSize = 10_000
