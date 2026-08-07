@@ -1,12 +1,27 @@
-import { and, db, eq, inArray, schema } from "@/lib/db";
+import { and, db, eq, or, schema } from "@/lib/db";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
+// Converts recoverable variables to writeonly. The change is one way.
+//
+// The v2 API cannot change the kind on its own, because its input needs a
+// value. The dashboard would have to read each secret and send the plaintext
+// again only to relabel it. This changes the type column and keeps the
+// ciphertext.
 export const makeSensitive = workspaceProcedure
   .input(
     z.object({
-      envVarIds: z.array(z.string()).min(1),
+      appId: z.string().min(1),
+      targets: z
+        .array(
+          z.object({
+            environmentId: z.string().min(1),
+            key: envVarKeySchema,
+          }),
+        )
+        .min(1),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -16,9 +31,17 @@ export const makeSensitive = workspaceProcedure
         .set({ type: "writeonly" })
         .where(
           and(
-            inArray(schema.appEnvironmentVariables.id, input.envVarIds),
             eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
+            eq(schema.appEnvironmentVariables.appId, input.appId),
             eq(schema.appEnvironmentVariables.type, "recoverable"),
+            or(
+              ...input.targets.map((t) =>
+                and(
+                  eq(schema.appEnvironmentVariables.environmentId, t.environmentId),
+                  eq(schema.appEnvironmentVariables.key, t.key),
+                ),
+              ),
+            ),
           ),
         );
 

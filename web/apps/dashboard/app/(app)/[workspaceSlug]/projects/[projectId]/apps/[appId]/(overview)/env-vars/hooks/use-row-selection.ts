@@ -89,12 +89,17 @@ export function useRowSelection(displayRows: DisplayRow[]) {
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
   const handleBulkMakeSensitive = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) {
+    const selected = displayRows
+      .flatMap((row) => (row.kind === "single" ? [row.item] : row.items))
+      .filter((item) => selectedIds.has(item.id));
+    if (selected.length === 0) {
       return;
     }
     try {
-      const { updated } = await makeSensitiveMutation.mutateAsync({ envVarIds: ids });
+      const { updated } = await makeSensitiveMutation.mutateAsync({
+        appId: selected[0].appId,
+        targets: selected.map((v) => ({ environmentId: v.environmentId, key: v.key })),
+      });
       await collection.envVars.utils.refetch();
       if (updated === 0) {
         toast.info("Selected variables are already sensitive");
@@ -105,7 +110,7 @@ export function useRowSelection(displayRows: DisplayRow[]) {
       toast.error("Failed to mark variables as sensitive");
     }
     setSelectedIds(new Set());
-  }, [selectedIds, makeSensitiveMutation.mutateAsync]);
+  }, [selectedIds, displayRows, makeSensitiveMutation.mutateAsync]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

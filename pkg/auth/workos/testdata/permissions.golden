@@ -6,6 +6,9 @@ unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#rollback_deployme
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#start_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#stop_deployment
 unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment
+unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment_variables
+unkey:v1:ws_123:projects/*/apps/*/environments/*#remove_environment_variables
+unkey:v1:ws_123:projects/*/apps/*/environments/*#set_environment_variables
 unkey:v1:ws_123:projects/*/apps/*/environments/*#update_environment
 unkey:v1:ws_123:projects/*/identities/*#create_identity
 unkey:v1:ws_123:projects/*/identities/*#delete_identity

@@ -3,11 +3,10 @@
 import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, Plus } from "@unkey/icons";
-import { Button, FormInput, FormTextarea, InfoTooltip, toast } from "@unkey/ui";
-import { type ClipboardEvent, useCallback, useEffect } from "react";
+import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
+import { type ClipboardEvent, useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseEnvText } from "../../hooks/use-drop-zone";
@@ -23,15 +22,21 @@ type EditEnvVarFormValues = z.infer<typeof editEnvVarSchema>;
 
 type EnvVarEditRowProps = {
   envVarId: string;
+  value: string;
   variableKey: string;
   type: "writeonly" | "recoverable";
   note: string | null;
   onClose: () => void;
 };
 
-export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: EnvVarEditRowProps) {
-  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
-
+export function EnvVarEditRow({
+  envVarId,
+  value,
+  variableKey,
+  type,
+  note,
+  onClose,
+}: EnvVarEditRowProps) {
   const isWriteonly = type === "writeonly";
 
   const {
@@ -45,37 +50,13 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
     resolver: zodResolver(editEnvVarSchema),
     defaultValues: {
       key: variableKey,
-      value: "",
+      // The API never returns a writeonly value. The field starts empty, and a
+      // blank value keeps the stored one.
+      value: isWriteonly ? "" : value,
       description: note ?? "",
       sensitive: isWriteonly,
     },
   });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
-  useEffect(
-    function decryptValue() {
-      if (isWriteonly) {
-        return;
-      }
-      let cancelled = false;
-      decryptMutation.mutateAsync({ envVarId }).then(
-        (result) => {
-          if (!cancelled) {
-            setValue("value", result.value);
-          }
-        },
-        () => {
-          if (!cancelled) {
-            toast.error("Failed to decrypt value");
-          }
-        },
-      );
-      return () => {
-        cancelled = true;
-      };
-    },
-    [envVarId, isWriteonly, setValue],
-  );
 
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {
@@ -143,14 +124,7 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           label={isWriteonly ? "New Value" : "Value"}
           rows={1}
           className="[&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
-          placeholder={
-            isWriteonly
-              ? "Enter new value to replace"
-              : decryptMutation.isLoading
-                ? "Decrypting..."
-                : "value"
-          }
-          disabled={decryptMutation.isLoading}
+          placeholder={isWriteonly ? "Enter new value to replace" : "value"}
           error={errors.value?.message}
           {...register("value")}
         />

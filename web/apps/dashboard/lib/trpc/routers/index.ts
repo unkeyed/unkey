@@ -56,14 +56,8 @@ import { searchDeployments } from "./deploy/deployment/llm-search";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
-import { createEnvVars } from "./deploy/env-vars/create";
-import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
-import { decryptEnvVar } from "./deploy/env-vars/decrypt";
-import { deleteEnvVar } from "./deploy/env-vars/delete";
-import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
-import { updateEnvVar } from "./deploy/env-vars/update";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { create as createFirewallPolicy } from "./deploy/environment-settings/policies/firewall/create";
@@ -469,13 +463,7 @@ export const router = t.router({
       listAll: listAllEnvironments,
     }),
     envVar: t.router({
-      list: listEnvVars,
-      create: createEnvVars,
-      createBulk: createBulkEnvVars,
-      update: updateEnvVar,
       rename: renameEnvVars,
-      decrypt: decryptEnvVar,
-      delete: deleteEnvVar,
       makeSensitive,
     }),
     domain: t.router({
