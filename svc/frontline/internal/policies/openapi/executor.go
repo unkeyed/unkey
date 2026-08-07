@@ -10,21 +10,22 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	validation "github.com/unkeyed/unkey/pkg/openapi/validation"
+	validationtypes "github.com/unkeyed/unkey/pkg/openapi/validation/types"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 type compiledSpec struct {
-	validator *validation.Validator
+	validator validationtypes.Validator
 	redactor  *redaction.Redactor
 }
 
 type Executor struct {
-	cache cache.Cache[string, *compiledSpec]
+	cache        cache.Cache[string, *compiledSpec]
+	newValidator validationtypes.Factory
 }
 
-func New(clk clock.Clock) (*Executor, error) {
+func New(clk clock.Clock, newValidator validationtypes.Factory) (*Executor, error) {
 	c, err := cache.New(cache.Config[string, *compiledSpec]{
 		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
@@ -35,7 +36,7 @@ func New(clk clock.Clock) (*Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Executor{cache: c}, nil
+	return &Executor{cache: c, newValidator: newValidator}, nil
 }
 
 func (e *Executor) Execute(
@@ -80,7 +81,7 @@ func (e *Executor) Execute(
 func (e *Executor) getOrCompile(ctx context.Context, spec []byte) (*compiledSpec, error) {
 	v, _, err := e.cache.SWR(ctx, string(spec),
 		func(ctx context.Context) (*compiledSpec, error) {
-			validator, compileErr := validation.NewFromBytes(spec)
+			validator, compileErr := e.newValidator(spec)
 			if compileErr != nil {
 				return nil, compileErr
 			}

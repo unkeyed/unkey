@@ -22,8 +22,9 @@ import (
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/network"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -98,9 +99,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("creating kubernetes client: %w", err)
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 0)
-	podInformer := factory.Core().V1().Pods().Informer()
-	podLister := factory.Core().V1().Pods().Lister()
+	// Heimdall owns one Pod informer. The aggregate factory imports generated
+	// informers for every Kubernetes resource without adding lifecycle value here.
+	podInformer := coreinformers.NewPodInformer(
+		clientset,
+		corev1.NamespaceAll,
+		0,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+	podLister := corelisters.NewPodLister(podInformer.GetIndexer())
 
 	collectors := collector.CollectorSetFrom(cfg.Collectors)
 
@@ -146,7 +153,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// drops an event (containerd#3177) or CRI is unavailable. Duplicates
 	// across both paths are absorbed by max-min billing math.
 	//
-	// Register *before* factory.Start so transitions during startup churn
+	// Register before starting the informer so transitions during startup churn
 	// are delivered to the handler. Registering after Start opens a race
 	// window where the initial List + first UpdateFuncs land before the
 	// handler is hooked in, silently dropping those events.
@@ -165,17 +172,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("registering pod event handler: %w", err)
 	}
 
-	factory.Start(ctx.Done())
+	go podInformer.Run(ctx.Done())
 
 	// Refuse to start the collector with an unsynced cache. Without the
 	// check, a sync failure (ctx cancel before initial List completes, API
 	// server unreachable) would leave the lister returning empty results,
 	// every pod on the node would be silently unbilled.
-	synced := factory.WaitForCacheSync(ctx.Done())
-	for resource, ok := range synced {
-		if !ok {
-			return fmt.Errorf("informer cache sync failed for %v", resource)
-		}
+	if !cache.WaitForCacheSync(ctx.Done(), podInformer.HasSynced) {
+		return fmt.Errorf("informer cache sync failed for %T", &corev1.Pod{})
 	}
 
 	metrics.InformerCacheSynced.Set(1)

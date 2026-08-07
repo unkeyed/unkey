@@ -2,26 +2,20 @@ package zen
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// RequestValidator validates an HTTP request against the API contract.
+type RequestValidator interface {
+	Validate(ctx context.Context, req *http.Request) (openapi.BadRequestErrorResponse, bool)
+}
 
 // WithValidation returns middleware that validates incoming requests against
 // an OpenAPI schema. Invalid requests receive a 400 Bad Request response with
 // detailed validation errors.
-//
-// Example:
-//
-//	validator, err := validation.New()
-//	if err != nil {
-//	    log.Fatalf("failed to create validator: %v", err)
-//	}
-//
-//	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithValidation(validator)},
-//	    route,
-//	)
-func WithValidation(validator *validation.Validator) Middleware {
+func WithValidation(validator RequestValidator) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			err, valid := validator.Validate(ctx, s.r)

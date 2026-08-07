@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/ctxutil"
-	core "github.com/unkeyed/unkey/pkg/openapi/validation"
+	validationtypes "github.com/unkeyed/unkey/pkg/openapi/validation/types"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -13,16 +13,12 @@ import (
 // Validator wraps the core OpenAPI validator with tracing and
 // API-specific error formatting.
 type Validator struct {
-	core *core.Validator
+	core validationtypes.Validator
 }
 
-// New creates a Validator backed by the compiled API OpenAPI spec.
-func New() (*Validator, error) {
-	v, err := core.NewFromBytes(openapi.Spec)
-	if err != nil {
-		return nil, err
-	}
-	return &Validator{core: v}, nil
+// New creates a Validator backed by coreValidator.
+func New(coreValidator validationtypes.Validator) *Validator {
+	return &Validator{core: coreValidator}
 }
 
 // Validate checks r against the OpenAPI spec.

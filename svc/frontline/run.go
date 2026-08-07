@@ -33,6 +33,7 @@ import (
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -49,6 +50,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
@@ -516,11 +518,17 @@ func buildEngine(
 	}
 
 	logger.Info("policy engine initialized")
+	openapiExecutor, err := openapiExec.New(clk, openapivalidation.NewFromBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize policy engine: create openapi executor: %w", err)
+	}
+
 	eng, err := policies.New(policies.Config{
 		KeyService:       keyService,
 		RateLimiter:      rlSvc,
 		Clock:            clk,
 		KeyVerifications: keyVerifications,
+		OpenAPIExecutor:  openapiExecutor,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
