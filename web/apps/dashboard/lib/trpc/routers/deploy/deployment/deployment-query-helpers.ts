@@ -8,6 +8,8 @@ export const deploymentSelectFields = {
   id: deployments.id,
   projectId: deployments.projectId,
   environmentId: deployments.environmentId,
+  source: deployments.source,
+  requestedImage: deployments.requestedImage,
   gitCommitSha: deployments.gitCommitSha,
   gitBranch: deployments.gitBranch,
   gitCommitMessage: deployments.gitCommitMessage,

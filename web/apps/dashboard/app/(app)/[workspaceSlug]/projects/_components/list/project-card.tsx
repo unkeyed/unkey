@@ -1,7 +1,8 @@
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Github, Terminal } from "@unkey/icons";
+import { Docker, Github, Terminal } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -9,7 +10,7 @@ import type { ReactNode } from "react";
 export type ProjectCardApp = {
   id: string;
   name: string;
-  source: "github" | "code";
+  source: "github" | "docker" | "code";
   repository: string | null;
 };
 
@@ -30,11 +31,11 @@ function AppSourceIcon({
   source,
   className,
 }: { source: ProjectCardApp["source"]; className: string }) {
-  return source === "github" ? (
-    <Github className={className} />
-  ) : (
-    <Terminal className={className} />
-  );
+  return match(source)
+    .with("github", () => <Github className={className} />)
+    .with("docker", () => <Docker className={className} />)
+    .with("code", () => <Terminal className={className} />)
+    .exhaustive();
 }
 
 function AppLabel({ app, className }: { app: ProjectCardApp; className?: string }) {

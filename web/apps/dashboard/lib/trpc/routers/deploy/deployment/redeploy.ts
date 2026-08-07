@@ -4,6 +4,7 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { match } from "@unkey/match";
 import { z } from "zod";
 
 export const redeploy = workspaceProcedure
@@ -24,6 +25,7 @@ export const redeploy = workspaceProcedure
           id: true,
           projectId: true,
           appId: true,
+          source: true,
           image: true,
           gitCommitSha: true,
           gitBranch: true,
@@ -45,15 +47,25 @@ export const redeploy = workspaceProcedure
         });
       }
 
-      // Source type is determined by whether the app has a GitHub repo
-      // connection, not by commit metadata on the deployment row — docker
-      // redeploys carry forward git metadata from the previous deployment
-      // and would otherwise be misclassified as git-sourced.
-      const repoConnection = await db.query.githubRepoConnections.findFirst({
-        where: (table, { eq }) => eq(table.appId, deployment.appId),
-        columns: { appId: true },
-      });
-      const isGitSourced = repoConnection != null;
+      const isGitSourced = await match(deployment.source)
+        .with("git_build", () => true)
+        .with("docker_image", () => false)
+        .with("unknown", async () => {
+          const repoConnection = await db.query.githubRepoConnections.findFirst({
+            where: (table, { eq }) => eq(table.appId, deployment.appId),
+            columns: { appId: true },
+          });
+          return repoConnection != null;
+        })
+        .exhaustive();
+
+      const dockerImage = deployment.image;
+      if (!isGitSourced && !dockerImage) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Deployment has no resolved Docker image to redeploy",
+        });
+      }
 
       const result = await ctrl
         .createDeployment({
@@ -79,7 +91,7 @@ export const redeploy = workspaceProcedure
                   timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
                 },
               }
-            : { dockerImage: deployment.image ?? "" }),
+            : { dockerImage: dockerImage ?? "" }),
         })
         .catch((err) => {
           console.error(err);

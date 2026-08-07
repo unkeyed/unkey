@@ -2,6 +2,7 @@ import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { TRPCError } from "@trpc/server";
 import { getCtrlClients } from "../../ctrl";
 
@@ -51,6 +52,13 @@ export const createApp = workspaceProcedure
           remoteIp: ctx.audit.location,
           userAgent: ctx.audit.userAgent ?? "",
         },
+        source:
+          input.source.kind === "github"
+            ? { case: "github", value: {} }
+            : {
+                case: "dockerImage",
+                value: { imageReference: input.source.imageReference },
+              },
       });
 
       return {
@@ -59,6 +67,12 @@ export const createApp = workspaceProcedure
     } catch (err) {
       if (err instanceof TRPCError) {
         throw err;
+      }
+      if (err instanceof ConnectError && err.code === Code.InvalidArgument) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: err.rawMessage,
+        });
       }
       console.error("Failed to create app:", err);
       throw new TRPCError({

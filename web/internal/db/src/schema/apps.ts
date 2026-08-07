@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  index,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
+import { appDockerSources } from "./app_docker_sources";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -20,6 +28,9 @@ export const apps = mysqlTable(
     projectId: id("project_id").notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
+    sourceType: mysqlEnum("source_type", ["legacy", "github", "docker_image"])
+      .notNull()
+      .default("legacy"),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()
@@ -49,5 +60,9 @@ export const appsRelations = relations(apps, ({ one, many }) => ({
   githubRepoConnection: one(githubRepoConnections, {
     fields: [apps.id],
     references: [githubRepoConnections.appId],
+  }),
+  dockerSource: one(appDockerSources, {
+    fields: [apps.id],
+    references: [appDockerSources.appId],
   }),
 }));

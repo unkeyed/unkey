@@ -1,102 +1,42 @@
 "use client";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { collection } from "@/lib/collections";
-import { trpcClient } from "@/lib/collections/client";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
-import { buildDefaultSettingsMutations } from "@/lib/collections/deploy/environment-settings";
-import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
-import { Button, FormInput, toast, useStepWizard } from "@unkey/ui";
+import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 
-const formSchema = createAppRequestSchema.omit({ projectId: true });
-type FormValues = z.infer<typeof formSchema>;
+const formSchema = createAppRequestSchema.omit({ projectId: true, source: true });
+export type AppDetails = z.infer<typeof formSchema>;
 
 type CreateAppStepProps = {
-  projectId: string;
-  onAppCreated: (id: string) => void;
+  onAppDetailsSubmitted: (details: AppDetails) => void;
 };
 
-export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
+export const CreateAppStep = ({ onAppDetailsSubmitted }: CreateAppStepProps) => {
   const { next } = useStepWizard();
   const { gated, openPaywall, planGate } = useDeployActionGate();
-
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
 
   const {
     register,
     handleSubmit,
     setValue,
-    setError,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<FormValues>({
+  } = useForm<AppDetails>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", slug: "" },
     mode: "onChange",
   });
 
-  const onSubmitForm = async (values: FormValues) => {
-    // Without a Compute plan, block app creation and surface the paywall.
+  const onSubmitForm = (values: AppDetails) => {
     if (gated) {
       openPaywall();
       return;
     }
-    try {
-      const tx = collection.apps.insert({
-        projectId,
-        name: values.name,
-        slug: values.slug,
-        defaultBranch: "main",
-        repositoryFullName: null,
-        currentDeploymentId: null,
-        isRolledBack: false,
-        id: SERVER_PLACEHOLDER,
-        latestDeploymentId: null,
-        author: SERVER_PLACEHOLDER,
-        authorAvatar: SERVER_PLACEHOLDER,
-        branch: SERVER_PLACEHOLDER,
-        commitTimestamp: Date.now(),
-        commitTitle: SERVER_PLACEHOLDER,
-        commitSha: null,
-        forkRepositoryFullName: null,
-        prNumber: null,
-        domain: SERVER_PLACEHOLDER,
-      });
-      await tx.isPersisted.promise;
-      const appId = (tx.metadata as { appId: string }).appId;
-
-      try {
-        const envs = await trpcClient.deploy.environment.list.query({ projectId });
-        const appEnvs = envs.filter((e) => e.appId === appId);
-        const mutations = appEnvs.flatMap((env) =>
-          buildDefaultSettingsMutations(env.id, availableRegions ?? []),
-        );
-        if (mutations.length > 0) {
-          await Promise.all(mutations);
-        }
-      } catch (err) {
-        toast.error("Failed to initialize settings", {
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        });
-      }
-
-      onAppCreated(appId);
-      next();
-    } catch (error) {
-      if (error instanceof DuplicateKeyError) {
-        setError("slug", {
-          type: "custom",
-          message: "App with this slug already exists",
-        });
-      } else {
-        console.error("Form submission error:", error);
-      }
-    }
+    onAppDetailsSubmitted(values);
+    next();
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +77,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
             loading={isSubmitting}
             className="w-full rounded-lg mt-2"
           >
-            Create App
+            Continue
           </Button>
         </form>
       </div>

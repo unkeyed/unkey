@@ -15,6 +15,7 @@ import (
 // Request and response types are plain protobuf messages without connect wrappers.
 type AppServiceClient interface {
 	CreateApp(ctx context.Context, req *v1.CreateAppRequest) (*v1.CreateAppResponse, error)
+	UpdateDockerImageSource(ctx context.Context, req *v1.UpdateDockerImageSourceRequest) (*v1.UpdateDockerImageSourceResponse, error)
 	DeleteApp(ctx context.Context, req *v1.DeleteAppRequest) (*v1.DeleteAppResponse, error)
 }
 
@@ -34,6 +35,19 @@ func (c *ConnectAppServiceClient) CreateApp(ctx context.Context, req *v1.CreateA
 	ctx, span := tracing.Start(ctx, "AppService.CreateApp")
 	defer span.End()
 	resp, err := c.inner.CreateApp(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectAppServiceClient) UpdateDockerImageSource(ctx context.Context, req *v1.UpdateDockerImageSourceRequest) (*v1.UpdateDockerImageSourceResponse, error) {
+	ctx, span := tracing.Start(ctx, "AppService.UpdateDockerImageSource")
+	defer span.End()
+	resp, err := c.inner.UpdateDockerImageSource(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

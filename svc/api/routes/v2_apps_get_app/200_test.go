@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -73,4 +74,42 @@ func TestGetAppSuccessfully(t *testing.T) {
 			require.Zero(t, res.Body.Data.UpdatedAt, "never-updated app should have zero (omitted) updatedAt")
 		})
 	}
+}
+
+func TestGetDockerAppReturnsConfiguredSource(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Docker Project",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:             uid.New(uid.AppPrefix),
+		WorkspaceID:    workspace.ID,
+		ProjectID:      project.ID,
+		Name:           "Docker API",
+		Slug:           strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+		SourceType:     db.AppsSourceTypeDockerImage,
+		ImageReference: "ghcr.io/acme/api:v1.2.3",
+	})
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		App:     app.ID,
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, "docker_image", string(res.Body.Data.SourceType))
+	require.Nil(t, res.Body.Data.Git)
+	require.NotNil(t, res.Body.Data.Docker)
+	require.Equal(t, "ghcr.io/acme/api:v1.2.3", res.Body.Data.Docker.Image)
 }

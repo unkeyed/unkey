@@ -46,8 +46,7 @@ export const createDeploy = workspaceProcedure
           .min(1, "An image reference is required")
           .regex(/^\S+$/, "Image reference cannot contain whitespace"),
       }),
-      // Server decides: git-connected apps deploy HEAD of the default
-      // branch, others reuse the live deployment's image.
+      // Server uses the app's configured Git branch or Docker image.
       baseInput.extend({ source: z.literal("default") }),
     ]),
   )

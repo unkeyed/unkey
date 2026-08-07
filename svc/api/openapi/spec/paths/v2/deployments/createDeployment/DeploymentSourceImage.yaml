@@ -6,6 +6,6 @@ properties:
     type: string
     minLength: 1
     pattern: "\\S"
-    description: Docker image to deploy as-is.
+    description: Docker image to deploy. Mutable tags are resolved to immutable digests before rollout.
     example: "ghcr.io/acme/api:v1.2.3"
-description: Deploy a prebuilt Docker image as-is.
+description: Deploy a prebuilt Docker image without a build.

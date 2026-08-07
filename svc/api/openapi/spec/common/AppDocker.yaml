@@ -1,0 +1,9 @@
+type: object
+required:
+  - image
+properties:
+  image:
+    type: string
+    description: The configured default image reference for new deployments.
+    example: ghcr.io/acme/api:v1.2.3
+additionalProperties: false

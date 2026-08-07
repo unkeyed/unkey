@@ -838,6 +838,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsUpdateApp.Handler{
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
+			CtrlClient:    svc.CtrlAppClient,
 			GitHubClient:  svc.GitHubClient,
 			GitHubAppName: svc.GitHubAppName,
 		},

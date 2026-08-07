@@ -97,6 +97,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	repositoryFullName := conn.RepositoryFullName
+	defaultBranch := conn.DefaultBranch.String
+
+	var docker *openapi.AppDocker
+	if app.SourceType == db.AppsSourceTypeDockerImage {
+		dockerSource, dockerErr := db.Query.FindAppDockerSourceByAppId(ctx, h.DB.RO(), app.ID)
+		if dockerErr != nil {
+			return fault.Wrap(
+				dockerErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to load Docker app source"),
+				fault.Public("Failed to retrieve app."),
+			)
+		}
+		docker = &openapi.AppDocker{Image: dockerSource.ImageReference}
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -106,7 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			Git:                 githubapp.GitResponse(repositoryFullName, app.DefaultBranch),
+			SourceType:          openapi.AppSourceType(app.SourceType),
+			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
+			Docker:              docker,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,

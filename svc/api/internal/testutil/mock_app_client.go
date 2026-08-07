@@ -18,11 +18,13 @@ var _ ctrl.AppServiceClient = (*MockAppClient)(nil)
 //
 // This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockAppClient struct {
-	mu             sync.Mutex
-	CreateAppFunc  func(context.Context, *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error)
-	DeleteAppFunc  func(context.Context, *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error)
-	CreateAppCalls []*ctrlv1.CreateAppRequest
-	DeleteAppCalls []*ctrlv1.DeleteAppRequest
+	mu                           sync.Mutex
+	CreateAppFunc                func(context.Context, *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error)
+	UpdateDockerImageSourceFunc  func(context.Context, *ctrlv1.UpdateDockerImageSourceRequest) (*ctrlv1.UpdateDockerImageSourceResponse, error)
+	DeleteAppFunc                func(context.Context, *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error)
+	CreateAppCalls               []*ctrlv1.CreateAppRequest
+	UpdateDockerImageSourceCalls []*ctrlv1.UpdateDockerImageSourceRequest
+	DeleteAppCalls               []*ctrlv1.DeleteAppRequest
 }
 
 func (m *MockAppClient) CreateApp(ctx context.Context, req *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
@@ -33,6 +35,16 @@ func (m *MockAppClient) CreateApp(ctx context.Context, req *ctrlv1.CreateAppRequ
 		return m.CreateAppFunc(ctx, req)
 	}
 	return &ctrlv1.CreateAppResponse{}, nil
+}
+
+func (m *MockAppClient) UpdateDockerImageSource(ctx context.Context, req *ctrlv1.UpdateDockerImageSourceRequest) (*ctrlv1.UpdateDockerImageSourceResponse, error) {
+	m.mu.Lock()
+	m.UpdateDockerImageSourceCalls = append(m.UpdateDockerImageSourceCalls, req)
+	m.mu.Unlock()
+	if m.UpdateDockerImageSourceFunc != nil {
+		return m.UpdateDockerImageSourceFunc(ctx, req)
+	}
+	return &ctrlv1.UpdateDockerImageSourceResponse{}, nil
 }
 
 func (m *MockAppClient) DeleteApp(ctx context.Context, req *ctrlv1.DeleteAppRequest) (*ctrlv1.DeleteAppResponse, error) {

@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   FormDescription,
@@ -127,11 +128,25 @@ export const CreateDeploymentButton = ({
   const repositoryFullName = app?.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const defaultBranch = app?.defaultBranch ?? "main";
-  const isCliApp = !appQuery.isLoading && app != null && !repositoryFullName;
+  const deploymentSource = app
+    ? match(app.sourceType)
+        .returnType<"git" | "image">()
+        .with("github", () => "git")
+        .with("docker_image", () => "image")
+        .with("legacy", () => (repositoryFullName ? "git" : "image"))
+        .exhaustive()
+    : null;
+  const sourceFlags = deploymentSource
+    ? match(deploymentSource)
+        .with("git", () => ({ isGitApp: true, isImageApp: false }))
+        .with("image", () => ({ isGitApp: false, isImageApp: true }))
+        .exhaustive()
+    : { isGitApp: false, isImageApp: false };
+  const { isGitApp, isImageApp } = sourceFlags;
 
   const installations = trpc.github.getInstallations.useQuery(
     { projectId, appId },
-    { enabled: isOpen && Boolean(repositoryFullName) },
+    { enabled: isOpen && isGitApp && Boolean(repositoryFullName) },
   );
 
   const installationId = installations.data?.repoConnection?.installationId;
@@ -157,7 +172,7 @@ export const CreateDeploymentButton = ({
   const defaultEnvironmentSlug =
     environments.find((e) => e.kind === "preview")?.slug ?? environments[0]?.slug ?? "";
 
-  const formSchema = createFormSchema(repo, isCliApp);
+  const formSchema = createFormSchema(repo, isImageApp);
 
   const {
     register,
@@ -165,6 +180,7 @@ export const CreateDeploymentButton = ({
     setValue,
     reset,
     watch,
+    getFieldState,
     control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<ReturnType<typeof createFormSchema>>>({
@@ -176,7 +192,7 @@ export const CreateDeploymentButton = ({
   });
 
   const nameValue = watch("name") ?? "";
-  const detectedFork = parseForkRef(nameValue);
+  const detectedFork = isGitApp ? parseForkRef(nameValue) : null;
   const forkRepoName = detectedFork && repo ? `${detectedFork.forkOwner}/${repo}` : null;
 
   useEffect(() => {
@@ -184,6 +200,12 @@ export const CreateDeploymentButton = ({
       setValue("environment", defaultEnvironmentSlug, { shouldValidate: true });
     }
   }, [defaultEnvironmentSlug, setValue]);
+
+  useEffect(() => {
+    if (isOpen && isImageApp && app?.imageReference && !getFieldState("name").isDirty) {
+      setValue("name", app.imageReference, { shouldValidate: true });
+    }
+  }, [app?.imageReference, getFieldState, isImageApp, isOpen, setValue]);
 
   const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {
@@ -207,13 +229,22 @@ export const CreateDeploymentButton = ({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!deploymentSource) {
+      return;
+    }
+
     createDeployment.mutate({
       projectId,
       appId,
       environmentSlug: values.environment,
-      ...(isCliApp
-        ? { source: "image" as const, image: values.name }
-        : { source: "git" as const, gitRef: values.name }),
+      ...match(deploymentSource)
+        .with("image", () =>
+          values.name === app?.imageReference
+            ? { source: "default" as const }
+            : { source: "image" as const, image: values.name },
+        )
+        .with("git", () => ({ source: "git" as const, gitRef: values.name }))
+        .exhaustive(),
     });
   }
 
@@ -222,6 +253,10 @@ export const CreateDeploymentButton = ({
   const imageRows = deployments
     .filter(
       (d, i, all) =>
+        match(d.source)
+          .with("docker_image", () => true)
+          .with("git_build", "unknown", () => false)
+          .exhaustive() &&
         d.image &&
         DEPLOYED_STATUSES.has(d.status) &&
         all.findIndex((o) => o.image === d.image) === i,
@@ -246,10 +281,15 @@ export const CreateDeploymentButton = ({
       {planGate}
       <DynamicDialogContainer
         isOpen={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) {
+            reset({ environment: defaultEnvironmentSlug });
+          }
+        }}
         title="Create Deployment"
         subTitle={
-          isCliApp
+          isImageApp
             ? "Deploy a prebuilt image or redeploy a previous one"
             : "Deploy from a specific commit or branch reference"
         }
@@ -273,7 +313,7 @@ export const CreateDeploymentButton = ({
         }
       >
         <div className="flex flex-col gap-10 py-3">
-          {repositoryFullName && (
+          {isGitApp && repositoryFullName && (
             <div className="flex items-start gap-2 flex-col">
               <RepoDisplay
                 url={githubUrl.repo(repositoryFullName) ?? ""}
@@ -333,10 +373,10 @@ export const CreateDeploymentButton = ({
             </fieldset>
             <div className="flex flex-col gap-2">
               <FormInput
-                label={isCliApp ? "Image Reference" : "Commit or Branch Reference"}
+                label={isImageApp ? "Image Reference" : "Commit or Branch Reference"}
                 className="min-h-9"
                 description={
-                  isCliApp
+                  isImageApp
                     ? "Paste a Docker image reference to deploy, or pick a previously deployed image below."
                     : repositoryFullName
                       ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
@@ -345,7 +385,7 @@ export const CreateDeploymentButton = ({
                 error={errors.name?.message}
                 {...register("name")}
                 placeholder={
-                  isCliApp
+                  isImageApp
                     ? "registry.example.com/my-app:v1.2.3"
                     : repositoryFullName
                       ? (githubUrl.branch(repositoryFullName, defaultBranch) ?? "")
@@ -364,7 +404,7 @@ export const CreateDeploymentButton = ({
             </div>
           </form>
 
-          {isCliApp && imageRows.length > 0 && (
+          {isImageApp && imageRows.length > 0 && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
               {imageRows.map((deployment) => (
                 // TimestampInfo renders its own popover trigger button, so it
@@ -376,7 +416,10 @@ export const CreateDeploymentButton = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setValue("name", deployment.image ?? "", { shouldValidate: true })
+                      setValue("name", deployment.image ?? "", {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
                     }
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >
@@ -398,7 +441,7 @@ export const CreateDeploymentButton = ({
             </div>
           )}
 
-          {repositoryFullName && (
+          {isGitApp && repositoryFullName && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (

@@ -11,9 +11,14 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+SELECT
+  apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at,
+  grc.repository_full_name AS repository_full_name,
+  grc.default_branch AS github_default_branch,
+  ads.image_reference AS docker_image_reference
 FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+LEFT JOIN app_docker_sources ads ON ads.app_id = apps.id
 WHERE apps.project_id = ?
   AND apps.id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
@@ -30,26 +35,34 @@ type ListAppsByProjectParams struct {
 }
 
 type ListAppsByProjectRow struct {
-	Pk                  uint64         `db:"pk"`
-	ID                  string         `db:"id"`
-	WorkspaceID         string         `db:"workspace_id"`
-	ProjectID           string         `db:"project_id"`
-	Name                string         `db:"name"`
-	Slug                string         `db:"slug"`
-	DefaultBranch       string         `db:"default_branch"`
-	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
-	DeleteProtection    sql.NullBool   `db:"delete_protection"`
-	CreatedAt           int64          `db:"created_at"`
-	UpdatedAt           sql.NullInt64  `db:"updated_at"`
-	RepositoryFullName  sql.NullString `db:"repository_full_name"`
+	Pk                   uint64         `db:"pk"`
+	ID                   string         `db:"id"`
+	WorkspaceID          string         `db:"workspace_id"`
+	ProjectID            string         `db:"project_id"`
+	Name                 string         `db:"name"`
+	Slug                 string         `db:"slug"`
+	SourceType           AppsSourceType `db:"source_type"`
+	DefaultBranch        string         `db:"default_branch"`
+	CurrentDeploymentID  sql.NullString `db:"current_deployment_id"`
+	IsRolledBack         bool           `db:"is_rolled_back"`
+	DeleteProtection     sql.NullBool   `db:"delete_protection"`
+	CreatedAt            int64          `db:"created_at"`
+	UpdatedAt            sql.NullInt64  `db:"updated_at"`
+	RepositoryFullName   sql.NullString `db:"repository_full_name"`
+	GithubDefaultBranch  sql.NullString `db:"github_default_branch"`
+	DockerImageReference sql.NullString `db:"docker_image_reference"`
 }
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+//	SELECT
+//	  apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at,
+//	  grc.repository_full_name AS repository_full_name,
+//	  grc.default_branch AS github_default_branch,
+//	  ads.image_reference AS docker_image_reference
 //	FROM apps
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+//	LEFT JOIN app_docker_sources ads ON ads.app_id = apps.id
 //	WHERE apps.project_id = ?
 //	  AND apps.id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
@@ -80,6 +93,7 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
+			&i.SourceType,
 			&i.DefaultBranch,
 			&i.CurrentDeploymentID,
 			&i.IsRolledBack,
@@ -87,6 +101,8 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RepositoryFullName,
+			&i.GithubDefaultBranch,
+			&i.DockerImageReference,
 		); err != nil {
 			return nil, err
 		}

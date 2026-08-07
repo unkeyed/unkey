@@ -9,41 +9,36 @@ import (
 	"context"
 )
 
-const findAppWithSettings = `-- name: FindAppWithSettings :one
+const findAppWithRuntimeSettings = `-- name: FindAppWithRuntimeSettings :one
 SELECT
-    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
+    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
     ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 FROM apps a
-INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 WHERE a.id = ?
 `
 
-type FindAppWithSettingsParams struct {
+type FindAppWithRuntimeSettingsParams struct {
 	EnvironmentID string `db:"environment_id"`
 	ID            string `db:"id"`
 }
 
-type FindAppWithSettingsRow struct {
+type FindAppWithRuntimeSettingsRow struct {
 	App               App               `db:"app"`
-	AppBuildSetting   AppBuildSetting   `db:"app_build_setting"`
 	AppRuntimeSetting AppRuntimeSetting `db:"app_runtime_setting"`
 }
 
-// FindAppWithSettings
+// FindAppWithRuntimeSettings
 //
 //	SELECT
-//	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-//	    abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
+//	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 //	    ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 //	FROM apps a
-//	INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 //	WHERE a.id = ?
-func (q *Queries) FindAppWithSettings(ctx context.Context, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error) {
-	row := q.db.QueryRowContext(ctx, findAppWithSettings, arg.EnvironmentID, arg.EnvironmentID, arg.ID)
-	var i FindAppWithSettingsRow
+func (q *Queries) FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error) {
+	row := q.db.QueryRowContext(ctx, findAppWithRuntimeSettings, arg.EnvironmentID, arg.ID)
+	var i FindAppWithRuntimeSettingsRow
 	err := row.Scan(
 		&i.App.Pk,
 		&i.App.ID,
@@ -51,23 +46,13 @@ func (q *Queries) FindAppWithSettings(ctx context.Context, arg FindAppWithSettin
 		&i.App.ProjectID,
 		&i.App.Name,
 		&i.App.Slug,
+		&i.App.SourceType,
 		&i.App.DefaultBranch,
 		&i.App.CurrentDeploymentID,
 		&i.App.IsRolledBack,
 		&i.App.DeleteProtection,
 		&i.App.CreatedAt,
 		&i.App.UpdatedAt,
-		&i.AppBuildSetting.Pk,
-		&i.AppBuildSetting.WorkspaceID,
-		&i.AppBuildSetting.AppID,
-		&i.AppBuildSetting.EnvironmentID,
-		&i.AppBuildSetting.Dockerfile,
-		&i.AppBuildSetting.DockerContext,
-		&i.AppBuildSetting.BuildCommand,
-		&i.AppBuildSetting.WatchPaths,
-		&i.AppBuildSetting.AutoDeploy,
-		&i.AppBuildSetting.CreatedAt,
-		&i.AppBuildSetting.UpdatedAt,
 		&i.AppRuntimeSetting.Pk,
 		&i.AppRuntimeSetting.WorkspaceID,
 		&i.AppRuntimeSetting.AppID,

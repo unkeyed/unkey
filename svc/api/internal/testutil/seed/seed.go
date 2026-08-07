@@ -216,6 +216,8 @@ type CreateAppRequest struct {
 	ProjectID        string
 	Name             string
 	Slug             string
+	SourceType       db.AppsSourceType
+	ImageReference   string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -223,6 +225,10 @@ type CreateAppRequest struct {
 // CreateApp creates an app within a project.
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
+	sourceType := req.SourceType
+	if sourceType == "" {
+		sourceType = db.AppsSourceTypeLegacy
+	}
 
 	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
 		ID:               req.ID,
@@ -230,12 +236,23 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
+		SourceType:       sourceType,
 		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+	if sourceType == db.AppsSourceTypeDockerImage && req.ImageReference != "" {
+		err = db.Query.InsertAppDockerSource(ctx, s.DB.RW(), db.InsertAppDockerSourceParams{
+			WorkspaceID:    req.WorkspaceID,
+			AppID:          req.ID,
+			ImageReference: req.ImageReference,
+			CreatedAt:      now,
+			UpdatedAt:      sql.NullInt64{},
+		})
+		require.NoError(s.t, err)
+	}
 
 	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
@@ -811,6 +828,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
+		Source:                        db.DeploymentsSourceUnknown,
+		RequestedImage:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),

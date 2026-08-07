@@ -9,6 +9,7 @@ import {
   Plus,
   TriangleWarning2,
 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
@@ -123,7 +124,10 @@ export function ProductionCardHeader() {
         <ProductionCardActionsMenu
           deployment={deployment}
           status={status}
-          commitUrl={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+          commitUrl={match(deployment.source)
+            .with("git_build", () => githubUrl.commit(sourceRepo, deployment.gitCommitSha))
+            .with("docker_image", "unknown", () => undefined)
+            .exhaustive()}
         />
       </div>
     </div>

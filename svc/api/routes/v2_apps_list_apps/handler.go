@@ -100,13 +100,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.ListAppsByProjectRow) string { return r.ID })
+	for _, row := range rows {
+		if row.SourceType == db.AppsSourceTypeDockerImage && !row.DockerImageReference.Valid {
+			return fault.New(
+				"Docker app source is missing",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("Docker app has no configured image source"),
+				fault.Public("Failed to retrieve apps."),
+			)
+		}
+	}
 
 	data := array.Map(rows, func(row db.ListAppsByProjectRow) openapi.App {
+		var docker *openapi.AppDocker
+		if row.SourceType == db.AppsSourceTypeDockerImage {
+			docker = &openapi.AppDocker{Image: row.DockerImageReference.String}
+		}
 		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.DefaultBranch),
+			SourceType:          openapi.AppSourceType(row.SourceType),
+			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.GithubDefaultBranch.String),
+			Docker:              docker,
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
 			IsRolledBack:        row.IsRolledBack,
 			DeleteProtection:    row.DeleteProtection.Bool,

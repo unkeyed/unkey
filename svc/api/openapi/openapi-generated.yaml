@@ -395,7 +395,16 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
+                docker:
+                    "$ref": "#/components/schemas/AppDockerInput"
             additionalProperties: false
+            oneOf:
+                - required:
+                    - git
+                - required:
+                    - docker
+            description: |
+                Create an app with exactly one source: `git` or `docker`.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -542,6 +551,13 @@ components:
                     anyOf:
                         - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
+                docker:
+                    description: |
+                        Change the default image reference for a Docker-sourced app. This does not
+                        create a deployment. Image updates cannot be combined with other changes,
+                        and source switching is not supported.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppDockerInput"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -549,6 +565,20 @@ components:
                         Omit this field to leave the current setting unchanged.
                     example: true
             additionalProperties: false
+            not:
+                anyOf:
+                    - required:
+                        - git
+                        - docker
+                    - required:
+                        - name
+                        - docker
+                    - required:
+                        - slug
+                        - docker
+                    - required:
+                        - deleteProtection
+                        - docker
         V2AppsUpdateAppResponseBody:
             type: object
             required:
@@ -3915,6 +3945,21 @@ components:
                         default branch on GitHub.
                     example: main
             additionalProperties: false
+        AppDockerInput:
+            type: object
+            description: |
+                Configure Docker as the app source.
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    pattern: "\\S"
+                    description: The default image reference for new deployments. It must include an explicit tag or digest.
+                    example: ghcr.io/acme/api:v1.2.3
+            additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
             required:
@@ -3956,6 +4001,18 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
+                sourceType:
+                    type: string
+                    enum:
+                        - legacy
+                        - github
+                        - docker_image
+                    description: |
+                        The configured source used to create deployments. `legacy` identifies
+                        apps created before explicit source tracking was introduced.
+                    example: docker_image
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
                     description: |
                         The connected GitHub repository and the branch its deployments track.
@@ -3963,6 +4020,11 @@ components:
                         Docker-based app).
                     allOf:
                         - "$ref": "#/components/schemas/AppGit"
+                docker:
+                    description: |
+                        The configured Docker image source. Present only for Docker image apps.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppDocker"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -4019,6 +4081,16 @@ components:
                     maxLength: 256
                     description: The branch this app's deployments track.
                     example: main
+            additionalProperties: false
+        AppDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The configured default image reference for new deployments.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         AppGitUpdateInput:
             type: object
@@ -4172,9 +4244,9 @@ components:
                     type: string
                     minLength: 1
                     pattern: "\\S"
-                    description: Docker image to deploy as-is.
+                    description: Docker image to deploy. Mutable tags are resolved to immutable digests before rollout.
                     example: "ghcr.io/acme/api:v1.2.3"
-            description: Deploy a prebuilt Docker image as-is.
+            description: Deploy a prebuilt Docker image without a build.
         DeploymentSourceDeployment:
             type: object
             required:
@@ -4346,7 +4418,7 @@ components:
             properties:
                 image:
                     type: string
-                    description: The Docker image this deployment runs.
+                    description: The Docker image reference requested for this deployment.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         DeploymentAction:
@@ -7173,6 +7245,8 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
+                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
+
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
                 **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -7187,10 +7261,21 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Create an app within a project
-                                summary: Basic app creation
+                            dockerImage:
+                                description: Create an app from a Docker image
+                                summary: Docker image app
                                 value:
+                                    docker:
+                                        image: ghcr.io/acme/payments:v1.2.3
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            git:
+                                description: Create an app connected to a GitHub repository
+                                summary: GitHub app
+                                value:
+                                    git:
+                                        repository: unkeyed/unkey
                                     name: Payments API
                                     project: payments
                                     slug: payments-api
@@ -7978,9 +8063,9 @@ paths:
                 Create a deployment for an app in a project.
 
                 Provide exactly one source:
-                - `image`: deploy a prebuilt Docker image as-is (no build).
+                - `image`: deploy a prebuilt Docker image without a build. Mutable tags are resolved to immutable digests before rollout.
                 - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
-                - `deployment`: re-run an existing deployment by its id. Git-connected apps rebuild from the recorded commit; other apps reuse the recorded image.
+                - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; Docker deployments reuse the recorded resolved image.
 
                 Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
 

@@ -42,6 +42,17 @@ func TestCreateAppValidationErrors(t *testing.T) {
 		{name: "slug too short", req: handler.Request{Project: validProject, Name: "App", Slug: "ab"}},
 		{name: "slug invalid chars", req: handler.Request{Project: validProject, Name: "App", Slug: "app slug"}},
 		{name: "slug too long", req: handler.Request{Project: validProject, Name: "App", Slug: strings.Repeat("a", 256)}},
+		{name: "missing source", req: handler.Request{Project: validProject, Name: "App", Slug: "app-slug"}},
+		{
+			name: "multiple sources",
+			req: handler.Request{
+				Project: validProject,
+				Name:    "App",
+				Slug:    "app-slug",
+				Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
+				Docker:  &openapi.AppDockerInput{Image: "nginx:stable"},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
