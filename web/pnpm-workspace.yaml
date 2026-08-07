@@ -31,3 +31,8 @@ overrides:
   "@tanstack/react-start-config>zod": "3.24.4"
   "@types/react": "19.2.4"
   "@types/react-dom": "19.2.3"
+  # Blume renders @unkey/ui examples with its own react-dom. Left to resolve on
+  # its own it picks a newer patch than @unkey/ui's react, and two react copies
+  # make every hook read null during SSR.
+  "blume>react": "19.2.3"
+  "blume>react-dom": "19.2.3"
