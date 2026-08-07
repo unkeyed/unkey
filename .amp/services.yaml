@@ -70,9 +70,9 @@ services:
   design:
     command: >-
       AMP_ORB=1
+      HOST=0.0.0.0
       "$HOME/.local/bin/mise" exec --
-      pnpm --dir=web --filter=@unkey/design exec
-      astro dev --host 0.0.0.0 --port "$PORT"
+      pnpm --dir=web --filter=@unkey/design dev
     port: 4321
     portal:
       title: Design System
