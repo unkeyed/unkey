@@ -3919,6 +3919,18 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
+                sourceType:
+                    type: string
+                    enum:
+                        - legacy
+                        - github
+                        - docker_image
+                    description: |
+                        The configured source used to create deployments. `legacy` identifies
+                        apps created before explicit source tracking was introduced.
+                    example: docker_image
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
                     description: |
                         The connected GitHub repository and the branch its deployments track.
@@ -3926,6 +3938,11 @@ components:
                         Docker-based app).
                     allOf:
                         - "$ref": "#/components/schemas/AppGit"
+                docker:
+                    description: |
+                        The configured Docker image source. Present only for Docker image apps.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppDocker"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -3982,6 +3999,16 @@ components:
                     maxLength: 256
                     description: The branch this app's deployments track.
                     example: main
+            additionalProperties: false
+        AppDocker:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    description: The configured default image reference for new deployments.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         AppGitUpdateInput:
             type: object

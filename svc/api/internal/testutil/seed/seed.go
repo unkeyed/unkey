@@ -216,6 +216,7 @@ type CreateAppRequest struct {
 	Name             string
 	Slug             string
 	SourceType       db.AppsSourceType
+	ImageReference   string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -241,6 +242,16 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+	if sourceType == db.AppsSourceTypeDockerImage && req.ImageReference != "" {
+		err = db.Query.InsertAppDockerSource(ctx, s.DB.RW(), db.InsertAppDockerSourceParams{
+			WorkspaceID:    req.WorkspaceID,
+			AppID:          req.ID,
+			ImageReference: req.ImageReference,
+			CreatedAt:      now,
+			UpdatedAt:      sql.NullInt64{},
+		})
+		require.NoError(s.t, err)
+	}
 
 	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
