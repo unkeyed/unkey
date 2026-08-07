@@ -154,3 +154,14 @@ export function validateEnvironmentIdInQuery(where?: any): void {
     );
   }
 }
+
+type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
+
+/** Reads one `eq` filter out of the parsed where clause of a load subset. */
+export function extractStringFilter(
+  filters: ParsedFilter[],
+  fieldName: string,
+): string | undefined {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === "eq")?.value;
+  return typeof value === "string" ? value : undefined;
+}

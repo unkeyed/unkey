@@ -377,16 +377,26 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
   const currentPreview = useWatch({ control, name: "preview" });
 
   const onSubmit = async (values: DualFormValues) => {
+    // One transaction for both environments. The collection refetches every
+    // loaded environment after a transaction settles.
+    const targets: { id: string; value: number }[] = [];
     if (values.production !== defaultProd) {
-      collection.environmentSettings.update(production.environmentId, (draft) => {
-        config.writeValue(draft, values.production);
-      });
+      targets.push({ id: production.environmentId, value: values.production });
     }
     if (values.preview !== defaultPreview) {
-      collection.environmentSettings.update(preview.environmentId, (draft) => {
-        config.writeValue(draft, values.preview);
-      });
+      targets.push({ id: preview.environmentId, value: values.preview });
     }
+    if (targets.length === 0) {
+      return;
+    }
+
+    collection.environmentSettings.update(
+      targets.map((t) => t.id),
+      (drafts) =>
+        drafts.forEach((draft, i) => {
+          config.writeValue(draft, targets[i].value);
+        }),
+    );
   };
 
   const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;

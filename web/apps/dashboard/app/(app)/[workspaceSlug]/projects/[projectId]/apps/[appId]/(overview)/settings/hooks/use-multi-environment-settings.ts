@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
 
@@ -12,7 +12,7 @@ type MultiEnvironmentSettings = {
 };
 
 export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
-  const { environments } = useProjectData();
+  const { environments, projectId, appId } = useProjectData();
 
   const productionEnvId = useMemo(
     () => environments.find((e) => e.kind === "production")?.id,
@@ -27,16 +27,28 @@ export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, productionEnvId ?? "")),
-    [productionEnvId],
+        .where(({ s }) =>
+          and(
+            eq(s.projectId, projectId),
+            eq(s.appId, appId ?? ""),
+            eq(s.environmentId, productionEnvId ?? ""),
+          ),
+        ),
+    [productionEnvId, projectId, appId],
   );
 
   const { data: previewData } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, previewEnvId ?? "")),
-    [previewEnvId],
+        .where(({ s }) =>
+          and(
+            eq(s.projectId, projectId),
+            eq(s.appId, appId ?? ""),
+            eq(s.environmentId, previewEnvId ?? ""),
+          ),
+        ),
+    [previewEnvId, projectId, appId],
   );
 
   const production = productionData?.at(0);
