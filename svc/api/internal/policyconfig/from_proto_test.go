@@ -136,9 +136,52 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 				require.NotNil(t, got.Ratelimit)
 				require.Equal(t, int64(100), got.Ratelimit.Limit)
 				require.Equal(t, int64(60000), got.Ratelimit.WindowMs)
-				tc.check(t, got.Ratelimit.Identifier)
+				// The deprecated stored single identifier renders as a
+				// one-entry identifiers array in responses.
+				require.Nil(t, got.Ratelimit.Identifier)
+				require.NotNil(t, got.Ratelimit.Identifiers)
+				identifiers := *got.Ratelimit.Identifiers
+				require.Len(t, identifiers, 1)
+				tc.check(t, identifiers[0])
 			})
 		}
+	})
+
+	t.Run("compound ratelimit identifiers render as a list", func(t *testing.T) {
+		got, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "rl",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
+				Limit:    100,
+				WindowMs: 60000,
+				Identifiers: []*frontlinev1.RateLimitIdentifier{
+					{Source: &frontlinev1.RateLimitIdentifier_AuthenticatedSubject{AuthenticatedSubject: &frontlinev1.AuthenticatedSubjectKey{}}},
+					{Source: &frontlinev1.RateLimitIdentifier_Path{Path: &frontlinev1.PathKey{}}},
+				},
+			}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, got.Ratelimit)
+		require.Nil(t, got.Ratelimit.Identifier)
+		require.NotNil(t, got.Ratelimit.Identifiers)
+		identifiers := *got.Ratelimit.Identifiers
+		require.Len(t, identifiers, 2)
+		require.NotNil(t, identifiers[0].AuthenticatedSubject)
+		require.NotNil(t, identifiers[1].Path)
+	})
+
+	t.Run("ratelimit without any identifier is unmappable", func(t *testing.T) {
+		_, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "rl",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
+				Limit:    100,
+				WindowMs: 60000,
+			}},
+		})
+		require.Error(t, err)
 	})
 
 	t.Run("firewall action renders by enum name", func(t *testing.T) {

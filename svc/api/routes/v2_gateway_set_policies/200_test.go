@@ -50,9 +50,11 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 				Name:    "ratelimit",
 				Enabled: true,
 				Ratelimit: &openapi.RatelimitPolicy{
-					Limit:      100,
-					WindowMs:   60000,
-					Identifier: openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
+					Limit:    100,
+					WindowMs: 60000,
+					// Deprecated single-identifier input: must be accepted and
+					// normalized to the identifiers array in the stored blob.
+					Identifier: &openapi.RatelimitIdentifier{RemoteIp: &openapi.RemoteIpKey{}},
 				},
 			},
 			firewallPolicy("KEBAP", false),
@@ -101,7 +103,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.JSONEq(t, `{}`, string(byName["openapi"]["openapi"]))
 		require.JSONEq(
 			t,
-			`{"limit":"100","windowMs":"60000","identifier":{"remoteIp":{}}}`,
+			`{"limit":"100","windowMs":"60000","identifiers":[{"remoteIp":{}}]}`,
 			string(byName["ratelimit"]["ratelimit"]),
 		)
 
@@ -224,9 +226,12 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 		ratelimitPolicy := func(name string, id openapi.RatelimitIdentifier) openapi.Policy {
 			return openapi.Policy{
-				Name:      name,
-				Enabled:   true,
-				Ratelimit: &openapi.RatelimitPolicy{Limit: 100, WindowMs: 60000, Identifier: id},
+				Name:    name,
+				Enabled: true,
+				Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 100, WindowMs: 60000,
+					Identifiers: &[]openapi.RatelimitIdentifier{id},
+				},
 			}
 		}
 
@@ -308,13 +313,13 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			]
 		}`, apiA.KeyAuthID.String, apiB.KeyAuthID.String), string(byName["kitchen-sink"]["keyauth"]))
 
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"header":{"name":"x-client-id"}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"header":{"name":"x-client-id"}}]}`,
 			string(byName["by-header"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"authenticatedSubject":{}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"authenticatedSubject":{}}]}`,
 			string(byName["by-subject"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"path":{}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"path":{}}]}`,
 			string(byName["by-path"]["ratelimit"]))
-		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifier":{"principalField":{"path":"claims.org"}}}`,
+		require.JSONEq(t, `{"limit":"100","windowMs":"60000","identifiers":[{"principalField":{"path":"claims.org"}}]}`,
 			string(byName["by-principal"]["ratelimit"]))
 
 		// Explicit empty arrays in the request are proto defaults, so protojson

@@ -59,32 +59,33 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 		out.Keyauth = keyauth
 
 	case *frontlinev1.Policy_Ratelimit:
-		identifier := openapi.RatelimitIdentifier{
-			RemoteIp:             nil,
-			Header:               nil,
-			AuthenticatedSubject: nil,
-			Path:                 nil,
-			PrincipalField:       nil,
+		ratelimit := &openapi.RatelimitPolicy{
+			Limit:       config.Ratelimit.GetLimit(),
+			WindowMs:    config.Ratelimit.GetWindowMs(),
+			Identifier:  nil,
+			Identifiers: nil,
 		}
-		switch source := config.Ratelimit.GetIdentifier().GetSource().(type) {
-		case *frontlinev1.RateLimitIdentifier_RemoteIp:
-			identifier.RemoteIp = &openapi.RemoteIpKey{}
-		case *frontlinev1.RateLimitIdentifier_Header:
-			identifier.Header = &openapi.HeaderKey{Name: source.Header.GetName()}
-		case *frontlinev1.RateLimitIdentifier_AuthenticatedSubject:
-			identifier.AuthenticatedSubject = &openapi.AuthenticatedSubjectKey{}
-		case *frontlinev1.RateLimitIdentifier_Path:
-			identifier.Path = &openapi.PathKey{}
-		case *frontlinev1.RateLimitIdentifier_PrincipalField:
-			identifier.PrincipalField = &openapi.PrincipalFieldKey{Path: source.PrincipalField.GetPath()}
-		default:
-			return openapi.PolicyResponse{}, unmappable(p.GetId(), "ratelimit identifier")
+		// Stored policies carry either the deprecated single identifier or the
+		// repeated list. Responses always render the identifiers array -- a
+		// stored single identifier becomes a one-entry list -- so clients only
+		// ever see the target shape.
+		protoIdentifiers := config.Ratelimit.GetIdentifiers()
+		if len(protoIdentifiers) == 0 && config.Ratelimit.GetIdentifier() != nil {
+			protoIdentifiers = []*frontlinev1.RateLimitIdentifier{config.Ratelimit.GetIdentifier()}
 		}
-		out.Ratelimit = &openapi.RatelimitPolicy{
-			Limit:      config.Ratelimit.GetLimit(),
-			WindowMs:   config.Ratelimit.GetWindowMs(),
-			Identifier: identifier,
+		if len(protoIdentifiers) == 0 {
+			return openapi.PolicyResponse{}, unmappable(p.GetId(), "ratelimit without identifier")
 		}
+		identifiers := make([]openapi.RatelimitIdentifier, 0, len(protoIdentifiers))
+		for _, id := range protoIdentifiers {
+			mapped, err := mapRatelimitIdentifierFromProto(p.GetId(), id)
+			if err != nil {
+				return openapi.PolicyResponse{}, err
+			}
+			identifiers = append(identifiers, mapped)
+		}
+		ratelimit.Identifiers = &identifiers
+		out.Ratelimit = ratelimit
 
 	case *frontlinev1.Policy_Firewall:
 		out.Firewall = &openapi.FirewallPolicy{
@@ -98,6 +99,31 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 		return openapi.PolicyResponse{}, unmappable(p.GetId(), "config variant")
 	}
 
+	return out, nil
+}
+
+func mapRatelimitIdentifierFromProto(policyID string, id *frontlinev1.RateLimitIdentifier) (openapi.RatelimitIdentifier, error) {
+	out := openapi.RatelimitIdentifier{
+		RemoteIp:             nil,
+		Header:               nil,
+		AuthenticatedSubject: nil,
+		Path:                 nil,
+		PrincipalField:       nil,
+	}
+	switch source := id.GetSource().(type) {
+	case *frontlinev1.RateLimitIdentifier_RemoteIp:
+		out.RemoteIp = &openapi.RemoteIpKey{}
+	case *frontlinev1.RateLimitIdentifier_Header:
+		out.Header = &openapi.HeaderKey{Name: source.Header.GetName()}
+	case *frontlinev1.RateLimitIdentifier_AuthenticatedSubject:
+		out.AuthenticatedSubject = &openapi.AuthenticatedSubjectKey{}
+	case *frontlinev1.RateLimitIdentifier_Path:
+		out.Path = &openapi.PathKey{}
+	case *frontlinev1.RateLimitIdentifier_PrincipalField:
+		out.PrincipalField = &openapi.PrincipalFieldKey{Path: source.PrincipalField.GetPath()}
+	default:
+		return openapi.RatelimitIdentifier{}, unmappable(policyID, "ratelimit identifier")
+	}
 	return out, nil
 }
 
