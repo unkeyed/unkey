@@ -416,10 +416,11 @@ func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
 	db := newTestDB(t)
 
 	const (
-		replicas                   = 5
-		burstRequestsPerNode       = 200
-		limit                int64 = 162000
-		cost                 int64 = 1500
+		replicas                           = 5
+		burstRounds                        = 4
+		burstRequestsPerNodePerRound       = 50
+		limit                        int64 = 162000
+		cost                         int64 = 1500
 	)
 	duration := time.Minute
 
@@ -436,43 +437,68 @@ func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	namespace := uid.New(uid.TestPrefix)
 	identifier := uid.New(uid.TestPrefix)
-	// Advance request time through the burst so the test exercises replay-updated
-	// freshness and repeated stale refreshes rather than a Redis reservation model.
-	makeReq := func() RatelimitRequest {
+	makeReq := func(requestTime time.Time) RatelimitRequest {
 		return RatelimitRequest{
 			WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
-			Limit: limit, Duration: duration, Cost: cost, Time: clk.Tick(20 * time.Millisecond),
+			Limit: limit, Duration: duration, Cost: cost, Time: requestTime,
 		}
 	}
 
 	for _, svc := range services {
-		resp, err := svc.Ratelimit(ctx, makeReq())
+		resp, err := svc.Ratelimit(ctx, makeReq(clk.Tick(20*time.Millisecond)))
 		require.NoError(t, err)
 		require.True(t, resp.Success, "warmup request at window start must pass")
 	}
 
+	curKey := counterKey{
+		workspaceID: workspaceID,
+		namespace:   namespace,
+		identifier:  identifier,
+		durationMs:  duration.Milliseconds(),
+		sequence:    calculateSequence(clk.Now(), duration),
+	}
+	waitForOrigin := func(expectedTokens int64) {
+		t.Helper()
+		require.Eventually(t, func() bool {
+			originTokens, err := origin.Get(ctx, curKey.redisKey())
+			return err == nil && originTokens == expectedTokens
+		}, 10*time.Second, 10*time.Millisecond,
+			"replay must deliver every accepted request to the shared origin")
+	}
+
+	waitForOrigin(replicas * cost)
 	clk.Tick(30 * time.Second)
 
-	var (
-		passedRequests atomic.Int64
-		wg             sync.WaitGroup
-		start          = make(chan struct{})
-	)
-	for _, svc := range services {
-		wg.Add(1)
-		go func(svc *service) {
-			defer wg.Done()
-			<-start
-			for range burstRequestsPerNode {
-				resp, err := svc.Ratelimit(ctx, makeReq())
-				if err == nil && resp.Success {
-					passedRequests.Add(1)
+	var passedRequests atomic.Int64
+	for round := range burstRounds {
+		if round > 0 {
+			clk.Tick(originFreshDuration)
+		}
+
+		// Freeze simulated time during each concurrent burst. Replay still runs
+		// asynchronously, but its progress can no longer depend on how quickly the
+		// request goroutines advance the test clock relative to wall-clock scheduling.
+		requestTime := clk.Now()
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for _, svc := range services {
+			wg.Add(1)
+			go func(svc *service) {
+				defer wg.Done()
+				<-start
+				for range burstRequestsPerNodePerRound {
+					resp, err := svc.Ratelimit(ctx, makeReq(requestTime))
+					if err == nil && resp.Success {
+						passedRequests.Add(1)
+					}
 				}
-			}
-		}(svc)
+			}(svc)
+		}
+		close(start)
+		wg.Wait()
+
+		waitForOrigin((replicas + passedRequests.Load()) * cost)
 	}
-	close(start)
-	wg.Wait()
 
 	passedTokens := passedRequests.Load() * cost
 	require.LessOrEqual(t, passedTokens, 3*limit,
