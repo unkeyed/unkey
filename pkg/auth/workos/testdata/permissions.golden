@@ -2,6 +2,9 @@ unkey:v1:ws_123:**#*
 unkey:v1:ws_123:projects/*#create_app
 unkey:v1:ws_123:projects/*/apps/*#delete_app
 unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment
+unkey:v1:ws_123:projects/*/apps/*/environments/*#read_environment_variables
+unkey:v1:ws_123:projects/*/apps/*/environments/*#remove_environment_variables
+unkey:v1:ws_123:projects/*/apps/*/environments/*#set_environment_variables
 unkey:v1:ws_123:projects/*/apps/*/environments/*#update_environment
 unkey:v1:ws_123:projects/*/identities/*#create_identity
 unkey:v1:ws_123:projects/*/identities/*#delete_identity
