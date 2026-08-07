@@ -19,7 +19,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
-	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	ratelimitExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -35,6 +34,7 @@ type Config struct {
 	RateLimiter      rl.Service
 	Clock            clock.Clock
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	OpenAPIExecutor  OpenAPIExecutor
 }
 
 // Evaluator evaluates policies against incoming requests.
@@ -42,12 +42,17 @@ type Evaluator interface {
 	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
+// OpenAPIExecutor validates a request against an OpenAPI policy.
+type OpenAPIExecutor interface {
+	Execute(ctx context.Context, sess *zen.Session, req *http.Request, cfg *frontlinev1.OpenApiRequestValidation) (*redaction.Redactor, error)
+}
+
 // Engine implements Evaluator.
 type Engine struct {
 	keyAuth     *keyauthExec.Executor
 	rateLimiter *ratelimitExec.Executor
 	firewall    *firewallExec.Executor
-	openapi     *openapiExec.Executor
+	openapi     OpenAPIExecutor
 	regexCache  *regexCache
 }
 
@@ -66,19 +71,16 @@ func New(cfg Config) (*Engine, error) {
 		assert.NotNil(cfg.RateLimiter, "cfg.RateLimiter must not be nil"),
 		assert.NotNil(cfg.Clock, "cfg.Clock must not be nil"),
 		assert.NotNil(cfg.KeyVerifications, "cfg.KeyVerifications must not be nil"),
+		assert.NotNil(cfg.OpenAPIExecutor, "cfg.OpenAPIExecutor must not be nil"),
 	); err != nil {
 		return nil, err
-	}
-	openapi, err := openapiExec.New(cfg.Clock)
-	if err != nil {
-		return nil, fmt.Errorf("create openapi executor: %w", err)
 	}
 
 	return &Engine{
 		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock, cfg.KeyVerifications),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
-		openapi:     openapi,
+		openapi:     cfg.OpenAPIExecutor,
 		regexCache:  newRegexCache(),
 	}, nil
 }

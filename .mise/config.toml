@@ -12,7 +12,7 @@ task.run_auto_install = false
 
 [tools]
 node = "24.16.0"
-go = "1.25.1"
+go = "1.26.5"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.1"

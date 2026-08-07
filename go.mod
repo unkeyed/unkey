@@ -2,7 +2,7 @@ module github.com/unkeyed/unkey
 
 go 1.25.0
 
-toolchain go1.25.1
+toolchain go1.26.5
 
 // Yaml parsing errors
 replace github.com/dprotaso/go-yit => github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960

@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,13 +21,24 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const composeProjectEnv = "UNKEY_TEST_COMPOSE_PROJECT"
+const (
+	composeProjectEnv = "UNKEY_TEST_COMPOSE_PROJECT"
+	composeRunDirEnv  = "UNKEY_TEST_RUN_DIR"
+)
 
 var (
-	isolatedProjectID  atomic.Uint64
-	reapIsolatedOnce   sync.Once
-	isolatedProjectPID = os.Getpid()
+	isolatedProjectID   atomic.Uint64
+	reapIsolatedOnce    sync.Once
+	isolatedProjectPID  = os.Getpid()
+	sharedServiceCache  sync.Map
+	composeServicePorts sync.Map
 )
+
+type composePortKey struct {
+	project string
+	service string
+	port    int
+}
 
 // Container describes a Docker Compose service container started for tests.
 type Container struct {
@@ -53,6 +65,23 @@ func startService(t testing.TB, service string) Container {
 	t.Helper()
 
 	project := composeProjectName()
+	cacheKey := project + "\x00" + service
+	if cached, ok := sharedServiceCache.Load(cacheKey); ok {
+		return cached.(Container)
+	}
+
+	lockFile := lockComposeResource(t, project, service)
+	defer func() { require.NoError(t, lockFile.Close()) }()
+
+	container := Container{
+		Name:    service,
+		project: project,
+	}
+	if composeResourceCompletedForRun(project, service) && composeServiceHealthy(project, service) {
+		sharedServiceCache.Store(cacheKey, container)
+		return container
+	}
+
 	upArgs := []string{"-f", composeFile(), "-p", project, "up", "-d", "--wait", "--wait-timeout", "60", service}
 	var out []byte
 	var err error
@@ -63,16 +92,81 @@ func startService(t testing.TB, service string) Container {
 		out, err = cmd.CombinedOutput()
 		cancel()
 		if err == nil {
-			return Container{
-				Name:    service,
-				project: project,
-			}
+			markComposeResourceCompleted(t, project, service)
+			sharedServiceCache.Store(cacheKey, container)
+			return container
 		}
 		if time.Now().After(deadline) {
 			require.NoError(t, err, "docker compose %s failed:\n%s", strings.Join(upArgs, " "), string(out))
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
+}
+
+// lockComposeResource coordinates Compose work across concurrently running Go
+// test processes. Rask starts package tests in separate processes, so a mutex
+// cannot prevent them from issuing the same Docker or schema command at once.
+func lockComposeResource(t testing.TB, project string, resource string) *os.File {
+	t.Helper()
+
+	digest := sha256.Sum256([]byte(project + "\x00" + resource))
+	lockDir := os.TempDir()
+	if runDir := os.Getenv(composeRunDirEnv); runDir != "" {
+		lockDir = runDir
+	}
+	path := filepath.Join(lockDir, fmt.Sprintf("unkey-test-%s.lock", hex.EncodeToString(digest[:])[:16]))
+	lockFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
+	require.NoError(t, err)
+	require.NoError(t, unix.Flock(int(lockFile.Fd()), unix.LOCK_EX))
+	return lockFile
+}
+
+func composeResourceCompletedForRun(project string, resource string) bool {
+	marker := composeResourceMarker(project, resource)
+	if marker == "" {
+		return false
+	}
+	_, err := os.Stat(marker)
+	return err == nil
+}
+
+func markComposeResourceCompleted(t testing.TB, project string, resource string) {
+	t.Helper()
+
+	marker := composeResourceMarker(project, resource)
+	if marker == "" {
+		return
+	}
+	require.NoError(t, os.WriteFile(marker, nil, 0o600))
+}
+
+func composeResourceMarker(project string, resource string) string {
+	runDir := os.Getenv(composeRunDirEnv)
+	if runDir == "" {
+		return ""
+	}
+	digest := sha256.Sum256([]byte(project + "\x00" + resource))
+	return filepath.Join(runDir, fmt.Sprintf("%s.started", hex.EncodeToString(digest[:])[:16]))
+}
+
+func composeServiceHealthy(project string, service string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile(), "-p", project, "ps", "--format", "json", service)
+	out, err := cmd.Output()
+	if err != nil || len(out) == 0 {
+		return false
+	}
+
+	var status struct {
+		Health string `json:"Health"`
+		State  string `json:"State"`
+	}
+	if err := json.Unmarshal(out, &status); err != nil {
+		return false
+	}
+	return status.State == "running" && status.Health == "healthy"
 }
 
 // startIsolatedService starts one service in a Compose project that only this
@@ -181,11 +275,16 @@ func removeComposeProject(project string) {
 
 func composeServicePort(t testing.TB, project string, service string, port int) int {
 	t.Helper()
+	cacheKey := composePortKey{project: project, service: service, port: port}
+	if cached, ok := composeServicePorts.Load(cacheKey); ok {
+		return cached.(int)
+	}
 
 	outText := runDockerCompose(t, "-f", composeFile(), "-p", project, "port", service, strconv.Itoa(port))
 	hostPort, err := composePort(outText)
 	require.NoError(t, err)
-	return hostPort
+	actual, _ := composeServicePorts.LoadOrStore(cacheKey, hostPort)
+	return actual.(int)
 }
 
 func runDockerCompose(t testing.TB, args ...string) string {

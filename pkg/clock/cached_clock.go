@@ -16,6 +16,7 @@ type CachedClock struct {
 	resolution time.Duration
 	ticker     *time.Ticker
 	done       chan struct{}
+	stopped    chan struct{}
 }
 
 // NewCachedClock creates a new CachedClock that uses the system time cached every [resolution].
@@ -27,6 +28,7 @@ type CachedClock struct {
 func NewCachedClock(resolution time.Duration) *CachedClock {
 
 	done := make(chan struct{})
+	stopped := make(chan struct{})
 	ticker := time.NewTicker(resolution)
 
 	c := &CachedClock{
@@ -34,12 +36,14 @@ func NewCachedClock(resolution time.Duration) *CachedClock {
 		resolution: resolution,
 		ticker:     ticker,
 		done:       done,
+		stopped:    stopped,
 	}
 
 	// Initialize with current time
 	c.nanos.Store(time.Now().UnixNano())
 
 	go func() {
+		defer close(stopped)
 		for {
 			select {
 			case <-ticker.C:
@@ -78,4 +82,5 @@ func (c *CachedClock) NewTicker(d time.Duration) Ticker {
 // when the CachedClock is no longer needed.
 func (c *CachedClock) Close() {
 	close(c.done)
+	<-c.stopped
 }
