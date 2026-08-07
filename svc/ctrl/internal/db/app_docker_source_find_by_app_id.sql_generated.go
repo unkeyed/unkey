@@ -10,14 +10,26 @@ import (
 )
 
 const findAppDockerSourceByAppId = `-- name: FindAppDockerSourceByAppId :one
-SELECT pk, workspace_id, app_id, image_reference, created_at, updated_at
+SELECT
+    pk,
+    workspace_id,
+    app_id,
+    image_reference,
+    created_at,
+    updated_at
 FROM app_docker_sources
 WHERE app_id = ?
 `
 
 // FindAppDockerSourceByAppId
 //
-//	SELECT pk, workspace_id, app_id, image_reference, created_at, updated_at
+//	SELECT
+//	    pk,
+//	    workspace_id,
+//	    app_id,
+//	    image_reference,
+//	    created_at,
+//	    updated_at
 //	FROM app_docker_sources
 //	WHERE app_id = ?
 func (q *Queries) FindAppDockerSourceByAppId(ctx context.Context, appID string) (AppDockerSource, error) {

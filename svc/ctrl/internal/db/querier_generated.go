@@ -239,7 +239,13 @@ type Querier interface {
 	FindAppById(ctx context.Context, id string) (App, error)
 	//FindAppDockerSourceByAppId
 	//
-	//  SELECT pk, workspace_id, app_id, image_reference, created_at, updated_at
+	//  SELECT
+	//      pk,
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
 	//  FROM app_docker_sources
 	//  WHERE app_id = ?
 	FindAppDockerSourceByAppId(ctx context.Context, appID string) (AppDockerSource, error)
