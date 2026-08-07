@@ -50,6 +50,7 @@ func TestCreateAppSuccessfully(t *testing.T) {
 		Project: projectSlug,
 		Name:    "Payments API",
 		Slug:    "payments-api",
+		Docker:  &openapi.AppDockerInput{Image: "ghcr.io/acme/payments:v1.2.3"},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -102,6 +103,7 @@ func TestCreateAppByProjectId(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    "payments-api",
+		Docker:  &openapi.AppDockerInput{Image: "ghcr.io/acme/payments:v1.2.3"},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, appID, res.Body.Data.AppId)

@@ -4,8 +4,6 @@ required:
 properties:
   image:
     type: string
-    description: |
-      The Docker image reference requested for this deployment. A mutable tag is
-      resolved to an immutable digest before rollout.
+    description: The Docker image reference requested for this deployment.
     example: ghcr.io/acme/api:v1.2.3
 additionalProperties: false
