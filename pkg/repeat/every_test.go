@@ -13,6 +13,18 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
+type tickerReadyClock struct {
+	*clock.TestClock
+	ready     chan struct{}
+	readyOnce sync.Once
+}
+
+func (c *tickerReadyClock) NewTicker(d time.Duration) clock.Ticker {
+	ticker := c.TestClock.NewTicker(d)
+	c.readyOnce.Do(func() { close(c.ready) })
+	return ticker
+}
+
 func TestEveryClock_FiresOnSimulatedTime(t *testing.T) {
 	clk := clock.NewTestClock(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
@@ -372,35 +384,23 @@ func TestEvery_Jitter(t *testing.T) {
 	})
 
 	t.Run("slow fn does not drift the cadence", func(t *testing.T) {
-		// fn takes ~5ms, base interval is 20ms. Cadence must stay at
-		// roughly 20ms between fn starts, not 25ms (which would be the
-		// drift if we waited for fn to return before starting the next
-		// timer). Without jitter so the assertion is tight.
-		var (
-			mu     sync.Mutex
-			starts []time.Time
-		)
-		stop := Every(20*time.Millisecond, func() {
-			mu.Lock()
-			starts = append(starts, time.Now())
-			mu.Unlock()
+		// fn takes 5ms, but five 20ms periods must still fit in 100ms of
+		// simulated time. A timer restarted after fn returns would drift and
+		// produce fewer calls.
+		clk := &tickerReadyClock{
+			TestClock: clock.NewTestClock(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+			ready:     make(chan struct{}),
+		}
+		var calls atomic.Int32
+		stop := EveryClock(clk, 20*time.Millisecond, func() {
+			calls.Add(1)
 			time.Sleep(5 * time.Millisecond)
 		})
-		time.Sleep(150 * time.Millisecond)
-		stop()
+		defer stop()
 
-		mu.Lock()
-		defer mu.Unlock()
-		assert.GreaterOrEqual(t, len(starts), 5,
-			"a 150ms run with 20ms cadence should start fn at least 5 times")
-		const slack = 10 * time.Millisecond
-		for i := 1; i < len(starts); i++ {
-			gap := starts[i].Sub(starts[i-1])
-			assert.GreaterOrEqual(t, gap, 20*time.Millisecond-slack,
-				"gap %d below cadence (drift toward fast)", i)
-			assert.LessOrEqual(t, gap, 20*time.Millisecond+slack,
-				"gap %d above cadence (drift from slow fn)", i)
-		}
+		<-clk.ready
+		clk.Tick(100 * time.Millisecond)
+		require.Equal(t, int32(6), calls.Load())
 	})
 
 	t.Run("jitter clamps above one", func(t *testing.T) {
