@@ -36,8 +36,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod') }}-${{ hashFiles('go.sum') }}
+          key: go-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod') }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
           restore-keys: |
+            go-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod') }}-${{ hashFiles('go.sum') }}-
             go-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod') }}-
       - name: Build
         run: mise run build
