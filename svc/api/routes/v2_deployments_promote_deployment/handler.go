@@ -11,7 +11,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -61,6 +64,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   dep.EnvironmentID,
 			Action:       rbac.PromoteDeployment,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID),
+			permissions.PromoteDeployment{},
+		),
 	))
 	if err != nil {
 		return fault.New(
@@ -95,8 +102,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
 	_, err = h.CtrlClient.Promote(ctx, &ctrlv1.PromoteRequest{
 		TargetDeploymentId: dep.ID,
+		Actor:              actor,
 	})
 	if err != nil {
 		return deployment.MapCtrlError(err, "promote deployment",

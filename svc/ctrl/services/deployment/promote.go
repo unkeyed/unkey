@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -71,6 +72,17 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	logger.Info("promotion completed successfully via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
+
+	if auditErr := s.recordLifecycleAudit(ctx,
+		auditlog.DeploymentPromoteEvent,
+		fmt.Sprintf("Promoted deployment %s", deploymentID),
+		deployment.WorkspaceID,
+		deploymentID,
+		lifecycleAuditMeta(deployment.ProjectID, deployment.AppID, deployment.EnvironmentID),
+		req.Msg.GetActor(),
+	); auditErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, auditFailure("promote deployment", auditErr))
+	}
 
 	return connect.NewResponse(&ctrlv1.PromoteResponse{}), nil
 }
