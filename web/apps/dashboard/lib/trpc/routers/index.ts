@@ -36,8 +36,6 @@ import { upsertRole } from "./authorization/roles/upsert";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryUsage } from "./billing/query-usage";
-import { createApp } from "./deploy/app/create";
-import { deleteApp } from "./deploy/app/delete";
 import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
@@ -444,8 +442,6 @@ export const router = t.router({
     }),
     app: t.router({
       list: listApps,
-      create: createApp,
-      delete: deleteApp,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,

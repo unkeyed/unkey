@@ -49,7 +49,10 @@ func TestCreateAppForbidden(t *testing.T) {
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not grant create", permissions: []string{"project.*.read_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_app"}, shouldPass: false},
+		{name: "urn style wildcard project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_app"}, shouldPass: true},
+		{name: "urn style specific project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "#create_app"}, shouldPass: true},
+		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#read_app"}, shouldPass: false},
+		{name: "urn style other project", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "#create_app"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 

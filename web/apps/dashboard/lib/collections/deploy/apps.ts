@@ -1,3 +1,4 @@
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -76,44 +77,22 @@ export const apps = createCollection<App, string>(
     getKey: (item) => item.id,
     id: "apps",
     onDelete: async ({ transaction }) => {
-      const mutation = transaction.mutations[0];
-      const appId = mutation.original.id;
+      const { original } = transaction.mutations[0];
 
-      const deleteMutation = trpcClient.deploy.app.delete.mutate({ appId });
+      const deleteMutation = getUnkeyClient().apps.deleteApp({
+        project: original.projectId,
+        app: original.id,
+      });
 
       toast.promise(deleteMutation, {
         loading: "Deleting app...",
         success: "App deleted successfully",
         error: (err) => {
           console.error("Failed to delete app", err);
-          switch (err.data?.code) {
-            case "NOT_FOUND":
-              return {
-                message: "App Deletion Failed",
-                description: "Unable to find the app. Please refresh and try again.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description: "You don't have permission to delete this app.",
-              };
-            case "PRECONDITION_FAILED":
-              return {
-                message: "Delete Protection Enabled",
-                description: err.message || "Disable delete protection before deleting this app.",
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while deleting your app. Please try again later or contact support at support@unkey.com",
-              };
-            default:
-              return {
-                message: "Failed to Delete App",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+          return {
+            message: "Failed to Delete App",
+            description: getErrorMessage(err),
+          };
         },
       });
 
@@ -127,48 +106,27 @@ export const apps = createCollection<App, string>(
         name: changes.name,
         slug: changes.slug,
       });
-      const mutation = trpcClient.deploy.app.create.mutate(createInput);
+      const mutation = getUnkeyClient().apps.createApp({
+        project: createInput.projectId,
+        name: createInput.name,
+        slug: createInput.slug,
+      });
 
       toast.promise(mutation, {
         loading: "Creating app...",
         success: "App created successfully",
         error: (err) => {
           console.error("Failed to create app", err);
-          switch (err.data?.code) {
-            case "CONFLICT":
-              return {
-                message: "App Already Exists",
-                description: err.message || "An app with this slug already exists in this project.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description:
-                  err.message || "You don't have permission to create apps in this project.",
-              };
-            case "NOT_FOUND":
-              return {
-                message: "App Creation Failed",
-                description: "Unable to find the project. Please refresh and try again.",
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while creating your app. Please try again later or contact support at support@unkey.com",
-              };
-            default:
-              return {
-                message: "Failed to Create App",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+          return {
+            message: "Failed to Create App",
+            description: getErrorMessage(err),
+          };
         },
       });
 
       const result = await mutation;
       transaction.metadata = {
-        appId: result.id,
+        appId: result.data.appId,
       };
     },
   }),
