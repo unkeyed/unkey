@@ -3,6 +3,7 @@
  */
 
 import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
+import { domainsDeleteDomain } from "../funcs/domainsDeleteDomain.js";
 import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
 import { domainsListDomains } from "../funcs/domainsListDomains.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
@@ -39,6 +40,35 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsCreateDomainResponseBody> {
     return unwrapAsync(domainsCreateDomain(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Delete domain
+   *
+   * @remarks
+   * Delete a custom domain from your workspace.
+   *
+   * Address the domain by its id or by its name. Names are unique per workspace, so
+   * `api.acme.com` is enough.
+   *
+   * Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+   * records at your provider stay in place.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.delete_domain` (to delete domains in any environment)
+   * - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
+   */
+  async deleteDomain(
+    request: components.V2DomainsDeleteDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsDeleteDomainResponseBody> {
+    return unwrapAsync(domainsDeleteDomain(
       this,
       request,
       options,
@@ -93,9 +123,9 @@ export class Domains extends ClientSDK {
    * @remarks
    * List the custom domains attached to an environment and their verification status.
    *
-   * The results are in order of domain id, and the response is paginated. When `hasMore` is
-   * true, send the returned `cursor` to get the next page. An environment with no domains
-   * returns an empty array, not a 404.
+   * Results are paginated and sorted by their id. When `hasMore` is true, send the
+   * returned `cursor` to get the next page. An environment with no domains returns an
+   * empty array, not a 404.
    *
    * `status: verified` means the domain is verified. Unkey has configured routing and requested a
    * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.

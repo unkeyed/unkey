@@ -27,36 +27,32 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * List domains
+ * Delete domain
  *
  * @remarks
- * List the custom domains attached to an environment and their verification status.
+ * Delete a custom domain from your workspace.
  *
- * Results are paginated and sorted by their id. When `hasMore` is true, send the
- * returned `cursor` to get the next page. An environment with no domains returns an
- * empty array, not a 404.
+ * Address the domain by its id or by its name. Names are unique per workspace, so
+ * `api.acme.com` is enough.
  *
- * `status: verified` means the domain is verified. Unkey has configured routing and requested a
- * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
- * The flag shows which records Unkey has read back, so you can see which records are still
- * missing without a second call. Some providers hide a record from DNS lookups, for example a
- * proxied or flattened routing record. Such a record stays `false` while it serves traffic.
+ * Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+ * records at your provider stay in place.
  *
  * **Required Permissions**
  *
  * Your root key must have one of the following permissions:
- * - `environment.*.read_domain` (to read domains in any environment)
- * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+ * - `environment.*.delete_domain` (to delete domains in any environment)
+ * - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function domainsListDomains(
+export function domainsDeleteDomain(
   client: UnkeyCore,
-  request: components.V2DomainsListDomainsRequestBody,
+  request: components.V2DomainsDeleteDomainRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2DomainsListDomainsResponseBody,
+    components.V2DomainsDeleteDomainResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -82,12 +78,12 @@ export function domainsListDomains(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DomainsListDomainsRequestBody,
+  request: components.V2DomainsDeleteDomainRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2DomainsListDomainsResponseBody,
+      components.V2DomainsDeleteDomainResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -109,7 +105,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DomainsListDomainsRequestBody$outboundSchema.parse(value),
+      components.V2DomainsDeleteDomainRequestBody$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -118,7 +114,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/domains.listDomains")();
+  const path = pathToFunc("/v2/domains.deleteDomain")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -132,7 +128,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "domains.listDomains",
+    operationID: "domains.deleteDomain",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -186,7 +182,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2DomainsListDomainsResponseBody,
+    components.V2DomainsDeleteDomainResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -202,7 +198,7 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2DomainsListDomainsResponseBody$inboundSchema),
+    M.json(200, components.V2DomainsDeleteDomainResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),

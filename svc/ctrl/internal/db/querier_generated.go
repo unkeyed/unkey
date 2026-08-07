@@ -349,9 +349,16 @@ type Querier interface {
 	FindCustomDomainById(ctx context.Context, id string) (CustomDomain, error)
 	//FindCustomDomainByWorkspaceAndDomain
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      invocation_id
+	//  FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
-	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
+	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (FindCustomDomainByWorkspaceAndDomainRow, error)
 	// Covered by unique_domain_workspace_idx.
 	//
 	//  SELECT id
