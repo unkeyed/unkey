@@ -53,16 +53,16 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 	})
 
 	t.Run("unknown policy id", func(t *testing.T) {
-		res := call(t, makeRequest(env, "pol_doesnotexist"))
+		res := call(t, makeRequest(env, uid.New(uid.PolicyPrefix)))
 		require.Contains(t, res.Body.Error.Type, "policy_not_found")
 		require.Contains(t, res.Body.Error.Detail, "policy ids change")
 	})
 
 	t.Run("policy id from another environment", func(t *testing.T) {
 		other := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, other,
-			`{"policies":[{"id":"pol_foreign","name":"KEBAP","enabled":true,"firewall":{"action":"ACTION_DENY"}}]}`)
-		call(t, makeRequest(env, "pol_foreign"))
+		foreign := firewallPolicy("KEBAP")
+		seedSentinelConfig(t, h, other, foreign)
+		call(t, makeRequest(env, foreign.GetId()))
 	})
 
 	t.Run("missing runtime settings row", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 			bare.appID, bare.environmentID)
 		require.NoError(t, err)
 
-		res := call(t, makeRequest(bare, "pol_000"))
+		res := call(t, makeRequest(bare, uid.New(uid.PolicyPrefix)))
 		require.Contains(t, res.Body.Error.Type, "policy_not_found")
 	})
 

@@ -94,6 +94,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createLoggingPolicy } from "./deploy/environment-settings/sentinel/logging/create";
+import { remove as deleteLoggingPolicy } from "./deploy/environment-settings/sentinel/logging/delete";
+import { update as updateLoggingPolicy } from "./deploy/environment-settings/sentinel/logging/update";
 import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
 import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
 import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
@@ -479,6 +482,11 @@ export const router = t.router({
           create: createOpenapiPolicy,
           update: updateOpenapiPolicy,
           delete: deleteOpenapiPolicy,
+        }),
+        logging: t.router({
+          create: createLoggingPolicy,
+          update: updateLoggingPolicy,
+          delete: deleteLoggingPolicy,
         }),
         generateRegex,
       }),

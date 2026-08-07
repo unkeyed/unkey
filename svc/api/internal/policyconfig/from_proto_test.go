@@ -152,6 +152,21 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		require.Equal(t, openapi.FirewallPolicyAction("ACTION_DENY"), got.Firewall.Action)
 	})
 
+	t.Run("logging maps to empty object", func(t *testing.T) {
+		got, err := PolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "log-everything",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, got.Logging)
+		require.Nil(t, got.Keyauth)
+		require.Nil(t, got.Ratelimit)
+		require.Nil(t, got.Firewall)
+		require.Nil(t, got.Openapi)
+	})
+
 	t.Run("jwtauth is unmappable", func(t *testing.T) {
 		_, err := PolicyFromProto(&frontlinev1.Policy{
 			Id:     "pol_1",

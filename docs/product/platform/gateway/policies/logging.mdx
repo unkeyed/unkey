@@ -1,45 +1,52 @@
 ---
 title: Logging
-description: "Enable request and response logging through the gateway for debugging and observability. Record full HTTP headers, bodies, and metadata."
+description: "Control what the gateway stores in the request log. Add headers, bodies, and query data to the basic log entries for debugging."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The logging policy records the full HTTP request and response for every matched request. Use it to debug issues, audit API usage, and understand traffic patterns without adding instrumentation to your application.
+The gateway always records a basic log entry for each request. The dashboard uses these entries for the traffic and latency charts.
 
-## What gets logged
+The logging policy can add potentially sensitive data to the log entries of matched requests: headers, bodies, and query data. You can opt into each capture individually. Without an enabled logging policy, the gateway stores only the basic entries.
 
-The gateway captures the following for each request:
+To capture data for all traffic, add a logging policy with no match conditions. To capture data only for specific routes, add match conditions to the policy.
 
-**Request data**
+## Always logged
 
-- HTTP method, host, path, and query string
-- Request headers (Authorization headers are redacted)
-- Request body
+The gateway records this data for every request:
 
-**Response data**
-
+- HTTP method, host, and path
 - Status code
-- Response headers
-- Response body
-
-**Metadata**
-
-- Request ID
-- Timestamp
+- Request ID and timestamp
 - Deployment and instance identifiers
-- Client IP address and user agent
 - Region
+- Latency breakdown
 
-**Latency breakdown**
+| Metric           | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| Total latency    | End-to-end time from when the gateway received the request |
+| Instance latency | Time your app spent processing the request                 |
+| Gateway latency  | Overhead added by the gateway (policy evaluation, routing) |
 
-| Metric             | Description                                                  |
-| ------------------ | ------------------------------------------------------------ |
-| Total latency      | End-to-end time from when the gateway received the request   |
-| Instance latency   | Time your app spent processing the request                |
-| Gateway latency    | Overhead added by the gateway (policy evaluation, routing)   |
+## Opt-in capture
+
+A logging policy has five independent settings. Each one adds data to the log entries of matched requests:
+
+| Setting          | Captured data                                   |
+| ---------------- | ----------------------------------------------- |
+| Request headers  | Request headers, user agent, and client IP      |
+| Response headers | Response headers                                |
+| Request body     | Request body, up to the capture limit           |
+| Response body    | Response body, up to the capture limit          |
+| Query data       | Query string and query parameters               |
+
+The request headers setting includes the user agent and client IP because they identify the client. Query data is a separate setting because URLs can contain secrets, for example `?api_key=...`.
+
+If more than one enabled logging policy matches a request, the gateway combines their settings.
+
+The gateway redacts sensitive values before it stores them. It always redacts the `Authorization` header. It also redacts headers and query parameters that carry API keys for the [API key policy](/platform/gateway/policies/api-key).
 
 ## Redact body fields
 
@@ -62,7 +69,7 @@ credentials that a KeyAuth policy defines.
 
 ## View logs
 
-Logs are available in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
+You can see the logs in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
 
 - Status code
 - HTTP method
@@ -74,4 +81,4 @@ The dashboard supports live streaming for real-time monitoring.
 
 ## Retention
 
-Logs are retained for 30 days.
+Log retention depends on your plan. See [quotas](/platform/workspaces/quotas#log-retention).

@@ -5,7 +5,9 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -99,12 +101,10 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 	t.Run("null match clears expressions", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env,
-			`{"policies":[{"id":"pol_kebap","name":"KEBAP","enabled":true,`+
-				`"match":[{"path":{"path":{"prefix":"/internal/"}}}],`+
-				`"firewall":{"action":"ACTION_DENY"}}]}`)
+		policy := firewallPolicy("KEBAP", pathPrefixMatch("/internal/"))
+		seedSentinelConfig(t, h, env, policy)
 
-		req := makeRequest(env, "pol_kebap")
+		req := makeRequest(env, policy.GetId())
 		req.Match = nullable.NewNullNullable[[]openapi.MatchExpr]()
 		call(t, req)
 
@@ -116,21 +116,60 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 	t.Run("switch rule variant preserves id and match", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env,
-			`{"policies":[{"id":"pol_kebap","name":"KEBAP","enabled":true,`+
-				`"match":[{"path":{"path":{"prefix":"/api/"}}}],`+
-				`"ratelimit":{"limit":"100","windowMs":"60000","identifier":{"remoteIp":{}}}}]}`)
+		policy := &frontlinev1.Policy{
+			Id:      uid.New(uid.PolicyPrefix),
+			Name:    "KEBAP",
+			Enabled: ptr.P(true),
+			Match:   []*frontlinev1.MatchExpr{pathPrefixMatch("/api/")},
+			Config: &frontlinev1.Policy_Ratelimit{
+				Ratelimit: &frontlinev1.RateLimit{
+					Limit:    100,
+					WindowMs: 60_000,
+					Identifier: &frontlinev1.RateLimitIdentifier{
+						Source: &frontlinev1.RateLimitIdentifier_RemoteIp{RemoteIp: &frontlinev1.RemoteIpKey{}},
+					},
+				},
+			},
+		}
+		seedSentinelConfig(t, h, env, policy)
 
-		req := makeRequest(env, "pol_kebap")
+		req := makeRequest(env, policy.GetId())
 		req.Firewall = &openapi.FirewallPolicy{Action: "ACTION_DENY"}
 		call(t, req)
 
 		policies := list(t, env)
 		require.Len(t, policies, 1)
-		require.Equal(t, "pol_kebap", policies[0].Id)
+		require.Equal(t, policy.GetId(), policies[0].Id)
 		require.NotNil(t, policies[0].Firewall)
 		require.Nil(t, policies[0].Ratelimit, "old rule must be gone")
 		require.Len(t, ptr.SafeDeref(policies[0].Match), 1)
+	})
+
+	t.Run("switch rule variant to logging", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		policy := firewallPolicy("KEBAP")
+		seedSentinelConfig(t, h, env, policy)
+
+		req := makeRequest(env, policy.GetId())
+		req.Logging = &openapi.LoggingPolicy{
+			RequestHeaders:  ptr.P(true),
+			ResponseHeaders: ptr.P(false),
+			RequestBody:     ptr.P(true),
+			ResponseBody:    ptr.P(false),
+			Query:           ptr.P(true),
+		}
+		call(t, req)
+
+		policies := list(t, env)
+		require.Len(t, policies, 1)
+		require.Equal(t, policy.GetId(), policies[0].Id)
+		require.NotNil(t, policies[0].Logging)
+		require.Equal(t, ptr.P(true), policies[0].Logging.RequestHeaders, "capture flags must survive storage")
+		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseHeaders, "capture flags must survive storage")
+		require.Equal(t, ptr.P(true), policies[0].Logging.RequestBody, "capture flags must survive storage")
+		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseBody, "capture flags must survive storage")
+		require.Equal(t, ptr.P(true), policies[0].Logging.Query, "capture flags must survive storage")
+		require.Nil(t, policies[0].Firewall, "old rule must be gone")
 	})
 
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {

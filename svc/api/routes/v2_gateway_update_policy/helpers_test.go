@@ -8,8 +8,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
@@ -72,11 +75,15 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 
 // seedSentinelConfig overwrites the seeded runtime settings row's blob
 // directly, bypassing the write handler, so tests can set up pre-existing
-// state with deterministic policy ids. The environment seeder always
-// creates the row (with the legacy "{}" blob).
-func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
+// state. Policies are encoded with the same policyconfig codec the handler
+// uses for reading. The environment seeder always creates the row (with the
+// legacy "{}" blob).
+func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, policies ...*frontlinev1.Policy) {
 	t.Helper()
-	_, err := h.DB.RW().ExecContext(context.Background(),
+	blob, err := policyconfig.Marshal(policies)
+	require.NoError(t, err)
+
+	_, err = h.DB.RW().ExecContext(context.Background(),
 		"UPDATE app_runtime_settings SET sentinel_config = ? WHERE app_id = ? AND environment_id = ?",
 		blob, env.appID, env.environmentID)
 	require.NoError(t, err)
@@ -88,22 +95,48 @@ func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob s
 		"SELECT sentinel_config FROM app_runtime_settings WHERE app_id = ? AND environment_id = ?",
 		env.appID, env.environmentID).Scan(&stored)
 	require.NoError(t, err)
-	require.Equal(t, blob, string(stored))
+	require.Equal(t, string(blob), string(stored))
 }
 
-// seedFirewallPolicies stores n firewall policies with deterministic ids
-// pol_000, pol_001, ... and returns those ids in stored order.
+// firewallPolicy returns an enabled deny-all firewall policy with a fresh id
+// and the given match conditions.
+func firewallPolicy(name string, match ...*frontlinev1.MatchExpr) *frontlinev1.Policy {
+	return &frontlinev1.Policy{
+		Id:      uid.New(uid.PolicyPrefix),
+		Name:    name,
+		Enabled: ptr.P(true),
+		Match:   match,
+		Config: &frontlinev1.Policy_Firewall{
+			Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY},
+		},
+	}
+}
+
+// pathPrefixMatch builds a match expression for paths starting with prefix.
+func pathPrefixMatch(prefix string) *frontlinev1.MatchExpr {
+	return &frontlinev1.MatchExpr{
+		Expr: &frontlinev1.MatchExpr_Path{
+			Path: &frontlinev1.PathMatch{
+				Path: &frontlinev1.StringMatch{
+					Match: &frontlinev1.StringMatch_Prefix{Prefix: prefix},
+				},
+			},
+		},
+	}
+}
+
+// seedFirewallPolicies stores n firewall policies named "KEBAP 0",
+// "KEBAP 1", ... and returns their generated ids in stored order.
 func seedFirewallPolicies(t *testing.T, h *testutil.Harness, env seededEnv, n int) []string {
 	t.Helper()
 	ids := make([]string, 0, n)
-	docs := make([]string, 0, n)
+	policies := make([]*frontlinev1.Policy, 0, n)
 	for i := range n {
-		id := fmt.Sprintf("pol_%03d", i)
-		ids = append(ids, id)
-		docs = append(docs, fmt.Sprintf(
-			`{"id":%q,"name":"KEBAP %d","enabled":true,"firewall":{"action":"ACTION_DENY"}}`, id, i))
+		policy := firewallPolicy(fmt.Sprintf("KEBAP %d", i))
+		ids = append(ids, policy.GetId())
+		policies = append(policies, policy)
 	}
-	seedSentinelConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, strings.Join(docs, ",")))
+	seedSentinelConfig(t, h, env, policies...)
 	return ids
 }
 

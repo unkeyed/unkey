@@ -10,6 +10,8 @@ import type { JWTAuth } from "./jwtauth_pb";
 import { file_frontline_policies_v1_jwtauth } from "./jwtauth_pb";
 import type { KeyAuth } from "./keyauth_pb";
 import { file_frontline_policies_v1_keyauth } from "./keyauth_pb";
+import type { Logging } from "./logging_pb";
+import { file_frontline_policies_v1_logging } from "./logging_pb";
 import type { MatchExpr } from "./match_pb";
 import { file_frontline_policies_v1_match } from "./match_pb";
 import type { OpenApiRequestValidation } from "./openapi_pb";
@@ -22,7 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/policy.proto.
  */
 export const file_frontline_policies_v1_policy: GenFile = /*@__PURE__*/
-  fileDesc("CiJmcm9udGxpbmUvcG9saWNpZXMvdjEvcG9saWN5LnByb3RvEgxmcm9udGxpbmUudjEi3wIKBlBvbGljeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhQKB2VuYWJsZWQYAyABKAhIAYgBARImCgVtYXRjaBgEIAMoCzIXLmZyb250bGluZS52MS5NYXRjaEV4cHISKAoHa2V5YXV0aBgFIAEoCzIVLmZyb250bGluZS52MS5LZXlBdXRoSAASKAoHand0YXV0aBgGIAEoCzIVLmZyb250bGluZS52MS5KV1RBdXRoSAASLAoJcmF0ZWxpbWl0GAggASgLMhcuZnJvbnRsaW5lLnYxLlJhdGVMaW1pdEgAEioKCGZpcmV3YWxsGAkgASgLMhYuZnJvbnRsaW5lLnYxLkZpcmV3YWxsSAASOQoHb3BlbmFwaRgKIAEoCzImLmZyb250bGluZS52MS5PcGVuQXBpUmVxdWVzdFZhbGlkYXRpb25IAEIICgZjb25maWdCCgoIX2VuYWJsZWRCrQEKEGNvbS5mcm9udGxpbmUudjFCC1BvbGljeVByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z", [file_frontline_policies_v1_firewall, file_frontline_policies_v1_jwtauth, file_frontline_policies_v1_keyauth, file_frontline_policies_v1_match, file_frontline_policies_v1_openapi, file_frontline_policies_v1_ratelimit]);
+  fileDesc("CiJmcm9udGxpbmUvcG9saWNpZXMvdjEvcG9saWN5LnByb3RvEgxmcm9udGxpbmUudjEiiQMKBlBvbGljeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhQKB2VuYWJsZWQYAyABKAhIAYgBARImCgVtYXRjaBgEIAMoCzIXLmZyb250bGluZS52MS5NYXRjaEV4cHISKAoHa2V5YXV0aBgFIAEoCzIVLmZyb250bGluZS52MS5LZXlBdXRoSAASKAoHand0YXV0aBgGIAEoCzIVLmZyb250bGluZS52MS5KV1RBdXRoSAASLAoJcmF0ZWxpbWl0GAggASgLMhcuZnJvbnRsaW5lLnYxLlJhdGVMaW1pdEgAEioKCGZpcmV3YWxsGAkgASgLMhYuZnJvbnRsaW5lLnYxLkZpcmV3YWxsSAASOQoHb3BlbmFwaRgKIAEoCzImLmZyb250bGluZS52MS5PcGVuQXBpUmVxdWVzdFZhbGlkYXRpb25IABIoCgdsb2dnaW5nGAsgASgLMhUuZnJvbnRsaW5lLnYxLkxvZ2dpbmdIAEIICgZjb25maWdCCgoIX2VuYWJsZWRCrQEKEGNvbS5mcm9udGxpbmUudjFCC1BvbGljeVByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z", [file_frontline_policies_v1_firewall, file_frontline_policies_v1_jwtauth, file_frontline_policies_v1_keyauth, file_frontline_policies_v1_logging, file_frontline_policies_v1_match, file_frontline_policies_v1_openapi, file_frontline_policies_v1_ratelimit]);
 
 /**
  * Policy is a single middleware layer in a deployment's configuration. Each policy
@@ -119,6 +121,12 @@ export type Policy = Message<"frontline.v1.Policy"> & {
      */
     value: OpenApiRequestValidation;
     case: "openapi";
+  } | {
+    /**
+     * @generated from field: frontline.v1.Logging logging = 11;
+     */
+    value: Logging;
+    case: "logging";
   } | { case: undefined; value?: undefined };
 };
 

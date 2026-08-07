@@ -57,6 +57,16 @@ var _ Evaluator = (*Engine)(nil)
 type Result struct {
 	Principal     *principal.Principal
 	BodyRedactors []*redaction.Redactor
+
+	// Capture flags set by matching enabled logging policies. Each is a
+	// separate opt-in; the base ClickHouse row is always written regardless
+	// of logging policies. LogRequestHeaders also covers the user agent and
+	// client IP; LogQuery covers the query string and query parameters.
+	LogRequestHeaders  bool
+	LogResponseHeaders bool
+	LogRequestBody     bool
+	LogResponseBody    bool
+	LogQuery           bool
 }
 
 // New creates a new Engine with the given configuration.
@@ -199,6 +209,21 @@ func (e *Engine) Evaluate(
 			}
 
 			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
+
+		case *frontlinev1.Policy_Logging:
+			// Logging is observational, not an enforcement action: a matching
+			// enabled policy opts the request into capturing headers and/or
+			// bodies in the ClickHouse request log. The base row is written
+			// unconditionally by the logging middleware. Multiple matching
+			// policies OR their capture flags. The actual capture and
+			// emission happen in the handler and the ClickHouse logging
+			// middleware.
+			result.LogRequestHeaders = result.LogRequestHeaders || cfg.Logging.GetRequestHeaders()
+			result.LogResponseHeaders = result.LogResponseHeaders || cfg.Logging.GetResponseHeaders()
+			result.LogRequestBody = result.LogRequestBody || cfg.Logging.GetRequestBody()
+			result.LogResponseBody = result.LogResponseBody || cfg.Logging.GetResponseBody()
+			result.LogQuery = result.LogQuery || cfg.Logging.GetQuery()
+			engineEvaluationsTotal.WithLabelValues("logging", "success").Inc()
 
 		default:
 			continue
