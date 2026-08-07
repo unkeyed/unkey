@@ -1,4 +1,5 @@
 import { collection } from "@/lib/collections";
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useCallback, useRef, useState } from "react";
@@ -8,9 +9,18 @@ function getRowIds(row: DisplayRow): string[] {
   return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);
 }
 
-export function useRowSelection(displayRows: DisplayRow[]) {
+export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | undefined) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndexRef = useRef<number | null>(null);
+
+  // Resolve against every row of the app, not the filtered `displayRows`: the
+  // search and environment filters hide rows the user selected before
+  // filtering. A row id is derived from the key, so a rename since the
+  // selection was made also leaves ids that match nothing.
+  const resolveSelection = useCallback(
+    () => (envVars ?? []).filter((item) => selectedIds.has(item.id)),
+    [envVars, selectedIds],
+  );
 
   const toggleRowSelection = useCallback(
     (rowIndex: number, shiftKey: boolean) => {
@@ -66,13 +76,14 @@ export function useRowSelection(displayRows: DisplayRow[]) {
   );
 
   const handleBulkDelete = useCallback(() => {
-    const ids = Array.from(selectedIds);
+    const ids = resolveSelection().map((item) => item.id);
     if (ids.length === 0) {
+      setSelectedIds(new Set());
       return;
     }
     collection.envVars.delete(ids);
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [resolveSelection]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedIds((prev) => {
@@ -89,28 +100,24 @@ export function useRowSelection(displayRows: DisplayRow[]) {
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
   const handleBulkMakeSensitive = useCallback(async () => {
-    const selected = displayRows
-      .flatMap((row) => (row.kind === "single" ? [row.item] : row.items))
-      .filter((item) => selectedIds.has(item.id));
-    if (selected.length === 0) {
+    const recoverable = resolveSelection().filter((item) => item.type === "recoverable");
+    if (recoverable.length === 0) {
+      toast.info("No recoverable variables are selected");
+      setSelectedIds(new Set());
       return;
     }
     try {
       const { updated } = await makeSensitiveMutation.mutateAsync({
-        appId: selected[0].appId,
-        targets: selected.map((v) => ({ environmentId: v.environmentId, key: v.key })),
+        appId: recoverable[0].appId,
+        targets: recoverable.map((v) => ({ environmentId: v.environmentId, key: v.key })),
       });
-      await collection.envVars.utils.refetch();
-      if (updated === 0) {
-        toast.info("Selected variables are already sensitive");
-      } else {
-        toast.success(`Marked ${updated} variable${updated > 1 ? "s" : ""} as sensitive`);
-      }
+      toast.success(`Marked ${updated} variable${updated === 1 ? "" : "s"} as sensitive`);
     } catch {
       toast.error("Failed to mark variables as sensitive");
     }
+    await collection.envVars.utils.refetch().catch(() => {});
     setSelectedIds(new Set());
-  }, [selectedIds, displayRows, makeSensitiveMutation.mutateAsync]);
+  }, [resolveSelection, makeSensitiveMutation.mutateAsync]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

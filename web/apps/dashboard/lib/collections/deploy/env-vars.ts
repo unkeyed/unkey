@@ -74,7 +74,10 @@ export const envVars = createCollection<EnvVar, string>(
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      const mutation = renameAwareSet(original, modified);
+      const mutation = renameAwareSet(original, modified).catch(async (err) => {
+        await envVars.utils.refetch().catch(() => {});
+        throw err;
+      });
 
       toast.promise(mutation, {
         loading: "Updating environment variable...",
@@ -92,7 +95,10 @@ export const envVars = createCollection<EnvVar, string>(
       const originals = transaction.mutations.map((m) => m.original);
       const count = originals.length;
 
-      const mutation = removeVariables(originals);
+      const mutation = removeVariables(originals).catch(async (err) => {
+        await envVars.utils.refetch().catch(() => {});
+        throw err;
+      });
 
       toast.promise(mutation, {
         loading: `Deleting ${count === 1 ? "environment variable" : `${count} environment variables`}...`,
@@ -152,6 +158,22 @@ async function listAllVariables(
   } while (cursor);
 
   return all;
+}
+
+/** Lists the keys already set in the given environments. */
+export async function listExistingKeys(
+  projectId: string,
+  appId: string,
+  environmentIds: string[],
+): Promise<{ key: string; environmentId: string }[]> {
+  const perEnvironment = await Promise.all(
+    environmentIds.map(async (environmentId) => {
+      const variables = await listAllVariables(projectId, appId, environmentId);
+      return variables.map((v) => ({ key: v.key, environmentId }));
+    }),
+  );
+
+  return perEnvironment.flat();
 }
 
 export type VariableInput = {
@@ -216,28 +238,42 @@ async function removeVariables(variables: EnvVar[]): Promise<void> {
  * Writes the modified variable, then removes the old key after a rename. The
  * two steps are not atomic. If the second fails, both keys stay.
  *
- * An edit changes the value and the kind with the key, so it goes to the API.
- * The API cannot refuse a write onto a key that is in use, so this rejects the
- * rename against the rows that are already loaded.
+ * A write replaces the whole variable and the API refuses neither a key that is
+ * in use nor a value older than the stored one, so both cases need the current
+ * rows of the target environment. Reading them costs a request, so this reads
+ * only when the edit can actually hit one of the two.
  */
 async function renameAwareSet(original: EnvVar, modified: EnvVar): Promise<unknown> {
-  if (modified.key !== original.key) {
-    const occupant = envVars.get(envVarKey(modified.environmentId, modified.key));
-    if (occupant !== undefined && occupant.id !== original.id) {
+  const moved = modified.key !== original.key || modified.environmentId !== original.environmentId;
+  // An untouched field still gets written back, which would undo a change made
+  // elsewhere since this page loaded.
+  const keepsLoadedValue = original.type === "recoverable" && modified.value === original.value;
+
+  let value = modified.value;
+  if (moved || keepsLoadedValue) {
+    const target = await listAllVariables(
+      modified.projectId,
+      modified.appId,
+      modified.environmentId,
+    );
+    if (moved && target.some((v) => v.key === modified.key)) {
       throw new Error(`A variable named "${modified.key}" already exists in this environment.`);
+    }
+    if (keepsLoadedValue) {
+      value = target.find((v) => v.key === original.key)?.value ?? value;
     }
   }
 
   await setVariables(modified.projectId, modified.appId, modified.environmentId, [
     {
       key: modified.key,
-      value: modified.value,
+      value,
       kind: modified.type,
       description: modified.description ?? undefined,
     },
   ]);
 
-  if (modified.key !== original.key || modified.environmentId !== original.environmentId) {
+  if (moved) {
     await removeVariables([original]);
   }
 

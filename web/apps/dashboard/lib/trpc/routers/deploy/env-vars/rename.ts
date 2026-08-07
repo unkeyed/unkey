@@ -1,4 +1,4 @@
-import { and, db, eq, inArray, notInArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -15,7 +15,7 @@ export const renameEnvVars = workspaceProcedure
     z.object({
       appId: z.string().min(1),
       environmentIds: z.array(z.string()).min(1),
-      key: envVarKeySchema,
+      key: z.string().min(1),
       newKey: envVarKeySchema,
     }),
   )
@@ -52,10 +52,6 @@ export const renameEnvVars = workspaceProcedure
           eq(schema.appEnvironmentVariables.appId, input.appId),
           eq(schema.appEnvironmentVariables.key, input.newKey),
           inArray(schema.appEnvironmentVariables.environmentId, environmentIds),
-          notInArray(
-            schema.appEnvironmentVariables.id,
-            targets.map((t) => t.id),
-          ),
         ),
         columns: { id: true },
       });

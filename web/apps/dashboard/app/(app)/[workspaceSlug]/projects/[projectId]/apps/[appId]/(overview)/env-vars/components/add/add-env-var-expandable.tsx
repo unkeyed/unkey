@@ -2,10 +2,13 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
-import { type VariableInput, setVariables } from "@/lib/collections/deploy/env-vars";
+import {
+  type VariableInput,
+  listExistingKeys,
+  setVariables,
+} from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
 import {
   Button,
@@ -44,14 +47,6 @@ export const AddEnvVarExpandable = ({
   onClose,
 }: AddEnvVarExpandableProps) => {
   const { environments } = useProjectData();
-
-  const { data: existingEnvVars } = useLiveQuery(
-    (q) =>
-      q
-        .from({ v: collection.envVars })
-        .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId))),
-    [projectId, appId],
-  );
 
   const {
     register,
@@ -172,11 +167,10 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const existing = (existingEnvVars ?? []).map((v) => ({
-      key: v.key,
-      environmentId: v.environmentId,
-    }));
     const allEnvIds = environments.map((e) => e.id);
+    const targetEnvIds = values.environmentId === "__all__" ? allEnvIds : [values.environmentId];
+
+    const existing = await listExistingKeys(projectId, appId, targetEnvIds);
     const conflicts = findConflicts(nonEmpty, values.environmentId, existing, allEnvIds);
 
     if (conflicts.length > 0) {
@@ -194,8 +188,6 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const targetEnvIds =
-      values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
     const kind = values.secret ? ("writeonly" as const) : ("recoverable" as const);
     const variables: VariableInput[] = nonEmpty.map((entry) => ({
       key: entry.key,
@@ -210,13 +202,16 @@ export const AddEnvVarExpandable = ({
       await trackSave(
         Promise.all(targetEnvIds.map((envId) => setVariables(projectId, appId, envId, variables))),
       );
-      await collection.envVars.utils.refetch();
       toast.success(`Added ${variables.length * targetEnvIds.length} variable(s)`);
     } catch (err) {
       toast.error("Failed to create environment variables", {
         description: getErrorMessage(err),
       });
       return;
+    } finally {
+      // A rejection can still leave variables written, since each environment
+      // and each part commits on its own.
+      await collection.envVars.utils.refetch().catch(() => {});
     }
 
     clearPersistedData();
