@@ -66,6 +66,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Provide at most one of git or docker."),
 		)
 	}
+	if req.Git == nil && req.Docker == nil {
+		return fault.New(
+			"app source is required",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("neither git nor docker source was provided"),
+			fault.Public("Provide exactly one of git or docker."),
+		)
+	}
 
 	// Tag the repository-connect audit event with a correlation id so it can be
 	// traced back to this request. The app.create event is emitted separately by

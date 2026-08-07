@@ -5,7 +5,7 @@ post:
   description: |
     Create an app within a project. The app is created with default `production` and `preview` environments.
 
-    Set `git` to create a GitHub-sourced app and connect its repository. Set `docker` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
+    Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
 
     The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
@@ -27,13 +27,15 @@ post:
         schema:
           "$ref": "./V2AppsCreateAppRequestBody.yaml"
         examples:
-          basic:
-            summary: Basic app creation
-            description: Create an app within a project
+          git:
+            summary: GitHub app
+            description: Create an app connected to a GitHub repository
             value:
               project: payments
               name: Payments API
               slug: payments-api
+              git:
+                repository: unkeyed/unkey
           dockerImage:
             summary: Docker image app
             description: Create an app from a Docker image

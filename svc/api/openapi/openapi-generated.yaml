@@ -398,13 +398,13 @@ components:
                 docker:
                     "$ref": "#/components/schemas/AppDockerInput"
             additionalProperties: false
-            not:
-                required:
+            oneOf:
+                - required:
                     - git
+                - required:
                     - docker
             description: |
-                Create an app with an optional GitHub or Docker image source. Provide at most
-                one of `git` or `docker`. Omit both only for compatibility with source-less apps.
+                Create an app with exactly one source: `git` or `docker`.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -4309,9 +4309,7 @@ components:
             properties:
                 image:
                     type: string
-                    description: |
-                        The Docker image reference requested for this deployment. A mutable tag is
-                        resolved to an immutable digest before rollout.
+                    description: The Docker image reference requested for this deployment.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         DeploymentAction:
@@ -7048,7 +7046,7 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
-                Set `git` to create a GitHub-sourced app and connect its repository. Set `docker` to create a Docker-sourced app. Provide at most one source. Omitting both preserves compatibility for source-less apps.
+                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `docker` to create a Docker-sourced app.
 
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
@@ -7064,19 +7062,21 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Create an app within a project
-                                summary: Basic app creation
-                                value:
-                                    name: Payments API
-                                    project: payments
-                                    slug: payments-api
                             dockerImage:
                                 description: Create an app from a Docker image
                                 summary: Docker image app
                                 value:
                                     docker:
                                         image: ghcr.io/acme/payments:v1.2.3
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            git:
+                                description: Create an app connected to a GitHub repository
+                                summary: GitHub app
+                                value:
+                                    git:
+                                        repository: unkeyed/unkey
                                     name: Payments API
                                     project: payments
                                     slug: payments-api

@@ -21,11 +21,11 @@ properties:
   docker:
     "$ref": "../../../../common/AppDockerInput.yaml"
 additionalProperties: false
-not:
-  required: [git, docker]
+oneOf:
+  - required: [git]
+  - required: [docker]
 description: |
-  Create an app with an optional GitHub or Docker image source. Provide at most
-  one of `git` or `docker`. Omit both only for compatibility with source-less apps.
+  Create an app with exactly one source: `git` or `docker`.
 examples:
   byProjectSlug:
     summary: Create within a project by slug
@@ -34,6 +34,8 @@ examples:
       project: payments
       name: Payments API
       slug: payments-api
+      docker:
+        image: ghcr.io/acme/payments:v1.2.3
   byProjectId:
     summary: Create within a project by ID
     description: Create an app, locating the parent project by its ID
@@ -41,6 +43,8 @@ examples:
       project: proj_1234abcd
       name: Payments API
       slug: payments-api
+      docker:
+        image: ghcr.io/acme/payments:v1.2.3
   connectRepo:
     summary: Create and connect a GitHub repository
     description: Create an app and connect it to a GitHub repository in one request. The workspace must have the Unkey GitHub App installed with access to the repository.
