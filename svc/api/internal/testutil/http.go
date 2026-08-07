@@ -33,6 +33,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -40,6 +41,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
@@ -190,8 +192,9 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		t.Cleanup(ratelimitsfer.Close)
 	}
 
-	validator, err := validation.New()
+	coreValidator, err := openapivalidation.NewFromBytes(openapi.Spec)
 	require.NoError(t, err)
+	validator := validation.New(coreValidator)
 
 	ctr := counter.NewMemory()
 	if cfg.Redis {

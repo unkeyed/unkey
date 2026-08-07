@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -119,7 +120,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
-	openapiExecutor, err := openapiExec.New(clk)
+	openapiExecutor, err := openapiExec.New(clk, openapivalidation.NewFromBytes)
 	require.NoError(t, err)
 
 	eng, err := policies.New(policies.Config{

@@ -32,6 +32,7 @@ import (
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -507,7 +508,7 @@ func buildEngine(
 	}
 
 	logger.Info("policy engine initialized")
-	openapiExecutor, err := openapiExec.New(clk)
+	openapiExecutor, err := openapiExec.New(clk, openapivalidation.NewFromBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: create openapi executor: %w", err)
 	}

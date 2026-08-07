@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api"
@@ -56,7 +57,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Start the API server in a goroutine
 	go func() {
-		runErr := api.Run(ctx, config)
+		runErr := api.Run(ctx, config, openapivalidation.NewFromBytes)
 
 		if runErr != nil {
 			// it's really hard to get this error cause the test fails before we read from the channel
