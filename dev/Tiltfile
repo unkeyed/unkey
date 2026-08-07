@@ -451,7 +451,16 @@ k8s_resource(
 
 # ─── API ───────────────────────────────────────────────────────────────────
 go_service_image('unkey/api:dev', 'api')
-k8s_yaml('k8s/manifests/api.yaml')
+if ORB and not has_github_credentials:
+    # Kubernetes omits optional secret values rather than setting a typed zero.
+    # Use a valid integer so TOML parsing succeeds while GitHub remains disabled.
+    api_manifest = str(read_file('k8s/manifests/api.yaml')).replace(
+        'app_id = ${UNKEY_GITHUB_APP_ID}',
+        'app_id = 0',
+    )
+    k8s_yaml(blob(api_manifest))
+else:
+    k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
