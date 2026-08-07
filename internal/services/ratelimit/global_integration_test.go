@@ -672,12 +672,9 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// The flush filter must have skipped this entry. require.Never polls
-	// to guard against a periodic flush from the background goroutine
-	// firing concurrently.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	// The counter remains below the floor, so later periodic flushes evaluate
+	// the same state as the synchronous flush above.
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
 		"sub-floor utilization must not write a global-counters row")
 }
 
@@ -1173,9 +1170,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 
 	// The cold-window denial increments nothing (deny path doesn't bump
 	// val), so val stays 0 and the utilization filter skips the flush.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
 		"cold oversized denial must not write a global-counters row")
 }
 
