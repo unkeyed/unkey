@@ -1,3 +1,9 @@
+// Command amp-orb-services provides the network adapters used by .amp/services.yaml.
+//
+// Amp can expose only processes that listen directly in the orb. The local Unkey
+// stack instead exposes some services through minikube loopback ports and routes
+// deployed applications through Frontline. These commands bridge those boundaries
+// without changing the production services or bypassing Frontline behavior.
 package main
 
 import (
