@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 )
 
 var minimalSpec = []byte(`
@@ -41,7 +42,7 @@ paths:
 
 func newTestExecutor(t *testing.T) *Executor {
 	t.Helper()
-	e, err := New(clock.New())
+	e, err := New(clock.New(), openapivalidation.NewFromBytes)
 	require.NoError(t, err)
 	return e
 }
