@@ -43,6 +43,7 @@ export function EnvVarEditRow({
     register,
     handleSubmit,
     setValue,
+    setError,
     control,
     formState: { isSubmitting, errors },
   } = useForm<EditEnvVarFormValues>({
@@ -61,6 +62,14 @@ export function EnvVarEditRow({
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {
       if (isWriteonly && !values.value) {
+        // A write replaces the whole variable and the API never returns a
+        // sensitive value, so the note cannot be saved on its own.
+        if ((values.description || "") !== (note ?? "")) {
+          setError("value", {
+            message: "Type the new value to save a change to a sensitive variable.",
+          });
+          return;
+        }
         onClose();
         return;
       }
@@ -73,7 +82,7 @@ export function EnvVarEditRow({
       });
       onClose();
     },
-    [envVarId, isWriteonly, onClose],
+    [envVarId, isWriteonly, note, setError, onClose],
   );
 
   const handleKeyPaste = useCallback(
@@ -121,10 +130,15 @@ export function EnvVarEditRow({
           onPaste={handleKeyPaste}
         />
         <FormTextarea
-          label={isWriteonly ? "New Value" : "Value"}
+          label="Value"
           rows={1}
           className="[&_textarea]:font-mono [&_textarea]:min-h-9 [&_textarea]:max-h-40 [&_textarea]:resize-y [&_textarea]:overflow-y-auto"
-          placeholder={isWriteonly ? "Enter new value to replace" : "value"}
+          placeholder={isWriteonly ? "Leave empty to keep the current value" : "value"}
+          description={
+            isWriteonly
+              ? "A sensitive value cannot be shown. Type a new value to replace it, or leave this empty to keep the current one."
+              : undefined
+          }
           error={errors.value?.message}
           {...register("value")}
         />
