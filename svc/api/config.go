@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
@@ -410,6 +411,11 @@ type TestConfig struct {
 	// the server uses this listener instead of binding to HttpPort. Tests
 	// use ephemeral ports (":0") to avoid conflicts when running in parallel.
 	Listener net.Listener
+
+	// ClickHouseFlushInterval overrides the production analytics flush interval.
+	// Integration tests use a shorter interval so assertions do not wait for a
+	// production-sized batch timer after sending a small number of events.
+	ClickHouseFlushInterval time.Duration
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
