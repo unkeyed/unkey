@@ -281,11 +281,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
+		var docker *openapi.AppDocker
+		if app.SourceType == db.AppsSourceTypeDockerImage {
+			imageReference := ""
+			if req.Docker != nil {
+				imageReference = req.Docker.Image
+			} else {
+				dockerSource, dockerErr := db.Query.FindAppDockerSourceByAppId(ctx, tx, app.ID)
+				if dockerErr != nil {
+					return openapi.App{}, dockerErr
+				}
+				imageReference = dockerSource.ImageReference
+			}
+			docker = &openapi.AppDocker{Image: imageReference}
+		}
+
 		return openapi.App{
 			Id:                  app.ID,
 			Name:                name,
 			Slug:                slug,
+			SourceType:          openapi.AppSourceType(app.SourceType),
 			Git:                 gitState,
+			Docker:              docker,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,
 			IsRolledBack:        app.IsRolledBack,
 			DeleteProtection:    deleteProtection,

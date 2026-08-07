@@ -16,6 +16,13 @@ const (
 	PortalSessionScopes = "portalSession.Scopes"
 )
 
+// Defines values for AppSourceType.
+const (
+	DockerImage AppSourceType = "docker_image"
+	Github      AppSourceType = "github"
+	Legacy      AppSourceType = "legacy"
+)
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -190,6 +197,9 @@ type App struct {
 	// When true, the app cannot be deleted until protection is disabled.
 	DeleteProtection bool `json:"deleteProtection"`
 
+	// Docker The configured Docker image source. Present only for Docker image apps.
+	Docker *AppDocker `json:"docker,omitempty"`
+
 	// Git The connected GitHub repository and the branch its deployments track.
 	// Omitted when the app has no repository connected (for example a
 	// Docker-based app).
@@ -208,9 +218,23 @@ type App struct {
 	// Chosen at creation time.
 	Slug string `json:"slug"`
 
+	// SourceType The configured source used to create deployments. `legacy` identifies
+	// apps created before explicit source tracking was introduced.
+	SourceType AppSourceType `json:"sourceType,omitempty"`
+
 	// UpdatedAt Unix timestamp in milliseconds when the app was last updated.
 	// Omitted if the app has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
+}
+
+// AppSourceType The configured source used to create deployments. `legacy` identifies
+// apps created before explicit source tracking was introduced.
+type AppSourceType string
+
+// AppDocker defines model for AppDocker.
+type AppDocker struct {
+	// Image The configured default image reference for new deployments.
+	Image string `json:"image"`
 }
 
 // AppDockerInput Configure Docker as the app source.

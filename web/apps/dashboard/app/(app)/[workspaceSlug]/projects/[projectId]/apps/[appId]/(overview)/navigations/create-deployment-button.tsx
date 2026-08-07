@@ -183,6 +183,7 @@ export const CreateDeploymentButton = ({
     setValue,
     reset,
     watch,
+    getFieldState,
     control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<ReturnType<typeof createFormSchema>>>({
@@ -203,20 +204,13 @@ export const CreateDeploymentButton = ({
     }
   }, [defaultEnvironmentSlug, setValue]);
 
-  const createDeployment = useMutation({
-    mutationFn: async (source: {
-      environment: string;
-      git?: ReturnType<typeof parseDeployRef>;
-      image?: string;
-    }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
-        project: projectId,
-        app: appId,
-        environment: source.environment,
-        ...(source.image ? { image: { dockerImage: source.image } } : { git: source.git ?? {} }),
-      });
-      return { deploymentId: res.data.deploymentId };
-    },
+  useEffect(() => {
+    if (isOpen && isImageApp && app?.imageReference && !getFieldState("name").isDirty) {
+      setValue("name", app.imageReference, { shouldValidate: true });
+    }
+  }, [app?.imageReference, getFieldState, isImageApp, isOpen, setValue]);
+
+  const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {
       toast.success("Deployment has been created");
       reset();
@@ -247,7 +241,11 @@ export const CreateDeploymentButton = ({
       appId,
       environmentSlug: values.environment,
       ...match(deploymentSource)
-        .with("image", () => ({ source: "image" as const, image: values.name }))
+        .with("image", () =>
+          values.name === app?.imageReference
+            ? { source: "default" as const }
+            : { source: "image" as const, image: values.name },
+        )
         .with("git", () => ({ source: "git" as const, gitRef: values.name }))
         .exhaustive(),
     });
@@ -286,7 +284,12 @@ export const CreateDeploymentButton = ({
       {planGate}
       <DynamicDialogContainer
         isOpen={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) {
+            reset({ environment: defaultEnvironmentSlug });
+          }
+        }}
         title="Create Deployment"
         subTitle={
           isImageApp
@@ -416,7 +419,10 @@ export const CreateDeploymentButton = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setValue("name", deployment.image ?? "", { shouldValidate: true })
+                      setValue("name", deployment.image ?? "", {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
                     }
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >

@@ -382,6 +382,10 @@ func TestUpdateAppDockerImage(t *testing.T) {
 		},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, "docker_image", string(res.Body.Data.SourceType))
+	require.NotNil(t, res.Body.Data.Docker)
+	require.Equal(t, "ghcr.io/acme/api:v2", res.Body.Data.Docker.Image)
+	require.Nil(t, res.Body.Data.Git)
 	require.Len(t, ctrlClient.UpdateDockerImageSourceCalls, 1)
 	call := ctrlClient.UpdateDockerImageSourceCalls[0]
 	require.Equal(t, workspace.ID, call.GetWorkspaceId())

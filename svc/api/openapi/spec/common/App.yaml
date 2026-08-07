@@ -23,6 +23,18 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
+  sourceType:
+    type: string
+    enum:
+      - legacy
+      - github
+      - docker_image
+    description: |
+      The configured source used to create deployments. `legacy` identifies
+      apps created before explicit source tracking was introduced.
+    example: docker_image
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   git:
     description: |
       The connected GitHub repository and the branch its deployments track.
@@ -30,6 +42,11 @@ properties:
       Docker-based app).
     allOf:
       - "$ref": "./AppGit.yaml"
+  docker:
+    description: |
+      The configured Docker image source. Present only for Docker image apps.
+    allOf:
+      - "$ref": "./AppDocker.yaml"
   currentDeploymentId:
     type: string
     description: |
