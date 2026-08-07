@@ -42,6 +42,14 @@ type StartDeployment struct{}
 func (StartDeployment) ActionFor(urn.Environment) {}
 func (StartDeployment) String() string            { return "start_deployment" }
 
+// RollbackDeployment authorizes rolling live traffic in an environment back to a previous deployment.
+//
+// Valid resource: urn.Environment.
+type RollbackDeployment struct{}
+
+func (RollbackDeployment) ActionFor(urn.Environment) {}
+func (RollbackDeployment) String() string            { return "rollback_deployment" }
+
 // CreateDomain authorizes creating domains in an environment.
 //
 // Valid resource: urn.Environment.
