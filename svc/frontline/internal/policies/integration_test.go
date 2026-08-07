@@ -26,12 +26,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	openapivalidation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
@@ -118,11 +120,15 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
+	openapiExecutor, err := openapiExec.New(clk, openapivalidation.NewFromBytes)
+	require.NoError(t, err)
+
 	eng, err := policies.New(policies.Config{
 		KeyService:       keyService,
 		RateLimiter:      rateLimiter,
 		Clock:            clk,
 		KeyVerifications: batch.NewNoop[schema.KeyVerification](),
+		OpenAPIExecutor:  openapiExecutor,
 	})
 	require.NoError(t, err)
 
