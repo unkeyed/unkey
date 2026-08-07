@@ -778,39 +778,26 @@ func TestGlobal_PushIgnoresSpeculativeBatchIncrements(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)
-	clk := clock.NewTestClock()
-	region := env.newRegionAs(clk, "region-a")
+	region := newGlobalPushOnlyService(env.db.RW(), "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-speculative"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-speculative"
 	)
 	duration := time.Minute
-
-	resp, err := region.Ratelimit(context.Background(), RatelimitRequest{
-		WorkspaceID: workspaceID,
-		Namespace:   namespace,
-		Identifier:  identifier,
-		Limit:       limit,
-		Duration:    duration,
-		Cost:        6,
-		Time:        clk.Now(),
-	})
-	require.NoError(t, err)
-	require.True(t, resp.Success)
 
 	curKey := counterKey{
 		workspaceID: workspaceID,
 		namespace:   namespace,
 		identifier:  identifier,
 		durationMs:  duration.Milliseconds(),
-		sequence:    calculateSequence(clk.Now(), duration),
+		sequence:    calculateSequence(region.clock.Now(), duration),
 	}
-	entryValue, ok := region.counters.Load(curKey)
-	require.True(t, ok)
-	entry := entryValue.(*counterEntry)
+	entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
+	entry.val.Store(6)
+	entry.globalPushThreshold.Store(2)
+	region.counters.Store(curKey, entry)
 
 	entry.speculative.Add(6)
 	region.runGlobalPushOnce()

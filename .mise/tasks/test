@@ -48,16 +48,12 @@ cleanup_test_containers() {
 trap cleanup_test_containers EXIT
 
 # On a cold cache, Rask starts one `go test` process per package and each process
-# rebuilds the same dependency graph. Build production packages once so Rask can
-# keep its package-level test parallelism without multiplying compiler work or
-# pre-running test binaries. Targeted runs do not have enough package fan-out to
-# benefit from this extra pass.
+# rebuilds the same dependency graph. Populate production package exports once so
+# Rask can keep its package-level test parallelism without multiplying compiler
+# work, linking unused commands, or pre-running test binaries. Targeted runs do
+# not have enough package fan-out to benefit from this extra pass.
 if [[ $# -eq 0 ]]; then
-  compile_output=""
-  if ! compile_output="$(go build ./... 2>&1)"; then
-    printf "%s\n" "${compile_output}" >&2
-    exit 1
-  fi
+  go list -deps -export ./... >/dev/null
 fi
 
 # Rask 0.5.0 compiles every package once with `go test -list '^Test'` only to
