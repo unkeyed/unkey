@@ -47,14 +47,8 @@ cleanup_test_containers() {
 }
 trap cleanup_test_containers EXIT
 
-# On a cold cache, Rask starts one `go test` process per package and each process
-# rebuilds the same dependency graph. Populate production package exports once so
-# Rask can keep its package-level test parallelism without multiplying compiler
-# work, linking unused commands, or pre-running test binaries. Targeted runs do
-# not have enough package fan-out to benefit from this extra pass. Cap package
-# compilation at eight processes: the large dependency graph is cache-bound, and
-# higher fan-out made this phase slower on machines with more cores. The compiler
-# can use more memory to avoid garbage collection, but cap each process at 1 GiB.
+# Warm shared package exports once for full-suite runs. Eight compiler processes
+# were fastest for this cache-bound graph; GOMEMLIMIT bounds memory with GOGC off.
 if [[ $# -eq 0 ]]; then
   compile_parallelism="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '8')"
   if ((compile_parallelism > 8)); then
@@ -63,10 +57,7 @@ if [[ $# -eq 0 ]]; then
   GOGC=off GOMEMLIMIT=1GiB go list -p "${compile_parallelism}" -deps -export ./... >/dev/null
 fi
 
-# Rask 0.5.0 compiles every package once with `go test -list '^Test'` only to
-# calculate progress totals, then compiles and runs the real test command. Its
-# unknown-total fallback preserves execution and reporting without that duplicate
-# build. Keep all other Go invocations byte-for-byte unchanged.
+# Force Rask's unknown-total path to skip its duplicate `go test -list` compile.
 real_go="$(command -v go)"
 rask_go_wrapper="${test_run_dir}/go-wrapper"
 mkdir -p "${rask_go_wrapper}"
