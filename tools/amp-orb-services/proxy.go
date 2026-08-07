@@ -26,6 +26,9 @@ var (
 	e2bHostnamePattern = regexp.MustCompile(`^[0-9]+-[a-z0-9]+\.e2b\.app$`)
 )
 
+// runTCPProxy gives Amp a stable listener for services that minikube publishes on
+// a different loopback port. This is a raw TCP proxy instead of an HTTP reverse
+// proxy so Connect RPC, streaming responses, and WebSocket upgrades stay intact.
 func runTCPProxy(args []string) error {
 	if len(args) != 2 {
 		return fmt.Errorf("usage: amp-orb-services proxy <listen-port> <upstream-port>")
@@ -81,6 +84,9 @@ func bridgeConnections(first, second net.Conn) {
 	<-done
 }
 
+// frontlineProxy keeps deployed application requests on the normal Frontline
+// path. Amp terminates public TLS before this process, so the proxy restores TLS
+// locally and preserves the public Host header for Frontline route lookup.
 type frontlineProxy struct {
 	publicHostname string
 	sourceHostname string
@@ -138,6 +144,9 @@ func runFrontlineProxy(args []string) error {
 	}
 }
 
+// registerRoute copies the immutable deployment route to the hostname that Amp
+// assigned to the portal. Frontline intentionally rejects unknown hosts, and Amp
+// hostnames do not exist when the deployment route is first created.
 func (p *frontlineProxy) registerRoute(hostname string) (bool, error) {
 	pod, err := runKubectl(
 		"-n", "unkey",
@@ -286,6 +295,9 @@ func (p *frontlineProxy) isPortalHostname(hostname string) bool {
 	return hostname == p.publicHostname || e2bHostnamePattern.MatchString(hostname)
 }
 
+// readInitialRequest avoids net/http normalization before Frontline sees the
+// request. In particular, it retains the exact Host and Upgrade headers and any
+// request body bytes received with the header block.
 func readInitialRequest(connection net.Conn) ([]byte, error) {
 	request := make([]byte, 0, 4096)
 	buffer := make([]byte, 4096)

@@ -61,6 +61,9 @@ type managedPortal struct {
 	process *portalProcess
 }
 
+// portalManager exists because .amp/services.yaml is static, while deployments
+// are created and stopped at runtime. It owns one Frontline bridge and one Amp
+// portal manifest for each deployment that is currently reachable.
 type portalManager struct {
 	threadID     string
 	portalDomain string
@@ -76,6 +79,9 @@ type portalManifest struct {
 	} `json:"links"`
 }
 
+// runDeploymentPortals starts an internal status endpoint and the reconciliation
+// loop. The manager itself has no public portal because only deployed applications
+// should add links to Amp's portal list.
 func runDeploymentPortals(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("usage: amp-orb-services deployment-portals <listen-port>")
@@ -102,6 +108,9 @@ func runDeploymentPortals(args []string) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", listenPort), handler) //nolint:gosec
 }
 
+// findPortalContext derives the current thread and portal domain from an existing
+// static service manifest. The hidden manager has no PUBLIC_URL of its own, but
+// amp orb portal needs both values when it publishes deployment links.
 func findPortalContext(publicURLs []string) (string, string, error) {
 	deadline := time.Now().Add(time.Minute)
 	for {
@@ -165,6 +174,8 @@ func (m *portalManager) watch() {
 	}
 }
 
+// listDeploymentRoutes excludes pending, failed, and scaled-down deployments so
+// Amp never advertises a portal that Frontline cannot route to a running instance.
 func listDeploymentRoutes() ([]deploymentRoute, error) {
 	pod, err := runKubectl(
 		"-n", "unkey",
@@ -238,6 +249,9 @@ ORDER BY route.deployment_id, route.created_at;
 	return routes, nil
 }
 
+// reconcile makes the process and manifest lifecycle match deployment
+// availability. A stopped deployment loses its child bridge and portal manifest;
+// a newly ready deployment gets both during the next polling cycle.
 func (m *portalManager) reconcile(routes []deploymentRoute) error {
 	desired := make(map[string]deploymentRoute, len(routes))
 	for _, route := range routes {
@@ -294,6 +308,9 @@ func (m *portalManager) reconcile(routes []deploymentRoute) error {
 	return nil
 }
 
+// startPortal gives each deployment a dedicated local listener because an Amp
+// portal URL maps one public hostname to one orb port. The child re-executes this
+// binary so the manager and all bridges remain in the same supervised service.
 func (m *portalManager) startPortal(route deploymentRoute, port int) (managedPortal, error) {
 	name := portalName(route.deploymentID)
 	title := portalTitle(route)
@@ -406,6 +423,9 @@ func portalEnvironment(threadID, domain string) []string {
 	return append(environment, "AMP_THREAD_ID="+threadID, "AMP_PORTAL_DOMAIN="+domain)
 }
 
+// allocatePort hashes the immutable deployment ID so a manager restart recreates
+// the same public URL. Linear probing handles collisions and ports used by other
+// orb services.
 func allocatePort(deploymentID string, used map[int]struct{}) (int, error) {
 	digest := sha256.Sum256([]byte(deploymentID))
 	offset := int(binary.BigEndian.Uint32(digest[:4])) % dynamicPortCount
@@ -482,6 +502,8 @@ func portalTitle(route deploymentRoute) string {
 	return fmt.Sprintf("%s%s · %s · %s", route.projectSlug, app, route.environmentSlug, route.deploymentID)
 }
 
+// cleanStaleManifests repairs state after an abrupt service or orb shutdown, when
+// systemd stops child processes before the manager can remove their portal files.
 func cleanStaleManifests() error {
 	if err := os.MkdirAll(portalsDirectory, 0o755); err != nil {
 		return err
