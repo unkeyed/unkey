@@ -11,7 +11,7 @@ jobs:
     env:
       RASK_CACHE_DIR: ./.rask-cache #/mnt/depot-cache/rask
       RASK_REMOTE_CACHE_BUCKET: rask
-      RASK_REMOTE_CACHE_PREFIX: benchmark-baseline-20260807-a2
+      RASK_REMOTE_CACHE_PREFIX: benchmark-baseline-20260807-a3
       RASK_REMOTE_CACHE_REGION: auto
       RASK_REMOTE_CACHE_ENDPOINT: ${{ secrets.RASK_REMOTE_CACHE_ENDPOINT }}
       RASK_REMOTE_CACHE_ACCESS_KEY_ID: ${{ secrets.RASK_REMOTE_CACHE_ACCESS_KEY_ID }}
@@ -31,6 +31,20 @@ jobs:
       - name: Install toolchain
         run: mise install --locked --yes
       - name: Build
-        run: mise run build
+        run: |
+          set -o pipefail
+          mise run build 2>&1 | tee /tmp/baseline-build.log || {
+            status=$?
+            message=$(tail -n 40 /tmp/baseline-build.log | tr '\n' ' ' | cut -c1-4000)
+            echo "::error title=Baseline build failure::$message"
+            exit "$status"
+          }
       - name: Run tests
-        run: mise run test
+        run: |
+          set -o pipefail
+          mise run test 2>&1 | tee /tmp/baseline-test.log || {
+            status=$?
+            message=$(tail -n 40 /tmp/baseline-test.log | tr '\n' ' ' | cut -c1-4000)
+            echo "::error title=Baseline test failure::$message"
+            exit "$status"
+          }
