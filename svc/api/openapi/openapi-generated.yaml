@@ -903,6 +903,59 @@ components:
                 data:
                     "$ref": "#/components/schemas/Domain"
             additionalProperties: false
+        V2DomainsListDomainsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                limit:
+                    type: integer
+                    description: |
+                        The maximum number of domains one response contains.
+                        A small limit makes the response smaller, but makes more requests necessary.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        The pagination cursor from the response that came before.
+                        Send it to get the next page when that response has `hasMore: true`.
+                    example: dom_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
+                    example: acme.com
+            additionalProperties: false
+        V2DomainsListDomainsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/Domain"
+                    description: |
+                        The domains attached to the environment, sorted by their id.
+                        The array is empty when the environment has no domains. This is not an error.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
             required:
@@ -9207,6 +9260,252 @@ paths:
             tags:
                 - domains
             x-speakeasy-name-override: getDomain
+            x-unkey-idempotency: idempotent
+    /v2/domains.listDomains:
+        post:
+            description: |
+                List the custom domains attached to an environment and their verification status.
+
+                Results are paginated and sorted by their id. When `hasMore` is true, send the
+                returned `cursor` to get the next page. An environment with no domains returns an
+                empty array, not a 404.
+
+                `status: verified` means the domain is verified. Unkey has configured routing and requested a
+                certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
+                The flag shows which records Unkey has read back, so you can see which records are still
+                missing without a second call. Some providers hide a record from DNS lookups, for example a
+                proxied or flattened routing record. Such a record stays `false` while it serves traffic.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_domain` (to read domains in any environment)
+                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+            operationId: domains.listDomains
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byIds:
+                                description: Uses the ids returned by the corresponding list endpoints.
+                                summary: List an environment's domains by ID
+                                value:
+                                    app: app_1234abcd
+                                    environment: env_1234abcd
+                                    project: proj_1234abcd
+                            bySlugs:
+                                description: Uses the project, app, and environment slugs.
+                                summary: List an environment's domains by slugs
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                            paginated:
+                                description: Get a smaller page and continue from a cursor.
+                                summary: Paginate with a smaller page size
+                                value:
+                                    app: payments-api
+                                    cursor: dom_1234abcd
+                                    environment: production
+                                    limit: 20
+                                    project: payments
+                            search:
+                                description: Returns only domains whose id or name contains the search string.
+                                summary: Filter by name
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                                    search: acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsListDomainsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                domainList:
+                                    description: Two verified domains. The routing record verified the subdomain. The TXT record verified the apex domain, because Unkey cannot read its alias back.
+                                    summary: Domain list
+                                    value:
+                                        data:
+                                            - appId: app_1234abcd
+                                              createdAt: 1704067200000
+                                              dnsRecords:
+                                                - name: api.acme.com
+                                                  note: Create as DNS-only if your provider offers the choice.
+                                                  ttl: 60
+                                                  type: CNAME
+                                                  value: a1b2c3d4e5f6g7h8.cname.unkey.com
+                                                  verified: true
+                                                - name: _unkey.api.acme.com
+                                                  note: Proves ownership. Create it alongside the routing record.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=3ZQ8xK1mP7vT5nR2wY6bJ4hL
+                                                  verified: false
+                                              domain: api.acme.com
+                                              environmentId: env_1234abcd
+                                              id: dom_1234abcd
+                                              projectId: proj_1234abcd
+                                              status: verified
+                                              updatedAt: 1704067260000
+                                            - appId: app_1234abcd
+                                              createdAt: 1704067200000
+                                              dnsRecords:
+                                                - name: acme.com
+                                                  note: Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.
+                                                  ttl: 60
+                                                  type: ALIAS
+                                                  value: i9j8k7l6m5n4o3p2.cname.unkey.com
+                                                  verified: false
+                                                - name: _unkey.acme.com
+                                                  note: Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.
+                                                  ttl: 60
+                                                  type: TXT
+                                                  value: unkey-domain-verify=7Kp2Rq9wZx4mB6nT1yL8vJ3h
+                                                  verified: true
+                                              domain: acme.com
+                                              environmentId: env_1234abcd
+                                              id: dom_5678efgh
+                                              projectId: proj_1234abcd
+                                              status: verified
+                                              updatedAt: 1704067260000
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                                empty:
+                                    description: An environment with no custom domains returns an empty array, not a 404.
+                                    summary: No domains attached
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: null
+                                            hasMore: false
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
+                    description: |
+                        Successfully retrieved the environment's domains.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                searchTooLong:
+                                    summary: Search string above the maximum
+                                    value:
+                                        error:
+                                            detail: The search string must be at most 256 characters.
+                                            errors:
+                                                - fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                                                  location: body.search
+                                                  message: must be at most 256 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
+                        which environments exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: List domains
+            tags:
+                - domains
+            x-speakeasy-name-override: listDomains
             x-unkey-idempotency: idempotent
     /v2/environments.getEnvironment:
         post:

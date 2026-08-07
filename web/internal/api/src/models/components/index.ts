@@ -127,6 +127,8 @@ export * from "./v2domainscreatedomainresponsebody.js";
 export * from "./v2domainscreatedomainresponsedata.js";
 export * from "./v2domainsgetdomainrequestbody.js";
 export * from "./v2domainsgetdomainresponsebody.js";
+export * from "./v2domainslistdomainsrequestbody.js";
+export * from "./v2domainslistdomainsresponsebody.js";
 export * from "./v2environmentsgetenvironmentrequestbody.js";
 export * from "./v2environmentsgetenvironmentresponsebody.js";
 export * from "./v2environmentslistenvironmentsrequestbody.js";

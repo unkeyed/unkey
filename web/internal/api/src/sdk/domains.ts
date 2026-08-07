@@ -4,6 +4,7 @@
 
 import { domainsCreateDomain } from "../funcs/domainsCreateDomain.js";
 import { domainsGetDomain } from "../funcs/domainsGetDomain.js";
+import { domainsListDomains } from "../funcs/domainsListDomains.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import { unwrapAsync } from "../types/fp.js";
@@ -80,6 +81,39 @@ export class Domains extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DomainsGetDomainResponseBody> {
     return unwrapAsync(domainsGetDomain(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List domains
+   *
+   * @remarks
+   * List the custom domains attached to an environment and their verification status.
+   *
+   * The results are in order of domain id, and the response is paginated. When `hasMore` is
+   * true, send the returned `cursor` to get the next page. An environment with no domains
+   * returns an empty array, not a 404.
+   *
+   * `status: verified` means the domain is verified. Unkey has configured routing and requested a
+   * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
+   * The flag shows which records Unkey has read back, so you can see which records are still
+   * missing without a second call. Some providers hide a record from DNS lookups, for example a
+   * proxied or flattened routing record. Such a record stays `false` while it serves traffic.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of the following permissions:
+   * - `environment.*.read_domain` (to read domains in any environment)
+   * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+   */
+  async listDomains(
+    request: components.V2DomainsListDomainsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DomainsListDomainsResponseBody> {
+    return unwrapAsync(domainsListDomains(
       this,
       request,
       options,

@@ -288,6 +288,8 @@ paths:
     $ref: "./spec/paths/v2/domains/createDomain/index.yaml"
   /v2/domains.getDomain:
     $ref: "./spec/paths/v2/domains/getDomain/index.yaml"
+  /v2/domains.listDomains:
+    $ref: "./spec/paths/v2/domains/listDomains/index.yaml"
 
   # Gateway Endpoints
   /v2/gateway.setPolicies:
