@@ -11,6 +11,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -345,7 +346,11 @@ func TestUpdateAppConnectRepositoryForbidden(t *testing.T) {
 
 func TestUpdateAppDockerImage(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctrlClient := &testutil.MockAppClient{}
+	ctrlClient := &testutil.MockAppClient{
+		UpdateDockerImageSourceFunc: func(_ context.Context, _ *ctrlv1.UpdateDockerImageSourceRequest) (*ctrlv1.UpdateDockerImageSourceResponse, error) {
+			return &ctrlv1.UpdateDockerImageSourceResponse{ImageReference: "index.docker.io/library/nginx:1.27"}, nil
+		},
+	}
 	route := &handler.Handler{
 		DB:         h.DB,
 		Auditlogs:  h.Auditlogs,
@@ -378,19 +383,19 @@ func TestUpdateAppDockerImage(t *testing.T) {
 		Project: project.ID,
 		App:     app.ID,
 		Docker: &openapi.AppDockerInput{
-			Image: "ghcr.io/acme/api:v2",
+			Image: "nginx:1.27",
 		},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, "docker_image", string(res.Body.Data.SourceType))
 	require.NotNil(t, res.Body.Data.Docker)
-	require.Equal(t, "ghcr.io/acme/api:v2", res.Body.Data.Docker.Image)
+	require.Equal(t, "index.docker.io/library/nginx:1.27", res.Body.Data.Docker.Image)
 	require.Nil(t, res.Body.Data.Git)
 	require.Len(t, ctrlClient.UpdateDockerImageSourceCalls, 1)
 	call := ctrlClient.UpdateDockerImageSourceCalls[0]
 	require.Equal(t, workspace.ID, call.GetWorkspaceId())
 	require.Equal(t, app.ID, call.GetAppId())
-	require.Equal(t, "ghcr.io/acme/api:v2", call.GetImageReference())
+	require.Equal(t, "nginx:1.27", call.GetImageReference())
 	require.NotNil(t, call.GetActor())
 }
 

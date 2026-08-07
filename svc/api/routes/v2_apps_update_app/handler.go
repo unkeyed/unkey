@@ -319,7 +319,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if actorErr != nil {
 			return actorErr
 		}
-		_, ctrlErr := h.CtrlClient.UpdateDockerImageSource(ctx, &ctrlv1.UpdateDockerImageSourceRequest{
+		ctrlRes, ctrlErr := h.CtrlClient.UpdateDockerImageSource(ctx, &ctrlv1.UpdateDockerImageSourceRequest{
 			WorkspaceId:    principal.WorkspaceID,
 			AppId:          data.Id,
 			ImageReference: req.Docker.Image,
@@ -328,6 +328,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if ctrlErr != nil {
 			return ctrlclient.HandleError(ctrlErr, "update Docker image source")
 		}
+		data.Docker = &openapi.AppDocker{Image: ctrlRes.GetImageReference()}
 	}
 
 	return s.JSON(http.StatusOK, Response{

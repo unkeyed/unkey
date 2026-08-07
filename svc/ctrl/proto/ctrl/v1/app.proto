@@ -46,7 +46,9 @@ message UpdateDockerImageSourceRequest {
   ActorInfo actor = 4;
 }
 
-message UpdateDockerImageSourceResponse {}
+message UpdateDockerImageSourceResponse {
+  string image_reference = 1;
+}
 
 message DeleteAppRequest {
   string app_id = 1;
