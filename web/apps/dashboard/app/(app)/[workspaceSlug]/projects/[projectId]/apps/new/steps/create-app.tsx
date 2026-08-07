@@ -73,7 +73,11 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
       try {
         const envs = await trpcClient.deploy.environment.list.query({ projectId });
         const appEnvs = envs.filter((e) => e.appId === appId);
-        const regionNames = (availableRegions ?? []).map((r) => r.name);
+        // The API rejects a region it cannot schedule to, which would fail the
+        // whole call and leave the new app without settings.
+        const regionNames = (availableRegions ?? [])
+          .filter((r) => r.canSchedule)
+          .map((r) => r.name);
         await Promise.all(
           appEnvs.map((env) => applyDefaultSettings(projectId, appId, env.id, regionNames)),
         );
