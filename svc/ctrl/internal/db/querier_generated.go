@@ -355,6 +355,7 @@ type Querier interface {
 	//      app_id,
 	//      environment_id,
 	//      domain,
+	//      verification_status,
 	//      invocation_id
 	//  FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
