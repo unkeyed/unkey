@@ -41,3 +41,29 @@ type CreateVariable struct{}
 
 func (CreateVariable) ActionFor(urn.Environment) {}
 func (CreateVariable) String() string            { return "create_variable" }
+
+// ReadEnvironmentVariables authorizes reading a specific environment's variables.
+//
+// Valid resource: urn.Environment.
+type ReadEnvironmentVariables struct{}
+
+func (ReadEnvironmentVariables) ActionFor(urn.Environment) {}
+func (ReadEnvironmentVariables) String() string            { return "read_environment_variables" }
+
+// SetEnvironmentVariables authorizes creating and overwriting a specific
+// environment's variables.
+//
+// Valid resource: urn.Environment.
+type SetEnvironmentVariables struct{}
+
+func (SetEnvironmentVariables) ActionFor(urn.Environment) {}
+func (SetEnvironmentVariables) String() string            { return "set_environment_variables" }
+
+// RemoveEnvironmentVariables authorizes removing variables from a specific
+// environment.
+//
+// Valid resource: urn.Environment.
+type RemoveEnvironmentVariables struct{}
+
+func (RemoveEnvironmentVariables) ActionFor(urn.Environment) {}
+func (RemoveEnvironmentVariables) String() string            { return "remove_environment_variables" }
