@@ -87,7 +87,6 @@
       ".trigger",
       "**/*.css",
       "**/*.astro",
-      "**/.astro/**",
       "**/.blume/**",
       "**/.blume-verify/**"
     ]
@@ -115,7 +114,6 @@
       "**/routeTree.gen.ts",
       "**/*.css",
       "**/*.astro",
-      "**/.astro/**",
       "**/.blume/**",
       "**/.blume-verify/**"
     ]
@@ -137,7 +135,6 @@
       "./apps/docs/docs.json",
       "**/routeTree.gen.ts",
       "**/*.astro",
-      "**/.astro/**",
       "**/.blume/**",
       "**/.blume-verify/**"
     ]
