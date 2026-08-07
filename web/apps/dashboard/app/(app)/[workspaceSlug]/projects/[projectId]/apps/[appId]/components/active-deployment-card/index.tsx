@@ -167,7 +167,10 @@ export function ActiveDeploymentCard({
             <div className="flex items-center gap-2 min-w-0">
               {match(deployment.source)
                 .with("docker_image", () => (
-                  <ImageSource image={deployment.requestedImage ?? deployment.image} />
+                  <ImageSource
+                    image={deployment.requestedImage ?? deployment.image}
+                    copyValue={deployment.image}
+                  />
                 ))
                 .with("git_build", () => (
                   <>
