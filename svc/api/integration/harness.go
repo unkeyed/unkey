@@ -125,8 +125,11 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 	cluster := &ApiCluster{
 		Addrs: make([]string, config.Nodes),
 	}
+	startupErrors := make([]chan error, config.Nodes)
 
-	// Start each API node as a goroutine
+	// Start all API nodes before waiting for readiness. Node initialization is
+	// independent, so serial startup only adds the same database and route setup
+	// time once per requested node.
 	for i := 0; i < config.Nodes; i++ {
 		// Create ephemeral listener
 		ln, err := net.Listen("tcp", ":0") //nolint: gosec
@@ -150,9 +153,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			InstanceID: fmt.Sprintf("test-node-%d", i),
 			Clock:      apiClock,
 			Test: api.TestConfig{
-				Enabled:  true,
-				Counter:  h.counter,
-				Listener: ln,
+				Enabled:                 true,
+				Counter:                 h.counter,
+				Listener:                ln,
+				ClickHouseFlushInterval: 100 * time.Millisecond,
 			},
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
@@ -211,68 +215,59 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		// Start API server in goroutine
 		ctx, cancel := context.WithCancel(context.Background())
 
-		// Channel to get startup result
-		startupResult := make(chan error, 1)
+		startupError := make(chan error, 1)
+		startupErrors[i] = startupError
 
 		go func(nodeID int, cfg api.Config) {
 			defer func() {
 				if r := recover(); r != nil {
 					h.t.Logf("API server %d panicked: %v", nodeID, r)
-					startupResult <- fmt.Errorf("panic: %v", r)
+					startupError <- fmt.Errorf("panic: %v", r)
 				}
-			}()
-
-			// Give some time for the server to indicate it's starting
-			go func() {
-				time.Sleep(500 * time.Millisecond)
-				startupResult <- nil // Indicate startup attempt
 			}()
 
 			err := api.Run(ctx, cfg)
 			if err != nil && ctx.Err() == nil {
 				h.t.Logf("API server %d failed: %v", nodeID, err)
 				select {
-				case startupResult <- err:
+				case startupError <- err:
 				default:
 				}
 			}
 		}(i, apiConfig)
 
-		// Wait for startup indication
-		select {
-		case err := <-startupResult:
-			if err != nil {
-				require.NoError(h.t, err, "API server %d startup failed", i)
-			}
-		case <-time.After(2 * time.Second):
-			require.Fail(h.t, "API server %d startup timeout", i)
-		}
-
-		// Wait for server to start
-		maxAttempts := 30
-		healthURL := fmt.Sprintf("http://%s/v2/liveness", ln.Addr().String())
-		for attempt := range maxAttempts {
-			//nolint:gosec // Health check URL is constructed from controlled Docker container address
-			resp, err := http.Get(healthURL)
-			if err == nil {
-				_ = resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					h.t.Logf("API server %d started on %s", i, ln.Addr().String())
-					break
-				}
-			}
-			if attempt == maxAttempts-1 {
-				require.NoError(h.t, err, "API server %d failed to start", i)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		// Register cleanup
 		h.t.Cleanup(func() {
 			cancel()
 			// Note: Don't call ln.Close() here as the zen server
 			// will properly close the listener during graceful shutdown
 		})
+	}
+
+	for i, addr := range cluster.Addrs {
+		startupError := startupErrors[i]
+		maxAttempts := 100
+		ready := false
+		healthURL := fmt.Sprintf("%s/v2/liveness", addr)
+		for range maxAttempts {
+			select {
+			case err := <-startupError:
+				require.NoError(h.t, err, "API server %d startup failed", i)
+			default:
+			}
+
+			//nolint:gosec // Health check URL is constructed from controlled Docker container address
+			resp, err := http.Get(healthURL)
+			if err == nil {
+				_ = resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					h.t.Logf("API server %d started on %s", i, addr)
+					ready = true
+					break
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		require.True(h.t, ready, "API server %d failed to start", i)
 	}
 
 	return cluster

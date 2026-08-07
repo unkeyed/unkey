@@ -22,28 +22,15 @@ type TestResponse[TBody any] struct {
 type loadbalancer struct {
 	mu      sync.RWMutex
 	metrics map[string]int
-	buffer  chan string
 	h       *Harness
 }
 
 func NewLoadbalancer(h *Harness) *loadbalancer {
-	lb := &loadbalancer{
+	return &loadbalancer{
 		mu:      sync.RWMutex{},
 		metrics: make(map[string]int),
-		buffer:  make(chan string, 1_000_000),
 		h:       h,
 	}
-
-	go func() {
-		for host := range lb.buffer {
-			lb.mu.Lock()
-			lb.metrics[host]++
-			lb.mu.Unlock()
-
-		}
-	}()
-
-	return lb
 }
 
 func (lb *loadbalancer) GetMetrics() map[string]int {
@@ -105,7 +92,9 @@ func CallRandomNode[Req any, Res any](lb *loadbalancer, method string, path stri
 	lb.h.t.Helper()
 	// nolint:gosec
 	addr := lb.h.instanceAddrs[rand.IntN(len(lb.h.instanceAddrs))]
-	lb.buffer <- addr
+	lb.mu.Lock()
+	lb.metrics[addr]++
+	lb.mu.Unlock()
 	return CallNode[Req, Res](lb.h.t, addr, method, path, headers, req)
 
 }

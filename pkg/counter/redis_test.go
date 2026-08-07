@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -63,13 +64,11 @@ func TestRedisCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(1), val)
 
-		// Wait for the key to expire
-		time.Sleep(2 * time.Second)
-
-		// Key should be gone or zero
-		val, err = ctr.Get(ctx, key)
-		require.NoError(t, err)
-		require.Equal(t, int64(0), val)
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			val, err = ctr.Get(ctx, key)
+			require.NoError(c, err)
+			require.Equal(c, int64(0), val)
+		}, 2*time.Second, 25*time.Millisecond)
 	})
 
 	t.Run("Get", func(t *testing.T) {
@@ -288,13 +287,11 @@ func TestRedisCounter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(numWorkers), value)
 
-		// Wait for TTL to expire
-		time.Sleep(4 * time.Second)
-
-		// Key should be gone or zero
-		value, err = ctr.Get(ctx, key)
-		require.NoError(t, err)
-		require.Equal(t, int64(0), value, "Counter should be zero after TTL expiry")
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			value, err = ctr.Get(ctx, key)
+			require.NoError(c, err)
+			require.Equal(c, int64(0), value, "Counter should be zero after TTL expiry")
+		}, 4*time.Second, 25*time.Millisecond)
 	})
 }
 
@@ -493,13 +490,11 @@ func TestRedisCounterDecrement(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(-5), val)
 
-		// Wait for the key to expire
-		time.Sleep(2 * time.Second)
-
-		// Key should be gone or zero
-		val, err = ctr.Get(ctx, key)
-		require.NoError(t, err)
-		require.Equal(t, int64(0), val)
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			val, err = ctr.Get(ctx, key)
+			require.NoError(c, err)
+			require.Equal(c, int64(0), val)
+		}, 2*time.Second, 25*time.Millisecond)
 	})
 
 	t.Run("ConcurrentDecrements", func(t *testing.T) {
