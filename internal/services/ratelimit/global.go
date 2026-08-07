@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/repeat"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/db"
@@ -161,7 +162,9 @@ func (s *service) runGlobalPushOnce() {
 		}
 
 		_, err := s.globalCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-			return nil, s.db.BulkUpsertGlobalCounters(ctx, chunkRows)
+			return mysql.WithRetryContext(ctx, func() (any, error) {
+				return nil, s.db.BulkUpsertGlobalCounters(ctx, chunkRows)
+			})
 		})
 		if err != nil {
 			metrics.RatelimitGlobalPushErrors.Inc()

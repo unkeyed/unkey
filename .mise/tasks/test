@@ -9,9 +9,15 @@ export UNKEY_TEST_CONTAINER_SCOPE="${UNKEY_TEST_CONTAINER_SCOPE:-$PWD}"
 
 test_container_scope_hash="$(printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | shasum -a 256 | cut -c1-12)"
 export UNKEY_TEST_COMPOSE_PROJECT="unkey-test-${test_container_scope_hash}"
+# Shared helpers use this directory to run each Compose reconciliation once per
+# suite rather than once per concurrently executing package.
+test_run_dir="$(mktemp -d)"
+export UNKEY_TEST_RUN_DIR="${test_run_dir}"
 
 cleanup_test_containers() {
   local status=$?
+
+  rm -rf -- "${test_run_dir}"
 
   # The test helpers intentionally reuse containers across Go test processes
   # so integration tests do not pay Docker startup cost for every test target.
@@ -41,4 +47,37 @@ cleanup_test_containers() {
 }
 trap cleanup_test_containers EXIT
 
-rask "$@"
+# On a cold cache, Rask starts one `go test` process per package and each process
+# rebuilds the same dependency graph. Build production packages once so Rask can
+# keep its package-level test parallelism without multiplying compiler work or
+# pre-running test binaries. Targeted runs do not have enough package fan-out to
+# benefit from this extra pass.
+if [[ $# -eq 0 ]]; then
+  compile_output=""
+  if ! compile_output="$(go build ./... 2>&1)"; then
+    printf "%s\n" "${compile_output}" >&2
+    exit 1
+  fi
+fi
+
+# Rask 0.5.0 compiles every package once with `go test -list '^Test'` only to
+# calculate progress totals, then compiles and runs the real test command. Its
+# unknown-total fallback preserves execution and reporting without that duplicate
+# build. Keep all other Go invocations byte-for-byte unchanged.
+real_go="$(command -v go)"
+rask_go_wrapper="${test_run_dir}/go-wrapper"
+mkdir -p "${rask_go_wrapper}"
+cat > "${rask_go_wrapper}/go" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -eq 4 && "$1" == "test" && "$2" == "-list" && "$3" == "^Test" ]]; then
+  exit 1
+fi
+
+exec "${UNKEY_REAL_GO:?}" "$@"
+EOF
+chmod +x "${rask_go_wrapper}/go"
+
+export UNKEY_REAL_GO="${real_go}"
+PATH="${rask_go_wrapper}:${PATH}" rask "$@"
