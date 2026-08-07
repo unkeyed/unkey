@@ -3,7 +3,7 @@
 #
 #   docker build -f svc/kitchensink/Dockerfile -t kitchensink .
 
-FROM golang:1.25-alpine@sha256:8d22e29d960bc50cd025d93d5b7c7d220b1ee9aa7a239b3c8f55a57e987e8d45 AS builder
+FROM golang:1.26.5-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS builder
 
 # UNKEY_SECRETS_ID is supplied by the Unkey builder as a hash of the
 # project's variables.
