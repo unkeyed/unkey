@@ -108,5 +108,7 @@ func (s *Service) UpdateDockerImageSource(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	return connect.NewResponse(&ctrlv1.UpdateDockerImageSourceResponse{}), nil
+	return connect.NewResponse(&ctrlv1.UpdateDockerImageSourceResponse{
+		ImageReference: imageReference,
+	}), nil
 }

@@ -336,9 +336,10 @@ func (x *UpdateDockerImageSourceRequest) GetActor() *ActorInfo {
 }
 
 type UpdateDockerImageSourceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ImageReference string                 `protobuf:"bytes,1,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *UpdateDockerImageSourceResponse) Reset() {
@@ -369,6 +370,13 @@ func (x *UpdateDockerImageSourceResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateDockerImageSourceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDockerImageSourceResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateDockerImageSourceResponse) GetImageReference() string {
+	if x != nil {
+		return x.ImageReference
+	}
+	return ""
 }
 
 type DeleteAppRequest struct {
@@ -483,8 +491,9 @@ const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x15\n" +
 	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12'\n" +
 	"\x0fimage_reference\x18\x03 \x01(\tR\x0eimageReference\x12(\n" +
-	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"!\n" +
-	"\x1fUpdateDockerImageSourceResponse\"S\n" +
+	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"J\n" +
+	"\x1fUpdateDockerImageSourceResponse\x12'\n" +
+	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"S\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x13\n" +

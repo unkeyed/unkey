@@ -220,8 +220,9 @@ func TestCreateAndUpdateDockerAppSource(t *testing.T) {
 		Actor:          actor,
 	})
 	updateReq.Header().Set("Authorization", "Bearer "+bearer)
-	_, err = svc.UpdateDockerImageSource(ctx, updateReq)
+	updateRes, err := svc.UpdateDockerImageSource(ctx, updateReq)
 	require.NoError(t, err)
+	require.Equal(t, "index.docker.io/library/nginx:1.28", updateRes.Msg.GetImageReference())
 
 	updatedSource, err := database.FindAppDockerSourceByAppId(ctx, appID)
 	require.NoError(t, err)
