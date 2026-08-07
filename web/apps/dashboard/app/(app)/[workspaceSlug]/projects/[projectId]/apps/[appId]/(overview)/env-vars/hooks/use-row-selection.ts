@@ -13,10 +13,6 @@ export function useRowSelection(displayRows: DisplayRow[], envVars: EnvVar[] | u
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndexRef = useRef<number | null>(null);
 
-  // Resolve against every row of the app, not the filtered `displayRows`: the
-  // search and environment filters hide rows the user selected before
-  // filtering. A row id is derived from the key, so a rename since the
-  // selection was made also leaves ids that match nothing.
   const resolveSelection = useCallback(
     () => (envVars ?? []).filter((item) => selectedIds.has(item.id)),
     [envVars, selectedIds],
