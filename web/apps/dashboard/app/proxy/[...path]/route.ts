@@ -121,6 +121,9 @@ function upstreamRequestHeaders(req: NextRequest): Headers {
   if (contentType) {
     headers.set("content-type", contentType);
   }
+  // Identifies the caller to the API so it can attribute deployments to the
+  // dashboard rather than to a generic API client.
+  headers.set("x-unkey-client", "unkey-dashboard");
   return headers;
 }
 

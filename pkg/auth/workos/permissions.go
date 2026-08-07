@@ -67,6 +67,13 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.RollbackDeployment{})},
 		},
 	},
+	"deployments:create": {
+		name:        "Create deployments",
+		description: "Allows creating and redeploying deployments.",
+		permissions: []permissionGrant{
+			{resource: "projects/*/apps/*/environments/*", action: action(rbacpermissions.CreateDeployment{})},
+		},
+	},
 	"deployments:promote": {
 		name:        "Promote deployments",
 		description: "Allows promoting a deployment to live.",
