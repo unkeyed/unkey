@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   server: {
+    allowedHosts: process.env.AMP_ORB ? [".e2b.app", ".onamp.dev"] : undefined,
     port: 3100,
   },
   resolve: {
