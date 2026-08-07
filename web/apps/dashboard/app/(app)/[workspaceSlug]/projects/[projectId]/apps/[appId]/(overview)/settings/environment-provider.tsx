@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useSearchParams } from "next/navigation";
 import { type PropsWithChildren, createContext, useCallback, useContext } from "react";
 import { useProjectData } from "../data-provider";
@@ -16,7 +16,7 @@ type EnvironmentContextType = {
 export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
 export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
-  const { environments } = useProjectData();
+  const { environments, projectId, appId } = useProjectData();
   const searchParams = useSearchParams();
   const envIdParam = searchParams.get("environmentId");
 
@@ -34,8 +34,14 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) => eq(s.environmentId, getActiveEnvId())),
-    [getActiveEnvId],
+        .where(({ s }) =>
+          and(
+            eq(s.projectId, projectId),
+            eq(s.appId, appId ?? ""),
+            eq(s.environmentId, getActiveEnvId()),
+          ),
+        ),
+    [getActiveEnvId, projectId, appId],
   );
 
   // Selected envs settings cannot but null because we apply some sane defaults to them
