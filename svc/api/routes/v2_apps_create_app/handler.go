@@ -58,12 +58,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if req.Git != nil && req.Image != nil {
+	if req.Git != nil && req.Docker != nil {
 		return fault.New(
 			"multiple app sources provided",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("git and image are mutually exclusive"),
-			fault.Public("Provide at most one of git or image."),
+			fault.Internal("git and docker are mutually exclusive"),
+			fault.Public("Provide at most one of git or docker."),
 		)
 	}
 
@@ -152,9 +152,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	switch {
 	case req.Git != nil:
 		source = &ctrlv1.CreateAppRequest_Github{Github: &ctrlv1.GitHubSource{}}
-	case req.Image != nil:
+	case req.Docker != nil:
 		source = &ctrlv1.CreateAppRequest_DockerImage{
-			DockerImage: &ctrlv1.DockerImageSource{ImageReference: req.Image.DockerImage},
+			DockerImage: &ctrlv1.DockerImageSource{ImageReference: req.Docker.Image},
 		}
 	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{

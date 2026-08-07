@@ -1,0 +1,14 @@
+type: object
+description: |
+  Configure Docker as the app source.
+required:
+  - image
+properties:
+  image:
+    type: string
+    minLength: 1
+    maxLength: 512
+    pattern: "\\S"
+    description: The default image reference for new deployments. It must include an explicit tag or digest.
+    example: ghcr.io/acme/api:v1.2.3
+additionalProperties: false

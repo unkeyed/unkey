@@ -49,7 +49,7 @@ func TestCreateAppValidationErrors(t *testing.T) {
 				Name:    "App",
 				Slug:    "app-slug",
 				Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
-				Image:   &openapi.AppDockerImageCreateInput{DockerImage: "nginx:stable"},
+				Docker:  &openapi.AppDockerInput{Image: "nginx:stable"},
 			},
 		},
 	}

@@ -137,7 +137,7 @@ func TestCreateDockerImageApp(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    "payments-api",
-		Image:   &openapi.AppDockerImageCreateInput{DockerImage: "ghcr.io/acme/payments:v1.2.3"},
+		Docker:  &openapi.AppDockerInput{Image: "ghcr.io/acme/payments:v1.2.3"},
 	})
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
