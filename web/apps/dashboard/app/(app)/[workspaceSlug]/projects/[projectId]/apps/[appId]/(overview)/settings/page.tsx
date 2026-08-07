@@ -20,21 +20,21 @@ export default function SettingsPage() {
   useScrollToHash();
 
   return (
-    <EnvironmentSettingsProvider>
-      <PageContainer>
-        <PageHeader>
-          <PageHeaderContent>
-            <PageHeaderTitle>App Settings</PageHeaderTitle>
-          </PageHeaderContent>
-        </PageHeader>
-        <PageBody>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>App Settings</PageHeaderTitle>
+        </PageHeaderContent>
+      </PageHeader>
+      <PageBody>
+        <EnvironmentSettingsProvider>
           <DeploymentSettings onBeforeNavigate={bypass} />
-          <SettingsDangerZone>
-            <DisconnectGitHub />
-            <DeleteApp />
-          </SettingsDangerZone>
-        </PageBody>
-      </PageContainer>
-    </EnvironmentSettingsProvider>
+        </EnvironmentSettingsProvider>
+        <SettingsDangerZone>
+          <DisconnectGitHub />
+          <DeleteApp />
+        </SettingsDangerZone>
+      </PageBody>
+    </PageContainer>
   );
 }
