@@ -1,5 +1,4 @@
 import { and, db, eq, or, schema } from "@/lib/db";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
@@ -18,7 +17,7 @@ export const makeSensitive = workspaceProcedure
         .array(
           z.object({
             environmentId: z.string().min(1),
-            key: envVarKeySchema,
+            key: z.string().min(1),
           }),
         )
         .min(1),

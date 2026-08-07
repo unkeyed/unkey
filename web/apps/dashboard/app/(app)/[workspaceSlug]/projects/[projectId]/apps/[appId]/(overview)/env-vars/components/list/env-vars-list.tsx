@@ -112,7 +112,7 @@ export function EnvVarsList({
     handleBulkDelete,
     handleBulkMakeSensitive,
     clearSelection,
-  } = useRowSelection(displayRows);
+  } = useRowSelection(displayRows, envVarData);
 
   useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
 
