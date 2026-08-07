@@ -7,6 +7,8 @@ import { ArrowDottedRotateAnticlockwise, Ban, Dots } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
+  CopyButton,
+  InfoTooltip,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
@@ -70,9 +72,22 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   return (
     <PageHeader>
       <PageHeaderContent>
-        <PageHeaderTitle className="truncate" title={title}>
-          {title}
-        </PageHeaderTitle>
+        <div className="flex items-center gap-2 min-w-0">
+          <PageHeaderTitle className="truncate" title={title}>
+            {title}
+          </PageHeaderTitle>
+          {deployment.source === "docker_image" && deployment.image && (
+            <InfoTooltip content="Copy resolved image" asChild>
+              <CopyButton
+                value={deployment.image}
+                variant="ghost"
+                className="size-7 shrink-0"
+                toastMessage={deployment.image}
+                src="deployment-detail-header"
+              />
+            </InfoTooltip>
+          )}
+        </div>
       </PageHeaderContent>
       <PageHeaderActions>
         <TableActionPopover items={items}>

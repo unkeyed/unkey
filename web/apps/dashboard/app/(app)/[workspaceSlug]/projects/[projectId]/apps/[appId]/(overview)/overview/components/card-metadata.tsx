@@ -3,7 +3,7 @@
 import { githubUrl } from "@/lib/github-url";
 import { CodeBranch, CodeCommit, Docker, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -93,6 +93,17 @@ function SourceCell() {
             >
               {deployment.requestedImage ?? deployment.image ?? "No image available"}
             </span>
+            {deployment.image && (
+              <InfoTooltip content="Copy resolved image" asChild>
+                <CopyButton
+                  value={deployment.image}
+                  variant="ghost"
+                  className="size-5 shrink-0"
+                  toastMessage={deployment.image}
+                  src="production-deployment-source"
+                />
+              </InfoTooltip>
+            )}
           </span>
         ))
         .with("unknown", () => (
