@@ -18,8 +18,6 @@ import (
 )
 
 func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
-	t.Parallel()
-
 	chCfg := containers.ClickHouse(t)
 	dsn := chCfg.DSN
 
