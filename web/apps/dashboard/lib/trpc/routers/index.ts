@@ -115,11 +115,8 @@ import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
-import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
-import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
-import { updateProject } from "./deploy/project/update";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -443,9 +440,6 @@ export const router = t.router({
     }),
     project: t.router({
       list: listProjects,
-      create: createProject,
-      update: updateProject,
-      delete: deleteProject,
       creationContext,
     }),
     app: t.router({
