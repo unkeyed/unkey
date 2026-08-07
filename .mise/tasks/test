@@ -9,9 +9,15 @@ export UNKEY_TEST_CONTAINER_SCOPE="${UNKEY_TEST_CONTAINER_SCOPE:-$PWD}"
 
 test_container_scope_hash="$(printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | shasum -a 256 | cut -c1-12)"
 export UNKEY_TEST_COMPOSE_PROJECT="unkey-test-${test_container_scope_hash}"
+# Shared helpers use this directory to run each Compose reconciliation once per
+# suite rather than once per concurrently executing package.
+test_run_dir="$(mktemp -d)"
+export UNKEY_TEST_RUN_DIR="${test_run_dir}"
 
 cleanup_test_containers() {
   local status=$?
+
+  rm -rf -- "${test_run_dir}"
 
   # The test helpers intentionally reuse containers across Go test processes
   # so integration tests do not pay Docker startup cost for every test target.
@@ -41,4 +47,31 @@ cleanup_test_containers() {
 }
 trap cleanup_test_containers EXIT
 
-rask "$@"
+# Warm shared package exports once for full-suite runs. Eight compiler processes
+# were fastest for this cache-bound graph; GOMEMLIMIT bounds memory with GOGC off.
+if [[ $# -eq 0 ]]; then
+  compile_parallelism="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '8')"
+  if ((compile_parallelism > 8)); then
+    compile_parallelism=8
+  fi
+  GOGC=off GOMEMLIMIT=1GiB go list -p "${compile_parallelism}" -deps -export ./... >/dev/null
+fi
+
+# Force Rask's unknown-total path to skip its duplicate `go test -list` compile.
+real_go="$(command -v go)"
+rask_go_wrapper="${test_run_dir}/go-wrapper"
+mkdir -p "${rask_go_wrapper}"
+cat > "${rask_go_wrapper}/go" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -eq 4 && "$1" == "test" && "$2" == "-list" && "$3" == "^Test" ]]; then
+  exit 1
+fi
+
+exec "${UNKEY_REAL_GO:?}" "$@"
+EOF
+chmod +x "${rask_go_wrapper}/go"
+
+export UNKEY_REAL_GO="${real_go}"
+PATH="${rask_go_wrapper}:${PATH}" rask "$@"
