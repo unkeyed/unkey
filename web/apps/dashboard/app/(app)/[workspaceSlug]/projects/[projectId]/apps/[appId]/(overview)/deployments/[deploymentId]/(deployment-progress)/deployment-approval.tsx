@@ -4,7 +4,6 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { ShieldAlert } from "@unkey/icons";
-import { match } from "@unkey/match";
 import { Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
 
@@ -30,84 +29,23 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
     },
   });
 
+  const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
+
   // A deployment can land in awaiting_approval for two distinct reasons:
   //   1. fork PR — `forkRepositoryFullName` is populated by detectForkRepo
   //   2. operator opt-in via FORCE_DEPLOYMENT_APPROVAL=true — same status,
   //      no fork metadata, often a same-repo push to main
   // `prNumber` is set for same-repo PRs too, so it can't gate this copy.
-  const gitMetadata = match(deployment.source)
-    .with("git_build", () => {
-      const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
-      return {
-        isFork: Boolean(deployment.forkRepositoryFullName),
-        prUrl: githubUrl.pull(project?.repositoryFullName, deployment.prNumber),
-        commitUrl: githubUrl.commit(sourceRepo, deployment.gitCommitSha),
-        branchUrl: githubUrl.branch(sourceRepo, deployment.gitBranch),
-        branchName: deployment.gitBranch ?? "unknown",
-        commitSha: deployment.gitCommitSha?.slice(0, 7) ?? "unknown",
-      };
-    })
-    .with("docker_image", "unknown", () => null)
-    .exhaustive();
+  const isFork = Boolean(deployment.forkRepositoryFullName);
+
+  const prUrl = githubUrl.pull(project?.repositoryFullName, deployment.prNumber);
+  const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
+  const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
+
+  const branchName = deployment.gitBranch ?? "unknown";
+  const commitSha = deployment.gitCommitSha?.slice(0, 7) ?? "unknown";
   const environment =
     environments.find((e) => e.id === deployment.environmentId)?.slug ?? "Preview";
-  const title = match(deployment.source)
-    .with("git_build", () =>
-      gitMetadata?.isFork ? "Authorize Fork Deployment" : "Authorize Deployment",
-    )
-    .with("docker_image", () => "Authorize Docker Deployment")
-    .with("unknown", () => "Authorize Deployment")
-    .exhaustive();
-  const description = match(deployment.source)
-    .with("git_build", () => (
-      <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
-        {gitMetadata?.isFork ? "An external contributor pushed commit " : "Commit "}
-        {gitMetadata?.commitUrl ? (
-          <a
-            href={gitMetadata.commitUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={chipLinkClass}
-          >
-            {gitMetadata.commitSha}
-          </a>
-        ) : (
-          <code className={chipClass}>{gitMetadata?.commitSha}</code>
-        )}{" "}
-        on branch{" "}
-        {gitMetadata?.branchUrl ? (
-          <a
-            href={gitMetadata.branchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={chipLinkClass}
-          >
-            {gitMetadata.branchName}
-          </a>
-        ) : (
-          <code className={chipClass}>{gitMetadata?.branchName}</code>
-        )}{" "}
-        {gitMetadata?.isFork ? "targeting" : "is awaiting approval before deploying to"} the{" "}
-        <span className="font-semibold text-gray-12">{environment}</span> environment.
-      </p>
-    ))
-    .with("docker_image", () => (
-      <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
-        Docker image{" "}
-        <code className={chipClass}>
-          {deployment.requestedImage ?? deployment.image ?? "unknown"}
-        </code>{" "}
-        is awaiting approval before deploying to the{" "}
-        <span className="font-semibold text-gray-12">{environment}</span> environment.
-      </p>
-    ))
-    .with("unknown", () => (
-      <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
-        This deployment is awaiting approval before deploying to the{" "}
-        <span className="font-semibold text-gray-12">{environment}</span> environment.
-      </p>
-    ))
-    .exhaustive();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -123,9 +61,40 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             <ShieldAlert className="text-white dark:text-black size-[22px]" iconSize="md-medium" />
           </div>
 
-          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">{title}</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+            {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
+          </h1>
 
-          {description}
+          <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
+            {isFork ? "An external contributor pushed commit " : "Commit "}
+            {commitUrl ? (
+              <a
+                href={commitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {commitSha}
+              </a>
+            ) : (
+              <code className={chipClass}>{commitSha}</code>
+            )}{" "}
+            on branch{" "}
+            {branchUrl ? (
+              <a
+                href={branchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {branchName}
+              </a>
+            ) : (
+              <code className={chipClass}>{branchName}</code>
+            )}{" "}
+            {isFork ? "targeting" : "is awaiting approval before deploying to"} the{" "}
+            <span className="font-semibold text-gray-12">{environment}</span> environment.
+          </p>
 
           <div className="flex gap-4 mt-0">
             <Button
@@ -137,13 +106,13 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             >
               Approve Deployment
             </Button>
-            {gitMetadata?.prUrl ? (
-              <a href={gitMetadata.prUrl} target="_blank" rel="noopener noreferrer">
+            {prUrl ? (
+              <a href={prUrl} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="xlg" className="px-7">
                   Review Pull Request
                 </Button>
               </a>
-            ) : gitMetadata?.isFork ? (
+            ) : isFork ? (
               // Fork without a PR shouldn't normally happen but render
               // the disabled affordance so the modal layout stays
               // balanced.
