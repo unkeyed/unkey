@@ -35,6 +35,7 @@ Specifies which API to retrieve by its unique identifier. Must be a valid API ID
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -52,10 +53,10 @@ unkey api apis get-api --api-id=api_1234abcd && unkey api keys create-key --api-
 
 ## Output
 
-Default output shows the request ID with latency, followed by the API information:
+Default output shows the request ID, followed by the API information:
 
 ```text
-req_2c9a0jf23l4k567 (took 45ms)
+req_2c9a0jf23l4k567
 
 {
   "id": "api_1234abcd",

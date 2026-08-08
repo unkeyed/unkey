@@ -43,6 +43,11 @@ func captureRequest[T any](t *testing.T, cmd *cli.Command, args string) T {
 		t.Fatalf("failed to create pipe: %v", err)
 	}
 	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = origStdout
+		_ = w.Close()
+		_ = r.Close()
+	})
 
 	fullArgs := fmt.Sprintf("unkey %s --api-url=%s --root-key=test_key", args, srv.URL)
 	root := &cli.Command{
@@ -72,9 +77,6 @@ func captureRequest[T any](t *testing.T, cmd *cli.Command, args string) T {
 }
 
 func TestGetVerifications(t *testing.T) {
-	// Note: the shared test harness splits args with strings.Fields, so query
-	// values must not contain spaces.  This is fine because we are testing
-	// flag-to-request mapping, not SQL validity.
 	tests := []struct {
 		name string
 		args string

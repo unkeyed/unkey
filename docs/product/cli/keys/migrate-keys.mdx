@@ -35,7 +35,7 @@ Identifier of the configured migration provider/strategy to use (e.g., "your_com
 The ID of the API that the keys should be inserted into. Must be 3-255 characters.
 </ParamField>
 
-<ParamField body="--keys-json" type="string" required>
+<ParamField body="--keys" type="JSON string" required>
 JSON array of key migration objects. Each object describes a single key to migrate.
 
 <Expandable title="Key object properties">
@@ -131,6 +131,7 @@ Whether this rate limit should be automatically applied when verifying a key.
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -139,29 +140,29 @@ Whether this rate limit should be automatically applied when verifying a key.
 unkey api keys migrate-keys \
   --migration-id=your_company \
   --api-id=api_123456789 \
-  --keys-json='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","enabled":true}]'
+  --keys='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","enabled":true}]'
 ```
 ```bash With metadata and roles
 unkey api keys migrate-keys \
   --migration-id=your_company \
   --api-id=api_123456789 \
-  --keys-json='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","name":"Production API Key","externalId":"user_abc123","enabled":true,"meta":{"plan":"enterprise"},"roles":["admin"],"permissions":["api.read","api.write"]}]'
+  --keys='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","name":"Production API Key","externalId":"user_abc123","enabled":true,"meta":{"plan":"enterprise"},"roles":["admin"],"permissions":["api.read","api.write"]}]'
 ```
 ```bash JSON output for scripting
 unkey api keys migrate-keys \
   --migration-id=your_company \
   --api-id=api_123456789 \
-  --keys-json='[{"hash":"abc123","enabled":true}]' \
+  --keys='[{"hash":"abc123","enabled":true}]' \
   --output=json
 ```
 </CodeGroup>
 
 ## Output
 
-Default output shows the request ID with latency, followed by the migration results:
+Default output shows the request ID, followed by the migration results:
 
 ```text
-req_2c9a0jf23l4k567 (took 120ms)
+req_2c9a0jf23l4k567
 
 {
   "migrated": [

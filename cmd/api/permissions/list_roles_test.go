@@ -47,6 +47,23 @@ func TestListRoles(t *testing.T) {
 				Cursor: ptr.P("eyJrZXkiOiJyb2xlXzU2NzgifQ=="),
 			},
 		},
+		{
+			name: "with search",
+			args: "permissions list-roles --search=admin",
+			want: openapi.V2PermissionsListRolesRequestBody{
+				Limit:  ptr.P(100),
+				Search: ptr.P("admin"),
+			},
+		},
+		{
+			name: "with all flags",
+			args: "permissions list-roles --limit=25 --cursor=cursor_123 --search=admin",
+			want: openapi.V2PermissionsListRolesRequestBody{
+				Limit:  ptr.P(25),
+				Cursor: ptr.P("cursor_123"),
+				Search: ptr.P("admin"),
+			},
+		},
 	}
 
 	for _, tt := range tests {

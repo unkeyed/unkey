@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -29,15 +28,16 @@ Your root key must have one of the following permissions:
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimit/apply-multiple-rate-limit-checks` + util.Disclaimer,
 		Examples: []string{
-			`unkey api ratelimit multi-limit --limits-json='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000},{"namespace":"auth.login","identifier":"user_abc123","limit":5,"duration":60000}]'`,
-			`unkey api ratelimit multi-limit --limits-json='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'`,
+			`unkey api ratelimit multi-limit --limits='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000},{"namespace":"auth.login","identifier":"user_abc123","limit":5,"duration":60000}]'`,
+			`unkey api ratelimit multi-limit --limits='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("limits-json", "JSON array of rate limit check objects.", cli.Required()),
+			cli.String("limits", "JSON array of rate limit check objects.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -45,17 +45,26 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				return err
 			}
 
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Ratelimit.MultiLimit, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody)
+			}
+			send := func(limits []components.V2RatelimitLimitRequestBody) error {
+				res, err := client.Ratelimit.MultiLimit(ctx, limits)
+				if err != nil {
+					return fmt.Errorf("%s", util.FormatError(err))
+				}
+				return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody)
+			}
 			var limits []components.V2RatelimitLimitRequestBody
-			if err := json.Unmarshal([]byte(cmd.String("limits-json")), &limits); err != nil {
-				return fmt.Errorf("invalid JSON for --limits-json: %w", err)
+			if err := json.Unmarshal([]byte(cmd.String("limits")), &limits); err != nil {
+				return fmt.Errorf("invalid JSON for --limits: %w", err)
 			}
-
-			start := time.Now()
-			res, err := client.Ratelimit.MultiLimit(ctx, limits)
-			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
-			}
-			return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody, time.Since(start))
+			return send(limits)
 		},
 	}
 }
