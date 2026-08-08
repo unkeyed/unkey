@@ -23,11 +23,21 @@
 package buildslot
 
 import (
+	"context"
 	"time"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+// InvocationLiveness answers whether Restate still tracks the given
+// invocation IDs. It is the ground truth for slot audits: Virtual Object
+// state lives independently of invocation lifecycles, so a deployment ID in
+// active_slots proves nothing about its Deploy invocation still existing.
+// Implemented by [pkg/restate/admin.Client] via sys_invocation introspection.
+type InvocationLiveness interface {
+	FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error)
+}
 
 const (
 	// MaxWaitDuration bounds how long a Deploy workflow may wait for a build
@@ -74,7 +84,8 @@ const (
 // Key: workspace_id.
 type Service struct {
 	hydrav1.UnimplementedBuildSlotServiceServer
-	db db.Database
+	db           db.Database
+	restateAdmin InvocationLiveness
 }
 
 var _ hydrav1.BuildSlotServiceServer = (*Service)(nil)
@@ -82,6 +93,9 @@ var _ hydrav1.BuildSlotServiceServer = (*Service)(nil)
 // Config holds configuration for creating a [Service].
 type Config struct {
 	DB db.Database
+	// RestateAdmin is used to verify that deployments occupying slots still
+	// have live Restate invocations behind them.
+	RestateAdmin InvocationLiveness
 }
 
 // New creates a [Service] with the given configuration.
@@ -89,5 +103,6 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedBuildSlotServiceServer: hydrav1.UnimplementedBuildSlotServiceServer{},
 		db:                                  cfg.DB,
+		restateAdmin:                        cfg.RestateAdmin,
 	}
 }

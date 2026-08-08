@@ -104,8 +104,36 @@ func (s *Service) AcquireOrWait(
 		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
 	}
 
-	// At capacity: park the caller. Production goes to its own list so
-	// Release can drain it ahead of preview waiters.
+	// At capacity: before parking the caller, verify the current occupants
+	// against ground truth (database status + Restate invocation liveness).
+	// This is the moment a stale slot actually hurts, and auditing here
+	// means the queue self-heals on demand — it never depends on a
+	// previously scheduled lease having survived kills or state written
+	// before this code was deployed. Best-effort: if the audit itself fails,
+	// the caller is parked normally and its wait timeout still bounds the
+	// damage.
+	staleIDs, auditErr := s.auditActiveSlots(ctx, workspaceID, active)
+	if auditErr != nil {
+		logger.Warn("build slot audit failed, queueing without reclaim",
+			"workspace_id", workspaceID,
+			"deployment_id", deploymentID,
+			"error", auditErr,
+		)
+	} else if len(staleIDs) > 0 {
+		// Existing waiters are promoted into the freed capacity before the
+		// caller so queue order stays fair.
+		active, prodWait, previewWait = reclaimStaleSlots(ctx, workspaceID, staleIDs, active, prodWait, previewWait, buildLimit)
+		saveActiveSlots(ctx, active)
+		saveWaitList(ctx, stateKeyProdWaitList, prodWait)
+		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)
+
+		if uint32(len(active)) < buildLimit {
+			return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
+		}
+	}
+
+	// Still at capacity: park the caller. Production goes to its own list
+	// so Release can drain it ahead of preview waiters.
 	entry := waitEntry{
 		DeploymentID: deploymentID,
 		AwakeableID:  awakeableID,

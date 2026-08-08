@@ -389,7 +389,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// the lease mechanism, so a killed invocation loses nothing the next
 	// call or audit won't repair.
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: restateAdminClient,
 	}),
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),

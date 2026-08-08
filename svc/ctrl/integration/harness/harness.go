@@ -5,6 +5,7 @@ package harness
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -23,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
@@ -277,8 +279,15 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
+	// The build slot service audits slot occupancy against the Restate
+	// admin API, but the admin URL is only known after containers.Restate
+	// starts below — which itself needs the constructed services. The lazy
+	// adapter breaks the cycle: it is populated right after the container
+	// is up and no handler runs before that.
+	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
 	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB: database,
+		DB:           database,
+		RestateAdmin: buildSlotLiveness,
 	})
 
 	// Register every worker service as one deployment on this test's own
@@ -297,6 +306,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
+	buildSlotLiveness.set(restateadmin.New(restateadmin.Config{
+		BaseURL: restateCfg.AdminURL,
+		APIKey:  "",
+	}))
 	t.Logf("Total harness setup in %s", time.Since(start))
 
 	return &Harness{
@@ -314,4 +327,29 @@ func New(t *testing.T, opts ...Option) *Harness {
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
 	}
+}
+
+// lazyInvocationLiveness defers the Restate admin client until the test
+// container is running. See the comment at the buildslot.New call site.
+type lazyInvocationLiveness struct {
+	mu     sync.Mutex
+	client *restateadmin.Client
+}
+
+var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
+
+func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.client = client
+}
+
+func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
+	l.mu.Lock()
+	client := l.client
+	l.mu.Unlock()
+	if client == nil {
+		return nil, errors.New("restate admin client not initialized yet")
+	}
+	return client.FindLiveInvocations(ctx, invocationIDs)
 }

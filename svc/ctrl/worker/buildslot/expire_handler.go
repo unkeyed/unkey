@@ -12,12 +12,16 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// deploymentCheck is the journal-safe result of the lease audit's database
-// read. The not-found case is folded into the value because error types do
-// not survive Restate journaling.
+// deploymentCheck is the journal-safe result of the lease audit's ground
+// truth reads. The not-found case is folded into the value because error
+// types do not survive Restate journaling.
 type deploymentCheck struct {
 	Exists   bool `json:"exists"`
 	Terminal bool `json:"terminal"`
+	// InvocationGone is true when the deployment row records a Restate
+	// invocation ID that no longer exists in sys_invocation: the Deploy
+	// invocation was killed or purged without updating the deployment row.
+	InvocationGone bool `json:"invocation_gone"`
 }
 
 // ExpireSlot audits one deployment's slot lease or wait-list entry. It is
@@ -75,12 +79,27 @@ func (s *Service) ExpireSlot(
 	check, err := restate.Run(ctx, func(runCtx restate.RunContext) (deploymentCheck, error) {
 		deployment, dbErr := s.db.FindDeploymentById(runCtx, deploymentID)
 		if db.IsNotFound(dbErr) {
-			return deploymentCheck{Exists: false, Terminal: false}, nil
+			return deploymentCheck{Exists: false, Terminal: false, InvocationGone: false}, nil
 		}
 		if dbErr != nil {
 			return deploymentCheck{}, dbErr
 		}
-		return deploymentCheck{Exists: true, Terminal: deployment.Status.IsTerminal()}, nil
+		result := deploymentCheck{
+			Exists:         true,
+			Terminal:       deployment.Status.IsTerminal(),
+			InvocationGone: false,
+		}
+		// The database can lie: a killed Deploy invocation leaves the row
+		// stuck in a non-terminal status forever. Restate itself is the
+		// ground truth for whether the invocation still exists.
+		if !result.Terminal && deployment.InvocationID.Valid && deployment.InvocationID.String != "" {
+			live, admErr := s.restateAdmin.FindLiveInvocations(runCtx, []string{deployment.InvocationID.String})
+			if admErr != nil {
+				return deploymentCheck{}, admErr
+			}
+			result.InvocationGone = !live[deployment.InvocationID.String]
+		}
+		return result, nil
 	}, restate.WithName("check deployment status for lease audit"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		// Database persistently unavailable. Re-arm instead of dropping the
@@ -95,11 +114,17 @@ func (s *Service) ExpireSlot(
 	}
 
 	if check.Exists && !check.Terminal {
-		if holdsSlot {
-			// The deployment overran its lease while supposedly still
-			// building. Force-fail it so the database agrees with the slot
-			// reclaim below; UpdateDeploymentStatusIfActive won't clobber a
-			// concurrent legitimate terminal transition.
+		if holdsSlot || check.InvocationGone {
+			// Either the deployment overran its lease while supposedly still
+			// building, or its Deploy invocation is gone from Restate while
+			// the row still claims an active status. Force-fail it so the
+			// database agrees with the reclaim below;
+			// UpdateDeploymentStatusIfActive won't clobber a concurrent
+			// legitimate terminal transition.
+			failReason := "build slot lease expired: deployment exceeded maximum build duration"
+			if check.InvocationGone {
+				failReason = "build slot lease expired: deploy invocation no longer exists in Restate"
+			}
 			if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 				if updErr := s.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
@@ -113,7 +138,7 @@ func (s *Service) ExpireSlot(
 				return s.db.EndActiveDeploymentStepsWithError(runCtx, db.EndActiveDeploymentStepsWithErrorParams{
 					DeploymentID: deploymentID,
 					EndedAt:      now,
-					Error:        sql.NullString{Valid: true, String: "build slot lease expired: deployment exceeded maximum build duration"},
+					Error:        sql.NullString{Valid: true, String: failReason},
 				})
 			}, restate.WithName("force-fail deployment on lease expiry"), restate.WithMaxRetryAttempts(runMaxAttempts)); runErr != nil {
 				logger.Warn("build slot lease audit could not force-fail deployment, re-arming",
@@ -125,9 +150,10 @@ func (s *Service) ExpireSlot(
 				return &hydrav1.ExpireSlotResponse{}, nil
 			}
 
-			logger.Error("build slot lease expired for live deployment, force-failed and reclaiming",
+			logger.Error("build slot lease expired, force-failed and reclaiming",
 				"workspace_id", workspaceID,
 				"deployment_id", deploymentID,
+				"invocation_gone", check.InvocationGone,
 				"lease", slotLeaseDuration.String(),
 			)
 		}
