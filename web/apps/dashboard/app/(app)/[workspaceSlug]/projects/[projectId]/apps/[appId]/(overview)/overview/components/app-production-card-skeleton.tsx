@@ -7,7 +7,7 @@ function Bar({ className }: { className?: string }) {
 
 const METADATA_CELLS = ["status", "region", "resources", "instances", "source", "created"];
 
-export function ProductionDeploymentCardSkeleton() {
+export function AppProductionCardSkeleton() {
   return (
     <Card className="flex flex-col">
       <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-4">
