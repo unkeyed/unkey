@@ -31,13 +31,15 @@ func TestPreconditionError(t *testing.T) {
 	h.Register(route)
 
 	// Create API manually with a stale keyspace reference. Only callers with
-	// create_key on that keyspace may learn that the API is not set up for keys.
+	// legacy create_key access on that API may learn that its referenced
+	// keyspace is missing. A canonical owner project cannot be resolved here.
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	apiID := uid.New(uid.APIPrefix)
 	err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   "proj_123",
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -47,8 +49,7 @@ func TestPreconditionError(t *testing.T) {
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+		fmt.Sprintf("api.%s.create_key", apiID),
 	)
 
 	// Set up request headers

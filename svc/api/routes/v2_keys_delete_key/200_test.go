@@ -177,7 +177,7 @@ func TestKeyDeleteWithURNPermission(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 		})
-		rootKey := h.CreateRootKey(workspace.ID, deleteKeyPermission(workspace.ID, api.KeyAuthID.String, "*"))
+		rootKey := h.CreateRootKey(workspace.ID, deleteKeyPermission(workspace.ID, api.ProjectID, api.KeyAuthID.String, "*"))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -197,7 +197,7 @@ func TestKeyDeleteWithURNPermission(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 		})
-		rootKey := h.CreateRootKey(workspace.ID, deleteAnyKeyPermission(workspace.ID))
+		rootKey := h.CreateRootKey(workspace.ID, deleteAnyKeyPermission(workspace.ID, "*"))
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -211,10 +211,10 @@ func TestKeyDeleteWithURNPermission(t *testing.T) {
 	})
 }
 
-func deleteKeyPermission(workspaceID string, keyspaceID string, keyID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#delete_key", workspaceID, keyspaceID, keyID)
+func deleteKeyPermission(workspaceID string, projectID string, keyspaceID string, keyID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#delete_key", workspaceID, projectID, keyspaceID, keyID)
 }
 
-func deleteAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#delete_key", workspaceID)
+func deleteAnyKeyPermission(workspaceID string, projectID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/*/keys/*#delete_key", workspaceID, projectID)
 }

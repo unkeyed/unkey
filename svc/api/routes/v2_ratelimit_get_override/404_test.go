@@ -24,6 +24,7 @@ func TestOverrideNotFound(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   "proj_123",
 		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -90,6 +91,7 @@ func TestOverrideNotFound(t *testing.T) {
 		err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 			ID:          namespaceID,
 			WorkspaceID: h.Resources().UserWorkspace.ID,
+			ProjectID:   "proj_123",
 			Name:        uid.New(uid.TestPrefix),
 			CreatedAt:   time.Now().UnixMilli(),
 		})
@@ -123,6 +125,7 @@ func TestOverrideResponsesDoNotLeakExistence(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   "proj_123",
 		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})

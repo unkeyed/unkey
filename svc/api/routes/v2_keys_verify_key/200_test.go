@@ -727,7 +727,7 @@ func TestVerifyKeyWithURNPermission(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	verifyKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#verify_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	verifyKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#verify_key", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 	rootKey := h.CreateRootKey(workspace.ID, verifyKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

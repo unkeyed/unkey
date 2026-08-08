@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
@@ -255,7 +258,9 @@ func TestRerollKeySuccess(t *testing.T) {
 	})
 }
 
-func TestRerollKeyWithURNPermission(t *testing.T) {
+// TestRerollRecoverableKeyWithURNPermission guarantees a wildcard create_key
+// grant authorizes creating the replacement recoverable key.
+func TestRerollRecoverableKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -271,14 +276,19 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
+		WorkspaceID:   workspace.ID,
+		EncryptedKeys: true,
 	})
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
+		Recoverable: true,
 	})
 
-	createKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspace.ID, api.KeyAuthID.String)
+	createKeyPermission := rbac.U(
+		urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
+		permissions.CreateKey{},
+	).Value
 	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

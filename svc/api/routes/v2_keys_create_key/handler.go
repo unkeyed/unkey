@@ -30,7 +30,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 )
 
 type (
@@ -97,33 +96,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 3. Permission check. Creating a key is authorized against the keyspace
-	// because the key does not exist until after the operation succeeds. The
-	// tuple legs accept legacy API-scoped grants until those are migrated.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
-			permissions.CreateKey{},
-		),
-	))
-	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
-			err,
-			codes.Data.Api.NotFound.URN(),
-			"The specified API was not found.",
-		)
-	}
-
 	// Portal sessions are scoped to a single external identity. Force the
 	// externalId on the request so the created key is always owned by the
 	// session's identity, regardless of what the client sends.
@@ -146,6 +118,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
+			legacyAuthorizeErr := principal.Authorize(rbac.Or(
+				rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: req.ApiId, Action: rbac.CreateKey}),
+				rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.CreateKey}),
+			))
+			if legacyAuthorizeErr != nil {
+				return apierrors.MaskInsufficientPermissionsAsNotFound(
+					legacyAuthorizeErr,
+					codes.Data.Api.NotFound.URN(),
+					"The specified API was not found.",
+				)
+			}
 			return fault.New("api not set up for keys",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
@@ -155,6 +138,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	// The key ID is unknown until the transaction starts, so authorize the key
+	// wildcard under the keyspace owner's project. The tuple legs accept legacy
+	// API-scoped grants until those are migrated.
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: req.ApiId, Action: rbac.CreateKey}),
+		rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.CreateKey}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
+			permissions.CreateKey{},
+		),
+	))
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Api.NotFound.URN(),
+			"The specified API was not found.",
 		)
 	}
 
@@ -200,27 +202,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   api.ID,
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
-		))
-		if err != nil {
-			return apierrors.MaskInsufficientPermissionsAsNotFound(
-				err,
-				codes.Data.Api.NotFound.URN(),
-				"The specified API was not found.",
-			)
-		}
-
 		if !keySpace.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -238,11 +219,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("vault error"), fault.Public("Failed to encrypt key in vault."),
 			)
 		}
-	}
-
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil {
-		return err
 	}
 
 	now := time.Now().UnixMilli()
@@ -288,7 +264,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
 					WorkspaceID: principal.WorkspaceID,
-					ProjectID:   projectID,
+					ProjectID:   keySpace.ProjectID,
 					Environment: "default",
 					CreatedAt:   now,
 					Meta:        []byte("{}"),
@@ -437,6 +413,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingPermissions []db.Permission
 				existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   keySpace.ProjectID,
 					Slugs:       *req.Permissions,
 				})
 				if err != nil {
@@ -466,7 +443,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 						PermissionID: newPermID,
 						WorkspaceID:  principal.WorkspaceID,
-						ProjectID:    projectID,
+						ProjectID:    keySpace.ProjectID,
 						Name:         requestedSlug,
 						Slug:         requestedSlug,
 						Description:  dbtype.NullString{String: "", Valid: false},
@@ -480,7 +457,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						Slug:        requestedSlug,
 						CreatedAtM:  now,
 						WorkspaceID: principal.WorkspaceID,
-						ProjectID:   projectID,
+						ProjectID:   keySpace.ProjectID,
 						Description: dbtype.NullString{String: "", Valid: false},
 						UpdatedAtM:  sql.NullInt64{Int64: 0, Valid: false},
 					})
@@ -553,6 +530,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				var existingRoles []db.FindRolesByNamesRow
 				existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
 					WorkspaceID: principal.WorkspaceID,
+					ProjectID:   keySpace.ProjectID,
 					Names:       *req.Roles,
 				})
 				if err != nil {

@@ -7,6 +7,7 @@ SELECT
     i.id,
     i.external_id,
     i.workspace_id,
+    i.project_id,
     i.environment,
     i.meta,
     i.deleted,

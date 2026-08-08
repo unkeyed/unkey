@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
@@ -29,7 +30,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(t, h.Resources().UserWorkspace.ID, "*"))
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -67,7 +68,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 
 		// Create root key for the other workspace with proper permissions
-		otherRootKey := h.CreateRootKey(otherWorkspace.ID, createAnyKeyPermission(otherWorkspace.ID))
+		otherRootKey := h.CreateRootKey(otherWorkspace.ID, createAnyKeyPermission(t, otherWorkspace.ID, "*"))
 
 		// But try to access API from user workspace
 		// First we need to create an API in user workspace
@@ -135,11 +136,14 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspaceID)
+	require.NoError(t, err)
 
 	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
 		WorkspaceID:   workspaceID,
+		ProjectID:     projectID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false, String: ""},
 		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
@@ -151,6 +155,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		ID:          existingApiID,
 		Name:        "existing-api",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -163,6 +168,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		ID:          apiWithoutKeySpaceID,
 		Name:        "api-without-keyspace",
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: missingKeySpaceID},
 		CreatedAtM:  time.Now().UnixMilli(),
@@ -176,7 +182,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		permissions []string
 	}{
 		{name: "no permissions", permissions: nil},
-		{name: "create permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, uid.New(uid.KeySpacePrefix))}},
+		{name: "create permission for a different keyspace", permissions: []string{createKeyPermission(t, workspaceID, projectID, uid.New(uid.KeySpacePrefix))}},
 		{name: "unrelated permission", permissions: []string{"workspace.read"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

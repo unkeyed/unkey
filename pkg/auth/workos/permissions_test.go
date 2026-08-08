@@ -24,7 +24,6 @@ func TestTranslatePermissions(t *testing.T) {
 		"keys:read",
 		"keys:update",
 		"keys:verify",
-		"keys:encrypt",
 		"keys:delete",
 		"identities:create",
 		"identities:read",
@@ -36,14 +35,13 @@ func TestTranslatePermissions(t *testing.T) {
 		"",
 	})
 	require.Equal(t, []string{
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*#create_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
-		"unkey:v1:ws_123:keyspaces/*#read_keyspace",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
-		"unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#create_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#create_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#read_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#read_keyspace",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#update_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#verify_key",
+		"unkey:v1:ws_123:projects/*/keyspaces/**#delete_key",
 		"unkey:v1:ws_123:projects/*/identities/*#create_identity",
 		"unkey:v1:ws_123:projects/*/identities/*#read_identity",
 		"unkey:v1:ws_123:projects/*/identities/*#update_identity",
@@ -65,37 +63,32 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		{
 			name: "key create",
 			in:   "keys:create",
-			want: "unkey:v1:ws_123:keyspaces/*#create_key",
-		},
-		{
-			name: "key encrypt",
-			in:   "keys:encrypt",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#create_key",
 		},
 		{
 			name: "key read",
 			in:   "keys:read",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#read_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#read_key",
 		},
 		{
 			name: "key update",
 			in:   "keys:update",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#update_key",
 		},
 		{
 			name: "key verify",
 			in:   "keys:verify",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#verify_key",
 		},
 		{
 			name: "key decrypt",
 			in:   "keys:decrypt",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#decrypt_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#decrypt_key",
 		},
 		{
 			name: "key delete",
 			in:   "keys:delete",
-			want: "unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+			want: "unkey:v1:ws_123:projects/*/keyspaces/**#delete_key",
 		},
 		{
 			name: "identity create",
@@ -121,6 +114,41 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			name: "admin",
 			in:   "admin:*",
 			want: "unkey:v1:ws_123:**#*",
+		},
+		{
+			name: "deployment promote",
+			in:   "deployments:promote",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#promote_deployment",
+		},
+		{
+			name: "deployment rollback",
+			in:   "deployments:rollback",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#rollback_deployment",
+		},
+		{
+			name: "environment variables",
+			in:   "environments:create_variables",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*#create_variables",
+		},
+		{
+			name: "gateway policy update",
+			in:   "gateway:update_policy",
+			want: "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#update_policy",
+		},
+		{
+			name: "rate limit override create",
+			in:   "ratelimits:create_override",
+			want: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*#create_override",
+		},
+		{
+			name: "permission definition create",
+			in:   "permissions:create",
+			want: "unkey:v1:ws_123:projects/*/rbac/permissions/*#create_permission",
+		},
+		{
+			name: "workspace GitHub installation",
+			in:   "workspaces:install_github",
+			want: "unkey:v1:ws_123:workspace#install_github",
 		},
 	}
 
@@ -192,6 +220,68 @@ func TestSortedPermissionSlugs(t *testing.T) {
 		_, ok := permissionMappings[permission]
 		require.True(t, ok, "permission %q must exist in mapping table", permission)
 	}
+}
+
+// TestPermissionDefinitionsCoverMigrationCatalog guarantees every product
+// capability needed by the route migration can be assigned before routes move
+// from tuple permissions to resource permissions.
+func TestPermissionDefinitionsCoverMigrationCatalog(t *testing.T) {
+	t.Parallel()
+
+	want := []string{
+		"admin:*",
+		"apps:create",
+		"apps:delete",
+		"apps:read",
+		"apps:update",
+		"deployments:create",
+		"deployments:promote",
+		"deployments:read",
+		"deployments:rollback",
+		"deployments:start",
+		"deployments:stop",
+		"environments:create_variables",
+		"environments:delete_variables",
+		"environments:read",
+		"environments:read_variables",
+		"environments:update",
+		"gateway:create_policies",
+		"gateway:read_policies",
+		"gateway:update_policy",
+		"identities:create",
+		"identities:delete",
+		"identities:read",
+		"identities:update",
+		"keys:create",
+		"keys:decrypt",
+		"keys:delete",
+		"keys:read",
+		"keys:update",
+		"keys:verify",
+		"keyspaces:create",
+		"keyspaces:delete",
+		"keyspaces:read",
+		"keyspaces:read_logs",
+		"permissions:create",
+		"permissions:delete",
+		"permissions:read",
+		"projects:create",
+		"projects:delete",
+		"projects:read",
+		"projects:update",
+		"ratelimits:create_namespace",
+		"ratelimits:create_override",
+		"ratelimits:delete_override",
+		"ratelimits:limit",
+		"ratelimits:read_logs",
+		"ratelimits:read_overrides",
+		"roles:create",
+		"roles:delete",
+		"roles:read",
+		"workspaces:install_github",
+	}
+
+	require.Equal(t, want, sortedPermissionSlugs())
 }
 
 // TestPermissionDefinitions guarantees WorkOS display metadata is sourced from
