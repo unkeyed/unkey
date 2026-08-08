@@ -23,8 +23,8 @@ import (
 // A slot is stale when one of these is true:
 //   - the deployment row is gone from the database
 //   - the deployment status is terminal
-//   - the recorded Restate invocation is gone from sys_invocation
-//     (Restate drops killed, purged, and completed invocations)
+//   - the recorded Restate invocation no longer executes (killed,
+//     cancelled, completed, or purged)
 //
 // A non-terminal deployment without a recorded invocation ID stays. The
 // slot lease still bounds it.

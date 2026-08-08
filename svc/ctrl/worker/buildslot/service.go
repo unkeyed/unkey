@@ -30,10 +30,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// InvocationLiveness reports which of the given invocation IDs still exist
-// in Restate. Slot audits use it because Virtual Object state outlives
-// invocations: a deployment ID in active_slots does not prove that its
-// Deploy invocation still exists. Implemented by
+// InvocationLiveness reports which of the given invocation IDs still
+// execute in Restate. Slot audits use it because Virtual Object state
+// outlives invocations: a deployment ID in active_slots does not prove
+// that its Deploy invocation still runs. Implemented by
 // [pkg/restate/admin.Client] through sys_invocation introspection.
 type InvocationLiveness interface {
 	FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error)

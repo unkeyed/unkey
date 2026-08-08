@@ -82,12 +82,7 @@ func (c *Client) registerDeployment(ctx context.Context, uri string, force bool)
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return fmt.Errorf("registration failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
-	}
-	return fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
+	return errorFromResponse("registration", resp)
 }
 
 // CancelInvocation cancels a running invocation.
@@ -107,29 +102,33 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 	if resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusNotFound {
 		return nil
 	}
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return fmt.Errorf("cancel failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
-	}
-	return fmt.Errorf("cancel failed with status %d: %s", resp.StatusCode, string(body))
+	return errorFromResponse("cancel", resp)
 }
 
 // invocationIDPattern guards the IDs put into the introspection SQL query
-// below. Restate invocation IDs are URL-safe tokens. The function rejects
-// all other input instead of quoting it.
+// below. The admin API /query endpoint takes one SQL string and has no
+// bind parameters, so the IDs must be quoted into the query text. The
+// pattern rejects everything that could escape a quoted string.
 var invocationIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
-// FindLiveInvocations reports which of the given invocation IDs still exist
-// in Restate. It queries the admin SQL introspection endpoint (POST /query)
-// against sys_invocation. That table only keeps rows for invocations that
-// are pending, running, suspended, or retrying. A killed, purged, or
-// completed invocation is not in it. The result maps every input ID to
-// true when Restate knows it, and to false when it does not.
+// FindLiveInvocations reports which of the given invocation IDs are still
+// executing in Restate. It queries the admin SQL introspection endpoint
+// (POST /query) against sys_invocation. The result maps every input ID to
+// true when its invocation is live (pending, running, suspended, or in
+// retry), and to false when it is not.
 //
-// The Accept header must be exactly "application/json". The endpoint
-// compares the header value literally and answers with a binary Arrow
-// stream for any other value.
+// Two behaviors of the endpoint shape the query, both verified against
+// Restate 1.6.0:
+//
+//   - A direct comparison on the id column makes Restate parse each
+//     literal as an invocation ID and the whole query fails with a 500
+//     when one does not parse. concat(id, ”) forces a plain string
+//     comparison, so unknown or malformed IDs return no row instead of
+//     an error.
+//   - A killed or cancelled invocation keeps a sys_invocation row with
+//     status 'completed' until its retention expires or it is purged.
+//     The status filter excludes those rows; without it a killed
+//     invocation counts as live for hours.
 func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
 	live := make(map[string]bool, len(invocationIDs))
 	quoted := make([]string, 0, len(invocationIDs))
@@ -145,34 +144,23 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	}
 
 	payload, err := json.Marshal(map[string]string{
-		"query": fmt.Sprintf("select id from sys_invocation where id in (%s)", strings.Join(quoted, ", ")),
+		"query": fmt.Sprintf(
+			"select id from sys_invocation where concat(id, '') in (%s) and status <> 'completed'",
+			strings.Join(quoted, ", "),
+		),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal query: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/query", bytes.NewReader(payload))
+	resp, err := c.do(ctx, http.MethodPost, c.baseURL+"/query", payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	if c.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("query request failed: %w", err)
+		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("query failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("query failed with status %d: %s", resp.StatusCode, string(body))
+		return nil, errorFromResponse("query", resp)
 	}
 
 	var result struct {
@@ -189,6 +177,16 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	return live, nil
 }
 
+// errorFromResponse turns a non-success admin API response into an error
+// that includes the response body. The caller still owns the body close.
+func errorFromResponse(action string, resp *http.Response) error {
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return fmt.Errorf("%s failed with status %d (failed to read body: %w)", action, resp.StatusCode, readErr)
+	}
+	return fmt.Errorf("%s failed with status %d: %s", action, resp.StatusCode, string(body))
+}
+
 func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http.Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
@@ -203,6 +201,11 @@ func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+
+	// The value must be exactly "application/json". The /query endpoint
+	// compares it literally and answers with a binary Arrow stream for
+	// any other value.
+	req.Header.Set("Accept", "application/json")
 
 	if c.apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)

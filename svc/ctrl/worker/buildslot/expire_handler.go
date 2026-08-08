@@ -19,8 +19,9 @@ type deploymentCheck struct {
 	Exists   bool `json:"exists"`
 	Terminal bool `json:"terminal"`
 	// InvocationGone is true when the deployment row records a Restate
-	// invocation ID that no longer exists in sys_invocation: the Deploy
-	// invocation was killed or purged without updating the deployment row.
+	// invocation that no longer executes: the Deploy invocation was
+	// killed, cancelled, or purged without an update to the deployment
+	// row.
 	InvocationGone bool `json:"invocation_gone"`
 }
 

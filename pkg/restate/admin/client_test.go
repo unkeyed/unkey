@@ -42,6 +42,12 @@ func TestFindLiveInvocations(t *testing.T) {
 	require.Equal(t, "application/json", gotAccept)
 	require.Contains(t, gotQuery, "sys_invocation")
 	require.Contains(t, gotQuery, "'inv_dead_1'")
+	// concat(id, '') prevents Restate from parsing the literals as
+	// invocation IDs; an unparseable ID would fail the whole query.
+	require.Contains(t, gotQuery, "concat(id, '')")
+	// Killed and cancelled invocations keep a row with status 'completed'
+	// until retention expires. They must not count as live.
+	require.Contains(t, gotQuery, "status <> 'completed'")
 
 	require.Equal(t, map[string]bool{
 		"inv_alive_1": true,
