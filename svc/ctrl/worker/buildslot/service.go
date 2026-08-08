@@ -45,9 +45,12 @@ const (
 	// timeout. A waiter cannot stay parked longer, even when the slot
 	// accounting is wrong.
 	//
-	// The value covers a full queue of preview builds at the concurrency
-	// limit. After that, a visible failure is better than a silent wait.
-	MaxWaitDuration = 6 * time.Hour
+	// One hour covers a queue of normal builds at the concurrency limit.
+	// The acquire-time audit reclaims dead slots on demand, so a longer
+	// wait means a deep queue or a defect. A visible failure after one
+	// hour is better than a silent multi-hour wait; the user can deploy
+	// again.
+	MaxWaitDuration = 1 * time.Hour
 
 	// slotLeaseDuration is the maximum time a deployment can hold a slot
 	// before ExpireSlot audits it. It is much longer than a normal deploy
