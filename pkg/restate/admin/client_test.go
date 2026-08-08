@@ -37,8 +37,8 @@ func TestFindLiveInvocations(t *testing.T) {
 	live, err := client.FindLiveInvocations(context.Background(), []string{"inv_alive_1", "inv_alive_2", "inv_dead_1"})
 	require.NoError(t, err)
 
-	// The endpoint compares the Accept header literally; anything but
-	// exactly "application/json" returns binary Arrow.
+	// The endpoint compares the Accept header literally. Any value other
+	// than "application/json" returns binary Arrow.
 	require.Equal(t, "application/json", gotAccept)
 	require.Contains(t, gotQuery, "sys_invocation")
 	require.Contains(t, gotQuery, "'inv_dead_1'")

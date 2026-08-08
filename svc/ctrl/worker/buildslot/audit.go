@@ -9,26 +9,25 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// auditActiveSlots verifies every deployment in active_slots against ground
-// truth and returns the IDs whose slots are stale. It runs as one bounded,
-// journaled step.
+// auditActiveSlots verifies every deployment in active_slots against the
+// database and Restate, and returns the IDs whose slots are stale. It runs
+// as one bounded, journaled step.
 //
 // Virtual Object state outlives invocations: a deployment ID stays in
-// active_slots until something removes it, no matter what happened to the
-// Deploy invocation that put it there. A `restate kill`, a purge, or a
-// forcefully removed service deployment ends the invocation WITHOUT running
-// its Release compensation, leaving a phantom occupant that blocks the
-// whole workspace. This audit is the pull-based safety net: it doesn't
-// depend on any previously scheduled event having survived.
+// active_slots until something removes it. A `restate kill`, a purge, or a
+// forced service-deployment removal ends the invocation without its Release
+// compensation. The dead entry then blocks the whole workspace. This audit
+// is the pull-based safety net. It does not depend on an earlier scheduled
+// event.
 //
-// A slot is stale when any of the following holds:
+// A slot is stale when one of these is true:
 //   - the deployment row is gone from the database
 //   - the deployment status is terminal
-//   - the deployment's recorded Restate invocation no longer exists in
-//     sys_invocation (Restate drops killed/purged/completed invocations)
+//   - the recorded Restate invocation is gone from sys_invocation
+//     (Restate drops killed, purged, and completed invocations)
 //
-// A non-terminal deployment without a recorded invocation ID cannot be
-// verified and is left alone; the slot lease still bounds it.
+// A non-terminal deployment without a recorded invocation ID stays. The
+// slot lease still bounds it.
 func (s *Service) auditActiveSlots(
 	ctx restate.ObjectContext,
 	workspaceID string,
@@ -45,8 +44,8 @@ func (s *Service) auditActiveSlots(
 	}, restate.WithName("audit active build slots"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
-// computeStaleSlots is the side-effecting core of the audit, extracted so it
-// runs under a plain context inside restate.Run and stays unit-testable.
+// computeStaleSlots is the core of the audit. It runs under a plain context
+// inside restate.Run and is unit-testable.
 func computeStaleSlots(
 	ctx context.Context,
 	database db.Database,

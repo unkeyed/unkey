@@ -84,14 +84,14 @@ func (w *Workflow) skipIfSuperseded(
 // later when another deployment releases its slot and this one reaches the
 // head of the wait list).
 //
-// The wait is bounded by racing the awakeable against [restate.After] (same
-// pattern as [Workflow.waitForDeployments]). Without the bound, any slot
-// accounting error upstream left waiters suspended indefinitely — in
-// production some Deploy invocations sat parked for over a week. On timeout
-// the handler returns a terminal error; the Release compensation registered
-// before this call removes the wait-list entry (or a slot granted in the
-// same instant — Release handles both), so the timeout/grant race cannot
-// leak occupancy.
+// The wait is bounded: the awakeable races [restate.After] (same pattern as
+// [Workflow.waitForDeployments]). Without the bound, a slot accounting
+// error upstream kept waiters suspended without limit. In production some
+// Deploy invocations waited more than one week. On timeout the handler
+// returns a terminal error. The Release compensation registered before this
+// call removes the wait-list entry, or a slot granted in the same instant;
+// Release handles both. The race between timeout and grant cannot leak
+// occupancy.
 //
 // Production deployments always receive a slot immediately so a hotfix is
 // never blocked behind a preview build.

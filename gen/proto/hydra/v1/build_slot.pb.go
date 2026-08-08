@@ -206,7 +206,7 @@ func (*ReleaseSlotResponse) Descriptor() ([]byte, []int) {
 
 type ExpireSlotRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The deployment whose slot lease or wait-list entry is being checked.
+	// The deployment whose slot lease or wait-list entry is checked.
 	DeploymentId  string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

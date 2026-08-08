@@ -76,10 +76,10 @@ func TestFindAwakeableID(t *testing.T) {
 	require.Empty(t, findAwakeableID(nil, nil, "d1"))
 }
 
-// TestWaiterExpiryStrictlyAfterMaxWait pins the invariant the expiry sweep
-// relies on: a live waiter must time itself out (MaxWaitDuration) before
-// ExpireSlot audits its entry (waiterExpiryDelay), so anything the audit
-// finds still waiting belongs to a dead invocation.
+// TestWaiterExpiryStrictlyAfterMaxWait checks the invariant the expiry
+// sweep relies on: a live waiter must time out (MaxWaitDuration) before
+// ExpireSlot audits its entry (waiterExpiryDelay). Thus each entry the
+// audit finds still waiting belongs to a dead invocation.
 func TestWaiterExpiryStrictlyAfterMaxWait(t *testing.T) {
 	require.Greater(t, waiterExpiryDelay, MaxWaitDuration)
 }

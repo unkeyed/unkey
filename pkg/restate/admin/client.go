@@ -115,21 +115,21 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 	return fmt.Errorf("cancel failed with status %d: %s", resp.StatusCode, string(body))
 }
 
-// invocationIDPattern guards the IDs spliced into the introspection SQL
-// query below. Restate invocation IDs are URL-safe tokens; anything else is
-// rejected instead of quoted.
+// invocationIDPattern guards the IDs put into the introspection SQL query
+// below. Restate invocation IDs are URL-safe tokens. The function rejects
+// all other input instead of quoting it.
 var invocationIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 // FindLiveInvocations reports which of the given invocation IDs still exist
 // in Restate. It queries the admin SQL introspection endpoint (POST /query)
-// against sys_invocation, which only retains rows for invocations that are
-// still pending, running, suspended, or retrying — a killed, purged, or
-// completed invocation disappears from it. The result maps every input ID
-// to whether Restate still knows it (absent rows map to false).
+// against sys_invocation. That table only keeps rows for invocations that
+// are pending, running, suspended, or retrying. A killed, purged, or
+// completed invocation is not in it. The result maps every input ID to
+// true when Restate knows it, and to false when it does not.
 //
-// The Accept header must be exactly "application/json": the endpoint does
-// literal header comparison and answers with a binary Arrow stream for
-// anything else.
+// The Accept header must be exactly "application/json". The endpoint
+// compares the header value literally and answers with a binary Arrow
+// stream for any other value.
 func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
 	live := make(map[string]bool, len(invocationIDs))
 	quoted := make([]string, 0, len(invocationIDs))

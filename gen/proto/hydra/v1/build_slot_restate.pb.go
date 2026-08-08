@@ -51,23 +51,23 @@ type BuildSlotServiceClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(opts ...sdk_go.ClientOption) sdk_go.Client[*ReleaseSlotRequest, *ReleaseSlotResponse]
-	// ExpireSlot is the self-healing lease check. Every slot grant and every
-	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// ExpireSlot is the lease check. Every slot grant and every wait-list
+	// enqueue schedules a delayed self-call to ExpireSlot for that
 	// deployment. When it fires, the handler checks whether the deployment is
 	// still tracked (active or waiting):
 	//
 	//   - Not tracked: normal case, the slot was released in time. No-op.
 	//   - Tracked but the deployment row is terminal or missing: the owning
-	//     Deploy invocation died without running its Release compensation
-	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     Deploy invocation died (killed, purged, crashed) without its
+	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
 	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the invocation overran any plausible build duration. The
-	//     deployment is force-failed in the database and the slot reclaimed
-	//     so one stuck build can never wedge the workspace queue.
+	//     lease: the build ran too long. The deployment is force-failed in
+	//     the database and the slot reclaimed, so one stuck build cannot
+	//     block the workspace queue.
 	//
-	// Without this, a killed Deploy invocation leaks its slot forever and
-	// permanently shrinks the workspace's build capacity.
+	// Without this, a killed Deploy invocation holds its slot forever and
+	// permanently decreases the workspace's build capacity.
 	ExpireSlot(opts ...sdk_go.ClientOption) sdk_go.Client[*ExpireSlotRequest, *ExpireSlotResponse]
 }
 
@@ -133,23 +133,23 @@ type BuildSlotServiceIngressClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release() ingress.Requester[*ReleaseSlotRequest, *ReleaseSlotResponse]
-	// ExpireSlot is the self-healing lease check. Every slot grant and every
-	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// ExpireSlot is the lease check. Every slot grant and every wait-list
+	// enqueue schedules a delayed self-call to ExpireSlot for that
 	// deployment. When it fires, the handler checks whether the deployment is
 	// still tracked (active or waiting):
 	//
 	//   - Not tracked: normal case, the slot was released in time. No-op.
 	//   - Tracked but the deployment row is terminal or missing: the owning
-	//     Deploy invocation died without running its Release compensation
-	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     Deploy invocation died (killed, purged, crashed) without its
+	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
 	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the invocation overran any plausible build duration. The
-	//     deployment is force-failed in the database and the slot reclaimed
-	//     so one stuck build can never wedge the workspace queue.
+	//     lease: the build ran too long. The deployment is force-failed in
+	//     the database and the slot reclaimed, so one stuck build cannot
+	//     block the workspace queue.
 	//
-	// Without this, a killed Deploy invocation leaks its slot forever and
-	// permanently shrinks the workspace's build capacity.
+	// Without this, a killed Deploy invocation holds its slot forever and
+	// permanently decreases the workspace's build capacity.
 	ExpireSlot() ingress.Requester[*ExpireSlotRequest, *ExpireSlotResponse]
 }
 
@@ -222,23 +222,23 @@ type BuildSlotServiceServer interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error)
-	// ExpireSlot is the self-healing lease check. Every slot grant and every
-	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// ExpireSlot is the lease check. Every slot grant and every wait-list
+	// enqueue schedules a delayed self-call to ExpireSlot for that
 	// deployment. When it fires, the handler checks whether the deployment is
 	// still tracked (active or waiting):
 	//
 	//   - Not tracked: normal case, the slot was released in time. No-op.
 	//   - Tracked but the deployment row is terminal or missing: the owning
-	//     Deploy invocation died without running its Release compensation
-	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     Deploy invocation died (killed, purged, crashed) without its
+	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
 	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the invocation overran any plausible build duration. The
-	//     deployment is force-failed in the database and the slot reclaimed
-	//     so one stuck build can never wedge the workspace queue.
+	//     lease: the build ran too long. The deployment is force-failed in
+	//     the database and the slot reclaimed, so one stuck build cannot
+	//     block the workspace queue.
 	//
-	// Without this, a killed Deploy invocation leaks its slot forever and
-	// permanently shrinks the workspace's build capacity.
+	// Without this, a killed Deploy invocation holds its slot forever and
+	// permanently decreases the workspace's build capacity.
 	ExpireSlot(ctx sdk_go.ObjectContext, req *ExpireSlotRequest) (*ExpireSlotResponse, error)
 }
 

@@ -281,9 +281,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	// The build slot service audits slot occupancy against the Restate
 	// admin API, but the admin URL is only known after containers.Restate
-	// starts below — which itself needs the constructed services. The lazy
-	// adapter breaks the cycle: it is populated right after the container
-	// is up and no handler runs before that.
+	// starts below, and that start needs the constructed services. The
+	// lazy adapter breaks the cycle: it is set directly after the
+	// container is up, and no handler runs before that.
 	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
 	buildSlotSvc := buildslot.New(buildslot.Config{
 		DB:           database,

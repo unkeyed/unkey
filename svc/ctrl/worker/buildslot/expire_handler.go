@@ -12,8 +12,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// deploymentCheck is the journal-safe result of the lease audit's ground
-// truth reads. The not-found case is folded into the value because error
+// deploymentCheck is the journal-safe result of the lease audit's database
+// and Restate reads. The not-found case is part of the value because error
 // types do not survive Restate journaling.
 type deploymentCheck struct {
 	Exists   bool `json:"exists"`
@@ -24,31 +24,30 @@ type deploymentCheck struct {
 	InvocationGone bool `json:"invocation_gone"`
 }
 
-// ExpireSlot audits one deployment's slot lease or wait-list entry. It is
-// scheduled as a delayed self-call on every grant (slotLeaseDuration) and
-// every enqueue (waiterExpiryDelay), and is the mechanism that makes slot
-// accounting self-healing: no matter how a Deploy invocation dies — killed,
-// purged, crashed before compensation — its slot is eventually reclaimed.
+// ExpireSlot audits one deployment's slot lease or wait-list entry. Every
+// slot grant schedules it after slotLeaseDuration. Every enqueue schedules
+// it after waiterExpiryDelay. This makes sure a dead Deploy invocation
+// (killed, purged, or crashed before compensation) cannot hold a slot
+// forever.
 //
 // Cases:
 //
-//  1. Deployment no longer tracked: it released normally. No-op; this is
-//     the overwhelmingly common path.
+//  1. Deployment not tracked: it released normally. No-op. This is the
+//     common path.
 //  2. Tracked, but the deployment row is terminal or missing: the owning
-//     invocation died without releasing. Reclaim and promote the next
+//     invocation died without a release. Reclaim and promote the next
 //     waiter.
 //  3. Holds a slot and is still non-terminal after the full lease: the
-//     invocation overran any plausible build duration. Force-fail the
-//     deployment in the database, then reclaim, so one stuck build cannot
-//     wedge the workspace queue.
-//  4. Still waiting and non-terminal past waiterExpiryDelay: its own wait
+//     build ran too long. Force-fail the deployment in the database, then
+//     reclaim, so one stuck build cannot block the workspace queue.
+//  4. Still waiting and non-terminal after waiterExpiryDelay: its own wait
 //     timeout (MaxWaitDuration, strictly shorter) should have removed it,
-//     so the invocation is dead. Reject its awakeable defensively and drop
-//     the entry. No promotion needed — a waiter holds no capacity.
+//     so the invocation is dead. Reject its awakeable and drop the entry.
+//     No promotion is needed because a waiter holds no capacity.
 //
-// If the database check itself keeps failing, the audit re-arms itself with
-// expireRetryDelay rather than giving up: losing a lease check would
-// reintroduce the permanent-leak bug this handler exists to fix.
+// If the database check keeps failing, the audit schedules itself again
+// after expireRetryDelay. A lost lease check would bring back the permanent
+// leak this handler exists to fix.
 func (s *Service) ExpireSlot(
 	ctx restate.ObjectContext,
 	req *hydrav1.ExpireSlotRequest,
@@ -89,9 +88,9 @@ func (s *Service) ExpireSlot(
 			Terminal:       deployment.Status.IsTerminal(),
 			InvocationGone: false,
 		}
-		// The database can lie: a killed Deploy invocation leaves the row
-		// stuck in a non-terminal status forever. Restate itself is the
-		// ground truth for whether the invocation still exists.
+		// The database row can be stale: a killed Deploy invocation leaves
+		// the row in a non-terminal status forever. Ask Restate whether the
+		// invocation still exists.
 		if !result.Terminal && deployment.InvocationID.Valid && deployment.InvocationID.String != "" {
 			live, admErr := s.restateAdmin.FindLiveInvocations(runCtx, []string{deployment.InvocationID.String})
 			if admErr != nil {
@@ -102,8 +101,8 @@ func (s *Service) ExpireSlot(
 		return result, nil
 	}, restate.WithName("check deployment status for lease audit"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		// Database persistently unavailable. Re-arm instead of dropping the
-		// audit — the deployment stays tracked and will be checked again.
+		// Database not available. Schedule the audit again instead of
+		// dropping it. The deployment stays tracked until the next check.
 		logger.Warn("build slot lease audit could not read deployment, re-arming",
 			"workspace_id", workspaceID,
 			"deployment_id", deploymentID,
@@ -115,12 +114,11 @@ func (s *Service) ExpireSlot(
 
 	if check.Exists && !check.Terminal {
 		if holdsSlot || check.InvocationGone {
-			// Either the deployment overran its lease while supposedly still
-			// building, or its Deploy invocation is gone from Restate while
-			// the row still claims an active status. Force-fail it so the
-			// database agrees with the reclaim below;
-			// UpdateDeploymentStatusIfActive won't clobber a concurrent
-			// legitimate terminal transition.
+			// Either the deployment ran past its lease, or its Deploy
+			// invocation is gone from Restate while the row still shows an
+			// active status. Force-fail it so the database agrees with the
+			// reclaim below. UpdateDeploymentStatusIfActive does not
+			// overwrite a concurrent legitimate terminal transition.
 			failReason := "build slot lease expired: deployment exceeded maximum build duration"
 			if check.InvocationGone {
 				failReason = "build slot lease expired: deploy invocation no longer exists in Restate"
@@ -158,9 +156,9 @@ func (s *Service) ExpireSlot(
 			)
 		}
 		// A live waiter past waiterExpiryDelay falls through to the sweep
-		// below without touching the database: its wait timeout
+		// below without a database write. Its wait timeout
 		// (MaxWaitDuration < waiterExpiryDelay) already failed the
-		// deployment, so only the stale entry needs removing.
+		// deployment, so only the stale entry needs removal.
 	} else {
 		logger.Warn("build slot lease audit reclaiming slot from dead deployment",
 			"workspace_id", workspaceID,
@@ -171,9 +169,9 @@ func (s *Service) ExpireSlot(
 		)
 	}
 
-	// Defensive: if the expired waiter's invocation is somehow still parked
-	// on its awakeable, reject it so it fails fast instead of hanging.
-	// Rejecting an already-completed awakeable is harmless.
+	// Defensive: if the expired waiter's invocation still waits on its
+	// awakeable, reject it so it fails fast instead of hanging. A reject on
+	// a completed awakeable is harmless.
 	if staleAwakeableID := findAwakeableID(prodWait, previewWait, deploymentID); staleAwakeableID != "" {
 		restate.RejectAwakeable(ctx, staleAwakeableID, restate.TerminalErrorf("build slot wait entry expired"))
 	}

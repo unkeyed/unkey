@@ -30,53 +30,51 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// InvocationLiveness answers whether Restate still tracks the given
-// invocation IDs. It is the ground truth for slot audits: Virtual Object
-// state lives independently of invocation lifecycles, so a deployment ID in
-// active_slots proves nothing about its Deploy invocation still existing.
-// Implemented by [pkg/restate/admin.Client] via sys_invocation introspection.
+// InvocationLiveness reports which of the given invocation IDs still exist
+// in Restate. Slot audits use it because Virtual Object state outlives
+// invocations: a deployment ID in active_slots does not prove that its
+// Deploy invocation still exists. Implemented by
+// [pkg/restate/admin.Client] through sys_invocation introspection.
 type InvocationLiveness interface {
 	FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error)
 }
 
 const (
-	// MaxWaitDuration bounds how long a Deploy workflow may wait for a build
-	// slot before giving up with a terminal error. The Deploy handler races
-	// its slot awakeable against this timeout, so a waiter can never park
-	// forever even if slot accounting goes wrong upstream.
+	// MaxWaitDuration is the maximum time a Deploy workflow waits for a
+	// build slot. The Deploy handler races its awakeable against this
+	// timeout. A waiter cannot stay parked longer, even when the slot
+	// accounting is wrong.
 	//
-	// Sized for the worst honest case: a workspace at its concurrency limit
-	// with a deep queue of preview builds ahead. Beyond this, failing loudly
-	// beats silently waiting for days.
+	// The value covers a full queue of preview builds at the concurrency
+	// limit. After that, a visible failure is better than a silent wait.
 	MaxWaitDuration = 6 * time.Hour
 
-	// slotLeaseDuration is how long a granted slot may be held before
-	// ExpireSlot fires and audits it. It must comfortably exceed the longest
-	// legitimate Deploy run after slot grant (build + rollout + readiness,
-	// normally well under an hour). A deployment still non-terminal after
-	// the lease is considered stuck and is force-failed.
+	// slotLeaseDuration is the maximum time a deployment can hold a slot
+	// before ExpireSlot audits it. It is much longer than a normal deploy
+	// (build, rollout, readiness; usually under one hour). A deployment
+	// that is not terminal after the lease counts as stuck and is failed.
 	slotLeaseDuration = 4 * time.Hour
 
 	// waiterExpiryDelay is when ExpireSlot audits a wait-list entry. It is
-	// deliberately longer than MaxWaitDuration: a live waiter times itself
-	// out and releases its entry first, so anything still in the wait list
-	// at this point belongs to a dead invocation.
+	// longer than MaxWaitDuration on purpose: a live waiter times out and
+	// removes its own entry first. An entry that remains belongs to a dead
+	// invocation.
 	waiterExpiryDelay = MaxWaitDuration + 15*time.Minute
 
-	// expireRetryDelay re-arms an ExpireSlot check whose database read kept
-	// failing. Losing the lease check would resurrect the permanent-leak
-	// bug, so we retry later instead of giving up.
+	// expireRetryDelay re-arms an ExpireSlot check after its database read
+	// failed. A dropped lease check would allow permanent leaks again, so
+	// retry later instead of giving up.
 	expireRetryDelay = 10 * time.Minute
 
 	// runMaxAttempts bounds restate.Run retries inside the virtual object.
-	// The VO holds the per-workspace key lock while a handler runs, so an
-	// unbounded retry here (e.g. a missing limits row returning ErrNoRows
-	// forever) wedges every AcquireOrWait/Release for the workspace.
+	// The VO holds the per-workspace key lock while a handler runs. An
+	// unbounded retry (for example, on a missing limits row) blocks every
+	// AcquireOrWait and Release for the workspace.
 	runMaxAttempts uint = 5
 
 	// defaultBuildLimit applies when the workspace has no limits row. One
-	// concurrent build is the conservative floor; it keeps the queue moving
-	// instead of freezing the whole workspace on a terminal error.
+	// concurrent build keeps the queue moving instead of failing the
+	// workspace.
 	defaultBuildLimit uint32 = 1
 )
 

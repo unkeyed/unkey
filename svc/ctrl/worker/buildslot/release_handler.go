@@ -19,10 +19,10 @@ import (
 //     the happy path and the compensation stack.
 //
 // If a promoted waiter's workflow was already cancelled, the resolve lands
-// on a dead handler and its compensation may never run (killed or purged
-// invocations run no compensation at all). The slot lease scheduled at
-// promotion time covers this: ExpireSlot fires later, sees the deployment
-// is terminal, and reclaims the slot. No slot is permanently lost.
+// on a dead handler. Its compensation may never run: killed or purged
+// invocations run no compensation. The slot lease scheduled at promotion
+// covers this. ExpireSlot fires later, sees the dead deployment, and
+// reclaims the slot. No slot is lost forever.
 func (s *Service) Release(
 	ctx restate.ObjectContext,
 	req *hydrav1.ReleaseSlotRequest,
@@ -65,9 +65,8 @@ func (s *Service) Release(
 			restate.ResolveAwakeable(ctx, promoted.AwakeableID, true)
 
 			// The promoted deployment now holds a slot, so it gets its own
-			// lease. If its invocation died while waiting (the resolve above
-			// lands on a dead awakeable), ExpireSlot reclaims the slot
-			// instead of it being occupied by a corpse forever.
+			// lease. If its invocation died while it waited, ExpireSlot
+			// reclaims the slot.
 			scheduleExpiry(ctx, workspaceID, promoted.DeploymentID, slotLeaseDuration)
 
 			logger.Info("build slot handed off",
