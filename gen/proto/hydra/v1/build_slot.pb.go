@@ -207,7 +207,11 @@ func (*ReleaseSlotResponse) Descriptor() ([]byte, []int) {
 type ExpireSlotRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The deployment whose slot lease or wait-list entry is checked.
-	DeploymentId  string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	DeploymentId string `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Count of lease renewals already granted for this slot. The handler
+	// renews the lease for a live invocation until the renewal cap, then
+	// force-fails the deployment.
+	Renewals      uint32 `protobuf:"varint,2,opt,name=renewals,proto3" json:"renewals,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -247,6 +251,13 @@ func (x *ExpireSlotRequest) GetDeploymentId() string {
 		return x.DeploymentId
 	}
 	return ""
+}
+
+func (x *ExpireSlotRequest) GetRenewals() uint32 {
+	if x != nil {
+		return x.Renewals
+	}
+	return 0
 }
 
 type ExpireSlotResponse struct {
@@ -297,9 +308,10 @@ const file_hydra_v1_build_slot_proto_rawDesc = "" +
 	"\x15AcquireOrWaitResponse\"9\n" +
 	"\x12ReleaseSlotRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x15\n" +
-	"\x13ReleaseSlotResponse\"8\n" +
+	"\x13ReleaseSlotResponse\"T\n" +
 	"\x11ExpireSlotRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x14\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x1a\n" +
+	"\brenewals\x18\x02 \x01(\rR\brenewals\"\x14\n" +
 	"\x12ExpireSlotResponse2\x81\x02\n" +
 	"\x10BuildSlotService\x12R\n" +
 	"\rAcquireOrWait\x12\x1e.hydra.v1.AcquireOrWaitRequest\x1a\x1f.hydra.v1.AcquireOrWaitResponse\"\x00\x12H\n" +

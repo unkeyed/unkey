@@ -52,11 +52,19 @@ const (
 	// again.
 	MaxWaitDuration = 1 * time.Hour
 
-	// slotLeaseDuration is the maximum time a deployment can hold a slot
-	// before ExpireSlot audits it. It is much longer than a normal deploy
-	// (build, rollout, readiness; usually under one hour). A deployment
-	// that is not terminal after the lease counts as stuck and is failed.
-	slotLeaseDuration = 4 * time.Hour
+	// slotLeaseDuration is the lease check interval for a granted slot.
+	// ExpireSlot fires after each interval and checks the deployment. A
+	// live Deploy invocation renews the lease (see maxSlotLeaseRenewals),
+	// so a real long build keeps its slot. A dead invocation loses the
+	// slot at the next check.
+	slotLeaseDuration = 1 * time.Hour
+
+	// maxSlotLeaseRenewals caps lease renewals for a live invocation. A
+	// slot can be held for at most
+	// slotLeaseDuration * (maxSlotLeaseRenewals + 1), 8 hours in total.
+	// After that the deployment is force-failed even when its invocation
+	// is still live: at that point it is hung, not building.
+	maxSlotLeaseRenewals uint32 = 7
 
 	// waiterExpiryDelay is when ExpireSlot audits a wait-list entry. It is
 	// longer than MaxWaitDuration on purpose: a live waiter times out and

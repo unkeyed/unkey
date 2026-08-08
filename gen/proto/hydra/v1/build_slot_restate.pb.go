@@ -61,9 +61,10 @@ type BuildSlotServiceClient interface {
 	//     Deploy invocation died (killed, purged, crashed) without its
 	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
-	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the build ran too long. The deployment is force-failed in
-	//     the database and the slot reclaimed, so one stuck build cannot
+	//   - Tracked, non-terminal, and the Deploy invocation is still live in
+	//     Restate: the build still runs. The lease renews, up to a hard cap
+	//     on total hold time. Past the cap the deployment is force-failed in
+	//     the database and the slot reclaimed, so one hung build cannot
 	//     block the workspace queue.
 	//
 	// Without this, a killed Deploy invocation holds its slot forever and
@@ -143,9 +144,10 @@ type BuildSlotServiceIngressClient interface {
 	//     Deploy invocation died (killed, purged, crashed) without its
 	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
-	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the build ran too long. The deployment is force-failed in
-	//     the database and the slot reclaimed, so one stuck build cannot
+	//   - Tracked, non-terminal, and the Deploy invocation is still live in
+	//     Restate: the build still runs. The lease renews, up to a hard cap
+	//     on total hold time. Past the cap the deployment is force-failed in
+	//     the database and the slot reclaimed, so one hung build cannot
 	//     block the workspace queue.
 	//
 	// Without this, a killed Deploy invocation holds its slot forever and
@@ -232,9 +234,10 @@ type BuildSlotServiceServer interface {
 	//     Deploy invocation died (killed, purged, crashed) without its
 	//     Release compensation. The slot or wait entry is reclaimed and the
 	//     next waiter promoted.
-	//   - Tracked and the deployment is still non-terminal after the full
-	//     lease: the build ran too long. The deployment is force-failed in
-	//     the database and the slot reclaimed, so one stuck build cannot
+	//   - Tracked, non-terminal, and the Deploy invocation is still live in
+	//     Restate: the build still runs. The lease renews, up to a hard cap
+	//     on total hold time. Past the cap the deployment is force-failed in
+	//     the database and the slot reclaimed, so one hung build cannot
 	//     block the workspace queue.
 	//
 	// Without this, a killed Deploy invocation holds its slot forever and

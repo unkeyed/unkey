@@ -145,7 +145,7 @@ func (s *Service) AcquireOrWait(
 
 	// Schedule the wait-entry audit. A live waiter times out and removes
 	// its own entry before this fires. A dead one is removed here.
-	scheduleExpiry(ctx, workspaceID, deploymentID, waiterExpiryDelay)
+	scheduleExpiry(ctx, workspaceID, deploymentID, waiterExpiryDelay, 0)
 
 	logger.Info("build slot full, deployment queued",
 		"workspace_id", workspaceID,
@@ -174,7 +174,7 @@ func (s *Service) grantSlot(
 
 	// Start the slot lease. If this deployment never releases (killed
 	// invocation, lost compensation), ExpireSlot reclaims the slot.
-	scheduleExpiry(ctx, workspaceID, deploymentID, slotLeaseDuration)
+	scheduleExpiry(ctx, workspaceID, deploymentID, slotLeaseDuration, 0)
 
 	logger.Info("build slot granted",
 		"workspace_id", workspaceID,
@@ -228,9 +228,11 @@ func waitListContains(list []waitEntry, deploymentID string) bool {
 
 // scheduleExpiry arms a delayed self-call to ExpireSlot for the deployment.
 // Restate journals the send, so the check fires even across worker restarts.
-func scheduleExpiry(ctx restate.ObjectContext, workspaceID, deploymentID string, delay time.Duration) {
+// renewals is the count of lease renewals already granted; pass 0 for a new
+// grant or wait entry.
+func scheduleExpiry(ctx restate.ObjectContext, workspaceID, deploymentID string, delay time.Duration, renewals uint32) {
 	hydrav1.NewBuildSlotServiceClient(ctx, workspaceID).ExpireSlot().Send(
-		&hydrav1.ExpireSlotRequest{DeploymentId: deploymentID},
+		&hydrav1.ExpireSlotRequest{DeploymentId: deploymentID, Renewals: renewals},
 		restate.WithDelay(delay),
 	)
 }

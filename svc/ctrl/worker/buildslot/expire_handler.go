@@ -37,9 +37,11 @@ type deploymentCheck struct {
 //  2. Tracked, but the deployment row is terminal or missing: the owning
 //     invocation died without a release. Reclaim and promote the next
 //     waiter.
-//  3. Holds a slot and is still non-terminal after the full lease: the
-//     build ran too long. Force-fail the deployment in the database, then
-//     reclaim, so one stuck build cannot block the workspace queue.
+//  3. Holds a slot, non-terminal, and the Deploy invocation is live in
+//     Restate: the build still runs. Renew the lease and check again
+//     after slotLeaseDuration, up to maxSlotLeaseRenewals. Past the cap,
+//     force-fail the deployment in the database, then reclaim, so one
+//     hung build cannot block the workspace queue.
 //  4. Still waiting and non-terminal after waiterExpiryDelay: its own wait
 //     timeout (MaxWaitDuration, strictly shorter) should have removed it,
 //     so the invocation is dead. Reject its awakeable and drop the entry.
@@ -108,13 +110,26 @@ func (s *Service) ExpireSlot(
 			"deployment_id", deploymentID,
 			"error", err,
 		)
-		scheduleExpiry(ctx, workspaceID, deploymentID, expireRetryDelay)
+		scheduleExpiry(ctx, workspaceID, deploymentID, expireRetryDelay, req.GetRenewals())
 		return &hydrav1.ExpireSlotResponse{}, nil
 	}
 
 	if check.Exists && !check.Terminal {
+		// A live invocation that holds a slot still builds. Renew the
+		// lease instead of failing it, up to the renewal cap.
+		if holdsSlot && !check.InvocationGone && req.GetRenewals() < maxSlotLeaseRenewals {
+			logger.Info("build slot lease renewed for live deployment",
+				"workspace_id", workspaceID,
+				"deployment_id", deploymentID,
+				"renewals", req.GetRenewals()+1,
+				"max_renewals", maxSlotLeaseRenewals,
+			)
+			scheduleExpiry(ctx, workspaceID, deploymentID, slotLeaseDuration, req.GetRenewals()+1)
+			return &hydrav1.ExpireSlotResponse{}, nil
+		}
+
 		if holdsSlot || check.InvocationGone {
-			// Either the deployment ran past its lease, or its Deploy
+			// Either the deployment used all lease renewals, or its Deploy
 			// invocation is gone from Restate while the row still shows an
 			// active status. Force-fail it so the database agrees with the
 			// reclaim below. UpdateDeploymentStatusIfActive does not
@@ -144,7 +159,7 @@ func (s *Service) ExpireSlot(
 					"deployment_id", deploymentID,
 					"error", runErr,
 				)
-				scheduleExpiry(ctx, workspaceID, deploymentID, expireRetryDelay)
+				scheduleExpiry(ctx, workspaceID, deploymentID, expireRetryDelay, req.GetRenewals())
 				return &hydrav1.ExpireSlotResponse{}, nil
 			}
 
@@ -152,7 +167,8 @@ func (s *Service) ExpireSlot(
 				"workspace_id", workspaceID,
 				"deployment_id", deploymentID,
 				"invocation_gone", check.InvocationGone,
-				"lease", slotLeaseDuration.String(),
+				"renewals", req.GetRenewals(),
+				"lease_interval", slotLeaseDuration.String(),
 			)
 		}
 		// A live waiter past waiterExpiryDelay falls through to the sweep
@@ -188,7 +204,7 @@ func (s *Service) ExpireSlot(
 		if promoted != nil {
 			active[promoted.DeploymentID] = true
 			restate.ResolveAwakeable(ctx, promoted.AwakeableID, true)
-			scheduleExpiry(ctx, workspaceID, promoted.DeploymentID, slotLeaseDuration)
+			scheduleExpiry(ctx, workspaceID, promoted.DeploymentID, slotLeaseDuration, 0)
 
 			logger.Info("build slot handed off after lease reclaim",
 				"workspace_id", workspaceID,

@@ -130,7 +130,7 @@ func reclaimStaleSlots(
 		}
 		active[promoted.DeploymentID] = true
 		restate.ResolveAwakeable(ctx, promoted.AwakeableID, true)
-		scheduleExpiry(ctx, workspaceID, promoted.DeploymentID, slotLeaseDuration)
+		scheduleExpiry(ctx, workspaceID, promoted.DeploymentID, slotLeaseDuration, 0)
 
 		logger.Info("build slot handed off after stale reclaim",
 			"workspace_id", workspaceID,

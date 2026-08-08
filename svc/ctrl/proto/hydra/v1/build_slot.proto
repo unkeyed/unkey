@@ -56,9 +56,10 @@ service BuildSlotService {
   //     Deploy invocation died (killed, purged, crashed) without its
   //     Release compensation. The slot or wait entry is reclaimed and the
   //     next waiter promoted.
-  //   - Tracked and the deployment is still non-terminal after the full
-  //     lease: the build ran too long. The deployment is force-failed in
-  //     the database and the slot reclaimed, so one stuck build cannot
+  //   - Tracked, non-terminal, and the Deploy invocation is still live in
+  //     Restate: the build still runs. The lease renews, up to a hard cap
+  //     on total hold time. Past the cap the deployment is force-failed in
+  //     the database and the slot reclaimed, so one hung build cannot
   //     block the workspace queue.
   //
   // Without this, a killed Deploy invocation holds its slot forever and
@@ -91,6 +92,11 @@ message ReleaseSlotResponse {}
 message ExpireSlotRequest {
   // The deployment whose slot lease or wait-list entry is checked.
   string deployment_id = 1;
+
+  // Count of lease renewals already granted for this slot. The handler
+  // renews the lease for a live invocation until the renewal cap, then
+  // force-fails the deployment.
+  uint32 renewals = 2;
 }
 
 message ExpireSlotResponse {}
