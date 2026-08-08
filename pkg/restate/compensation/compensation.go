@@ -76,7 +76,7 @@ func (c *Compensation) Add(name string, run func(ctx restate.RunContext) error) 
 // (e.g. to Send messages to other Restate services). Unlike [Add], the
 // callback is NOT wrapped in [restate.RunVoid] — the caller is responsible
 // for making the operation idempotent. Use this for fire-and-forget Sends
-// like releasing a BuildSlotService slot.
+// like dispatching a Restate child operation.
 func (c *Compensation) AddCtx(run func(ctx restate.ObjectContext) error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

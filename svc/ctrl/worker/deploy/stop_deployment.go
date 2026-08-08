@@ -16,7 +16,7 @@ import (
 func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
 	if deploymentID == "" {
-		return nil, restate.TerminalError(fmt.Errorf("deployment_id is required"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id is required"), restate.WithErrorCode(400))
 	}
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
@@ -24,7 +24,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	}, restate.WithName("find deployment for stop"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("deployment not found"), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to load deployment: %w", err)
 	}
@@ -34,7 +34,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	}, restate.WithName("find environment for stop"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("environment not found"), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("environment not found"), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}

@@ -123,7 +123,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	// Keyed by deployment_id — each deployment runs as its own isolated
 	// workflow so multiple deployments can build in parallel.
-	invocation, sendErr := s.deploymentClient(deploymentID).Deploy().Send(ctx, deployReq)
+	invocation, sendErr := s.buildQueueClient(deploymentID).Enqueue().Send(ctx, deployReq)
 	if sendErr != nil {
 		// Revert status back to awaiting_approval since the deploy failed.
 		if _, revertErr := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{

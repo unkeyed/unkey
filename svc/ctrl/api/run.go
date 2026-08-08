@@ -11,7 +11,6 @@ import (
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -119,9 +118,9 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	// Restate ingress client for invoking workflows
-	restateClientOpts := []restate.IngressClientOption{}
+	restateClientOpts := []restateIngress.ClientOption{}
 	if cfg.Restate.APIKey != "" {
-		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
+		restateClientOpts = append(restateClientOpts, restateIngress.WithAuthKey(cfg.Restate.APIKey))
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 

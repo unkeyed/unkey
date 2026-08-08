@@ -34,6 +34,68 @@ type registrationPayload struct {
 	Force bool   `json:"force,omitempty"`
 }
 
+type rule struct {
+	Pattern      string       `json:"pattern"`
+	Description  string       `json:"description"`
+	Disabled     bool         `json:"disabled"`
+	Limits       ruleLimits   `json:"limits"`
+	Precondition precondition `json:"precondition"`
+}
+
+type ruleLimits struct {
+	Concurrency int32 `json:"concurrency"`
+}
+
+type precondition struct {
+	Type string `json:"type"`
+}
+
+func (c *Client) upsertRules(ctx context.Context, rules []rule) error {
+	payload, err := json.Marshal(rules)
+	if err != nil {
+		return fmt.Errorf("marshal concurrency rules: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPut, c.baseURL+"/limits/rules", payload)
+	if err != nil {
+		return fmt.Errorf("upsert concurrency rules: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return nil
+	}
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	if readErr != nil {
+		return fmt.Errorf("upsert concurrency rules failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
+	}
+	return fmt.Errorf("upsert concurrency rules failed with status %d: %s", resp.StatusCode, string(body))
+}
+
+// UpsertDefaultBuildConcurrencyRule ensures an unseen workspace is limited
+// while its exact database-backed rule propagates to Restate's schedulers.
+func (c *Client) UpsertDefaultBuildConcurrencyRule(ctx context.Context) error {
+	return c.upsertRules(ctx, []rule{{
+		Pattern:      "*",
+		Description:  "Unkey default workspace build concurrency",
+		Disabled:     false,
+		Limits:       ruleLimits{Concurrency: 1},
+		Precondition: precondition{Type: "none"},
+	}})
+}
+
+// UpsertBuildConcurrencyRules configures the workspace and preview build
+// concurrency rules as one atomic, unconditional update.
+func (c *Client) UpsertBuildConcurrencyRules(ctx context.Context, workspaceID string, concurrency int32) error {
+	previewConcurrency := concurrency - 1
+	if previewConcurrency < 1 {
+		previewConcurrency = 1
+	}
+	return c.upsertRules(ctx, []rule{
+		{Pattern: workspaceID, Description: "Unkey workspace build concurrency", Disabled: false, Limits: ruleLimits{Concurrency: concurrency}, Precondition: precondition{Type: "none"}},
+		{Pattern: workspaceID + "/preview", Description: "Unkey preview build concurrency", Disabled: false, Limits: ruleLimits{Concurrency: previewConcurrency}, Precondition: precondition{Type: "none"}},
+	})
+}
+
 // New creates a new admin [Client] with the given configuration.
 func New(cfg Config) *Client {
 	return &Client{

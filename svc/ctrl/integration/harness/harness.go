@@ -28,7 +28,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
@@ -277,10 +276,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
-	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB: database,
-	})
-
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
@@ -295,7 +290,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
-		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
 	t.Logf("Total harness setup in %s", time.Since(start))
 

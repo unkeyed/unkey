@@ -71,7 +71,7 @@ type dockerSourceInfo struct {
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
 // lifecycle operations within one environment remain serialized. Workspace-wide
-// build concurrency is enforced separately via BuildSlotService. Returns the
+// build concurrency is enforced separately via BuildQueueService. Returns the
 // deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
@@ -572,8 +572,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	// Send deployment request asynchronously, keyed by deployment_id —
 	// each deployment runs as its own isolated workflow.
-	invocation, err := s.deploymentClient(deploymentID).
-		Deploy().
+	invocation, err := s.buildQueueClient(deploymentID).
+		Enqueue().
 		Send(ctx, deployReq)
 	if err != nil {
 		logger.Error("failed to start deployment workflow", "error", err)

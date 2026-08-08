@@ -86,7 +86,7 @@ func (s *Service) VerifyDomain(
 			logger.Info("domain record deleted, stopping verification workflow",
 				"domain_id", domainID,
 			)
-			return nil, restate.TerminalError(fmt.Errorf("domain record not found: %s", domainID), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("domain record not found: %s", domainID), restate.WithErrorCode(404))
 		}
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
@@ -247,9 +247,9 @@ func (s *Service) RetryVerification(
 		return nil, err
 	}
 
-	_, err = s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{})
-	if err != nil {
-		return nil, err
+	_, verifyErr := s.VerifyDomain(ctx, &hydrav1.VerifyDomainRequest{})
+	if verifyErr != nil {
+		return nil, verifyErr
 	}
 
 	return &hydrav1.RetryVerificationResponse{}, nil
@@ -482,5 +482,5 @@ func (s *Service) onVerificationFailed(
 	)
 
 	// Return terminal error to stop Restate retries
-	return nil, restate.TerminalError(fmt.Errorf("domain verification failed: %s", errorMsg), 0)
+	return nil, restate.ToTerminalError(fmt.Errorf("domain verification failed: %s", errorMsg), restate.WithErrorCode(0))
 }

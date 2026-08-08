@@ -96,7 +96,7 @@ func (h *Handler) Handle(
 	// live VO. Journaled Now() so replays agree; heartbeat still pings.
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {

@@ -23,7 +23,7 @@ import (
 func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDeploymentRequest) (*hydrav1.WakeDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
 	if deploymentID == "" {
-		return nil, restate.TerminalError(fmt.Errorf("deployment_id is required"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id is required"), restate.WithErrorCode(400))
 	}
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
@@ -31,7 +31,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}, restate.WithName("find deployment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("deployment not found"), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to load deployment: %w", err)
 	}
@@ -41,7 +41,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}, restate.WithName("find environment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("environment not found"), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("environment not found"), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to load environment: %w", err)
 	}
@@ -87,7 +87,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, fmt.Errorf("find wake topology min replicas: %w", err)
 	}
 	if len(rows) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("deployment has no topology"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("deployment has no topology"), restate.WithErrorCode(400))
 	}
 
 	regionMinReplicas := make(map[string]uint32, len(rows))
@@ -96,9 +96,9 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 	requiredRegions := max(len(regionMinReplicas)-1, 1)
 
-	now, err := restateutil.Now(ctx)
-	if err != nil {
-		return nil, err
+	now, nowErr := restateutil.Now(ctx)
+	if nowErr != nil {
+		return nil, nowErr
 	}
 	// The deadline is anchored to the journaled wall clock so it stays stable if
 	// this side effect is retried. The poll below runs as a single blocking

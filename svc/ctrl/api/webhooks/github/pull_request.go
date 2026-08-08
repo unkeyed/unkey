@@ -7,6 +7,7 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/webhook"
@@ -59,7 +60,7 @@ func (h *handler) pullRequest(
 	client := hydrav1.NewGitHubWebhookServiceIngressClient(h.restate, objectKey)
 
 	deliveryID := event.ID
-	var sendOpts []restate.IngressSendOption
+	var sendOpts []restateingress.SendOption
 	if deliveryID != "" {
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}

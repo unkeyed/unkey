@@ -191,10 +191,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		// Keyed by deployment_id — each deployment is its own isolated workflow.
-		// Workspace-wide build concurrency is capped by BuildSlotService.
-		deployClient := hydrav1.NewDeployServiceClient(ctx, deploymentID)
-		invocation := deployClient.Deploy().Send(&hydrav1.DeployRequest{
+		// The unscoped wrapper owns the queue timeout and invokes DeployService
+		// with the workspace's native Restate scope.
+		queueClient := hydrav1.NewBuildQueueServiceClient(ctx, deploymentID)
+		invocation := queueClient.Enqueue().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{

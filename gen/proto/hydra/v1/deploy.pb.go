@@ -7,7 +7,7 @@
 package hydrav1
 
 import (
-	_ "github.com/restatedev/sdk-go/generated/dev/restate/sdk"
+	_ "github.com/restatedev/sdk-go/x/protoc-gen-go-restate/generated/dev/restate/sdk"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -508,9 +508,13 @@ type DeployRequest struct {
 	//	*DeployRequest_DockerImage
 	Source isDeployRequest_Source `protobuf_oneof:"source"`
 	// Container command override (e.g., ["./app", "serve"])
-	Command       []string `protobuf:"bytes,5,rep,name=command,proto3" json:"command,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Command []string `protobuf:"bytes,5,rep,name=command,proto3" json:"command,omitempty"`
+	// Internal awakeable resolved as the first action after Restate admits the
+	// scoped invocation. BuildQueueService uses it to bound queue wait without
+	// imposing the same timeout on the deployment itself.
+	QueueAwakeableId string `protobuf:"bytes,6,opt,name=queue_awakeable_id,json=queueAwakeableId,proto3" json:"queue_awakeable_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *DeployRequest) Reset() {
@@ -587,6 +591,13 @@ func (x *DeployRequest) GetCommand() []string {
 		return x.Command
 	}
 	return nil
+}
+
+func (x *DeployRequest) GetQueueAwakeableId() string {
+	if x != nil {
+		return x.QueueAwakeableId
+	}
+	return ""
 }
 
 type isDeployRequest_Source interface {
@@ -1026,13 +1037,14 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
 	"\tpr_number\x18\a \x01(\x03R\bprNumber\x12'\n" +
 	"\x0ffork_repository\x18\b \x01(\tR\x0eforkRepository\x12#\n" +
-	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xf2\x01\n" +
+	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xa0\x02\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
 	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +
 	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x12:\n" +
 	"\fdocker_image\x18\x04 \x01(\v2\x15.hydra.v1.DockerImageH\x00R\vdockerImage\x12\x18\n" +
-	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
+	"\acommand\x18\x05 \x03(\tR\acommand\x12,\n" +
+	"\x12queue_awakeable_id\x18\x06 \x01(\tR\x10queueAwakeableIdB\b\n" +
 	"\x06sourceB\x0e\n" +
 	"\f_key_auth_id\"\x10\n" +
 	"\x0eDeployResponse\"u\n" +

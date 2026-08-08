@@ -278,7 +278,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 
 		// Other non-retryable errors (bad credentials): terminal error, no retry
 		if !parsed.IsRetryable {
-			return EncryptedCertificate{}, restate.TerminalError(
+			return EncryptedCertificate{}, restate.ToTerminalError(
 				fmt.Errorf("[%s] %s", parsed.Type, parsed.Message),
 			)
 		}

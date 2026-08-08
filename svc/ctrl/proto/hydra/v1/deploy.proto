@@ -13,9 +13,8 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // that lifecycle operations within a single environment are serialized
 // (preventing e.g. a rollback from racing with an in-flight deploy) while
 // different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// deploy in parallel. Workspace-wide concurrency is enforced by scoped
+// invocations from BuildQueueService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -132,6 +131,11 @@ message DeployRequest {
 
   // Container command override (e.g., ["./app", "serve"])
   repeated string command = 5;
+
+  // Internal awakeable resolved as the first action after Restate admits the
+  // scoped invocation. BuildQueueService uses it to bound queue wait without
+  // imposing the same timeout on the deployment itself.
+  string queue_awakeable_id = 6;
 }
 
 message DeployResponse {}

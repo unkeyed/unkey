@@ -41,7 +41,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), 404),
+				restate.ToTerminalError(fmt.Errorf("deployment not found: %s", req.GetTargetDeploymentId()), restate.WithErrorCode(404)),
 				fault.Public("The deployment could not be found"),
 			)
 		}
@@ -54,7 +54,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("app not found: %s", targetDeployment.AppID), 404),
+				restate.ToTerminalError(fmt.Errorf("app not found: %s", targetDeployment.AppID), restate.WithErrorCode(404)),
 				fault.Public("The project could not be found"),
 			)
 		}
@@ -71,7 +71,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), 404),
+				restate.ToTerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), restate.WithErrorCode(404)),
 				fault.Public("The environment could not be found"),
 			)
 		}
@@ -110,7 +110,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 		if len(frontlineRoutes) == 0 {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("no frontline routes found for promotion"), 400),
+				restate.ToTerminalError(fmt.Errorf("no frontline routes found for promotion"), restate.WithErrorCode(400)),
 				fault.Public("No routes found to promote"),
 			)
 		}

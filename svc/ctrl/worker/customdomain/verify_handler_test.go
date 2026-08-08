@@ -7,7 +7,7 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/restatedev/sdk-go/mocks"
+	"github.com/restatedev/sdk-go/x/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"

@@ -195,13 +195,13 @@ type DeploymentServiceServer interface {
 type UnimplementedDeploymentServiceServer struct{}
 
 func (UnimplementedDeploymentServiceServer) ScheduleDesiredStateChange(ctx sdk_go.ObjectContext, req *ScheduleDesiredStateChangeRequest) (*ScheduleDesiredStateChangeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ScheduleDesiredStateChange not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ScheduleDesiredStateChange not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeploymentServiceServer) ChangeDesiredState(ctx sdk_go.ObjectContext, req *ChangeDesiredStateRequest) (*ChangeDesiredStateResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ChangeDesiredState not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ChangeDesiredState not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeploymentServiceServer) ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ClearScheduledStateChanges not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ClearScheduledStateChanges not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 

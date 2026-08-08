@@ -8,6 +8,8 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -263,11 +265,15 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).
-		NotifyInstancesReady().
-		Send(ctx, &hydrav1.NotifyInstancesReadyRequest{
-			DeploymentId: deployment.ID,
-		})
+	_, err = restateingress.Object[*hydrav1.NotifyInstancesReadyRequest, *hydrav1.NotifyInstancesReadyResponse](
+		s.restate,
+		"hydra.v1.DeployService",
+		deployment.ID,
+		"NotifyInstancesReady",
+		restate.WithScope(deployment.WorkspaceID),
+	).Send(ctx, &hydrav1.NotifyInstancesReadyRequest{
+		DeploymentId: deployment.ID,
+	})
 	if err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",

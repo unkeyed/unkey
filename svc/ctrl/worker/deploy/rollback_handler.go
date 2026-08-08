@@ -38,7 +38,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	)
 
 	if req.GetSourceDeploymentId() == req.GetTargetDeploymentId() {
-		return nil, restate.TerminalError(fmt.Errorf("source and target deployments must be different"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("source and target deployments must be different"), restate.WithErrorCode(400))
 	}
 
 	sourceDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
@@ -46,7 +46,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}, restate.WithName("finding source deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("source deployment not found: %s", req.GetSourceDeploymentId()), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("source deployment not found: %s", req.GetSourceDeploymentId()), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to get source deployment: %w", err)
 	}
@@ -56,18 +56,18 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("target deployment not found: %s", req.GetTargetDeploymentId()), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("target deployment not found: %s", req.GetTargetDeploymentId()), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to get target deployment: %w", err)
 	}
 
-	err = assert.All(
+	assertErr := assert.All(
 		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID, "deployments must be in the same project"),
 		assert.Equal(targetDeployment.AppID, sourceDeployment.AppID, "deployments must be in the same app"),
 		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID, "deployments must be in the same environment"),
 	)
-	if err != nil {
-		return nil, restate.TerminalError(err, 400)
+	if assertErr != nil {
+		return nil, restate.ToTerminalError(assertErr, restate.WithErrorCode(400))
 	}
 
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
@@ -75,13 +75,13 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("app not found: %s", sourceDeployment.AppID), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("app not found: %s", sourceDeployment.AppID), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
 	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
-		return nil, restate.TerminalError(fmt.Errorf("source deployment is not the current deployment"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("source deployment is not the current deployment"), restate.WithErrorCode(400))
 	}
 
 	// Re-validate the target against the shared invariant at execution time (the
@@ -93,7 +93,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, restate.TerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), 404)
+			return nil, restate.ToTerminalError(fmt.Errorf("environment not found: %s", targetDeployment.EnvironmentID), restate.WithErrorCode(404))
 		}
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
@@ -128,7 +128,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	}
 
 	if len(frontlineRoutes) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("no frontlineRoutes to rollback"), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("no frontlineRoutes to rollback"), restate.WithErrorCode(400))
 	}
 
 	logger.Info("found frontlineRoutes for rollback", "count", len(frontlineRoutes), "deployment_id", sourceDeployment.ID)

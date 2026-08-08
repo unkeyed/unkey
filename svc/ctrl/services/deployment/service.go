@@ -27,13 +27,14 @@ type Service struct {
 	enforceDeployGate               bool
 }
 
-// deploymentClient creates a typed Restate ingress client for the DeployService
-// keyed by deployment_id. Each deployment runs as its own isolated workflow,
-// so multiple deployments per environment can build in parallel. The contended
-// resource (apps.current_deployment_id) is serialized inside RoutingService
-// via SwapLiveDeployment.
 func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployServiceIngressClient {
 	return hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
+}
+
+// buildQueueClient creates the unscoped wrapper that owns queue timeout and
+// persists as the deployment's externally cancellable invocation.
+func (s *Service) buildQueueClient(deploymentID string) hydrav1.BuildQueueServiceIngressClient {
+	return hydrav1.NewBuildQueueServiceIngressClient(s.restate, deploymentID)
 }
 
 // Config holds the configuration for creating a new [Service].

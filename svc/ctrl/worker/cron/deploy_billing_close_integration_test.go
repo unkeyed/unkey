@@ -154,7 +154,7 @@ func (f *fakePusher) Push(_ context.Context, req billingmeter.PushRequest) (int,
 	defer f.mu.Unlock()
 	if f.failFor[req.StripeCustomerID] {
 		// Terminal: fail fast. A retried push would stall the test for minutes.
-		return 0, restate.TerminalError(errors.New("simulated push failure"))
+		return 0, restate.ToTerminalError(errors.New("simulated push failure"))
 	}
 	f.pushed[req.StripeCustomerID] = req
 	return 4, nil // cpu, memory, disk, egress

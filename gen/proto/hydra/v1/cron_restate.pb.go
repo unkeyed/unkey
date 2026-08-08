@@ -431,37 +431,37 @@ type CronServiceServer interface {
 type UnimplementedCronServiceServer struct{}
 
 func (UnimplementedCronServiceServer) RunQuotaCheck(ctx sdk_go.ObjectContext, req *RunQuotaCheckRequest) (*RunQuotaCheckResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunQuotaCheck not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunQuotaCheck not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunKeyRefill(ctx sdk_go.ObjectContext, req *RunKeyRefillRequest) (*RunKeyRefillResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunKeyRefill not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunKeyRefill not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunKeyLastUsedSync(ctx sdk_go.ObjectContext, req *RunKeyLastUsedSyncRequest) (*RunKeyLastUsedSyncResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunKeyLastUsedSync not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunKeyLastUsedSync not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunAuditLogExport(ctx sdk_go.ObjectContext, req *RunAuditLogExportRequest) (*RunAuditLogExportResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunAuditLogExport not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunAuditLogExport not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunRatelimitGlobalCountersCleanup not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunRatelimitGlobalCountersCleanup not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 

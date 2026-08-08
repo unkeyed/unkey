@@ -227,7 +227,7 @@ func (w *Workflow) runGitBuild(
 	buildFn func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error),
 ) (*buildResult, error) {
 	if err := validateGitBuildParams(params); err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid git build params: %w", err))
 	}
 
 	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
@@ -262,11 +262,11 @@ func (w *Workflow) runGitBuild(
 		// surfaced to the user fast than burned inside a retry loop.
 		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
 		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+			return nil, restate.ToTerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
 		}
 
 		if err := validateShellEnvKeys(envVars); err != nil {
-			return nil, restate.TerminalError(err)
+			return nil, restate.ToTerminalError(err)
 		}
 
 		return buildFn(runCtx, gitBuildContext{
@@ -311,7 +311,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		// routing bug, so assert instead.
 		dockerfilePath := params.DockerfilePath
 		if assertErr := assert.NotEmpty(dockerfilePath, "dockerfile path must be set for dockerfile builds"); assertErr != nil {
-			return nil, restate.TerminalError(assertErr)
+			return nil, restate.ToTerminalError(assertErr)
 		}
 
 		logger.Info("Starting build execution",
@@ -461,7 +461,7 @@ func (w *Workflow) solveWithStatus(
 		if isTransientSolveError(err) {
 			return fmt.Errorf("build hit a transient registry error: %w", err)
 		}
-		return restate.TerminalError(fmt.Errorf("build failed: %w", err))
+		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
 	}
 	return nil
 }
@@ -823,7 +823,7 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 				return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
 			}
 			// Confirmed private: terminal, retrying never helps.
-			return noToken, false, restate.TerminalError(fmt.Errorf(
+			return noToken, false, restate.ToTerminalError(fmt.Errorf(
 				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo,
 			))
 		}

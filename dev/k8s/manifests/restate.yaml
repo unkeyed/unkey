@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: restate
-          image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
+          image: docker.io/restatedev/restate:1.7.3@sha256:3fe27351d56198430dbd19df52c6562f910646542c4a9902c84c21afa8e70e73
           ports:
             - containerPort: 8080
               name: frontline
@@ -44,6 +44,12 @@ spec:
           env:
             - name: RESTATE_WORKER__STORAGE__DATA_DIR
               value: "/restate-data"
+            - name: RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7
+              value: "true"
+            - name: RESTATE_EXPERIMENTAL_ENABLE_VQUEUES
+              value: "true"
+            - name: RESTATE_EXPERIMENTAL_ENABLE_SCOPED_VIRTUAL_OBJECTS
+              value: "true"
           readinessProbe:
             httpGet:
               path: /health

@@ -171,7 +171,7 @@ func FleetMeterValues(
 		Start:        p.Start().UnixMilli(),
 		End:          endMillis,
 	})
-	futures := make([]restate.Selectable, len(shards))
+	futures := make([]restate.Future, len(shards))
 	for shard, shardReq := range shards {
 		futures[shard] = restate.RunAsync(ctx, func(rc restate.RunContext) (instanceMeterUsageShardResult, error) {
 			if err := instanceUsageQueries.Acquire(rc, 1); err != nil {

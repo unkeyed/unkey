@@ -7,7 +7,7 @@
 package hydrav1
 
 import (
-	_ "github.com/restatedev/sdk-go/generated/dev/restate/sdk"
+	_ "github.com/restatedev/sdk-go/x/protoc-gen-go-restate/generated/dev/restate/sdk"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

@@ -23,9 +23,8 @@ import (
 // that lifecycle operations within a single environment are serialized
 // (preventing e.g. a rollback from racing with an in-flight deploy) while
 // different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// deploy in parallel. Workspace-wide concurrency is enforced by scoped
+// invocations from BuildQueueService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -206,9 +205,8 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // that lifecycle operations within a single environment are serialized
 // (preventing e.g. a rollback from racing with an in-flight deploy) while
 // different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// deploy in parallel. Workspace-wide concurrency is enforced by scoped
+// invocations from BuildQueueService.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -249,22 +247,22 @@ type DeployServiceServer interface {
 type UnimplementedDeployServiceServer struct{}
 
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Deploy not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Rollback not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Promote not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method StopDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method WakeDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
 
@@ -411,10 +409,10 @@ type DeployTeardownServiceServer interface {
 type UnimplementedDeployTeardownServiceServer struct{}
 
 func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Teardown not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Resume not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Resume not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
 

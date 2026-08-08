@@ -38,7 +38,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
-				restate.TerminalError(fmt.Errorf("deployment not found: %s", deploymentID), 404),
+				restate.ToTerminalError(fmt.Errorf("deployment not found: %s", deploymentID), restate.WithErrorCode(404)),
 				fault.Public("The deployment could not be found"),
 			)
 		}
@@ -84,9 +84,9 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	// is not trusted inside the cluster, so reach the pod directly via plain HTTP.
 	// Production: use HTTPS with the public FQDN.
 	isLocal := strings.HasSuffix(fqdn, ".unkey.local")
-	parsedSpecPath, err := validateSpecPath(specPath)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to fetch OpenAPI spec."))
+	parsedSpecPath, validationErr := validateSpecPath(specPath)
+	if validationErr != nil {
+		return nil, fault.Wrap(validationErr, fault.Public("Failed to fetch OpenAPI spec."))
 	}
 
 	var baseURL *url.URL

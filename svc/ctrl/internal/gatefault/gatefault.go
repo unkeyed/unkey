@@ -32,5 +32,5 @@ func Terminal(err error) error {
 	if err == nil {
 		return nil
 	}
-	return restate.TerminalError(errors.New(fault.UserFacingMessage(err)), 400)
+	return restate.ToTerminalError(errors.New(fault.UserFacingMessage(err)), restate.WithErrorCode(400))
 }

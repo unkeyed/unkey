@@ -11,7 +11,7 @@ Each Restate VO uses the narrowest key that gives the serialization it needs:
 
 - **`DeployService`** is keyed by `deployment_id`. Each deployment runs as its own isolated workflow, so multiple deployments in the same environment can build in parallel.
 - **`RoutingService`** is keyed by `env_id`. All routing changes for an environment (frontline route assignment + the live-deployment swap) serialize here, so concurrent deploys/rollbacks/promotes for the same env can never race on `apps.current_deployment_id`.
-- **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
+- `BuildQueueService` is keyed by `deployment_id`. It starts the queue timeout, configures Restate concurrency rules, and invokes `DeployService` with the workspace scope.
 - **`DeploymentService`** (delayed desired-state transitions) is keyed by `deployment_id`.
 
 Rollback and Promote are themselves workflows but they don't need their own env-keyed gate — the actual mutation goes through `RoutingService.SwapLiveDeployment`, which is per-env serialized.
@@ -22,7 +22,7 @@ Key components:
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
-- `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
+- `BuildQueueService` VO for per-workspace build concurrency: [`svc/ctrl/worker/buildqueue`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildqueue)
 - Dedup helper for cancelling superseded queued siblings — [`svc/ctrl/dedup`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/dedup)
 
 ## Flow: create deployment
@@ -33,30 +33,28 @@ sequenceDiagram
   participant CtrlAPI as Control API
   participant DB as MySQL
   participant Restate as Restate
-  participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
+  participant BuildQueue as BuildQueueService<br/>(keyed by deployment_id)
   participant Worker as DeployService<br/>(keyed by deployment_id)
   participant Dedup as dedup.CancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
   CtrlAPI->>DB: Find project + environment + app
   CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployService.Deploy (key: deployment_id, async)
+  CtrlAPI->>Restate: BuildQueueService.Enqueue (key: deployment_id, async)
   Restate-->>CtrlAPI: invocation_id
   CtrlAPI->>DB: UpdateDeploymentInvocationID
   CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling
-  Restate->>Worker: Execute Deploy workflow for newest commit
+  Restate->>BuildQueue: Configure workspace and preview rules
+  BuildQueue->>Worker: Scoped Deploy(workspace_id, optional preview key)
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
-  Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
-  BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
   Worker->>DB: Insert topologies (outbox entries)
   Worker->>Worker: waitForDeployments creates awakeable
   Note over Worker: suspended on awakeable
   DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable
   Worker->>DB: Mark deployment ready
-  Worker->>BuildSlot: Release(deployment_id)
 ```
 
 ## Flow: cancel deployment
@@ -68,15 +66,13 @@ sequenceDiagram
   participant DB as MySQL
   participant RestateAdmin as Restate Admin API
   participant Worker as DeployService
-  participant BuildSlot as BuildSlotService
 
   Client->>CtrlAPI: CancelDeployment(deployment_id)
   CtrlAPI->>DB: Find deployment (must be non-terminal)
   CtrlAPI->>DB: Stamp active steps with "Cancelled by user"
   CtrlAPI->>RestateAdmin: CancelInvocation(invocation_id)
-  RestateAdmin->>Worker: Inject TerminalError at next SDK call
+  RestateAdmin->>Worker: Cancel queue wrapper and child deployment
   Worker->>Worker: defer runs compensation stack (LIFO)
-  Worker->>BuildSlot: Release(deployment_id) (compensation)
   Worker->>DB: UpdateDeploymentStatusIfActive → failed (compensation)
   Note over CtrlAPI,Worker: The "Cancelled by user" step marker wins<br/>(EndDeploymentStep is first-write-wins<br/>via WHERE ended_at IS NULL)
 ```
@@ -116,37 +112,33 @@ sequenceDiagram
   Routing-->>Worker: previous_deployment_id (atomically swapped)
 ```
 
-## BuildSlotService (workspace concurrency)
+## Workspace build concurrency
 
-`BuildSlotService` caps concurrent builds per workspace. It is a Restate VO keyed by `workspace_id`, which makes `Acquire` and `Release` race-free across concurrent deploy handlers.
+`BuildQueueService` is an unscoped VO keyed by `deployment_id`. It asks the workspace-keyed `BuildRuleService` to read `limits.builds_concurrent_max`, default missing limits to one, and upsert Restate rules for the workspace scope and its `preview` L1 limit key. It then starts a scoped `DeployService.Deploy` child and races admission against a 6-hour timeout.
 
-State held in the VO:
+The workspace rule limits all active builds to N. For N greater than one, the preview rule limits previews to N-1 and reserves one permit for production. At N=1, preview remains one. Restate's fair scheduling prevents starvation, but doesn't preserve strict production-first ordering.
 
-- `active_slots` — set of deployment IDs currently holding a slot
-- `prod_wait_list` — FIFO of production waiters
-- `preview_wait_list` — FIFO of non-production waiters
+The worker installs a wildcard concurrency limit of one before it accepts deployments. This limit prevents an unseen workspace from running without a cap while its exact rule propagates. `BuildRuleService`, keyed by workspace, serializes exact rule updates and reads the latest database value before each update.
 
-Acquire flow:
+### Roll out the vqueue migration
 
-1. Deploy handler creates a Restate awakeable and calls `AcquireOrWait(deployment_id, awakeable_id, is_production)`.
-2. The workspace's `builds_concurrent_max` limit is fetched. If `len(active_slots) < limit`, the deployment is added to `active_slots` and the awakeable is resolved immediately.
-3. Otherwise the deployment is appended to `prod_wait_list` (if production) or `preview_wait_list` (if not). The Deploy handler stays suspended on `awakeable.Result()`.
+Restate 1.7.3 can migrate retained invocations, but enabling vqueues is a one-way operation. Use this sequence for an existing cluster:
 
-Production deployments respect the same quota cap as preview — they don't bypass — but they get priority by going onto a separate wait list that Release drains first.
+1. Stop new deployment admission.
+2. Upgrade every Restate server to 1.7.3 with vqueues disabled.
+3. Drain or cancel every unscoped `DeployService` invocation and its `BuildSlotService` waiter. Reconcile any remaining nonterminal deployment rows before removing the old worker.
+4. Enable protocol v7, vqueues, and scoped virtual objects on every Restate node, then restart the cluster.
+5. Wait for `[VQueues Migration Completed]` on every partition. Confirm that `partition_state.enabled_features` contains `vqueues`.
+6. Deploy the worker and API that route new work through `BuildQueueService`.
+7. Resume deployment admission.
 
-Release flow:
-
-1. Deploy handler calls `Release(deployment_id)` — from the success path explicitly, or from the compensation stack on failure/cancel.
-2. If the deployment was in `active_slots`, it is removed and a waiter is promoted: `prod_wait_list` first, then `preview_wait_list`. The promoted waiter's awakeable is resolved.
-3. If the deployment was in either wait list (cancelled before it ever got a slot), it is removed.
-
-This gives push-based slot hand-off with priority — no polling. The concurrency cap is `limits.builds_concurrent_max` per workspace.
+Don't send readiness notifications to a scoped deployment until the old unscoped deployment invocations have drained. A scoped virtual object and an unscoped virtual object with the same key are different Restate identities.
 
 ## Commit deduplication
 
 When a new deployment is created, `dedup.CancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
 
-Once a deployment acquires a build slot and transitions to `starting`, it is **committed** — newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
+Once a deployment transitions to `starting`, it is committed. Newer commits don't supersede it. This prevents rapid pushes from cancelling every active build.
 
 Cancellation happens in three steps, all batched:
 
@@ -176,7 +168,7 @@ Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report 
 2. Look up per-region min replicas via `FindDeploymentTopologyMinReplicas`.
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
-5. If threshold met (and not yet notified), send `DeployService.NotifyInstancesReady(deployment_id)` via the ingress client, keyed by `deployment_id`.
+5. If the threshold is met, send `DeployService.NotifyInstancesReady(deployment_id)` with the deployment's workspace scope and deployment ID key.
 
 ## Self-skip (belt-and-suspenders dedup)
 
@@ -192,8 +184,7 @@ The `DeployService` is registered with an exponential-backoff retry policy: `30s
 
 ## Compensation stack
 
-The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw `ObjectContext` operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
+The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` and `Compensation.AddCtx`. The stack fires on any error or cancellation:
 
-- Release the build slot
 - Mark the deployment as `failed` (only if still in an active status — the conditional `UpdateDeploymentStatusIfActive` query prevents overwriting `superseded` or `ready`)
 - Undo topology inserts, route assignments, etc.

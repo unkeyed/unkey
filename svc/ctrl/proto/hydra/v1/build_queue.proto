@@ -1,0 +1,30 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+import "hydra/v1/deploy.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// BuildQueueService applies workspace build limits before invoking DeployService.
+// It is keyed by deployment_id and intentionally unscoped so its queue timeout
+// starts before the scoped deployment is admitted.
+service BuildQueueService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc Enqueue(DeployRequest) returns (DeployResponse) {}
+}
+
+// BuildRuleService serializes database-backed rule updates per workspace so an
+// older deployment cannot overwrite a newer limit value.
+service BuildRuleService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  rpc Configure(ConfigureBuildRulesRequest) returns (ConfigureBuildRulesResponse) {}
+}
+
+message ConfigureBuildRulesRequest {
+  string workspace_id = 1;
+}
+
+message ConfigureBuildRulesResponse {}

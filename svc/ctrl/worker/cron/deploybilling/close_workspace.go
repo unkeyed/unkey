@@ -37,12 +37,12 @@ func (h *Handler) HandleCloseWorkspace(
 	}
 
 	if req.GetInvoiceId() == "" {
-		return nil, restate.TerminalError(fmt.Errorf("invoice_id is required"))
+		return nil, restate.ToTerminalError(fmt.Errorf("invoice_id is required"))
 	}
 
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 
 	nowTime, err := restateutil.Now(ctx)
@@ -50,7 +50,7 @@ func (h *Handler) HandleCloseWorkspace(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 	if !p.CloseAllowed(nowTime, req.GetPeriodEnd()) {
-		return nil, restate.TerminalError(
+		return nil, restate.ToTerminalError(
 			fmt.Errorf("billing period %s has not ended yet (ends %s)", period, p.End().Format(time.RFC3339)),
 		)
 	}
@@ -66,12 +66,12 @@ func (h *Handler) HandleCloseWorkspace(
 	}, restate.WithName("read invoice"))
 	if err != nil {
 		if errors.Is(err, invoicecloser.ErrNotFound) {
-			return nil, restate.TerminalError(fmt.Errorf("invoice %s does not exist", req.GetInvoiceId()))
+			return nil, restate.ToTerminalError(fmt.Errorf("invoice %s does not exist", req.GetInvoiceId()))
 		}
 		return nil, fmt.Errorf("read invoice %s: %w", req.GetInvoiceId(), err)
 	}
 	if invoice.BillingReason != "subscription_cycle" {
-		return nil, restate.TerminalError(
+		return nil, restate.ToTerminalError(
 			fmt.Errorf("invoice %s is not a subscription renewal (billing reason %q)", invoice.ID, invoice.BillingReason),
 		)
 	}
@@ -84,7 +84,7 @@ func (h *Handler) HandleCloseWorkspace(
 			"expected_period_start", p.Start().Unix(),
 			"expected_period_end", p.End().Unix(),
 		)
-		return nil, restate.TerminalError(
+		return nil, restate.ToTerminalError(
 			fmt.Errorf("invoice %s period does not align to calendar month %s", invoice.ID, period),
 		)
 	}

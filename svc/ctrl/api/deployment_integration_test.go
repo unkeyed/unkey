@@ -18,12 +18,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-type mockDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+type mockBuildQueueService struct {
+	hydrav1.UnimplementedBuildQueueServiceServer
 	requests chan *hydrav1.DeployRequest
 }
 
-func (m *mockDeployService) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (m *mockBuildQueueService) Enqueue(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	m.requests <- req
 	return &hydrav1.DeployResponse{}, nil
 }
@@ -38,7 +38,7 @@ type mockDeploymentService struct {
 func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 	requests := make(chan *hydrav1.DeployRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: requests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewBuildQueueServiceServer(&mockBuildQueueService{requests: requests})},
 	})
 
 	ctx := harness.RequestContext()

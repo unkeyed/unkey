@@ -93,7 +93,7 @@ type EnvironmentServiceServer interface {
 type UnimplementedEnvironmentServiceServer struct{}
 
 func (UnimplementedEnvironmentServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Delete not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedEnvironmentServiceServer) testEmbeddedByValue() {}
 
