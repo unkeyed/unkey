@@ -1,8 +1,10 @@
 package db
 
-import (
-	"database/sql"
-)
+import "database/sql"
+
+// Key is the application-facing key record. It intentionally excludes
+// deprecated database columns so removing them doesn't change this contract.
+type Key = FindKeyByIDRow
 
 // KeyData represents the complete data for a key including all relationships
 type KeyData struct {
@@ -68,7 +70,6 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			WorkspaceID:        r.WorkspaceID,
 			ForWorkspaceID:     r.ForWorkspaceID,
 			Name:               r.Name,
-			OwnerID:            r.OwnerID,
 			IdentityID:         r.IdentityID,
 			Meta:               r.Meta,
 			Expires:            r.Expires,
@@ -139,7 +140,6 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			WorkspaceID:       r.WorkspaceID,
 			ForWorkspaceID:    r.ForWorkspaceID,
 			Name:              r.Name,
-			OwnerID:           r.OwnerID,
 			IdentityID:        r.IdentityID,
 			Meta:              r.Meta,
 			Expires:           r.Expires,

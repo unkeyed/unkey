@@ -35,7 +35,6 @@ export type Ratelimits = z.infer<typeof ratelimitsSchema>;
 export const keyDetailsResponseSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
-  owner_id: z.string().nullable(),
   identity_id: z.string().nullable(),
   enabled: z.boolean(),
   expires: z.number().nullable(),
