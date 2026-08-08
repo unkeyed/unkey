@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/retry"
@@ -111,6 +113,80 @@ func (c *Client) CancelInvocation(ctx context.Context, invocationID string) erro
 		return fmt.Errorf("cancel failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
 	}
 	return fmt.Errorf("cancel failed with status %d: %s", resp.StatusCode, string(body))
+}
+
+// invocationIDPattern guards the IDs put into the introspection SQL query
+// below. Restate invocation IDs are URL-safe tokens. The function rejects
+// all other input instead of quoting it.
+var invocationIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+// FindLiveInvocations reports which of the given invocation IDs still exist
+// in Restate. It queries the admin SQL introspection endpoint (POST /query)
+// against sys_invocation. That table only keeps rows for invocations that
+// are pending, running, suspended, or retrying. A killed, purged, or
+// completed invocation is not in it. The result maps every input ID to
+// true when Restate knows it, and to false when it does not.
+//
+// The Accept header must be exactly "application/json". The endpoint
+// compares the header value literally and answers with a binary Arrow
+// stream for any other value.
+func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
+	live := make(map[string]bool, len(invocationIDs))
+	quoted := make([]string, 0, len(invocationIDs))
+	for _, id := range invocationIDs {
+		if !invocationIDPattern.MatchString(id) {
+			return nil, fmt.Errorf("invalid invocation id %q", id)
+		}
+		live[id] = false
+		quoted = append(quoted, "'"+id+"'")
+	}
+	if len(quoted) == 0 {
+		return live, nil
+	}
+
+	payload, err := json.Marshal(map[string]string{
+		"query": fmt.Sprintf("select id from sys_invocation where id in (%s)", strings.Join(quoted, ", ")),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal query: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/query", bytes.NewReader(payload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("query request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("query failed with status %d (failed to read body: %w)", resp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("query failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Rows []struct {
+			ID string `json:"id"`
+		} `json:"rows"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode query response: %w", err)
+	}
+	for _, row := range result.Rows {
+		live[row.ID] = true
+	}
+	return live, nil
 }
 
 func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http.Response, error) {

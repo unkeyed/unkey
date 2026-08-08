@@ -2,6 +2,7 @@ package buildslot
 
 import (
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -65,20 +66,71 @@ func (s *Service) AcquireOrWait(
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
 
-	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Limit, error) {
-		return s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
-	}, restate.WithName("fetch limits"))
+	// limitsResult carries the fetch outcome through the Restate journal.
+	// The not-found case is a value, not an error, for two reasons: error
+	// types do not survive journaling, and Restate retries errors while the
+	// VO holds the workspace key lock. An unbounded retry on a missing
+	// limits row once froze the whole workspace queue. Now the retry is
+	// bounded and no-rows is not an error.
+	type limitsResult struct {
+		Found bool   `json:"found"`
+		Max   uint32 `json:"max"`
+	}
+	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (limitsResult, error) {
+		row, dbErr := s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
+		if db.IsNotFound(dbErr) {
+			return limitsResult{Found: false, Max: 0}, nil
+		}
+		if dbErr != nil {
+			return limitsResult{}, dbErr
+		}
+		return limitsResult{Found: true, Max: uint32(row.BuildsConcurrentMax)}, nil
+	}, restate.WithName("fetch limits"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("fetch limits: %w", err)
 	}
 
-	buildLimit := uint32(limits.BuildsConcurrentMax)
+	buildLimit := defaultBuildLimit
+	if limits.Found {
+		buildLimit = limits.Max
+	} else {
+		logger.Warn("workspace has no limits row, using default build limit",
+			"workspace_id", workspaceID,
+			"default_limit", defaultBuildLimit,
+		)
+	}
 	if uint32(len(active)) < buildLimit {
 		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
 	}
 
-	// At capacity: park the caller. Production goes to its own list so
-	// Release can drain it ahead of preview waiters.
+	// At capacity: verify the current occupants before the caller parks.
+	// The check uses the database status and Restate invocation liveness.
+	// A stale slot only causes harm here, and the audit runs on demand. It
+	// does not depend on an earlier scheduled lease, and it also heals
+	// state written before this code existed. Best-effort: when the audit
+	// fails, the caller parks and its wait timeout bounds the damage.
+	staleIDs, auditErr := s.auditActiveSlots(ctx, workspaceID, active)
+	if auditErr != nil {
+		logger.Warn("build slot audit failed, queueing without reclaim",
+			"workspace_id", workspaceID,
+			"deployment_id", deploymentID,
+			"error", auditErr,
+		)
+	} else if len(staleIDs) > 0 {
+		// Existing waiters are promoted into the freed capacity before the
+		// caller so queue order stays fair.
+		active, prodWait, previewWait = reclaimStaleSlots(ctx, workspaceID, staleIDs, active, prodWait, previewWait, buildLimit)
+		saveActiveSlots(ctx, active)
+		saveWaitList(ctx, stateKeyProdWaitList, prodWait)
+		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)
+
+		if uint32(len(active)) < buildLimit {
+			return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
+		}
+	}
+
+	// Still at capacity: park the caller. Production goes to its own list
+	// so Release can drain it ahead of preview waiters.
 	entry := waitEntry{
 		DeploymentID: deploymentID,
 		AwakeableID:  awakeableID,
@@ -90,6 +142,10 @@ func (s *Service) AcquireOrWait(
 		previewWait = append(previewWait, entry)
 		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)
 	}
+
+	// Schedule the wait-entry audit. A live waiter times out and removes
+	// its own entry before this fires. A dead one is removed here.
+	scheduleExpiry(ctx, workspaceID, deploymentID, waiterExpiryDelay, 0)
 
 	logger.Info("build slot full, deployment queued",
 		"workspace_id", workspaceID,
@@ -115,6 +171,10 @@ func (s *Service) grantSlot(
 	saveActiveSlots(ctx, active)
 
 	restate.ResolveAwakeable(ctx, awakeableID, true)
+
+	// Start the slot lease. If this deployment never releases (killed
+	// invocation, lost compensation), ExpireSlot reclaims the slot.
+	scheduleExpiry(ctx, workspaceID, deploymentID, slotLeaseDuration, 0)
 
 	logger.Info("build slot granted",
 		"workspace_id", workspaceID,
@@ -164,4 +224,42 @@ func waitListContains(list []waitEntry, deploymentID string) bool {
 		}
 	}
 	return false
+}
+
+// scheduleExpiry arms a delayed self-call to ExpireSlot for the deployment.
+// Restate journals the send, so the check fires even across worker restarts.
+// renewals is the count of lease renewals already granted; pass 0 for a new
+// grant or wait entry.
+func scheduleExpiry(ctx restate.ObjectContext, workspaceID, deploymentID string, delay time.Duration, renewals uint32) {
+	hydrav1.NewBuildSlotServiceClient(ctx, workspaceID).ExpireSlot().Send(
+		&hydrav1.ExpireSlotRequest{DeploymentId: deploymentID, Renewals: renewals},
+		restate.WithDelay(delay),
+	)
+}
+
+// findAwakeableID returns the awakeable id of the wait entry for the given
+// deployment, searching both wait lists. Empty string when not waiting.
+func findAwakeableID(prodWait, previewWait []waitEntry, deploymentID string) string {
+	for _, list := range [][]waitEntry{prodWait, previewWait} {
+		for _, w := range list {
+			if w.DeploymentID == deploymentID {
+				return w.AwakeableID
+			}
+		}
+	}
+	return ""
+}
+
+// pickNextWaiter pops the head of the production wait list, falling back to
+// the preview wait list. Returns nil when both lists are empty. Pure so the
+// prod-before-preview ordering is unit-testable without a Restate context.
+func pickNextWaiter(prodWait, previewWait []waitEntry) (promoted *waitEntry, newProd, newPreview []waitEntry) {
+	switch {
+	case len(prodWait) > 0:
+		return &prodWait[0], prodWait[1:], previewWait
+	case len(previewWait) > 0:
+		return &previewWait[0], prodWait, previewWait[1:]
+	default:
+		return nil, prodWait, previewWait
+	}
 }
