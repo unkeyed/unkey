@@ -300,6 +300,8 @@ paths:
     $ref: "./spec/paths/v2/gateway/updatePolicy/index.yaml"
 
   # Permissions Endpoints
+  /v2/permissions.setRolePermissions:
+    $ref: "./spec/paths/v2/permissions/setRolePermissions/index.yaml"
   /v2/permissions.createRole:
     $ref: "./spec/paths/v2/permissions/createRole/index.yaml"
   /v2/permissions.getRole:

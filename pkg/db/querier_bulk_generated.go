@@ -38,6 +38,7 @@ type BulkQuerier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
 	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
+	UpsertPermission(ctx context.Context, db DBTX, args []UpsertPermissionParams) error
 	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
 	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error

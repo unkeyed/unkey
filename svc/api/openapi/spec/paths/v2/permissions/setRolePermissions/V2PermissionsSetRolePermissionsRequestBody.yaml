@@ -1,0 +1,20 @@
+type: object
+required:
+  - roleId
+  - permissions
+properties:
+  roleId:
+    type: string
+    minLength: 3
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: The ID of the role whose directly assigned permissions will be replaced.
+  permissions:
+    type: array
+    description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+additionalProperties: false

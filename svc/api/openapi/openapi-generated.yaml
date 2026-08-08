@@ -2843,6 +2843,37 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2PermissionsSetRolePermissionsRequestBody:
+            type: object
+            required:
+                - roleId
+                - permissions
+            properties:
+                roleId:
+                    type: string
+                    minLength: 3
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: The ID of the role whose directly assigned permissions will be replaced.
+                permissions:
+                    type: array
+                    description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+            additionalProperties: false
+        V2PermissionsSetRolePermissionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
         V2PortalCreateSessionRequestBody:
             type: object
             required:
@@ -6274,6 +6305,11 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        V2PermissionsSetRolePermissionsResponseData:
+            type: array
+            description: Complete list of permissions now directly assigned to the role.
+            items:
+                "$ref": "#/components/schemas/Permission"
         V2PortalCreateSessionResponseData:
             type: object
             required:
@@ -12932,6 +12968,73 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/permissions.setRolePermissions:
+        post:
+            description: |
+                Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
+
+                **Required Permissions**
+
+                Your root key must have:
+                - `rbac.*.add_permission_to_role`
+                - `rbac.*.remove_permission_from_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
+            operationId: permissions.setRolePermissions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsSetRolePermissionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsSetRolePermissionsResponseBody'
+                    description: Permissions set successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Role not found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            summary: Set role permissions
+            tags:
+                - permissions
+            x-speakeasy-name-override: setRolePermissions
     /v2/portal.createSession:
         post:
             description: |
