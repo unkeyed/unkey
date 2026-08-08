@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 )
 
 // skipIfSuperseded marks the current deployment as superseded and returns
@@ -77,10 +78,20 @@ func (w *Workflow) skipIfSuperseded(
 }
 
 // waitForBuildSlot blocks until the workspace's BuildSlotService grants a
-// build slot. Push-based via a Restate awakeable: the handler parks on
-// `awakeable.Result()` and BuildSlotService resolves it when a slot becomes
-// available (immediately if one is free, or later when another deployment
-// releases its slot and this one reaches the head of the wait list).
+// build slot, or [buildslot.MaxWaitDuration] elapses. Push-based via a
+// Restate awakeable: the handler parks on the awakeable and BuildSlotService
+// resolves it when a slot becomes available (immediately if one is free, or
+// later when another deployment releases its slot and this one reaches the
+// head of the wait list).
+//
+// The wait is bounded by racing the awakeable against [restate.After] (same
+// pattern as [Workflow.waitForDeployments]). Without the bound, any slot
+// accounting error upstream left waiters suspended indefinitely — in
+// production some Deploy invocations sat parked for over a week. On timeout
+// the handler returns a terminal error; the Release compensation registered
+// before this call removes the wait-list entry (or a slot granted in the
+// same instant — Release handles both), so the timeout/grant race cannot
+// leak occupancy.
 //
 // Production deployments always receive a slot immediately so a hotfix is
 // never blocked behind a preview build.
@@ -111,6 +122,19 @@ func (w *Workflow) waitForBuildSlot(
 		"workspace_id", workspaceID,
 		"deployment_id", deploymentID,
 	)
+
+	timeout := restate.After(ctx, buildslot.MaxWaitDuration)
+	winner, err := restate.WaitFirst(ctx, awakeable, timeout)
+	if err != nil {
+		return fmt.Errorf("awaiting build slot or timeout: %w", err)
+	}
+
+	if winner != awakeable {
+		return fault.Wrap(
+			restate.TerminalErrorf("no build slot became available within %v", buildslot.MaxWaitDuration),
+			fault.Public("Timed out waiting for a build slot. Too many builds are queued in this workspace."),
+		)
+	}
 
 	granted, err := awakeable.Result()
 	if err != nil {

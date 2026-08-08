@@ -51,6 +51,24 @@ type BuildSlotServiceClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(opts ...sdk_go.ClientOption) sdk_go.Client[*ReleaseSlotRequest, *ReleaseSlotResponse]
+	// ExpireSlot is the self-healing lease check. Every slot grant and every
+	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// deployment. When it fires, the handler checks whether the deployment is
+	// still tracked (active or waiting):
+	//
+	//   - Not tracked: normal case, the slot was released in time. No-op.
+	//   - Tracked but the deployment row is terminal or missing: the owning
+	//     Deploy invocation died without running its Release compensation
+	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     next waiter promoted.
+	//   - Tracked and the deployment is still non-terminal after the full
+	//     lease: the invocation overran any plausible build duration. The
+	//     deployment is force-failed in the database and the slot reclaimed
+	//     so one stuck build can never wedge the workspace queue.
+	//
+	// Without this, a killed Deploy invocation leaks its slot forever and
+	// permanently shrinks the workspace's build capacity.
+	ExpireSlot(opts ...sdk_go.ClientOption) sdk_go.Client[*ExpireSlotRequest, *ExpireSlotResponse]
 }
 
 type buildSlotServiceClient struct {
@@ -83,6 +101,14 @@ func (c *buildSlotServiceClient) Release(opts ...sdk_go.ClientOption) sdk_go.Cli
 	return sdk_go.WithRequestType[*ReleaseSlotRequest](sdk_go.Object[*ReleaseSlotResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "Release", cOpts...))
 }
 
+func (c *buildSlotServiceClient) ExpireSlot(opts ...sdk_go.ClientOption) sdk_go.Client[*ExpireSlotRequest, *ExpireSlotResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ExpireSlotRequest](sdk_go.Object[*ExpireSlotResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "ExpireSlot", cOpts...))
+}
+
 // BuildSlotServiceIngressClient is the ingress client API for hydra.v1.BuildSlotService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -107,6 +133,24 @@ type BuildSlotServiceIngressClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release() ingress.Requester[*ReleaseSlotRequest, *ReleaseSlotResponse]
+	// ExpireSlot is the self-healing lease check. Every slot grant and every
+	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// deployment. When it fires, the handler checks whether the deployment is
+	// still tracked (active or waiting):
+	//
+	//   - Not tracked: normal case, the slot was released in time. No-op.
+	//   - Tracked but the deployment row is terminal or missing: the owning
+	//     Deploy invocation died without running its Release compensation
+	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     next waiter promoted.
+	//   - Tracked and the deployment is still non-terminal after the full
+	//     lease: the invocation overran any plausible build duration. The
+	//     deployment is force-failed in the database and the slot reclaimed
+	//     so one stuck build can never wedge the workspace queue.
+	//
+	// Without this, a killed Deploy invocation leaks its slot forever and
+	// permanently shrinks the workspace's build capacity.
+	ExpireSlot() ingress.Requester[*ExpireSlotRequest, *ExpireSlotResponse]
 }
 
 type buildSlotServiceIngressClient struct {
@@ -131,6 +175,11 @@ func (c *buildSlotServiceIngressClient) AcquireOrWait() ingress.Requester[*Acqui
 func (c *buildSlotServiceIngressClient) Release() ingress.Requester[*ReleaseSlotRequest, *ReleaseSlotResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*ReleaseSlotRequest, *ReleaseSlotResponse](c.client, c.serviceName, "Release", &c.key, &codec)
+}
+
+func (c *buildSlotServiceIngressClient) ExpireSlot() ingress.Requester[*ExpireSlotRequest, *ExpireSlotResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ExpireSlotRequest, *ExpireSlotResponse](c.client, c.serviceName, "ExpireSlot", &c.key, &codec)
 }
 
 // BuildSlotServiceServer is the server API for hydra.v1.BuildSlotService service.
@@ -173,6 +222,24 @@ type BuildSlotServiceServer interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error)
+	// ExpireSlot is the self-healing lease check. Every slot grant and every
+	// wait-list enqueue schedules a delayed self-call to ExpireSlot for that
+	// deployment. When it fires, the handler checks whether the deployment is
+	// still tracked (active or waiting):
+	//
+	//   - Not tracked: normal case, the slot was released in time. No-op.
+	//   - Tracked but the deployment row is terminal or missing: the owning
+	//     Deploy invocation died without running its Release compensation
+	//     (killed, purged, crashed). The slot/wait entry is reclaimed and the
+	//     next waiter promoted.
+	//   - Tracked and the deployment is still non-terminal after the full
+	//     lease: the invocation overran any plausible build duration. The
+	//     deployment is force-failed in the database and the slot reclaimed
+	//     so one stuck build can never wedge the workspace queue.
+	//
+	// Without this, a killed Deploy invocation leaks its slot forever and
+	// permanently shrinks the workspace's build capacity.
+	ExpireSlot(ctx sdk_go.ObjectContext, req *ExpireSlotRequest) (*ExpireSlotResponse, error)
 }
 
 // UnimplementedBuildSlotServiceServer should be embedded to have
@@ -187,6 +254,9 @@ func (UnimplementedBuildSlotServiceServer) AcquireOrWait(ctx sdk_go.ObjectContex
 }
 func (UnimplementedBuildSlotServiceServer) Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Release not implemented"), 501)
+}
+func (UnimplementedBuildSlotServiceServer) ExpireSlot(ctx sdk_go.ObjectContext, req *ExpireSlotRequest) (*ExpireSlotResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ExpireSlot not implemented"), 501)
 }
 func (UnimplementedBuildSlotServiceServer) testEmbeddedByValue() {}
 
@@ -209,5 +279,6 @@ func NewBuildSlotServiceServer(srv BuildSlotServiceServer, opts ...sdk_go.Servic
 	router := sdk_go.NewObject("hydra.v1.BuildSlotService", sOpts...)
 	router = router.Handler("AcquireOrWait", sdk_go.NewObjectHandler(srv.AcquireOrWait))
 	router = router.Handler("Release", sdk_go.NewObjectHandler(srv.Release))
+	router = router.Handler("ExpireSlot", sdk_go.NewObjectHandler(srv.ExpireSlot))
 	return router
 }

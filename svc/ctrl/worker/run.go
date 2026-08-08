@@ -380,11 +380,26 @@ func Run(ctx context.Context, cfg Config) error {
 	// journals have no debugging value (each invocation just reads state,
 	// maybe resolves an awakeable, and returns), so keep their retention
 	// minimal.
+	//
+	// Kill (not pause, and never the unset default of retrying forever) on
+	// retry exhaustion: this VO serializes ALL slot traffic for a workspace,
+	// so one parked invocation freezes every deployment in that workspace.
+	// The handlers are idempotent, hold no compensations, and every durable
+	// effect (slot grants, wait entries, ExpireSlot leases) is re-audited by
+	// the lease mechanism, so a killed invocation loses nothing the next
+	// call or audit won't repair.
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
 		DB: database,
 	}),
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(100*time.Millisecond),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Second),
+			restate.WithMaxAttempts(20),
+			restate.KillOnMaxAttempts(),
+		),
 	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{

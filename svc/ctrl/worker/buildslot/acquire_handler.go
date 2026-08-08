@@ -2,6 +2,7 @@ package buildslot
 
 import (
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -65,14 +66,40 @@ func (s *Service) AcquireOrWait(
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
 
-	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Limit, error) {
-		return s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
-	}, restate.WithName("fetch limits"))
+	// limitsResult carries the fetch outcome through the Restate journal.
+	// The not-found case is folded into the value (instead of returning
+	// ErrNoRows) for two reasons: error types don't survive journaling, and
+	// more importantly an error here would be retried — and this VO holds
+	// the per-workspace key lock while retrying. An unbounded retry on a
+	// workspace without a limits row previously wedged the entire workspace
+	// queue forever. The retry is bounded AND no-rows is not an error.
+	type limitsResult struct {
+		Found bool   `json:"found"`
+		Max   uint32 `json:"max"`
+	}
+	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (limitsResult, error) {
+		row, dbErr := s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
+		if db.IsNotFound(dbErr) {
+			return limitsResult{Found: false, Max: 0}, nil
+		}
+		if dbErr != nil {
+			return limitsResult{}, dbErr
+		}
+		return limitsResult{Found: true, Max: uint32(row.BuildsConcurrentMax)}, nil
+	}, restate.WithName("fetch limits"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("fetch limits: %w", err)
 	}
 
-	buildLimit := uint32(limits.BuildsConcurrentMax)
+	buildLimit := defaultBuildLimit
+	if limits.Found {
+		buildLimit = limits.Max
+	} else {
+		logger.Warn("workspace has no limits row, using default build limit",
+			"workspace_id", workspaceID,
+			"default_limit", defaultBuildLimit,
+		)
+	}
 	if uint32(len(active)) < buildLimit {
 		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
 	}
@@ -90,6 +117,11 @@ func (s *Service) AcquireOrWait(
 		previewWait = append(previewWait, entry)
 		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)
 	}
+
+	// Schedule the wait-entry audit. A live waiter times itself out and
+	// releases its entry before this fires; a dead one (killed invocation
+	// whose compensation never ran) is swept here.
+	scheduleExpiry(ctx, workspaceID, deploymentID, waiterExpiryDelay)
 
 	logger.Info("build slot full, deployment queued",
 		"workspace_id", workspaceID,
@@ -115,6 +147,11 @@ func (s *Service) grantSlot(
 	saveActiveSlots(ctx, active)
 
 	restate.ResolveAwakeable(ctx, awakeableID, true)
+
+	// Start the slot lease: if this deployment never releases (killed
+	// invocation, lost compensation), ExpireSlot reclaims the slot instead
+	// of leaking workspace capacity forever.
+	scheduleExpiry(ctx, workspaceID, deploymentID, slotLeaseDuration)
 
 	logger.Info("build slot granted",
 		"workspace_id", workspaceID,
@@ -164,4 +201,41 @@ func waitListContains(list []waitEntry, deploymentID string) bool {
 		}
 	}
 	return false
+}
+
+// scheduleExpiry arms a delayed self-call to ExpireSlot for the deployment.
+// The send is journaled by Restate, so once this handler commits, the lease
+// check is guaranteed to fire even across worker restarts.
+func scheduleExpiry(ctx restate.ObjectContext, workspaceID, deploymentID string, delay time.Duration) {
+	hydrav1.NewBuildSlotServiceClient(ctx, workspaceID).ExpireSlot().Send(
+		&hydrav1.ExpireSlotRequest{DeploymentId: deploymentID},
+		restate.WithDelay(delay),
+	)
+}
+
+// findAwakeableID returns the awakeable id of the wait entry for the given
+// deployment, searching both wait lists. Empty string when not waiting.
+func findAwakeableID(prodWait, previewWait []waitEntry, deploymentID string) string {
+	for _, list := range [][]waitEntry{prodWait, previewWait} {
+		for _, w := range list {
+			if w.DeploymentID == deploymentID {
+				return w.AwakeableID
+			}
+		}
+	}
+	return ""
+}
+
+// pickNextWaiter pops the head of the production wait list, falling back to
+// the preview wait list. Returns nil when both lists are empty. Pure so the
+// prod-before-preview ordering is unit-testable without a Restate context.
+func pickNextWaiter(prodWait, previewWait []waitEntry) (promoted *waitEntry, newProd, newPreview []waitEntry) {
+	switch {
+	case len(prodWait) > 0:
+		return &prodWait[0], prodWait[1:], previewWait
+	case len(previewWait) > 0:
+		return &previewWait[0], prodWait, previewWait[1:]
+	default:
+		return nil, prodWait, previewWait
+	}
 }
