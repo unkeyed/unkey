@@ -3549,6 +3549,11 @@ type V2PermissionsCreateRoleRequestBody struct {
 	//
 	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
 	Name string `json:"name"`
+
+	// Permissions Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+	//
+	// Omit this field or provide an empty array to create the role without permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
 }
 
 // V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
