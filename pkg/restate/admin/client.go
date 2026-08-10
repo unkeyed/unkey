@@ -66,43 +66,22 @@ func (c *Client) RegisterDeployment(ctx context.Context, uri string, force ...bo
 }
 
 func (c *Client) registerDeployment(ctx context.Context, uri string, force bool) error {
-	url := fmt.Sprintf("%s/deployments", c.baseURL)
-
-	payload, err := json.Marshal(registrationPayload{URI: uri, Force: force})
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	resp, err := c.do(ctx, http.MethodPost, url, payload)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil
-	}
-	return errorFromResponse("registration", resp)
+	_, err := c.send(ctx, "registration", http.MethodPost, "/deployments",
+		registrationPayload{URI: uri, Force: force}, nil)
+	return err
 }
 
 // CancelInvocation cancels a running invocation.
 // Returns nil if the invocation was successfully canceled or if it was not found
 // (already completed or never existed).
 func (c *Client) CancelInvocation(ctx context.Context, invocationID string) error {
-	url := fmt.Sprintf("%s/invocations/%s/cancel", c.baseURL, invocationID)
-
-	resp, err := c.do(ctx, http.MethodPatch, url, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
 	// 202 Accepted = cancellation initiated
 	// 404 Not Found = invocation already completed or never existed
-	if resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	return errorFromResponse("cancel", resp)
+	_, err := c.send(ctx, "cancel", http.MethodPatch, "/invocations/"+invocationID+"/cancel", nil,
+		func(status int) bool {
+			return status == http.StatusAccepted || status == http.StatusNotFound
+		})
+	return err
 }
 
 // invocationIDPattern guards the IDs put into the introspection SQL query
@@ -143,33 +122,19 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 		return live, nil
 	}
 
-	payload, err := json.Marshal(map[string]string{
-		"query": fmt.Sprintf(
-			"select id from sys_invocation where concat(id, '') in (%s) and status <> 'completed'",
-			strings.Join(quoted, ", "),
-		),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal query: %w", err)
-	}
-
-	resp, err := c.do(ctx, http.MethodPost, c.baseURL+"/query", payload)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errorFromResponse("query", resp)
-	}
-
-	var result struct {
+	type queryResponse struct {
 		Rows []struct {
 			ID string `json:"id"`
 		} `json:"rows"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode query response: %w", err)
+	result, err := call[queryResponse](ctx, c, "query", http.MethodPost, "/query", map[string]string{
+		"query": fmt.Sprintf(
+			"select id from sys_invocation where concat(id, '') in (%s) and status <> 'completed'",
+			strings.Join(quoted, ", "),
+		),
+	}, nil)
+	if err != nil {
+		return nil, err
 	}
 	for _, row := range result.Rows {
 		live[row.ID] = true
@@ -177,28 +142,51 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	return live, nil
 }
 
-// errorFromResponse turns a non-success admin API response into an error
-// that includes the response body. The caller still owns the body close.
-func errorFromResponse(action string, resp *http.Response) error {
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return fmt.Errorf("%s failed with status %d (failed to read body: %w)", action, resp.StatusCode, readErr)
+// call sends one admin API request through [Client.send] and decodes the
+// JSON response body into Resp.
+func call[Resp any](
+	ctx context.Context,
+	c *Client,
+	action, method, path string,
+	payload any,
+	accept func(status int) bool,
+) (Resp, error) {
+	var out Resp
+	body, err := c.send(ctx, action, method, path, payload, accept)
+	if err != nil {
+		return out, err
 	}
-	return fmt.Errorf("%s failed with status %d: %s", action, resp.StatusCode, string(body))
+	if err := json.Unmarshal(body, &out); err != nil {
+		return out, fmt.Errorf("failed to decode %s response: %w", action, err)
+	}
+	return out, nil
 }
 
-func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http.Response, error) {
+// send performs one admin API request and returns the raw response body.
+// A non-nil payload is sent as JSON. accept decides which status codes are
+// a success; nil accepts every 2xx. A failure error includes the response
+// body. action names the operation in error messages.
+func (c *Client) send(
+	ctx context.Context,
+	action, method, path string,
+	payload any,
+	accept func(status int) bool,
+) ([]byte, error) {
 	var bodyReader io.Reader
-	if body != nil {
-		bodyReader = bytes.NewReader(body)
+	if payload != nil {
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal %s payload: %w", action, err)
+		}
+		bodyReader = bytes.NewReader(raw)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if body != nil {
+	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
@@ -211,5 +199,26 @@ func (c *Client) do(ctx context.Context, method, url string, body []byte) (*http
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	}
 
-	return c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
+	if accept != nil {
+		ok = accept(resp.StatusCode)
+	}
+
+	body, readErr := io.ReadAll(resp.Body)
+	if !ok {
+		if readErr != nil {
+			return nil, fmt.Errorf("%s failed with status %d (failed to read body: %w)", action, resp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("%s failed with status %d: %s", action, resp.StatusCode, string(body))
+	}
+	if readErr != nil {
+		return nil, fmt.Errorf("failed to read %s response body: %w", action, readErr)
+	}
+	return body, nil
 }
