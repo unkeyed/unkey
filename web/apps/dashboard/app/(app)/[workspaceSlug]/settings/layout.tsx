@@ -13,16 +13,21 @@ const ITEMS = [
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
+  { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },
   { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;
+
+const DEPLOY_BILLING_SEGMENTS: ReadonlySet<string> = new Set(["usage", "limits"]);
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments();
   const active = segments[0] ?? "general";
   const deployBillingEnabled = useFlag("deployBilling");
-  const items = ITEMS.filter((item) => item.segment !== "limits" || deployBillingEnabled);
+  const items = ITEMS.filter(
+    (item) => deployBillingEnabled || !DEPLOY_BILLING_SEGMENTS.has(item.segment),
+  );
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">

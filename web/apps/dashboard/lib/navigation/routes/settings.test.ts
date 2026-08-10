@@ -10,6 +10,7 @@ describe("settings-scoped paths", () => {
     expect(routes.settings.team(scope)).toBe("/acme/settings/team");
     expect(routes.settings.rootKeys(scope)).toBe("/acme/settings/root-keys");
     expect(routes.settings.billing(scope)).toBe("/acme/settings/billing");
+    expect(routes.settings.usage(scope)).toBe("/acme/settings/usage");
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");
   });
 
