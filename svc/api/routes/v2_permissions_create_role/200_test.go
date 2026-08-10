@@ -294,5 +294,14 @@ func TestSuccess(t *testing.T) {
 			require.NoError(t, findErr)
 			require.Len(t, assignments, 1)
 		}
+
+		permissionAuditLogs := h.FindAuditLogsByTargetID(ctx, t, permissions[0].ID)
+		createEvents := 0
+		for _, event := range permissionAuditLogs {
+			if event.Event == "permission.create" {
+				createEvents++
+			}
+		}
+		require.Equal(t, 1, createEvents)
 	})
 }
