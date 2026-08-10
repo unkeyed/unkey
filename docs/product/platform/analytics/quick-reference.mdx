@@ -236,12 +236,12 @@ WHERE outcome != 'VALID'
 WHERE outcome IN ('RATE_LIMITED', 'USAGE_EXCEEDED')
 ```
 
-### Unkey Gateway filters
+### Gateway filters
 
-Use `source` to select Gateway traffic and `app_id` to select one app.
+Use `source` to select gateway traffic and `app_id` to select one app.
 
 ```sql
--- Verifications performed by an Unkey Gateway API key policy
+-- Verifications performed by a gateway API key policy
 WHERE source = 'gateway'
 
 -- Verifications performed for one app

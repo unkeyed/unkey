@@ -1,7 +1,7 @@
--- Attribute Gateway key verifications to the app that ran KeyAuth.
+-- Attribute gateway key verifications to the app that ran KeyAuth.
 --
--- `source = 'gateway'` tells us that Gateway performed a verification, but a
--- key space can be used by more than one app. `app_id` adds that missing
+-- `source = 'gateway'` tells us that the gateway performed a verification, but
+-- a key space can be used by more than one app. `app_id` adds that missing
 -- dimension. API and historical verifications use the empty string.
 --
 -- `app_id` is appended to each sorting key instead of preceding `time` so
