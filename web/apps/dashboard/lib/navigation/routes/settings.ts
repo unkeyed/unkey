@@ -32,6 +32,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
   },
 
+  limits({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
+  },
+
   security({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/security", { workspaceSlug });
   },

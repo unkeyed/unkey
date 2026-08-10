@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
@@ -12,6 +13,7 @@ const ITEMS = [
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
+  { segment: "limits", label: "Limits", getHref: routes.settings.limits },
   { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;
 
@@ -19,13 +21,15 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments();
   const active = segments[0] ?? "general";
+  const deployBillingEnabled = useFlag("deployBilling");
+  const items = ITEMS.filter((item) => item.segment !== "limits" || deployBillingEnabled);
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">
       <SecondaryNav aria-label="Settings">
         <SecondaryNavTitle>Settings</SecondaryNavTitle>
         <SecondaryNavGroup>
-          {ITEMS.map((item) => (
+          {items.map((item) => (
             <SecondaryNavItem
               key={item.segment}
               active={active === item.segment}
