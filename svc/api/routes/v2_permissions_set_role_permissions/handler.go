@@ -27,6 +27,13 @@ import (
 type Request = openapi.V2PermissionsSetRolePermissionsRequestBody
 type Response = openapi.V2PermissionsSetRolePermissionsResponseBody
 
+type rolePermission struct {
+	ID          string
+	Name        string
+	Slug        string
+	Description dbtype.NullString
+}
+
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
@@ -47,6 +54,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	err = principal.Authorize(rbac.And(
+		rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.AddPermissionToRole}),
+		rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.RemovePermissionFromRole}),
+	))
+	if err != nil {
+		return err
+	}
+
 	requestedSlugs := make([]string, 0, len(req.Permissions))
 	seen := make(map[string]struct{}, len(req.Permissions))
 	for _, slug := range req.Permissions {
@@ -59,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	slices.Sort(requestedSlugs)
 
-	result := make([]db.Permission, 0, len(requestedSlugs))
+	result := make([]rolePermission, 0, len(requestedSlugs))
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		role, lockErr := db.Query.LockRoleByIDAndWorkspaceID(ctx, tx, db.LockRoleByIDAndWorkspaceIDParams{
 			RoleID: req.RoleId, WorkspaceID: principal.WorkspaceID,
@@ -71,15 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(lockErr, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("unable to lock role"), fault.Public("Failed to retrieve role."))
 		}
 
-		authErr := principal.Authorize(rbac.And(
-			rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.AddPermissionToRole}),
-			rbac.T(rbac.Tuple{ResourceType: rbac.Rbac, ResourceID: "*", Action: rbac.RemovePermissionFromRole}),
-		))
-		if authErr != nil {
-			return authErr
-		}
-
-		found := make([]db.Permission, 0)
+		found := make([]db.FindPermissionsBySlugsForUpdateRow, 0)
 		if len(requestedSlugs) > 0 {
 			found, err = db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{WorkspaceID: principal.WorkspaceID, Slugs: requestedSlugs})
 			if err != nil {
@@ -87,9 +94,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		bySlug := make(map[string]db.Permission, len(found))
+		bySlug := make(map[string]rolePermission, len(found))
 		for _, permission := range found {
-			bySlug[strings.ToLower(permission.Slug)] = permission
+			bySlug[strings.ToLower(permission.Slug)] = rolePermission(permission)
 		}
 		missing := make([]string, 0)
 		for _, slug := range requestedSlugs {
@@ -131,11 +138,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if err != nil {
 				return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("database error"), fault.Public("Failed to lookup created permissions."))
 			}
-			bySlug = make(map[string]db.Permission, len(found))
+			bySlug = make(map[string]rolePermission, len(found))
 			logs := make([]auditlog.AuditLog, 0, len(candidates))
 			for _, permission := range found {
 				normalizedSlug := strings.ToLower(permission.Slug)
-				bySlug[normalizedSlug] = permission
+				bySlug[normalizedSlug] = rolePermission(permission)
 				candidate, ok := candidates[normalizedSlug]
 				if ok && candidate.PermissionID == permission.ID {
 					logs = append(logs, audit(principal, s, auditlog.PermissionCreateEvent, fmt.Sprintf("Created %s (%s)", permission.Slug, permission.ID), permissionResource(permission.ID, permission.Slug, permission.Name)))
@@ -160,10 +167,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if listErr != nil {
 			return listErr
 		}
-		currentByID := make(map[string]db.Permission, len(current))
+		currentByID := make(map[string]rolePermission, len(current))
 		remove := make([]string, 0)
 		for _, permission := range current {
-			currentByID[permission.ID] = permission
+			currentByID[permission.ID] = rolePermission(permission)
 			if _, ok := requestedIDs[permission.ID]; !ok {
 				remove = append(remove, permission.ID)
 			}
@@ -176,7 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			for _, id := range remove {
 				p := currentByID[id]
-				logs = append(logs, audit(principal, s, auditlog.AuthDisconnectRolePermissionEvent, fmt.Sprintf("Removed permission %s from role %s", p.Name, role.Name), roleResource(role), permissionResource(p.ID, p.Slug, p.Name)))
+				logs = append(logs, audit(principal, s, auditlog.AuthDisconnectRolePermissionEvent, fmt.Sprintf("Removed permission %s from role %s", p.Name, role.Name), roleResource(role.ID, role.Name), permissionResource(p.ID, p.Slug, p.Name)))
 			}
 		}
 		toAdd := make([]db.InsertRolePermissionParams, 0)
@@ -185,7 +192,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				continue
 			}
 			toAdd = append(toAdd, db.InsertRolePermissionParams{RoleID: req.RoleId, PermissionID: permission.ID, WorkspaceID: principal.WorkspaceID, CreatedAtM: time.Now().UnixMilli()})
-			logs = append(logs, audit(principal, s, auditlog.AuthConnectRolePermissionEvent, fmt.Sprintf("Added permission %s to role %s", permission.Name, role.Name), roleResource(role), permissionResource(permission.ID, permission.Slug, permission.Name)))
+			logs = append(logs, audit(principal, s, auditlog.AuthConnectRolePermissionEvent, fmt.Sprintf("Added permission %s to role %s", permission.Name, role.Name), roleResource(role.ID, role.Name), permissionResource(permission.ID, permission.Slug, permission.Name)))
 		}
 		if err = db.BulkQuery.InsertRolePermissions(ctx, tx, toAdd); err != nil {
 			return err
@@ -206,8 +213,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.JSON(http.StatusOK, Response{Meta: openapi.Meta{RequestId: s.RequestID()}, Data: data})
 }
 
-func roleResource(role db.Role) auditlog.AuditLogResource {
-	return auditlog.AuditLogResource{Type: auditlog.RoleResourceType, ID: role.ID, Name: role.Name, DisplayName: role.Name, Meta: map[string]any{}}
+func roleResource(id, name string) auditlog.AuditLogResource {
+	return auditlog.AuditLogResource{Type: auditlog.RoleResourceType, ID: id, Name: name, DisplayName: name, Meta: map[string]any{}}
 }
 func permissionResource(id, slug, name string) auditlog.AuditLogResource {
 	return auditlog.AuditLogResource{Type: auditlog.PermissionResourceType, ID: id, Name: slug, DisplayName: name, Meta: map[string]any{}}

@@ -787,13 +787,13 @@ type Querier interface {
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindPermissionsBySlugsForUpdate
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+	//  SELECT id, name, slug, description
 	//  FROM permissions
 	//  WHERE workspace_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	//  ORDER BY slug
 	//  FOR UPDATE
-	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]Permission, error)
+	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
 	//FindPortalConfigByWorkspaceAndSlug
 	//
 	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
@@ -1915,13 +1915,13 @@ type Querier interface {
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
 	//ListDirectPermissionsByRoleID
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+	//  SELECT p.id, p.name, p.slug, p.description
 	//  FROM roles_permissions rp
 	//  JOIN permissions p ON rp.permission_id = p.id
 	//  WHERE rp.role_id = ?
 	//  ORDER BY p.slug
 	//  FOR UPDATE
-	ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
+	ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]ListDirectPermissionsByRoleIDRow, error)
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
@@ -2350,10 +2350,11 @@ type Querier interface {
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	//LockRoleByIDAndWorkspaceID
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m FROM roles
+	//  SELECT id, name
+	//  FROM roles
 	//  WHERE id = ? AND workspace_id = ?
 	//  FOR UPDATE
-	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (Role, error)
+	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription

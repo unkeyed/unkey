@@ -2850,10 +2850,7 @@ components:
                 - permissions
             properties:
                 roleId:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                     description: The ID of the role whose directly assigned permissions will be replaced.
                 permissions:
                     type: array

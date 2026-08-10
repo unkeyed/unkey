@@ -7,10 +7,12 @@ package db
 
 import (
 	"context"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const listDirectPermissionsByRoleID = `-- name: ListDirectPermissionsByRoleID :many
-SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+SELECT p.id, p.name, p.slug, p.description
 FROM roles_permissions rp
 JOIN permissions p ON rp.permission_id = p.id
 WHERE rp.role_id = ?
@@ -18,33 +20,35 @@ ORDER BY p.slug
 FOR UPDATE
 `
 
+type ListDirectPermissionsByRoleIDRow struct {
+	ID          string            `db:"id"`
+	Name        string            `db:"name"`
+	Slug        string            `db:"slug"`
+	Description dbtype.NullString `db:"description"`
+}
+
 // ListDirectPermissionsByRoleID
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
+//	SELECT p.id, p.name, p.slug, p.description
 //	FROM roles_permissions rp
 //	JOIN permissions p ON rp.permission_id = p.id
 //	WHERE rp.role_id = ?
 //	ORDER BY p.slug
 //	FOR UPDATE
-func (q *Queries) ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error) {
+func (q *Queries) ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]ListDirectPermissionsByRoleIDRow, error) {
 	rows, err := db.QueryContext(ctx, listDirectPermissionsByRoleID, roleID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Permission
+	var items []ListDirectPermissionsByRoleIDRow
 	for rows.Next() {
-		var i Permission
+		var i ListDirectPermissionsByRoleIDRow
 		if err := rows.Scan(
-			&i.Pk,
 			&i.ID,
-			&i.WorkspaceID,
-			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
 			&i.Description,
-			&i.CreatedAtM,
-			&i.UpdatedAtM,
 		); err != nil {
 			return nil, err
 		}

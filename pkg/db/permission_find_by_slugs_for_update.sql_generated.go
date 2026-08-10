@@ -8,10 +8,12 @@ package db
 import (
 	"context"
 	"strings"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findPermissionsBySlugsForUpdate = `-- name: FindPermissionsBySlugsForUpdate :many
-SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+SELECT id, name, slug, description
 FROM permissions
 WHERE workspace_id = ?
   AND slug IN (/*SLICE:slugs*/?)
@@ -24,15 +26,22 @@ type FindPermissionsBySlugsForUpdateParams struct {
 	Slugs       []string `db:"slugs"`
 }
 
+type FindPermissionsBySlugsForUpdateRow struct {
+	ID          string            `db:"id"`
+	Name        string            `db:"name"`
+	Slug        string            `db:"slug"`
+	Description dbtype.NullString `db:"description"`
+}
+
 // FindPermissionsBySlugsForUpdate
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m
+//	SELECT id, name, slug, description
 //	FROM permissions
 //	WHERE workspace_id = ?
 //	  AND slug IN (/*SLICE:slugs*/?)
 //	ORDER BY slug
 //	FOR UPDATE
-func (q *Queries) FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]Permission, error) {
+func (q *Queries) FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error) {
 	query := findPermissionsBySlugsForUpdate
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
@@ -49,19 +58,14 @@ func (q *Queries) FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Permission
+	var items []FindPermissionsBySlugsForUpdateRow
 	for rows.Next() {
-		var i Permission
+		var i FindPermissionsBySlugsForUpdateRow
 		if err := rows.Scan(
-			&i.Pk,
 			&i.ID,
-			&i.WorkspaceID,
-			&i.ProjectID,
 			&i.Name,
 			&i.Slug,
 			&i.Description,
-			&i.CreatedAtM,
-			&i.UpdatedAtM,
 		); err != nil {
 			return nil, err
 		}

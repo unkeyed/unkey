@@ -10,7 +10,8 @@ import (
 )
 
 const lockRoleByIDAndWorkspaceID = `-- name: LockRoleByIDAndWorkspaceID :one
-SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m FROM roles
+SELECT id, name
+FROM roles
 WHERE id = ? AND workspace_id = ?
 FOR UPDATE
 `
@@ -20,23 +21,20 @@ type LockRoleByIDAndWorkspaceIDParams struct {
 	WorkspaceID string `db:"workspace_id"`
 }
 
+type LockRoleByIDAndWorkspaceIDRow struct {
+	ID   string `db:"id"`
+	Name string `db:"name"`
+}
+
 // LockRoleByIDAndWorkspaceID
 //
-//	SELECT pk, id, workspace_id, project_id, name, description, created_at_m, updated_at_m FROM roles
+//	SELECT id, name
+//	FROM roles
 //	WHERE id = ? AND workspace_id = ?
 //	FOR UPDATE
-func (q *Queries) LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (Role, error) {
+func (q *Queries) LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, lockRoleByIDAndWorkspaceID, arg.RoleID, arg.WorkspaceID)
-	var i Role
-	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.Name,
-		&i.Description,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-	)
+	var i LockRoleByIDAndWorkspaceIDRow
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

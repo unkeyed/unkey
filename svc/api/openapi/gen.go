@@ -3725,8 +3725,9 @@ type V2PermissionsSetRolePermissionsRequestBody struct {
 	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
 	Permissions []string `json:"permissions"`
 
-	// RoleId The ID of the role whose directly assigned permissions will be replaced.
-	RoleId string `json:"roleId"`
+	// RoleId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	RoleId ResourceIdentifier `json:"roleId"`
 }
 
 // V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
