@@ -20,7 +20,9 @@ import type { ReactNode } from "react";
 import type Stripe from "stripe";
 import { ApiAddOnCard } from "./components/api-addon-card";
 import { BillingSummary } from "./components/billing-summary";
+import { CostControl } from "./components/cost-control";
 import { DeployProductCard } from "./components/deploy-product-card";
+import { RelatedPages } from "./components/related-pages";
 import { SubscriptionStatus } from "./components/subscription-status";
 
 function Shell({ children }: { children: ReactNode }) {
@@ -57,13 +59,18 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
+function SectionLabel({ children }: { children: ReactNode }) {
+  return <h2 className="pt-2 font-medium text-[13px] text-gray-12">{children}</h2>;
+}
+
 /**
- * Billing page shown when the deployBilling flag is on: a flat list of
- * product cards, Compute first (hero with spend against credits), API
- * management below it. The headline strip shows the billing period and
- * upcoming invoice, Vercel-style. Cancelling lives as a quiet link inside
- * each product card, so there is no danger zone competing with the upgrade
- * actions. Flag-off keeps the existing single-product page (./client).
+ * Billing page shown when the deployBilling flag is on: the upcoming invoice,
+ * then the plan per product, then cost control split per product, then the pages
+ * that answer the questions this one deliberately does not — Usage for
+ * consumption, Limits for the ceilings we impose. The spend budget lives under
+ * cost control rather than inside the Compute plan card, because a cap is a
+ * billing preference and not part of the plan. Flag-off keeps the existing
+ * single-product page (./client).
  */
 export const DeployBillingClient: React.FC = () => {
   const workspace = useWorkspaceNavigation();
@@ -106,6 +113,22 @@ export const DeployBillingClient: React.FC = () => {
   const subscription = billingInfo?.subscription;
   const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
+  // Cost control needs the same plan, catalog and usage reads the Compute card
+  // makes, so these resolve from cache rather than adding round-trips.
+  const { data: deploySubscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+  const { data: deployPlans } = trpc.stripe.getDeployPlans.useQuery(undefined, {
+    staleTime: 60_000,
+    trpc: { context: { skipBatch: true } },
+  });
+  const { data: deployUsage } = trpc.billing.queryDeployUsage.useQuery(undefined, {
+    enabled: Boolean(deploySubscription?.plan),
+    staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
+    retry: 1,
+  });
+
   return (
     <Shell>
       <div className="flex w-full flex-col gap-4 pt-4 pb-16">
@@ -118,6 +141,8 @@ export const DeployBillingClient: React.FC = () => {
           isAdmin={isAdmin}
           hasPaymentMethod={hasPaymentMethod}
         />
+
+        <SectionLabel>Plans</SectionLabel>
 
         <DeployProductCard
           isAdmin={isAdmin}
@@ -146,6 +171,16 @@ export const DeployBillingClient: React.FC = () => {
             autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
           />
         )}
+
+        <SectionLabel>Cost control</SectionLabel>
+
+        <CostControl
+          usageCents={deployUsage?.grossCents ?? null}
+          isAdmin={isAdmin}
+          showCompute={deployPlans?.configured !== false}
+        />
+
+        <RelatedPages workspaceSlug={workspace.slug} />
       </div>
     </Shell>
   );

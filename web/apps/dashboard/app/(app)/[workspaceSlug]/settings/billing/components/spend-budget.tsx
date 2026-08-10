@@ -6,8 +6,14 @@ import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
 import { useState } from "react";
 
-/** Alert thresholds as fractions of the budget. */
-export const ALERT_STEPS = [0.5, 0.75] as const;
+/**
+ * Alert thresholds as fractions of the budget. Mirrors `thresholds` in
+ * svc/ctrl/worker/cron/deployspendcheck: the worker emails at 50, 75 and 100.
+ */
+export const ALERT_STEPS = [0.5, 0.75, 1] as const;
+
+/** "50%, 75%, 100%" — the thresholds spelled out, for copy that names them. */
+export const ALERT_STEPS_LABEL = ALERT_STEPS.map((step) => `${step * 100}%`).join(", ");
 
 /** Mirrors MAX_BUDGET_CENTS in the deploy-budget router so an over-cap value
  *  fails client-side with a readable message. */
@@ -144,7 +150,7 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
       <div className="flex flex-col gap-5">
         <FormInput
           label="Monthly budget"
-          description="We email you when your usage spend reaches 50%, 75% and 100% of this amount. Leave empty for no budget."
+          description={`We email you when your usage spend reaches ${ALERT_STEPS_LABEL} of this amount. Leave empty for no budget.`}
           placeholder="300"
           prefix="$"
           inputMode="numeric"

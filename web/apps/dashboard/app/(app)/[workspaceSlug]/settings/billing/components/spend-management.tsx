@@ -7,7 +7,7 @@ import { Button, InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { ALERT_STEPS, SpendBudgetDialog, spendBar } from "./spend-budget";
+import { ALERT_STEPS, ALERT_STEPS_LABEL, SpendBudgetDialog, spendBar } from "./spend-budget";
 
 type SpendManagementProps = {
   /** Month-to-date gross usage spend in cents, or null while loading. */
@@ -87,10 +87,14 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
                 <div
                   key={step}
                   className="absolute top-0 h-full w-px bg-gray-8"
-                  style={{ left: `${step * 100}%` }}
+                  // The 100% tick would fall outside the clipped track at left: 100%.
+                  style={{ left: `min(${step * 100}%, calc(100% - 1px))` }}
                 />
               ))}
             </div>
+            <p className="text-[12px] text-gray-10">
+              We email you at {ALERT_STEPS_LABEL} of the budget.
+            </p>
             {suspended ? (
               <p className="text-[13px] text-gray-11 leading-5">
                 {pausedBody(budgetLabel)} <PausedDocsLink />

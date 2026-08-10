@@ -1,7 +1,7 @@
 "use client";
 
-import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
-import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
+import { DEPLOY_METER_RATE_LABELS } from "@/lib/billing/deployPricing";
+import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
@@ -18,7 +18,6 @@ import {
 } from "./compute-plan-picker";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ProductCard } from "./product-card";
-import { SpendManagement } from "./spend-management";
 
 /** Matches the billing summary strip's period formatting, e.g. "Aug 1". */
 function formatRenewalDate(millis: number): string {
@@ -35,9 +34,10 @@ type DeployProductCardProps = {
 
 /**
  * The Deploy product card, the page's hero: current plan and fee, the spend
- * budget, and the per-meter month-to-date quantities the spend is made of.
- * Without a plan it's the subscribe entry point. Cancelling is a quiet footer
- * link with a confirmation dialog, not a danger zone.
+ * budget, and what the next invoice reconciles to. The per-meter quantities the
+ * spend is made of live on the Usage page. Without a plan it's the subscribe
+ * entry point. Cancelling is a quiet footer link with a confirmation dialog,
+ * not a danger zone.
  */
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
@@ -205,45 +205,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     upcomingInvoice?.deploy?.total ??
     (overageCents !== null && planFee !== null ? overageCents + planFee : null);
 
-  // Price each meter locally (same rates as the spend bar) so every usage line
-  // shows what it contributes to the bill; the parts sum to the gross above.
-  const meterCosts = usage ? priceDeployMetersCents(usage) : null;
-  const meterStats =
-    usage && meterCosts
-      ? [
-          {
-            label: "CPU",
-            value: `${formatCompactQuantity(usage.cpuSeconds / 3600)} hrs`,
-            cost: meterCosts.cpu,
-            hint: "vCPU time your workloads ran, totalled across the period.",
-          },
-          {
-            label: "Memory",
-            value: `${formatCompactQuantity(usage.memoryGiBHours)} GiB-hrs`,
-            cost: meterCosts.memory,
-            hint: "Memory allocated over time, in GiB-hours. 1 GiB held for 1 hour is 1 GiB-hour.",
-          },
-          {
-            label: "Egress",
-            value: `${formatCompactQuantity(usage.egressGiB)} GiB`,
-            cost: meterCosts.egress,
-            hint: "Data your workloads sent out over the public network this period.",
-          },
-          {
-            label: "Disk",
-            value: `${formatCompactQuantity(usage.diskGiBHours)} GiB-hrs`,
-            cost: meterCosts.disk,
-            hint: "Disk reserved over time, in GiB-hours. 1 GiB reserved for 1 hour is 1 GiB-hour. Charged on size reserved, not reads, writes, or space used.",
-          },
-          {
-            label: "Active keys",
-            value: formatCompactQuantity(usage.activeKeys),
-            cost: meterCosts.activeKeys,
-            hint: "Distinct keys verified through the Deploy gateway this period.",
-          },
-        ]
-      : null;
-
   const submittingPlan = isStartingCheckout
     ? pendingPlan
     : change.isLoading
@@ -354,25 +315,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
       >
         {currentPlan ? (
           <div className="flex flex-col gap-4">
-            {meterStats ? (
-              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
-                {meterStats.map((stat) => (
-                  <div key={stat.label} className="bg-white px-3 py-2 first:pl-0 dark:bg-black">
-                    <InfoTooltip content={stat.hint} asChild>
-                      <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
-                        {stat.label}
-                      </p>
-                    </InfoTooltip>
-                    <p className="font-medium text-[13px] text-gray-12 tabular-nums">
-                      {stat.value}
-                    </p>
-                    <p className="text-[12px] text-gray-10 tabular-nums">
-                      {formatDollars(stat.cost)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
             {currentBillCents !== null &&
             planFee !== null &&
             periodFeeCents !== null &&
@@ -503,7 +445,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 </p>
               </div>
             ) : null}
-            <SpendManagement usageCents={usageAmount} isAdmin={isAdmin} />
           </div>
         ) : null}
       </ProductCard>
