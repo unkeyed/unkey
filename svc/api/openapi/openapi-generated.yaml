@@ -1697,9 +1697,8 @@ components:
                         Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 255
-                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysAddRolesResponseBody:
@@ -1792,8 +1791,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -2070,9 +2068,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysRemoveRolesResponseBody:
@@ -2209,9 +2206,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysSetRolesResponseBody:
@@ -2595,12 +2591,11 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 512
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 128
                     description: |
-                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
-                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
                     example: "support.readonly"
                 description:
                     type: string
@@ -2675,9 +2670,8 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                    minLength: 3
-                    maxLength: 255
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2737,9 +2731,8 @@ components:
             properties:
                 role:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.

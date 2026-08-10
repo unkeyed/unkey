@@ -257,13 +257,21 @@ export const expirationSchema = z.object({
   }),
 });
 
-const rbacItemSchema = z.string().trim().min(1).max(100);
+// Mirrors keys.createKey in the OpenAPI spec. Role names carry no character
+// restriction, so names with spaces round-trip; 128 matches permissions.slug
+// so role names do not have to narrow later when roles start accepting slugs.
+// Keep in step with roleNameSchema on the role editor.
+//
+// Permission slugs are still capped at 100 by the spec even though
+// permissions.slug is varchar(128); keep this in step when that is widened.
+const roleNameItemSchema = z.string().trim().min(1).max(128);
+const permissionSlugItemSchema = z.string().trim().min(1).max(100);
 
 const uniqueStrings = (items: string[]) => [...new Set(items)];
 
 export const rbacSchema = z.object({
-  roleNames: z.array(rbacItemSchema).prefault([]).transform(uniqueStrings),
-  directPermissionSlugs: z.array(rbacItemSchema).prefault([]).transform(uniqueStrings),
+  roleNames: z.array(roleNameItemSchema).prefault([]).transform(uniqueStrings),
+  directPermissionSlugs: z.array(permissionSlugItemSchema).prefault([]).transform(uniqueStrings),
 });
 
 // Combined form schema for UI
