@@ -3,6 +3,7 @@ import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbo
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { SentinelAppFilter } from "./components/sentinel-logs-app-filter";
 import { SentinelDeploymentFilter } from "./components/sentinel-logs-deployment-filter";
 import { SentinelEnvironmentFilter } from "./components/sentinel-logs-environment-filter";
 import { SentinelMethodsFilter } from "./components/sentinel-logs-methods-filter";
@@ -30,6 +31,13 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcut: "P",
     shortcutLabel: "P",
     component: <SentinelPathsFilter />,
+  },
+  {
+    id: "appId",
+    label: "App",
+    shortcut: "A",
+    shortcutLabel: "A",
+    component: <SentinelAppFilter />,
   },
   {
     id: "deploymentId",

@@ -13,7 +13,6 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type UseSentinelLogsQueryParams = {
@@ -35,19 +34,13 @@ export function useSentinelLogsQuery({
 }: UseSentinelLogsQueryParams = {}) {
   const { projectId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
-  const searchParams = useSearchParams();
-  // Optional ?appId= narrows the project-wide view to a single app.
-  const appId = searchParams.get("appId");
   const queryClient = trpc.useUtils();
 
-  // Drives the whole reset — page, window anchor, and realtime buffer — whenever
-  // the filters, active app, or refresh signal change. `appId` is included
-  // because it also feeds `queryInput`: omitting it would leave the reset
-  // untriggered on an app switch, firing a query for the stale page against the
-  // new app until a later render corrected it.
+  // A change of the filters or of the refresh signal resets the page, the window
+  // anchor, and the realtime buffer.
   const resetKey = useMemo(
-    () => `${paginationFilterKey(filters)}|app:${appId ?? ""}|r:${refreshNonce}`,
-    [filters, appId, refreshNonce],
+    () => `${paginationFilterKey(filters)}|r:${refreshNonce}`,
+    [filters, refreshNonce],
   );
 
   // usePaginatedPage owns the URL page and the synchronous reset-to-1 on a
@@ -115,6 +108,10 @@ export function useSentinelLogsQuery({
         value: String(f.value),
       }));
 
+    const appIdFilters = filters
+      .filter((f) => f.field === "appId")
+      .map((f) => String(f.value))
+      .filter(Boolean);
     const deploymentIdFilters = filters
       .filter((f) => f.field === "deploymentId")
       .map((f) => String(f.value))
@@ -125,7 +122,7 @@ export function useSentinelLogsQuery({
 
     return {
       projectId,
-      appId: appId ?? null,
+      appId: appIdFilters,
       deploymentId: deploymentIdFilters,
       environmentId: environmentIdFilters,
       limit,
@@ -137,7 +134,7 @@ export function useSentinelLogsQuery({
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
     };
-  }, [filters, limit, projectId, appId, effectivePage, timeWindow]);
+  }, [filters, limit, projectId, effectivePage, timeWindow]);
 
   const { data, isLoading, error, isFetching } = trpc.deploy.sentinelLogs.query.useQuery(
     queryInput,
