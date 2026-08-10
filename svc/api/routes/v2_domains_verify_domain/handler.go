@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -48,10 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	identifier := req.Domain
-	if canonical, parseErr := domaingate.ParseDomain(req.Domain); parseErr == nil {
-		identifier = canonical
-	}
+	identifier := domaingate.CanonicalizeIdentifier(req.Domain)
 
 	domain, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
 		WorkspaceID: principal.WorkspaceID,
@@ -62,14 +60,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal("domain not found"),
+				fault.Internal(fmt.Sprintf("no custom domain %q in workspace %s", identifier, principal.WorkspaceID)),
 				fault.Public("The requested domain does not exist."),
 			)
 		}
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
+			fault.Internal(fmt.Sprintf("failed to look up custom domain %q: %s", identifier, err.Error())),
 			fault.Public("Failed to retrieve domain."),
 		)
 	}
@@ -115,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal("domain not found"),
+				fault.Internal(fmt.Sprintf("ctrl has no domain %q for project %s while row %s exists: %s", domain.Domain, domain.ProjectID, domain.ID, err.Error())),
 				fault.Public("The requested domain does not exist."),
 			)
 		// Ctrl re-checks the verified guard the handler already passed, so a
@@ -124,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure"),
+				fault.Internal(fmt.Sprintf("ctrl rejected the verification retry for domain %s (%s) in project %s: %s", domain.ID, domain.Domain, domain.ProjectID, err.Error())),
 				fault.Public("The domain is already verified. No action is needed."),
 			)
 		default:

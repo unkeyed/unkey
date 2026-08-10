@@ -36,8 +36,8 @@ import { Result } from "../types/fp.js";
  * `api.acme.com` is enough.
  *
  * Call this after you correct the DNS records of a domain that shows `failed`, or to give a
- * `pending` domain a new 24-hour verification period. Each call stops a check that still
- * runs and sets the domain back to `pending`.
+ * `pending` domain a new 24-hour verification period. The domain goes back to `pending` and
+ * the 24-hour period starts again.
  *
  * The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
  *

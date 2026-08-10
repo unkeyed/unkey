@@ -2196,13 +2196,10 @@ type V2DomainsListDomainsResponseBody struct {
 
 // V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
 type V2DomainsVerifyDomainRequestBody struct {
-	// Domain Identifies a domain by its ID or by its name. Send a 'dom_'-prefixed ID, or a fully
-	// qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can send
-	// an internationalized name in Unicode or in Punycode form. Both forms address the same
-	// domain.
-	//
-	// Domain names are unique per workspace, so the name alone addresses the domain. You do not
-	// need to supply a project, app, or environment.
+	// Domain Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+	// 'api.acme.com', without a scheme, port, or path, or send the domain ID that
+	// domains.createDomain returns. You can send an internationalized name in Unicode or in
+	// Punycode form. Both forms address the same domain.
 	Domain string `json:"domain"`
 }
 

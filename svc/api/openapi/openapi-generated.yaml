@@ -994,13 +994,10 @@ components:
                     minLength: 4
                     maxLength: 253
                     description: |
-                        Identifies a domain by its ID or by its name. Send a 'dom_'-prefixed ID, or a fully
-                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can send
-                        an internationalized name in Unicode or in Punycode form. Both forms address the same
-                        domain.
-
-                        Domain names are unique per workspace, so the name alone addresses the domain. You do not
-                        need to supply a project, app, or environment.
+                        Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+                        'api.acme.com', without a scheme, port, or path, or send the domain ID that
+                        domains.createDomain returns. You can send an internationalized name in Unicode or in
+                        Punycode form. Both forms address the same domain.
                     example: api.acme.com
             additionalProperties: false
         V2DomainsVerifyDomainResponseBody:
@@ -9812,8 +9809,8 @@ paths:
                 `api.acme.com` is enough.
 
                 Call this after you correct the DNS records of a domain that shows `failed`, or to give a
-                `pending` domain a new 24-hour verification period. Each call stops a check that still
-                runs and sets the domain back to `pending`.
+                `pending` domain a new 24-hour verification period. The domain goes back to `pending` and
+                the 24-hour period starts again.
 
                 The endpoint returns when Unkey accepts the retry. Poll `domains.getDomain` for the result.
 

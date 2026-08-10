@@ -90,6 +90,17 @@ func ParseDomain(input string) (string, error) {
 	return hostname, nil
 }
 
+// CanonicalizeIdentifier prepares a domain identifier for lookup. The identifier is
+// a domain name or a domain id. Names are stored in canonical form, so this returns
+// the canonical form of a name. All other input stays unchanged.
+func CanonicalizeIdentifier(input string) string {
+	if canonical, err := ParseDomain(input); err == nil {
+		return canonical
+	}
+
+	return input
+}
+
 // AlreadyExists is the outcome for a domain the workspace already holds. Domains
 // are unique per workspace, so the same name cannot serve two environments.
 //
