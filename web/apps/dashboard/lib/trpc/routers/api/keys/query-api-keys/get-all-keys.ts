@@ -226,26 +226,7 @@ export async function getAllKeys({
             continue;
           }
 
-          let ownerIdCondition: SQL<unknown>;
-          switch (filter.operator) {
-            case "is":
-              ownerIdCondition = helpers.eq(key.ownerId, value);
-              break;
-            case "contains":
-              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`%${value}%`})`;
-              break;
-            case "startsWith":
-              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`${value}%`})`;
-              break;
-            case "endsWith":
-              ownerIdCondition = helpers.sql`LOWER(${key.ownerId}) LIKE LOWER(${`%${value}`})`;
-              break;
-            default:
-              ownerIdCondition = helpers.eq(key.ownerId, value);
-          }
-
-          const combinedCheckForThisFilter = helpers.or(
-            helpers.sql`EXISTS (
+          const identityCondition = helpers.sql`EXISTS (
                 SELECT 1 FROM ${identities} -- Use schema object for table name is fine
                 WHERE ${helpers.sql.raw("identities.id")} = ${
                   key.identityId
@@ -265,11 +246,9 @@ export async function getAllKeys({
                         return helpers.sql`${rawExternalIdColumn} = ${value}`;
                     }
                   })()}
-            )`,
-            ownerIdCondition,
-          );
+            )`;
 
-          individualIdentityFilterConditions.push(combinedCheckForThisFilter);
+          individualIdentityFilterConditions.push(identityCondition);
         }
 
         if (individualIdentityFilterConditions.length > 0) {
@@ -289,6 +268,20 @@ export async function getAllKeys({
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
       where: (key, helpers) => buildFilterConditions(key, helpers),
+      columns: {
+        id: true,
+        name: true,
+        identityId: true,
+        enabled: true,
+        expires: true,
+        updatedAtM: true,
+        start: true,
+        lastUsedAt: true,
+        meta: true,
+        remaining: true,
+        refillAmount: true,
+        refillDay: true,
+      },
       with: {
         ratelimits: {
           columns: {
@@ -326,7 +319,6 @@ export async function getAllKeys({
       return {
         id: key.id,
         name: key.name,
-        owner_id: key.ownerId,
         identity_id: key.identityId,
         enabled: key.enabled,
         expires: key.expires ? key.expires.getTime() : null,

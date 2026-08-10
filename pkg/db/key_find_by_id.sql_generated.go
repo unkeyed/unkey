@@ -7,20 +7,56 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findKeyByID = `-- name: FindKeyByID :one
-SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM ` + "`" + `keys` + "`" + ` k
+SELECT
+    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+FROM ` + "`" + `keys` + "`" + ` k
 WHERE k.id = ?
 `
 
+type FindKeyByIDRow struct {
+	Pk                 uint64         `db:"pk"`
+	ID                 string         `db:"id"`
+	KeyAuthID          string         `db:"key_auth_id"`
+	Hash               string         `db:"hash"`
+	Start              string         `db:"start"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ForWorkspaceID     sql.NullString `db:"for_workspace_id"`
+	Name               sql.NullString `db:"name"`
+	IdentityID         sql.NullString `db:"identity_id"`
+	Meta               sql.NullString `db:"meta"`
+	Expires            sql.NullTime   `db:"expires"`
+	CreatedAtM         int64          `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
+	RefillDay          sql.NullInt16  `db:"refill_day"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
+	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
+	Enabled            bool           `db:"enabled"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
+	Environment        sql.NullString `db:"environment"`
+	LastUsedAt         uint64         `db:"last_used_at"`
+	PendingMigrationID sql.NullString `db:"pending_migration_id"`
+}
+
 // FindKeyByID
 //
-//	SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
+//	SELECT
+//	    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+//	    k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+//	    k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+//	    k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+//	FROM `keys` k
 //	WHERE k.id = ?
-func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error) {
+func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error) {
 	row := db.QueryRowContext(ctx, findKeyByID, id)
-	var i Key
+	var i FindKeyByIDRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -30,7 +66,6 @@ func (q *Queries) FindKeyByID(ctx context.Context, db DBTX, id string) (Key, err
 		&i.WorkspaceID,
 		&i.ForWorkspaceID,
 		&i.Name,
-		&i.OwnerID,
 		&i.IdentityID,
 		&i.Meta,
 		&i.Expires,
