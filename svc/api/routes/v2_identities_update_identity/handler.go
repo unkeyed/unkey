@@ -67,21 +67,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.UpdateIdentity,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-			permissions.UpdateIdentity{},
-		),
-	))
-	if err != nil {
-		return err
-	}
-
 	// Check ratelimits for unique names
 	if req.Ratelimits != nil {
 		nameSet := make(map[string]bool)
@@ -130,6 +115,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err,
 			fault.Internal("unable to find identity"),
 			fault.Public("We're unable to retrieve the identity."),
+		)
+	}
+
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{ResourceType: rbac.Identity, ResourceID: "*", Action: rbac.UpdateIdentity}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project(identityRow.ProjectID).Identity(identityRow.ID),
+			permissions.UpdateIdentity{},
+		),
+	))
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Identity.NotFound.URN(),
+			"This identity does not exist.",
 		)
 	}
 

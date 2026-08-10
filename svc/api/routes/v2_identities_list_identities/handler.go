@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -69,9 +70,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	identities, pg := pagination.Paginate(identities, p, func(r db.ListIdentitiesRow) string { return r.ID })
 
-	// Check permissions for all identities before processing
+	authorizedIdentities := make([]db.ListIdentitiesRow, 0, len(identities))
 	for _, id := range identities {
-		// Check permissions
 		permissionCheck := rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Identity,
@@ -84,20 +84,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.ReadIdentity,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+				urn.New().Workspace(principal.WorkspaceID).Project(id.ProjectID).Identity(id.ID),
 				permissions.ReadIdentity{},
 			),
 		)
 
 		err = principal.Authorize(permissionCheck)
 		if err != nil {
+			errCode, ok := fault.GetCode(err)
+			if ok && errCode == codes.Auth.Authorization.InsufficientPermissions.URN() {
+				continue
+			}
 			return err
 		}
+		authorizedIdentities = append(authorizedIdentities, id)
 	}
 
 	// Process the results
-	data := make([]openapi.Identity, 0, len(identities))
-	for _, identity := range identities {
+	data := make([]openapi.Identity, 0, len(authorizedIdentities))
+	for _, identity := range authorizedIdentities {
 		// Unmarshal ratelimits from JSON
 		ratelimits, err := db.UnmarshalNullableJSONTo[[]db.RatelimitInfo](identity.Ratelimits)
 		if err != nil {

@@ -57,7 +57,7 @@ func TestSuccess(t *testing.T) {
 			},
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#update_key", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -289,6 +289,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: keepPermissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         "documents.read.remove.partial.keep",
 			Slug:         "documents.read.remove.partial.keep",
 			Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},
@@ -300,6 +301,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: removePermissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    api.ProjectID,
 			Name:         removePermissionName,
 			Slug:         removePermissionName,
 			Description:  dbtype.NullString{Valid: true, String: "Write documents permission"},

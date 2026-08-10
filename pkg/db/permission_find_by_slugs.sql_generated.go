@@ -11,21 +11,29 @@ import (
 )
 
 const findPermissionsBySlugs = `-- name: FindPermissionsBySlugs :many
-SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+WHERE workspace_id = ?
+  AND project_id = ?
+  AND slug IN (/*SLICE:slugs*/?)
 `
 
 type FindPermissionsBySlugsParams struct {
 	WorkspaceID string   `db:"workspace_id"`
+	ProjectID   string   `db:"project_id"`
 	Slugs       []string `db:"slugs"`
 }
 
 // FindPermissionsBySlugs
 //
-//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+//	SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions
+//	WHERE workspace_id = ?
+//	  AND project_id = ?
+//	  AND slug IN (/*SLICE:slugs*/?)
 func (q *Queries) FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error) {
 	query := findPermissionsBySlugs
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.Slugs) > 0 {
 		for _, v := range arg.Slugs {
 			queryParams = append(queryParams, v)

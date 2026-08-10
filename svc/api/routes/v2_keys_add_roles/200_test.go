@@ -53,7 +53,7 @@ func TestSuccess(t *testing.T) {
 			Description: ptr.P("editor_urn_add_role"),
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#update_key", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},

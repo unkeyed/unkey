@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 )
@@ -25,49 +26,50 @@ func TestForbidden(t *testing.T) {
 	}
 
 	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	identity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		ExternalID:  uid.New(uid.TestPrefix),
+	})
 
 	t.Run("no permission to update identity", func(t *testing.T) {
 		// Create root key without permissions
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+		rootKeyID := h.CreateRootKey(workspaceID)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			Identity: externalID,
+			Identity: identity.ID,
 			Meta:     &meta,
 		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("wrong permission type", func(t *testing.T) {
 		// Create root key with wrong permission
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+		rootKeyID := h.CreateRootKey(workspaceID, "identity.*.create_identity")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			Identity: externalID,
+			Identity: identity.ID,
 			Meta:     &meta,
 		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "permission")
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 	})
 
 	t.Run("with permission to update identity", func(t *testing.T) {

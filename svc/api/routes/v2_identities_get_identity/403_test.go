@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
@@ -42,6 +43,7 @@ func TestForbidden(t *testing.T) {
 	}()
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	identityID := uid.New(uid.IdentityPrefix)
 	otherIdentityID := uid.New(uid.IdentityPrefix)
 	externalID := "test_user_403"
@@ -51,6 +53,7 @@ func TestForbidden(t *testing.T) {
 		ID:          identityID,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceID,
+		ProjectID:   api.ProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -62,6 +65,7 @@ func TestForbidden(t *testing.T) {
 		ID:          otherIdentityID,
 		ExternalID:  "other_user_403",
 		WorkspaceID: workspaceID,
+		ProjectID:   api.ProjectID,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),
@@ -71,24 +75,23 @@ func TestForbidden(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	t.Run("no permission to read any identity", func(t *testing.T) {
-		// The rootKey has no permissions, so it should fail
+	t.Run("no permission to read any identity is masked as not found", func(t *testing.T) {
+		// Mask authorization failures so callers cannot discover identity existence.
 		req := handler.Request{
 			Identity: externalID,
 		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.Contains(t, res.Body.Error.Detail, "identity.*.read_identity")
-		require.NotContains(t, res.Body.Error.Detail, "have:")
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 	})
 
-	t.Run("permission by external ID but not by ID", func(t *testing.T) {
+	t.Run("permission for another identity is masked as not found", func(t *testing.T) {
 		// Create a key with specific identity permission
-		specificPermKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity."+otherIdentityID+".read_identity")
+		specificPermKey := h.CreateRootKey(
+			h.Resources().UserWorkspace.ID,
+			fmt.Sprintf("identity.%s.read_identity", otherIdentityID),
+		)
 		specificHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", specificPermKey)},
@@ -98,13 +101,9 @@ func TestForbidden(t *testing.T) {
 		req := handler.Request{
 			Identity: externalID,
 		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.NotContains(t, res.Body.Error.Detail, "have:")
-		require.NotContains(t, res.Body.Error.Detail, otherIdentityID)
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, specificHeaders, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
+		require.Equal(t, "This identity does not exist.", res.Body.Error.Detail)
 	})
 }

@@ -26,6 +26,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID,
+		ProjectID:   "proj_123",
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -57,7 +58,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		fmt.Sprintf("unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
+		fmt.Sprintf("unkey:v1:%s:projects/proj_123/ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
 	)
 
 	headers := http.Header{

@@ -24,6 +24,7 @@ func TestWorkspacePermissions(t *testing.T) {
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
+		ProjectID:   "proj_123",
 		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})

@@ -13,7 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
 
@@ -84,12 +83,10 @@ func TestForbidden(t *testing.T) {
 	h.Register(route)
 
 	t.Run("no permission to read any identity", func(t *testing.T) {
-		// With no permissions set, should return 403
 		req := handler.Request{}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, http.StatusOK, res.Status)
+		require.Empty(t, res.Body.Data)
 	})
 
 	// Create a new key with specific permissions for certain environments

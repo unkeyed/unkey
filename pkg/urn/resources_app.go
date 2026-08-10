@@ -11,33 +11,24 @@ import "fmt"
 //	    └── apps/{app_id}
 type App struct {
 	workspaceID string
-	path        string
+	projectID   string
+	appID       string
 }
 
 // String returns this app resource path.
-//
-// Subresource:
-//
-//	projects/{project_id}
-//	└── apps/{app_id}
 func (a App) String() string {
-	return V1{WorkspaceID: a.workspaceID, Resource: a.path}.String()
+	return V1{WorkspaceID: a.workspaceID, Resource: fmt.Sprintf("projects/%s/apps/%s", a.projectID, a.appID)}.String()
 }
 
 // Environment returns builders for environment resource paths.
-//
-// Subresource:
-//
-//	apps/{app_id}
-//	└── environments/{environment_id}
 func (a App) Environment(environmentID string) Environment {
-	return Environment{workspaceID: a.workspaceID, path: fmt.Sprintf("%s/environments/%s", a.path, environmentID)}
+	return Environment{workspaceID: a.workspaceID, projectID: a.projectID, appID: a.appID, environmentID: environmentID}
 }
 
 // Any returns a descendant pattern below this app.
 func (a App) Any() V1 {
 	return V1{
 		WorkspaceID: a.workspaceID,
-		Resource:    a.path + "/**",
+		Resource:    fmt.Sprintf("projects/%s/apps/%s/**", a.projectID, a.appID),
 	}
 }

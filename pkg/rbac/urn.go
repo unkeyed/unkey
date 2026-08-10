@@ -31,9 +31,12 @@ func (u UnkeyPermission) String() string {
 
 // U creates a leaf query for a typed action on a canonical resource name.
 //
-// Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
-// evaluation, not by writing wildcard-heavy queries at call sites.
+// Handlers should normally pass the exact resource being accessed. A create
+// operation whose resource ID is not known yet should pass the created resource
+// with "*" as its ID. That requirement is covered by a matching wildcard grant,
+// not by a grant for one existing resource. Broader grants such as
+// "unkey:v1:ws_123:projects/proj_123/ratelimits/**#read_override" are matched
+// during evaluation.
 func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
@@ -114,9 +117,11 @@ func parseUrnPermission(value string) (UnkeyPermission, error) {
 }
 
 // permissionCovers reports whether a granted permission satisfies a required
-// permission. Required permissions should be concrete; granted permissions may
-// use resource wildcards or "*" as the action. Resource matching, including
-// workspace equality, is delegated to [urn.V1.Covers].
+// permission. Required permissions should normally be concrete. Create
+// operations may require a single-segment wildcard for the server-generated
+// resource ID. Granted permissions may use resource wildcards or "*" as the
+// action. Resource matching, including workspace equality, is delegated to
+// [urn.V1.Covers].
 func permissionCovers(required UnkeyPermission, granted UnkeyPermission) bool {
 	if granted.Action != "*" && granted.Action != required.Action {
 		return false

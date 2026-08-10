@@ -399,8 +399,7 @@ func (h *Handler) RerollKey(
 // rerollPermissionQuery builds the generic API permission requirement. Portal
 // routes pass their product capability directly instead.
 func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
-	keyData := db.ToKeyData(key)
-	checks := rbac.Or(
+	return rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   key.Api.ID,
@@ -412,32 +411,8 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID),
+			urn.New().Workspace(key.WorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.KeyAuthID).Key("*"),
 			permissions.CreateKey{},
 		),
 	)
-
-	if keyData.EncryptionKeyID.Valid {
-		checks = rbac.And(
-			checks,
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.EncryptKey,
-				}),
-				rbac.U(
-					urn.New().Workspace(key.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
-					permissions.EncryptKey{},
-				),
-			),
-		)
-	}
-
-	return checks
 }
