@@ -210,10 +210,7 @@ export const FilterCheckbox = <
                 id={"checkbox-999"}
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
                 className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectAll();
-                }}
+                onCheckedChange={handleSelectAll}
               />
               <span className="text-xs text-accent-12">
                 {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
@@ -234,10 +231,7 @@ export const FilterCheckbox = <
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
               className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckboxClick(index);
-              }}
+              onCheckedChange={() => handleCheckboxClick(index)}
             />
             {renderOptionContent ? renderOptionContent(checkbox) : null}
           </label>

@@ -14,7 +14,7 @@ export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
-  appId: z.string().nullable().optional(),
+  appId: z.array(z.string()).optional().default([]),
   deploymentId: z.array(z.string()).optional().default([]),
   environmentId: z
     .object({

@@ -17,7 +17,7 @@ export function NavLinkList({ links }: { links: ResolvedNavLink[] }) {
         <SidebarMenu>
           {links.map((link) => (
             <Fragment key={link.key}>
-              {link.separatorAbove ? <SidebarSeparator className="mx-0 my-1 bg-grayA-4" /> : null}
+              {link.separatorAbove ? <SidebarSeparator className="-mx-2 my-1 bg-grayA-4" /> : null}
               <NavRow link={link} />
             </Fragment>
           ))}
