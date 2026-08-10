@@ -1,6 +1,7 @@
 import { and, db, eq } from "@/lib/db";
+import { freeTierLimits } from "@/lib/limits";
 import { TRPCError } from "@trpc/server";
-import { appRuntimeSettings, environments, quotas } from "@unkey/db/src/schema";
+import { appRuntimeSettings, environments, limits } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -12,7 +13,7 @@ export const updateCpu = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const [env, quota] = await Promise.all([
+    const [env, workspaceLimits] = await Promise.all([
       db.query.environments.findFirst({
         where: and(
           eq(environments.id, input.environmentId),
@@ -20,16 +21,17 @@ export const updateCpu = workspaceProcedure
         ),
         columns: { appId: true },
       }),
-      db.query.quotas.findFirst({
-        where: eq(quotas.workspaceId, ctx.workspace.id),
-        columns: { maxCpuMillicoresPerInstance: true },
+      db.query.limits.findFirst({
+        where: eq(limits.workspaceId, ctx.workspace.id),
+        columns: { cpuCoresMaxPerInstance: true },
       }),
     ]);
     if (!env) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
-    const maxPerInstance = quota?.maxCpuMillicoresPerInstance ?? 2000;
+    const maxPerInstance =
+      (workspaceLimits?.cpuCoresMaxPerInstance ?? freeTierLimits.cpuCoresMaxPerInstance) * 1_000;
     if (input.cpuMillicores > maxPerInstance) {
       throw new TRPCError({
         code: "BAD_REQUEST",

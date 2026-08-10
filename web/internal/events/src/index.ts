@@ -17,7 +17,7 @@ export const event = z.discriminatedUnion("type", [
       keySpaceId: z.string(),
       records: z.array(
         z.object({
-          ownerId: z.string(),
+          externalId: z.string(),
           verifications: z.number(),
         }),
       ),

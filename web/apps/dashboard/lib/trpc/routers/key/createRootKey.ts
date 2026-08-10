@@ -65,7 +65,6 @@ export const createRootKey = workspaceProcedure
           name: input?.name,
           hash,
           start,
-          ownerId: ctx.user.id,
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: ctx.workspace.id,
           expires: null,

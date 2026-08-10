@@ -1,4 +1,5 @@
 export * from "./components/alert";
+export * from "./components/alert-banner";
 export * from "./components/badge";
 export * from "./components/banner-card";
 export * from "./components/buttons/button";
@@ -25,7 +26,9 @@ export * from "./components/full-screen-layout";
 export * from "./components/id";
 export * from "./components/info-tooltip";
 export * from "./components/inline-link";
+export * from "./components/item";
 export * from "./components/loading";
+export * from "./components/meter";
 export * from "./components/page";
 export * from "./components/resource-list";
 export * from "./components/logo";

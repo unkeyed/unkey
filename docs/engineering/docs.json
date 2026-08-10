@@ -39,6 +39,7 @@
             "pages": [
               "contributing/quality/code-quality",
               "contributing/quality/documentation",
+              "contributing/quality/screenshots-and-recordings",
               {
                 "group": "Testing",
                 "pages": [
@@ -223,7 +224,10 @@
           },
           {
             "group": "Runbooks",
-            "pages": ["infra/runbooks/key-migration"]
+            "pages": [
+              "infra/runbooks/key-migration",
+              "infra/runbooks/legacy-billing"
+            ]
           },
           {
             "group": "ClickHouse",

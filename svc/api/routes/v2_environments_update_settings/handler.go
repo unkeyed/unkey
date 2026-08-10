@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -33,19 +35,15 @@ const platform = "aws"
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
-// Replica bounds per region. These are a beta-wide cap enforced in code rather
-// than the OpenAPI spec so they can move to a per-workspace quota later without
-// a spec/codegen change. The quota table already gates cpu/memory/storage the
-// same way; replicas have no quota column yet.
-const (
-	minReplicasPerRegion = 1
-	maxReplicasPerRegion = 4
-)
+const minReplicasPerRegion = 1
+
+// dockerContextSegmentRegex allows only portable repository path segment characters.
+var dockerContextSegmentRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 type Handler struct {
-	DB         db.Database
-	Auditlogs  auditlogs.AuditLogService
-	QuotaCache cache.Cache[string, keysdb.Quotas]
+	DB          db.Database
+	Auditlogs   auditlogs.AuditLogService
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 func (h *Handler) Method() string {
@@ -126,15 +124,40 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
+	var limits keysdb.Limit
+	if hasRuntime || req.Regions != nil {
+		var hit cache.CacheHit
+		limits, hit, err = h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+			return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+		}, caches.DefaultFindFirstOp)
+		if err != nil && !db.IsNotFound(err) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to validate resource limits."),
+			)
+		}
+
+		if db.IsNotFound(err) || hit == cache.Null {
+			return fault.New(
+				"workspace limits not found",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("workspace has no limits row"),
+				fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
+			)
+		}
+	}
+
 	if hasRuntime {
-		if err := h.validateResourceQuota(ctx, principal.WorkspaceID, req); err != nil {
+		if err := validateResourceLimits(limits, req); err != nil {
 			return err
 		}
 	}
 
 	var desired []resolvedRegion
 	if req.Regions != nil {
-		desired, err = h.resolveRegions(ctx, *req.Regions)
+		desired, err = h.resolveRegions(ctx, *req.Regions, int32(limits.AutoscalingReplicasMax))
 		if err != nil {
 			return err
 		}
@@ -241,6 +264,14 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.RootDirectory != nil {
+		if !isValidDockerContext(*req.RootDirectory) {
+			return fault.New(
+				"invalid root directory",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("root directory is not a valid repository-relative path"),
+				fault.Public("Root directory must be a relative path like 'api' or 'services/api'."),
+			)
+		}
 		params.DockerContextSpecified = 1
 		params.DockerContext = *req.RootDirectory
 	}
@@ -268,6 +299,24 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		)
 	}
 	return nil
+}
+
+func isValidDockerContext(path string) bool {
+	if path != strings.TrimSpace(path) {
+		return false
+	}
+	if path == "." {
+		return true
+	}
+	if path == "" || strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if segment == "." || segment == ".." || !dockerContextSegmentRegex.MatchString(segment) {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request, now int64) error {
@@ -348,49 +397,28 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	return nil
 }
 
-func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
-	quota, hit, err := h.QuotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
-		return keysdb.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
-	}, caches.DefaultFindFirstOp)
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to validate resource limits."),
-		)
-	}
-
-	if db.IsNotFound(err) || hit == cache.Null {
-		return fault.New(
-			"workspace quota not found",
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("workspace has no quota row"),
-			fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
-		)
-	}
-
-	maxCPU := quota.MaxCpuMillicoresPerInstance
-	maxMemory := quota.MaxMemoryMibPerInstance
-	maxStorage := quota.MaxStorageMibPerInstance
+func validateResourceLimits(limits keysdb.Limit, req Request) error {
+	maxCPU := limits.CpuCoresMaxPerInstance * 1_000
+	maxMemory := limits.MemoryMibMaxPerInstance
+	maxStorage := limits.StorageMibMaxPerInstance
 
 	if req.VCpus != nil && int(math.Round(*req.VCpus*1000)) > int(maxCPU) {
-		return quotaExceeded(fmt.Sprintf("CPU per instance cannot exceed %g vCPU. Contact support@unkey.com to increase it.", float64(maxCPU)/1000))
+		return limitExceeded(fmt.Sprintf("CPU per instance cannot exceed %g vCPU. Contact support@unkey.com to increase it.", float64(maxCPU)/1000))
 	}
 	if req.MemoryMib != nil && *req.MemoryMib > int(maxMemory) {
-		return quotaExceeded(fmt.Sprintf("Memory per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxMemory))
+		return limitExceeded(fmt.Sprintf("Memory per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxMemory))
 	}
 	if req.StorageMib != nil && *req.StorageMib > int(maxStorage) {
-		return quotaExceeded(fmt.Sprintf("Storage per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxStorage))
+		return limitExceeded(fmt.Sprintf("Storage per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxStorage))
 	}
 	return nil
 }
 
-func quotaExceeded(public string) error {
+func limitExceeded(public string) error {
 	return fault.New(
-		"quota exceeded",
+		"limit exceeded",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal("resource request exceeds workspace per-instance quota"),
+		fault.Internal("resource request exceeds workspace per-instance limit"),
 		fault.Public(public),
 	)
 }
@@ -398,7 +426,9 @@ func quotaExceeded(public string) error {
 // resolveRegions validates the desired regions against the regions table and
 // replica bounds, returning the resolved region ids. The regions table is loaded
 // once and matched in memory.
-func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.EnvironmentRegion) ([]resolvedRegion, error) {
+func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.EnvironmentRegion, maxReplicasPerRegion int32) ([]resolvedRegion, error) {
+	maxReplicasPerRegion = max(maxReplicasPerRegion, minReplicasPerRegion)
+
 	all, err := db.Query.ListRegions(ctx, h.DB.RO())
 	if err != nil {
 		return nil, fault.Wrap(

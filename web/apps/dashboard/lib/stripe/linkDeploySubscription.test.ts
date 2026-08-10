@@ -30,7 +30,9 @@ const h = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({
   db: {
-    query: { workspaces: { findFirst: h.findFirst } },
+    query: {
+      workspaces: { findFirst: h.findFirst },
+    },
     transaction: h.transaction,
     insert: h.insert,
   },
@@ -38,7 +40,7 @@ vi.mock("@/lib/db", () => ({
   schema: {
     workspaces: { id: {} },
     workspaceBilling: { workspaceId: {} },
-    quotas: { workspaceId: {} },
+    limits: {},
   },
 }));
 vi.mock("@unkey/db", () => ({
@@ -46,7 +48,7 @@ vi.mock("@unkey/db", () => ({
   eq: vi.fn(),
   schema: {
     billingSubscriptions: { workspaceId: {}, product: {} },
-    quotas: { workspaceId: {} },
+    limits: {},
   },
 }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: h.insertAuditLogs }));
@@ -82,6 +84,24 @@ function subscription(overrides: Partial<Stripe.Subscription> = {}): Stripe.Subs
 }
 
 const customersUpdate = vi.fn(async () => ({}));
+
+const starterLimitValues = {
+  workspaceId: WORKSPACE_ID,
+  apiBillableOperationsCountMaxPerMonth: 150_000,
+  apiRequestsCountMaxPerMinute: null,
+  logsRetentionDaysMax: 3,
+  logsAuditRetentionDaysMax: 7,
+  teamEnabled: false,
+  cpuCoresMax: 10,
+  cpuCoresMaxPerInstance: 2,
+  memoryMibMax: 20_480,
+  memoryMibMaxPerInstance: 2_048,
+  storageMibMax: 51_200,
+  storageMibMaxPerInstance: 10_240,
+  buildsConcurrentMax: 1,
+  customDomainsMax: 1,
+  autoscalingReplicasMax: 4,
+};
 
 function stubStripe(opts: {
   session?: Stripe.Checkout.Session;
@@ -265,20 +285,11 @@ describe("linkDeploySubscription", () => {
       product: "compute",
       stripeSubscriptionId: "sub_1",
     });
-    expect(h.values).toHaveBeenCalledWith({
-      workspaceId: WORKSPACE_ID,
-      logsRetentionDays: 3,
-      auditLogsRetentionDays: 7,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 2_048,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
-    });
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
     expect(h.insertAuditLogs).toHaveBeenCalledOnce();
   });
 
-  it("repairs quotas without relinking when the same subscription and plan are linked", async () => {
+  it("repairs limits without relinking when the same subscription and plan are linked", async () => {
     h.findFirst.mockResolvedValue({
       id: WORKSPACE_ID,
       orgId: "org_1",
@@ -293,16 +304,7 @@ describe("linkDeploySubscription", () => {
     });
     expect(result).toEqual({ ok: true, plan: "starter", alreadyLinked: true });
     expect(h.transaction).not.toHaveBeenCalled();
-    expect(h.values).toHaveBeenCalledWith({
-      workspaceId: WORKSPACE_ID,
-      logsRetentionDays: 3,
-      auditLogsRetentionDays: 7,
-      team: false,
-      maxCpuMillicoresPerInstance: 2_000,
-      maxMemoryMibPerInstance: 2_048,
-      maxStorageMibPerInstance: 10_240,
-      maxConcurrentBuilds: 1,
-    });
+    expect(h.values).toHaveBeenCalledWith(starterLimitValues);
   });
 
   it("hard-fails rather than repoint a workspace with a different LIVE subscription", async () => {

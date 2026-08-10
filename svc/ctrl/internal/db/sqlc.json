@@ -31,9 +31,6 @@
           "output_copyfrom_file_name": "copyfrom_generated",
           "output_db_file_name": "delete_me",
           "omit_unused_structs": true,
-          "rename": {
-            "quotum": "Quotas"
-          },
           "overrides": [
             {
               "db_type": "json",
@@ -130,6 +127,14 @@
               "column": "deployments.desired_state",
               "go_type": {
                 "type": "DeploymentsDesiredState",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types"
+              }
+            },
+            {
+              "column": "environments.kind",
+              "go_type": {
+                "type": "EnvironmentKind",
                 "package": "mysqltype",
                 "import": "github.com/unkeyed/unkey/pkg/mysql/types"
               }

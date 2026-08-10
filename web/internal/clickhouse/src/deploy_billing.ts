@@ -14,6 +14,10 @@ export const deployMeterUsage = z.object({
   memoryGiBHours: z.number(),
   diskGiBHours: z.number(),
   egressGiB: z.number(),
+  trailingCpuSeconds: z.number(),
+  trailingMemoryGiBHours: z.number(),
+  trailingDiskGiBHours: z.number(),
+  trailingEgressGiB: z.number(),
 });
 
 export type DeployMeterUsage = z.infer<typeof deployMeterUsage>;
@@ -22,68 +26,94 @@ export type DeployMeterUsage = z.infer<typeof deployMeterUsage>;
  * Workspace-level billable Deploy usage for a time window, summed across all
  * resources: the same checkpoint-pair aggregation the hourly billing push in
  * svc/ctrl runs (pkg/clickhouse GetInstanceMeterUsage), so the dashboard shows
- * the numbers that are actually billed. Display-only; Stripe meter events
- * remain the billing write path.
+ * the numbers that are actually billed. The trailing window is aggregated from
+ * the same checkpoint scan so projecting usage does not reread the raw table.
+ * Display-only; Stripe meter events remain the billing write path. The query
+ * reads the physical table with FINAL because some ClickHouse versions do not
+ * propagate the equivalent view's primary-key order and force the window input
+ * through a redundant full sort.
  */
 export function getDeployMeterUsage(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        sumIf(cpu_usec_delta, ts >= {periodStart: Int64}) / 1e6 AS cpuSeconds,
+        sumIf(memory_byte_ms, ts >= {periodStart: Int64}) / 1000 / 3600 / pow(1024, 3) AS memoryGiBHours,
+        sumIf(disk_byte_ms, ts >= {periodStart: Int64}) / 1000 / 3600 / pow(1024, 3) AS diskGiBHours,
+        sumIf(egress_bytes_delta, ts >= {periodStart: Int64}) / pow(1024, 3) AS egressGiB,
+        sumIf(cpu_usec_delta, ts >= {trailingStart: Int64}) / 1e6 AS trailingCpuSeconds,
+        sumIf(memory_byte_ms, ts >= {trailingStart: Int64}) / 1000 / 3600 / pow(1024, 3) AS trailingMemoryGiBHours,
+        sumIf(disk_byte_ms, ts >= {trailingStart: Int64}) / 1000 / 3600 / pow(1024, 3) AS trailingDiskGiBHours,
+        sumIf(egress_bytes_delta, ts >= {trailingStart: Int64}) / pow(1024, 3) AS trailingEgressGiB
+      FROM (
+        SELECT
+          ts,
+          leadInFrame(ts) OVER w - ts AS dt,
+          greatest(0, leadInFrame(cpu_usage_usec) OVER w - cpu_usage_usec) AS cpu_usec_delta,
+          if(
+            ifNull(attributes.network_attached::Nullable(Bool), false)
+            AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w,
+            greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
+            0
+          ) AS egress_bytes_delta,
+          toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
+          toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
+        FROM default.instance_checkpoints_v1 FINAL
+        WHERE ts >= {scanStart: Int64}
+          AND ts < {end: Int64}
+          AND workspace_id = {workspaceId: String}
+        WINDOW w AS (
+          PARTITION BY workspace_id, container_uid
+          ORDER BY ts, event_kind
+          ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING
+        )
+      )
+      WHERE dt > 0
+        AND dt <= {maxGapMs: Int64}
+      SETTINGS
+        do_not_merge_across_partitions_select_final = 1,
+        max_final_threads = 1,
+        optimize_read_in_order = 1,
+        optimize_read_in_window_order = 1
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      scanStart: z.int(),
+      periodStart: z.int(),
+      trailingStart: z.int(),
+      end: z.int(),
+      maxGapMs: z.int(),
+    }),
+    schema: deployMeterUsage,
+  });
+
   return async (args: {
     workspaceId: string;
-    /** Inclusive lower bound, unix millis. */
-    start: number;
+    /** Inclusive lower bound of the billing period, unix millis. */
+    periodStart: number;
+    /** Inclusive lower bound of the projection window, unix millis. */
+    trailingStart: number;
     /** Exclusive upper bound, unix millis. */
     end: number;
   }): Promise<DeployMeterUsage> => {
-    const query = ch.query({
-      query: `
-    SELECT
-      sum(cpu_usec_delta) / 1e6 AS cpuSeconds,
-      sum(memory_byte_ms) / 1000 / 3600 / pow(1024, 3) AS memoryGiBHours,
-      sum(disk_byte_ms) / 1000 / 3600 / pow(1024, 3) AS diskGiBHours,
-      sum(egress_bytes_delta) / pow(1024, 3) AS egressGiB
-    FROM (
-      SELECT
-        leadInFrame(ts) OVER w - ts AS dt,
-        greatest(0, leadInFrame(cpu_usage_usec) OVER w - cpu_usage_usec) AS cpu_usec_delta,
-        if(
-          ifNull(attributes.network_attached::Nullable(Bool), false)
-          AND leadInFrame(ifNull(attributes.network_attached::Nullable(Bool), false)) OVER w,
-          greatest(0, leadInFrame(network_egress_public_bytes) OVER w - network_egress_public_bytes),
-          0
-        ) AS egress_bytes_delta,
-        toFloat64(least(memory_bytes, leadInFrame(memory_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS memory_byte_ms,
-        toFloat64(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes) OVER w)) * toFloat64(leadInFrame(ts) OVER w - ts) AS disk_byte_ms
-      FROM default.instance_checkpoints
-      WHERE ts >= {start: Int64}
-        AND ts < {end: Int64}
-        AND workspace_id = {workspaceId: String}
-      WINDOW w AS (
-        PARTITION BY workspace_id, container_uid
-        ORDER BY ts, event_kind
-        ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING
-      )
-    )
-    WHERE dt > 0 AND dt <= {maxGapMs: Int64}
-    SETTINGS do_not_merge_across_partitions_select_final = 1
-    `,
-      params: z.object({
-        workspaceId: z.string(),
-        start: z.int(),
-        end: z.int(),
-        maxGapMs: z.int(),
-      }),
-      schema: deployMeterUsage,
+    const result = await query({
+      ...args,
+      scanStart: Math.min(args.periodStart, args.trailingStart),
+      maxGapMs: MAX_SAMPLE_GAP_MS,
     });
-
-    const res = await query({ ...args, maxGapMs: MAX_SAMPLE_GAP_MS });
-    if (res.err) {
-      throw new Error(`Failed to query deploy meter usage: ${res.err.message}`);
+    if (result.err) {
+      throw new Error(`Failed to query deploy meter usage: ${result.err.message}`);
     }
     return (
-      res.val.at(0) ?? {
+      result.val.at(0) ?? {
         cpuSeconds: 0,
         memoryGiBHours: 0,
         diskGiBHours: 0,
         egressGiB: 0,
+        trailingCpuSeconds: 0,
+        trailingMemoryGiBHours: 0,
+        trailingDiskGiBHours: 0,
+        trailingEgressGiB: 0,
       }
     );
   };

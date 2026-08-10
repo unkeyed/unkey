@@ -159,6 +159,11 @@ func TestValidateGitBuildParams(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "context path dot prefix",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "./services/api"},
+			wantErr: true,
+		},
+		{
 			name:    "context path with url fragment",
 			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api#main"},
 			wantErr: true,

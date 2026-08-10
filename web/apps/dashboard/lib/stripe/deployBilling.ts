@@ -21,6 +21,7 @@ export type DeployBillingConfig = {
 // request, short enough to pick up a reprice without a redeploy.
 const RESOLUTION_TTL_MS = 5 * 60 * 1000;
 let cache: { key: string; expiresAt: number; config: DeployBillingConfig } | null = null;
+let pending: { key: string; promise: Promise<DeployBillingConfig | null> } | null = null;
 
 /**
  * Whether every Deploy lookup_key env var is set. deployBillingConfig() returns
@@ -90,44 +91,62 @@ export async function deployBillingConfig(): Promise<DeployBillingConfig | null>
   if (cache && cache.key === cacheKey && cache.expiresAt > now) {
     return cache.config;
   }
-
-  // One list call: <=10 lookup_keys, one active price each, so no paging.
-  const stripe = getStripeClient();
-  const prices = await stripe.prices.list({ lookup_keys: allLookupKeys, active: true, limit: 100 });
-  const idByLookupKey = new Map<string, string>();
-  for (const price of prices.data) {
-    if (price.lookup_key) {
-      idByLookupKey.set(price.lookup_key, price.id);
-    }
+  if (pending?.key === cacheKey) {
+    return pending.promise;
   }
 
-  // Every declared lookup_key must resolve to an active price, else the set is
-  // incomplete: treat it as unconfigured rather than attach a partial sub.
-  const planFeeEntries: Array<[DeployPlan, string]> = [];
-  for (const plan of DEPLOY_PLANS) {
-    const id = idByLookupKey.get(planFee[plan]);
-    if (!id) {
-      return null;
+  const promise = (async (): Promise<DeployBillingConfig | null> => {
+    // One list call: <=10 lookup_keys, one active price each, so no paging.
+    const stripe = getStripeClient();
+    const prices = await stripe.prices.list({
+      lookup_keys: allLookupKeys,
+      active: true,
+      limit: 100,
+    });
+    const idByLookupKey = new Map<string, string>();
+    for (const price of prices.data) {
+      if (price.lookup_key) {
+        idByLookupKey.set(price.lookup_key, price.id);
+      }
     }
-    planFeeEntries.push([plan, id]);
-  }
-  const meteredPriceIds: string[] = [];
-  for (const key of meters) {
-    const id = idByLookupKey.get(key);
-    if (!id) {
-      return null;
-    }
-    meteredPriceIds.push(id);
-  }
-  const planFeePriceIds = Object.fromEntries(planFeeEntries) as Record<DeployPlan, string>;
 
-  const config: DeployBillingConfig = {
-    planFeePriceIds,
-    meteredPriceIds,
-    allDeployPriceIds: new Set<string>([...Object.values(planFeePriceIds), ...meteredPriceIds]),
-  };
-  cache = { key: cacheKey, expiresAt: now + RESOLUTION_TTL_MS, config };
-  return config;
+    // Every declared lookup_key must resolve to an active price, else the set is
+    // incomplete: treat it as unconfigured rather than attach a partial sub.
+    const planFeeEntries: Array<[DeployPlan, string]> = [];
+    for (const plan of DEPLOY_PLANS) {
+      const id = idByLookupKey.get(planFee[plan]);
+      if (!id) {
+        return null;
+      }
+      planFeeEntries.push([plan, id]);
+    }
+    const meteredPriceIds: string[] = [];
+    for (const key of meters) {
+      const id = idByLookupKey.get(key);
+      if (!id) {
+        return null;
+      }
+      meteredPriceIds.push(id);
+    }
+    const planFeePriceIds = Object.fromEntries(planFeeEntries) as Record<DeployPlan, string>;
+
+    const config: DeployBillingConfig = {
+      planFeePriceIds,
+      meteredPriceIds,
+      allDeployPriceIds: new Set<string>([...Object.values(planFeePriceIds), ...meteredPriceIds]),
+    };
+    cache = { key: cacheKey, expiresAt: Date.now() + RESOLUTION_TTL_MS, config };
+    return config;
+  })();
+  pending = { key: cacheKey, promise };
+
+  try {
+    return await promise;
+  } finally {
+    if (pending?.promise === promise) {
+      pending = null;
+    }
+  }
 }
 
 /**

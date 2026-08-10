@@ -1,5 +1,4 @@
-import { freeTierQuotas } from "@/lib/quotas";
-import type { Quotas } from "@unkey/db";
+import { type PlanLimits, limitsByPlan } from "@/lib/limits";
 import type Stripe from "stripe";
 
 /**
@@ -14,87 +13,59 @@ import type Stripe from "stripe";
 export const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
 export type DeployPlan = (typeof DEPLOY_PLANS)[number];
 
-type ComputeQuotas = Pick<
-  Quotas,
-  | "logsRetentionDays"
-  | "auditLogsRetentionDays"
-  | "team"
-  | "maxCpuMillicoresPerInstance"
-  | "maxMemoryMibPerInstance"
-  | "maxStorageMibPerInstance"
-  | "maxConcurrentBuilds"
+type ComputeLimits = Pick<
+  PlanLimits,
+  | "logsRetentionDaysMax"
+  | "logsAuditRetentionDaysMax"
+  | "teamEnabled"
+  | "cpuCoresMaxPerInstance"
+  | "memoryMibMaxPerInstance"
+  | "storageMibMaxPerInstance"
+  | "buildsConcurrentMax"
 >;
 
-type ComputeOnlyQuotas = Pick<
-  ComputeQuotas,
-  | "maxCpuMillicoresPerInstance"
-  | "maxMemoryMibPerInstance"
-  | "maxStorageMibPerInstance"
-  | "maxConcurrentBuilds"
+type ComputeOnlyLimits = Pick<
+  ComputeLimits,
+  | "cpuCoresMaxPerInstance"
+  | "memoryMibMaxPerInstance"
+  | "storageMibMaxPerInstance"
+  | "buildsConcurrentMax"
 >;
 
-const COMPUTE_PLAN_QUOTAS = {
-  starter: {
-    logsRetentionDays: 3,
-    auditLogsRetentionDays: 7,
-    team: false,
-    maxCpuMillicoresPerInstance: 2_000,
-    maxMemoryMibPerInstance: 2_048,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-  pro: {
-    logsRetentionDays: 7,
-    auditLogsRetentionDays: 14,
-    team: true,
-    maxCpuMillicoresPerInstance: 8_000,
-    maxMemoryMibPerInstance: 8_192,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-  business: {
-    logsRetentionDays: 14,
-    auditLogsRetentionDays: 30,
-    team: true,
-    maxCpuMillicoresPerInstance: 16_000,
-    maxMemoryMibPerInstance: 32_768,
-    maxStorageMibPerInstance: 10_240,
-    maxConcurrentBuilds: 1,
-  },
-} satisfies Record<DeployPlan, ComputeQuotas>;
+function computeLimitsFromPlan(limits: PlanLimits): ComputeLimits {
+  return {
+    logsRetentionDaysMax: limits.logsRetentionDaysMax,
+    logsAuditRetentionDaysMax: limits.logsAuditRetentionDaysMax,
+    teamEnabled: limits.teamEnabled,
+    cpuCoresMaxPerInstance: limits.cpuCoresMaxPerInstance,
+    memoryMibMaxPerInstance: limits.memoryMibMaxPerInstance,
+    storageMibMaxPerInstance: limits.storageMibMaxPerInstance,
+    buildsConcurrentMax: limits.buildsConcurrentMax,
+  };
+}
 
-const DEFAULT_COMPUTE_QUOTAS = {
-  logsRetentionDays: freeTierQuotas.logsRetentionDays,
-  auditLogsRetentionDays: freeTierQuotas.auditLogsRetentionDays,
-  team: freeTierQuotas.team,
-  maxCpuMillicoresPerInstance: freeTierQuotas.maxCpuMillicoresPerInstance,
-  maxMemoryMibPerInstance: freeTierQuotas.maxMemoryMibPerInstance,
-  maxStorageMibPerInstance: freeTierQuotas.maxStorageMibPerInstance,
-  maxConcurrentBuilds: freeTierQuotas.maxConcurrentBuilds,
-} satisfies ComputeQuotas;
-
-export function computeQuotasForPlan(plan: DeployPlan | null): ComputeQuotas {
-  return plan ? COMPUTE_PLAN_QUOTAS[plan] : DEFAULT_COMPUTE_QUOTAS;
+export function computeLimitsForPlan(plan: DeployPlan | null): ComputeLimits {
+  return computeLimitsFromPlan(limitsByPlan[plan ?? "free"]);
 }
 
 /**
- * Returns the quota fields a Compute subscription may safely update. A paid
+ * Returns the limit fields a Compute subscription may safely update. A paid
  * API plan owns the shared retention and team fields, so Compute must preserve
  * those while still applying its resource limits.
  */
-export function computeQuotaUpdateForPlan(
+export function computeLimitUpdateForPlan(
   plan: DeployPlan | null,
-  preserveApiQuotas: boolean,
-): ComputeQuotas | ComputeOnlyQuotas {
-  const quotas = computeQuotasForPlan(plan);
-  if (!preserveApiQuotas) {
-    return quotas;
+  preserveApiLimits: boolean,
+): ComputeLimits | ComputeOnlyLimits {
+  const limits = computeLimitsForPlan(plan);
+  if (!preserveApiLimits) {
+    return limits;
   }
   return {
-    maxCpuMillicoresPerInstance: quotas.maxCpuMillicoresPerInstance,
-    maxMemoryMibPerInstance: quotas.maxMemoryMibPerInstance,
-    maxStorageMibPerInstance: quotas.maxStorageMibPerInstance,
-    maxConcurrentBuilds: quotas.maxConcurrentBuilds,
+    cpuCoresMaxPerInstance: limits.cpuCoresMaxPerInstance,
+    memoryMibMaxPerInstance: limits.memoryMibMaxPerInstance,
+    storageMibMaxPerInstance: limits.storageMibMaxPerInstance,
+    buildsConcurrentMax: limits.buildsConcurrentMax,
   };
 }
 

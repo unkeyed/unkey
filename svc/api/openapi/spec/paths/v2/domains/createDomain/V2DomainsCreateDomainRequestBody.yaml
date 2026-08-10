@@ -1,0 +1,56 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - domain
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  domain:
+    type: string
+    minLength: 4
+    maxLength: 253
+    description: |
+      Fully qualified domain name to attach to the environment, without a scheme, port, or path.
+      Must be unique across your entire workspace: the same name cannot be attached to two environments.
+
+      The name must sit under a registrable domain: 'api.acme.co.uk' is accepted, the public suffix
+      'co.uk' itself is not. Internationalized names may be sent in Unicode or Punycode form; either
+      way the domain is stored and returned in its canonical form, lowercase ASCII with Unicode labels
+      Punycode encoded, and the DNS records in the response use that form.
+    example: api.acme.com
+additionalProperties: false
+examples:
+  bySlug:
+    summary: Attach a domain, locating the environment by slug
+    description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand.
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      domain: api.acme.com
+  byId:
+    summary: Attach a domain, locating the environment by ID
+    description: Uses the ids returned by projects.listProjects, apps.listApps, and environments.listEnvironments.
+    value:
+      project: proj_1234abcd
+      app: app_1234abcd
+      environment: env_1234abcd
+      domain: api.acme.com
+  apex:
+    summary: Attach an apex domain
+    description: |
+      An apex domain cannot carry a CNAME, so the response returns an apex-compatible alias instead.
+      The provider resolves that alias to A or AAAA records, which is both what carries traffic and
+      what verification looks for, so there are no address records to find or enter by hand.
+      Ownership is proven through the TXT record.
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      domain: acme.com

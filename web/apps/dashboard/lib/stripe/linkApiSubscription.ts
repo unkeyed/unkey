@@ -4,7 +4,9 @@ import { stripeEnv } from "@/lib/env";
 import Stripe from "stripe";
 import { subscriptionIdsByProduct, upsertBillingSubscription } from "./billingSubscriptions";
 import { deployBillingConfig, findApiItem } from "./deployBilling";
+import { parseDeployPlan } from "./deployPlan";
 import { validateAndParseQuotas } from "./productUtils";
+import { setWorkspaceLimits } from "./setWorkspaceLimits";
 import { isDeadSubscription } from "./subscriptionUtils";
 
 export type LinkApiAudit = {
@@ -29,7 +31,7 @@ export type LinkApiResult =
       message: string;
     };
 
-/** Links a paid API subscription Checkout and grants its configured quotas. */
+/** Links a paid API subscription Checkout and grants its configured limits. */
 export async function linkApiSubscription(
   stripe: Stripe,
   input: { sessionId: string; expectedWorkspaceId: string; audit: LinkApiAudit },
@@ -158,23 +160,19 @@ export async function linkApiSubscription(
       product: "api",
       stripeSubscriptionId: subscriptionId,
     });
-    await tx
-      .insert(schema.quotas)
-      .values({
-        workspaceId: ws.id,
-        requestsPerMonth,
-        logsRetentionDays,
-        auditLogsRetentionDays,
-        team: true,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          requestsPerMonth,
-          logsRetentionDays,
-          auditLogsRetentionDays,
-          team: true,
-        },
-      });
+    await setWorkspaceLimits(tx, {
+      workspaceId: ws.id,
+      plan:
+        parseDeployPlan(ws.billing?.planOverride ?? null) ??
+        parseDeployPlan(ws.billing?.plan ?? null),
+      preserveApiLimits: true,
+      limitUpdate: {
+        apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
+        logsRetentionDaysMax: logsRetentionDays,
+        logsAuditRetentionDaysMax: auditLogsRetentionDays,
+        teamEnabled: true,
+      },
+    });
     await insertAuditLogs(tx, {
       workspaceId: ws.id,
       actor: input.audit.actor,

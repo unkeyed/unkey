@@ -266,6 +266,10 @@ const (
 	UpdatePolicy ActionType = "update_policy"
 	// ReadPolicies permits reading a specific environment's gateway policies
 	ReadPolicies ActionType = "read_policies"
+	// CreateDomain permits attaching a custom domain to a specific environment
+	CreateDomain ActionType = "create_domain"
+	// ReadDomain permits reading a specific environment's custom domains
+	ReadDomain ActionType = "read_domain"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

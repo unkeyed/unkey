@@ -82,6 +82,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		if evalErr != nil {
 			return evalErr
 		}
+		tracking.BodyRedactors = result.BodyRedactors
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {

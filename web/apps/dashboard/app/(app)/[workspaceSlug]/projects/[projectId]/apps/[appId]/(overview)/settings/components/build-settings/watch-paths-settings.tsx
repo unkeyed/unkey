@@ -1,5 +1,6 @@
 "use client";
 
+import { FormCombobox } from "@/components/ui/form-combobox";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, Plus } from "@unkey/icons";
@@ -12,6 +13,7 @@ import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environment
 import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
+import { useRepoTree } from "./use-repo-tree";
 
 const watchPathsSchema = z.object({
   paths: z.array(
@@ -24,7 +26,7 @@ const watchPathsSchema = z.object({
 type WatchPathsForm = z.infer<typeof watchPathsSchema>;
 
 function toFormPaths(paths: string[]): { value: string }[] {
-  return paths.length > 0 ? paths.map((p) => ({ value: p })) : [{ value: "" }];
+  return paths.map((p) => ({ value: p }));
 }
 
 function fromFormPaths(paths: { value: string }[]): string[] {
@@ -39,6 +41,7 @@ export const WatchPaths = () => {
   const { settings } = useEnvironmentSettings();
   const defaultPaths = settings.watchPaths ?? [];
   const updateAllEnvironments = useUpdateAllEnvironments();
+  const { watchPathSuggestions } = useRepoTree();
 
   const {
     register,
@@ -46,6 +49,7 @@ export const WatchPaths = () => {
     formState: { isValid, isSubmitting, errors },
     control,
     reset,
+    setValue,
   } = useForm<WatchPathsForm>({
     resolver: zodResolver(watchPathsSchema),
     mode: "onChange",
@@ -85,6 +89,50 @@ export const WatchPaths = () => {
   const currentPaths = useWatch({ control, name: "paths" });
   const currentValues = fromFormPaths(currentPaths ?? []);
   const hasChanges = changed(defaultPaths, currentValues);
+  const rootWatchPath =
+    settings.dockerContext && settings.dockerContext !== "."
+      ? `${settings.dockerContext}/**`
+      : null;
+  const options = [...watchPathSuggestions]
+    .sort((a, b) => {
+      if (a.path === rootWatchPath) {
+        return -1;
+      }
+      if (b.path === rootWatchPath) {
+        return 1;
+      }
+      return a.path.localeCompare(b.path);
+    })
+    .map(({ path, marker }) => ({
+      label: (
+        <span className="flex w-full items-center justify-between gap-4">
+          <span className="truncate font-mono">{path}</span>
+          <span className="shrink-0 text-gray-9">
+            {path === rootWatchPath ? "Root directory" : marker}
+          </span>
+        </span>
+      ),
+      selectedLabel: path,
+      value: path,
+      searchValue: path,
+      disabled: currentValues.includes(path),
+    }));
+
+  const addWatchPath = useCallback(
+    (value: string) => {
+      if (!value || currentValues.includes(value)) {
+        return;
+      }
+
+      const emptyIndex = currentPaths?.findIndex((path) => !path.value) ?? -1;
+      if (emptyIndex >= 0) {
+        setValue(`paths.${emptyIndex}.value`, value, { shouldValidate: true });
+        return;
+      }
+      append({ value });
+    },
+    [append, currentPaths, currentValues, setValue],
+  );
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -154,14 +202,16 @@ export const WatchPaths = () => {
             </div>
           );
         })}
-        <button
-          type="button"
-          className="flex items-center gap-1.5 text-gray-11 hover:text-gray-12 text-sm transition-colors w-fit cursor-pointer"
-          onClick={appendAndFocus}
-        >
-          <Plus iconSize="sm-regular" />
-          Add pattern
-        </button>
+        <FormCombobox
+          options={options}
+          value=""
+          onSelect={addWatchPath}
+          creatable
+          leftIcon={<Plus iconSize="sm-regular" />}
+          searchPlaceholder="Search suggestions or enter a glob..."
+          emptyMessage={<div className="mt-2">No suggested watch paths detected</div>}
+          placeholder={<span className="text-grayA-8">Add a watch path...</span>}
+        />
       </SettingField>
       <SettingDescription>
         Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.

@@ -87,6 +87,10 @@ type Services struct {
 	// operations (create seeds default environments and settings).
 	CtrlAppClient ctrl.AppServiceClient
 
+	// CtrlCustomDomainClient communicates with the control plane for custom
+	// domain operations (create starts a durable DNS verification workflow).
+	CtrlCustomDomainClient ctrl.CustomDomainServiceClient
+
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool
 

@@ -68,6 +68,7 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		ProjectID:        project.ID,
 		AppID:            app.ID,
 		Slug:             "production",
+		Kind:             mysqltype.EnvironmentKindProduction,
 		Description:      "",
 		SentinelConfig:   []byte("{}"),
 		DeleteProtection: false,

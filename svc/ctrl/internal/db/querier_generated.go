@@ -52,6 +52,12 @@ type Querier interface {
 	//  FROM instances i
 	//  WHERE i.deployment_id IN (/*SLICE:ids*/?)
 	CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -303,9 +309,9 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds, q.max_replicas_per_region
+	//      l.pk, l.workspace_id, l.api_billable_operations_count_max_per_month, l.api_requests_count_max_per_minute, l.logs_retention_days_max, l.logs_audit_retention_days_max, l.team_enabled, l.cpu_cores_max, l.cpu_cores_max_per_instance, l.memory_mib_max, l.memory_mib_max_per_instance, l.storage_mib_max, l.storage_mib_max_per_instance, l.builds_concurrent_max, l.custom_domains_max, l.autoscaling_replicas_max
 	//  FROM `clickhouse_workspace_settings` c
-	//  JOIN `quota` q ON q.workspace_id = c.workspace_id
+	//  JOIN `limits` l ON l.workspace_id = c.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	// FindCluster resolves the cluster and region rows for the complete identity
@@ -346,6 +352,14 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -416,7 +430,7 @@ type Querier interface {
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -424,12 +438,12 @@ type Querier interface {
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
 	//  WHERE app_id = ? AND slug = ?
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
@@ -524,9 +538,14 @@ type Querier interface {
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
 	//FindKeyByID
 	//
-	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
+	//  SELECT
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
+	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
+	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//  FROM `keys` k
 	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, id string) (Key, error)
+	FindKeyByID(ctx context.Context, id string) (FindKeyByIDRow, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
 	// you only need the ID for a subsequent mutation and do not need the full
 	// verification payload with roles, permissions, and rate limits.
@@ -548,6 +567,12 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
+	//FindLimitsByWorkspaceID
+	//
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
@@ -566,12 +591,6 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, id string) (Project, error)
-	//FindQuotaByWorkspaceID
-	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds, max_replicas_per_region
-	//  FROM `quota`
-	//  WHERE workspace_id = ?
-	FindQuotaByWorkspaceID(ctx context.Context, workspaceID string) (Quotas, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -674,9 +693,9 @@ type Querier interface {
 	//     b.stripe_customer_id,
 	//     b.tier,
 	//     w.enabled,
-	//     q.requests_per_month
+	//     l.api_billable_operations_count_max_per_month AS requests_per_month
 	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON q.workspace_id = w.id
+	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
@@ -1019,10 +1038,11 @@ type Querier interface {
 	//      app_id,
 	//      slug,
 	//      description,
+	//      kind,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?, ?, ?, ?, ?
+	//      ?, ?, ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertEnvironment(ctx context.Context, arg InsertEnvironmentParams) error
 	//InsertFrontlineRoute
@@ -1130,7 +1150,6 @@ type Querier interface {
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
-	//      owner_id,
 	//      identity_id,
 	//      meta,
 	//      expires,
@@ -1148,7 +1167,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      null,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1339,10 +1357,10 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
-	// Creates the billing row for a workspace, mirroring how UpsertQuota creates the
-	// quota row. Idempotent: a second call for the same workspace is a no-op, so it
-	// is safe to call after InsertWorkspace without a prior check. New workspaces
-	// start on the Free tier with no Stripe linkage and no plan.
+	// Creates the billing row for a workspace. Idempotent: a second call for the
+	// same workspace is a no-op, so it is safe to call after InsertWorkspace without
+	// a prior check. New workspaces start on the Free tier with no Stripe linkage and
+	// no plan.
 	//
 	//  INSERT INTO `workspace_billing` (
 	//      workspace_id,
@@ -1459,11 +1477,11 @@ type Querier interface {
 	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
-	//    AND e.slug = CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
+	//    AND CASE
+	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN 'production'
-	//      ELSE 'preview'
+	//      THEN e.kind = 'production'
+	//      ELSE e.kind = 'preview'
 	//    END
 	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
@@ -1522,9 +1540,9 @@ type Querier interface {
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
 	//  FROM environments
-	//  WHERE slug = 'preview'
+	//  WHERE kind = 'preview'
 	//  AND pk > ?
 	//  ORDER BY pk ASC
 	//  LIMIT ?
@@ -1551,7 +1569,7 @@ type Querier interface {
 	//  SELECT
 	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
@@ -1559,11 +1577,11 @@ type Querier interface {
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
 	//  INNER JOIN environments e ON e.app_id = a.id
-	//    AND e.slug = CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
+	//    AND CASE
+	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
-	//      THEN 'production'
-	//      ELSE 'preview'
+	//      THEN e.kind = 'production'
+	//      ELSE e.kind = 'preview'
 	//    END
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
@@ -2151,6 +2169,41 @@ type Querier interface {
 	//  	memory_mib = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, arg UpsertInstanceParams) error
+	//UpsertLimit
+	//
+	//  INSERT INTO `limits` (
+	//      workspace_id,
+	//      api_billable_operations_count_max_per_month,
+	//      api_requests_count_max_per_minute,
+	//      logs_retention_days_max,
+	//      logs_audit_retention_days_max,
+	//      team_enabled,
+	//      cpu_cores_max,
+	//      cpu_cores_max_per_instance,
+	//      memory_mib_max,
+	//      memory_mib_max_per_instance,
+	//      storage_mib_max,
+	//      storage_mib_max_per_instance,
+	//      builds_concurrent_max,
+	//      custom_domains_max,
+	//      autoscaling_replicas_max
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      api_billable_operations_count_max_per_month = VALUES(api_billable_operations_count_max_per_month),
+	//      api_requests_count_max_per_minute = VALUES(api_requests_count_max_per_minute),
+	//      logs_retention_days_max = VALUES(logs_retention_days_max),
+	//      logs_audit_retention_days_max = VALUES(logs_audit_retention_days_max),
+	//      team_enabled = VALUES(team_enabled),
+	//      cpu_cores_max = VALUES(cpu_cores_max),
+	//      cpu_cores_max_per_instance = VALUES(cpu_cores_max_per_instance),
+	//      memory_mib_max = VALUES(memory_mib_max),
+	//      memory_mib_max_per_instance = VALUES(memory_mib_max_per_instance),
+	//      storage_mib_max = VALUES(storage_mib_max),
+	//      storage_mib_max_per_instance = VALUES(storage_mib_max_per_instance),
+	//      builds_concurrent_max = VALUES(builds_concurrent_max),
+	//      custom_domains_max = VALUES(custom_domains_max),
+	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
+	UpsertLimit(ctx context.Context, arg UpsertLimitParams) error
 	//UpsertOpenApiSpec
 	//
 	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
@@ -2160,24 +2213,6 @@ type Querier interface {
 	//      content = VALUES(content),
 	//      updated_at = VALUES(updated_at)
 	UpsertOpenApiSpec(ctx context.Context, arg UpsertOpenApiSpecParams) error
-	//UpsertQuota
-	//
-	//  INSERT INTO quota (
-	//      workspace_id,
-	//      requests_per_month,
-	//      audit_logs_retention_days,
-	//      logs_retention_days,
-	//      team,
-	//      ratelimit_api_limit,
-	//      ratelimit_api_duration
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      requests_per_month = VALUES(requests_per_month),
-	//      audit_logs_retention_days = VALUES(audit_logs_retention_days),
-	//      logs_retention_days = VALUES(logs_retention_days),
-	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
-	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
-	UpsertQuota(ctx context.Context, arg UpsertQuotaParams) error
 	// Inserts a region or does nothing if it already exists (keyed by the
 	// (name, platform) unique index).
 	//

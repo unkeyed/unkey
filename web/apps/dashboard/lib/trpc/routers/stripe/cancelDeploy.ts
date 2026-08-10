@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { cancelDeploySubscription } from "@/lib/stripe/cancelDeploySubscription";
 import { deployPlanGrantsTeam } from "@/lib/stripe/deployPlan";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -16,8 +16,8 @@ import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
  * mixed one, never refunding), then calls ctrl to tear down the workspace's
  * running compute and clear the deploy_plan entitlement. The Stripe logic lives
  * here alongside subscribe and change-plan so subscription knowledge is not
- * duplicated in Go. Compute-owned quotas return to their defaults, while any API
- * plan quotas remain intact. The audit log stays here so the user actor is recorded.
+ * duplicated in Go. Compute-owned limits return to their defaults, while any API
+ * plan limits remain intact. The audit log stays here so the user actor is recorded.
  */
 export const cancelDeploy = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -59,10 +59,10 @@ export const cancelDeploy = workspaceProcedure
     }
 
     await db.transaction(async (tx) => {
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: ctx.workspace.id,
         plan: null,
-        preserveApiQuotas: ctx.workspace.tier !== "Free",
+        preserveApiLimits: ctx.workspace.tier !== "Free",
       });
       await insertAuditLogs(tx, {
         workspaceId: ctx.workspace.id,

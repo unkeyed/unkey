@@ -202,7 +202,6 @@
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
                   "platform/workspaces/billing",
-                  "platform/workspaces/compute-billing",
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
@@ -480,7 +479,9 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing"
+                      "errors/unkey/authentication/missing",
+                      "errors/unkey/authentication/portal_session_not_found",
+                      "errors/unkey/authentication/portal_token_missing"
                     ]
                   },
                   {
@@ -502,6 +503,8 @@
                       "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/deployment_not_found",
+                      "errors/unkey/data/domain_already_exists",
+                      "errors/unkey/data/domain_not_found",
                       "errors/unkey/data/environment_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",
@@ -512,6 +515,7 @@
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
                       "errors/unkey/data/policy_not_found",
+                      "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_already_exists",
                       "errors/unkey/data/project_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
@@ -520,6 +524,12 @@
                       "errors/unkey/data/role_already_exists",
                       "errors/unkey/data/role_not_found",
                       "errors/unkey/data/workspace_not_found"
+                    ]
+                  },
+                  {
+                    "group": "Limits",
+                    "pages": [
+                      "errors/unkey/limits/custom_domain_limit_exceeded"
                     ]
                   }
                 ]

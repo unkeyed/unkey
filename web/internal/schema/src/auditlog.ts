@@ -67,6 +67,7 @@ export const unkeyAuditLogEvents = z.enum([
   "deployment.cancel",
   "deployment.stop",
   "deployment.wake",
+  "domain.create",
 ]);
 
 export const auditLogSchemaV1 = z.object({

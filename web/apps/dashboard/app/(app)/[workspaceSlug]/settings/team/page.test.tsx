@@ -63,7 +63,7 @@ describe("Team page provider split", () => {
     mocks.getAuth.mockResolvedValue({ orgId: "org_123" });
     mocks.findWorkspace.mockResolvedValue({
       id: "ws_123",
-      quotas: { team: true },
+      limits: { teamEnabled: true },
     });
   });
 

@@ -38,10 +38,10 @@ type BulkQuerier interface {
 	InsertKeyPermissions(ctx context.Context, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, args []InsertKeySpaceParams) error
+	UpsertLimit(ctx context.Context, args []UpsertLimitParams) error
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
-	UpsertQuota(ctx context.Context, args []UpsertQuotaParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
 	InsertWorkspaceBillings(ctx context.Context, args []InsertWorkspaceBillingParams) error

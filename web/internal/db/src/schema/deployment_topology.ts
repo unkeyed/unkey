@@ -1,25 +1,18 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  mysqlEnum,
-  mysqlTable,
-  tinyint,
-  uniqueIndex,
-} from "drizzle-orm/mysql-core";
+import { index, int, mysqlEnum, mysqlTable, tinyint, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
 export const deploymentTopology = mysqlTable(
   "deployment_topology",
   {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    workspaceId: caseSensitiveVarchar("workspace_id", { length: 64 }).notNull(),
-    deploymentId: caseSensitiveVarchar("deployment_id", { length: 64 }).notNull(),
-    regionId: caseSensitiveVarchar("region_id", { length: 64 }).notNull(),
+    pk: primaryKey(),
+    workspaceId: id("workspace_id").notNull(),
+    deploymentId: id("deployment_id").notNull(),
+    regionId: id("region_id").notNull(),
 
     // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
     // Minimum number of pod replicas the HPA will maintain.

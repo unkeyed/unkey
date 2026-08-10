@@ -84,4 +84,7 @@ const (
 	// Environment events
 	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
+
+	// Custom domain events
+	DomainCreateEvent AuditLogEvent = "domain.create"
 )

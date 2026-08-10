@@ -16,6 +16,7 @@ type BulkQuerier interface {
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
+	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
@@ -35,13 +36,13 @@ type BulkQuerier interface {
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
+	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
 	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
 	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
 	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
-	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error

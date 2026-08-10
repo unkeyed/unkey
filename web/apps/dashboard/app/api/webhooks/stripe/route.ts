@@ -5,7 +5,6 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
-import { freeTierQuotas } from "@/lib/quotas";
 import { deleteBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   type ComputeLifecycleAlert,
@@ -19,7 +18,7 @@ import { linkApiSubscription } from "@/lib/stripe/linkApiSubscription";
 import { linkDeploySubscription } from "@/lib/stripe/linkDeploySubscription";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { setComputeQuotas } from "@/lib/stripe/setComputeQuotas";
+import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
@@ -60,20 +59,20 @@ async function mirrorDeployPlan(
   const plan = cancelling ? null : detectDeployPlan(sub);
   const changed = plan !== billing.plan;
   if (changed) {
-    const preserveApiQuotas = (billing.tier ?? "Free") !== "Free";
+    const preserveApiLimits = (billing.tier ?? "Free") !== "Free";
     await db.transaction(async (tx) => {
       await tx
         .update(schema.workspaceBilling)
         .set({ plan })
         .where(eq(schema.workspaceBilling.workspaceId, billing.workspaceId));
-      await setComputeQuotas(tx, {
+      await setWorkspaceLimits(tx, {
         workspaceId: billing.workspaceId,
         plan,
-        preserveApiQuotas,
+        preserveApiLimits,
       });
     });
 
-    if (!preserveApiQuotas && deployPlanGrantsTeam(billing.plan) && !deployPlanGrantsTeam(plan)) {
+    if (!preserveApiLimits && deployPlanGrantsTeam(billing.plan) && !deployPlanGrantsTeam(plan)) {
       await deactivateNonCreatorMemberships(orgId);
     }
   }
@@ -445,7 +444,7 @@ export const POST = async (req: Request): Promise<Response> => {
         const previousAttributes = event.data.previous_attributes;
 
         // Deploy-matched: mirror the plan, announce the change, and stop. The
-        // Deploy subscription never carries API tier/quota state, so there is
+        // Deploy subscription never carries API tier/limit state, so there is
         // nothing else to reconcile. mirrorDeployPlan only writes when the plan
         // changed, so a renewal event does no DB write; the alert is derived
         // from the Stripe event (a DB plan diff is unreliable because the
@@ -490,12 +489,12 @@ export const POST = async (req: Request): Promise<Response> => {
         }
 
         // Skip database updates and notifications for card/payment method updates only
-        // These don't affect subscription pricing, quotas, or other business logic
+        // These don't affect subscription pricing, limits, or other business logic
         if (isCardUpdateOnly(eventSub, previousAttributes)) {
           return new Response("OK", { status: 201 });
         }
 
-        // Reconcile tier/quotas from the API plan item. A missing item/price is
+        // Reconcile tier/limits from the API plan item. A missing item/price is
         // a degenerate API subscription with nothing to derive a tier from; ack
         // rather than guess.
         const apiContext = await resolveApiSubscriptionContext(stripe, sub);
@@ -510,7 +509,7 @@ export const POST = async (req: Request): Promise<Response> => {
          */
         if (sub.cancel_at) {
           // Alert only when an email exists, but return unconditionally: the tier
-          // and quota update below is for active plan changes, never a cancelling
+          // and limit update below is for active plan changes, never a cancelling
           // subscription.
           if (customer && !customer.deleted && customer.email) {
             await alertCustomerLifecycle({
@@ -528,7 +527,7 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        // Validate and parse quotas
+        // Validate and parse Stripe limit metadata.
         const quotas = validateAndParseQuotas(product);
         if (!quotas.valid) {
           // Without valid quota metadata the tier sync is skipped while Stripe
@@ -597,9 +596,9 @@ export const POST = async (req: Request): Promise<Response> => {
         // Stripe is the source of truth and subscriptions can also be changed
         // outside the dashboard.
         const rateLimitReset =
-          changeType === "upgraded" ? { ratelimitApiLimit: null, ratelimitApiDuration: null } : {};
+          changeType === "upgraded" ? { apiRequestsCountMaxPerMinute: null } : {};
 
-        // Update quotas and workspace tier
+        // Update limits and workspace tier
         await db.transaction(async (tx) => {
           await tx
             .update(schema.workspaceBilling)
@@ -608,25 +607,18 @@ export const POST = async (req: Request): Promise<Response> => {
             })
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
 
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
+          await setWorkspaceLimits(tx, {
+            workspaceId: ws.id,
+            plan: parseDeployPlan(billing.planOverride) ?? parseDeployPlan(billing.plan),
+            preserveApiLimits: true,
+            limitUpdate: {
+              apiBillableOperationsCountMaxPerMonth: requestsPerMonth,
+              logsRetentionDaysMax: logsRetentionDays,
+              logsAuditRetentionDaysMax: auditLogsRetentionDays,
+              teamEnabled: true,
               ...rateLimitReset,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-                ...rateLimitReset,
-              },
-            });
+            },
+          });
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
@@ -757,19 +749,12 @@ export const POST = async (req: Request): Promise<Response> => {
             await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "compute" });
 
             // Reset the Compute-owned ceilings even when a paid API plan remains;
-            // in that case the API-owned quota fields and team access stay intact.
-            if (keepsTeam) {
-              await setComputeQuotas(tx, {
-                workspaceId: ws.id,
-                plan: null,
-                preserveApiQuotas: true,
-              });
-            } else {
-              await tx
-                .insert(schema.quotas)
-                .values({ workspaceId: ws.id, ...freeTierQuotas })
-                .onDuplicateKeyUpdate({ set: freeTierQuotas });
-            }
+            // in that case the API-owned limit fields and team access stay intact.
+            await setWorkspaceLimits(tx, {
+              workspaceId: ws.id,
+              plan: null,
+              preserveApiLimits: keepsTeam,
+            });
 
             await insertAuditLogs(tx, {
               workspaceId: ws.id,
@@ -819,19 +804,10 @@ export const POST = async (req: Request): Promise<Response> => {
         const deployPlan = parseDeployPlan(billing.plan);
         const keepsTeam = keepsTeamAfterDelete("api", billing);
 
-        // When a Compute plan survives, reset the API-only fields and then
-        // reapply that plan's shared and resource entitlements. Without a
-        // Compute plan, restore the complete free quota record.
-        const apiFreeQuotas = {
-          requestsPerMonth: freeTierQuotas.requestsPerMonth,
-          ratelimitApiLimit: freeTierQuotas.ratelimitApiLimit,
-          ratelimitApiDuration: freeTierQuotas.ratelimitApiDuration,
-        };
-
         // One transaction. Deleting the billing_subscriptions row is what the
         // retry lookup keys on, so if it committed alone and a later write
         // failed, the redelivered event could no longer find the workspace and
-        // would strand paid quotas on Free forever. Atomic writes mean a partial
+        // would strand paid limits on Free forever. Atomic writes mean a partial
         // failure rolls back the row delete too, so the retry re-finds the
         // workspace and completes the downgrade. Same shape as workspace creation.
         await db.transaction(async (tx) => {
@@ -841,22 +817,11 @@ export const POST = async (req: Request): Promise<Response> => {
             .where(eq(schema.workspaceBilling.workspaceId, ws.id));
           await deleteBillingSubscription(tx, { workspaceId: ws.id, product: "api" });
 
-          if (deployPlan) {
-            await tx
-              .insert(schema.quotas)
-              .values({ workspaceId: ws.id, ...apiFreeQuotas })
-              .onDuplicateKeyUpdate({ set: apiFreeQuotas });
-            await setComputeQuotas(tx, {
-              workspaceId: ws.id,
-              plan: deployPlan,
-              preserveApiQuotas: false,
-            });
-          } else {
-            await tx
-              .insert(schema.quotas)
-              .values({ workspaceId: ws.id, ...freeTierQuotas })
-              .onDuplicateKeyUpdate({ set: freeTierQuotas });
-          }
+          await setWorkspaceLimits(tx, {
+            workspaceId: ws.id,
+            plan: deployPlan,
+            preserveApiLimits: false,
+          });
 
           await insertAuditLogs(tx, {
             workspaceId: ws.id,
@@ -922,7 +887,7 @@ export const POST = async (req: Request): Promise<Response> => {
     }
     case "customer.subscription.created": {
       /**
-       * Subscription create + tier/quota writes happen inline in the createSubscription
+       * Subscription create + tier/limit writes happen inline in the createSubscription
        * tRPC mutation now. This webhook only sends the operational Slack alert so the
        * team is notified out-of-band; it deliberately does no DB writes.
        */

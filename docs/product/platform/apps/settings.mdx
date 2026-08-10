@@ -27,6 +27,21 @@ The directory your application is built from. It is the directory Unkey [analyze
 
 Set this when your application lives in a subdirectory, for example `services/api`.
 
+The root directory must be relative to the repository root. Use `.` for the repository root, or enter a slash-separated directory such as `api` or `services/api`. Don't start the path with `/` or `./`, and don't end it with `/`.
+
+Each directory name can contain letters, digits, periods (`.`), underscores (`_`), and hyphens (`-`). Empty directory names, `.` segments, `..` segments, whitespace, backslashes, and other characters aren't supported.
+
+| Value             | Valid | Reason                                 |
+| ----------------- | ----- | -------------------------------------- |
+| `.`               | Yes   | Selects the repository root            |
+| `api`             | Yes   | Selects a top-level directory          |
+| `services/api`    | Yes   | Selects a nested directory             |
+| `/api`            | No    | Starts with `/`                        |
+| `./api`           | No    | Starts with `./`                       |
+| `services/api/`   | No    | Ends with `/`                          |
+| `services/../api` | No    | Contains a `..` path traversal segment |
+| `services/api v2` | No    | Contains whitespace                    |
+
 ### Dockerfile
 
 By default this is set to **Automatic (no Dockerfile)**: Unkey detects your language and [builds the image for you](/builds/overview). Configure a path only when you want [full control over the image with a Dockerfile](/builds/dockerfile).

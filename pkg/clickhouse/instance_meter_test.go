@@ -3,6 +3,7 @@ package clickhouse_test
 import (
 	"context"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -258,6 +259,72 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		require.InDelta(t, 7.0, findUsage(t, rows, resB).CPUSeconds, 1e-9)
 	})
 
+	t.Run("FINAL deduplicates replacements inserted in separate parts", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base, sampleValues{
+				cpuUsec: 0, egressBytes: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, base+sampleGap, sampleValues{
+				cpuUsec: 1_000_000, egressBytes: 1000, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, base+2*sampleGap, sampleValues{
+				cpuUsec: 3_000_000, egressBytes: 3000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+		// Same replacement key as the middle checkpoint, inserted in a later
+		// part with corrected counters. FINAL must retain only this version.
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base+sampleGap, sampleValues{
+				cpuUsec: 2_000_000, egressBytes: 2000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       windowStart,
+			End:         windowEnd,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		require.InDelta(t, 3.0, u.CPUSeconds, 1e-9)
+		require.Equal(t, int64(3000), u.EgressBytes)
+	})
+
+	t.Run("integrates a checkpoint pair across daily partitions", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		midnight := base + int64(24*time.Hour/time.Millisecond)
+
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, midnight-sampleGap, sampleValues{
+				cpuUsec: 0, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, midnight, sampleValues{
+				cpuUsec: 1_000_000, memoryBytes: gib, diskBytes: gib,
+			}),
+			c.sample(ws, resource, midnight+sampleGap, sampleValues{
+				cpuUsec: 2_000_000, memoryBytes: gib, diskBytes: gib,
+			}),
+		})
+
+		rows, err := client.GetInstanceMeterUsage(ctx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceID: ws,
+			Start:       midnight - sampleGap,
+			End:         midnight + 2*sampleGap,
+		})
+		require.NoError(t, err)
+
+		u := findUsage(t, rows, resource)
+		require.InDelta(t, 2.0, u.CPUSeconds, 1e-9)
+		require.InDelta(t, gibHours(float64(gib)*float64(2*sampleGap)), u.MemoryGiBHours, 1e-9)
+	})
+
 	t.Run("returns no rows outside the window", func(t *testing.T) {
 		ws := uid.New(uid.WorkspacePrefix)
 		resource := uid.New("res")
@@ -276,6 +343,63 @@ func TestGetInstanceMeterUsage(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Empty(t, rows)
+	})
+
+	t.Run("streams the window input without a full sort", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		resource := uid.New("res")
+		c := newContainer()
+		// Separate parts ensure FINAL has real merge work when ClickHouse plans
+		// the query; an empty table can collapse to a NullSource pipeline.
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base, sampleValues{memoryBytes: gib, diskBytes: gib}),
+		})
+		insertCheckpoints(t, ctx, conn, []schema.InstanceCheckpoint{
+			c.sample(ws, resource, base+sampleGap, sampleValues{cpuUsec: 1_000_000, memoryBytes: gib, diskBytes: gib}),
+		})
+
+		queryID := uid.New("query")
+		queryCtx := ch.Context(ctx, ch.WithQueryID(queryID))
+		_, err := client.GetInstanceMeterUsage(queryCtx, clickhouse.GetInstanceMeterUsageRequest{
+			WorkspaceIDs: []string{ws},
+			Start:        windowStart,
+			End:          windowEnd,
+		})
+		require.NoError(t, err)
+		require.NoError(t, conn.Exec(ctx, "SYSTEM FLUSH LOGS"))
+
+		var loggedQuery string
+		require.Eventually(t, func() bool {
+			return conn.QueryRow(ctx, `
+				SELECT query
+				FROM system.query_log
+				WHERE query_id = ? AND type = 'QueryFinish'
+				LIMIT 1
+			`, queryID).Scan(&loggedQuery) == nil
+		}, 5*time.Second, 50*time.Millisecond)
+		require.Contains(t, loggedQuery, "FROM instance_checkpoints_v1 FINAL")
+		require.Contains(t, loggedQuery, "max_final_threads = 1")
+
+		pipelineRows, err := conn.Query(ctx, "EXPLAIN PIPELINE "+loggedQuery)
+		require.NoError(t, err)
+		defer pipelineRows.Close()
+		var pipeline []string
+		for pipelineRows.Next() {
+			var line string
+			require.NoError(t, pipelineRows.Scan(&line))
+			pipeline = append(pipeline, line)
+		}
+		require.NoError(t, pipelineRows.Err())
+		plan := strings.Join(pipeline, "\n")
+		require.Contains(t, plan, "WindowTransform")
+		for _, transform := range []string{
+			"FinishSortingTransform",
+			"PartialSortingTransform",
+			"MergeSortingTransform",
+			"ScatterByPartitionTransform",
+		} {
+			require.NotContains(t, plan, transform)
+		}
 	})
 }
 

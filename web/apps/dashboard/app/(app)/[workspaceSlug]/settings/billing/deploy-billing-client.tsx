@@ -98,39 +98,12 @@ export const DeployBillingClient: React.FC = () => {
     data: billingInfo,
     isLoading: billingLoading,
     error: billingError,
-  } = trpc.stripe.getBillingInfo.useQuery(undefined, { staleTime: 30_000 });
+  } = trpc.stripe.getBillingInfo.useQuery(undefined, {
+    staleTime: 30_000,
+    trpc: { context: { skipBatch: true } },
+  });
 
-  // Error first: on a failed query tRPC returns isLoading=false, data=undefined,
-  // so a leading `billingLoading || !billingInfo` guard would catch the error
-  // case and render the loading skeleton forever instead of this branch.
-  if (billingError) {
-    return (
-      <Shell>
-        <Empty>
-          <Empty.Title>Failed to load billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
-      </Shell>
-    );
-  }
-
-  if (billingLoading || !billingInfo) {
-    return (
-      <Shell>
-        <div className="animate-pulse">
-          <div className="flex w-full flex-col items-center gap-4 pt-4 pb-16">
-            <div className="h-[72px] w-full rounded-lg bg-grayA-3" />
-            <div className="h-[180px] w-full rounded-lg bg-grayA-3" />
-            <div className="h-[120px] w-full rounded-lg bg-grayA-3" />
-          </div>
-        </div>
-      </Shell>
-    );
-  }
-
-  const subscription = billingInfo.subscription;
+  const subscription = billingInfo?.subscription;
   const hasPaymentMethod = Boolean(workspace.stripeCustomerId);
 
   return (
@@ -153,15 +126,26 @@ export const DeployBillingClient: React.FC = () => {
           autoOpenPlanModal={checkoutIntent === "compute" && hasPaymentMethod}
         />
 
-        <ApiAddOnCard
-          isAdmin={isAdmin}
-          hasPaymentMethod={hasPaymentMethod}
-          workspaceSlug={workspace.slug}
-          products={billingInfo.products}
-          subscription={subscription}
-          currentProductId={billingInfo.currentProductId}
-          autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
-        />
+        {billingError ? (
+          <Empty>
+            <Empty.Title>Failed to load API billing information</Empty.Title>
+            <Empty.Description>
+              There was an error loading your API billing information. Please try again later.
+            </Empty.Description>
+          </Empty>
+        ) : billingLoading || !billingInfo ? (
+          <div className="h-[120px] w-full animate-pulse rounded-lg bg-grayA-3" />
+        ) : (
+          <ApiAddOnCard
+            isAdmin={isAdmin}
+            hasPaymentMethod={hasPaymentMethod}
+            workspaceSlug={workspace.slug}
+            products={billingInfo.products}
+            subscription={subscription}
+            currentProductId={billingInfo.currentProductId}
+            autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
+          />
+        )}
       </div>
     </Shell>
   );

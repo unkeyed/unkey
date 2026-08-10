@@ -96,7 +96,7 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	).Scan(&seeded)
 	require.NoError(t, err)
 	if seeded {
-		seedScaleQuota(t, ctx, h)
+		seedScaleLimits(t, ctx, h)
 		return
 	}
 
@@ -152,24 +152,31 @@ func seedScaleIdentities(t *testing.T, ctx context.Context, h *testutil.Harness)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-	seedScaleQuota(t, ctx, h)
+	seedScaleLimits(t, ctx, h)
 	t.Logf("seeded %d identities in %s", scaleIdentities, time.Since(seedStart))
 }
 
-// seedScaleQuota ensures the scale workspace has a quota row. Without one the
-// auth middleware's workspace rate limiting fails open after logging a quota
-// lookup error, which is not the path production requests take.
-func seedScaleQuota(t *testing.T, ctx context.Context, h *testutil.Harness) {
+// seedScaleLimits ensures the scale workspace has the rows auth reads before
+// the route runs.
+func seedScaleLimits(t *testing.T, ctx context.Context, h *testutil.Harness) {
 	t.Helper()
 
-	err := db.Query.UpsertQuota(ctx, h.DB.RW(), db.UpsertQuotaParams{
-		WorkspaceID:            scaleWorkspaceID,
-		LogsRetentionDays:      30,
-		AuditLogsRetentionDays: 30,
-		RequestsPerMonth:       1_000_000,
-		Team:                   false,
-		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
-		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           scaleWorkspaceID,
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(t, err)
 }

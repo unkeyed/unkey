@@ -101,36 +101,37 @@ func TestWithAuthentication_PublishesPrincipalToHandler(t *testing.T) {
 
 // TestWithAuthentication_EnforcesWorkspaceRateLimit verifies workspace-level
 // API policy is keyed from the authenticated principal and denies the request
-// before handler execution. The quota is preloaded into the cache so the test
-// stays focused on middleware ordering and ratelimit request construction,
+// before handler execution. The limits row is preloaded into the cache so the
+// test stays focused on middleware ordering and ratelimit request construction,
 // without depending on a database fixture.
 func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	t.Parallel()
 
-	quotaCache, err := cache.New[string, keysdb.Quotas](cache.Config[string, keysdb.Quotas]{
+	limitsCache, err := cache.New[string, keysdb.Limit](cache.Config[string, keysdb.Limit]{
 		Fresh:    time.Minute,
 		Stale:    time.Minute,
 		MaxSize:  10,
-		Resource: "test_workspace_quota",
+		Resource: "test_workspace_limits",
 		Clock:    clock.NewTestClock(),
 	})
 	require.NoError(t, err)
-	quotaCache.Set(context.Background(), "ws_123", keysdb.Quotas{
-		Pk:                          0,
-		WorkspaceID:                 "ws_123",
-		RequestsPerMonth:            0,
-		LogsRetentionDays:           0,
-		AuditLogsRetentionDays:      0,
-		Team:                        false,
-		RatelimitApiLimit:           sql.NullInt32{Int32: 1, Valid: true},
-		RatelimitApiDuration:        sql.NullInt32{Int32: 60_000, Valid: true},
-		AllocatedCpuMillicoresTotal: 0,
-		AllocatedMemoryMibTotal:     0,
-		AllocatedStorageMibTotal:    0,
-		MaxCpuMillicoresPerInstance: 0,
-		MaxMemoryMibPerInstance:     0,
-		MaxStorageMibPerInstance:    0,
-		MaxConcurrentBuilds:         0,
+	limitsCache.Set(context.Background(), "ws_123", keysdb.Limit{
+		Pk:                                    0,
+		WorkspaceID:                           "ws_123",
+		ApiBillableOperationsCountMaxPerMonth: 0,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{Int32: 1, Valid: true},
+		LogsRetentionDaysMax:                  0,
+		LogsAuditRetentionDaysMax:             0,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           0,
+		CpuCoresMaxPerInstance:                0,
+		MemoryMibMax:                          0,
+		MemoryMibMaxPerInstance:               0,
+		StorageMibMax:                         0,
+		StorageMibMaxPerInstance:              0,
+		BuildsConcurrentMax:                   0,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
 	})
 	rl := &fakeRatelimit{
 		response: ratelimit.RatelimitResponse{
@@ -147,9 +148,9 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 
 	err = WithAuthentication(AuthenticationConfig{
-		Auth:       &fakeAuth{principal: testMiddlewarePrincipal("ws_123")},
-		QuotaCache: quotaCache,
-		Ratelimit:  rl,
+		Auth:        &fakeAuth{principal: testMiddlewarePrincipal("ws_123")},
+		LimitsCache: limitsCache,
+		Ratelimit:   rl,
 	})(func(_ context.Context, _ *zen.Session) error {
 		handlerCalled = true
 		return nil

@@ -47,10 +47,11 @@ export const queryDeployUsage = workspaceProcedure
     const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
 
     try {
-      const [meters, keys, trailing] = await Promise.all([
+      const [meters, keys] = await Promise.all([
         clickhouse.billing.deployMeterUsage({
           workspaceId: ctx.workspace.id,
-          start: monthStart,
+          periodStart: monthStart,
+          trailingStart: nowMs - TRAILING_WINDOW_MS,
           end: nowMs,
         }),
         clickhouse.billing.activeKeysUsage({
@@ -58,13 +59,6 @@ export const queryDeployUsage = workspaceProcedure
           year: now.getUTCFullYear(),
           // getUTCMonth is 0-based; the query takes a calendar month.
           month: now.getUTCMonth() + 1,
-        }),
-        // Trailing window for the projection's run-rate; may reach into last
-        // month early in the period, which is fine, it's just a rate estimate.
-        clickhouse.billing.deployMeterUsage({
-          workspaceId: ctx.workspace.id,
-          start: nowMs - TRAILING_WINDOW_MS,
-          end: nowMs,
         }),
       ]);
 
@@ -74,6 +68,12 @@ export const queryDeployUsage = workspaceProcedure
         diskGiBHours: meters.diskGiBHours,
         egressGiB: meters.egressGiB,
         activeKeys: keys.activeKeys,
+      };
+      const trailing = {
+        cpuSeconds: meters.trailingCpuSeconds,
+        memoryGiBHours: meters.trailingMemoryGiBHours,
+        diskGiBHours: meters.trailingDiskGiBHours,
+        egressGiB: meters.trailingEgressGiB,
       };
 
       const projected = projectDeployUsage(
@@ -86,7 +86,10 @@ export const queryDeployUsage = workspaceProcedure
       // Priced per meter and rounded per line, the way the invoice is built, so
       // the card's estimate matches what Stripe charges. See sumDeployMeterCents.
       return {
-        ...meters,
+        cpuSeconds: meters.cpuSeconds,
+        memoryGiBHours: meters.memoryGiBHours,
+        diskGiBHours: meters.diskGiBHours,
+        egressGiB: meters.egressGiB,
         activeKeys: keys.activeKeys,
         grossCents: sumDeployMeterCents(monthToDate),
         projectedGrossCents: sumDeployMeterCents(projected),

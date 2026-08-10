@@ -114,6 +114,13 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// Domain
+
+	// Duplicate indicates the domain is already attached to this workspace.
+	UnkeyDataErrorsDomainDuplicate URN = "err:unkey:data:domain_already_exists"
+	// NotFound indicates the requested domain does not exist.
+	UnkeyDataErrorsDomainNotFound URN = "err:unkey:data:domain_not_found"
+
 	// Deployment
 
 	// NotFound indicates the requested deployment does not exist.
@@ -241,6 +248,15 @@ const (
 	// DeploymentIsProduction indicates the action does not apply to production
 	// deployments, which cannot be stopped or started directly.
 	UnkeyAppErrorsPreconditionDeploymentIsProduction URN = "err:unkey:application:deployment_is_production"
+
+	// ----------------
+	// UnkeyLimitsErrors
+	// ----------------
+
+	// CustomDomain
+
+	// Exceeded indicates the workspace has already attached as many custom domains as its plan allows.
+	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domain_limit_exceeded"
 
 	// ----------------
 	// UnkeyFrontlineErrors
