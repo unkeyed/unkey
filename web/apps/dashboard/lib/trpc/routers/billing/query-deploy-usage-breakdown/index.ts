@@ -1,0 +1,140 @@
+import { sumDeployMeterCents } from "@/lib/billing/deployPricing";
+import { clickhouse } from "@/lib/clickhouse";
+import { and, db, eq, inArray, schema } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+
+export const deployUsageBreakdownRow = z.object({
+  projectId: z.string(),
+  /** Null when the id is unknown to MySQL, or blank on the rollup row. */
+  projectName: z.string().nullable(),
+  appId: z.string(),
+  appName: z.string().nullable(),
+  environmentId: z.string(),
+  environmentSlug: z.string().nullable(),
+  cpuSeconds: z.number(),
+  memoryGiBHours: z.number(),
+  diskGiBHours: z.number(),
+  egressGiB: z.number(),
+  /**
+   * Integrated sample pairs behind this row. A healthy container contributes
+   * ~240 per hour, so a low count means "unobserved", not "idle".
+   */
+  samplePairs: z.number(),
+  grossCents: z.number(),
+});
+
+export const queryDeployUsageBreakdownResponse = z.array(deployUsageBreakdownRow);
+
+export type DeployUsageBreakdownRow = z.infer<typeof deployUsageBreakdownRow>;
+
+/**
+ * Month-to-date Deploy usage split by project / app / environment, read from
+ * the hourly dashboard rollup.
+ *
+ * SHAPE IS OPEN FOR REVIEW (Flo): Claude chose a flat row per
+ * (project, app, environment) with grossCents priced here on the server. The
+ * two alternatives considered were a nested project -> app -> environment tree
+ * carrying subtotals at each level, and returning raw quantities only and
+ * letting the page price them. Flat plus server-side pricing keeps one pricing
+ * implementation shared with billing.queryDeployUsage, but the page then has to
+ * group and subtotal itself. Say if you want a different split.
+ *
+ * These rows are expected to reconcile with billing.queryDeployUsage's
+ * workspace total, but small drift is possible: this rollup is a scheduled
+ * recompute built for dashboards, while billing reads the raw checkpoints
+ * table. Per-row rounding also costs up to a cent per row against the single
+ * workspace-level total, and active keys are a workspace-wide distinct count,
+ * so they are priced at zero here and only appear in the workspace total.
+ */
+export const queryDeployUsageBreakdown = workspaceProcedure
+  .use(withRatelimit(ratelimit.read))
+  .output(queryDeployUsageBreakdownResponse)
+  .query(async ({ ctx }) => {
+    const now = new Date();
+    const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    // First instant of next month; the exclusive end of the current one.
+    const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+
+    try {
+      const usage = await clickhouse.billing.deployUsageByScope({
+        workspaceId: ctx.workspace.id,
+        periodStart: monthStart,
+        end: Math.min(now.getTime(), monthEnd),
+      });
+
+      if (usage.length === 0) {
+        return [];
+      }
+
+      const ids = (values: Array<string>) => Array.from(new Set(values.filter((v) => v !== "")));
+      const projectIds = ids(usage.map((row) => row.projectId));
+      const appIds = ids(usage.map((row) => row.appId));
+      const environmentIds = ids(usage.map((row) => row.environmentId));
+
+      const [projects, apps, environments] = await Promise.all([
+        projectIds.length === 0
+          ? []
+          : db
+              .select({ id: schema.projects.id, name: schema.projects.name })
+              .from(schema.projects)
+              .where(
+                and(
+                  eq(schema.projects.workspaceId, ctx.workspace.id),
+                  inArray(schema.projects.id, projectIds),
+                ),
+              ),
+        appIds.length === 0
+          ? []
+          : db
+              .select({ id: schema.apps.id, name: schema.apps.name })
+              .from(schema.apps)
+              .where(
+                and(eq(schema.apps.workspaceId, ctx.workspace.id), inArray(schema.apps.id, appIds)),
+              ),
+        environmentIds.length === 0
+          ? []
+          : db
+              .select({ id: schema.environments.id, slug: schema.environments.slug })
+              .from(schema.environments)
+              .where(
+                and(
+                  eq(schema.environments.workspaceId, ctx.workspace.id),
+                  inArray(schema.environments.id, environmentIds),
+                ),
+              ),
+      ]);
+
+      const projectNames = new Map(projects.map((p) => [p.id, p.name]));
+      const appNames = new Map(apps.map((a) => [a.id, a.name]));
+      const environmentSlugs = new Map(environments.map((e) => [e.id, e.slug]));
+
+      return usage.map((row) => ({
+        projectId: row.projectId,
+        projectName: projectNames.get(row.projectId) ?? null,
+        appId: row.appId,
+        appName: appNames.get(row.appId) ?? null,
+        environmentId: row.environmentId,
+        environmentSlug: environmentSlugs.get(row.environmentId) ?? null,
+        cpuSeconds: row.cpuSeconds,
+        memoryGiBHours: row.memoryGiBHours,
+        diskGiBHours: row.diskGiBHours,
+        egressGiB: row.egressGiB,
+        samplePairs: row.samplePairs,
+        grossCents: sumDeployMeterCents({
+          cpuSeconds: row.cpuSeconds,
+          memoryGiBHours: row.memoryGiBHours,
+          diskGiBHours: row.diskGiBHours,
+          egressGiB: row.egressGiB,
+          activeKeys: 0,
+        }),
+      }));
+    } catch (err) {
+      console.error("Failed to query deploy usage breakdown", err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch Deploy usage breakdown. Please try again later.",
+      });
+    }
+  });

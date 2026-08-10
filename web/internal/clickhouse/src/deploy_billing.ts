@@ -119,6 +119,75 @@ export function getDeployMeterUsage(ch: Querier) {
   };
 }
 
+export const deployUsageByScope = z.object({
+  projectId: z.string(),
+  appId: z.string(),
+  environmentId: z.string(),
+  cpuSeconds: z.number(),
+  memoryGiBHours: z.number(),
+  diskGiBHours: z.number(),
+  egressGiB: z.number(),
+  samplePairs: z.number(),
+});
+
+export type DeployUsageByScope = z.infer<typeof deployUsageByScope>;
+
+/**
+ * Deploy usage for a window, grouped by project / app / environment, read from
+ * the hourly rollup instance_usage_per_hour_v1 (dashboards only; billing stays
+ * on the raw checkpoints via GetInstanceMeterUsage).
+ *
+ * FINAL is mandatory, not an optimisation. The table is a
+ * ReplacingMergeTree(computed_at) that the refresh views APPEND to over
+ * overlapping windows, so before a merge the same hour exists several times.
+ * Summing without FINAL double-counts those generations.
+ *
+ * Egress counts public egress only, the same meter getDeployMeterUsage bills;
+ * private and ingress bytes are recorded in the rollup but not charged.
+ */
+export function getDeployUsageByScope(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        project_id AS projectId,
+        app_id AS appId,
+        environment_id AS environmentId,
+        sum(cpu_seconds) AS cpuSeconds,
+        sum(memory_gib_hours) AS memoryGiBHours,
+        sum(disk_gib_hours) AS diskGiBHours,
+        sum(network_egress_public_bytes) / pow(1024, 3) AS egressGiB,
+        toInt64(sum(sample_pairs)) AS samplePairs
+      FROM default.instance_usage_per_hour_v1 FINAL
+      WHERE workspace_id = {workspaceId: String}
+        AND time >= toDateTime(fromUnixTimestamp64Milli({periodStart: Int64}))
+        AND time < toDateTime(fromUnixTimestamp64Milli({end: Int64}))
+      GROUP BY project_id, app_id, environment_id
+      ORDER BY cpuSeconds DESC, projectId, appId, environmentId
+      SETTINGS do_not_merge_across_partitions_select_final = 1
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      periodStart: z.int(),
+      end: z.int(),
+    }),
+    schema: deployUsageByScope,
+  });
+
+  return async (args: {
+    workspaceId: string;
+    /** Inclusive lower bound of the billing period, unix millis. */
+    periodStart: number;
+    /** Exclusive upper bound, unix millis. */
+    end: number;
+  }): Promise<DeployUsageByScope[]> => {
+    const result = await query(args);
+    if (result.err) {
+      throw new Error(`Failed to query deploy usage by scope: ${result.err.message}`);
+    }
+    return result.val;
+  };
+}
+
 export const activeKeysUsage = z.object({
   activeKeys: z.number(),
 });
