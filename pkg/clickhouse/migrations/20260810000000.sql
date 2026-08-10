@@ -1,6 +1,6 @@
--- Attribute Deploy key verifications to the app that ran KeyAuth.
+-- Attribute Gateway key verifications to the app that ran KeyAuth.
 --
--- `source = 'gateway'` tells us that Deploy performed a verification, but a
+-- `source = 'gateway'` tells us that Gateway performed a verification, but a
 -- key space can be used by more than one app. `app_id` adds that missing
 -- dimension. API and historical verifications use the empty string.
 --

@@ -139,7 +139,7 @@ func Test200_Success(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 }
 
-func Test200_QueriesDeployAppID(t *testing.T) {
+func Test200_QueriesGatewayAppID(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()

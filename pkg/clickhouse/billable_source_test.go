@@ -76,7 +76,7 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ?",
 			workspaceID, "app_a",
 		).Scan(&appCount))
-		assert.Equal(c, int64(25), appCount, "rollups must preserve the Deploy app")
+		assert.Equal(c, int64(25), appCount, "rollups must preserve the Gateway app")
 
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ''",

@@ -18,11 +18,11 @@ CREATE TABLE key_verifications_raw_v2
   region LowCardinality(String) CODEC(ZSTD(1)),
 
   -- Where the verification originated: 'api' (public API) or 'gateway'
-  -- (Unkey Deploy's key-auth policy). Billing rollups exclude 'gateway'.
+  -- (an Unkey Gateway key-auth policy). Billing rollups exclude 'gateway'.
   source LowCardinality(String) DEFAULT 'api' CODEC(ZSTD(1)),
 
-  -- The Unkey Deploy app that ran the verification. Empty for verifications
-  -- that did not originate from Deploy.
+  -- The Unkey Gateway app that ran the verification. Empty for verifications
+  -- that did not originate from Gateway.
   app_id LowCardinality(String) DEFAULT '' CODEC(ZSTD(1)),
 
   -- Examples:
