@@ -66,38 +66,28 @@ func (s *Service) AcquireOrWait(
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
 
-	// limitsResult carries the fetch outcome through the Restate journal.
-	// The not-found case is a value, not an error, for two reasons: error
-	// types do not survive journaling, and Restate retries errors while the
-	// VO holds the workspace key lock. An unbounded retry on a missing
+	// The effective limit is journaled as a plain number. A missing limits
+	// row maps to the default instead of an error, for two reasons: error
+	// types do not survive journaling, and Restate retries errors while
+	// the VO holds the workspace key lock. An unbounded retry on a missing
 	// limits row once froze the whole workspace queue. Now the retry is
 	// bounded and no-rows is not an error.
-	type limitsResult struct {
-		Found bool   `json:"found"`
-		Max   uint32 `json:"max"`
-	}
-	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (limitsResult, error) {
+	buildLimit, err := restate.Run(ctx, func(runCtx restate.RunContext) (uint32, error) {
 		row, dbErr := s.db.FindLimitsByWorkspaceID(runCtx, workspaceID)
 		if db.IsNotFound(dbErr) {
-			return limitsResult{Found: false, Max: 0}, nil
+			logger.Warn("workspace has no limits row, using default build limit",
+				"workspace_id", workspaceID,
+				"default_limit", defaultBuildLimit,
+			)
+			return defaultBuildLimit, nil
 		}
 		if dbErr != nil {
-			return limitsResult{}, dbErr
+			return 0, dbErr
 		}
-		return limitsResult{Found: true, Max: uint32(row.BuildsConcurrentMax)}, nil
+		return uint32(row.BuildsConcurrentMax), nil
 	}, restate.WithName("fetch limits"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("fetch limits: %w", err)
-	}
-
-	buildLimit := defaultBuildLimit
-	if limits.Found {
-		buildLimit = limits.Max
-	} else {
-		logger.Warn("workspace has no limits row, using default build limit",
-			"workspace_id", workspaceID,
-			"default_limit", defaultBuildLimit,
-		)
 	}
 	if uint32(len(active)) < buildLimit {
 		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
