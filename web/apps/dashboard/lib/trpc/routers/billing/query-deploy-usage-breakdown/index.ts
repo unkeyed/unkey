@@ -1,4 +1,4 @@
-import { sumDeployMeterCents } from "@/lib/billing/deployPricing";
+import { priceComputeMeterMicroCents } from "@/lib/billing/deployPricing";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -22,7 +22,12 @@ export const deployUsageBreakdownRow = z.object({
    * ~240 per hour, so a low count means "unobserved", not "idle".
    */
   samplePairs: z.number(),
-  grossCents: z.number(),
+  /**
+   * Exact gross price of this row's compute meters, in micro-cents. Not
+   * rounded: sum the rows and round once for display, or the parts stop adding
+   * up to the workspace total and sub-cent rows read as $0.00.
+   */
+  grossMicroCents: z.number(),
 });
 
 export const queryDeployUsageBreakdownResponse = z.array(deployUsageBreakdownRow);
@@ -34,7 +39,7 @@ export type DeployUsageBreakdownRow = z.infer<typeof deployUsageBreakdownRow>;
  * the hourly dashboard rollup.
  *
  * SHAPE IS OPEN FOR REVIEW (Flo): Claude chose a flat row per
- * (project, app, environment) with grossCents priced here on the server. The
+ * (project, app, environment) with the price computed here on the server. The
  * two alternatives considered were a nested project -> app -> environment tree
  * carrying subtotals at each level, and returning raw quantities only and
  * letting the page price them. Flat plus server-side pricing keeps one pricing
@@ -42,11 +47,17 @@ export type DeployUsageBreakdownRow = z.infer<typeof deployUsageBreakdownRow>;
  * group and subtotal itself. Say if you want a different split.
  *
  * These rows are expected to reconcile with billing.queryDeployUsage's
- * workspace total, but small drift is possible: this rollup is a scheduled
- * recompute built for dashboards, while billing reads the raw checkpoints
- * table. Per-row rounding also costs up to a cent per row against the single
- * workspace-level total, and active keys are a workspace-wide distinct count,
- * so they are priced at zero here and only appear in the workspace total.
+ * workspace total, with two known sources of divergence, both systematic rather
+ * than random:
+ *
+ * 1. This rollup is a scheduled recompute built for dashboards, while billing
+ *    reads the raw checkpoints table.
+ * 2. The rollup attributes a sample pair to the hour its left endpoint falls
+ *    in, so the hour straddling a month boundary lands wholly in one month,
+ *    where billing splits it at the instant.
+ *
+ * Active keys are a workspace-wide distinct count with no project attribution,
+ * so they are absent here and appear only in the workspace total.
  */
 export const queryDeployUsageBreakdown = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -122,12 +133,11 @@ export const queryDeployUsageBreakdown = workspaceProcedure
         diskGiBHours: row.diskGiBHours,
         egressGiB: row.egressGiB,
         samplePairs: row.samplePairs,
-        grossCents: sumDeployMeterCents({
+        grossMicroCents: priceComputeMeterMicroCents({
           cpuSeconds: row.cpuSeconds,
           memoryGiBHours: row.memoryGiBHours,
           diskGiBHours: row.diskGiBHours,
           egressGiB: row.egressGiB,
-          activeKeys: 0,
         }),
       }));
     } catch (err) {
