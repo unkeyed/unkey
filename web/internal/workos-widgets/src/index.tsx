@@ -34,10 +34,12 @@ const UNKEY_WORKOS_ELEMENTS = {
     size: "1",
     variant: "soft",
   },
+  /*
+   * Sizing lives in styles.css only: setting it here too would tie on
+   * specificity and leave the winner to stylesheet import order.
+   */
   dialog: {
     align: "center",
-    maxHeight: "calc(100svh - 2rem)",
-    maxWidth: "32rem",
     size: "3",
   },
   dropdown: {

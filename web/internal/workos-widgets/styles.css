@@ -146,7 +146,6 @@
  */
 .unkey-workos-widgets .rt-DataListItem {
   min-height: 1.5rem;
-  padding-left: 1rem;
 }
 
 /* Row labels match native settings-row labels (13px medium, not 14px bold). */
@@ -410,9 +409,12 @@
   box-shadow: 0 25px 25px rgb(0 0 0 / 0.15);
 }
 
-.woswidgets-dialog .rt-DialogTitle,
-.woswidgets-dialog .rt-AlertDialogTitle,
-.woswidgets-dialog > .rt-Heading {
+/*
+ * Dialog.Title is a plain Radix Heading, so match by position: a direct child,
+ * or first child of the <form> in dialogs that wrap their body in one.
+ */
+.woswidgets-dialog > .rt-Heading,
+.woswidgets-dialog > form > .rt-Heading {
   margin: calc(var(--unkey-dialog-pad-y) * -1) calc(var(--unkey-dialog-pad-x) * -1)
     var(--unkey-dialog-pad-y);
   padding: 1rem var(--unkey-dialog-pad-x);
@@ -435,12 +437,13 @@
 }
 
 /*
- * The action row is a direct trailing Flex in alert dialogs but a nested
- * justify-end Flex inside the <form> in form dialogs (and not the form's last
- * child there), so match it by "a Flex directly holding buttons". This lays the
- * white footer strip with a divider, bled to the dialog's horizontal edges.
+ * The action row's position varies between alert and form dialogs, so match it
+ * by shape: a Flex directly holding buttons with justify end/between (every
+ * WorkOS footer sets one). The justify gate keeps mid-body and nested button
+ * groups from painting footer strips of their own.
  */
-.woswidgets-dialog .rt-Flex:has(> .woswidgets-button) {
+.woswidgets-dialog
+  :is(.rt-r-jc-end, .rt-r-jc-space-between):has(> .woswidgets-button) {
   margin-top: var(--unkey-dialog-pad-y);
   margin-right: calc(var(--unkey-dialog-pad-x) * -1);
   margin-left: calc(var(--unkey-dialog-pad-x) * -1);
@@ -449,25 +452,24 @@
   background-color: hsl(var(--background));
 }
 
-/* Only the alert-dialog footer is the dialog's last child: bleed to the bottom
- * edge and round the bottom corners. Form dialogs keep the strip above their
- * trailing error slot. */
-.woswidgets-dialog > .rt-Flex:last-child {
+/*
+ * Two mutually exclusive ways to reach the dialog's bottom edge (applying both
+ * would strip the gap twice): last-child footers bleed over the dialog's bottom
+ * padding; form-shaped dialogs drop that padding instead. ":has(> form)" also
+ * catches alert dialogs whose action row is a <Flex asChild><form>.
+ */
+.woswidgets-dialog:not(:has(> form))
+  > :is(.rt-r-jc-end, .rt-r-jc-space-between):last-child:has(> .woswidgets-button) {
   margin-bottom: calc(var(--unkey-dialog-pad-y) * -1);
   border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
 }
 
-/*
- * Form dialogs render the action row inside the <form> (with a collapsed error
- * slot after it), so the dialog's own bottom padding would show tinted body
- * below the white footer. Drop it here — the footer's padding provides the
- * spacing — and round the footer's bottom corners to meet the dialog radius.
- */
 .woswidgets-dialog:has(> form) {
   padding-bottom: 0;
 }
 
-.woswidgets-dialog:has(> form) .rt-Flex:has(> .woswidgets-button) {
+.woswidgets-dialog:has(> form)
+  :is(.rt-r-jc-end, .rt-r-jc-space-between):has(> .woswidgets-button) {
   border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
 }
 
