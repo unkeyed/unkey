@@ -236,6 +236,18 @@ WHERE outcome != 'VALID'
 WHERE outcome IN ('RATE_LIMITED', 'USAGE_EXCEEDED')
 ```
 
+### Unkey Deploy filters
+
+Use `source` to select Deploy traffic and `app_id` to select one app.
+
+```sql
+-- Verifications performed by an Unkey Deploy API key policy
+WHERE source = 'gateway'
+
+-- Verifications performed for one app
+WHERE source = 'gateway' AND app_id = 'app_1234'
+```
+
 ## Need More Functions?
 
 → [ClickHouse Function Reference](https://clickhouse.com/docs/en/sql-reference/functions)  

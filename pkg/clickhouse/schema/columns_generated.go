@@ -9,7 +9,7 @@ func (KeyVerification) Table() string {
 
 // InsertColumns implements [Row]; derived from KeyVerification's ch tags.
 func (KeyVerification) InsertColumns() string {
-	return "`request_id`, `time`, `workspace_id`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `region`, `source`, `outcome`, `tags`, `spent_credits`, `latency`"
+	return "`request_id`, `time`, `workspace_id`, `key_space_id`, `identity_id`, `external_id`, `key_id`, `region`, `source`, `app_id`, `outcome`, `tags`, `spent_credits`, `latency`"
 }
 
 // Table implements [Row].

@@ -21,6 +21,10 @@ CREATE TABLE key_verifications_raw_v2
   -- (Unkey Deploy's key-auth policy). Billing rollups exclude 'gateway'.
   source LowCardinality(String) DEFAULT 'api' CODEC(ZSTD(1)),
 
+  -- The Unkey Deploy app that ran the verification. Empty for verifications
+  -- that did not originate from Deploy.
+  app_id LowCardinality(String) DEFAULT '' CODEC(ZSTD(1)),
+
   -- Examples:
   -- - "VALID"
   -- - "RATE_LIMITED"
@@ -48,4 +52,3 @@ ORDER BY (workspace_id, time, key_space_id, outcome)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE
 SETTINGS non_replicated_deduplication_window = 10000
 ;
-

@@ -43,6 +43,11 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 	gatewayVerifications := createVerifications(workspaceID, 40, now, "VALID")
 	for i := range gatewayVerifications {
 		gatewayVerifications[i].Source = schema.SourceGateway
+		if i < 25 {
+			gatewayVerifications[i].AppID = "app_a"
+		} else {
+			gatewayVerifications[i].AppID = "app_b"
+		}
 	}
 	insertVerifications(t, ctx, conn, append(verifications, gatewayVerifications...))
 
@@ -54,7 +59,7 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 		assert.Equal(c, int64(100), billableVerifications, "gateway and INVALID verifications must not bill")
 
 		// Analytics rollups keep every source: total includes API + gateway.
-		var totalCount, gatewayCount int64
+		var totalCount, gatewayCount, appCount, unattributedCount int64
 		require.NoError(c, conn.QueryRow(ctx,
 			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ?",
 			workspaceID,
@@ -66,5 +71,17 @@ func TestBillableExcludesGatewaySource(t *testing.T) {
 			workspaceID, schema.SourceGateway,
 		).Scan(&gatewayCount))
 		assert.Equal(c, int64(40), gatewayCount, "rollups must be sliceable by source")
+
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ?",
+			workspaceID, "app_a",
+		).Scan(&appCount))
+		assert.Equal(c, int64(25), appCount, "rollups must preserve the Deploy app")
+
+		require.NoError(c, conn.QueryRow(ctx,
+			"SELECT sum(count) FROM default.key_verifications_per_month_v3 WHERE workspace_id = ? AND app_id = ''",
+			workspaceID,
+		).Scan(&unattributedCount))
+		assert.Equal(c, int64(120), unattributedCount, "API verifications must remain unattributed")
 	}, time.Minute, time.Second)
 }
