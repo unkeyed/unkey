@@ -3165,7 +3165,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -3178,7 +3178,7 @@ components:
                         After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3209,7 +3209,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -3222,7 +3222,7 @@ components:
                         This field is used to look up the specific override configuration for this pattern.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3243,7 +3243,7 @@ components:
                 namespace:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: The id or name of the namespace.
                     example: sms.sign_up
                 cost:
@@ -3271,7 +3271,7 @@ components:
                 identifier:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -3329,7 +3329,7 @@ components:
                     description: The id or name of the rate limit namespace to list overrides for.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 cursor:
                     description: Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.
                     type: string
@@ -3395,7 +3395,7 @@ components:
                     description: The ID or name of the rate limit namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 duration:
                     description: |-
                         The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -3425,7 +3425,7 @@ components:
                         More detailed information on wildcard pattern rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 limit:
                     description: |-
                         The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s).

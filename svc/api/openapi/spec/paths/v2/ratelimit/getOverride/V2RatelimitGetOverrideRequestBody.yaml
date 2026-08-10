@@ -13,7 +13,9 @@ properties:
     description: The id or name of the namespace containing the override.
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
   identifier:
     description: |-
       The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -26,7 +28,9 @@ properties:
       This field is used to look up the specific override configuration for this pattern.
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
 required:
   - namespace
   - identifier
