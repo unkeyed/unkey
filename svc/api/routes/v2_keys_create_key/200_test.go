@@ -641,7 +641,12 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 		h.CreateRole(seed.CreateRoleRequest{Name: name, WorkspaceID: workspaceID})
 	}
 
-	permissionSlugs := []string{"documents.read", "settings.view", "billing_reports.view"}
+	// Slug shapes the spec used to disagree on across endpoints: a plain dotted
+	// slug, a wildcard, a leading digit, and a colon. createKey accepted all of
+	// them only because its `pattern` was indented at the array level and so
+	// ignored entirely; the sibling permission endpoints rejected the last
+	// three outright.
+	permissionSlugs := []string{"documents.read", "documents.*", "2fa.read", "api:read"}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		ApiId:       api.ID,
