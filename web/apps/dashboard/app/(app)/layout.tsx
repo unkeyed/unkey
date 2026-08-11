@@ -1,6 +1,7 @@
 "use client";
 
 import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
+import { SeedScenarioBanner } from "@/components/navigation/seed-scenario-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
@@ -111,6 +112,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
       <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+        {process.env.NODE_ENV === "development" ? <SeedScenarioBanner /> : null}
         <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
