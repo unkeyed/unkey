@@ -14,7 +14,44 @@ import {
   AppGitUpdateInput$outboundSchema,
 } from "./appgitupdateinput.js";
 
-export type V2AppsUpdateAppRequestBody2 = {
+export type V2AppsUpdateAppRequestBody5 = {
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  project: string;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  app: string;
+  /**
+   * New human-readable name for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current name unchanged.
+   */
+  name?: string | undefined;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  slug?: string | undefined;
+  /**
+   * Connect, reconfigure, or disconnect this app's GitHub repository.
+   *
+   * @remarks
+   * Omit to leave unchanged, set null to disconnect, or set an object with a
+   * "repository" to connect or replace it and/or a "defaultBranch" to set which
+   * branch it tracks. Fields are independent, so send only the one you change.
+   */
+  git?: AppGitUpdateInput | null | undefined;
   /**
    * Change the default image reference for a Docker-sourced app. This does not
    *
@@ -24,6 +61,16 @@ export type V2AppsUpdateAppRequestBody2 = {
    */
   docker?: AppDockerInput | undefined;
   /**
+   * Enable or disable delete protection for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current setting unchanged.
+   */
+  deleteProtection: boolean;
+};
+
+export type V2AppsUpdateAppRequestBody4 = {
+  /**
    * Identifies a resource by either its unique ID or its slug.
    *
    * @remarks
@@ -59,7 +106,15 @@ export type V2AppsUpdateAppRequestBody2 = {
    * "repository" to connect or replace it and/or a "defaultBranch" to set which
    * branch it tracks. Fields are independent, so send only the one you change.
    */
-  git?: AppGitUpdateInput | null | undefined;
+  git: AppGitUpdateInput | null;
+  /**
+   * Change the default image reference for a Docker-sourced app. This does not
+   *
+   * @remarks
+   * create a deployment. Image updates cannot be combined with other changes,
+   * and source switching is not supported.
+   */
+  docker?: AppDockerInput | undefined;
   /**
    * Enable or disable delete protection for the app.
    *
@@ -69,7 +124,137 @@ export type V2AppsUpdateAppRequestBody2 = {
   deleteProtection?: boolean | undefined;
 };
 
+export type V2AppsUpdateAppRequestBody3 = {
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  project: string;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  app: string;
+  /**
+   * New human-readable name for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current name unchanged.
+   */
+  name?: string | undefined;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  slug: string;
+  /**
+   * Connect, reconfigure, or disconnect this app's GitHub repository.
+   *
+   * @remarks
+   * Omit to leave unchanged, set null to disconnect, or set an object with a
+   * "repository" to connect or replace it and/or a "defaultBranch" to set which
+   * branch it tracks. Fields are independent, so send only the one you change.
+   */
+  git?: AppGitUpdateInput | null | undefined;
+  /**
+   * Change the default image reference for a Docker-sourced app. This does not
+   *
+   * @remarks
+   * create a deployment. Image updates cannot be combined with other changes,
+   * and source switching is not supported.
+   */
+  docker?: AppDockerInput | undefined;
+  /**
+   * Enable or disable delete protection for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current setting unchanged.
+   */
+  deleteProtection?: boolean | undefined;
+};
+
+export type V2AppsUpdateAppRequestBody2 = {
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  project: string;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  app: string;
+  /**
+   * New human-readable name for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current name unchanged.
+   */
+  name: string;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  slug?: string | undefined;
+  /**
+   * Connect, reconfigure, or disconnect this app's GitHub repository.
+   *
+   * @remarks
+   * Omit to leave unchanged, set null to disconnect, or set an object with a
+   * "repository" to connect or replace it and/or a "defaultBranch" to set which
+   * branch it tracks. Fields are independent, so send only the one you change.
+   */
+  git?: AppGitUpdateInput | null | undefined;
+  /**
+   * Change the default image reference for a Docker-sourced app. This does not
+   *
+   * @remarks
+   * create a deployment. Image updates cannot be combined with other changes,
+   * and source switching is not supported.
+   */
+  docker?: AppDockerInput | undefined;
+  /**
+   * Enable or disable delete protection for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current setting unchanged.
+   */
+  deleteProtection?: boolean | undefined;
+};
+
+export type V2AppsUpdateAppRequestBodyUnion1 =
+  | V2AppsUpdateAppRequestBody2
+  | V2AppsUpdateAppRequestBody3
+  | V2AppsUpdateAppRequestBody4
+  | V2AppsUpdateAppRequestBody5;
+
 export type V2AppsUpdateAppRequestBody1 = {
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  project: string;
+  /**
+   * Identifies a resource by either its unique ID or its slug.
+   *
+   * @remarks
+   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+   */
+  app: string;
   /**
    * New human-readable name for the app.
    *
@@ -93,27 +278,6 @@ export type V2AppsUpdateAppRequestBody1 = {
    * branch it tracks. Fields are independent, so send only the one you change.
    */
   git?: AppGitUpdateInput | null | undefined;
-  /**
-   * Enable or disable delete protection for the app.
-   *
-   * @remarks
-   * Omit this field to leave the current setting unchanged.
-   */
-  deleteProtection?: boolean | undefined;
-  /**
-   * Identifies a resource by either its unique ID or its slug.
-   *
-   * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-   */
-  project: string;
-  /**
-   * Identifies a resource by either its unique ID or its slug.
-   *
-   * @remarks
-   * Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-   */
-  app: string;
   /**
    * Change the default image reference for a Docker-sourced app. This does not
    *
@@ -122,20 +286,138 @@ export type V2AppsUpdateAppRequestBody1 = {
    * and source switching is not supported.
    */
   docker: AppDockerInput;
+  /**
+   * Enable or disable delete protection for the app.
+   *
+   * @remarks
+   * Omit this field to leave the current setting unchanged.
+   */
+  deleteProtection?: boolean | undefined;
 };
 
 export type V2AppsUpdateAppRequestBodyUnion =
   | V2AppsUpdateAppRequestBody1
-  | V2AppsUpdateAppRequestBody2;
+  | V2AppsUpdateAppRequestBody2
+  | V2AppsUpdateAppRequestBody3
+  | V2AppsUpdateAppRequestBody4
+  | V2AppsUpdateAppRequestBody5;
 
 /** @internal */
-export type V2AppsUpdateAppRequestBody2$Outbound = {
-  docker?: AppDockerInput$Outbound | undefined;
+export type V2AppsUpdateAppRequestBody5$Outbound = {
   project: string;
   app: string;
   name?: string | undefined;
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
+  docker?: AppDockerInput$Outbound | undefined;
+  deleteProtection: boolean;
+};
+
+/** @internal */
+export const V2AppsUpdateAppRequestBody5$outboundSchema: z.ZodType<
+  V2AppsUpdateAppRequestBody5$Outbound,
+  z.ZodTypeDef,
+  V2AppsUpdateAppRequestBody5
+> = z.object({
+  project: z.string(),
+  app: z.string(),
+  name: z.string().optional(),
+  slug: z.string().optional(),
+  git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
+  docker: AppDockerInput$outboundSchema.optional(),
+  deleteProtection: z.boolean(),
+});
+
+export function v2AppsUpdateAppRequestBody5ToJSON(
+  v2AppsUpdateAppRequestBody5: V2AppsUpdateAppRequestBody5,
+): string {
+  return JSON.stringify(
+    V2AppsUpdateAppRequestBody5$outboundSchema.parse(
+      v2AppsUpdateAppRequestBody5,
+    ),
+  );
+}
+
+/** @internal */
+export type V2AppsUpdateAppRequestBody4$Outbound = {
+  project: string;
+  app: string;
+  name?: string | undefined;
+  slug?: string | undefined;
+  git: AppGitUpdateInput$Outbound | null;
+  docker?: AppDockerInput$Outbound | undefined;
+  deleteProtection?: boolean | undefined;
+};
+
+/** @internal */
+export const V2AppsUpdateAppRequestBody4$outboundSchema: z.ZodType<
+  V2AppsUpdateAppRequestBody4$Outbound,
+  z.ZodTypeDef,
+  V2AppsUpdateAppRequestBody4
+> = z.object({
+  project: z.string(),
+  app: z.string(),
+  name: z.string().optional(),
+  slug: z.string().optional(),
+  git: z.nullable(AppGitUpdateInput$outboundSchema),
+  docker: AppDockerInput$outboundSchema.optional(),
+  deleteProtection: z.boolean().optional(),
+});
+
+export function v2AppsUpdateAppRequestBody4ToJSON(
+  v2AppsUpdateAppRequestBody4: V2AppsUpdateAppRequestBody4,
+): string {
+  return JSON.stringify(
+    V2AppsUpdateAppRequestBody4$outboundSchema.parse(
+      v2AppsUpdateAppRequestBody4,
+    ),
+  );
+}
+
+/** @internal */
+export type V2AppsUpdateAppRequestBody3$Outbound = {
+  project: string;
+  app: string;
+  name?: string | undefined;
+  slug: string;
+  git?: AppGitUpdateInput$Outbound | null | undefined;
+  docker?: AppDockerInput$Outbound | undefined;
+  deleteProtection?: boolean | undefined;
+};
+
+/** @internal */
+export const V2AppsUpdateAppRequestBody3$outboundSchema: z.ZodType<
+  V2AppsUpdateAppRequestBody3$Outbound,
+  z.ZodTypeDef,
+  V2AppsUpdateAppRequestBody3
+> = z.object({
+  project: z.string(),
+  app: z.string(),
+  name: z.string().optional(),
+  slug: z.string(),
+  git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
+  docker: AppDockerInput$outboundSchema.optional(),
+  deleteProtection: z.boolean().optional(),
+});
+
+export function v2AppsUpdateAppRequestBody3ToJSON(
+  v2AppsUpdateAppRequestBody3: V2AppsUpdateAppRequestBody3,
+): string {
+  return JSON.stringify(
+    V2AppsUpdateAppRequestBody3$outboundSchema.parse(
+      v2AppsUpdateAppRequestBody3,
+    ),
+  );
+}
+
+/** @internal */
+export type V2AppsUpdateAppRequestBody2$Outbound = {
+  project: string;
+  app: string;
+  name: string;
+  slug?: string | undefined;
+  git?: AppGitUpdateInput$Outbound | null | undefined;
+  docker?: AppDockerInput$Outbound | undefined;
   deleteProtection?: boolean | undefined;
 };
 
@@ -145,12 +427,12 @@ export const V2AppsUpdateAppRequestBody2$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2AppsUpdateAppRequestBody2
 > = z.object({
-  docker: AppDockerInput$outboundSchema.optional(),
   project: z.string(),
   app: z.string(),
-  name: z.string().optional(),
+  name: z.string(),
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
+  docker: AppDockerInput$outboundSchema.optional(),
   deleteProtection: z.boolean().optional(),
 });
 
@@ -165,14 +447,43 @@ export function v2AppsUpdateAppRequestBody2ToJSON(
 }
 
 /** @internal */
+export type V2AppsUpdateAppRequestBodyUnion1$Outbound =
+  | V2AppsUpdateAppRequestBody2$Outbound
+  | V2AppsUpdateAppRequestBody3$Outbound
+  | V2AppsUpdateAppRequestBody4$Outbound
+  | V2AppsUpdateAppRequestBody5$Outbound;
+
+/** @internal */
+export const V2AppsUpdateAppRequestBodyUnion1$outboundSchema: z.ZodType<
+  V2AppsUpdateAppRequestBodyUnion1$Outbound,
+  z.ZodTypeDef,
+  V2AppsUpdateAppRequestBodyUnion1
+> = z.union([
+  z.lazy(() => V2AppsUpdateAppRequestBody2$outboundSchema),
+  z.lazy(() => V2AppsUpdateAppRequestBody3$outboundSchema),
+  z.lazy(() => V2AppsUpdateAppRequestBody4$outboundSchema),
+  z.lazy(() => V2AppsUpdateAppRequestBody5$outboundSchema),
+]);
+
+export function v2AppsUpdateAppRequestBodyUnion1ToJSON(
+  v2AppsUpdateAppRequestBodyUnion1: V2AppsUpdateAppRequestBodyUnion1,
+): string {
+  return JSON.stringify(
+    V2AppsUpdateAppRequestBodyUnion1$outboundSchema.parse(
+      v2AppsUpdateAppRequestBodyUnion1,
+    ),
+  );
+}
+
+/** @internal */
 export type V2AppsUpdateAppRequestBody1$Outbound = {
+  project: string;
+  app: string;
   name?: string | undefined;
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
-  deleteProtection?: boolean | undefined;
-  project: string;
-  app: string;
   docker: AppDockerInput$Outbound;
+  deleteProtection?: boolean | undefined;
 };
 
 /** @internal */
@@ -181,13 +492,13 @@ export const V2AppsUpdateAppRequestBody1$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2AppsUpdateAppRequestBody1
 > = z.object({
+  project: z.string(),
+  app: z.string(),
   name: z.string().optional(),
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
-  deleteProtection: z.boolean().optional(),
-  project: z.string(),
-  app: z.string(),
   docker: AppDockerInput$outboundSchema,
+  deleteProtection: z.boolean().optional(),
 });
 
 export function v2AppsUpdateAppRequestBody1ToJSON(
@@ -203,7 +514,10 @@ export function v2AppsUpdateAppRequestBody1ToJSON(
 /** @internal */
 export type V2AppsUpdateAppRequestBodyUnion$Outbound =
   | V2AppsUpdateAppRequestBody1$Outbound
-  | V2AppsUpdateAppRequestBody2$Outbound;
+  | V2AppsUpdateAppRequestBody2$Outbound
+  | V2AppsUpdateAppRequestBody3$Outbound
+  | V2AppsUpdateAppRequestBody4$Outbound
+  | V2AppsUpdateAppRequestBody5$Outbound;
 
 /** @internal */
 export const V2AppsUpdateAppRequestBodyUnion$outboundSchema: z.ZodType<
@@ -212,7 +526,12 @@ export const V2AppsUpdateAppRequestBodyUnion$outboundSchema: z.ZodType<
   V2AppsUpdateAppRequestBodyUnion
 > = z.union([
   z.lazy(() => V2AppsUpdateAppRequestBody1$outboundSchema),
-  z.lazy(() => V2AppsUpdateAppRequestBody2$outboundSchema),
+  z.union([
+    z.lazy(() => V2AppsUpdateAppRequestBody2$outboundSchema),
+    z.lazy(() => V2AppsUpdateAppRequestBody3$outboundSchema),
+    z.lazy(() => V2AppsUpdateAppRequestBody4$outboundSchema),
+    z.lazy(() => V2AppsUpdateAppRequestBody5$outboundSchema),
+  ]),
 ]);
 
 export function v2AppsUpdateAppRequestBodyUnionToJSON(

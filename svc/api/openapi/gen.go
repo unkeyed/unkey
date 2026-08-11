@@ -1923,17 +1923,24 @@ type V2AppsUpdateAppRequestBody struct {
 }
 
 // V2AppsUpdateAppRequestBody0 defines model for .
-type V2AppsUpdateAppRequestBody0 struct {
-	DeleteProtection *string `json:"deleteProtection,omitempty"`
-	Git              *string `json:"git,omitempty"`
-	Name             *string `json:"name,omitempty"`
-	Slug             *string `json:"slug,omitempty"`
-}
+type V2AppsUpdateAppRequestBody0 = interface{}
 
 // V2AppsUpdateAppRequestBody1 defines model for .
 type V2AppsUpdateAppRequestBody1 struct {
-	Docker *string `json:"docker,omitempty"`
+	union json.RawMessage
 }
+
+// V2AppsUpdateAppRequestBody10 defines model for .
+type V2AppsUpdateAppRequestBody10 = interface{}
+
+// V2AppsUpdateAppRequestBody11 defines model for .
+type V2AppsUpdateAppRequestBody11 = interface{}
+
+// V2AppsUpdateAppRequestBody12 defines model for .
+type V2AppsUpdateAppRequestBody12 = interface{}
+
+// V2AppsUpdateAppRequestBody13 defines model for .
+type V2AppsUpdateAppRequestBody13 = interface{}
 
 // V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.
 type V2AppsUpdateAppResponseBody struct {
@@ -5175,6 +5182,120 @@ func (t *V2AppsUpdateAppRequestBody) UnmarshalJSON(b []byte) error {
 		}
 	}
 
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody10 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody10
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody10() (V2AppsUpdateAppRequestBody10, error) {
+	var body V2AppsUpdateAppRequestBody10
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody10 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody10
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody10(v V2AppsUpdateAppRequestBody10) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody10 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody10
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody10(v V2AppsUpdateAppRequestBody10) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody11 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody11
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody11() (V2AppsUpdateAppRequestBody11, error) {
+	var body V2AppsUpdateAppRequestBody11
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody11 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody11
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody11(v V2AppsUpdateAppRequestBody11) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody11 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody11
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody11(v V2AppsUpdateAppRequestBody11) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody12 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody12
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody12() (V2AppsUpdateAppRequestBody12, error) {
+	var body V2AppsUpdateAppRequestBody12
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody12 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody12
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody12(v V2AppsUpdateAppRequestBody12) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody12 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody12
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody12(v V2AppsUpdateAppRequestBody12) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2AppsUpdateAppRequestBody13 returns the union data inside the V2AppsUpdateAppRequestBody1 as a V2AppsUpdateAppRequestBody13
+func (t V2AppsUpdateAppRequestBody1) AsV2AppsUpdateAppRequestBody13() (V2AppsUpdateAppRequestBody13, error) {
+	var body V2AppsUpdateAppRequestBody13
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2AppsUpdateAppRequestBody13 overwrites any union data inside the V2AppsUpdateAppRequestBody1 as the provided V2AppsUpdateAppRequestBody13
+func (t *V2AppsUpdateAppRequestBody1) FromV2AppsUpdateAppRequestBody13(v V2AppsUpdateAppRequestBody13) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2AppsUpdateAppRequestBody13 performs a merge with any union data inside the V2AppsUpdateAppRequestBody1, using the provided V2AppsUpdateAppRequestBody13
+func (t *V2AppsUpdateAppRequestBody1) MergeV2AppsUpdateAppRequestBody13(v V2AppsUpdateAppRequestBody13) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2AppsUpdateAppRequestBody1) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *V2AppsUpdateAppRequestBody1) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
 	return err
 }
 

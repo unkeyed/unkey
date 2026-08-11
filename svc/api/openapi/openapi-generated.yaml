@@ -615,18 +615,15 @@ components:
             oneOf:
                 - required:
                     - docker
-                  properties:
-                    name:
-                        type: string
-                    slug:
-                        type: string
-                    git:
-                        type: string
-                    deleteProtection:
-                        type: string
-                - properties:
-                    docker:
-                        type: string
+                - anyOf:
+                    - required:
+                        - name
+                    - required:
+                        - slug
+                    - required:
+                        - git
+                    - required:
+                        - deleteProtection
         V2AppsUpdateAppResponseBody:
             type: object
             required:

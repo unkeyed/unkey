@@ -96,17 +96,8 @@ examples:
         image: ghcr.io/acme/payments:v2.0.0
 oneOf:
   - required: [docker]
-    properties:
-      name:
-        type: string
-        maxLength: 0
-      slug:
-        type: string
-        maxLength: 0
-      git:
-        type: string
-      deleteProtection:
-        type: string
-  - properties:
-      docker:
-        type: string
+  - anyOf:
+      - required: [name]
+      - required: [slug]
+      - required: [git]
+      - required: [deleteProtection]
