@@ -28,8 +28,16 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
-  billing({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
+  billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/settings/billing",
+      { workspaceSlug },
+      intent ? { intent } : undefined,
+    );
+  },
+
+  limits({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
   },
 
   security({ workspaceSlug }: WorkspaceScope): Route {
