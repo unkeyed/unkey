@@ -9,7 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 )
@@ -55,6 +58,24 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 			require.Greater(t, len(res.Body.Error.Errors), 0)
 		})
 	}
+
+	t.Run("reserved default slug", func(t *testing.T) {
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Name:        "Payments",
+			Slug:        "payments",
+		})
+
+		for _, slug := range []string{projects.DefaultSlug, "Default"} {
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
+				Project: project.ID,
+				Slug:    &slug,
+			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for reserved slug %q, received: %s", slug, res.RawBody)
+			require.Equal(t, fmt.Sprintf("The project slug '%s' is reserved.", slug), res.Body.Error.Detail)
+		}
+	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		invalidJSON := `{"project": }`

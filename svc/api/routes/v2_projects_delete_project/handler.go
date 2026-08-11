@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -63,6 +64,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve project."),
+		)
+	}
+
+	if project.Slug == projects.DefaultSlug {
+		return fault.New(
+			"project not found",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("default project is not exposed by the projects API"),
+			fault.Public("The requested project does not exist."),
 		)
 	}
 

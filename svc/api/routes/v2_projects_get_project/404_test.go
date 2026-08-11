@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
@@ -43,5 +44,20 @@ func TestGetProjectNotFound(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
+	})
+
+	t.Run("default project returns 404 by id or slug", func(t *testing.T) {
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:               uid.New(uid.ProjectPrefix),
+			WorkspaceID:      workspace.ID,
+			Name:             "Default",
+			Slug:             projects.DefaultSlug,
+			DeleteProtection: true,
+		})
+
+		for _, identifier := range []string{project.ID, project.Slug} {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: identifier})
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for default project %q, received: %s", identifier, res.RawBody)
+		}
 	})
 }

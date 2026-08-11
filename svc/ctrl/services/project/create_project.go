@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -16,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+const reservedDefaultProjectSlug = "default"
 
 // CreateProject creates an empty project. Apps and their environments are
 // created separately via [app.Service.CreateApp], so a fresh project starts
@@ -31,6 +34,7 @@ func (s *Service) CreateProject(
 		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
 		assert.NotEmpty(req.Msg.GetName(), "name is required"),
 		assert.NotEmpty(req.Msg.GetSlug(), "slug is required"),
+		assert.False(strings.EqualFold(req.Msg.GetSlug(), reservedDefaultProjectSlug), "slug is reserved"),
 		assert.NotNil(req.Msg.GetActor(), "actor is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)

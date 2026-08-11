@@ -13,6 +13,12 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
+func TestIsReservedSlug(t *testing.T) {
+	require.True(t, projects.IsReservedSlug("default"))
+	require.True(t, projects.IsReservedSlug("Default"))
+	require.False(t, projects.IsReservedSlug("default-project"))
+}
+
 // TestEnsureDefaultProject guarantees ownership writers reuse an exact default,
 // create a protected default when absent, and converge after concurrent creation.
 func TestEnsureDefaultProject(t *testing.T) {

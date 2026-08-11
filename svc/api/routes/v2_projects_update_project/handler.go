@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -69,6 +70,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		if project.Slug == projects.DefaultSlug {
+			return openapi.Project{}, fault.New(
+				"project not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("default project is not exposed by the projects API"),
+				fault.Public("The requested project does not exist."),
+			)
+		}
+
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Project,
@@ -83,6 +93,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		))
 		if err != nil {
 			return openapi.Project{}, err
+		}
+
+		if req.Slug != nil && projects.IsReservedSlug(*req.Slug) {
+			return openapi.Project{}, fault.New(
+				"project slug is reserved",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("default project slug is reserved"),
+				fault.Public(fmt.Sprintf("The project slug '%s' is reserved.", *req.Slug)),
+			)
 		}
 
 		updatedAt := time.Now().UnixMilli()

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -51,6 +52,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}))
 	if err != nil {
 		return err
+	}
+
+	if projects.IsReservedSlug(req.Slug) {
+		return fault.New(
+			"project slug is reserved",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("default project slug is reserved"),
+			fault.Public(fmt.Sprintf("The project slug '%s' is reserved.", req.Slug)),
+		)
 	}
 
 	actor, err := ctrlclient.Actor(s)
