@@ -143,6 +143,40 @@ func TestParser_OnlySelectAllowed(t *testing.T) {
 	}
 }
 
+// TestParser_RejectsIntrospectionStatements guarantees schema introspection
+// never gets to ClickHouse. These statements list every column of a table
+// without selecting from it, so a column allow-list on a SELECT does not apply
+// to them. ClickHouse also refuses them for a workspace user, but the parser is
+// the first of the two barriers.
+func TestParser_RejectsIntrospectionStatements(t *testing.T) {
+	parser := NewParser(Config{
+		WorkspaceID: "ws_123",
+		TableAliases: map[string]string{
+			"events_v1": "default.events",
+		},
+		AllowedTables: []string{"default.events"},
+	})
+
+	queries := []string{
+		"DESCRIBE TABLE events_v1",
+		"DESCRIBE events_v1",
+		"DESC events_v1",
+		"SHOW CREATE TABLE events_v1",
+		"SHOW COLUMNS FROM events_v1",
+		"SHOW TABLES",
+		"EXISTS TABLE events_v1",
+		"EXPLAIN SELECT count() FROM events_v1",
+		"SELECT count() FROM events_v1; DESCRIBE TABLE events_v1",
+	}
+
+	for _, query := range queries {
+		t.Run(query, func(t *testing.T) {
+			_, err := parser.Parse(context.Background(), query)
+			require.Error(t, err, "introspection must not reach ClickHouse")
+		})
+	}
+}
+
 // TestParser_RejectsMultipleStatements guarantees validation covers the full
 // input instead of executing a valid first statement and ignoring the rest.
 func TestParser_RejectsMultipleStatements(t *testing.T) {

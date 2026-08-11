@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	driver "github.com/ClickHouse/clickhouse-go/v2"
@@ -41,6 +42,16 @@ var (
 	perDayMonthPattern   = regexp.MustCompile(`_per_day_v\d+$|_per_month_v\d+$`)
 )
 
+// AllowedTable grants SELECT on one analytics table. An empty Columns slice
+// grants all columns; a non-empty slice grants only the columns in the slice.
+// Column grants are the only control on column access: the query parser checks
+// tables and functions, but it does not check columns. Thus a column that is
+// not in this list stays out of reach for all customer SQL.
+type AllowedTable struct {
+	Name    string
+	Columns []string
+}
+
 // UserConfig contains configuration for creating/updating a ClickHouse user
 type UserConfig struct {
 	WorkspaceID string
@@ -48,7 +59,7 @@ type UserConfig struct {
 	Password    string
 
 	// Tables to grant SELECT permission on
-	AllowedTables []string
+	AllowedTables []AllowedTable
 
 	// Quota settings (per window)
 	QuotaDurationSeconds      int32
@@ -77,14 +88,31 @@ func validateIdentifiers(config UserConfig) error {
 		return fmt.Errorf("invalid workspace_id: must contain only alphanumeric characters and underscores, got %q", config.WorkspaceID)
 	}
 
-	// Validate all table names
+	// Validate all table and column names
 	for _, table := range config.AllowedTables {
-		if !validTableName.MatchString(table) {
-			return fmt.Errorf("invalid table name: must be in format 'database.table' with alphanumeric characters and underscores only, got %q", table)
+		if !validTableName.MatchString(table.Name) {
+			return fmt.Errorf("invalid table name: must be in format 'database.table' with alphanumeric characters and underscores only, got %q", table.Name)
+		}
+
+		for _, column := range table.Columns {
+			if !validIdentifier.MatchString(column) {
+				return fmt.Errorf("invalid column name on table %q: must contain only alphanumeric characters and underscores, got %q", table.Name, column)
+			}
 		}
 	}
 
 	return nil
+}
+
+// grantSelectSQL builds the SELECT grant for one table. Identifiers are
+// interpolated because ClickHouse cannot parameterize them, so every name here
+// must already have passed validateIdentifiers.
+func grantSelectSQL(table AllowedTable, username string) string {
+	if len(table.Columns) == 0 {
+		return fmt.Sprintf("GRANT SELECT ON %s TO %s", table.Name, username)
+	}
+
+	return fmt.Sprintf("GRANT SELECT(%s) ON %s TO %s", strings.Join(table.Columns, ", "), table.Name, username)
 }
 
 // getTimeRetentionFilter returns the appropriate retention filter based on table type and retention days.
@@ -145,29 +173,28 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 
 	// Grant SELECT on specified tables
 	for _, table := range config.AllowedTables {
-		logger.Debug("granting SELECT permission", "table", table)
-		grantSQL := fmt.Sprintf("GRANT SELECT ON %s TO %s", table, config.Username)
-		err = c.Exec(ctx, grantSQL)
+		logger.Debug("granting SELECT permission", "table", table.Name, "columns", len(table.Columns))
+		err = c.Exec(ctx, grantSelectSQL(table, config.Username))
 		if err != nil {
-			return fmt.Errorf("failed to grant SELECT on %s: %w", table, err)
+			return fmt.Errorf("failed to grant SELECT on %s: %w", table.Name, err)
 		}
 	}
 
 	// Create row-level security (RLS) policies
 	policyName := fmt.Sprintf("workspace_%s_rls", config.WorkspaceID)
 	for _, table := range config.AllowedTables {
-		logger.Debug("creating row policy", "table", table, "policy", policyName, "retention_days", config.RetentionDays)
+		logger.Debug("creating row policy", "table", table.Name, "policy", policyName, "retention_days", config.RetentionDays)
 
 		// Build time retention filter based on table type and configured retention period
-		timeFilter := getTimeRetentionFilter(table, config.RetentionDays)
+		timeFilter := getTimeRetentionFilter(table.Name, config.RetentionDays)
 
 		createPolicySQL := fmt.Sprintf(
 			"CREATE ROW POLICY OR REPLACE %s ON %s FOR SELECT USING workspace_id = '%s' AND (%s) TO %s",
-			policyName, table, config.WorkspaceID, timeFilter, config.Username,
+			policyName, table.Name, config.WorkspaceID, timeFilter, config.Username,
 		)
 		err = c.Exec(ctx, createPolicySQL)
 		if err != nil {
-			return fmt.Errorf("failed to create row policy on %s: %w", table, err)
+			return fmt.Errorf("failed to create row policy on %s: %w", table.Name, err)
 		}
 	}
 
@@ -237,20 +264,59 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	return nil
 }
 
-// DefaultAllowedTables returns the default list of tables for analytics access
-func DefaultAllowedTables() []string {
-	return []string{
+// gatewayRequestColumns lists the columns of frontline_requests_raw_v1 that
+// customers can read. It does not include instance_address, frontline_id, and
+// platform. These three columns show the Unkey infrastructure and have no
+// meaning for the workspace that made the traffic.
+var gatewayRequestColumns = []string{
+	"request_id",
+	"time",
+	"workspace_id",
+	"project_id",
+	"app_id",
+	"environment_id",
+	"deployment_id",
+	"instance_id",
+	"region",
+	"method",
+	"host",
+	"path",
+	"query_string",
+	"query_params",
+	"request_headers",
+	"request_body",
+	"response_status",
+	"response_headers",
+	"response_body",
+	"user_agent",
+	"ip_address",
+	"total_latency",
+	"instance_latency",
+	"frontline_latency",
+}
+
+// DefaultAllowedTables returns the default list of tables for analytics access.
+// The frontline_requests_per_5m_v1 and _per_15m_v1 rollups are intentionally
+// absent: they have no public alias, so granting them would widen access beyond
+// what any endpoint exposes.
+func DefaultAllowedTables() []AllowedTable {
+	return []AllowedTable{
 		// Key verifications
-		"default.key_verifications_raw_v2",
-		"default.key_verifications_per_minute_v3",
-		"default.key_verifications_per_hour_v3",
-		"default.key_verifications_per_day_v3",
-		"default.key_verifications_per_month_v3",
+		{Name: "default.key_verifications_raw_v2", Columns: nil},
+		{Name: "default.key_verifications_per_minute_v3", Columns: nil},
+		{Name: "default.key_verifications_per_hour_v3", Columns: nil},
+		{Name: "default.key_verifications_per_day_v3", Columns: nil},
+		{Name: "default.key_verifications_per_month_v3", Columns: nil},
 		// Rate limits
-		"default.ratelimits_raw_v2",
-		"default.ratelimits_per_minute_v2",
-		"default.ratelimits_per_hour_v2",
-		"default.ratelimits_per_day_v2",
-		"default.ratelimits_per_month_v2",
+		{Name: "default.ratelimits_raw_v2", Columns: nil},
+		{Name: "default.ratelimits_per_minute_v2", Columns: nil},
+		{Name: "default.ratelimits_per_hour_v2", Columns: nil},
+		{Name: "default.ratelimits_per_day_v2", Columns: nil},
+		{Name: "default.ratelimits_per_month_v2", Columns: nil},
+		// Gateway requests
+		{Name: "default.frontline_requests_raw_v1", Columns: gatewayRequestColumns},
+		{Name: "default.frontline_requests_per_minute_v1", Columns: nil},
+		{Name: "default.frontline_requests_per_hour_v1", Columns: nil},
+		{Name: "default.frontline_requests_per_day_v1", Columns: nil},
 	}
 }

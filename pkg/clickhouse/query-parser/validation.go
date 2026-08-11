@@ -23,6 +23,9 @@ var allowedFunctions = map[string]bool{
 	"uniq":           true,
 	"uniqexact":      true,
 	"quantile":       true,
+	// Reads the AggregateFunction(quantileTDigest(q), Float64) states stored on
+	// the frontline_requests rollups, e.g. quantileTDigestMerge(0.95)(latency_p95).
+	"quantiletdigestmerge": true,
 
 	// Date/Time functions
 	// IMPORTANT: When adding new time-related functions here, you must also update
@@ -100,6 +103,7 @@ var canonicalFunctionNames = map[string]string{
 	"grouparray":               "groupArray",
 	"groupuniqarray":           "groupUniqArray",
 	"uniqexact":                "uniqExact",
+	"quantiletdigestmerge":     "quantileTDigestMerge",
 	"now64":                    "now64",
 	"todate":                   "toDate",
 	"todatetime":               "toDateTime",
