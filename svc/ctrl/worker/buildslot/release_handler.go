@@ -18,11 +18,12 @@ import (
 //  3. Deployment in neither: no-op. Idempotent — safe to call from both
 //     the happy path and the compensation stack.
 //
-// If a promoted waiter's workflow was already cancelled, the resolve lands
-// on a dead handler. Its compensation may never run: killed or purged
-// invocations run no compensation. The slot lease scheduled at promotion
-// covers this. ExpireSlot fires later, sees the dead deployment, and
-// reclaims the slot. No slot is lost forever.
+// Before a promotion the wait lists are pruned: entries whose Deploy
+// invocation is dead are rejected and removed, so a freed slot goes to a
+// live waiter. The prune is best-effort. When it fails or races a kill,
+// the slot lease scheduled at promotion covers it: ExpireSlot fires
+// later, sees the dead deployment, and reclaims the slot. No slot is
+// lost forever.
 func (s *Service) Release(
 	ctx restate.ObjectContext,
 	req *hydrav1.ReleaseSlotRequest,
@@ -57,6 +58,10 @@ func (s *Service) Release(
 
 	// Promote the next waiter — production first.
 	if held {
+		// Do not hand the freed slot to a dead waiter: it cannot build
+		// and would block the slot until its lease fires an hour later.
+		prodWait, previewWait = s.pruneDeadWaiters(ctx, workspaceID, prodWait, previewWait)
+
 		var promoted *waitEntry
 		promoted, prodWait, previewWait = pickNextWaiter(prodWait, previewWait)
 

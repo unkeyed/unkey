@@ -93,23 +93,43 @@ func (s *Service) AcquireOrWait(
 		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, buildLimit, req.GetIsProduction())
 	}
 
-	// At capacity: verify the current occupants before the caller parks.
-	// The check uses the database status and Restate invocation liveness.
-	// A stale slot only causes harm here, and the audit runs on demand. It
-	// does not depend on an earlier scheduled lease, and it also heals
-	// state written before this code existed. Best-effort: when the audit
-	// fails, the caller parks and its wait timeout bounds the damage.
-	staleIDs, auditErr := s.auditActiveSlots(ctx, workspaceID, active)
+	// At capacity: verify the current occupants and the queued waiters
+	// before the caller parks. The check uses the database status and
+	// Restate invocation liveness. A stale entry only causes harm here,
+	// and the audit runs on demand. It does not depend on an earlier
+	// scheduled lease, and it also heals state written before this code
+	// existed. Best-effort: when the audit fails, the caller parks and
+	// its wait timeout bounds the damage.
+	auditIDs := make([]string, 0, len(active))
+	for id := range active {
+		auditIDs = append(auditIDs, id)
+	}
+	auditIDs = append(auditIDs, waitListIDs(prodWait, previewWait)...)
+
+	deadIDs, auditErr := s.auditDeployments(ctx, auditIDs)
 	if auditErr != nil {
 		logger.Warn("build slot audit failed, queueing without reclaim",
 			"workspace_id", workspaceID,
 			"deployment_id", deploymentID,
 			"error", auditErr,
 		)
-	} else if len(staleIDs) > 0 {
-		// Existing waiters are promoted into the freed capacity before the
-		// caller so queue order stays fair.
-		active, prodWait, previewWait = reclaimStaleSlots(ctx, workspaceID, staleIDs, active, prodWait, previewWait, buildLimit)
+	} else if len(deadIDs) > 0 {
+		// Dead waiters leave the queue first so the reclaim below cannot
+		// promote one into the freed capacity.
+		prodWait, previewWait = dropWaitEntries(ctx, workspaceID, deadIDs, prodWait, previewWait)
+
+		staleSlots := make([]string, 0, len(deadIDs))
+		for _, id := range deadIDs {
+			if active[id] {
+				staleSlots = append(staleSlots, id)
+			}
+		}
+		if len(staleSlots) > 0 {
+			// Remaining live waiters are promoted into the freed capacity
+			// before the caller so queue order stays fair.
+			active, prodWait, previewWait = reclaimStaleSlots(ctx, workspaceID, staleSlots, active, prodWait, previewWait, buildLimit)
+		}
+
 		saveActiveSlots(ctx, active)
 		saveWaitList(ctx, stateKeyProdWaitList, prodWait)
 		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)

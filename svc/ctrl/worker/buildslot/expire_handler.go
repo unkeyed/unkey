@@ -1,14 +1,11 @@
 package buildslot
 
 import (
-	"database/sql"
 	"fmt"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -140,20 +137,7 @@ func (s *Service) ExpireSlot(
 				failReason = "build slot lease expired: deploy invocation no longer exists in Restate"
 			}
 			if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-				if updErr := s.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
-					ID:               deploymentID,
-					Status:           mysqltype.DeploymentsStatusFailed,
-					UpdatedAt:        now,
-					TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
-				}); updErr != nil {
-					return updErr
-				}
-				return s.db.EndActiveDeploymentStepsWithError(runCtx, db.EndActiveDeploymentStepsWithErrorParams{
-					DeploymentID: deploymentID,
-					EndedAt:      now,
-					Error:        sql.NullString{Valid: true, String: failReason},
-				})
+				return forceFailDeployment(runCtx, s.db, deploymentID, failReason)
 			}, restate.WithName("force-fail deployment on lease expiry"), restate.WithMaxRetryAttempts(runMaxAttempts)); runErr != nil {
 				logger.Warn("build slot lease audit could not force-fail deployment, re-arming",
 					"workspace_id", workspaceID,
@@ -198,8 +182,11 @@ func (s *Service) ExpireSlot(
 	prodWait = removeFromWaitList(prodWait, deploymentID)
 	previewWait = removeFromWaitList(previewWait, deploymentID)
 
-	// Only a freed slot creates capacity for a promotion.
+	// Only a freed slot creates capacity for a promotion. Prune first so
+	// the slot does not go to another dead waiter.
 	if holdsSlot {
+		prodWait, previewWait = s.pruneDeadWaiters(ctx, workspaceID, prodWait, previewWait)
+
 		var promoted *waitEntry
 		promoted, prodWait, previewWait = pickNextWaiter(prodWait, previewWait)
 		if promoted != nil {

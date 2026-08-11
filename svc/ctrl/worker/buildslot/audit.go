@@ -2,25 +2,29 @@ package buildslot
 
 import (
 	"context"
+	"database/sql"
 	"sort"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// auditActiveSlots verifies every deployment in active_slots against the
-// database and Restate, and returns the IDs whose slots are stale. It runs
-// as one bounded, journaled step.
+// auditDeployments verifies the given deployments against the database and
+// Restate, and returns the IDs that are dead. It runs as one bounded,
+// journaled step. The callers pass slot holders, wait-list entries, or
+// both.
 //
 // Virtual Object state outlives invocations: a deployment ID stays in
-// active_slots until something removes it. A `restate kill`, a purge, or a
-// forced service-deployment removal ends the invocation without its Release
-// compensation. The dead entry then blocks the whole workspace. This audit
-// is the pull-based safety net. It does not depend on an earlier scheduled
-// event.
+// active_slots or a wait list until something removes it. A `restate kill`,
+// a purge, or a forced service-deployment removal ends the invocation
+// without its Release compensation. The dead entry then blocks the whole
+// workspace. This audit is the pull-based safety net. It does not depend
+// on an earlier scheduled event.
 //
-// A slot is stale when one of these is true:
+// A deployment is dead when one of these is true:
 //   - the deployment row is gone from the database
 //   - the deployment status is terminal
 //   - the recorded Restate invocation no longer executes (killed,
@@ -28,25 +32,23 @@ import (
 //
 // A non-terminal deployment without a recorded invocation ID stays. The
 // slot lease still bounds it.
-func (s *Service) auditActiveSlots(
+func (s *Service) auditDeployments(
 	ctx restate.ObjectContext,
-	workspaceID string,
-	active map[string]bool,
+	deploymentIDs []string,
 ) ([]string, error) {
-	deploymentIDs := make([]string, 0, len(active))
-	for id := range active {
-		deploymentIDs = append(deploymentIDs, id)
-	}
 	sort.Strings(deploymentIDs)
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return computeStaleSlots(runCtx, s.db, s.restateAdmin, deploymentIDs)
-	}, restate.WithName("audit active build slots"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		return reapDeadDeployments(runCtx, s.db, s.restateAdmin, deploymentIDs)
+	}, restate.WithName("audit build slot deployments"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
-// computeStaleSlots is the core of the audit. It runs under a plain context
-// inside restate.Run and is unit-testable.
-func computeStaleSlots(
+// reapDeadDeployments is the core of the audit. It returns the dead
+// deployment IDs. A row that is still active while its invocation is gone
+// is also force-failed in the database, so the dashboard does not show a
+// phantom build after the reclaim. It runs under a plain context inside
+// restate.Run and is unit-testable.
+func reapDeadDeployments(
 	ctx context.Context,
 	database db.Database,
 	liveness InvocationLiveness,
@@ -92,12 +94,111 @@ func computeStaleSlots(
 		for _, c := range toCheck {
 			if !live[c.invocationID] {
 				staleIDs = append(staleIDs, c.deploymentID)
+				// The row still shows an active status while its Deploy
+				// invocation is gone. Force-fail it so the database agrees
+				// with the reclaim and the dashboard does not show a
+				// phantom build. The update is guarded: a concurrent
+				// legitimate terminal transition wins.
+				if failErr := forceFailDeployment(ctx, database, c.deploymentID,
+					"build slot audit: deploy invocation no longer exists in Restate"); failErr != nil {
+					return nil, failErr
+				}
 			}
 		}
 	}
 
 	sort.Strings(staleIDs)
 	return staleIDs, nil
+}
+
+// forceFailDeployment marks a deployment failed and ends its active build
+// steps with the given reason. The status update only applies while the
+// row is non-terminal, so a legitimate concurrent transition is never
+// overwritten. Idempotent, safe under restate.Run retries.
+func forceFailDeployment(
+	ctx context.Context,
+	database db.Database,
+	deploymentID, reason string,
+) error {
+	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+	if err := database.UpdateDeploymentStatusIfActive(ctx, db.UpdateDeploymentStatusIfActiveParams{
+		ID:               deploymentID,
+		Status:           mysqltype.DeploymentsStatusFailed,
+		UpdatedAt:        now,
+		TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
+	}); err != nil {
+		return err
+	}
+	return database.EndActiveDeploymentStepsWithError(ctx, db.EndActiveDeploymentStepsWithErrorParams{
+		DeploymentID: deploymentID,
+		EndedAt:      now,
+		Error:        sql.NullString{Valid: true, String: reason},
+	})
+}
+
+// pruneDeadWaiters audits both wait lists and removes every entry whose
+// deployment is dead, so a dead waiter is never promoted into a freed
+// slot. Best-effort: when the audit fails, both lists come back unchanged
+// and the wait-entry lease removes dead entries later. The caller must
+// persist the returned lists.
+func (s *Service) pruneDeadWaiters(
+	ctx restate.ObjectContext,
+	workspaceID string,
+	prodWait, previewWait []waitEntry,
+) ([]waitEntry, []waitEntry) {
+	waiterIDs := waitListIDs(prodWait, previewWait)
+	if len(waiterIDs) == 0 {
+		return prodWait, previewWait
+	}
+
+	deadIDs, err := s.auditDeployments(ctx, waiterIDs)
+	if err != nil {
+		logger.Warn("wait list audit failed, promoting without pruning",
+			"workspace_id", workspaceID,
+			"error", err,
+		)
+		return prodWait, previewWait
+	}
+
+	return dropWaitEntries(ctx, workspaceID, deadIDs, prodWait, previewWait)
+}
+
+// dropWaitEntries removes the given deployments from both wait lists and
+// rejects their awakeables. A reject on a dead invocation is harmless.
+func dropWaitEntries(
+	ctx restate.ObjectContext,
+	workspaceID string,
+	deploymentIDs []string,
+	prodWait, previewWait []waitEntry,
+) ([]waitEntry, []waitEntry) {
+	for _, id := range deploymentIDs {
+		awakeableID := findAwakeableID(prodWait, previewWait, id)
+		if awakeableID == "" {
+			continue
+		}
+		restate.RejectAwakeable(ctx, awakeableID,
+			restate.TerminalErrorf("build slot wait entry removed: deploy invocation no longer exists"))
+		prodWait = removeFromWaitList(prodWait, id)
+		previewWait = removeFromWaitList(previewWait, id)
+
+		logger.Warn("removed dead build slot waiter",
+			"workspace_id", workspaceID,
+			"deployment_id", id,
+		)
+	}
+	return prodWait, previewWait
+}
+
+// waitListIDs collects the deployment IDs of every entry in the given
+// wait lists.
+func waitListIDs(lists ...[]waitEntry) []string {
+	ids := []string{}
+	for _, list := range lists {
+		for _, w := range list {
+			ids = append(ids, w.DeploymentID)
+		}
+	}
+	return ids
 }
 
 // reclaimStaleSlots removes the stale deployments from active_slots and

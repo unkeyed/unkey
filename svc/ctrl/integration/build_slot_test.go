@@ -271,6 +271,14 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, granted, "deployment B must get the slot after the stale entry is reclaimed")
 
+	// The audit force-fails the reclaimed deployment. Without this write
+	// the row stays at building forever and the dashboard shows a phantom
+	// build.
+	depAAfter, err := h.DB.FindDeploymentById(ctx, depA.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsStatusFailed, depAAfter.Status,
+		"reclaimed deployment must be marked failed")
+
 	// Purge removes the completed invocation row. The liveness query must
 	// still report it dead, not error.
 	terminateInvocation(t, adminURL, holderInvocationID, "purge")
