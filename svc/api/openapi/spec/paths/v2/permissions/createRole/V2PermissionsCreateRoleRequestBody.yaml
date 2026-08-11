@@ -34,6 +34,18 @@ properties:
       - Any security considerations or limitations
       - Related roles that might be used together
     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+  permissions:
+    type: array
+    description: |
+      Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+      Omit this field or provide an empty array to create the role without permissions.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      description: Specify the permission by its slug.
 additionalProperties: false
 examples:
   adminRole:
@@ -48,3 +60,6 @@ examples:
     value:
       name: editor
       description: Can create and edit content but not manage users
+      permissions:
+        - content.read
+        - content.write

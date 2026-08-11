@@ -2614,6 +2614,18 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+                permissions:
+                    type: array
+                    description: |
+                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+                        Omit this field or provide an empty array to create the role without permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2PermissionsCreateRoleResponseBody:
             type: object
@@ -12481,14 +12493,20 @@ paths:
     /v2/permissions.createRole:
         post:
             description: |
-                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
                 **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
                 **Required Permissions**
 
-                Your root key must have the following permission:
+                Your root key must always have:
                 - `rbac.*.create_role`
+
+                When `permissions` is not empty, it must also have:
+                - `rbac.*.add_permission_to_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
             operationId: permissions.createRole
             requestBody:
                 content:
@@ -12499,6 +12517,9 @@ paths:
                                 value:
                                     description: Can read and write content
                                     name: content.editor
+                                    permissions:
+                                        - content.read
+                                        - content.write
                             withoutDescription:
                                 summary: Role without description
                                 value:
