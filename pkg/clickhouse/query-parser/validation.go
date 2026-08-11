@@ -23,8 +23,8 @@ var allowedFunctions = map[string]bool{
 	"uniq":           true,
 	"uniqexact":      true,
 	"quantile":       true,
-	// Reads the AggregateFunction(quantileTDigest(q), Float64) states stored on
-	// the frontline_requests rollups, e.g. quantileTDigestMerge(0.95)(latency_p95).
+	// Reads the AggregateFunction(quantileTDigest(q), Float64) states in the
+	// frontline_requests rollups. For example, quantileTDigestMerge(0.95)(latency_p95).
 	"quantiletdigestmerge": true,
 
 	// Date/Time functions

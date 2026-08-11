@@ -104,9 +104,9 @@ func validateIdentifiers(config UserConfig) error {
 	return nil
 }
 
-// grantSelectSQL builds the SELECT grant for one table. Identifiers are
-// interpolated because ClickHouse cannot parameterize them, so every name here
-// must already have passed validateIdentifiers.
+// grantSelectSQL makes the SELECT grant for one table. ClickHouse cannot use
+// query parameters for identifiers, thus this function puts each name directly
+// into the statement. Each name must first pass validateIdentifiers.
 func grantSelectSQL(table AllowedTable, username string) string {
 	if len(table.Columns) == 0 {
 		return fmt.Sprintf("GRANT SELECT ON %s TO %s", table.Name, username)
