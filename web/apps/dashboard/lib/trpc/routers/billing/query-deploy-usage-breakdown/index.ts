@@ -21,7 +21,6 @@ export const deployUsageBreakdownRow = z.object({
    * Integrated sample pairs behind this row. A healthy container contributes
    * ~240 per hour, so a low count means "unobserved", not "idle".
    */
-  samplePairs: z.number(),
   /**
    * Exact gross price of this row's compute meters, in micro-cents. Not
    * rounded: sum the rows and round once for display, or the parts stop adding
@@ -38,13 +37,9 @@ export type DeployUsageBreakdownRow = z.infer<typeof deployUsageBreakdownRow>;
  * Month-to-date Deploy usage split by project / app / environment, read from
  * the hourly dashboard rollup.
  *
- * SHAPE IS OPEN FOR REVIEW (Flo): Claude chose a flat row per
- * (project, app, environment) with the price computed here on the server. The
- * two alternatives considered were a nested project -> app -> environment tree
- * carrying subtotals at each level, and returning raw quantities only and
- * letting the page price them. Flat plus server-side pricing keeps one pricing
- * implementation shared with billing.queryDeployUsage, but the page then has to
- * group and subtotal itself. Say if you want a different split.
+ * One flat row per (project, app, environment), priced here rather than on the
+ * page, so the pricing implementation stays shared with
+ * billing.queryDeployUsage. Grouping and subtotalling is the page's job.
  *
  * These rows are expected to reconcile with billing.queryDeployUsage's
  * workspace total, with two known sources of divergence, both systematic rather
@@ -132,7 +127,6 @@ export const queryDeployUsageBreakdown = workspaceProcedure
         memoryGiBHours: row.memoryGiBHours,
         diskGiBHours: row.diskGiBHours,
         egressGiB: row.egressGiB,
-        samplePairs: row.samplePairs,
         grossMicroCents: priceComputeMeterMicroCents({
           cpuSeconds: row.cpuSeconds,
           memoryGiBHours: row.memoryGiBHours,

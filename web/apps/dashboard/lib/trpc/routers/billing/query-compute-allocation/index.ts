@@ -35,10 +35,9 @@ const allocationRow = z.object({
  * dashboard can never show a different number from the ceiling that actually
  * rejects a deploy.
  *
- * NOTE FOR FLO: Claude picked the worst-case scale-out definition to match the
- * admission check. The repo owner has not verified that this is the right thing
- * to show a user — it can read far higher than real consumption. Flo, please
- * confirm this is the number we want on the billing page, or say which one is.
+ * Worst-case is the right definition here, confirmed in review: it is what the
+ * workspace has actually reserved, and it is the figure the admission check
+ * rejects a deploy against.
  */
 export const queryComputeAllocation = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

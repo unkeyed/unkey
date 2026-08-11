@@ -127,7 +127,6 @@ export const deployUsageByScope = z.object({
   memoryGiBHours: z.number(),
   diskGiBHours: z.number(),
   egressGiB: z.number(),
-  samplePairs: z.number(),
 });
 
 export type DeployUsageByScope = z.infer<typeof deployUsageByScope>;
@@ -155,8 +154,7 @@ export function getDeployUsageByScope(ch: Querier) {
         sum(cpu_seconds) AS cpuSeconds,
         sum(memory_gib_hours) AS memoryGiBHours,
         sum(disk_gib_hours) AS diskGiBHours,
-        sum(network_egress_public_bytes) / pow(1024, 3) AS egressGiB,
-        toInt64(sum(sample_pairs)) AS samplePairs
+        sum(network_egress_public_bytes) / pow(1024, 3) AS egressGiB
       FROM default.instance_usage_per_hour_v1 FINAL
       WHERE workspace_id = {workspaceId: String}
         AND time >= toDateTime(fromUnixTimestamp64Milli({periodStart: Int64}))
