@@ -33,6 +33,10 @@ export const FilterItem = ({
   const itemRef = useRef<HTMLDivElement>(null); // Ref for the trigger div
   const contentRef = useRef<HTMLDivElement>(null); // Ref for the DroverContent
 
+  useEffect(() => {
+    setOpen(isActive ?? false);
+  }, [isActive]);
+
   // Focus the trigger div when parent indicates it's focused in the main list
   // biome-ignore lint/correctness/useExhaustiveDependencies:  no need to react for label
   useEffect(() => {

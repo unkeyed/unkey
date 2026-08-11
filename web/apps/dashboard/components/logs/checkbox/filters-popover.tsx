@@ -1,5 +1,7 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { Drover, KeyboardButton } from "@unkey/ui";
+import { CaretRight, Check, Magnifier } from "@unkey/icons";
+import { Drover, Input, KeyboardButton } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import React, {
   type KeyboardEvent,
   type PropsWithChildren,
@@ -9,6 +11,7 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useMemo,
 } from "react";
 import type { FilterValue } from "../validation/filter.types";
 import { FilterItem } from "./filter-item";
@@ -21,9 +24,33 @@ export type FilterItemConfig = {
   component: React.ReactNode;
 };
 
+type FilterSearchItemBase = {
+  id: string;
+  label: string;
+  path: string[];
+  keywords?: string[];
+  description?: string;
+  icon?: React.ReactNode;
+};
+
+export type FilterSearchItem = FilterSearchItemBase &
+  (
+    | {
+        kind: "filter";
+        filterId: string;
+      }
+    | {
+        kind: "option";
+        checked: boolean;
+        onSelect: () => void;
+      }
+  );
+
 type FiltersPopoverProps = {
   items: FilterItemConfig[];
   activeFilters: FilterValue[];
+  searchItems?: FilterSearchItem[];
+  searchPlaceholder?: string;
   getFilterCount?: (field: string) => number;
   open?: boolean;
   onOpenChange?: Dispatch<SetStateAction<boolean>>;
@@ -57,6 +84,8 @@ export const FiltersPopover = ({
   children,
   items = [],
   activeFilters = [],
+  searchItems,
+  searchPlaceholder = "Search filters and values...",
   open,
   onOpenChange,
   getFilterCount = (field) => activeFilters.filter((f) => f?.field === field).length,
@@ -64,7 +93,40 @@ export const FiltersPopover = ({
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
+  const [focusedSearchIndex, setFocusedSearchIndex] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const searchableItems = useMemo<FilterSearchItem[]>(
+    () => [
+      ...items.map(
+        (item): FilterSearchItem => ({
+          kind: "filter",
+          id: `filter:${item.id}`,
+          filterId: item.id,
+          label: item.label,
+          path: [],
+        }),
+      ),
+      ...(searchItems ?? []),
+    ],
+    [items, searchItems],
+  );
+
+  const matchingSearchItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    if (!query || !searchItems) {
+      return [];
+    }
+
+    return searchableItems
+      .filter((item) =>
+        [item.label, item.description, ...item.path, ...(item.keywords ?? [])]
+          .filter((value): value is string => value !== undefined)
+          .some((value) => value.toLocaleLowerCase().includes(query)),
+      )
+      .slice(0, 50);
+  }, [search, searchItems, searchableItems]);
 
   // Handle local state if external state isn't provided
   const [internalOpen, setInternalOpen] = useState(false);
@@ -87,8 +149,14 @@ export const FiltersPopover = ({
       setActiveFilter(null);
       setFocusedIndex(null);
       setLastFocusedIndex(null);
+      setFocusedSearchIndex(null);
+      setSearch("");
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    setFocusedSearchIndex(matchingSearchItems.length > 0 ? 0 : null);
+  }, [matchingSearchItems.length]);
 
   useEffect(() => {
     if (!activeFilter && lastFocusedIndex !== null && isOpen) {
@@ -125,6 +193,18 @@ export const FiltersPopover = ({
     [items, setOpen],
   );
 
+  const activateSearchItem = useCallback(
+    (item: FilterSearchItem) => {
+      if (item.kind === "filter") {
+        setSearch("");
+        handleActivateFilter(item.filterId);
+      } else {
+        item.onSelect();
+      }
+    },
+    [handleActivateFilter],
+  );
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) {
       return;
@@ -135,6 +215,10 @@ export const FiltersPopover = ({
       targetElement.tagName === "INPUT" ||
       targetElement.tagName === "TEXTAREA" ||
       targetElement.isContentEditable;
+
+    if (isInputFocused && e.key !== "Escape") {
+      return;
+    }
 
     // If a filter item popover is active, only handle ArrowLeft (outside inputs)
     if (activeFilter) {
@@ -210,23 +294,134 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
+        className={cn(
+          "min-w-60 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg",
+          searchItems ? "w-80 p-0" : "p-2",
+        )}
         align="start"
         onKeyDown={handleKeyDown}
       >
-        <div className="flex flex-col gap-2 w-full">
-          <PopoverHeader />
-          <div className="flex flex-col gap-2 w-full" role="menu">
-            {items.map((item, index) => (
-              <FilterItem
-                key={item.id}
-                {...item} // Pass item config props (id, label, component, shortcut for display)
-                filterCount={getFilterCount(item.id)}
-                isFocused={focusedIndex === index} // Is this item highlighted in the list?
-                isActive={activeFilter === item.id} // Is this item's popover open?
-                setActiveFilter={setActiveFilter}
+        <div className="flex w-full flex-col">
+          {searchItems ? (
+            <div className="border-b border-gray-4 p-2">
+              <Input
+                autoFocus
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setFocusedSearchIndex(0);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    return;
+                  }
+                  event.stopPropagation();
+
+                  if (matchingSearchItems.length === 0) {
+                    return;
+                  }
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setFocusedSearchIndex((current) =>
+                      current === null ? 0 : (current + 1) % matchingSearchItems.length,
+                    );
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setFocusedSearchIndex((current) =>
+                      current === null
+                        ? matchingSearchItems.length - 1
+                        : (current - 1 + matchingSearchItems.length) % matchingSearchItems.length,
+                    );
+                  } else if (event.key === "Enter" && focusedSearchIndex !== null) {
+                    event.preventDefault();
+                    const item = matchingSearchItems[focusedSearchIndex];
+                    if (item) {
+                      activateSearchItem(item);
+                    }
+                  }
+                }}
+                placeholder={searchPlaceholder}
+                aria-label="Search filters and values"
+                variant="ghost"
+                className="h-8 text-xs"
+                leftIcon={<Magnifier className="size-3.5 text-gray-9" />}
+                rightIcon={<KeyboardButton shortcut="F" />}
               />
-            ))}
+            </div>
+          ) : (
+            <PopoverHeader />
+          )}
+
+          <div className={cn("w-full p-2", searchItems ? "max-h-80 overflow-y-auto" : "")}>
+            {search.trim() && searchItems ? (
+              matchingSearchItems.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  {matchingSearchItems.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={cn(
+                        "flex h-9 w-full items-center gap-2 rounded-md px-2 text-left outline-hidden",
+                        "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-accent-7",
+                        focusedSearchIndex === index && "bg-gray-3",
+                        item.kind === "option" && item.checked && "bg-gray-3",
+                      )}
+                      aria-pressed={item.kind === "option" ? item.checked : undefined}
+                      onMouseEnter={() => setFocusedSearchIndex(index)}
+                      onClick={() => activateSearchItem(item)}
+                    >
+                      {item.kind === "option" ? (
+                        <span
+                          className={cn(
+                            "flex size-4 shrink-0 items-center justify-center rounded-sm border border-gray-5",
+                            item.checked &&
+                              "border-accent-9 bg-accent-9 text-white dark:text-black",
+                          )}
+                          aria-hidden="true"
+                        >
+                          {item.checked ? <Check className="size-3" /> : null}
+                        </span>
+                      ) : null}
+                      {item.icon ? (
+                        <span className="shrink-0 text-accent-9">{item.icon}</span>
+                      ) : null}
+                      <span className="flex min-w-0 items-center gap-1 text-xs">
+                        {item.path.map((segment) => (
+                          <React.Fragment key={`${item.id}-${segment}`}>
+                            <span className="max-w-28 truncate text-gray-9">{segment}</span>
+                            <CaretRight className="size-2 shrink-0 text-gray-7" />
+                          </React.Fragment>
+                        ))}
+                        <span className="truncate font-medium text-accent-12">{item.label}</span>
+                      </span>
+                      {item.description ? (
+                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">
+                          {item.description}
+                        </span>
+                      ) : null}
+                      {item.kind === "filter" ? (
+                        <CaretRight className="ml-auto size-2 shrink-0 text-gray-7" />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-2 py-8 text-center text-xs text-gray-9">No filters found</div>
+              )
+            ) : (
+              <div className="flex flex-col gap-2 w-full" role="menu">
+                {items.map((item, index) => (
+                  <FilterItem
+                    key={item.id}
+                    {...item}
+                    filterCount={getFilterCount(item.id)}
+                    isFocused={focusedIndex === index}
+                    isActive={activeFilter === item.id}
+                    setActiveFilter={setActiveFilter}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Drover.Content>
