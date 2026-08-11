@@ -34,6 +34,8 @@ import {
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
 
+type AlertWorkspace = { id: string; name: string };
+
 /**
  * Mirrors a subscription's Deploy plan onto its workspace row, writing only when
  * it changed so the common renewal case (plan unchanged) does no DB write.
@@ -90,7 +92,7 @@ async function sendComputeAlert(
   stripe: Stripe,
   sub: Stripe.Subscription,
   alert: ComputeLifecycleAlert | null,
-  ws: { id: string; name: string } | null,
+  ws: AlertWorkspace | null,
 ): Promise<void> {
   if (!alert || !sub.customer) {
     return;
@@ -165,6 +167,13 @@ async function sendComputeAlert(
  */
 function subscriptionStillBilling(sub: Stripe.Subscription): boolean {
   return sub.status !== "canceled" && sub.status !== "incomplete_expired";
+}
+
+/** A subscription whose current state represents a completed signup. */
+function isSignupEligible(sub: Stripe.Subscription): boolean {
+  const active = sub.status === "active" || sub.status === "trialing";
+  const cancelling = Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at);
+  return active && !cancelling;
 }
 
 /**
@@ -288,7 +297,13 @@ async function linkCheckoutSession(
         product,
       });
     }
+    return new Response("OK", { status: 200 });
   }
+
+  // The linker proves Checkout completed, payment succeeded, and the current
+  // subscription is active. It also commits the exact workspace link this alert
+  // resolves, so this event remains correct regardless of lifecycle-event order.
+  await sendCheckoutSignupAlert(stripe, { subscriptionId, product: productTag });
   return new Response("OK", { status: 200 });
 }
 
@@ -330,6 +345,68 @@ async function resolveApiSubscriptionContext(
   );
 
   return { unitAmount: price.unit_amount, customer, product };
+}
+
+/** Sends an API signup alert using current Stripe data. */
+async function sendApiSignupAlert(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+  ws: AlertWorkspace,
+): Promise<void> {
+  const apiContext = await resolveApiSubscriptionContext(stripe, sub);
+  if (!apiContext) {
+    return;
+  }
+  const { unitAmount, customer, product } = apiContext;
+  if (customer.deleted || !customer.email) {
+    return;
+  }
+
+  await alertCustomerLifecycle({
+    action: "signup",
+    name: customer.name || "Unknown",
+    email: customer.email,
+    workspaceId: ws.id,
+    workspaceName: ws.name,
+    product: product.name,
+    price: formatPrice(unitAmount),
+    stripeCustomerId: customer.id,
+    livemode: customer.livemode,
+  });
+}
+
+/** Announces a paid Checkout only after its durable workspace link exists. */
+async function sendCheckoutSignupAlert(
+  stripe: Stripe,
+  input: { subscriptionId: string; product: "api" | "compute" },
+): Promise<void> {
+  const linked = await db.query.billingSubscriptions.findFirst({
+    where: (table, { eq }) => eq(table.stripeSubscriptionId, input.subscriptionId),
+    with: { workspace: { with: { billing: true } } },
+  });
+  const ws = linked?.workspace ?? null;
+  if (!linked || linked.product !== input.product || !ws || !ws.billing || ws.deletedAtM !== null) {
+    return;
+  }
+
+  let sub: Stripe.Subscription;
+  try {
+    sub = await stripe.subscriptions.retrieve(input.subscriptionId);
+  } catch (error) {
+    if (error instanceof Stripe.errors.StripeError && error.code === "resource_missing") {
+      return;
+    }
+    throw error;
+  }
+  if (!isSignupEligible(sub)) {
+    return;
+  }
+
+  if (input.product === "compute") {
+    await sendComputeAlert(stripe, sub, computeCreatedAlert(sub), ws);
+    return;
+  }
+  await sendApiSignupAlert(stripe, sub, ws);
 }
 
 export const runtime = "nodejs";
@@ -887,18 +964,46 @@ export const POST = async (req: Request): Promise<Response> => {
     }
     case "customer.subscription.created": {
       /**
-       * Subscription create + tier/limit writes happen inline in the createSubscription
-       * tRPC mutation now. This webhook only sends the operational Slack alert so the
-       * team is notified out-of-band; it deliberately does no DB writes.
+       * Subscription linking and entitlement writes happen in the Checkout linker
+       * or the direct Compute subscription mutation. Checkout signup alerts also
+       * belong to the linker because a created subscription can still be unpaid.
+       * This branch only announces direct/legacy creates and does no DB writes
+       * except mirroring an already-linked direct Compute subscription.
        */
       try {
-        const sub = event.data.object as Stripe.Subscription;
+        const eventSub = event.data.object as Stripe.Subscription;
 
-        // One unique-index lookup, then branch by the row's product. A created
-        // event can race ahead of the tRPC/link write that inserts the
-        // billing_subscriptions row, so a no-match is a best-effort no-op:
-        // subscribeDeploy/linkDeploySubscription already write the plan inline,
-        // and a later subscription.updated resyncs.
+        // Checkout stamps this discriminator onto the subscription before
+        // Stripe emits lifecycle events. Its successful linker owns the signup
+        // alert, so an incomplete create cannot be announced as a paid signup.
+        const checkoutProduct = eventSub.metadata?.unkey_product;
+        if (checkoutProduct === "api" || checkoutProduct === "compute") {
+          return new Response("OK");
+        }
+
+        // Stripe does not preserve event delivery order. Use current state so a
+        // delayed create cannot overwrite a newer Compute plan or announce a
+        // subscription that is incomplete, cancelling, or already terminal.
+        let sub: Stripe.Subscription;
+        try {
+          sub = await stripe.subscriptions.retrieve(eventSub.id);
+        } catch (retrieveError) {
+          if (
+            retrieveError instanceof Stripe.errors.StripeError &&
+            retrieveError.code === "resource_missing"
+          ) {
+            return new Response("OK");
+          }
+          throw retrieveError;
+        }
+        if (!isSignupEligible(sub)) {
+          return new Response("OK");
+        }
+
+        // One unique-index lookup, then branch by the row's product. A direct
+        // Compute create can race ahead of its local transaction, so its alert
+        // does not require the row; the mutation owns the plan write in that
+        // case. Legacy API creates still require their durable link.
         const subscription = await db.query.billingSubscriptions.findFirst({
           where: (table, { eq }) => eq(table.stripeSubscriptionId, sub.id),
           with: { workspace: { with: { billing: true } } },
@@ -908,15 +1013,11 @@ export const POST = async (req: Request): Promise<Response> => {
         const column =
           subscription && ws && billing && ws.deletedAtM == null ? subscription.product : null;
 
-        // Compute created: a created subscription carrying a recognized Compute
-        // plan is a new Compute subscription. Detect it from the subscription's
-        // own plan-fee item, not the billing_subscriptions row, because a created
-        // event can race ahead of the checkout link that writes that row — gating
-        // the alert on the row would drop it for the no-card checkout flow. Mirror
-        // the plan when the row is already present (the link mirrors it
-        // otherwise); announce the subscription either way. An API subscription
-        // never carries Compute plan metadata, so this cannot misfire an API
-        // create as a Compute alert.
+        // Direct Compute creation can emit this event before its local transaction
+        // writes billing_subscriptions. Detect the current plan from Stripe and
+        // announce it either way; mirror only when the row already exists because
+        // the direct mutation owns the write otherwise. API subscriptions never
+        // carry Compute plan metadata.
         if (detectDeployPlan(sub)) {
           if (billing && ws) {
             await mirrorDeployPlan(billing, ws.orgId, sub);
@@ -925,36 +1026,11 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK");
         }
 
-        // Not matched to a column yet (the create event raced ahead of the
-        // tRPC/link write). No-op: the inline write set the plan and a later
-        // subscription.updated resyncs. Only an API-matched create alerts, so we
-        // never misfire a Compute create as an API subscription alert.
         if (column !== "api" || !ws) {
           return new Response("OK");
         }
 
-        // API-matched: alert on the API plan item.
-        const apiContext = await resolveApiSubscriptionContext(stripe, sub);
-        if (!apiContext) {
-          return new Response("OK");
-        }
-        const { unitAmount, customer, product } = apiContext;
-
-        if (customer.deleted || !customer.email) {
-          return new Response("OK");
-        }
-
-        await alertCustomerLifecycle({
-          action: "signup",
-          name: customer.name || "Unknown",
-          email: customer.email,
-          workspaceId: ws.id,
-          workspaceName: ws.name,
-          product: product.name,
-          price: formatPrice(unitAmount),
-          stripeCustomerId: customer.id,
-          livemode: customer.livemode,
-        });
+        await sendApiSignupAlert(stripe, sub, ws);
         // Return rather than break so this case can never fall through into
         // invoice.payment_failed below; every other terminus in this case
         // returns too.
