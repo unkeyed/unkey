@@ -18,9 +18,12 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { FREE_TIER_QUOTA } from "../billing/components/constants";
 import { ApiCard } from "./api-card";
-import { ComputeCard } from "./compute-card";
+import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
+
+const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
 
 /** Both endpoints aggregate over the UTC calendar month, so the period label does too. */
 function currentPeriod(): string {
@@ -51,6 +54,11 @@ export default function UsagePage() {
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
+  const billingInfo = trpc.stripe.getBillingInfo.useQuery(undefined, {
+    enabled: Boolean(workspace),
+    staleTime: 30_000,
+    retry: 1,
+  });
 
   if (!deployBillingEnabled) {
     notFound();
@@ -66,30 +74,46 @@ export default function UsagePage() {
 
   const compute = hasComputePlan ? (
     breakdown.isError ? (
-      <Empty>
-        <Empty.Title>Compute usage unavailable</Empty.Title>
-        <Empty.Description>
-          We could not read the Compute breakdown for this period. Please try again later.
-        </Empty.Description>
-      </Empty>
+      <ComputeCardShell description="Usage per project this period">
+        <div className="px-4 py-8">
+          <Empty className="w-full">
+            <Empty.Title>Compute usage unavailable</Empty.Title>
+            <Empty.Description>
+              We could not read the Compute breakdown for this period. Please try again later.
+            </Empty.Description>
+          </Empty>
+        </div>
+      </ComputeCardShell>
     ) : breakdown.data === undefined ? (
-      <div className="h-40 w-full animate-pulse rounded-lg bg-grayA-3" />
+      <ComputeCardSkeleton />
     ) : (
       <ComputeCard
         tree={buildComputeTree(breakdown.data)}
         workspaceCents={deployUsage.data?.grossCents ?? null}
-        activeKeys={deployUsage.data?.activeKeys ?? null}
       />
     )
   ) : (
     <NoComputePlan workspaceSlug={workspace.slug} />
   );
 
+  const info = billingInfo.data;
+  const apiProduct =
+    info?.subscription &&
+    info.currentProductId &&
+    ACTIVE_SUBSCRIPTION_STATES.includes(info.subscription.status)
+      ? info.products.find((product) => product.id === info.currentProductId)
+      : undefined;
+  const planKnown = info !== undefined;
+
   const api = (
     <ApiCard
       verifications={apiUsage.data?.billableVerifications ?? null}
       ratelimits={apiUsage.data?.billableRatelimits ?? null}
-      isLoading={apiUsage.data === undefined && !apiUsage.isError}
+      quota={planKnown ? (apiProduct?.quotas.requestsPerMonth ?? FREE_TIER_QUOTA) : null}
+      feeCents={planKnown ? (apiProduct?.dollar ?? 0) * 100 : null}
+      isLoading={
+        (apiUsage.data === undefined && !apiUsage.isError) || (!planKnown && !billingInfo.isError)
+      }
     />
   );
 
@@ -131,19 +155,22 @@ function Shell({ children }: { children: ReactNode }) {
 
 function NoComputePlan({ workspaceSlug }: { workspaceSlug: string }) {
   return (
-    <Empty>
-      <Empty.Title>No Compute plan</Empty.Title>
-      <Empty.Description>
-        Pick a plan to deploy your first app. Compute usage appears here once it runs.
-      </Empty.Description>
-      <Empty.Actions>
-        <Button
-          variant="primary"
-          render={<Link href={routes.settings.billing({ workspaceSlug })} />}
-        >
-          Go to billing
-        </Button>
-      </Empty.Actions>
-    </Empty>
+    <ComputeCardShell description="Usage per app and environment this period">
+      <div className="px-4 py-8">
+        <Empty className="w-full">
+          <Empty.Title>No compute plan</Empty.Title>
+          <Empty.Description>Pick a plan to deploy your first app.</Empty.Description>
+          <Empty.Actions>
+            <Button
+              variant="primary"
+              size="md"
+              render={<Link href={routes.settings.billing({ workspaceSlug })} />}
+            >
+              Go to billing
+            </Button>
+          </Empty.Actions>
+        </Empty>
+      </div>
+    </ComputeCardShell>
   );
 }
