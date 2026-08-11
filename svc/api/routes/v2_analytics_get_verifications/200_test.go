@@ -139,6 +139,49 @@ func Test200_Success(t *testing.T) {
 	require.Len(t, res.Body.Data, 1)
 }
 
+func Test200_QueriesGatewayAppID(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	h.SetupAnalytics(workspace.ID)
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
+	appID := uid.New("app")
+
+	h.KeyVerifications.Buffer(schema.KeyVerification{
+		RequestID:   uid.New(uid.RequestPrefix),
+		Time:        time.Now().UnixMilli(),
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		KeyID:       uid.New(uid.KeyPrefix),
+		Region:      "us-east-1",
+		Source:      schema.SourceGateway,
+		AppID:       appID,
+		Outcome:     "VALID",
+	})
+
+	route := &Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route)
+	headers := http.Header{
+		"Authorization": []string{"Bearer " + rootKey},
+		"Content-Type":  []string{"application/json"},
+	}
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+			Query: fmt.Sprintf("SELECT source, app_id FROM key_verifications_v1 WHERE app_id = '%s'", appID),
+		})
+		require.Equal(c, http.StatusOK, res.Status)
+		require.Len(c, res.Body.Data, 1)
+		require.Equal(c, schema.SourceGateway, res.Body.Data[0]["source"])
+		require.Equal(c, appID, res.Body.Data[0]["app_id"])
+	}, 30*time.Second, time.Second)
+}
+
 func Test200_PermissionFiltersByApiId(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 

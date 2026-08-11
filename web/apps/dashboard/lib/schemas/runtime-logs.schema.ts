@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const dashboardRuntimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),

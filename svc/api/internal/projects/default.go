@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -29,7 +30,7 @@ func EnsureDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (
 		ID:               projectID,
 		WorkspaceID:      workspaceID,
 		Name:             "Default",
-		Slug:             "default",
+		Slug:             projectgate.DefaultSlug,
 		DeleteProtection: sql.NullBool{Bool: true, Valid: true},
 		CreatedAt:        time.Now().UnixMilli(),
 		UpdatedAt:        sql.NullInt64{},

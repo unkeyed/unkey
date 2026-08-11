@@ -1,3 +1,4 @@
+import { permissionSlugPattern } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { createConditionalSchema, metadataSchema } from "@/lib/schemas/metadata";
 import { z } from "zod";
 
@@ -262,10 +263,16 @@ export const expirationSchema = z.object({
 // so role names do not have to narrow later when roles start accepting slugs.
 // Keep in step with roleNameSchema on the role editor.
 //
-// Permission slugs are still capped at 100 by the spec even though
-// permissions.slug is varchar(128); keep this in step when that is widened.
+// Permission slugs are machine identifiers and do carry a pattern. Keep both
+// the pattern and the 128 cap in step with permissionSlugSchema on the
+// permission editor.
 const roleNameItemSchema = z.string().trim().min(1).max(128);
-const permissionSlugItemSchema = z.string().trim().min(1).max(100);
+const permissionSlugItemSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .refine((slug) => permissionSlugPattern.test(slug));
 
 const uniqueStrings = (items: string[]) => [...new Set(items)];
 
