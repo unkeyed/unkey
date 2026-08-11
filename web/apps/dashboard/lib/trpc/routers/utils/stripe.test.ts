@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -10,6 +9,7 @@ import {
   throwMaskedStripeError,
   throwRedactedStripeError,
 } from "./stripe";
+import { catchTrpcError, rejection } from "./test-helpers";
 
 const WORKSPACE_ID = "ws_victim";
 
@@ -41,25 +41,6 @@ function stubStripe(retrieved: Stripe.Checkout.Session | Error) {
   };
 }
 
-// Runs fn and returns what it throws. Fails the test if it does not throw.
-function caught(fn: () => unknown): unknown {
-  try {
-    fn();
-  } catch (error) {
-    return error;
-  }
-  throw new Error("expected the call to throw");
-}
-
-// Asserts the value is a TRPCError and narrows it for further assertions.
-function asTRPCError(value: unknown): TRPCError {
-  expect(value).toBeInstanceOf(TRPCError);
-  if (!(value instanceof TRPCError)) {
-    throw new Error("unreachable: asserted above");
-  }
-  return value;
-}
-
 // Asserts the value is an Error and narrows it, so `cause` assertions need no
 // cast.
 function asError(value: unknown): Error {
@@ -68,10 +49,6 @@ function asError(value: unknown): Error {
     throw new Error("unreachable: asserted above");
   }
   return value;
-}
-
-async function rejection(promise: Promise<unknown>): Promise<TRPCError> {
-  return asTRPCError(await promise.catch((err: unknown) => err));
 }
 
 async function expectNotFound(promise: Promise<unknown>, message: string) {
@@ -364,9 +341,7 @@ describe("throwMaskedStripeError", () => {
       message: "No such setupintent: 'seti_x'",
     });
 
-    const thrown = asTRPCError(
-      caught(() => throwMaskedStripeError(error, "Setup intent not found")),
-    );
+    const thrown = catchTrpcError(() => throwMaskedStripeError(error, "Setup intent not found"));
     expect(thrown.code).toBe("NOT_FOUND");
     expect(thrown.message).toBe("Setup intent not found");
   });
@@ -379,9 +354,7 @@ describe("throwMaskedStripeError", () => {
       message: "No such setupintent: 'seti_x'",
     });
 
-    const thrown = asTRPCError(
-      caught(() => throwMaskedStripeError(error, "Setup intent not found")),
-    );
+    const thrown = catchTrpcError(() => throwMaskedStripeError(error, "Setup intent not found"));
     expect(thrown.cause).toBe(error);
   });
 
@@ -391,9 +364,7 @@ describe("throwMaskedStripeError", () => {
       message: "Invalid API key provided: sk_live_************************abcd",
     });
 
-    const thrown = asTRPCError(
-      caught(() => throwMaskedStripeError(error, "Setup intent not found")),
-    );
+    const thrown = catchTrpcError(() => throwMaskedStripeError(error, "Setup intent not found"));
     expect(thrown.code).toBe("UNAUTHORIZED");
     expect(thrown.message).not.toContain("sk_live_");
     expect(thrown.message).not.toContain("Invalid API key");
@@ -413,9 +384,7 @@ describe("throwMaskedStripeError", () => {
       message: "This API key does not have access to this resource",
     });
 
-    const thrown = asTRPCError(
-      caught(() => throwMaskedStripeError(error, "Setup intent not found")),
-    );
+    const thrown = catchTrpcError(() => throwMaskedStripeError(error, "Setup intent not found"));
     expect(thrown.code).toBe("FORBIDDEN");
     expect(thrown.message).not.toBe("Setup intent not found");
   });
@@ -430,7 +399,7 @@ describe("throwRedactedStripeError", () => {
       message: "No such PaymentMethod: 'pm_x'",
     });
 
-    const thrown = asTRPCError(caught(() => throwRedactedStripeError(error, "Update failed")));
+    const thrown = catchTrpcError(() => throwRedactedStripeError(error, "Update failed"));
     expect(thrown.code).toBe("BAD_REQUEST");
     expect(thrown.message).toBe("Update failed");
     expect(thrown.message).not.toContain("pm_x");
@@ -443,7 +412,7 @@ describe("throwRedactedStripeError", () => {
       message: "Too many requests",
     });
 
-    expect(asTRPCError(caught(() => throwRedactedStripeError(error, "Update failed"))).code).toBe(
+    expect(catchTrpcError(() => throwRedactedStripeError(error, "Update failed")).code).toBe(
       "TOO_MANY_REQUESTS",
     );
   });
