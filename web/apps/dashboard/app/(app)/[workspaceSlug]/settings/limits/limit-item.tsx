@@ -1,11 +1,12 @@
 "use client";
 
+import { CircleInfo } from "@unkey/icons";
 import {
   Badge,
+  InfoTooltip,
   Item,
   ItemActions,
   ItemContent,
-  ItemDescription,
   ItemTitle,
   Meter,
   MeterHeader,
@@ -24,13 +25,17 @@ export function LimitItem({ row }: { row: LimitRow }) {
             ceiling adds a badge without moving the rows under it. */}
         <div className="flex h-5 items-center gap-2">
           <ItemTitle>{row.name}</ItemTitle>
+          {row.description ? (
+            <InfoTooltip content={row.description} position={{ side: "right" }}>
+              <CircleInfo iconSize="sm-regular" className="shrink-0 text-gray-9" />
+            </InfoTooltip>
+          ) : null}
           {row.status === "ok" ? null : (
             <Badge variant="error" size="sm">
               {row.status === "over" ? "Over limit" : "At limit"}
             </Badge>
           )}
         </div>
-        <ItemDescription>{row.description}</ItemDescription>
       </ItemContent>
       <ItemActions className="w-64 flex-col items-stretch gap-1.5">
         <LimitValue row={row} />

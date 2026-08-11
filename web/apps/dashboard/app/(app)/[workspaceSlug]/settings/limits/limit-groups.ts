@@ -16,7 +16,8 @@ export type RowUsage =
 
 export type LimitRow = {
   name: string;
-  description: string;
+  /** Absent where the name already says it. Rendered as a tooltip, not body text. */
+  description?: string;
   limit: string;
   /** Present only where a workspace-wide total exists to measure. */
   usage?: RowUsage;
@@ -127,7 +128,6 @@ export function buildLimitGroups({
       }),
       ceiling({
         name: "API requests per minute",
-        description: "Requests accepted across the workspace each minute.",
         limit:
           limits.apiRequestsCountMaxPerMinute === null
             ? "Unlimited"
@@ -148,7 +148,6 @@ export function buildLimitGroups({
       }),
       ceiling({
         name: "Audit log retention",
-        description: "How long workspace audit logs remain available.",
         limit: days(limits.logsAuditRetentionDaysMax),
       }),
     ],
@@ -165,7 +164,7 @@ export function buildLimitGroups({
     rows: [
       metered({
         name: "Workspace CPU",
-        description: "CPU across every running instance, counted at full scale-out.",
+        description: "Total CPU across all your apps.",
         limit: cores(limits.cpuCoresMax * MILLICORES_PER_CORE),
         usage: usageOf(
           allocation,
@@ -176,34 +175,30 @@ export function buildLimitGroups({
       }),
       ceiling({
         name: "CPU per instance",
-        description: "Maximum CPU one instance can request.",
         limit: cores(limits.cpuCoresMaxPerInstance * MILLICORES_PER_CORE),
       }),
       metered({
         name: "Workspace memory",
-        description: "Memory across every running instance, counted at full scale-out.",
+        description: "Total memory across all your apps.",
         limit: mib(limits.memoryMibMax),
         usage: usageOf(allocation, (value) => value.totalMemoryMib, limits.memoryMibMax, mib),
       }),
       ceiling({
         name: "Memory per instance",
-        description: "Maximum memory one instance can request.",
         limit: mib(limits.memoryMibMaxPerInstance),
       }),
       metered({
         name: "Workspace ephemeral disk",
-        description: "Ephemeral disk across every running instance, counted at full scale-out.",
+        description: "Total disk across all your apps.",
         limit: mib(limits.storageMibMax),
         usage: usageOf(allocation, (value) => value.totalStorageMib, limits.storageMibMax, mib),
       }),
       ceiling({
         name: "Ephemeral disk per instance",
-        description: "Maximum ephemeral disk one instance can request.",
         limit: mib(limits.storageMibMaxPerInstance),
       }),
       ceiling({
         name: "Concurrent builds",
-        description: "Builds that can run at the same time.",
         limit: count(limits.buildsConcurrentMax),
       }),
       ceiling({

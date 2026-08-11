@@ -20,7 +20,6 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import Link from "next/link";
@@ -116,9 +115,6 @@ function Shell({ children }: { children: ReactNode }) {
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Limits</PageHeaderTitle>
-          <PageHeaderDescription>
-            The ceilings we apply to this workspace, grouped by product.
-          </PageHeaderDescription>
         </PageHeaderContent>
         <PageHeaderActions>
           <Button variant="primary" render={<Link href={SUPPORT_MAILTO} />}>

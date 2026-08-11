@@ -6,11 +6,21 @@ import type { GroupKey } from "./limit-groups";
 
 const SUPPORT_MAILTO = "mailto:support@unkey.com";
 
-const COMPUTE_ADVICE = "Scale down or remove a deployment to free capacity.";
-const API_ADVICE = "Monthly operations limits are raised on request.";
-const MIXED_ADVICE = "Scale down or remove a deployment to free compute capacity.";
+/** `ask` runs into the contact link, so it ends on a comma. */
+const COMPUTE_ADVICE = {
+  lead: "Scale down or remove a deployment to free capacity.",
+  ask: "To request higher capacity limits,",
+};
+const API_ADVICE = {
+  lead: null,
+  ask: "To request a higher monthly operations limit,",
+};
+const MIXED_ADVICE = {
+  lead: "Scale down or remove a deployment to free compute capacity.",
+  ask: "To request higher limits,",
+};
 
-function advice(breached: GroupKey[]): string {
+function advice(breached: GroupKey[]) {
   const compute = breached.includes("compute");
   const api = breached.includes("api");
   if (compute && api) {
@@ -25,14 +35,18 @@ function advice(breached: GroupKey[]): string {
  * these ceilings reject a deploy while others only send an email.
  */
 export function BreachBanner({ breached }: { breached: GroupKey[] }) {
+  const { lead, ask } = advice(breached);
+
   return (
     <AlertBanner variant="error">
       <AlertBannerTitle>You've reached a limit</AlertBannerTitle>
       <AlertBannerDescription>
-        {advice(breached)}{" "}
+        {lead ? `${lead} ` : null}
+        {ask}{" "}
         <Link href={SUPPORT_MAILTO} className="underline underline-offset-2 hover:opacity-80">
-          Contact us
+          contact us
         </Link>
+        .
       </AlertBannerDescription>
     </AlertBanner>
   );
