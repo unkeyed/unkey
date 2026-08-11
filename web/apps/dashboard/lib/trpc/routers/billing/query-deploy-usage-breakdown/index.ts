@@ -7,7 +7,6 @@ import { z } from "zod";
 
 export const deployUsageBreakdownRow = z.object({
   projectId: z.string(),
-  /** Null when the id is unknown to MySQL, or blank on the rollup row. */
   projectName: z.string().nullable(),
   appId: z.string(),
   appName: z.string().nullable(),
@@ -17,15 +16,6 @@ export const deployUsageBreakdownRow = z.object({
   memoryGiBHours: z.number(),
   diskGiBHours: z.number(),
   egressGiB: z.number(),
-  /**
-   * Integrated sample pairs behind this row. A healthy container contributes
-   * ~240 per hour, so a low count means "unobserved", not "idle".
-   */
-  /**
-   * Exact gross price of this row's compute meters, in micro-cents. Not
-   * rounded: sum the rows and round once for display, or the parts stop adding
-   * up to the workspace total and sub-cent rows read as $0.00.
-   */
   grossMicroCents: z.number(),
 });
 
@@ -33,34 +23,12 @@ export const queryDeployUsageBreakdownResponse = z.array(deployUsageBreakdownRow
 
 export type DeployUsageBreakdownRow = z.infer<typeof deployUsageBreakdownRow>;
 
-/**
- * Month-to-date Deploy usage split by project / app / environment, read from
- * the hourly dashboard rollup.
- *
- * One flat row per (project, app, environment), priced here rather than on the
- * page, so the pricing implementation stays shared with
- * billing.queryDeployUsage. Grouping and subtotalling is the page's job.
- *
- * These rows are expected to reconcile with billing.queryDeployUsage's
- * workspace total, with two known sources of divergence, both systematic rather
- * than random:
- *
- * 1. This rollup is a scheduled recompute built for dashboards, while billing
- *    reads the raw checkpoints table.
- * 2. The rollup attributes a sample pair to the hour its left endpoint falls
- *    in, so the hour straddling a month boundary lands wholly in one month,
- *    where billing splits it at the instant.
- *
- * Active keys are a workspace-wide distinct count with no project attribution,
- * so they are absent here and appear only in the workspace total.
- */
 export const queryDeployUsageBreakdown = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .output(queryDeployUsageBreakdownResponse)
   .query(async ({ ctx }) => {
     const now = new Date();
     const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
-    // First instant of next month; the exclusive end of the current one.
     const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
 
     try {

@@ -89,11 +89,9 @@ export function getDeployMeterUsage(ch: Querier) {
 
   return async (args: {
     workspaceId: string;
-    /** Inclusive lower bound of the billing period, unix millis. */
     periodStart: number;
     /** Inclusive lower bound of the projection window, unix millis. */
     trailingStart: number;
-    /** Exclusive upper bound, unix millis. */
     end: number;
   }): Promise<DeployMeterUsage> => {
     const result = await query({
@@ -131,19 +129,8 @@ export const deployUsageByScope = z.object({
 
 export type DeployUsageByScope = z.infer<typeof deployUsageByScope>;
 
-/**
- * Deploy usage for a window, grouped by project / app / environment, read from
- * the hourly rollup instance_usage_per_hour_v1 (dashboards only; billing stays
- * on the raw checkpoints via GetInstanceMeterUsage).
- *
- * FINAL is mandatory, not an optimisation. The table is a
- * ReplacingMergeTree(computed_at) that the refresh views APPEND to over
- * overlapping windows, so before a merge the same hour exists several times.
- * Summing without FINAL double-counts those generations.
- *
- * Egress counts public egress only, the same meter getDeployMeterUsage bills;
- * private and ingress bytes are recorded in the rollup but not charged.
- */
+// FINAL is required, not an optimisation: the refresh views append overlapping
+// generations, so summing without it double-counts.
 export function getDeployUsageByScope(ch: Querier) {
   const query = ch.query({
     query: `
@@ -173,9 +160,7 @@ export function getDeployUsageByScope(ch: Querier) {
 
   return async (args: {
     workspaceId: string;
-    /** Inclusive lower bound of the billing period, unix millis. */
     periodStart: number;
-    /** Exclusive upper bound, unix millis. */
     end: number;
   }): Promise<DeployUsageByScope[]> => {
     const result = await query(args);

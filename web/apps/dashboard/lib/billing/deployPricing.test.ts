@@ -91,7 +91,6 @@ describe("sumDeployMeterCents", () => {
 });
 
 describe("priceComputeMeterMicroCents", () => {
-  /** Under half a cent on every meter, the case a per-app breakdown hits often. */
   const tinySlice: ComputeMeterQuantities = {
     cpuSeconds: 100,
     memoryGiBHours: 0.1,
