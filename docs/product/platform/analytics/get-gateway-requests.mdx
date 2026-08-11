@@ -1,0 +1,250 @@
+---
+title: Query gateway request analytics
+description: "Query the requests that Unkey routed to your deployments with the analytics.getGatewayRequests endpoint."
+---
+
+The `POST /v2/analytics.getGatewayRequests` endpoint runs SQL queries on the
+requests that Unkey routed to your deployments. Use it from a trusted backend
+with a root key. Never put a root key in browser code.
+
+For the request and response schemas, see the [API
+reference](/api-reference/analytics/query-gateway-request-data).
+
+## Authenticate the request
+
+Use a root key with the `project.*.read_analytics` permission. This permission
+gives access to the gateway request data of all projects in the workspace.
+
+Unkey limits each query to the workspace of the root key. A query cannot read
+the data of a different workspace, and it cannot remove this filter.
+
+## Send a query
+
+Send a JSON object with a `query` string. The response contains
+`meta.requestId`, which identifies the API request, and `data`, which contains
+an array of result objects.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT path, response_status, total_latency FROM gateway_requests_v1 ORDER BY time DESC LIMIT 10"}'
+```
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234"
+  },
+  "data": [
+    {
+      "path": "/v1/orders",
+      "response_status": 200,
+      "total_latency": 42
+    }
+  ]
+}
+```
+
+Queries follow the SQL limits and the resource limits in [Query
+restrictions](/platform/analytics/query-restrictions). Only SELECT queries are
+permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+
+## Select the data of one project, app, or environment
+
+Each row contains `project_id`, `app_id`, and `environment_id`. Add a filter on
+one of these columns to get the data of one deployment target.
+
+```sql
+WHERE app_id = 'app_1234'
+```
+
+```sql
+WHERE environment_id IN ('env_1234', 'env_5678')
+```
+
+If you do not add one of these filters, the query reads all projects in the
+workspace.
+
+## Choose a table
+
+Select the table with the largest interval that gives the data you need. The
+aggregated tables read fewer rows. The raw table shows each request and its
+path, status, and latency.
+
+| Public table | Granularity | Retention | Best for |
+| --- | --- | --- | --- |
+| `gateway_requests_v1` | Individual request | 7 days | Recent request details and exact request times |
+| `gateway_requests_per_minute_v1` | Minute | 14 days | Recent dashboard charts |
+| `gateway_requests_per_hour_v1` | Hour | 90 days | Daily and weekly trends |
+| `gateway_requests_per_day_v1` | Day | 365 days | Longer reports |
+
+Your workspace retention setting controls the time range that a query can
+request. If you do not add a time filter, Unkey limits the results to your
+workspace retention range. A query can request a range longer than the
+retention of a table, but it then gets only the rows that stay in that table.
+For example, a 30 day query on the raw table can contain partial data, because
+that table keeps 7 days. Select the hour table for a full 30 day range.
+
+## Reference available columns
+
+The raw table contains one row for each request. Unkey filters `workspace_id`
+automatically, thus you do not need to add it to a query.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `request_id` | String | Unique request ID |
+| `time` | Int64 | Request time as a Unix timestamp in milliseconds |
+| `workspace_id` | String | Workspace ID, filtered automatically |
+| `project_id` | String | Project ID |
+| `app_id` | String | App ID |
+| `environment_id` | String | Environment ID |
+| `deployment_id` | String | Deployment that received the request |
+| `instance_id` | String | Instance that processed the request |
+| `region` | String | Region that served the request |
+| `method` | String | HTTP method in upper case |
+| `host` | String | Host header of the request |
+| `path` | String | Request path |
+| `query_string` | String | Raw query string |
+| `query_params` | Map(String, Array(String)) | Parsed query parameters |
+| `request_headers` | Array(String) | Request headers as `Key: Value` pairs |
+| `request_body` | String | Request body |
+| `response_status` | Int32 | HTTP status code of the response |
+| `response_headers` | Array(String) | Response headers as `Key: Value` pairs |
+| `response_body` | String | Response body |
+| `user_agent` | String | User agent of the caller |
+| `ip_address` | String | IP address of the caller |
+| `total_latency` | Int64 | Full end to end time in milliseconds |
+| `instance_latency` | Int64 | Time your instance used, in milliseconds |
+| `frontline_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
+
+The minute, hour, and day tables contain aggregated rows.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `time` | DateTime | Start of the aggregation interval |
+| `workspace_id` | String | Workspace ID, filtered automatically |
+| `project_id` | String | Project ID |
+| `app_id` | String | App ID |
+| `environment_id` | String | Environment ID |
+| `deployment_id` | String | Deployment that received the requests |
+| `response_status` | Int32 | HTTP status code of the responses |
+| `count` | Int64 | Number of requests |
+| `latency_p50` | AggregateFunction | State for the p50 latency |
+| `latency_p75` | AggregateFunction | State for the p75 latency |
+| `latency_p90` | AggregateFunction | State for the p90 latency |
+| `latency_p95` | AggregateFunction | State for the p95 latency |
+| `latency_p99` | AggregateFunction | State for the p99 latency |
+
+## Read a latency percentile
+
+The aggregated tables keep the latency data in ClickHouse aggregate states. A
+direct SELECT of one of these columns does not give a number. Use
+`quantileTDigestMerge` to read a percentile from them.
+
+```sql
+SELECT
+  quantileTDigestMerge(0.5)(latency_p50) AS p50,
+  quantileTDigestMerge(0.95)(latency_p95) AS p95,
+  quantileTDigestMerge(0.99)(latency_p99) AS p99
+FROM gateway_requests_per_hour_v1
+WHERE app_id = 'app_1234'
+  AND time >= now() - INTERVAL 24 HOUR
+```
+
+The raw table keeps `total_latency` as a plain number, thus a query on that
+table uses `quantile` instead.
+
+```sql
+SELECT quantile(0.95)(total_latency) AS p95
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 1 HOUR)
+```
+
+## Find the paths with the most errors
+
+Group by `path` to find the endpoints that return the most server errors. The
+raw table keeps `time` as Unix milliseconds, thus the time filter uses
+`toUnixTimestamp64Milli`.
+
+```sql
+SELECT
+  path,
+  count() AS total
+FROM gateway_requests_v1
+WHERE response_status >= 500
+  AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY path
+ORDER BY total DESC
+LIMIT 10
+```
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"}'
+```
+
+## Calculate an error rate for each deployment
+
+Use `countIf` to count a subset of the rows in the same query. This example
+compares the failed requests with all requests of each deployment.
+
+```sql
+SELECT
+  deployment_id,
+  count() AS total,
+  countIf(response_status >= 500) AS errors,
+  round(countIf(response_status >= 500) / count() * 100, 2) AS error_rate
+FROM gateway_requests_v1
+WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR)
+GROUP BY deployment_id
+ORDER BY error_rate DESC
+```
+
+## Build a zero-filled time series
+
+Use `WITH FILL` to get each minute, including the minutes with no requests.
+This query gives a dashboard chart the full range without gap filling in the
+client.
+
+```sql
+SELECT
+  time,
+  sum(count) AS requests
+FROM gateway_requests_per_minute_v1
+WHERE app_id = 'app_1234'
+  AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR)
+  AND time < toStartOfMinute(now())
+GROUP BY time
+ORDER BY time WITH FILL
+  FROM toStartOfMinute(now() - INTERVAL 6 HOUR)
+  TO toStartOfMinute(now())
+  STEP INTERVAL 1 MINUTE
+```
+
+```bash
+curl --request POST \
+  --url https://api.unkey.com/v2/analytics.getGatewayRequests \
+  --header "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"query":"SELECT time, sum(count) AS requests FROM gateway_requests_per_minute_v1 WHERE app_id = '\''app_1234'\'' AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR) AND time < toStartOfMinute(now()) GROUP BY time ORDER BY time WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE"}'
+```
+
+## Compare the status codes of each app
+
+Group by `app_id` and `response_status` to see the response mix of each app.
+
+```sql
+SELECT
+  app_id,
+  response_status,
+  sum(count) AS total
+FROM gateway_requests_per_hour_v1
+WHERE time >= now() - INTERVAL 7 DAY
+GROUP BY app_id, response_status
+ORDER BY app_id, total DESC
+```
