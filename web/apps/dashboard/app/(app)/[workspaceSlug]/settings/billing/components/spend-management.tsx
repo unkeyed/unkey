@@ -1,13 +1,13 @@
 "use client";
 
-import { formatDollars } from "@/lib/fmt";
+import { formatDollars, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
-import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { ALERT_STEPS, SpendBudgetDialog, spendBar } from "./spend-budget";
+import { ADMIN_ONLY_TOOLTIP, ALERT_STEPS } from "./constants";
+import { SpendBudgetDialog, spendBar } from "./spend-budget";
 
 type SpendManagementProps = {
   /** Month-to-date gross usage spend in cents, or null while loading. */
@@ -68,7 +68,7 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
                 {suspended ? <ComputePausedBadge /> : null}
               </div>
               <span className="font-medium text-[13px] text-gray-12 tabular-nums">
-                {usageCents !== null ? formatDollars(usageCents) : "—"} of{" "}
+                {usageCents !== null ? formatPrice(usageCents) : "—"} of{" "}
                 {formatDollars(currentBudget)}
                 {percent !== null ? ` (${percent}%)` : ""}
               </span>
