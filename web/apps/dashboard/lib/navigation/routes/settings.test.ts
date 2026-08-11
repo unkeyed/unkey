@@ -14,6 +14,12 @@ describe("settings-scoped paths", () => {
     expect(routes.settings.limits(scope)).toBe("/acme/settings/limits");
   });
 
+  it("carries the plan-picker intent onto billing", () => {
+    expect(routes.settings.billing({ workspaceSlug: ws, intent: "api" })).toBe(
+      "/acme/settings/billing?intent=api",
+    );
+  });
+
   it("builds the stripe redirect paths", () => {
     const scope = { workspaceSlug: ws };
     expect(routes.settings.stripe.portal(scope)).toBe("/acme/stripe/portal");

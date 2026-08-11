@@ -2,6 +2,7 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useFlag } from "@/lib/flags/provider";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Cube, Layers3, Nodes } from "@unkey/icons";
@@ -78,7 +79,7 @@ export default function LimitsPage() {
     );
   }
 
-  if (!limits) {
+  if (!limits || !workspace) {
     return (
       <Shell>
         <Empty>
@@ -101,7 +102,12 @@ export default function LimitsPage() {
 
   return (
     <Shell>
-      {breached.length > 0 ? <BreachBanner breached={breached} /> : null}
+      {breached.length > 0 ? (
+        <BreachBanner
+          breached={breached}
+          billingHref={routes.settings.billing({ workspaceSlug: workspace.slug, intent: "api" })}
+        />
+      ) : null}
       {groups.map((group) => (
         <Group key={group.key} group={group} />
       ))}

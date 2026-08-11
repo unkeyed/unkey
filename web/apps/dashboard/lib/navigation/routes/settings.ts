@@ -28,8 +28,17 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
-  billing({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
+  /**
+   * `intent` reopens that product's plan picker on arrival, reusing the hand-off
+   * the post-checkout redirect already relies on. It needs a payment method on
+   * file to open, so the page is still a sensible landing without one.
+   */
+  billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
+    return buildRoute(
+      "/[workspaceSlug]/settings/billing",
+      { workspaceSlug },
+      intent ? { intent } : undefined,
+    );
   },
 
   usage({ workspaceSlug }: WorkspaceScope): Route {
