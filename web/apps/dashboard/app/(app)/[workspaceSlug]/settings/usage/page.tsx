@@ -2,6 +2,7 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useFlag } from "@/lib/flags/provider";
+import { formatPeriod } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -11,8 +12,8 @@ import {
   PageBody,
   PageContainer,
   PageHeader,
+  PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import Link from "next/link";
@@ -25,13 +26,14 @@ import { buildComputeTree } from "./compute-tree";
 
 const ACTIVE_SUBSCRIPTION_STATES = ["active", "trialing", "past_due"];
 
-/** Both endpoints aggregate over the UTC calendar month, so the period label does too. */
+/**
+ * Both endpoints aggregate from the first of the UTC month up to now, so the label
+ * states that range rather than the whole month, which is not over yet.
+ */
 function currentPeriod(): string {
-  return new Date().toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  const now = new Date();
+  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  return formatPeriod(monthStart, now.getTime());
 }
 
 export default function UsagePage() {
@@ -143,10 +145,10 @@ function Shell({ children }: { children: ReactNode }) {
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Usage</PageHeaderTitle>
-          <PageHeaderDescription>
-            Gross usage for {currentPeriod()}. Credits and invoices are on Billing.
-          </PageHeaderDescription>
         </PageHeaderContent>
+        <PageHeaderActions>
+          <span className="text-[13px] text-gray-10">{currentPeriod()}</span>
+        </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>
     </PageContainer>

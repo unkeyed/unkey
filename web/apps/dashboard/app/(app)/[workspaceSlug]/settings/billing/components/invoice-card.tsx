@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDollars } from "@/lib/fmt";
+import { formatDollars, formatPeriod } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -17,22 +17,6 @@ import {
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-
-/** Subscriptions are anchored at 00:00 UTC, so the period reads in UTC too. */
-function formatPeriod(startMillis: number, endMillis: number): string {
-  const day = (millis: number) =>
-    new Date(millis).toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" });
-  const monthYear = (millis: number) =>
-    new Date(millis).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-
-  return monthYear(startMillis) === monthYear(endMillis)
-    ? `${day(startMillis)} – ${day(endMillis)} ${monthYear(startMillis)}`
-    : `${day(startMillis)} ${monthYear(startMillis)} – ${day(endMillis)} ${monthYear(endMillis)}`;
-}
 
 type InvoiceCardProps = {
   workspaceSlug: string;

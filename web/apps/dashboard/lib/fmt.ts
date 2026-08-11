@@ -26,6 +26,37 @@ export function formatPrice(price: number) {
 }
 
 /**
+ * A billing period as a day range, in the dashboard's `MMM d, yyyy` shape:
+ * "Aug 1 – 11, 2026" within one month, "Jul 28 – Aug 3, 2026" across two, and
+ * both years spelled out when it crosses a new year.
+ *
+ * Read in UTC rather than through date-fns, which formats locally: Stripe
+ * periods and the usage rollups are both anchored to UTC midnight, so a local
+ * reading shows the wrong day either side of it.
+ */
+export function formatPeriod(startMillis: number, endMillis: number): string {
+  const part = (millis: number, options: Intl.DateTimeFormatOptions) =>
+    new Date(millis).toLocaleDateString("en-US", { timeZone: "UTC", ...options });
+
+  const day = (millis: number) => part(millis, { day: "numeric" });
+  const monthDay = (millis: number) => part(millis, { month: "short", day: "numeric" });
+  const year = (millis: number) => part(millis, { year: "numeric" });
+  const month = (millis: number) => part(millis, { month: "short" });
+
+  if (year(startMillis) !== year(endMillis)) {
+    return `${monthDay(startMillis)}, ${year(startMillis)} – ${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  if (month(startMillis) !== month(endMillis)) {
+    return `${monthDay(startMillis)} – ${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  // A month-to-date range on the 1st is one day, and "Aug 1 – 1" reads as a fault.
+  if (day(startMillis) === day(endMillis)) {
+    return `${monthDay(endMillis)}, ${year(endMillis)}`;
+  }
+  return `${monthDay(startMillis)} – ${day(endMillis)}, ${year(endMillis)}`;
+}
+
+/**
  * Formats cents as dollars, dropping the cents when the amount is whole:
  * $5 instead of $5.00, but $46.20 stays $46.20. For plan fees and billing
  * figures where trailing zeroes are noise.

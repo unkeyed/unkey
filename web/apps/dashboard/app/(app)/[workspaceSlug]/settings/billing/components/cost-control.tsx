@@ -177,7 +177,9 @@ function ApiFixedFee({ apiFeeCents }: { apiFeeCents: number }) {
       <ItemSeparator />
       <Item>
         <ItemContent>
-          <ItemDescription>Fixed at {formatDollars(apiFeeCents)}/month.</ItemDescription>
+          <ItemDescription className="text-[13px] leading-5">
+            Fixed at {formatDollars(apiFeeCents)}/month.
+          </ItemDescription>
         </ItemContent>
       </Item>
     </ItemGroup>
