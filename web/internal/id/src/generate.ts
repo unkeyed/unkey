@@ -25,6 +25,7 @@ const prefixes = {
   identity: "id",
   ratelimit: "rl",
   auditLog: "log",
+  runtimeLog: "rlog",
   // correlation groups audit events emitted by one logical user action
   // so the dashboard can drill from any one event to the rest. Mirrors
   // pkg/uid.CorrelationPrefix in the Go side.
