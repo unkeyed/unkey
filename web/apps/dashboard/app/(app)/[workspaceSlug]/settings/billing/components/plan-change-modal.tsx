@@ -45,6 +45,8 @@ type PlanChangeModalProps = {
   /** The option whose mutation is in flight, for the CTA loading state. */
   submittingId: string | undefined;
   onSelect: (id: string) => void;
+  /** Quiet cancellation affordance under the CTA, when there is a plan to end. */
+  cancelAction?: React.ReactNode;
 };
 
 /**
@@ -65,6 +67,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
   changeNote,
   submittingId,
   onSelect,
+  cancelAction,
 }) => {
   const [selected, setSelected] = useState<string | null>(currentId);
 
@@ -129,6 +132,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
             {ctaLabel}
           </Button>
           {currentId && changeNote ? <div className="text-gray-9 text-xs">{changeNote}</div> : null}
+          {cancelAction}
         </div>
       }
     >

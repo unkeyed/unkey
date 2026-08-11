@@ -17,7 +17,7 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@unkey/ui";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ALERT_STEPS, SpendBudgetDialog } from "./spend-budget";
@@ -95,32 +95,18 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
         {budgetCents !== null ? (
           <>
             <ItemSeparator />
-            <ItemHeader>
-              <ItemContent>
-                <ItemTitle>Alerts</ItemTitle>
-              </ItemContent>
-            </ItemHeader>
+            <div className="bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+              Alerts
+            </div>
             {ALERT_STEPS.map((step) => (
-              <Item key={step}>
-                <ItemMedia>
-                  <Envelope />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>
-                    Email at {step * 100}% ({formatDollars(budgetCents * step)})
-                  </ItemTitle>
-                </ItemContent>
-              </Item>
+              <AlertRow key={step} icon={<Envelope />}>
+                Email at {step * 100}% ({formatDollars(budgetCents * step)})
+              </AlertRow>
             ))}
             {stopAtBudget ? (
-              <Item>
-                <ItemMedia className="bg-errorA-3 text-error-11">
-                  <Ban />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>Stop workloads at 100% ({formatDollars(budgetCents)})</ItemTitle>
-                </ItemContent>
-              </Item>
+              <AlertRow icon={<Ban />} mediaClassName="bg-errorA-3 text-error-11">
+                Stop workloads at 100% ({formatDollars(budgetCents)})
+              </AlertRow>
             ) : null}
           </>
         ) : null}
@@ -139,6 +125,28 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
       </ItemGroup>
 
       <SpendBudgetDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+function AlertRow({
+  icon,
+  mediaClassName,
+  children,
+}: {
+  icon: ReactNode;
+  mediaClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <ItemSeparator />
+      <Item>
+        <ItemMedia className={mediaClassName}>{icon}</ItemMedia>
+        <ItemContent>
+          <ItemTitle className="font-normal">{children}</ItemTitle>
+        </ItemContent>
+      </Item>
     </>
   );
 }

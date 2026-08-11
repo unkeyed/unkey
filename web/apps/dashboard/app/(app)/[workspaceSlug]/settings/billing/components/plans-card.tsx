@@ -5,7 +5,6 @@ import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { ItemContent, ItemGroup, ItemHeader, ItemSeparator, ItemTitle } from "@unkey/ui";
 import { ApiPlanRow } from "./api-plan-row";
-import { CancelLinks } from "./cancel-links";
 import { ComputePlanRow } from "./compute-plan-row";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
@@ -75,13 +74,6 @@ export function PlansCard({
         subscription={subscription}
         currentProductId={currentProductId}
         autoOpenPlanModal={checkoutIntent === "api" && hasPaymentMethod}
-      />
-
-      <CancelLinks
-        isAdmin={isAdmin}
-        canCancelApi={Boolean(
-          subscription && subscription.status === "active" && !subscription.cancelAt,
-        )}
       />
     </ItemGroup>
   );

@@ -18,6 +18,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useState } from "react";
+import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
 import { ComputePausedBadge } from "./compute-paused";
 import {
   AllPlansInclude,
@@ -55,6 +56,7 @@ export function ComputePlanRow({
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+  const [isCancelOpen, setCancelOpen] = useState(false);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
@@ -139,13 +141,6 @@ export function ComputePlanRow({
       ? "The plan fee includes usage credits; usage beyond them is billed on top."
       : creditLabel(planFee, invoice)
     : "Choose a plan to start deploying on Unkey";
-
-  const selectLabel = (option: (typeof plans)[number]): string => {
-    if (!currentPlan || planFee === null || option.amount === null) {
-      return "Select";
-    }
-    return option.amount > planFee ? "Upgrade" : "Downgrade";
-  };
 
   const warningFor = (option: (typeof plans)[number]): string | null =>
     option.amount !== null && usageAmount !== null && usageAmount > option.amount
@@ -241,6 +236,7 @@ export function ComputePlanRow({
         <ComputePlanRows
           plans={plans}
           currentPlan={currentPlan}
+          currentPlanAmount={currentPlan ? planFee : null}
           submittingPlan={
             isStartingCheckout
               ? pendingPlan
@@ -252,13 +248,27 @@ export function ComputePlanRow({
             setPendingPlan(plan);
             setPlanModalOpen(false);
           }}
-          selectLabel={selectLabel}
           warningFor={warningFor}
           disabledReason={isAdmin ? undefined : ADMIN_ONLY_TOOLTIP}
         />
         <AllPlansInclude />
         <CreditsInfoStrip />
+        {currentPlan ? (
+          <div className="flex justify-center pt-1">
+            <CancelPlanLink
+              isAdmin={isAdmin}
+              onClick={() => {
+                setPlanModalOpen(false);
+                setCancelOpen(true);
+              }}
+            >
+              Cancel Compute plan
+            </CancelPlanLink>
+          </div>
+        ) : null}
       </ComputePlanDialog>
+
+      <CancelComputeDialog open={isCancelOpen} onOpenChange={setCancelOpen} />
 
       <ComputePlanConfirmDialog
         plan={pendingPlanOption ?? null}

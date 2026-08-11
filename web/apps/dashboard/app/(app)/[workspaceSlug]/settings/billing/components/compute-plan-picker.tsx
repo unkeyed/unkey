@@ -68,9 +68,10 @@ export function ComputePlanDialog({
 type ComputePlanRowsProps = {
   plans: DeployPlanOption[];
   currentPlan?: DeployPlan | null;
+  /** The current plan's fee, so each row can tell an upgrade from a downgrade. */
+  currentPlanAmount?: number | null;
   submittingPlan?: DeployPlan | null;
   onSelect: (plan: DeployPlan) => void;
-  selectLabel?: (plan: DeployPlanOption) => string;
   warningFor?: (plan: DeployPlanOption) => string | null;
   disabledReason?: string;
 };
@@ -88,12 +89,23 @@ function intervalSuffix(interval: string | null): string {
   }
 }
 
+/** Null while there is nothing to compare against, e.g. no plan yet or a quoted plan. */
+function planChange(
+  amount: number | null,
+  currentAmount: number | null | undefined,
+): "upgrade" | "downgrade" | null {
+  if (amount === null || currentAmount === null || currentAmount === undefined) {
+    return null;
+  }
+  return amount > currentAmount ? "upgrade" : "downgrade";
+}
+
 function Row({
   plan,
   currentPlan,
+  currentPlanAmount,
   submittingPlan,
   onSelect,
-  selectLabel,
   warningFor,
   disabledReason,
 }: RowProps) {
@@ -102,7 +114,8 @@ function Row({
   const disabled = isCurrent || isSubmitting || disabledReason !== undefined;
   const blurb = PLAN_BLURBS[plan.plan] ?? plan.description ?? "";
   const warning = !isCurrent && warningFor ? warningFor(plan) : null;
-  const label = selectLabel ? selectLabel(plan) : "Select";
+  const change = planChange(plan.amount, currentPlanAmount);
+  const label = change === null ? "Select" : change === "upgrade" ? "Upgrade" : "Downgrade";
 
   const cardClassName =
     "group flex w-full items-center gap-[13px] rounded-[11px] border border-gray-4 bg-gray-1 px-[15px] py-3 text-left transition-colors";
@@ -155,11 +168,17 @@ function Row({
           )}
         >
           {details}
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-12 px-3 py-2 text-[13px] font-medium text-gray-1">
+          {/* A span rather than a real button: the whole row is the button. */}
+          <Button
+            render={<span />}
+            variant={change === "downgrade" ? "outline" : "primary"}
+            size="md"
+            className="shrink-0 rounded-lg px-3 text-[13px]"
+          >
             {isSubmitting ? (
               <>
                 <span
-                  className="size-4 animate-spin rounded-full border-2 border-gray-1 border-t-transparent"
+                  className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
                   aria-hidden="true"
                 />
                 <span className="sr-only">Working…</span>
@@ -173,7 +192,7 @@ function Row({
                 />
               </>
             )}
-          </span>
+          </Button>
         </button>
       )}
 

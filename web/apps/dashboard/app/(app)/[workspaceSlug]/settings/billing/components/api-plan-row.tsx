@@ -19,6 +19,7 @@ import {
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CancelApiDialog, CancelPlanLink } from "./cancel-actions";
 import { ADMIN_ONLY_TOOLTIP, FREE_TIER_QUOTA } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 
@@ -57,6 +58,7 @@ export function ApiPlanRow({
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
   const [showPlanModal, setShowPlanModal] = useState(autoOpenPlanModal);
+  const [isCancelOpen, setCancelOpen] = useState(false);
 
   const { data: usage } = trpc.billing.queryUsage.useQuery(undefined, {
     staleTime: 30_000,
@@ -118,6 +120,9 @@ export function ApiPlanRow({
   const used = (usage?.billableVerifications ?? 0) + (usage?.billableRatelimits ?? 0);
 
   const upgradeDisabled = !isAdmin || !hasPaymentMethod;
+  const canCancel = Boolean(
+    subscription && subscription.status === "active" && !subscription.cancelAt,
+  );
 
   return (
     <>
@@ -222,8 +227,23 @@ export function ApiPlanRow({
             }
             createSubscription.mutate({ productId: id });
           }}
+          cancelAction={
+            canCancel ? (
+              <CancelPlanLink
+                isAdmin={isAdmin}
+                onClick={() => {
+                  setShowPlanModal(false);
+                  setCancelOpen(true);
+                }}
+              >
+                Cancel API plan
+              </CancelPlanLink>
+            ) : null
+          }
         />
       ) : null}
+
+      <CancelApiDialog open={isCancelOpen} onOpenChange={setCancelOpen} />
     </>
   );
 }

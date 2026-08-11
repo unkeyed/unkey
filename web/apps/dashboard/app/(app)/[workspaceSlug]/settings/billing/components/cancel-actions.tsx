@@ -2,64 +2,18 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, ItemFooter, ItemSeparator, toast } from "@unkey/ui";
+import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
-type CancelLinksProps = {
-  isAdmin: boolean;
-  /** True when the API subscription is active and not already ending. */
-  canCancelApi: boolean;
-};
-
 /**
- * Cancelling is a quiet footer on the Plans card rather than a danger zone: it is
- * a rare action that belongs beside the plans it ends, not a section of its own.
- * The two products cancel differently — Compute stops immediately, the API plan
- * runs to the end of the period — so each keeps its own confirmation.
+ * Cancelling sits at the bottom of the plan dialog it ends rather than on the
+ * page: it is a rare action that belongs beside the plans, and quiet enough not
+ * to compete with them. The two products cancel differently — Compute stops
+ * immediately, the API plan runs to the end of the period — so each keeps its
+ * own confirmation.
  */
-export function CancelLinks({ isAdmin, canCancelApi }: CancelLinksProps) {
-  const [openDialog, setOpenDialog] = useState<"compute" | "api" | null>(null);
-
-  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
-    staleTime: 30_000,
-  });
-  const hasComputePlan = Boolean(subscription?.plan);
-
-  if (!hasComputePlan && !canCancelApi) {
-    return null;
-  }
-
-  return (
-    <>
-      <ItemSeparator />
-      <ItemFooter className="justify-end gap-4">
-        {hasComputePlan ? (
-          <CancelLink isAdmin={isAdmin} onClick={() => setOpenDialog("compute")}>
-            Cancel Compute
-          </CancelLink>
-        ) : null}
-        {canCancelApi ? (
-          <CancelLink isAdmin={isAdmin} onClick={() => setOpenDialog("api")}>
-            Cancel API plan
-          </CancelLink>
-        ) : null}
-      </ItemFooter>
-
-      <CancelComputeDialog
-        open={openDialog === "compute"}
-        onOpenChange={(open) => setOpenDialog(open ? "compute" : null)}
-      />
-      <CancelApiDialog
-        open={openDialog === "api"}
-        onOpenChange={(open) => setOpenDialog(open ? "api" : null)}
-      />
-    </>
-  );
-}
-
-function CancelLink({
+export function CancelPlanLink({
   isAdmin,
   onClick,
   children,
@@ -84,7 +38,7 @@ function CancelLink({
   );
 }
 
-function CancelComputeDialog({
+export function CancelComputeDialog({
   open,
   onOpenChange,
 }: {
@@ -137,7 +91,7 @@ function CancelComputeDialog({
   );
 }
 
-function CancelApiDialog({
+export function CancelApiDialog({
   open,
   onOpenChange,
 }: {
