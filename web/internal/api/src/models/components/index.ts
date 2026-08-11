@@ -99,7 +99,7 @@ export * from "./v2appsgetapprequestbody.js";
 export * from "./v2appsgetappresponsebody.js";
 export * from "./v2appslistappsrequestbody.js";
 export * from "./v2appslistappsresponsebody.js";
-export * from "./v2appsupdateapprequestbody.js";
+export * from "./v2appsupdateapprequestbodyunion.js";
 export * from "./v2appsupdateappresponsebody.js";
 export * from "./v2deploycreatedeploymentrequestbody.js";
 export * from "./v2deploycreatedeploymentresponsebody.js";

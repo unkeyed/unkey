@@ -94,9 +94,19 @@ examples:
       app: app_1234abcd
       docker:
         image: ghcr.io/acme/payments:v2.0.0
-not:
-  anyOf:
-    - required: [git, docker]
-    - required: [name, docker]
-    - required: [slug, docker]
-    - required: [deleteProtection, docker]
+oneOf:
+  - required: [docker]
+    properties:
+      name:
+        type: string
+        maxLength: 0
+      slug:
+        type: string
+        maxLength: 0
+      git:
+        type: string
+      deleteProtection:
+        type: string
+  - properties:
+      docker:
+        type: string

@@ -138,7 +138,7 @@ export class Apps extends ClientSDK {
    * - `app.<app_id>.update_app` (to update a specific app)
    */
   async updateApp(
-    request: components.V2AppsUpdateAppRequestBody,
+    request: components.V2AppsUpdateAppRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2AppsUpdateAppResponseBody> {
     return unwrapAsync(appsUpdateApp(

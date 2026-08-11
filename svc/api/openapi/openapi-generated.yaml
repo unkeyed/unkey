@@ -612,20 +612,21 @@ components:
                         Omit this field to leave the current setting unchanged.
                     example: true
             additionalProperties: false
-            not:
-                anyOf:
-                    - required:
-                        - git
-                        - docker
-                    - required:
-                        - name
-                        - docker
-                    - required:
-                        - slug
-                        - docker
-                    - required:
-                        - deleteProtection
-                        - docker
+            oneOf:
+                - required:
+                    - docker
+                  properties:
+                    name:
+                        type: string
+                    slug:
+                        type: string
+                    git:
+                        type: string
+                    deleteProtection:
+                        type: string
+                - properties:
+                    docker:
+                        type: string
         V2AppsUpdateAppResponseBody:
             type: object
             required:
