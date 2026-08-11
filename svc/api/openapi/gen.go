@@ -1479,6 +1479,29 @@ type UpdateKeyCreditsRefill struct {
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
 
+// V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
+type V2AnalyticsGetGatewayRequestsRequestBody struct {
+	// Query The SQL query to run on your gateway request data.
+	// A query can use only these four public aliases: `gateway_requests_v1`, `gateway_requests_per_minute_v1`, `gateway_requests_per_hour_v1`, or `gateway_requests_per_day_v1`. The physical `default.*` table names are not permitted.
+	// Only SELECT queries are permitted. CTEs, subqueries, UNION, and EXCEPT are also permitted.
+	// Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
+	// The three aggregated tables keep the latency data in ClickHouse aggregate states. To read a percentile from them, use `quantileTDigestMerge(0.95)(latency_p95)`.
+	// The workspace retention period and the workspace query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetGatewayRequestsResponseBody defines model for V2AnalyticsGetGatewayRequestsResponseBody.
+type V2AnalyticsGetGatewayRequestsResponseBody struct {
+	// Data The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
+	Data V2AnalyticsGetGatewayRequestsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetGatewayRequestsResponseData The gateway request rows that the query returned. The SELECT clause of the query controls the fields in each row.
+type V2AnalyticsGetGatewayRequestsResponseData = []map[string]interface{}
+
 // V2AnalyticsGetRatelimitsRequestBody defines model for V2AnalyticsGetRatelimitsRequestBody.
 type V2AnalyticsGetRatelimitsRequestBody struct {
 	// Query SQL query to execute against your rate limit analytics data.
@@ -4399,6 +4422,9 @@ type VerifyKeyRatelimitData struct {
 	// Reset Rate limit reset duration in milliseconds.
 	Reset int64 `json:"reset"`
 }
+
+// AnalyticsGetGatewayRequestsJSONRequestBody defines body for AnalyticsGetGatewayRequests for application/json ContentType.
+type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsRequestBody
 
 // AnalyticsGetRatelimitsJSONRequestBody defines body for AnalyticsGetRatelimits for application/json ContentType.
 type AnalyticsGetRatelimitsJSONRequestBody = V2AnalyticsGetRatelimitsRequestBody
