@@ -11,11 +11,7 @@ import { transformSentinelLogsFilters } from "./utils";
 
 export const querySentinelLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(
-    sentinelLogsRequestSchema
-      .omit({ workspaceId: true })
-      .extend({ appId: z.string().nullable().default(null) }),
-  )
+  .input(sentinelLogsRequestSchema.omit({ workspaceId: true }))
   .output(
     z.object({
       logs: z.array(sentinelLogsResponseSchema),
@@ -30,7 +26,7 @@ export const querySentinelLogs = workspaceProcedure
         columns: { id: true },
         with: {
           environments: {
-            columns: { id: true, appId: true, kind: true },
+            columns: { id: true, appId: true },
           },
         },
       });
@@ -42,28 +38,20 @@ export const querySentinelLogs = workspaceProcedure
         });
       }
 
-      if (project.environments.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No environment found for this project",
-        });
-      }
-
-      // No environment filter = project-wide: every app and environment.
-      // Environments are per-app, so forcing a single "production" env here
-      // would silently scope the view to one arbitrary app.
+      // If no app filter and no environment filter apply, the query reads all
+      // apps and all environments of the project.
       const transformedInputs = transformSentinelLogsFilters(input);
 
-      // App-scoped view: the table has no app_id column, so scope through the
-      // app's environments instead. Default to production, matching the
-      // runtime logs router.
-      const appId = input.appId || null;
-      if (appId && transformedInputs.environmentId.length === 0) {
-        const appEnvironments = project.environments.filter((e) => e.appId === appId);
-        const scoped = appEnvironments.find((e) => e.kind === "production") ?? appEnvironments[0];
-        if (scoped) {
-          transformedInputs.environmentId = [scoped.id];
-        }
+      // `environment_id` comes before `time` in the sort key. If only `app_id`
+      // applies, ClickHouse cannot use the time bound to skip granules. The
+      // environments of an app contain all rows of that app, so this filter
+      // keeps the same rows. If the apps have no environments, the array stays
+      // empty and no environment filter applies.
+      if (transformedInputs.appId.length > 0 && transformedInputs.environmentId.length === 0) {
+        const selectedApps = new Set(transformedInputs.appId);
+        transformedInputs.environmentId = project.environments
+          .filter((environment) => selectedApps.has(environment.appId))
+          .map((environment) => environment.id);
       }
 
       const { logsQuery, totalQuery } = await clickhouse.sentinel.logs({

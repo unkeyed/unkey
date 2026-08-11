@@ -3,7 +3,9 @@ properties:
   namespace:
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
     description: The id or name of the namespace.
     example: sms.sign_up
   cost:
@@ -31,7 +33,9 @@ properties:
   identifier:
     type: string
     minLength: 1
-    maxLength: 255 # Reasonable upper bound for identifiers
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
     description: |
       Defines the scope of rate limiting by identifying the entity being limited.
       Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.

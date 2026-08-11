@@ -21,6 +21,7 @@ export function transformSentinelLogsFilters(params: Omit<SentinelLogsRequest, "
 
   return {
     projectId: params.projectId,
+    appId: params.appId ?? [],
     deploymentId: params.deploymentId ?? [],
     environmentId: params.environmentId ?? [],
     limit: params.limit,
