@@ -40,18 +40,26 @@ func TestGatewayParserConfigRequiresPublicAliases(t *testing.T) {
 		}
 	})
 
-	// Each query below appears in the OpenAPI spec for this endpoint. A claim in
-	// the spec that the parser rejects is a documentation bug, so they are
-	// asserted here and not only reviewed by eye.
+	// Each query below appears in the OpenAPI spec or in the docs page for this
+	// endpoint. A documented query that the parser rejects is a documentation
+	// bug, thus they are asserted here and not only reviewed by eye.
 	t.Run("documented queries parse", func(t *testing.T) {
 		documented := map[string]string{
-			"request body example": "SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10",
-			"latency merge state":  "SELECT quantileTDigestMerge(0.95)(latency_p95) AS p95 FROM gateway_requests_per_hour_v1",
-			"cte":                  "WITH totals AS (SELECT count() AS total FROM gateway_requests_v1) SELECT total FROM totals",
-			"subquery":             "SELECT sum(total) FROM (SELECT count() AS total FROM gateway_requests_v1)",
-			"union":                "SELECT count() FROM gateway_requests_v1 UNION ALL SELECT count() FROM gateway_requests_per_hour_v1",
-			"except":               "SELECT path FROM gateway_requests_v1 EXCEPT SELECT path FROM gateway_requests_v1",
-			"scope filter":         "SELECT count() FROM gateway_requests_v1 WHERE project_id = 'proj_123' AND app_id = 'app_123' AND environment_id = 'env_123'",
+			"docs: recent requests":      "SELECT path, response_status, total_latency FROM gateway_requests_v1 ORDER BY time DESC LIMIT 10",
+			"docs: latency percentiles":  "SELECT quantileTDigestMerge(0.5)(latency_p50) AS p50, quantileTDigestMerge(0.95)(latency_p95) AS p95, quantileTDigestMerge(0.99)(latency_p99) AS p99 FROM gateway_requests_per_hour_v1 WHERE app_id = 'app_1234' AND time >= now() - INTERVAL 24 HOUR",
+			"docs: raw latency quantile": "SELECT quantile(0.95)(total_latency) AS p95 FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 1 HOUR)",
+			"docs: paths with errors":    "SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10",
+			"docs: error rate":           "SELECT deployment_id, count() AS total, countIf(response_status >= 500) AS errors, round(countIf(response_status >= 500) / count() * 100, 2) AS error_rate FROM gateway_requests_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY deployment_id ORDER BY error_rate DESC",
+			"docs: zero filled series":   "SELECT time, sum(count) AS requests FROM gateway_requests_per_minute_v1 WHERE app_id = 'app_1234' AND time >= toStartOfMinute(now() - INTERVAL 6 HOUR) AND time < toStartOfMinute(now()) GROUP BY time ORDER BY time WITH FILL FROM toStartOfMinute(now() - INTERVAL 6 HOUR) TO toStartOfMinute(now()) STEP INTERVAL 1 MINUTE",
+			"docs: status per app":       "SELECT app_id, response_status, sum(count) AS total FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 7 DAY GROUP BY app_id, response_status ORDER BY app_id, total DESC",
+			"docs: environment filter":   "SELECT count() FROM gateway_requests_v1 WHERE environment_id IN ('env_1234', 'env_5678')",
+			"request body example":       "SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10",
+			"latency merge state":        "SELECT quantileTDigestMerge(0.95)(latency_p95) AS p95 FROM gateway_requests_per_hour_v1",
+			"cte":                        "WITH totals AS (SELECT count() AS total FROM gateway_requests_v1) SELECT total FROM totals",
+			"subquery":                   "SELECT sum(total) FROM (SELECT count() AS total FROM gateway_requests_v1)",
+			"union":                      "SELECT count() FROM gateway_requests_v1 UNION ALL SELECT count() FROM gateway_requests_per_hour_v1",
+			"except":                     "SELECT path FROM gateway_requests_v1 EXCEPT SELECT path FROM gateway_requests_v1",
+			"scope filter":               "SELECT count() FROM gateway_requests_v1 WHERE project_id = 'proj_123' AND app_id = 'app_123' AND environment_id = 'env_123'",
 		}
 
 		for name, query := range documented {

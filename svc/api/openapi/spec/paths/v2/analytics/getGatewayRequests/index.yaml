@@ -11,6 +11,7 @@ post:
     The root key must have the `project.*.read_analytics` permission.
     Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
     The raw table does not give access to the internal Unkey columns. The workspace retention period and the workspace query limits apply.
+    For the tables, the columns, and more query examples, see [Query gateway request analytics](/platform/analytics/get-gateway-requests).
   requestBody:
     required: true
     content:
