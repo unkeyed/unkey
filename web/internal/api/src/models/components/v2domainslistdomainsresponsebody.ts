@@ -16,7 +16,7 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * The domains attached to the environment, sorted by their id.
+   * The domains attached to the environment, in order of domain id.
    *
    * @remarks
    * The array is empty when the environment has no domains. This is not an error.

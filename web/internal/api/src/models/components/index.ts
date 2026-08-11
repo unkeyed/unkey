@@ -220,8 +220,6 @@ export * from "./v2permissionslistpermissionsrequestbody.js";
 export * from "./v2permissionslistpermissionsresponsebody.js";
 export * from "./v2permissionslistrolesrequestbody.js";
 export * from "./v2permissionslistrolesresponsebody.js";
-export * from "./v2permissionssetrolepermissionsrequestbody.js";
-export * from "./v2permissionssetrolepermissionsresponsebody.js";
 export * from "./v2portalcreatesessionrequestbody.js";
 export * from "./v2portalcreatesessionresponsebody.js";
 export * from "./v2portalcreatesessionresponsedata.js";

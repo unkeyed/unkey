@@ -10,7 +10,6 @@ import { permissionsGetPermission } from "../funcs/permissionsGetPermission.js";
 import { permissionsGetRole } from "../funcs/permissionsGetRole.js";
 import { permissionsListPermissions } from "../funcs/permissionsListPermissions.js";
 import { permissionsListRoles } from "../funcs/permissionsListRoles.js";
-import { permissionsSetRolePermissions } from "../funcs/permissionsSetRolePermissions.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import * as operations from "../models/operations/index.js";
@@ -48,20 +47,14 @@ export class Permissions extends ClientSDK {
    * Create role
    *
    * @remarks
-   * Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
+   * Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
    *
    * **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
    *
    * **Required Permissions**
    *
-   * Your root key must always have:
+   * Your root key must have the following permission:
    * - `rbac.*.create_role`
-   *
-   * When `permissions` is not empty, it must also have:
-   * - `rbac.*.add_permission_to_role`
-   *
-   * When any requested permission slug does not exist, it must also have:
-   * - `rbac.*.create_permission`
    */
   async createRole(
     request: components.V2PermissionsCreateRoleRequestBody,
@@ -213,32 +206,6 @@ export class Permissions extends ClientSDK {
     PageIterator<operations.PermissionsListRolesResponse, { cursor: string }>
   > {
     return unwrapResultIterator(permissionsListRoles(
-      this,
-      request,
-      options,
-    ));
-  }
-
-  /**
-   * Set role permissions
-   *
-   * @remarks
-   * Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
-   *
-   * **Required Permissions**
-   *
-   * Your root key must have:
-   * - `rbac.*.add_permission_to_role`
-   * - `rbac.*.remove_permission_from_role`
-   *
-   * When any requested permission slug does not exist, it must also have:
-   * - `rbac.*.create_permission`
-   */
-  async setRolePermissions(
-    request: components.V2PermissionsSetRolePermissionsRequestBody,
-    options?: RequestOptions,
-  ): Promise<components.V2PermissionsSetRolePermissionsResponseBody> {
-    return unwrapAsync(permissionsSetRolePermissions(
       this,
       request,
       options,

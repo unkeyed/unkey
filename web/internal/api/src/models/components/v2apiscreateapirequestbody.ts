@@ -6,10 +6,10 @@ import * as z from "zod/v3";
 
 export type V2ApisCreateApiRequestBody = {
   /**
-   * Human-readable name for this API within your workspace.
+   * Unique identifier for this API namespace within your workspace.
    *
    * @remarks
-   * Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
+   * Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
    */
   name: string;
 };
