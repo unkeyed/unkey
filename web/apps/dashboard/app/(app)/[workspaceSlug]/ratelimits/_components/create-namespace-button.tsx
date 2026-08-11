@@ -13,7 +13,7 @@ const formSchema = z.object({
     .string()
     .trim()
     .min(1, "Name must not be empty")
-    .max(50, "Name must not exceed 50 characters")
+    .max(512, "Name must not exceed 512 characters")
     .regex(
       /^[a-zA-Z0-9_\-\.]+$/,
       "Only alphanumeric characters, underscores, hyphens, and periods are allowed",
