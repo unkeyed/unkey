@@ -19,7 +19,14 @@ const parseAsFilterValArray = parseAsFilterValueArray<SentinelLogsFilterOperator
   "contains",
 ]);
 
-const arrayFields = ["status", "methods", "paths", "deploymentId", "environmentId"] as const;
+const arrayFields = [
+  "status",
+  "methods",
+  "paths",
+  "appId",
+  "deploymentId",
+  "environmentId",
+] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
 // Query params configuration
@@ -27,6 +34,7 @@ export const queryParamsPayload = {
   status: parseAsFilterValArray,
   methods: parseAsFilterValArray,
   paths: parseAsFilterValArray,
+  appId: parseAsFilterValArray,
   deploymentId: parseAsFilterValArray,
   environmentId: parseAsFilterValArray,
   startTime: parseAsInteger,

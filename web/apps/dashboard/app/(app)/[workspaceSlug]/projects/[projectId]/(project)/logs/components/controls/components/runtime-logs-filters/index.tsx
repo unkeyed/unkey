@@ -5,6 +5,7 @@ import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbo
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { RuntimeLogsAppFilter } from "./runtime-logs-app-filter";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsEnvironmentFilter } from "./runtime-logs-environment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
@@ -26,6 +27,13 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     shortcut: "M",
     shortcutLabel: "M",
     component: <RuntimeLogsMessageFilter />,
+  },
+  {
+    id: "appId",
+    label: "App",
+    shortcut: "A",
+    shortcutLabel: "A",
+    component: <RuntimeLogsAppFilter />,
   },
   {
     id: "environmentId",
@@ -64,6 +72,7 @@ export function RuntimeLogsFilters() {
     (f) =>
       f.field === "severity" ||
       f.field === "message" ||
+      f.field === "appId" ||
       f.field === "deploymentId" ||
       f.field === "environmentId" ||
       f.field === "region" ||

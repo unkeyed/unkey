@@ -42,6 +42,10 @@ export const logsFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
+  appId: {
+    type: "string",
+    operators: ["is"],
+  },
   deploymentId: {
     type: "string",
     operators: ["is"],
@@ -79,6 +83,7 @@ export const logsFilterFieldEnum = z.enum([
   "methods",
   "paths",
   "status",
+  "appId",
   "deploymentId",
   "environmentId",
   "startTime",
@@ -102,6 +107,7 @@ export type FilterFieldConfigs = {
   paths: StringConfig<LogsFilterOperator>;
   host: StringConfig<LogsFilterOperator>;
   requestId: StringConfig<LogsFilterOperator>;
+  appId: StringConfig<LogsFilterOperator>;
   deploymentId: StringConfig<LogsFilterOperator>;
   environmentId: StringConfig<LogsFilterOperator>;
   startTime: NumberConfig<LogsFilterOperator>;
