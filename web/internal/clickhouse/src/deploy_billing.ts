@@ -171,6 +171,55 @@ export function getDeployUsageByScope(ch: Querier) {
   };
 }
 
+export const activeKeysByApp = z.object({
+  appId: z.string(),
+  activeKeys: z.number(),
+});
+
+export type ActiveKeysByApp = z.infer<typeof activeKeysByApp>;
+
+/**
+ * The same distinct-key count getActiveKeysUsage returns, split by the app that
+ * verified the key. uniqExact per app does not sum to the workspace total: a key
+ * verified through two apps counts in both. Attribution, not a split of the bill.
+ *
+ * app_id is only written from the release on 2026-08-11, so verifications before
+ * it carry an empty app_id and group under "".
+ */
+export function getActiveKeysByApp(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        app_id AS appId,
+        toInt64(uniqExact(key_id)) AS activeKeys
+      FROM default.key_verifications_per_month_v3
+      WHERE time = makeDate({year: Int32}, {month: Int32}, 1)
+        AND source = 'gateway'
+        AND workspace_id = {workspaceId: String}
+      GROUP BY app_id
+      ORDER BY activeKeys DESC, appId
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      year: z.number().int(),
+      month: z.number().int().min(1).max(12),
+    }),
+    schema: activeKeysByApp,
+  });
+
+  return async (args: {
+    workspaceId: string;
+    year: number;
+    month: number;
+  }): Promise<ActiveKeysByApp[]> => {
+    const result = await query(args);
+    if (result.err) {
+      throw new Error(`Failed to query active keys by app: ${result.err.message}`);
+    }
+    return result.val;
+  };
+}
+
 export const activeKeysUsage = z.object({
   activeKeys: z.number(),
 });
