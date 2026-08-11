@@ -1,0 +1,7 @@
+overlay: 1.0.0
+info:
+  title: Remove constraints unsupported by the TypeScript SDK generator
+  version: 0.0.0
+actions:
+  - target: $["components"]["schemas"]["V2AppsUpdateAppRequestBody"]["not"]
+    remove: true

@@ -4,9 +4,30 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
+import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import { AppDocker, AppDocker$inboundSchema } from "./appdocker.js";
 import { AppGit, AppGit$inboundSchema } from "./appgit.js";
+
+/**
+ * The configured source used to create deployments. `unknown` means the
+ *
+ * @remarks
+ * source could not be classified.
+ */
+export const SourceType = {
+  Unknown: "unknown",
+  Git: "git",
+  Docker: "docker",
+} as const;
+/**
+ * The configured source used to create deployments. `unknown` means the
+ *
+ * @remarks
+ * source could not be classified.
+ */
+export type SourceType = ClosedEnum<typeof SourceType>;
 
 export type App = {
   /**
@@ -29,6 +50,13 @@ export type App = {
    */
   slug: string;
   /**
+   * The configured source used to create deployments. `unknown` means the
+   *
+   * @remarks
+   * source could not be classified.
+   */
+  sourceType?: SourceType | undefined;
+  /**
    * The connected GitHub repository and the branch its deployments track.
    *
    * @remarks
@@ -36,6 +64,12 @@ export type App = {
    * Docker-based app).
    */
   git?: AppGit | undefined;
+  /**
+   * The configured Docker image source. Omitted when the app is not Docker-sourced.
+   *
+   * @remarks
+   */
+  docker?: AppDocker | undefined;
   /**
    * The identifier of the deployment currently serving this app.
    *
@@ -72,12 +106,18 @@ export type App = {
 };
 
 /** @internal */
+export const SourceType$inboundSchema: z.ZodNativeEnum<typeof SourceType> = z
+  .nativeEnum(SourceType);
+
+/** @internal */
 export const App$inboundSchema: z.ZodType<App, z.ZodTypeDef, unknown> = z
   .object({
     id: z.string(),
     name: z.string(),
     slug: z.string(),
+    sourceType: SourceType$inboundSchema.optional(),
     git: AppGit$inboundSchema.optional(),
+    docker: AppDocker$inboundSchema.optional(),
     currentDeploymentId: z.string().optional(),
     isRolledBack: z.boolean(),
     deleteProtection: z.boolean(),

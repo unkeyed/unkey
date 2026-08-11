@@ -10,6 +10,8 @@ workflow:
         api:
             inputs:
                 - location: ../../../svc/api/openapi/openapi-generated.yaml
+            overlays:
+                - location: ./.speakeasy/sdk-overlay.yaml
     targets:
         api-ts:
             target: typescript

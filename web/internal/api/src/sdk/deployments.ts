@@ -23,9 +23,9 @@ export class Deployments extends ClientSDK {
    * Create a deployment for an app in a project.
    *
    * Provide exactly one source:
-   * - `image`: deploy a prebuilt Docker image as-is (no build).
+   * - `docker`: deploy a prebuilt Docker image without a build. Mutable tags are resolved to immutable digests before rollout.
    * - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
-   * - `deployment`: re-run an existing deployment by its id. Git-connected apps rebuild from the recorded commit; other apps reuse the recorded image.
+   * - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; Docker deployments reuse the recorded resolved image.
    *
    * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
    *

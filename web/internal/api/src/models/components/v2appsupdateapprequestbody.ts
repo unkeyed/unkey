@@ -4,6 +4,11 @@
 
 import * as z from "zod/v3";
 import {
+  AppDockerInput,
+  AppDockerInput$Outbound,
+  AppDockerInput$outboundSchema,
+} from "./appdockerinput.js";
+import {
   AppGitUpdateInput,
   AppGitUpdateInput$Outbound,
   AppGitUpdateInput$outboundSchema,
@@ -48,6 +53,14 @@ export type V2AppsUpdateAppRequestBody = {
    */
   git?: AppGitUpdateInput | null | undefined;
   /**
+   * Change the default image reference for a Docker-sourced app. This does not
+   *
+   * @remarks
+   * create a deployment. Image updates cannot be combined with other changes,
+   * and source switching is not supported.
+   */
+  docker?: AppDockerInput | undefined;
+  /**
    * Enable or disable delete protection for the app.
    *
    * @remarks
@@ -63,6 +76,7 @@ export type V2AppsUpdateAppRequestBody$Outbound = {
   name?: string | undefined;
   slug?: string | undefined;
   git?: AppGitUpdateInput$Outbound | null | undefined;
+  docker?: AppDockerInput$Outbound | undefined;
   deleteProtection?: boolean | undefined;
 };
 
@@ -77,6 +91,7 @@ export const V2AppsUpdateAppRequestBody$outboundSchema: z.ZodType<
   name: z.string().optional(),
   slug: z.string().optional(),
   git: z.nullable(AppGitUpdateInput$outboundSchema).optional(),
+  docker: AppDockerInput$outboundSchema.optional(),
   deleteProtection: z.boolean().optional(),
 });
 
