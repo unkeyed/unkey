@@ -53,7 +53,7 @@ function SourceCell() {
   return (
     <div className="flex flex-col gap-1 min-w-0">
       {match(deployment.source)
-        .with("git_build", () => (
+        .with("git", () => (
           <>
             {deployment.gitBranch && (
               <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
@@ -84,22 +84,22 @@ function SourceCell() {
             )}
           </>
         ))
-        .with("docker_image", () => (
+        .with("docker", () => (
           <span className="flex items-center gap-1.5 min-w-0">
             <Docker iconSize="sm-regular" className="text-accent-12 shrink-0" />
             <span
               className="font-mono text-[13px] text-accent-12 truncate"
-              title={deployment.requestedImage ?? deployment.image ?? undefined}
+              title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
             >
-              {deployment.requestedImage ?? deployment.image ?? "No image available"}
+              {deployment.requestedImage ?? deployment.resolvedImage ?? "No image available"}
             </span>
-            {deployment.image && (
+            {deployment.resolvedImage && (
               <InfoTooltip content="Copy resolved image" asChild>
                 <CopyButton
-                  value={deployment.image}
+                  value={deployment.resolvedImage}
                   variant="ghost"
                   className="size-5 shrink-0"
-                  toastMessage={deployment.image}
+                  toastMessage={deployment.resolvedImage}
                   src="production-deployment-source"
                 />
               </InfoTooltip>
@@ -116,7 +116,7 @@ function SourceCell() {
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9 line-through">
           {match(rolledBackFrom.source)
-            .with("git_build", () => (
+            .with("git", () => (
               <>
                 <CodeCommit iconSize="sm-regular" className="shrink-0" />
                 <span className="font-mono text-[13px] shrink-0">
@@ -129,11 +129,11 @@ function SourceCell() {
                 )}
               </>
             ))
-            .with("docker_image", () => (
+            .with("docker", () => (
               <>
                 <Docker iconSize="sm-regular" className="shrink-0" />
                 <span className="font-mono text-[13px] truncate min-w-0">
-                  {rolledBackFrom.requestedImage ?? rolledBackFrom.image ?? "Unknown image"}
+                  {rolledBackFrom.requestedImage ?? rolledBackFrom.resolvedImage ?? "Unknown image"}
                 </span>
               </>
             ))
@@ -209,7 +209,7 @@ export function ProductionCardMetadata() {
 
       <MetadataCell label="Created">
         {match(deployment.source)
-          .with("git_build", () => (
+          .with("git", () => (
             <div className="flex items-center gap-2">
               <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
               {deployment.gitCommitAuthorHandle && (
@@ -224,7 +224,7 @@ export function ProductionCardMetadata() {
               />
             </div>
           ))
-          .with("docker_image", "unknown", () => (
+          .with("docker", "unknown", () => (
             <TimestampInfo
               value={deployment.createdAt}
               displayType="relative"

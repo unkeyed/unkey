@@ -61,11 +61,11 @@ export const DeploymentSettings = ({
   const app = appQuery.data?.[0];
   const shouldLoadGitHub = app
     ? match(app.sourceType)
-        .with("github", () => true)
-        .with("docker_image", () => false)
+        .with("git", () => true)
+        .with("docker", () => false)
         // Legacy apps retain the old connect/disconnect flow until every
         // caller creates an app with an explicit source.
-        .with("legacy", () => true)
+        .with("unknown", () => true)
         .exhaustive()
     : false;
   const { data } = trpc.github.getInstallations.useQuery(
@@ -75,22 +75,20 @@ export const DeploymentSettings = ({
 
   const sourceSettings = app
     ? match(app.sourceType)
-        .with("docker_image", () => (
+        .with("docker", () => (
           <DockerImage appId={appId} imageReference={app.imageReference ?? ""} />
         ))
-        .with("github", () => (
-          <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
-        ))
-        .with("legacy", () => (
+        .with("git", () => <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />)
+        .with("unknown", () => (
           <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
         ))
         .exhaustive()
     : null;
   const showBuildSettings = app
     ? match(app.sourceType)
-        .with("docker_image", () => false)
-        .with("github", () => !data || Boolean(data.repoConnection?.repositoryFullName))
-        .with("legacy", () => Boolean(data?.repoConnection?.repositoryFullName))
+        .with("docker", () => false)
+        .with("git", () => !data || Boolean(data.repoConnection?.repositoryFullName))
+        .with("unknown", () => Boolean(data?.repoConnection?.repositoryFullName))
         .exhaustive()
     : false;
 
@@ -148,7 +146,7 @@ const dockerImageFormSchema = z.object({
 });
 
 const DockerImage = ({ appId, imageReference }: { appId: string; imageReference: string }) => {
-  const updateImage = trpc.deploy.app.updateDockerImageSource.useMutation();
+  const updateImage = trpc.deploy.app.updateDockerSource.useMutation();
   const {
     register,
     handleSubmit,

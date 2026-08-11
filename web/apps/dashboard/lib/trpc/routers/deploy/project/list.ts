@@ -164,9 +164,9 @@ export const listProjects = workspaceProcedure
         name: row.name,
         source: match(row.sourceType)
           .returnType<Project["apps"][number]["source"]>()
-          .with("docker_image", () => "docker")
-          .with("github", () => "github")
-          .with("legacy", () => (repository ? "github" : "code"))
+          .with("docker", () => "docker")
+          .with("git", () => "github")
+          .with("unknown", () => (repository ? "github" : "code"))
           .exhaustive(),
         repository,
       });

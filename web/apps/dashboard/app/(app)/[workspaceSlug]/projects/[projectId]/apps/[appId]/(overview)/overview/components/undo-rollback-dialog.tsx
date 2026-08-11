@@ -107,7 +107,7 @@ type DeploymentOptionProps = {
 
 function DeploymentOption({ deployment, isCurrent, selected, onSelect }: DeploymentOptionProps) {
   const description = match(deployment.source)
-    .with("git_build", () => (
+    .with("git", () => (
       <>
         <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
           {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
@@ -117,7 +117,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
         )}
       </>
     ))
-    .with("docker_image", "unknown", () => (
+    .with("docker", "unknown", () => (
       <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
         {deployment.id}
       </span>
@@ -167,18 +167,18 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
 
 function DeploymentSource({ deployment }: { deployment: Deployment }) {
   return match(deployment.source)
-    .with("docker_image", () => (
+    .with("docker", () => (
       <span className="flex items-center gap-1.5 min-w-0">
         <Docker iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span
           className="truncate"
-          title={deployment.requestedImage ?? deployment.image ?? undefined}
+          title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
         >
-          {deployment.requestedImage ?? deployment.image ?? "Docker image deployment"}
+          {deployment.requestedImage ?? deployment.resolvedImage ?? "Docker image deployment"}
         </span>
       </span>
     ))
-    .with("git_build", () => (
+    .with("git", () => (
       <>
         {deployment.gitBranch && (
           <span className="flex items-center gap-1.5 min-w-0">

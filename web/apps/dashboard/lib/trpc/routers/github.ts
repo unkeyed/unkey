@@ -827,7 +827,7 @@ export const githubRouter = t.router({
             message: "App not found for this project",
           });
         }
-        if (app.sourceType === "docker_image") {
+        if (app.sourceType === "docker") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message: "Docker image apps cannot connect a GitHub repository",
@@ -850,7 +850,7 @@ export const githubRouter = t.router({
             message: "No default app found for this project",
           });
         }
-        if (app.sourceType === "docker_image") {
+        if (app.sourceType === "docker") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message: "Docker image apps cannot connect a GitHub repository",

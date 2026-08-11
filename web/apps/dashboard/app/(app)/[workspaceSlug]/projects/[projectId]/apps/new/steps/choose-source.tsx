@@ -61,7 +61,7 @@ export const ChooseSourceStep = ({
         queryClient.invalidateQueries({ queryKey: ["projects"] }),
       ]);
 
-      if (source.kind === "github") {
+      if (source.kind === "git") {
         try {
           const regions =
             availableRegions ??
@@ -93,7 +93,7 @@ export const ChooseSourceStep = ({
   const handleClick = async () => {
     setIsPreparing(true);
     try {
-      const appId = await ensureApp({ kind: "github" });
+      const appId = await ensureApp({ kind: "git" });
       const github = await utils.github.getInstallations.fetch({ projectId, appId });
       if ((github?.installations?.length ?? 0) > 0) {
         setIsPreparing(false);
@@ -130,7 +130,7 @@ export const ChooseSourceStep = ({
               className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
               onClick={handleClick}
               loading={isPreparing}
-              disabled={selectedSource === "docker_image" || createApp.isLoading}
+              disabled={selectedSource === "docker" || createApp.isLoading}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
               <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
@@ -139,11 +139,11 @@ export const ChooseSourceStep = ({
         )}
         <DeployImageCard
           projectId={projectId}
-          onCreateApp={(imageReference) => ensureApp({ kind: "docker_image", imageReference })}
+          onCreateApp={(imageReference) => ensureApp({ kind: "docker", imageReference })}
           onBeforeNavigate={onBeforeNavigate}
           expanded={imageMode}
           onExpandedChange={setImageMode}
-          disabled={selectedSource === "github" || createApp.isLoading}
+          disabled={selectedSource === "git" || createApp.isLoading}
         />
       </div>
       <div className="mb-7" />

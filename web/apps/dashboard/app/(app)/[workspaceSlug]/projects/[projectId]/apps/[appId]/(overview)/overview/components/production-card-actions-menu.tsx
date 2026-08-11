@@ -52,7 +52,7 @@ export function ProductionCardActionsMenu({
     const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
     const sourceItems = match(deployment.source)
       .returnType<MenuItem[]>()
-      .with("git_build", () =>
+      .with("git", () =>
         commitUrl
           ? [
               {
@@ -64,7 +64,7 @@ export function ProductionCardActionsMenu({
             ]
           : [],
       )
-      .with("docker_image", "unknown", () => [])
+      .with("docker", "unknown", () => [])
       .exhaustive();
     return [
       {

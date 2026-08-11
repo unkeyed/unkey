@@ -92,6 +92,23 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 	}
 }
 
+func TestResolvedDeploymentImage(t *testing.T) {
+	t.Run("prefers additive column", func(t *testing.T) {
+		got := resolvedDeploymentImage(db.Deployment{
+			Image:         sql.NullString{Valid: true, String: "legacy-image"},
+			ResolvedImage: sql.NullString{Valid: true, String: "resolved-image"},
+		})
+		require.Equal(t, "resolved-image", got.String)
+	})
+
+	t.Run("falls back to legacy column during rollout", func(t *testing.T) {
+		got := resolvedDeploymentImage(db.Deployment{
+			Image: sql.NullString{Valid: true, String: "legacy-image"},
+		})
+		require.Equal(t, "legacy-image", got.String)
+	})
+}
+
 // TestGitFieldValidation_NullHandling tests NULL value handling
 func TestGitFieldValidation_NullHandling(t *testing.T) {
 	t.Parallel()

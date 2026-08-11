@@ -69,7 +69,7 @@ func TestCreateAppConnectRepository(t *testing.T) {
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, appID, res.Body.Data.AppId)
 	require.Len(t, ctrlClient.CreateAppCalls, 1)
-	require.NotNil(t, ctrlClient.CreateAppCalls[0].GetGithub())
+	require.NotNil(t, ctrlClient.CreateAppCalls[0].GetGit())
 
 	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
 	require.NoError(t, err)

@@ -28,9 +28,7 @@ export const apps = mysqlTable(
     projectId: id("project_id").notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
-    sourceType: mysqlEnum("source_type", ["legacy", "github", "docker_image"])
-      .notNull()
-      .default("legacy"),
+    sourceType: mysqlEnum("source_type", ["unknown", "git", "docker"]).notNull().default("unknown"),
 
     defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
       .notNull()

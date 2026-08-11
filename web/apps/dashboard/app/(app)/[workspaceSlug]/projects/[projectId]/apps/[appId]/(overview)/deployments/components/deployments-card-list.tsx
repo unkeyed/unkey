@@ -41,16 +41,16 @@ export function DeploymentsCardList({ limit }: DeploymentsCardListProps = {}) {
     const description = app
       ? match(app.sourceType)
           .with(
-            "github",
+            "git",
             () =>
               "There are no deployments yet. Push to your connected repository or trigger a manual deployment to get started.",
           )
           .with(
-            "docker_image",
+            "docker",
             () =>
               "There are no deployments yet. Deploy the configured image or enter another image reference to get started.",
           )
-          .with("legacy", () =>
+          .with("unknown", () =>
             app.repositoryFullName
               ? "There are no deployments yet. Push to your connected repository or trigger a manual deployment to get started."
               : "There are no deployments yet. Trigger a manual deployment to get started.",

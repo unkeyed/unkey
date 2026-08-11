@@ -47,7 +47,7 @@ func (s *Service) UpdateDockerImageSource(
 	if app.WorkspaceID != req.Msg.GetWorkspaceId() {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app %q not found", req.Msg.GetAppId()))
 	}
-	if app.SourceType != db.AppsSourceTypeDockerImage {
+	if app.SourceType != db.AppsSourceTypeDocker {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("app %q is not Docker-sourced", app.ID))
 	}

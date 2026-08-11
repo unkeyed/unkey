@@ -36,18 +36,18 @@ const DeploymentDescription = ({
   isCurrent,
 }: Pick<DeploymentCardProps, "deployment" | "isCurrent">) => {
   return match(deployment.source)
-    .with("docker_image", () => (
+    .with("docker", () => (
       <div className="text-xs text-grayA-9 flex items-center gap-1.5 min-w-0">
         <Docker iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span
           className="truncate"
-          title={deployment.requestedImage ?? deployment.image ?? undefined}
+          title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
         >
-          {deployment.requestedImage ?? deployment.image ?? "Docker image deployment"}
+          {deployment.requestedImage ?? deployment.resolvedImage ?? "Docker image deployment"}
         </span>
       </div>
     ))
-    .with("git_build", () => (
+    .with("git", () => (
       <div className="text-xs text-grayA-9 flex items-center gap-1.5 min-w-0">
         <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
         <span className="truncate">
@@ -66,24 +66,24 @@ const DeploymentDescription = ({
 
 const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deployment">) => {
   return match(deployment.source)
-    .with("docker_image", () => {
-      if (!deployment.image) {
+    .with("docker", () => {
+      if (!deployment.resolvedImage) {
         return null;
       }
 
-      const digest = deployment.image.split("@").at(-1) ?? deployment.image;
+      const digest = deployment.resolvedImage.split("@").at(-1) ?? deployment.resolvedImage;
       const digestLabel = digest.startsWith("sha256:") ? `sha256:${digest.slice(7, 19)}` : digest;
       return (
         <div
           className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[180px]"
-          title={deployment.image}
+          title={deployment.resolvedImage}
         >
           <Cube iconSize="sm-regular" className="shrink-0 text-gray-12" />
           <span className="truncate font-mono">{digestLabel}</span>
         </div>
       );
     })
-    .with("git_build", () => (
+    .with("git", () => (
       <div className="flex gap-1.5">
         {deployment.gitBranch && (
           <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-3 rounded-md text-xs text-grayA-11 max-w-[100px]">

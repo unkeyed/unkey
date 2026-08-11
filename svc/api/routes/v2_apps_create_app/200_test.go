@@ -144,5 +144,5 @@ func TestCreateDockerImageApp(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, ctrlClient.CreateAppCalls, 1)
-	require.Equal(t, "ghcr.io/acme/payments:v1.2.3", ctrlClient.CreateAppCalls[0].GetDockerImage().GetImageReference())
+	require.Equal(t, "ghcr.io/acme/payments:v1.2.3", ctrlClient.CreateAppCalls[0].GetDocker().GetImageReference())
 }

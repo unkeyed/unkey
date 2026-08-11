@@ -27,8 +27,8 @@ export function BranchSelect() {
   }
   for (const d of deployments) {
     const branch = match(d.source)
-      .with("git_build", () => d.gitBranch || null)
-      .with("docker_image", "unknown", () => null)
+      .with("git", () => d.gitBranch || null)
+      .with("docker", "unknown", () => null)
       .exhaustive();
     if (branch && !seen.has(branch)) {
       seen.add(branch);

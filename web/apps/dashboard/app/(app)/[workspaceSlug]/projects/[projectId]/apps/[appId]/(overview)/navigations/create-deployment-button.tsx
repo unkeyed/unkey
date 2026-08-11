@@ -133,16 +133,16 @@ export const CreateDeploymentButton = ({
   const defaultBranch = app?.defaultBranch ?? "main";
   const deploymentSource = app
     ? match(app.sourceType)
-        .returnType<"git" | "image">()
-        .with("github", () => "git")
-        .with("docker_image", () => "image")
-        .with("legacy", () => (repositoryFullName ? "git" : "image"))
+        .returnType<"git" | "docker">()
+        .with("git", () => "git")
+        .with("docker", () => "docker")
+        .with("unknown", () => (repositoryFullName ? "git" : "docker"))
         .exhaustive()
     : null;
   const sourceFlags = deploymentSource
     ? match(deploymentSource)
         .with("git", () => ({ isGitApp: true, isImageApp: false }))
-        .with("image", () => ({ isGitApp: false, isImageApp: true }))
+        .with("docker", () => ({ isGitApp: false, isImageApp: true }))
         .exhaustive()
     : { isGitApp: false, isImageApp: false };
   const { isGitApp, isImageApp } = sourceFlags;
@@ -241,10 +241,10 @@ export const CreateDeploymentButton = ({
       appId,
       environmentSlug: values.environment,
       ...match(deploymentSource)
-        .with("image", () =>
+        .with("docker", () =>
           values.name === app?.imageReference
             ? { source: "default" as const }
-            : { source: "image" as const, image: values.name },
+            : { source: "docker" as const, image: values.name },
         )
         .with("git", () => ({ source: "git" as const, gitRef: values.name }))
         .exhaustive(),
@@ -257,12 +257,12 @@ export const CreateDeploymentButton = ({
     .filter(
       (d, i, all) =>
         match(d.source)
-          .with("docker_image", () => true)
-          .with("git_build", "unknown", () => false)
+          .with("docker", () => true)
+          .with("git", "unknown", () => false)
           .exhaustive() &&
-        d.image &&
+        d.resolvedImage &&
         DEPLOYED_STATUSES.has(d.status) &&
-        all.findIndex((o) => o.image === d.image) === i,
+        all.findIndex((o) => o.resolvedImage === d.resolvedImage) === i,
     )
     .slice(0, MAX_IMAGE_ROWS);
 
@@ -419,7 +419,7 @@ export const CreateDeploymentButton = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setValue("name", deployment.image ?? "", {
+                      setValue("name", deployment.resolvedImage ?? "", {
                         shouldValidate: true,
                         shouldDirty: true,
                       })
@@ -427,11 +427,11 @@ export const CreateDeploymentButton = ({
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >
                     <InfoTooltip
-                      content={deployment.image}
+                      content={deployment.resolvedImage}
                       asChild
                       position={{ align: "start", side: "top" }}
                     >
-                      <span className="truncate">{deployment.image}</span>
+                      <span className="truncate">{deployment.resolvedImage}</span>
                     </InfoTooltip>
                   </button>
                   <TimestampInfo

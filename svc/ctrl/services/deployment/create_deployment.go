@@ -381,7 +381,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		commit = commitFields{ //nolint:exhaustruct
 		}
-		deploymentSource = db.DeploymentsSourceDockerImage
+		deploymentSource = db.DeploymentsSourceDocker
 		requestedImage = imageReference
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
@@ -398,7 +398,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			},
 		}
 
-	case explicitGit && c.app.SourceType == db.AppsSourceTypeDockerImage:
+	case explicitGit && c.app.SourceType == db.AppsSourceTypeDocker:
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("Docker-sourced app %q cannot deploy a Git commit", c.app.ID))
 
@@ -409,14 +409,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	case explicitGit:
 		useGit = true
 
-	case c.app.SourceType == db.AppsSourceTypeGithub:
+	case c.app.SourceType == db.AppsSourceTypeGit:
 		if !hasRepoConnection {
 			return "", connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("GitHub-sourced app %q has no repository connection", c.app.ID))
 		}
 		useGit = true
 
-	case c.app.SourceType == db.AppsSourceTypeDockerImage:
+	case c.app.SourceType == db.AppsSourceTypeDocker:
 		dockerSource, dockerErr := s.db.FindAppDockerSourceByAppId(ctx, c.app.ID)
 		if dockerErr != nil {
 			if db.IsNotFound(dockerErr) {
@@ -433,7 +433,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		commit = commitFields{ //nolint:exhaustruct
 		}
-		deploymentSource = db.DeploymentsSourceDockerImage
+		deploymentSource = db.DeploymentsSourceDocker
 		requestedImage = imageReference
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -454,7 +454,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		}
 		commit = commitFields{ //nolint:exhaustruct
 		}
-		deploymentSource = db.DeploymentsSourceDockerImage
+		deploymentSource = db.DeploymentsSourceDocker
 		requestedImage = imageReference
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -519,7 +519,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 				},
 			},
 		}
-		deploymentSource = db.DeploymentsSourceGitBuild
+		deploymentSource = db.DeploymentsSourceGit
 	}
 
 	trigger := p.trigger
@@ -690,7 +690,8 @@ func buildDockerSource(
 			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
-	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
+	resolvedImage := resolvedDeploymentImage(currentDeployment)
+	if !resolvedImage.Valid || resolvedImage.String == "" {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
 				app.CurrentDeploymentID.String))
@@ -699,14 +700,21 @@ func buildDockerSource(
 	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
 		"current_deployment_id", app.CurrentDeploymentID.String,
-		"image", currentDeployment.Image.String)
+		"image", resolvedImage.String)
 
-	imageReference, err := imageref.NormalizeHistorical(currentDeployment.Image.String)
+	imageReference, err := imageref.NormalizeHistorical(resolvedImage.String)
 	if err != nil {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has an invalid Docker image: %w", app.CurrentDeploymentID.String, err))
 	}
 	return imageReference, nil
+}
+
+func resolvedDeploymentImage(deployment db.Deployment) sql.NullString {
+	if deployment.ResolvedImage.Valid && deployment.ResolvedImage.String != "" {
+		return deployment.ResolvedImage
+	}
+	return deployment.Image
 }
 
 // trimLength truncates s to at most maxBytes bytes while preserving valid

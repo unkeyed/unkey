@@ -94,7 +94,7 @@ func TestGetDockerAppReturnsConfiguredSource(t *testing.T) {
 		ProjectID:      project.ID,
 		Name:           "Docker API",
 		Slug:           strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		SourceType:     db.AppsSourceTypeDockerImage,
+		SourceType:     db.AppsSourceTypeDocker,
 		ImageReference: "ghcr.io/acme/api:v1.2.3",
 	})
 	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
@@ -108,7 +108,7 @@ func TestGetDockerAppReturnsConfiguredSource(t *testing.T) {
 		App:     app.ID,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, "docker_image", string(res.Body.Data.SourceType))
+	require.Equal(t, "docker", string(res.Body.Data.SourceType))
 	require.Nil(t, res.Body.Data.Git)
 	require.NotNil(t, res.Body.Data.Docker)
 	require.Equal(t, "ghcr.io/acme/api:v1.2.3", res.Body.Data.Docker.Image)

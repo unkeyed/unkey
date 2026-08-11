@@ -88,6 +88,9 @@ func ToResponse(in Input) openapi.Deployment {
 	setDockerSource := func() {
 		image := d.RequestedImage
 		if !image.Valid || image.String == "" {
+			image = d.ResolvedImage
+		}
+		if !image.Valid || image.String == "" {
 			image = d.Image
 		}
 		if image.Valid && image.String != "" {
@@ -96,20 +99,15 @@ func ToResponse(in Input) openapi.Deployment {
 	}
 
 	switch d.Source {
-	case db.DeploymentsSourceGitBuild:
+	case db.DeploymentsSourceGit:
 		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
 			setGitSource()
 		}
-	case db.DeploymentsSourceDockerImage:
+	case db.DeploymentsSourceDocker:
 		setDockerSource()
 	case db.DeploymentsSourceUnknown:
-		// Historical rows predate explicit provenance. Preserve the previous
-		// git-SHA discriminator until they can be classified safely.
-		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
-			setGitSource()
-		} else {
-			setDockerSource()
-		}
+		// Historical provenance is ambiguous. Do not infer it from optional
+		// Git or image metadata.
 	default:
 		// Future source variants remain neutral until mapped explicitly.
 	}

@@ -21,9 +21,9 @@ export function DisconnectGitHub() {
   const app = appQuery.data?.[0];
   const shouldLoadGitHub = app
     ? match(app.sourceType)
-        .with("github", () => true)
-        .with("docker_image", () => false)
-        .with("legacy", () => Boolean(app.repositoryFullName))
+        .with("git", () => true)
+        .with("docker", () => false)
+        .with("unknown", () => Boolean(app.repositoryFullName))
         .exhaustive()
     : false;
 

@@ -119,8 +119,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	switch {
-	case req.Image != nil:
-		ctrlReq.DockerImage = req.Image.DockerImage
+	case req.Docker != nil:
+		ctrlReq.DockerImage = req.Docker.Image
 
 	case req.Git != nil:
 		git := req.Git
@@ -141,7 +141,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					"no repo connection",
 					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 					fault.Internal("app has no github repo connection for git source"),
-					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the image source, or connect a repository first."),
+					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the Docker source, or connect a repository first."),
 				)
 			}
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
@@ -166,7 +166,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			"exactly one source required",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("no source set after validation"),
-			fault.Public("Provide exactly one of image, git, or deployment."),
+			fault.Public("Provide exactly one of docker, git, or deployment."),
 		)
 	}
 
@@ -226,7 +226,11 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	}
 
 	resolvedImage := func() (*ctrlv1.GitCommitInfo, string, error) {
-		if deployment.Image.String == "" {
+		image := deployment.ResolvedImage
+		if !image.Valid || image.String == "" {
+			image = deployment.Image
+		}
+		if image.String == "" {
 			return nil, "", fault.New(
 				"deployment not redeployable",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -234,7 +238,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 				fault.Public("This deployment cannot be redeployed because it never produced an image."),
 			)
 		}
-		return nil, deployment.Image.String, nil
+		return nil, image.String, nil
 	}
 	gitCommit := func(requireSHA bool) (*ctrlv1.GitCommitInfo, string, error) {
 		if requireSHA && deployment.GitCommitSha.String == "" {
@@ -269,9 +273,9 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	}
 
 	switch deployment.Source {
-	case db.DeploymentsSourceGitBuild:
+	case db.DeploymentsSourceGit:
 		return gitCommit(true)
-	case db.DeploymentsSourceDockerImage:
+	case db.DeploymentsSourceDocker:
 		return resolvedImage()
 	case db.DeploymentsSourceUnknown, "":
 		// Historical rows predate explicit provenance. Preserve the old

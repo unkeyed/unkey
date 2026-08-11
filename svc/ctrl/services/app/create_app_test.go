@@ -24,35 +24,35 @@ func TestParseCreateAppSource(t *testing.T) {
 	t.Run("omitted source remains legacy", func(t *testing.T) {
 		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{})
 		require.NoError(t, err)
-		require.Equal(t, db.AppsSourceTypeLegacy, source.sourceType)
+		require.Equal(t, db.AppsSourceTypeUnknown, source.sourceType)
 		require.True(t, source.createBuildSettings)
 	})
 
 	t.Run("GitHub source creates build settings", func(t *testing.T) {
 		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
-			Source: &ctrlv1.CreateAppRequest_Github{Github: &ctrlv1.GitHubSource{}},
+			Source: &ctrlv1.CreateAppRequest_Git{Git: &ctrlv1.GitSource{}},
 		})
 		require.NoError(t, err)
-		require.Equal(t, db.AppsSourceTypeGithub, source.sourceType)
+		require.Equal(t, db.AppsSourceTypeGit, source.sourceType)
 		require.True(t, source.createBuildSettings)
 	})
 
 	t.Run("Docker source normalizes image and omits build settings", func(t *testing.T) {
 		source, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
-			Source: &ctrlv1.CreateAppRequest_DockerImage{
-				DockerImage: &ctrlv1.DockerImageSource{ImageReference: "nginx:1.27"},
+			Source: &ctrlv1.CreateAppRequest_Docker{
+				Docker: &ctrlv1.DockerSource{ImageReference: "nginx:1.27"},
 			},
 		})
 		require.NoError(t, err)
-		require.Equal(t, db.AppsSourceTypeDockerImage, source.sourceType)
+		require.Equal(t, db.AppsSourceTypeDocker, source.sourceType)
 		require.Equal(t, "index.docker.io/library/nginx:1.27", source.imageReference)
 		require.False(t, source.createBuildSettings)
 	})
 
 	t.Run("Docker source requires explicit tag or digest", func(t *testing.T) {
 		_, err := parseCreateAppSource(&ctrlv1.CreateAppRequest{
-			Source: &ctrlv1.CreateAppRequest_DockerImage{
-				DockerImage: &ctrlv1.DockerImageSource{ImageReference: "nginx"},
+			Source: &ctrlv1.CreateAppRequest_Docker{
+				Docker: &ctrlv1.DockerSource{ImageReference: "nginx"},
 			},
 		})
 		require.Error(t, err)
@@ -194,8 +194,8 @@ func TestCreateAndUpdateDockerAppSource(t *testing.T) {
 		Name:        "Docker App",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
 		Actor:       actor,
-		Source: &ctrlv1.CreateAppRequest_DockerImage{
-			DockerImage: &ctrlv1.DockerImageSource{ImageReference: "nginx:1.27"},
+		Source: &ctrlv1.CreateAppRequest_Docker{
+			Docker: &ctrlv1.DockerSource{ImageReference: "nginx:1.27"},
 		},
 	})
 	createReq.Header().Set("Authorization", "Bearer "+bearer)
@@ -205,7 +205,7 @@ func TestCreateAndUpdateDockerAppSource(t *testing.T) {
 	appID := createRes.Msg.GetId()
 	createdApp, err := database.FindAppById(ctx, appID)
 	require.NoError(t, err)
-	require.Equal(t, db.AppsSourceTypeDockerImage, createdApp.SourceType)
+	require.Equal(t, db.AppsSourceTypeDocker, createdApp.SourceType)
 	createdSource, err := database.FindAppDockerSourceByAppId(ctx, appID)
 	require.NoError(t, err)
 	require.Equal(t, "index.docker.io/library/nginx:1.27", createdSource.ImageReference)

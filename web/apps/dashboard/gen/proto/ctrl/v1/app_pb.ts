@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSLiAQoQQ3JlYXRlQXBwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSIQoFYWN0b3IYBSABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbxInCgZnaXRodWIYBiABKAsyFS5jdHJsLnYxLkdpdEh1YlNvdXJjZUgAEjIKDGRvY2tlcl9pbWFnZRgHIAEoCzIaLmN0cmwudjEuRG9ja2VySW1hZ2VTb3VyY2VIAEIICgZzb3VyY2UiHwoRQ3JlYXRlQXBwUmVzcG9uc2USCgoCaWQYASABKAkiDgoMR2l0SHViU291cmNlIiwKEURvY2tlckltYWdlU291cmNlEhcKD2ltYWdlX3JlZmVyZW5jZRgBIAEoCSKCAQoeVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIOCgZhcHBfaWQYAiABKAkSFwoPaW1hZ2VfcmVmZXJlbmNlGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iOgofVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXNwb25zZRIXCg9pbWFnZV9yZWZlcmVuY2UYASABKAkiRQoQRGVsZXRlQXBwUmVxdWVzdBIOCgZhcHBfaWQYASABKAkSIQoFYWN0b3IYAiABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyITChFEZWxldGVBcHBSZXNwb25zZTKIAgoKQXBwU2VydmljZRJECglDcmVhdGVBcHASGS5jdHJsLnYxLkNyZWF0ZUFwcFJlcXVlc3QaGi5jdHJsLnYxLkNyZWF0ZUFwcFJlc3BvbnNlIgASbgoXVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2USJy5jdHJsLnYxLlVwZGF0ZURvY2tlckltYWdlU291cmNlUmVxdWVzdBooLmN0cmwudjEuVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSLRAQoQQ3JlYXRlQXBwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSIQoFYWN0b3IYBSABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbxIhCgNnaXQYBiABKAsyEi5jdHJsLnYxLkdpdFNvdXJjZUgAEicKBmRvY2tlchgHIAEoCzIVLmN0cmwudjEuRG9ja2VyU291cmNlSABCCAoGc291cmNlIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIgsKCUdpdFNvdXJjZSInCgxEb2NrZXJTb3VyY2USFwoPaW1hZ2VfcmVmZXJlbmNlGAEgASgJIoIBCh5VcGRhdGVEb2NrZXJJbWFnZVNvdXJjZVJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEg4KBmFwcF9pZBgCIAEoCRIXCg9pbWFnZV9yZWZlcmVuY2UYAyABKAkSIQoFYWN0b3IYBCABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyI6Ch9VcGRhdGVEb2NrZXJJbWFnZVNvdXJjZVJlc3BvbnNlEhcKD2ltYWdlX3JlZmVyZW5jZRgBIAEoCSJFChBEZWxldGVBcHBSZXF1ZXN0Eg4KBmFwcF9pZBgBIAEoCRIhCgVhY3RvchgCIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIhMKEURlbGV0ZUFwcFJlc3BvbnNlMogCCgpBcHBTZXJ2aWNlEkQKCUNyZWF0ZUFwcBIZLmN0cmwudjEuQ3JlYXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuQ3JlYXRlQXBwUmVzcG9uc2UiABJuChdVcGRhdGVEb2NrZXJJbWFnZVNvdXJjZRInLmN0cmwudjEuVXBkYXRlRG9ja2VySW1hZ2VTb3VyY2VSZXF1ZXN0GiguY3RybC52MS5VcGRhdGVEb2NrZXJJbWFnZVNvdXJjZVJlc3BvbnNlIgASRAoJRGVsZXRlQXBwEhkuY3RybC52MS5EZWxldGVBcHBSZXF1ZXN0GhouY3RybC52MS5EZWxldGVBcHBSZXNwb25zZSIAQocBCgtjb20uY3RybC52MUIIQXBwUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -48,16 +48,16 @@ export type CreateAppRequest = Message<"ctrl.v1.CreateAppRequest"> & {
    */
   source: {
     /**
-     * @generated from field: ctrl.v1.GitHubSource github = 6;
+     * @generated from field: ctrl.v1.GitSource git = 6;
      */
-    value: GitHubSource;
-    case: "github";
+    value: GitSource;
+    case: "git";
   } | {
     /**
-     * @generated from field: ctrl.v1.DockerImageSource docker_image = 7;
+     * @generated from field: ctrl.v1.DockerSource docker = 7;
      */
-    value: DockerImageSource;
-    case: "dockerImage";
+    value: DockerSource;
+    case: "docker";
   } | { case: undefined; value?: undefined };
 };
 
@@ -86,22 +86,22 @@ export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE_
   messageDesc(file_ctrl_v1_app, 1);
 
 /**
- * @generated from message ctrl.v1.GitHubSource
+ * @generated from message ctrl.v1.GitSource
  */
-export type GitHubSource = Message<"ctrl.v1.GitHubSource"> & {
+export type GitSource = Message<"ctrl.v1.GitSource"> & {
 };
 
 /**
- * Describes the message ctrl.v1.GitHubSource.
- * Use `create(GitHubSourceSchema)` to create a new message.
+ * Describes the message ctrl.v1.GitSource.
+ * Use `create(GitSourceSchema)` to create a new message.
  */
-export const GitHubSourceSchema: GenMessage<GitHubSource> = /*@__PURE__*/
+export const GitSourceSchema: GenMessage<GitSource> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_app, 2);
 
 /**
- * @generated from message ctrl.v1.DockerImageSource
+ * @generated from message ctrl.v1.DockerSource
  */
-export type DockerImageSource = Message<"ctrl.v1.DockerImageSource"> & {
+export type DockerSource = Message<"ctrl.v1.DockerSource"> & {
   /**
    * @generated from field: string image_reference = 1;
    */
@@ -109,10 +109,10 @@ export type DockerImageSource = Message<"ctrl.v1.DockerImageSource"> & {
 };
 
 /**
- * Describes the message ctrl.v1.DockerImageSource.
- * Use `create(DockerImageSourceSchema)` to create a new message.
+ * Describes the message ctrl.v1.DockerSource.
+ * Use `create(DockerSourceSchema)` to create a new message.
  */
-export const DockerImageSourceSchema: GenMessage<DockerImageSource> = /*@__PURE__*/
+export const DockerSourceSchema: GenMessage<DockerSource> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_app, 3);
 
 /**
@@ -218,7 +218,7 @@ export const AppService: GenService<{
    *
    * @generated from rpc ctrl.v1.AppService.UpdateDockerImageSource
    */
-  updateDockerImageSource: {
+  updateDockerSource: {
     methodKind: "unary";
     input: typeof UpdateDockerImageSourceRequestSchema;
     output: typeof UpdateDockerImageSourceResponseSchema;

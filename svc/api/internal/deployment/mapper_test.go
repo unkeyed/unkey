@@ -73,7 +73,7 @@ func TestToResponseSource(t *testing.T) {
 	t.Run("git-sourced sets git, not docker", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:           uid.New(uid.DeploymentPrefix),
-			Source:       db.DeploymentsSourceGitBuild,
+			Source:       db.DeploymentsSourceGit,
 			GitCommitSha: sql.NullString{Valid: true, String: "9f2c1a7d3b"},
 			GitBranch:    sql.NullString{Valid: true, String: "main"},
 			// git builds also fill image with the built output; must not leak as docker
@@ -89,7 +89,7 @@ func TestToResponseSource(t *testing.T) {
 	t.Run("image-sourced sets docker, not git", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:             uid.New(uid.DeploymentPrefix),
-			Source:         db.DeploymentsSourceDockerImage,
+			Source:         db.DeploymentsSourceDocker,
 			RequestedImage: sql.NullString{Valid: true, String: "ghcr.io/acme/api:v1.2.3"},
 			Image:          sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
 		}})
@@ -98,25 +98,37 @@ func TestToResponseSource(t *testing.T) {
 		require.Nil(t, got.Git)
 	})
 
+	t.Run("resolved image prefers additive column", func(t *testing.T) {
+		got := ToResponse(Input{Deployment: db.Deployment{
+			ID:            uid.New(uid.DeploymentPrefix),
+			Source:        db.DeploymentsSourceDocker,
+			Image:         sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:legacy"},
+			ResolvedImage: sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
+		}})
+		require.NotNil(t, got.Docker)
+		require.Equal(t, "ghcr.io/acme/api@sha256:resolved", got.Docker.Image)
+	})
+
 	t.Run("git without branch omits branch", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:           uid.New(uid.DeploymentPrefix),
-			Source:       db.DeploymentsSourceGitBuild,
+			Source:       db.DeploymentsSourceGit,
 			GitCommitSha: sql.NullString{Valid: true, String: "abc"},
 		}})
 		require.NotNil(t, got.Git)
 		require.Nil(t, got.Git.Branch)
 	})
 
-	t.Run("unknown source retains legacy inference", func(t *testing.T) {
+	t.Run("unknown source remains neutral", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:             uid.New(uid.DeploymentPrefix),
+			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
 			Source:         db.DeploymentsSourceUnknown,
 			RequestedImage: sql.NullString{Valid: true, String: "nginx:stable"},
 			Image:          sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
 		}})
-		require.NotNil(t, got.Docker)
-		require.Equal(t, "nginx:stable", got.Docker.Image)
+		require.Nil(t, got.Git)
+		require.Nil(t, got.Docker)
 	})
 
 	t.Run("unsupported source remains neutral", func(t *testing.T) {

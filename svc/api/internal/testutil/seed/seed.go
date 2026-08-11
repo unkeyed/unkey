@@ -227,7 +227,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
 	sourceType := req.SourceType
 	if sourceType == "" {
-		sourceType = db.AppsSourceTypeLegacy
+		sourceType = db.AppsSourceTypeUnknown
 	}
 
 	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
@@ -243,7 +243,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
-	if sourceType == db.AppsSourceTypeDockerImage && req.ImageReference != "" {
+	if sourceType == db.AppsSourceTypeDocker && req.ImageReference != "" {
 		err = db.Query.InsertAppDockerSource(ctx, s.DB.RW(), db.InsertAppDockerSourceParams{
 			WorkspaceID:    req.WorkspaceID,
 			AppID:          req.ID,

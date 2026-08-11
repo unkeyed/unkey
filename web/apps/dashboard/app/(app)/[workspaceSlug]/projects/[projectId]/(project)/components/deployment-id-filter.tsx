@@ -24,8 +24,8 @@ function deploymentSourceLabel(deployment: Deployment | undefined): string | nul
     return null;
   }
   return match(deployment.source)
-    .with("git_build", () => deployment.gitBranch || null)
-    .with("docker_image", () => deployment.requestedImage ?? deployment.image)
+    .with("git", () => deployment.gitBranch || null)
+    .with("docker", () => deployment.requestedImage ?? deployment.resolvedImage)
     .with("unknown", () => null)
     .exhaustive();
 }

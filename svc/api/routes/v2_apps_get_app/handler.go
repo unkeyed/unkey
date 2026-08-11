@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	defaultBranch := conn.DefaultBranch.String
 
 	var docker *openapi.AppDocker
-	if app.SourceType == db.AppsSourceTypeDockerImage {
+	if app.SourceType == db.AppsSourceTypeDocker {
 		dockerSource, dockerErr := db.Query.FindAppDockerSourceByAppId(ctx, h.DB.RO(), app.ID)
 		if dockerErr != nil {
 			return fault.Wrap(

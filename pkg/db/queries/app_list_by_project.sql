@@ -1,6 +1,14 @@
 -- name: ListAppsByProject :many
 SELECT
-  apps.*,
+  apps.id,
+  apps.name,
+  apps.slug,
+  apps.source_type,
+  apps.current_deployment_id,
+  apps.is_rolled_back,
+  apps.delete_protection,
+  apps.created_at,
+  apps.updated_at,
   grc.repository_full_name AS repository_full_name,
   grc.default_branch AS github_default_branch,
   ads.image_reference AS docker_image_reference

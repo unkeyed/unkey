@@ -65,11 +65,9 @@ export const AppsList = () => {
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {apps.data.map((app) => {
             const icon = match(app.sourceType)
-              .with("github", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
-              .with("docker_image", () => (
-                <Docker iconSize="xl-medium" className="shrink-0 size-5" />
-              ))
-              .with("legacy", () =>
+              .with("git", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("docker", () => <Docker iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("unknown", () =>
                 app.repositoryFullName ? (
                   <Github iconSize="xl-medium" className="shrink-0 size-5" />
                 ) : (
@@ -78,7 +76,7 @@ export const AppsList = () => {
               )
               .exhaustive();
             const sourceUrl = match(app.sourceType)
-              .with("github", () =>
+              .with("git", () =>
                 githubUrl.deployment({
                   repoFullName: app.repositoryFullName,
                   forkRepoFullName: app.forkRepositoryFullName,
@@ -86,8 +84,8 @@ export const AppsList = () => {
                   sha: app.commitSha,
                 }),
               )
-              .with("docker_image", () => undefined)
-              .with("legacy", () =>
+              .with("docker", () => undefined)
+              .with("unknown", () =>
                 app.repositoryFullName
                   ? githubUrl.deployment({
                       repoFullName: app.repositoryFullName,

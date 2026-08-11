@@ -376,7 +376,7 @@ func TestUpdateAppDockerImage(t *testing.T) {
 		ProjectID:   project.ID,
 		Name:        "Docker app",
 		Slug:        appSlug(),
-		SourceType:  db.AppsSourceTypeDockerImage,
+		SourceType:  db.AppsSourceTypeDocker,
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -387,7 +387,7 @@ func TestUpdateAppDockerImage(t *testing.T) {
 		},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Equal(t, "docker_image", string(res.Body.Data.SourceType))
+	require.Equal(t, "docker", string(res.Body.Data.SourceType))
 	require.NotNil(t, res.Body.Data.Docker)
 	require.Equal(t, "index.docker.io/library/nginx:1.27", res.Body.Data.Docker.Image)
 	require.Nil(t, res.Body.Data.Git)
@@ -434,7 +434,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 	}
 
 	t.Run("git update on Docker app", func(t *testing.T) {
-		app := createApp(t, db.AppsSourceTypeDockerImage)
+		app := createApp(t, db.AppsSourceTypeDocker)
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     app.ID,
@@ -443,7 +443,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
 
-	for _, sourceType := range []db.AppsSourceType{db.AppsSourceTypeGithub, db.AppsSourceTypeLegacy} {
+	for _, sourceType := range []db.AppsSourceType{db.AppsSourceTypeGit, db.AppsSourceTypeUnknown} {
 		t.Run("image update on "+string(sourceType)+" app", func(t *testing.T) {
 			app := createApp(t, sourceType)
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
@@ -456,7 +456,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 	}
 
 	t.Run("git and image together", func(t *testing.T) {
-		app := createApp(t, db.AppsSourceTypeDockerImage)
+		app := createApp(t, db.AppsSourceTypeDocker)
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 			Project: project.ID,
 			App:     app.ID,
@@ -467,7 +467,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 	})
 
 	t.Run("metadata and image together", func(t *testing.T) {
-		app := createApp(t, db.AppsSourceTypeDockerImage)
+		app := createApp(t, db.AppsSourceTypeDocker)
 		originalName := app.Name
 		newName := "New name"
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{

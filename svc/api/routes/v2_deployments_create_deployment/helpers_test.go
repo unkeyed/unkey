@@ -17,14 +17,14 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
 )
 
-// imageRequest builds a create-deployment request for the image source.
+// imageRequest builds a create-deployment request for the Docker source.
 func imageRequest(t *testing.T, project, app, env, dockerImage string) handler.Request {
 	t.Helper()
 	return handler.Request{
 		Project:     project,
 		App:         app,
 		Environment: env,
-		Image:       &openapi.DeploymentSourceImage{DockerImage: dockerImage},
+		Docker:      &openapi.DeploymentSourceDocker{Image: dockerImage},
 	}
 }
 
@@ -93,6 +93,17 @@ func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image s
 		ID:        deploymentID,
 	})
 	require.NoError(t, err)
+
+	var legacyImage sql.NullString
+	var resolvedImage sql.NullString
+	err = h.DB.RO().QueryRowContext(
+		context.Background(),
+		"SELECT image, resolved_image FROM deployments WHERE id = ?",
+		deploymentID,
+	).Scan(&legacyImage, &resolvedImage)
+	require.NoError(t, err)
+	require.Equal(t, image, legacyImage.String)
+	require.Equal(t, image, resolvedImage.String)
 }
 
 func setDeploymentSource(t *testing.T, h *testutil.Harness, deploymentID string, source db.DeploymentsSource, requestedImage string) {

@@ -1,8 +1,8 @@
 type: object
 required:
-  - dockerImage
+  - image
 properties:
-  dockerImage:
+  image:
     type: string
     minLength: 1
     pattern: "\\S"

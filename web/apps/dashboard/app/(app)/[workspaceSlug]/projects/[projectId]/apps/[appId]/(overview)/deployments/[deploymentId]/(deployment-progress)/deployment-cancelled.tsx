@@ -66,8 +66,8 @@ export function DeploymentCancelled({ deployment, stepsData, reason }: Deploymen
       step: "Superseded",
       title: "Deployment superseded",
       description: match(deployment.source)
-        .with("git_build", () => "A newer commit on this branch replaced this deployment.")
-        .with("docker_image", () => "A newer deployment replaced this image deployment.")
+        .with("git", () => "A newer commit on this branch replaced this deployment.")
+        .with("docker", () => "A newer deployment replaced this image deployment.")
         .with("unknown", () => "A newer deployment replaced this deployment.")
         .exhaustive(),
     }))

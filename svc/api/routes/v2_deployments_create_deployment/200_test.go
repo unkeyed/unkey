@@ -214,7 +214,7 @@ func TestRedeployImageUsesPersistedDigestAfterTagMoves(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
-	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceDockerImage, tag.Name())
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceDocker, tag.Name())
 	setDeploymentImage(t, h, dep.ID, persistedDigest)
 
 	secondImage, err := mutate.Config(empty.Image, v1.Config{Env: []string{"VERSION=two"}})
@@ -360,7 +360,7 @@ func TestRedeployDockerDeploymentRequiresResolvedImage(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
-	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceDockerImage, "nginx:stable")
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceDocker, "nginx:stable")
 
 	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
@@ -389,7 +389,7 @@ func TestRedeployGitDeploymentRequiresRepositoryConnection(t *testing.T) {
 		GitCommitSha:  "9f2c1a7",
 		GitBranch:     "main",
 	})
-	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceGitBuild, "")
+	setDeploymentSource(t, h, dep.ID, db.DeploymentsSourceGit, "")
 	setDeploymentImage(t, h, dep.ID, "registry.example.com/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, dep.ID)

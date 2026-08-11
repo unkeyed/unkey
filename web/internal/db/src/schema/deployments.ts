@@ -40,16 +40,18 @@ export const deployments = mysqlTable(
 
     // How the deployment artifact was produced. "unknown" is retained for
     // historical rows whose provenance cannot be reconstructed safely.
-    source: mysqlEnum("source", ["unknown", "git_build", "docker_image"])
-      .notNull()
-      .default("unknown"),
+    source: mysqlEnum("source", ["unknown", "git", "docker"]).notNull().default("unknown"),
 
     // The mutable tag or immutable digest requested for a Docker deployment.
     requestedImage: varchar("requested_image", { length: 512 }),
 
-    // The immutable Docker digest deployed to Kubernetes. Git builds populate
-    // this after the build completes; Docker sources populate it after resolve.
+    // Legacy resolved-image column. Keep dual-writing this while older
+    // deployments and binaries can still read it.
     image: varchar("image", { length: 512 }),
+
+    // The resolved image deployed to Kubernetes. Git builds populate this after
+    // the build completes; Docker sources populate it after digest resolution.
+    resolvedImage: varchar("resolved_image", { length: 512 }),
     buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information

@@ -67,7 +67,7 @@ export const DeployImageCard = ({
         projectId,
         appId,
         environmentSlug,
-        source: "image",
+        source: "docker",
         image: imageRef,
       });
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });

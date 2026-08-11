@@ -724,19 +724,19 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/DeploymentSourceGit"
-                image:
-                    "$ref": "#/components/schemas/DeploymentSourceImage"
+                docker:
+                    "$ref": "#/components/schemas/DeploymentSourceDocker"
                 deployment:
                     "$ref": "#/components/schemas/DeploymentSourceDeployment"
             additionalProperties: false
             oneOf:
                 - required:
-                    - image
+                    - docker
                 - required:
                     - git
                 - required:
                     - deployment
-            description: Create a deployment. Provide exactly one of git, image, or deployment.
+            description: Create a deployment. Provide exactly one of git, docker, or deployment.
         V2DeploymentsCreateDeploymentResponseBody:
             type: object
             required:
@@ -4169,13 +4169,13 @@ components:
                 sourceType:
                     type: string
                     enum:
-                        - legacy
-                        - github
-                        - docker_image
+                        - unknown
+                        - git
+                        - docker
                     description: |
-                        The configured source used to create deployments. `legacy` identifies
-                        apps created before explicit source tracking was introduced.
-                    example: docker_image
+                        The configured source used to create deployments. `unknown` means the
+                        source could not be classified.
+                    example: docker
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
@@ -4187,7 +4187,7 @@ components:
                         - "$ref": "#/components/schemas/AppGit"
                 docker:
                     description: |
-                        The configured Docker image source. Present only for Docker image apps.
+                        The configured Docker image source. Omitted when the app is not Docker-sourced.
                     allOf:
                         - "$ref": "#/components/schemas/AppDocker"
                 currentDeploymentId:
@@ -4400,12 +4400,12 @@ components:
                     description: Build from a fork instead of the app's connected repository, as "owner/repo". Requires commitSha.
                     example: "contributor/acme-api"
             description: Build from the app's connected GitHub repository.
-        DeploymentSourceImage:
+        DeploymentSourceDocker:
             type: object
             required:
-                - dockerImage
+                - image
             properties:
-                dockerImage:
+                image:
                     type: string
                     minLength: 1
                     pattern: "\\S"
@@ -4477,7 +4477,7 @@ components:
                 docker:
                     "$ref": "#/components/schemas/DeploymentDocker"
                     description: |
-                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                        Present for Docker-sourced deployments. Mutually exclusive with `git`.
                 availableActions:
                     type: array
                     items:

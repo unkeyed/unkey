@@ -165,10 +165,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var source ctrlv1.IsCreateAppRequest_Source
 	switch {
 	case req.Git != nil:
-		source = &ctrlv1.CreateAppRequest_Github{Github: &ctrlv1.GitHubSource{}}
+		source = &ctrlv1.CreateAppRequest_Git{Git: &ctrlv1.GitSource{}}
 	case req.Docker != nil:
-		source = &ctrlv1.CreateAppRequest_DockerImage{
-			DockerImage: &ctrlv1.DockerImageSource{ImageReference: req.Docker.Image},
+		source = &ctrlv1.CreateAppRequest_Docker{
+			Docker: &ctrlv1.DockerSource{ImageReference: req.Docker.Image},
 		}
 	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{

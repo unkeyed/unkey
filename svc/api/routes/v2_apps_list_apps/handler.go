@@ -101,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.ListAppsByProjectRow) string { return r.ID })
 	for _, row := range rows {
-		if row.SourceType == db.AppsSourceTypeDockerImage && !row.DockerImageReference.Valid {
+		if row.SourceType == db.AppsSourceTypeDocker && !row.DockerImageReference.Valid {
 			return fault.New(
 				"Docker app source is missing",
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data := array.Map(rows, func(row db.ListAppsByProjectRow) openapi.App {
 		var docker *openapi.AppDocker
-		if row.SourceType == db.AppsSourceTypeDockerImage {
+		if row.SourceType == db.AppsSourceTypeDocker {
 			docker = &openapi.AppDocker{Image: row.DockerImageReference.String}
 		}
 		return openapi.App{

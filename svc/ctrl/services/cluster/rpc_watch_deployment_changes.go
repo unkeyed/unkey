@@ -199,6 +199,10 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 		if row.d.BuildID.Valid {
 			buildID = &row.d.BuildID.String
 		}
+		image := row.d.ResolvedImage.String
+		if image == "" {
+			image = row.d.Image.String
+		}
 
 		apply := &ctrlv1.ApplyDeployment{
 			DeploymentId:                  row.d.ID,
@@ -208,7 +212,7 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 			ProjectId:                     row.d.ProjectID,
 			EnvironmentId:                 row.d.EnvironmentID,
 			AppId:                         row.d.AppID,
-			Image:                         row.d.Image.String,
+			Image:                         image,
 			CpuMillicores:                 int64(row.d.CpuMillicores),
 			MemoryMib:                     int64(row.d.MemoryMib),
 			EncryptedEnvironmentVariables: row.d.EncryptedEnvironmentVariables,

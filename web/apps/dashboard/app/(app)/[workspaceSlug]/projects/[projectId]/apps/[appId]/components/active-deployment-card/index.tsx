@@ -109,7 +109,7 @@ export function ActiveDeploymentCard({
           </div>
           <div className="flex items-center gap-3 min-w-0">
             {match(deployment.source)
-              .with("git_build", () =>
+              .with("git", () =>
                 deployment.gitCommitMessage ? (
                   <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -121,7 +121,7 @@ export function ActiveDeploymentCard({
                   </GitHubLink>
                 ) : null,
               )
-              .with("docker_image", "unknown", () => null)
+              .with("docker", "unknown", () => null)
               .exhaustive()}
             {showLastExit && deployment.lastExit && (
               <LastExitBadge lastExit={deployment.lastExit} />
@@ -135,7 +135,7 @@ export function ActiveDeploymentCard({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 items-start">
           <MetadataCell label="Created">
             {match(deployment.source)
-              .with("git_build", () => (
+              .with("git", () => (
                 <div className="flex items-center gap-2">
                   <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
                   {deployment.gitCommitAuthorHandle && (
@@ -153,7 +153,7 @@ export function ActiveDeploymentCard({
                   />
                 </div>
               ))
-              .with("docker_image", "unknown", () => (
+              .with("docker", "unknown", () => (
                 <TimestampInfo
                   value={deployment.createdAt}
                   displayType="relative"
@@ -166,13 +166,13 @@ export function ActiveDeploymentCard({
           <MetadataCell label="Source">
             <div className="flex items-center gap-2 min-w-0">
               {match(deployment.source)
-                .with("docker_image", () => (
+                .with("docker", () => (
                   <ImageSource
-                    image={deployment.requestedImage ?? deployment.image}
-                    copyValue={deployment.image}
+                    image={deployment.requestedImage ?? deployment.resolvedImage}
+                    copyValue={deployment.resolvedImage}
                   />
                 ))
-                .with("git_build", () => (
+                .with("git", () => (
                   <>
                     {deployment.gitBranch && (
                       <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>

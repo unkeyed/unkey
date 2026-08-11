@@ -54,10 +54,10 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
   const title = match(deployment.source)
-    .with("git_build", () => deployment.gitCommitMessage || shortenId(deployment.id))
+    .with("git", () => deployment.gitCommitMessage || shortenId(deployment.id))
     .with(
-      "docker_image",
-      () => deployment.requestedImage ?? deployment.image ?? shortenId(deployment.id),
+      "docker",
+      () => deployment.requestedImage ?? deployment.resolvedImage ?? shortenId(deployment.id),
     )
     .with("unknown", () => shortenId(deployment.id))
     .exhaustive();
@@ -76,13 +76,13 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
           <PageHeaderTitle className="truncate" title={title}>
             {title}
           </PageHeaderTitle>
-          {deployment.source === "docker_image" && deployment.image && (
+          {deployment.source === "docker" && deployment.resolvedImage && (
             <InfoTooltip content="Copy resolved image" asChild>
               <CopyButton
-                value={deployment.image}
+                value={deployment.resolvedImage}
                 variant="ghost"
                 className="size-7 shrink-0"
-                toastMessage={deployment.image}
+                toastMessage={deployment.resolvedImage}
                 src="deployment-detail-header"
               />
             </InfoTooltip>

@@ -73,7 +73,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 
 	hasSha := src.GitCommitSha.Valid && src.GitCommitSha.String != ""
 	hasRepoConn := false
-	requiresGit := src.Source == db.DeploymentsSourceGitBuild
+	requiresGit := src.Source == db.DeploymentsSourceGit
 	historicalSource := src.Source == db.DeploymentsSourceUnknown || src.Source == ""
 	tryGit := requiresGit || (historicalSource && hasSha)
 	if tryGit && hasSha {
@@ -85,7 +85,8 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		}
 	}
 	useGit := tryGit && hasSha && hasRepoConn
-	hasImage := src.Image.Valid && src.Image.String != ""
+	resolvedImage := resolvedDeploymentImage(src)
+	hasImage := resolvedImage.Valid && resolvedImage.String != ""
 
 	if requiresGit && !useGit {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
@@ -139,7 +140,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		// Passing dockerImage explicitly short-circuits createAndDeploy's
 		// auto-detect, so we don't accidentally pick up the app's current
 		// deployment image (which may be a different one).
-		imageReference, imageErr := imageref.NormalizeHistorical(src.Image.String)
+		imageReference, imageErr := imageref.NormalizeHistorical(resolvedImage.String)
 		if imageErr != nil {
 			return "", connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("source deployment %q has an invalid Docker image: %w", sourceDeploymentID, imageErr))
@@ -149,7 +150,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			"source_deployment_id", sourceDeploymentID,
 			"app_id", src.AppID,
 			"env_slug", env.Slug,
-			"image", src.Image.String,
+			"image", resolvedImage.String,
 			"reason", reason,
 		)
 	}

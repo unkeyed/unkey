@@ -110,8 +110,8 @@ export function ProductionCardHeader() {
           deployment={deployment}
           status={status}
           commitUrl={match(deployment.source)
-            .with("git_build", () => githubUrl.commit(sourceRepo, deployment.gitCommitSha))
-            .with("docker_image", "unknown", () => undefined)
+            .with("git", () => githubUrl.commit(sourceRepo, deployment.gitCommitSha))
+            .with("docker", "unknown", () => undefined)
             .exhaustive()}
           logsHref={logsHref}
           requestsHref={requestsHref}

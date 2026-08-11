@@ -24,8 +24,8 @@ message CreateAppRequest {
   ActorInfo actor = 5;
 
   oneof source {
-    GitHubSource github = 6;
-    DockerImageSource docker_image = 7;
+    GitSource git = 6;
+    DockerSource docker = 7;
   }
 }
 
@@ -33,9 +33,9 @@ message CreateAppResponse {
   string id = 1;
 }
 
-message GitHubSource {}
+message GitSource {}
 
-message DockerImageSource {
+message DockerSource {
   string image_reference = 1;
 }
 

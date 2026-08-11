@@ -113,15 +113,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// connect_repository gates every git change, disconnect included.
 		gitSpecified := req.Git.IsSpecified()
-		if gitSpecified && app.SourceType == db.AppsSourceTypeDockerImage {
+		if gitSpecified && app.SourceType == db.AppsSourceTypeDocker {
 			return openapi.App{}, fault.New(
 				"git update is incompatible with app source",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("cannot update git configuration for a Docker-sourced app"),
-				fault.Public("Git configuration can only be updated for GitHub or legacy apps."),
+				fault.Public("Git configuration cannot be updated for Docker-sourced apps."),
 			)
 		}
-		if req.Docker != nil && app.SourceType != db.AppsSourceTypeDockerImage {
+		if req.Docker != nil && app.SourceType != db.AppsSourceTypeDocker {
 			return openapi.App{}, fault.New(
 				"image update is incompatible with app source",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -282,7 +282,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		var docker *openapi.AppDocker
-		if app.SourceType == db.AppsSourceTypeDockerImage {
+		if app.SourceType == db.AppsSourceTypeDocker {
 			imageReference := ""
 			if req.Docker != nil {
 				imageReference = req.Docker.Image

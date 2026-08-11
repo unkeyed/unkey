@@ -123,7 +123,7 @@ export function DeploymentRow({
       {/* Source */}
       <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
         {match(deployment.source)
-          .with("git_build", () => (
+          .with("git", () => (
             <>
               {deployment.gitBranch ? (
                 <div className="flex items-center gap-2 min-w-0">
@@ -166,13 +166,16 @@ export function DeploymentRow({
               ) : null}
             </>
           ))
-          .with("docker_image", () => {
-            const image = deployment.requestedImage ?? deployment.image;
-            return image ? (
+          .with("docker", () => {
+            const displayImage = deployment.requestedImage ?? deployment.resolvedImage;
+            return displayImage ? (
               <div className="flex items-center gap-2 min-w-0">
                 <Docker iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                <span className="font-mono text-xs text-accent-12 truncate leading-4" title={image}>
-                  {image}
+                <span
+                  className="font-mono text-xs text-accent-12 truncate leading-4"
+                  title={displayImage}
+                >
+                  {displayImage}
                 </span>
               </div>
             ) : (
@@ -200,13 +203,13 @@ export function DeploymentRow({
           />
         </span>
         {match(deployment.source)
-          .with("git_build", () => (
+          .with("git", () => (
             <Avatar
               src={deployment.gitCommitAuthorAvatarUrl}
               alt={deployment.gitCommitAuthorHandle ?? "Author"}
             />
           ))
-          .with("docker_image", "unknown", () => null)
+          .with("docker", "unknown", () => null)
           .exhaustive()}
         <div className="relative z-20" role="presentation">
           <DeploymentListTableActions selectedDeployment={deployment} environment={environment} />

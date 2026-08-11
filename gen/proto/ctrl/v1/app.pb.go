@@ -30,8 +30,8 @@ type CreateAppRequest struct {
 	Actor       *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
 	// Types that are valid to be assigned to Source:
 	//
-	//	*CreateAppRequest_Github
-	//	*CreateAppRequest_DockerImage
+	//	*CreateAppRequest_Git
+	//	*CreateAppRequest_Docker
 	Source        isCreateAppRequest_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -109,19 +109,19 @@ func (x *CreateAppRequest) GetSource() isCreateAppRequest_Source {
 	return nil
 }
 
-func (x *CreateAppRequest) GetGithub() *GitHubSource {
+func (x *CreateAppRequest) GetGit() *GitSource {
 	if x != nil {
-		if x, ok := x.Source.(*CreateAppRequest_Github); ok {
-			return x.Github
+		if x, ok := x.Source.(*CreateAppRequest_Git); ok {
+			return x.Git
 		}
 	}
 	return nil
 }
 
-func (x *CreateAppRequest) GetDockerImage() *DockerImageSource {
+func (x *CreateAppRequest) GetDocker() *DockerSource {
 	if x != nil {
-		if x, ok := x.Source.(*CreateAppRequest_DockerImage); ok {
-			return x.DockerImage
+		if x, ok := x.Source.(*CreateAppRequest_Docker); ok {
+			return x.Docker
 		}
 	}
 	return nil
@@ -131,17 +131,17 @@ type isCreateAppRequest_Source interface {
 	isCreateAppRequest_Source()
 }
 
-type CreateAppRequest_Github struct {
-	Github *GitHubSource `protobuf:"bytes,6,opt,name=github,proto3,oneof"`
+type CreateAppRequest_Git struct {
+	Git *GitSource `protobuf:"bytes,6,opt,name=git,proto3,oneof"`
 }
 
-type CreateAppRequest_DockerImage struct {
-	DockerImage *DockerImageSource `protobuf:"bytes,7,opt,name=docker_image,json=dockerImage,proto3,oneof"`
+type CreateAppRequest_Docker struct {
+	Docker *DockerSource `protobuf:"bytes,7,opt,name=docker,proto3,oneof"`
 }
 
-func (*CreateAppRequest_Github) isCreateAppRequest_Source() {}
+func (*CreateAppRequest_Git) isCreateAppRequest_Source() {}
 
-func (*CreateAppRequest_DockerImage) isCreateAppRequest_Source() {}
+func (*CreateAppRequest_Docker) isCreateAppRequest_Source() {}
 
 type CreateAppResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -187,26 +187,26 @@ func (x *CreateAppResponse) GetId() string {
 	return ""
 }
 
-type GitHubSource struct {
+type GitSource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GitHubSource) Reset() {
-	*x = GitHubSource{}
+func (x *GitSource) Reset() {
+	*x = GitSource{}
 	mi := &file_ctrl_v1_app_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GitHubSource) String() string {
+func (x *GitSource) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GitHubSource) ProtoMessage() {}
+func (*GitSource) ProtoMessage() {}
 
-func (x *GitHubSource) ProtoReflect() protoreflect.Message {
+func (x *GitSource) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_app_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -218,32 +218,32 @@ func (x *GitHubSource) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GitHubSource.ProtoReflect.Descriptor instead.
-func (*GitHubSource) Descriptor() ([]byte, []int) {
+// Deprecated: Use GitSource.ProtoReflect.Descriptor instead.
+func (*GitSource) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{2}
 }
 
-type DockerImageSource struct {
+type DockerSource struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ImageReference string                 `protobuf:"bytes,1,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
-func (x *DockerImageSource) Reset() {
-	*x = DockerImageSource{}
+func (x *DockerSource) Reset() {
+	*x = DockerSource{}
 	mi := &file_ctrl_v1_app_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DockerImageSource) String() string {
+func (x *DockerSource) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DockerImageSource) ProtoMessage() {}
+func (*DockerSource) ProtoMessage() {}
 
-func (x *DockerImageSource) ProtoReflect() protoreflect.Message {
+func (x *DockerSource) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_app_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -255,12 +255,12 @@ func (x *DockerImageSource) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DockerImageSource.ProtoReflect.Descriptor instead.
-func (*DockerImageSource) Descriptor() ([]byte, []int) {
+// Deprecated: Use DockerSource.ProtoReflect.Descriptor instead.
+func (*DockerSource) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *DockerImageSource) GetImageReference() string {
+func (x *DockerSource) GetImageReference() string {
 	if x != nil {
 		return x.ImageReference
 	}
@@ -471,21 +471,21 @@ var File_ctrl_v1_app_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xa2\x02\n" +
+	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x89\x02\n" +
 	"\x10CreateAppRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
 	"\x04slug\x18\x04 \x01(\tR\x04slug\x12(\n" +
-	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12/\n" +
-	"\x06github\x18\x06 \x01(\v2\x15.ctrl.v1.GitHubSourceH\x00R\x06github\x12?\n" +
-	"\fdocker_image\x18\a \x01(\v2\x1a.ctrl.v1.DockerImageSourceH\x00R\vdockerImageB\b\n" +
+	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12&\n" +
+	"\x03git\x18\x06 \x01(\v2\x12.ctrl.v1.GitSourceH\x00R\x03git\x12/\n" +
+	"\x06docker\x18\a \x01(\v2\x15.ctrl.v1.DockerSourceH\x00R\x06dockerB\b\n" +
 	"\x06source\"#\n" +
 	"\x11CreateAppResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x0e\n" +
-	"\fGitHubSource\"<\n" +
-	"\x11DockerImageSource\x12'\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\v\n" +
+	"\tGitSource\"7\n" +
+	"\fDockerSource\x12'\n" +
 	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"\xad\x01\n" +
 	"\x1eUpdateDockerImageSourceRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x15\n" +
@@ -521,8 +521,8 @@ var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ctrl_v1_app_proto_goTypes = []any{
 	(*CreateAppRequest)(nil),                // 0: ctrl.v1.CreateAppRequest
 	(*CreateAppResponse)(nil),               // 1: ctrl.v1.CreateAppResponse
-	(*GitHubSource)(nil),                    // 2: ctrl.v1.GitHubSource
-	(*DockerImageSource)(nil),               // 3: ctrl.v1.DockerImageSource
+	(*GitSource)(nil),                       // 2: ctrl.v1.GitSource
+	(*DockerSource)(nil),                    // 3: ctrl.v1.DockerSource
 	(*UpdateDockerImageSourceRequest)(nil),  // 4: ctrl.v1.UpdateDockerImageSourceRequest
 	(*UpdateDockerImageSourceResponse)(nil), // 5: ctrl.v1.UpdateDockerImageSourceResponse
 	(*DeleteAppRequest)(nil),                // 6: ctrl.v1.DeleteAppRequest
@@ -531,8 +531,8 @@ var file_ctrl_v1_app_proto_goTypes = []any{
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
 	8, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	2, // 1: ctrl.v1.CreateAppRequest.github:type_name -> ctrl.v1.GitHubSource
-	3, // 2: ctrl.v1.CreateAppRequest.docker_image:type_name -> ctrl.v1.DockerImageSource
+	2, // 1: ctrl.v1.CreateAppRequest.git:type_name -> ctrl.v1.GitSource
+	3, // 2: ctrl.v1.CreateAppRequest.docker:type_name -> ctrl.v1.DockerSource
 	8, // 3: ctrl.v1.UpdateDockerImageSourceRequest.actor:type_name -> ctrl.v1.ActorInfo
 	8, // 4: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
 	0, // 5: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
@@ -555,8 +555,8 @@ func file_ctrl_v1_app_proto_init() {
 	}
 	file_ctrl_v1_actor_proto_init()
 	file_ctrl_v1_app_proto_msgTypes[0].OneofWrappers = []any{
-		(*CreateAppRequest_Github)(nil),
-		(*CreateAppRequest_DockerImage)(nil),
+		(*CreateAppRequest_Git)(nil),
+		(*CreateAppRequest_Docker)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

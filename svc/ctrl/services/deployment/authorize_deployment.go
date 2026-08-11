@@ -47,7 +47,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	}
 
 	commitSHA := deployment.GitCommitSha.String
-	useDocker := deployment.Source == db.DeploymentsSourceDockerImage ||
+	useDocker := deployment.Source == db.DeploymentsSourceDocker ||
 		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
 
 	var deployReq *hydrav1.DeployRequest
@@ -55,7 +55,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	if useDocker {
 		image := deployment.RequestedImage.String
 		if image == "" {
-			image = deployment.Image.String
+			image = resolvedDeploymentImage(deployment).String
 		}
 		if image == "" {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,

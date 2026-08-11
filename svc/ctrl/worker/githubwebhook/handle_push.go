@@ -385,7 +385,7 @@ func insertDeploymentRecord(
 			ProjectID:                     project.ID,
 			AppID:                         app.ID,
 			EnvironmentID:                 env.ID,
-			Source:                        db.DeploymentsSourceGitBuild,
+			Source:                        db.DeploymentsSourceGit,
 			RequestedImage:                sql.NullString{Valid: false},
 			SentinelConfig:                runtimeSettings.SentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,

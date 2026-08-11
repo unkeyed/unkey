@@ -272,9 +272,9 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 type AppsSourceType string
 
 const (
-	AppsSourceTypeLegacy      AppsSourceType = "legacy"
-	AppsSourceTypeGithub      AppsSourceType = "github"
-	AppsSourceTypeDockerImage AppsSourceType = "docker_image"
+	AppsSourceTypeUnknown AppsSourceType = "unknown"
+	AppsSourceTypeGit     AppsSourceType = "git"
+	AppsSourceTypeDocker  AppsSourceType = "docker"
 )
 
 func (e *AppsSourceType) Scan(src interface{}) error {
@@ -660,9 +660,9 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsSource string
 
 const (
-	DeploymentsSourceUnknown     DeploymentsSource = "unknown"
-	DeploymentsSourceGitBuild    DeploymentsSource = "git_build"
-	DeploymentsSourceDockerImage DeploymentsSource = "docker_image"
+	DeploymentsSourceUnknown DeploymentsSource = "unknown"
+	DeploymentsSourceGit     DeploymentsSource = "git"
+	DeploymentsSourceDocker  DeploymentsSource = "docker"
 )
 
 func (e *DeploymentsSource) Scan(src interface{}) error {
@@ -1241,6 +1241,7 @@ type Deployment struct {
 	Source                        DeploymentsSource           `db:"source"`
 	RequestedImage                sql.NullString              `db:"requested_image"`
 	Image                         sql.NullString              `db:"image"`
+	ResolvedImage                 sql.NullString              `db:"resolved_image"`
 	BuildID                       sql.NullString              `db:"build_id"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
 	GitBranch                     sql.NullString              `db:"git_branch"`

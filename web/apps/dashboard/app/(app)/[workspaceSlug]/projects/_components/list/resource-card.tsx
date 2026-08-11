@@ -100,7 +100,7 @@ export const ResourceCard = ({
         <div className="relative">{actions}</div>
       </div>
       {match(sourceType)
-        .with("github", () => (
+        .with("git", () => (
           <GitSourceMetadata
             commitTitle={commitTitle}
             sourceUrl={sourceUrl}
@@ -110,8 +110,8 @@ export const ResourceCard = ({
             authorAvatar={authorAvatar}
           />
         ))
-        .with("docker_image", () => <DockerSourceMetadata imageReference={imageReference} />)
-        .with("legacy", () =>
+        .with("docker", () => <DockerSourceMetadata imageReference={imageReference} />)
+        .with("unknown", () =>
           repositoryFullName ? (
             <GitSourceMetadata
               commitTitle={commitTitle}

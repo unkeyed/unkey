@@ -11,7 +11,7 @@ const schema = z.object({
   projectId: z.string(),
   name: z.string(),
   slug: z.string(),
-  sourceType: z.enum(["legacy", "github", "docker_image"]),
+  sourceType: z.enum(["unknown", "git", "docker"]),
   imageReference: z.string().nullable(),
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
@@ -37,9 +37,9 @@ export const dockerImageReferenceSchema = z
   .max(512, "Image reference too long");
 
 export const appCreationSourceSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("github") }),
+  z.object({ kind: z.literal("git") }),
   z.object({
-    kind: z.literal("docker_image"),
+    kind: z.literal("docker"),
     imageReference: dockerImageReferenceSchema,
   }),
 ]);
@@ -109,7 +109,7 @@ export const apps = createCollection<App, string>(
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
 
-      if (changes.sourceType === "legacy") {
+      if (changes.sourceType === "unknown") {
         throw new Error("New dashboard apps must declare a GitHub or Docker image source");
       }
 
@@ -118,9 +118,9 @@ export const apps = createCollection<App, string>(
         name: changes.name,
         slug: changes.slug,
         source:
-          changes.sourceType === "docker_image"
-            ? { kind: "docker_image", imageReference: changes.imageReference }
-            : { kind: "github" },
+          changes.sourceType === "docker"
+            ? { kind: "docker", imageReference: changes.imageReference }
+            : { kind: "git" },
       });
       const mutation = getUnkeyClient().apps.createApp({
         project: createInput.projectId,

@@ -43,23 +43,23 @@ func parseCreateAppSource(req *ctrlv1.CreateAppRequest) (createAppSource, error)
 	switch source := req.GetSource().(type) {
 	case nil:
 		return createAppSource{
-			sourceType:          db.AppsSourceTypeLegacy,
+			sourceType:          db.AppsSourceTypeUnknown,
 			imageReference:      "",
 			createBuildSettings: true,
 		}, nil
-	case *ctrlv1.CreateAppRequest_Github:
+	case *ctrlv1.CreateAppRequest_Git:
 		return createAppSource{
-			sourceType:          db.AppsSourceTypeGithub,
+			sourceType:          db.AppsSourceTypeGit,
 			imageReference:      "",
 			createBuildSettings: true,
 		}, nil
-	case *ctrlv1.CreateAppRequest_DockerImage:
-		imageReference, err := imageref.Normalize(source.DockerImage.GetImageReference())
+	case *ctrlv1.CreateAppRequest_Docker:
+		imageReference, err := imageref.Normalize(source.Docker.GetImageReference())
 		if err != nil {
 			return createAppSource{}, err
 		}
 		return createAppSource{
-			sourceType:          db.AppsSourceTypeDockerImage,
+			sourceType:          db.AppsSourceTypeDocker,
 			imageReference:      imageReference,
 			createBuildSettings: false,
 		}, nil
@@ -113,7 +113,7 @@ func (s *Service) CreateApp(
 			return fmt.Errorf("insert app: %w", txErr)
 		}
 
-		if source.sourceType == db.AppsSourceTypeDockerImage {
+		if source.sourceType == db.AppsSourceTypeDocker {
 			if txErr := db.NewQueries(tx).InsertAppDockerSource(txCtx, db.InsertAppDockerSourceParams{
 				WorkspaceID:    workspaceID,
 				AppID:          appID,

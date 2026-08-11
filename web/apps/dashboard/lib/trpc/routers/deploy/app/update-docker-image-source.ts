@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getCtrlClients } from "../../ctrl";
 
-export const updateDockerImageSource = workspaceProcedure
+export const updateDockerSource = workspaceProcedure
   .input(
     z.object({
       appId: z.string().min(1, "App is required"),
@@ -16,7 +16,7 @@ export const updateDockerImageSource = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .mutation(async ({ ctx, input }) => {
     try {
-      await getCtrlClients().app.updateDockerImageSource({
+      await getCtrlClients().app.updateDockerSource({
         workspaceId: ctx.workspace.id,
         appId: input.appId,
         imageReference: input.imageReference,
