@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -67,7 +67,7 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 			Slug:        "payments",
 		})
 
-		for _, slug := range []string{projects.DefaultSlug, "Default"} {
+		for _, slug := range []string{projectgate.DefaultSlug, "Default"} {
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 				Project: project.ID,
 				Slug:    &slug,

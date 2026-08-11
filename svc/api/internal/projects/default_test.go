@@ -8,16 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
-
-func TestIsReservedSlug(t *testing.T) {
-	require.True(t, projects.IsReservedSlug("default"))
-	require.True(t, projects.IsReservedSlug("Default"))
-	require.False(t, projects.IsReservedSlug("default-project"))
-}
 
 // TestEnsureDefaultProject guarantees ownership writers reuse an exact default,
 // create a protected default when absent, and converge after concurrent creation.
@@ -50,7 +45,7 @@ func TestEnsureDefaultProject(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, workspaceID, project.WorkspaceID)
 		require.Equal(t, "Default", project.Name)
-		require.Equal(t, "default", project.Slug)
+		require.Equal(t, projectgate.DefaultSlug, project.Slug)
 		require.Equal(t, sql.NullBool{Bool: true, Valid: true}, project.DeleteProtection)
 	})
 

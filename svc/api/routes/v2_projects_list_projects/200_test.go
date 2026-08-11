@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
@@ -112,7 +112,7 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 		ID:               ids[1],
 		WorkspaceID:      workspace.ID,
 		Name:             "Default",
-		Slug:             projects.DefaultSlug,
+		Slug:             projectgate.DefaultSlug,
 		DeleteProtection: true,
 	})
 	h.CreateProject(seed.CreateProjectRequest{
@@ -144,7 +144,7 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 
 	t.Run("does not return default in search", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Search: ptr.P(projects.DefaultSlug),
+			Search: ptr.P(projectgate.DefaultSlug),
 		})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Empty(t, res.Body.Data)

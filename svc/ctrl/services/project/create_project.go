@@ -4,21 +4,20 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
-
-const reservedDefaultProjectSlug = "default"
 
 // CreateProject creates an empty project. Apps and their environments are
 // created separately via [app.Service.CreateApp], so a fresh project starts
@@ -34,10 +33,12 @@ func (s *Service) CreateProject(
 		assert.NotEmpty(req.Msg.GetWorkspaceId(), "workspace_id is required"),
 		assert.NotEmpty(req.Msg.GetName(), "name is required"),
 		assert.NotEmpty(req.Msg.GetSlug(), "slug is required"),
-		assert.False(strings.EqualFold(req.Msg.GetSlug(), reservedDefaultProjectSlug), "slug is reserved"),
 		assert.NotNil(req.Msg.GetActor(), "actor is required"),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if err := projectgate.CheckSlug(req.Msg.GetSlug()); err != nil {
+		return nil, gatefault.ConnectWith(connect.CodeInvalidArgument, err)
 	}
 
 	workspaceID := req.Msg.GetWorkspaceId()

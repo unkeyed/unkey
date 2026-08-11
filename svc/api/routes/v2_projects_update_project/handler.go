@@ -11,10 +11,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if project.Slug == projects.DefaultSlug {
+		if project.Slug == projectgate.DefaultSlug {
 			return openapi.Project{}, fault.New(
 				"project not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
@@ -95,13 +95,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return openapi.Project{}, err
 		}
 
-		if req.Slug != nil && projects.IsReservedSlug(*req.Slug) {
-			return openapi.Project{}, fault.New(
-				"project slug is reserved",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("default project slug is reserved"),
-				fault.Public(fmt.Sprintf("The project slug '%s' is reserved.", *req.Slug)),
-			)
+		if req.Slug != nil {
+			if err = projectgate.CheckSlug(*req.Slug); err != nil {
+				return openapi.Project{}, err
+			}
 		}
 
 		updatedAt := time.Now().UnixMilli()

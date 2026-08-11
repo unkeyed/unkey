@@ -25,7 +25,7 @@ func TestCreateProjectRejectsReservedSlug(t *testing.T) {
 			_, err := svc.CreateProject(t.Context(), req)
 			require.Error(t, err)
 			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-			require.ErrorContains(t, err, "slug is reserved")
+			require.ErrorContains(t, err, "is reserved")
 		})
 	}
 }

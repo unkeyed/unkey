@@ -3,22 +3,13 @@ package projects
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
-
-// DefaultSlug identifies the workspace's internal ownership project.
-const DefaultSlug = "default"
-
-// IsReservedSlug reports whether slug would collide with the internal default
-// project under MySQL's case-insensitive slug collation.
-func IsReservedSlug(slug string) bool {
-	return strings.EqualFold(slug, DefaultSlug)
-}
 
 // EnsureDefaultProject returns the exact default project owned by workspaceID,
 // creating it in the caller's transaction when it does not exist.
@@ -39,7 +30,7 @@ func EnsureDefaultProject(ctx context.Context, tx db.DBTX, workspaceID string) (
 		ID:               projectID,
 		WorkspaceID:      workspaceID,
 		Name:             "Default",
-		Slug:             DefaultSlug,
+		Slug:             projectgate.DefaultSlug,
 		DeleteProtection: sql.NullBool{Bool: true, Valid: true},
 		CreatedAt:        time.Now().UnixMilli(),
 		UpdatedAt:        sql.NullInt64{},

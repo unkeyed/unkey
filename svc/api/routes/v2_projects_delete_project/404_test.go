@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
@@ -55,7 +55,7 @@ func TestDeleteProjectNotFound(t *testing.T) {
 			ID:               uid.New(uid.ProjectPrefix),
 			WorkspaceID:      workspace.ID,
 			Name:             "Default",
-			Slug:             projects.DefaultSlug,
+			Slug:             projectgate.DefaultSlug,
 			DeleteProtection: true,
 		})
 

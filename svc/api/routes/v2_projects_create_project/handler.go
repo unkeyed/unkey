@@ -9,11 +9,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -54,13 +54,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if projects.IsReservedSlug(req.Slug) {
-		return fault.New(
-			"project slug is reserved",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("default project slug is reserved"),
-			fault.Public(fmt.Sprintf("The project slug '%s' is reserved.", req.Slug)),
-		)
+	if err = projectgate.CheckSlug(req.Slug); err != nil {
+		return err
 	}
 
 	actor, err := ctrlclient.Actor(s)
