@@ -204,6 +204,10 @@ export const workspacePermissions = {
       description: "Delete projects in this workspace",
       permission: "project.*.delete_project",
     },
+    read_analytics: {
+      description: "Query gateway request data for all projects in this workspace using SQL.",
+      permission: "project.*.read_analytics",
+    },
   },
   Apps: {
     create_app: {
