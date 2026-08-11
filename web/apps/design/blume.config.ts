@@ -1,4 +1,4 @@
-import { defineConfig, type BlumeConfig } from "blume";
+import { type BlumeConfig, defineConfig } from "blume";
 
 const ampOrbViteServer: NonNullable<BlumeConfig["integrations"]>[number] = {
   name: "unkey:amp-orb-vite-server",
