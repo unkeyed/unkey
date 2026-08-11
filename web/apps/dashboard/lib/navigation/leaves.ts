@@ -175,6 +175,21 @@ export function buildAppLinks(
       icon: Gear,
       isActive: page === "settings",
     },
+    {
+      key: "logs",
+      label: "Go to Logs",
+      href: routes.projects.logs(scope),
+      icon: Layers3,
+      isActive: page === "logs",
+      separatorAbove: true,
+    },
+    {
+      key: "requests",
+      label: "Go to Requests",
+      href: routes.projects.requests(scope),
+      icon: ArrowOppositeDirectionY,
+      isActive: page === "requests",
+    },
     // Will be polished and added back in the future iterations
     // {
     //   key: "openapi-diff",

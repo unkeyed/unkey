@@ -77,8 +77,15 @@ properties:
     items:
       type: string
       minLength: 1
-      maxLength: 100 # Keep role names concise and readable
-      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      # No character pattern: role names are human-readable labels today, the
+      # dashboard lets users create names with spaces, and unknown names are
+      # already rejected by the handler.
+      #
+      # 128 matches permissions.slug (varchar(128)) rather than the wider
+      # roles.name column (varchar(512)), so this field does not have to
+      # narrow later when roles start accepting slugs. Keep this value in step
+      # with the other role endpoints and the dashboard role editor.
+      maxLength: 128
     description: |
       Assigns existing roles to this key for permission management through role-based access control.
       Roles must already exist in your workspace before assignment.

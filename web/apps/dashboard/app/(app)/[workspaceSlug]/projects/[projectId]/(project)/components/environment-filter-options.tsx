@@ -1,19 +1,13 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useAppNameById } from "./app-filter-options";
 
 // Logs and requests are project-wide and every app has e.g. a "production"
 // environment, so the app name is needed to tell same-slug options apart.
 export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
-  const { environments, projectId } = useProjectData();
-
-  const apps = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
-  );
-  const appNameById = new Map((apps.data ?? []).map((app) => [app.id, app.name]));
+  const { environments } = useProjectData();
+  const appNameById = useAppNameById();
 
   return environments.map((environment, i) => ({
     id: i,

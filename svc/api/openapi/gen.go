@@ -3545,9 +3545,9 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
-	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`
 }
 
