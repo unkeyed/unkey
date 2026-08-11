@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDollars, formatNumber } from "@/lib/fmt";
+import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
 import { Gauge, Key2, Nodes } from "@unkey/icons";
 import {
   Item,
@@ -41,6 +41,15 @@ type ApiCardProps = {
   isLoading: boolean;
 };
 
+/** formatDollars drops the cents when the amount is whole, and a bare "$0" reads
+ *  like a truncated figure rather than a fee of nothing. */
+function fee(feeCents: number | null): string | null {
+  if (feeCents === null) {
+    return null;
+  }
+  return feeCents === 0 ? formatPrice(0) : formatDollars(feeCents);
+}
+
 /**
  * Billing keeps no keyspace or namespace grain for either operation, so the two
  * workspace counts are the whole table.
@@ -63,11 +72,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
           <ItemDescription>Valid requests this period</ItemDescription>
         </ItemContent>
         <ItemActions className={AMOUNT}>
-          <Figure
-            value={feeCents === null ? null : formatDollars(feeCents)}
-            isLoading={isLoading}
-            skeletonClassName="h-6 w-16"
-          />
+          <Figure value={fee(feeCents)} isLoading={isLoading} skeletonClassName="h-6 w-16" />
         </ItemActions>
       </ItemHeader>
 

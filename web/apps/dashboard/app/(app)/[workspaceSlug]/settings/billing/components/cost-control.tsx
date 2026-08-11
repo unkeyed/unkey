@@ -100,9 +100,15 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
         </ItemHeader>
 
         <div className="px-4 pb-4">
-          <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
-            {budgetCents === null ? "None" : formatDollars(budgetCents)}
-          </span>
+          {budgetCents === null ? (
+            <AlertBanner>
+              <AlertBannerDescription>No spend controls are enabled yet</AlertBannerDescription>
+            </AlertBanner>
+          ) : (
+            <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
+              {formatDollars(budgetCents)}
+            </span>
+          )}
         </div>
 
         {budgetCents !== null ? (
