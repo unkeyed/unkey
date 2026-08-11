@@ -217,12 +217,11 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 256
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
+                        Human-readable name for this API within your workspace.
+                        Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: Payment Service (prod)
             additionalProperties: false
         V2ApisCreateApiResponseBody:
             type: object
@@ -3602,7 +3601,7 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
+                    maxLength: 256
                     description: |
                         The internal name of this API as specified during creation.
                         Used for organization and identification within your workspace.

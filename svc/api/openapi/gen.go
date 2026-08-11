@@ -1502,8 +1502,8 @@ type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
-	// Name Unique identifier for this API namespace within your workspace.
-	// Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+	// Name Human-readable name for this API within your workspace.
+	// Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
 	Name string `json:"name"`
 }
 

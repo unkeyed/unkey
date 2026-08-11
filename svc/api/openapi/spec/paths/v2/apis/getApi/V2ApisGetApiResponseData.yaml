@@ -14,7 +14,8 @@ properties:
   name:
     type: string
     minLength: 3
-    maxLength: 255
+    # Matches the apis.name column (varchar(256)). See createApi.
+    maxLength: 256
     description: |
       The internal name of this API as specified during creation.
       Used for organization and identification within your workspace.
