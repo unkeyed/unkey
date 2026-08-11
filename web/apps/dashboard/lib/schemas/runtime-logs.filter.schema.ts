@@ -38,6 +38,10 @@ export const runtimeLogsFilterFieldConfig: RuntimeLogsFilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
+  appId: {
+    type: "string",
+    operators: ["is"],
+  },
   deploymentId: {
     type: "string",
     operators: ["is"],
@@ -65,6 +69,7 @@ export const runtimeLogsFilterFieldEnum = z.enum([
   "startTime",
   "endTime",
   "since",
+  "appId",
   "deploymentId",
   "environmentId",
   "region",
@@ -87,6 +92,7 @@ export type RuntimeLogsFilterFieldConfigs = {
   startTime: NumberConfig<RuntimeLogsFilterOperator>;
   endTime: NumberConfig<RuntimeLogsFilterOperator>;
   since: StringConfig<RuntimeLogsFilterOperator>;
+  appId: StringConfig<RuntimeLogsFilterOperator>;
   deploymentId: StringConfig<RuntimeLogsFilterOperator>;
   environmentId: StringConfig<RuntimeLogsFilterOperator>;
   region: StringConfig<RuntimeLogsFilterOperator>;
@@ -105,6 +111,7 @@ export type RuntimeLogsQuerySearchParams = {
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;
+  appId: RuntimeLogsFilterUrlValue[] | null;
   deploymentId: RuntimeLogsFilterUrlValue[] | null;
   environmentId: RuntimeLogsFilterUrlValue[] | null;
   region: RuntimeLogsFilterUrlValue[] | null;

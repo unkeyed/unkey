@@ -4,7 +4,9 @@ properties:
     description: The id or name of the rate limit namespace to list overrides for.
     type: string
     minLength: 1
-    maxLength: 255
+    # Matches the ratelimit_namespaces.name / ratelimit_overrides.identifier
+    # columns, both varchar(512).
+    maxLength: 512
   cursor:
     description: Pagination cursor from a previous response. Include this when
       fetching subsequent pages of results. Each response containing more results

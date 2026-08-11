@@ -18,7 +18,7 @@ export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
   deploymentId: z.array(z.string()),
   environmentId: z.array(z.string()),
-  appId: z.string().nullable(),
+  appId: z.array(z.string()),
   limit: z.int().min(1).max(MAX_PAGE_SIZE),
   startTime: z.int(),
   endTime: z.int(),
@@ -86,9 +86,9 @@ export function getRuntimeLogs(ch: Querier) {
                 AND toDate(fromUnixTimestamp64Milli({partitionEndTime: Int64}))`,
     ];
 
-    // null appId = project-wide (every app); a value scopes to one app.
-    if (args.appId !== null) {
-      wheres.push("app_id = {appId: String}");
+    // An empty appId array matches all apps of the project.
+    if (args.appId.length > 0) {
+      wheres.push("app_id IN {appId: Array(String)}");
     }
     if (args.environmentId.length > 0) {
       wheres.push("environment_id IN {environmentId: Array(String)}");

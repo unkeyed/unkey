@@ -4,9 +4,11 @@ required:
 properties:
   permission:
     type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    minLength: 1
+    # Accepts a permission ID or slug. Matches the permissions.slug column
+    # (varchar(128)). See createKey for the shared permission slug rule.
+    maxLength: 128
+    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |
       Specifies which permission to permanently delete from your workspace.
 

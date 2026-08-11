@@ -24,7 +24,10 @@ properties:
       After removal, verification checks for these permissions will fail unless granted through roles.
     items:
       type: string
-      minLength: 3
+      minLength: 1
+      # Matches the permissions.slug column (varchar(128)). See createKey for
+      # the shared permission slug rule.
+      maxLength: 128
       pattern: ^[a-zA-Z0-9_:\-\.\*]+$
       description: Specify the permission by its slug.
 additionalProperties: false

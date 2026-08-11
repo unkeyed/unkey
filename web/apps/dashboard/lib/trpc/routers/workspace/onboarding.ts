@@ -10,7 +10,8 @@ const createWorkspaceWithApiAndKeyInputSchema = z.object({
   apiName: z
     .string()
     .min(3, "Keyspace name must be at least 3 characters")
-    .max(50, "Keyspace name must not exceed 50 characters"),
+    // 256 matches the apis.name column and apis.createApi in the API.
+    .max(256, "Keyspace name cannot exceed 256 characters"),
   ...createKeyInputSchema.omit({ keyAuthId: true }).shape,
 });
 

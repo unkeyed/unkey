@@ -109,10 +109,7 @@ export const SentinelStatusFilter = () => {
             id="checkbox-999"
             checked={allChecked}
             className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSelectAll();
-            }}
+            onCheckedChange={handleSelectAll}
           />
           <span className="text-xs text-accent-12">
             {allChecked ? "Unselect All" : "Select All"}
@@ -129,10 +126,7 @@ export const SentinelStatusFilter = () => {
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
               className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckboxToggle(index);
-              }}
+              onCheckedChange={() => handleCheckboxToggle(index)}
             />
             <div className={cn("size-2 rounded-[2px]", checkbox.color)} />
             <span className="text-accent-9 text-xs">{checkbox.display}</span>

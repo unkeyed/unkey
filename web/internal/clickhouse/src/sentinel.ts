@@ -72,6 +72,7 @@ const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 export const sentinelLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
+  appId: z.array(z.string()).default([]),
   deploymentId: z.array(z.string()).default([]),
   environmentId: z.array(z.string()).default([]),
   limit: z.number().int().positive().default(50),
@@ -143,6 +144,9 @@ export function getSentinelLogs(ch: Querier) {
     const filterConditions = `
       ${baseFilter}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+      AND (CASE WHEN length({appId: Array(String)}) > 0
+           THEN app_id IN {appId: Array(String)}
+           ELSE TRUE END)
       AND (CASE WHEN length({deploymentId: Array(String)}) > 0
            THEN deployment_id IN {deploymentId: Array(String)}
            ELSE TRUE END)
