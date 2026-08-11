@@ -19,7 +19,6 @@ import {
 } from "@unkey/ui";
 import { useState } from "react";
 import { CancelComputeDialog, CancelPlanLink } from "./cancel-actions";
-import { ComputePausedBadge } from "./compute-paused";
 import {
   AllPlansInclude,
   ComputePlanConfirmDialog,
@@ -66,9 +65,6 @@ export function ComputePlanRow({
   );
 
   const currentPlan = subscription?.plan ?? null;
-
-  const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
-  const suspended = budget?.suspended ?? false;
 
   const { data: deployCredit } = trpc.stripe.getDeployCredit.useQuery(undefined, {
     enabled: Boolean(currentPlan),
@@ -176,10 +172,7 @@ export function ComputePlanRow({
           <Cube />
         </ItemMedia>
         <ItemContent>
-          <div className="flex h-4 items-center gap-2">
-            <ItemTitle>Compute</ItemTitle>
-            {currentPlan && suspended ? <ComputePausedBadge /> : null}
-          </div>
+          <ItemTitle>Compute</ItemTitle>
           <ItemDescription>{description}</ItemDescription>
         </ItemContent>
         <ItemActions className="gap-4">

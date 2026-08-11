@@ -4,13 +4,14 @@ import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Ban, Cube, Envelope, Nodes } from "@unkey/icons";
 import {
+  AlertBanner,
+  AlertBannerDescription,
   Button,
   InfoTooltip,
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
-  ItemFooter,
   ItemGroup,
   ItemHeader,
   ItemMedia,
@@ -18,7 +19,6 @@ import {
   ItemTitle,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { ALERT_STEPS, SpendBudgetDialog } from "./spend-budget";
 
@@ -54,21 +54,34 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
   const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
 
   const budgetCents = budget?.budgetCents ?? null;
-  const suspended = budget?.suspended ?? false;
   const stopAtBudget = budget?.stopAtBudget ?? false;
+  const suspended = budget?.suspended ?? false;
 
   return (
     <>
       <ItemGroup variant="outline">
+        {suspended ? (
+          <div className="px-4 pt-4">
+            <AlertBanner variant="warning">
+              <AlertBannerDescription>
+                Workloads are currently stopped.{" "}
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="cursor-pointer underline underline-offset-2 hover:opacity-80"
+                >
+                  Configure
+                </button>
+              </AlertBannerDescription>
+            </AlertBanner>
+          </div>
+        ) : null}
         <ItemHeader>
           <ItemMedia className="bg-orangeA-3 text-orange-11">
             <Cube />
           </ItemMedia>
           <ItemContent>
-            <div className="flex h-4 items-center gap-2">
-              <ItemTitle>Compute</ItemTitle>
-              {suspended ? <ComputePausedBadge /> : null}
-            </div>
+            <ItemTitle>Compute</ItemTitle>
           </ItemContent>
           <ItemActions>
             <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
@@ -108,18 +121,6 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
                 Stop workloads at 100% ({formatDollars(budgetCents)})
               </AlertRow>
             ) : null}
-          </>
-        ) : null}
-
-        {suspended ? (
-          <>
-            <ItemSeparator />
-            <ItemFooter>
-              <span>
-                {pausedBody(budgetCents === null ? undefined : formatDollars(budgetCents))}{" "}
-                <PausedDocsLink />
-              </span>
-            </ItemFooter>
           </>
         ) : null}
       </ItemGroup>

@@ -1,13 +1,14 @@
 "use client";
 
 import { AlertBanner, AlertBannerDescription, AlertBannerTitle } from "@unkey/ui";
+import Link from "next/link";
 import type { GroupKey } from "./limit-groups";
 
-const COMPUTE_ADVICE =
-  "Scale down or remove a deployment to free capacity, or contact us about a higher limit.";
-const API_ADVICE = "Contact us to raise your monthly operations limit.";
-const MIXED_ADVICE =
-  "Scale down or remove a deployment to free compute capacity, and contact us about your other limits.";
+const SUPPORT_MAILTO = "mailto:support@unkey.com";
+
+const COMPUTE_ADVICE = "Scale down or remove a deployment to free capacity.";
+const API_ADVICE = "Monthly operations limits are raised on request.";
+const MIXED_ADVICE = "Scale down or remove a deployment to free compute capacity.";
 
 function advice(breached: GroupKey[]): string {
   const compute = breached.includes("compute");
@@ -27,7 +28,12 @@ export function BreachBanner({ breached }: { breached: GroupKey[] }) {
   return (
     <AlertBanner variant="error">
       <AlertBannerTitle>You've reached a limit</AlertBannerTitle>
-      <AlertBannerDescription>{advice(breached)}</AlertBannerDescription>
+      <AlertBannerDescription>
+        {advice(breached)}{" "}
+        <Link href={SUPPORT_MAILTO} className="underline underline-offset-2 hover:opacity-80">
+          Contact us
+        </Link>
+      </AlertBannerDescription>
     </AlertBanner>
   );
 }
