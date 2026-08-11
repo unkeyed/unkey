@@ -3720,6 +3720,28 @@ type V2PermissionsListRolesResponseBody struct {
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
 
+// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+type V2PermissionsSetRolePermissionsRequestBody struct {
+	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+	Permissions []string `json:"permissions"`
+
+	// RoleId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	RoleId ResourceIdentifier `json:"roleId"`
+}
+
+// V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
+type V2PermissionsSetRolePermissionsResponseBody struct {
+	// Data Complete list of permissions now directly assigned to the role.
+	Data V2PermissionsSetRolePermissionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
+type V2PermissionsSetRolePermissionsResponseData = []Permission
+
 // V2PortalCreateSessionRequestBody defines model for V2PortalCreateSessionRequestBody.
 type V2PortalCreateSessionRequestBody struct {
 	// ExternalId The end user's identifier in the customer's system.
@@ -4530,6 +4552,9 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
+
+// PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
+type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
 
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
