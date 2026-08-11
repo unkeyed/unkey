@@ -36,29 +36,6 @@ function parseDollars(value: string): number | null | undefined {
   return cents > 0 && cents <= MAX_BUDGET_CENTS ? cents : undefined;
 }
 
-/** The spend bar's fill and severity: neutral, amber from 75%, red at 100%.
- *  Suspended means the cap was reached, so the bar reads full-and-red even
- *  while the usage query lags behind it. */
-export function spendBar(
-  usageCents: number | null,
-  budgetCents: number | null,
-  suspended: boolean,
-): { fraction: number | null; fillClassName: string } {
-  const fraction = suspended
-    ? 1
-    : usageCents !== null && budgetCents
-      ? Math.min(1, Math.max(0, usageCents / budgetCents))
-      : null;
-  const usedFraction = usageCents !== null && budgetCents ? usageCents / budgetCents : 0;
-  const fillClassName =
-    suspended || usedFraction >= 1
-      ? "bg-error-9"
-      : usedFraction >= 0.75
-        ? "bg-warning-9"
-        : "bg-gray-9";
-  return { fraction, fillClassName };
-}
-
 type SpendBudgetDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;

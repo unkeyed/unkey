@@ -1,49 +1,170 @@
 "use client";
 
-import { Cube, Nodes } from "@unkey/icons";
-import { ProductCard } from "./product-card";
-import { SpendManagement } from "./spend-management";
+import { formatDollars } from "@/lib/fmt";
+import { trpc } from "@/lib/trpc/client";
+import { Ban, Cube, Envelope, Nodes } from "@unkey/icons";
+import {
+  Button,
+  InfoTooltip,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
+  ItemGroup,
+  ItemHeader,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from "@unkey/ui";
+import { useState } from "react";
+import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
+import { ADMIN_ONLY_TOOLTIP } from "./constants";
+import { ALERT_STEPS, SpendBudgetDialog } from "./spend-budget";
 
 type CostControlProps = {
-  /** Month-to-date gross Compute usage spend in cents, or null while loading. */
-  usageCents: number | null;
   isAdmin: boolean;
   /** False when Deploy billing is not configured server-side, as on the plans card. */
   showCompute: boolean;
+  /** The API plan's flat monthly fee in cents. */
+  apiFeeCents: number;
 };
 
 /**
- * Split per product so the Compute cap cannot be read as workspace-wide: API
- * management sitting beside it with a fixed fee is what scopes it. The API card
- * says why it has no cap and stops there — what happens past the request quota
- * is enforcement policy, and it is due to change.
+ * Split per product so the Compute budget cannot be read as workspace-wide: API
+ * management sitting beside it with a fixed fee is what scopes it.
  */
-export function CostControl({ usageCents, isAdmin, showCompute }: CostControlProps) {
+export function CostControl({ isAdmin, showCompute, apiFeeCents }: CostControlProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="font-medium text-[13px] text-gray-12">Cost control</h2>
+      {showCompute ? <ComputeBudget isAdmin={isAdmin} /> : null}
+      <ApiFixedFee apiFeeCents={apiFeeCents} />
+    </div>
+  );
+}
+
+/**
+ * The budget is the setting, so the budget is the figure. What has been spent
+ * against it is a Usage question, not a Billing one.
+ */
+function ComputeBudget({ isAdmin }: { isAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  const { data: budget } = trpc.billing.getDeployBudget.useQuery(undefined, { staleTime: 30_000 });
+
+  const budgetCents = budget?.budgetCents ?? null;
+  const suspended = budget?.suspended ?? false;
+  const stopAtBudget = budget?.stopAtBudget ?? false;
+
   return (
     <>
-      {showCompute ? (
-        <ProductCard
-          icon={<Cube iconSize="md-regular" />}
-          iconClassName="bg-orangeA-3 text-orange-11"
-          className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
-          name="Compute"
-          subtitle="Usage is metered, so a monthly budget is what bounds the spend."
-        >
-          <SpendManagement usageCents={usageCents} isAdmin={isAdmin} />
-        </ProductCard>
-      ) : null}
-      <ProductCard
-        icon={<Nodes iconSize="md-regular" />}
-        iconClassName="bg-infoA-3 text-info-11"
-        name="API management"
-        subtitle="A fixed monthly fee, so there is no budget to set."
-      >
-        <p className="text-[13px] text-gray-11 leading-5">
-          API management bills a flat monthly fee for an included request quota. The requests are
-          bought with the plan and carry no per-request charge, so this product's spend cannot rise
-          with use.
-        </p>
-      </ProductCard>
+      <ItemGroup variant="outline">
+        <ItemHeader>
+          <ItemMedia className="bg-orangeA-3 text-orange-11">
+            <Cube />
+          </ItemMedia>
+          <ItemContent>
+            <div className="flex h-4 items-center gap-2">
+              <ItemTitle>Compute</ItemTitle>
+              {suspended ? <ComputePausedBadge /> : null}
+            </div>
+          </ItemContent>
+          <ItemActions>
+            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+              <span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!isAdmin}
+                  onClick={() => setOpen(true)}
+                >
+                  {budgetCents === null ? "Add" : "Configure"}
+                </Button>
+              </span>
+            </InfoTooltip>
+          </ItemActions>
+        </ItemHeader>
+
+        <div className="px-4 pb-4">
+          <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
+            {budgetCents === null ? "None" : formatDollars(budgetCents)}
+          </span>
+        </div>
+
+        {budgetCents !== null ? (
+          <>
+            <ItemSeparator />
+            <ItemHeader>
+              <ItemContent>
+                <ItemTitle>Alerts</ItemTitle>
+              </ItemContent>
+            </ItemHeader>
+            {ALERT_STEPS.map((step) => (
+              <Item key={step}>
+                <ItemMedia>
+                  <Envelope />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>
+                    Email at {step * 100}% ({formatDollars(budgetCents * step)})
+                  </ItemTitle>
+                </ItemContent>
+              </Item>
+            ))}
+            {stopAtBudget ? (
+              <Item>
+                <ItemMedia className="bg-errorA-3 text-error-11">
+                  <Ban />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Stop workloads at 100% ({formatDollars(budgetCents)})</ItemTitle>
+                </ItemContent>
+              </Item>
+            ) : null}
+          </>
+        ) : null}
+
+        {suspended ? (
+          <>
+            <ItemSeparator />
+            <ItemFooter>
+              <span>
+                {pausedBody(budgetCents === null ? undefined : formatDollars(budgetCents))}{" "}
+                <PausedDocsLink />
+              </span>
+            </ItemFooter>
+          </>
+        ) : null}
+      </ItemGroup>
+
+      <SpendBudgetDialog open={open} onOpenChange={setOpen} />
     </>
+  );
+}
+
+/**
+ * Carries no budget of its own, and saying so is what scopes the one above. It
+ * states why rather than what happens past the quota: that policy is due to
+ * change to a rate limit.
+ */
+function ApiFixedFee({ apiFeeCents }: { apiFeeCents: number }) {
+  return (
+    <ItemGroup variant="outline">
+      <ItemHeader>
+        <ItemMedia className="bg-infoA-3 text-info-11">
+          <Nodes />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>API management</ItemTitle>
+        </ItemContent>
+      </ItemHeader>
+      <ItemSeparator />
+      <Item>
+        <ItemContent>
+          <ItemDescription>Fixed at {formatDollars(apiFeeCents)}/month.</ItemDescription>
+        </ItemContent>
+      </Item>
+    </ItemGroup>
   );
 }
