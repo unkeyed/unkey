@@ -111,6 +111,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
             requirement="required"
             label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
+            autoFocus
             description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
