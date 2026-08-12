@@ -5185,7 +5185,6 @@ components:
             required:
                 - limit
                 - windowMs
-                - identifier
             properties:
                 limit:
                     type: integer
@@ -5198,14 +5197,34 @@ components:
                     minimum: 1
                     description: Window duration in milliseconds.
                 identifier:
-                    "$ref": "#/components/schemas/RatelimitIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/RatelimitIdentifier"
+                    deprecated: true
+                    description: |-
+                        Deprecated. Accepted for compatibility with old clients. Use
+                        `identifiers` with one entry. Responses always return `identifiers`.
+                identifiers:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/RatelimitIdentifier"
+                    minItems: 1
+                    maxItems: 5
+                    description: |-
+                        Ordered list of sources that form a compound rate limit key. The
+                        gateway resolves each source for each request. Each unique
+                        combination of resolved values has its own counter. All counters use
+                        the same limit and window. Example: `[authenticatedSubject, path]`
+                        limits each subject separately on each path.
             additionalProperties: false
-            description: Rate limits matching requests.
+            description: |-
+                Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+                The deprecated `identifier` field is accepted in place of a one-entry
+                `identifiers` list; set exactly one of the two.
             example:
                 limit: 100
                 windowMs: 60000
-                identifier:
-                    remoteIp: {}
+                identifiers:
+                    - remoteIp: {}
         FirewallPolicy:
             type: object
             required:
