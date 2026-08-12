@@ -568,9 +568,6 @@ func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
 		require.Equal(t, "kebap served", rows[0]["message"].(chcol.Variant).Any())
 	})
 
-	// The decision to publish attributes_text and not attributes depends on
-	// this. ClickHouse stores a MATERIALIZED column on disk. Thus a grant on
-	// that column does not give access to the JSON column that it comes from.
 	t.Run("attributes_text is readable while attributes is not", func(t *testing.T) {
 		rows, err := workspaceClient.QueryToMaps(ctx,
 			"SELECT attributes_text FROM default.runtime_logs_raw_v1")
