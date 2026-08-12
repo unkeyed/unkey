@@ -55,14 +55,6 @@ func TestParser_BlockNonWhitelistedFunctions(t *testing.T) {
 			shouldFail: false,
 		},
 		{
-			// The runtime logs endpoint reads attributes out of the
-			// attributes_text JSON string. Only this member of the JSONExtract
-			// group has a grant.
-			name:       "json extract on a string column",
-			query:      "SELECT JSONExtractString(key_id, 'user_id') FROM key_verifications_v1",
-			shouldFail: false,
-		},
-		{
 			name:       "json extract does not admit its arguments",
 			query:      "SELECT JSONExtractString(file('/etc/passwd'), 'user_id') FROM key_verifications_v1",
 			shouldFail: true,

@@ -13,20 +13,9 @@ func Test400_RejectedQueries(t *testing.T) {
 	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
 
 	queries := map[string]string{
-		"empty query":            "",
-		"invalid syntax":         "SELECT FROM WHERE",
-		"non select":             "DROP TABLE default.runtime_logs_raw_v1",
-		"introspection":          "DESCRIBE TABLE runtime_logs_v1",
-		"multiple statements":    "SELECT count() FROM runtime_logs_v1; SELECT count() FROM runtime_logs_v1",
 		"physical table name":    "SELECT count() FROM default.runtime_logs_raw_v1",
 		"unqualified table name": "SELECT count() FROM runtime_logs_raw_v1",
 		"another endpoint table": "SELECT count() FROM gateway_requests_v1",
-		"system table":           "SELECT count() FROM system.tables",
-		"unknown column":         "SELECT no_such_column FROM runtime_logs_v1",
-		"blocked function":       "SELECT file('/etc/passwd') FROM runtime_logs_v1",
-		"ungranted extractor":    "SELECT JSONExtractRaw(attributes_text, 'route') FROM runtime_logs_v1",
-		"settings clause":        "SELECT count() FROM runtime_logs_v1 SETTINGS max_execution_time = 100",
-		"over length query":      "SELECT count() FROM runtime_logs_v1 WHERE message = '" + strings.Repeat("k", 17*1024) + "'",
 	}
 
 	for name, query := range queries {

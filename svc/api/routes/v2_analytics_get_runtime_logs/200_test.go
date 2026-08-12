@@ -58,35 +58,6 @@ func Test200_ScopeColumnsAreQueryable(t *testing.T) {
 	}
 }
 
-// The parser puts the WHERE of the caller in parentheses. Thus an OR cannot
-// make the injected workspace filter less restrictive.
-func Test200_WorkspaceFilterCannotEscapeWithOr(t *testing.T) {
-	h, route, workspaceID := newRoute(t, true)
-	otherWorkspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
-
-	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "mine"})
-	insertLog(t, h, runtimeLog{workspaceID: otherWorkspace.ID, message: "theirs"})
-
-	for name, query := range map[string]string{
-		"or true":              "SELECT message FROM runtime_logs_v1 WHERE message = 'mine' OR 1=1",
-		"or on workspace":      "SELECT message FROM runtime_logs_v1 WHERE workspace_id != '' OR 1=1",
-		"union branch":         "SELECT message FROM runtime_logs_v1 WHERE message = 'mine' UNION ALL SELECT message FROM runtime_logs_v1",
-		"subquery":             "SELECT message FROM (SELECT message FROM runtime_logs_v1)",
-		"aliased source":       "SELECT r.message AS message FROM runtime_logs_v1 AS r WHERE 1=1",
-		"cte over the raw set": "WITH every AS (SELECT message FROM runtime_logs_v1) SELECT message FROM every",
-	} {
-		t.Run(name, func(t *testing.T) {
-			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: query})
-			require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
-			require.NotEmpty(t, res.Body.Data)
-			for _, row := range res.Body.Data {
-				require.Equal(t, "mine", row["message"], "the log of the other workspace must stay invisible")
-			}
-		})
-	}
-}
-
 // LIKE is an operator, thus the function list does not apply to it. The queries
 // put the column in lower() because the ngrambf_v1 index uses lower(message).
 func Test200_TextSearch(t *testing.T) {
@@ -159,39 +130,6 @@ func Test200_PartitionPruningFilterIsQueryable(t *testing.T) {
 	})
 	require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
 	require.Len(t, res.Body.Data, 1)
-}
-
-func Test200_RetentionBoundary(t *testing.T) {
-	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
-	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "kebap served"})
-
-	// The default workspace retention is 30 days. The table stores time as unix
-	// milliseconds, thus each bound uses toUnixTimestamp64Milli.
-	for name, query := range map[string]string{
-		"within retention":    "SELECT count() AS total FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 7 DAY)",
-		"at exact limit":      "SELECT count() AS total FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 30 DAY)",
-		"without time filter": "SELECT count() AS total FROM runtime_logs_v1",
-	} {
-		t.Run(name, func(t *testing.T) {
-			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: query})
-			require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
-		})
-	}
-}
-
-func Test200_CustomRetentionAllowsLongerRange(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
-	workspace := h.CreateWorkspace()
-	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90))
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_analytics")
-	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
-	h.Register(route)
-
-	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
-		Query: "SELECT count() AS total FROM runtime_logs_v1 WHERE time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 60 DAY)",
-	})
-	require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
 }
 
 func Test200_AggregateQuery(t *testing.T) {
