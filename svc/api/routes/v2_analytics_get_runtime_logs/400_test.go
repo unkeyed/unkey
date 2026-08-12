@@ -10,7 +10,7 @@ import (
 
 func Test400_RejectedQueries(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_logs")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
 
 	queries := map[string]string{
 		"empty query":            "",
@@ -39,7 +39,7 @@ func Test400_RejectedQueries(t *testing.T) {
 
 func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_logs")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
 	insertLog(t, h, runtimeLog{workspaceID: workspaceID, message: "kebap served"})
 
 	for _, column := range []string{"platform", "k8s_pod_name", "attributes", "expires_at"} {
@@ -61,7 +61,7 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 
 func Test400_ErrorsDoNotDiscloseInternals(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_logs")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT platform FROM runtime_logs_v1",
