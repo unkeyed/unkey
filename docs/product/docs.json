@@ -589,7 +589,8 @@
                       "errors/frontline/client/invalid_key",
                       "errors/frontline/client/missing_credentials",
                       "errors/frontline/client/openapi_validation_failed",
-                      "errors/frontline/client/rate_limited"
+                      "errors/frontline/client/rate_limited",
+                      "errors/frontline/client/usage_exceeded"
                     ]
                   },
                   {
