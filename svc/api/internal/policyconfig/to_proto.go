@@ -169,6 +169,7 @@ func mapKeyauthToProto(path string, k openapi.KeyauthPolicy) (*frontlinev1.KeyAu
 	out := &frontlinev1.KeyAuth{
 		KeySpaceIds:     k.Keyspaces,
 		PermissionQuery: k.PermissionQuery,
+		Credits:         k.Credits,
 	}
 
 	for i, loc := range ptr.SafeDeref(k.Locations) {
@@ -210,6 +211,13 @@ func mapKeyauthToProto(path string, k openapi.KeyauthPolicy) (*frontlinev1.KeyAu
 		if _, err := rbac.ParseQuery(pq); err != nil {
 			return nil, invalid(fmt.Sprintf("%s.permissionQuery is not a valid permission query: %s", path, err))
 		}
+	}
+
+	// A negative credit cost is rejected by the gateway's credit deduction at
+	// verification time, so reject it at write time for a clear 400 instead of
+	// a per-request failure.
+	if k.Credits != nil && *k.Credits < 0 {
+		return nil, invalid(fmt.Sprintf("%s.credits must not be negative.", path))
 	}
 
 	return out, nil

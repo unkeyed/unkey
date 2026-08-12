@@ -123,6 +123,27 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			wantErr: "policies[0].keyauth.permissionQuery is not a valid permission query",
 		},
 		{
+			name: "keyauth with valid credits override",
+			policies: []openapi.Policy{{
+				Name: "k", Enabled: true,
+				Keyauth: &openapi.KeyauthPolicy{
+					Keyspaces: []string{"ks_1"},
+					Credits:   ptr.P(int64(0)),
+				},
+			}},
+		},
+		{
+			name: "keyauth with negative credits override",
+			policies: []openapi.Policy{{
+				Name: "k", Enabled: true,
+				Keyauth: &openapi.KeyauthPolicy{
+					Keyspaces: []string{"ks_1"},
+					Credits:   ptr.P(int64(-1)),
+				},
+			}},
+			wantErr: "policies[0].keyauth.credits must not be negative",
+		},
+		{
 			name: "keyauth ratelimit with limit but no duration",
 			policies: []openapi.Policy{{
 				Name: "k", Enabled: true,

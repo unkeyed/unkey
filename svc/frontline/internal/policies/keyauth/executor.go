@@ -92,7 +92,14 @@ func (e *Executor) Execute(
 		)
 	}
 
-	verifyOpts := []keys.VerifyOption{keys.WithCredits(1)}
+	// Deduct one credit per request unless the policy overrides the cost.
+	// A cost of 0 verifies the key without spending credits (e.g. read-only
+	// routes or gateways that only prove the key is valid before proxying).
+	credits := int64(1)
+	if cfg.Credits != nil {
+		credits = cfg.GetCredits()
+	}
+	verifyOpts := []keys.VerifyOption{keys.WithCredits(credits)}
 	if pq := cfg.GetPermissionQuery(); pq != "" {
 		query, err := rbac.ParseQuery(pq)
 		if err != nil {

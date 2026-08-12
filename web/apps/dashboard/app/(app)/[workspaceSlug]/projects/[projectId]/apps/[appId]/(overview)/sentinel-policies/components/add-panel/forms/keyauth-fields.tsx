@@ -57,6 +57,11 @@ export function KeyAuthFields() {
     field: { value: ratelimits, onChange: setRatelimits },
   } = useController({ control, name: "ratelimits" });
 
+  const {
+    field: { value: credits, onChange: setCredits },
+    fieldState: { error: creditsError },
+  } = useController({ control, name: "credits" });
+
   const locationErrors = errors.locations as
     | Record<number, Partial<Record<string, { message?: string }>>>
     | undefined;
@@ -304,6 +309,19 @@ export function KeyAuthFields() {
         }
       />
 
+      <FormInput
+        label="Credits per request"
+        requirement="optional"
+        type="number"
+        min={0}
+        placeholder="1"
+        value={credits ?? ""}
+        onChange={(e) => setCredits(toOptionalInt(e.target.value))}
+        descriptionPosition="inline"
+        description="Usage credits deducted per matching request. Defaults to 1. Set to 0 to verify the key without spending credits."
+        error={creditsError?.message}
+      />
+
       <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
         <div className="flex items-center justify-between">
           <FormLabel
@@ -431,6 +449,7 @@ export function KeyauthPolicySummary() {
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
   const ratelimits = useWatch({ control, name: "ratelimits" });
+  const credits = useWatch({ control, name: "credits" });
 
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
@@ -440,7 +459,7 @@ export function KeyauthPolicySummary() {
 
   return (
     <div className="max-w-75 truncate">
-      {summarizeKeyauth(keySpaceIds, locations, ratelimits, keyspaceNames)}
+      {summarizeKeyauth(keySpaceIds, locations, ratelimits, credits, keyspaceNames)}
     </div>
   );
 }
@@ -449,6 +468,7 @@ function summarizeKeyauth(
   keySpaceIds: string[],
   locations: KeyauthFormValues["locations"],
   ratelimits: KeyauthFormValues["ratelimits"],
+  credits: KeyauthFormValues["credits"],
   keyspaceNames?: Record<string, string>,
 ): ReactNode {
   return (
@@ -481,6 +501,12 @@ function summarizeKeyauth(
           <Sep />
           <Strong>{ratelimits.length}</Strong>{" "}
           {ratelimits.length === 1 ? "rate limit" : "rate limits"}
+        </>
+      )}
+      {credits !== undefined && (
+        <>
+          <Sep />
+          <Strong>{credits}</Strong> {credits === 1 ? "credit" : "credits"}
         </>
       )}
     </span>

@@ -19,6 +19,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 			Config: &frontlinev1.Policy_Keyauth{Keyauth: &frontlinev1.KeyAuth{
 				KeySpaceIds:     []string{"ks_1", "ks_2"},
 				PermissionQuery: proto.String("documents.read"),
+				Credits:         proto.Int64(0),
 				Locations: []*frontlinev1.KeyLocation{
 					{Location: &frontlinev1.KeyLocation_Bearer{Bearer: &frontlinev1.BearerTokenLocation{}}},
 					{Location: &frontlinev1.KeyLocation_Header{Header: &frontlinev1.HeaderKeyLocation{Name: "X-Api-Key", StripPrefix: "Key "}}},
@@ -38,6 +39,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		require.NotNil(t, got.Keyauth)
 		require.Equal(t, []string{"ks_1", "ks_2"}, got.Keyauth.Keyspaces)
 		require.Equal(t, ptr.P("documents.read"), got.Keyauth.PermissionQuery)
+		require.Equal(t, ptr.P(int64(0)), got.Keyauth.Credits)
 
 		locations := ptr.SafeDeref(got.Keyauth.Locations)
 		require.Len(t, locations, 3)
@@ -66,6 +68,7 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		require.Nil(t, got.Keyauth.Locations)
 		require.Nil(t, got.Keyauth.Ratelimits)
 		require.Nil(t, got.Keyauth.PermissionQuery)
+		require.Nil(t, got.Keyauth.Credits)
 	})
 
 	t.Run("unset enabled maps to false", func(t *testing.T) {
