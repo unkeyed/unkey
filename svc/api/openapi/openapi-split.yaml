@@ -139,6 +139,8 @@ paths:
     $ref: "./spec/paths/v2/analytics/getGatewayRequests/index.yaml"
   /v2/analytics.getRatelimits:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
+  /v2/analytics.getRuntimeLogs:
+    $ref: "./spec/paths/v2/analytics/getRuntimeLogs/index.yaml"
   /v2/analytics.getVerifications:
     $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
 

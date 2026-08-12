@@ -1,0 +1,75 @@
+post:
+  tags:
+    - analytics
+  security:
+    - bearer: []
+  x-speakeasy-name-override: getRuntimeLogs
+  operationId: analytics.getRuntimeLogs
+  summary: Query runtime log data
+  description: |
+    A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
+    The root key must have the `project.*.read_logs` permission. The `project.*.read_analytics` permission does not give access to this data. Runtime logs contain the output of your own code.
+    Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+    The table does not give access to the internal Unkey columns. The workspace retention period and the workspace query limits apply.
+    For the table, the columns, and more query examples, see [Query runtime logs](/platform/analytics/get-runtime-logs).
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AnalyticsGetRuntimeLogsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AnalyticsGetRuntimeLogsResponseBody.yaml"
+      description: Query executed successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid SQL query, blocked operation, or missing required authentication
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Invalid authentication credentials
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "412":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/PreconditionFailedErrorResponse.yaml"
+      description: Analytics is not configured for the workspace
+    "422":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
+      description: Query exceeds workspace query limits
+    "429":
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+      description: Query quota exceeded
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Query execution failed
+    "503":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ServiceUnavailableErrorResponse.yaml"
+      description: Connection to the database failed

@@ -1523,6 +1523,28 @@ type V2AnalyticsGetRatelimitsResponseBody struct {
 // V2AnalyticsGetRatelimitsResponseData Array of rate limit rows returned by the query. Fields vary based on the SQL SELECT clause.
 type V2AnalyticsGetRatelimitsResponseData = []map[string]interface{}
 
+// V2AnalyticsGetRuntimeLogsRequestBody defines model for V2AnalyticsGetRuntimeLogsRequestBody.
+type V2AnalyticsGetRuntimeLogsRequestBody struct {
+	// Query The SQL query for your runtime log data.
+	// A query can use only the public alias `runtime_logs_v1`. The physical `default.*` table name is not permitted. CTEs, subqueries, UNION, and EXCEPT are permitted.
+	// Only SELECT queries are permitted.
+	// Unkey limits each query to the workspace of the root key. To get the logs of one project, app, environment, or deployment, add a filter on `project_id`, `app_id`, `environment_id`, or `deployment_id`.
+	// The workspace retention period and the workspace query limits apply.
+	Query string `json:"query"`
+}
+
+// V2AnalyticsGetRuntimeLogsResponseBody defines model for V2AnalyticsGetRuntimeLogsResponseBody.
+type V2AnalyticsGetRuntimeLogsResponseBody struct {
+	// Data The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+	Data V2AnalyticsGetRuntimeLogsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AnalyticsGetRuntimeLogsResponseData The runtime log rows that the query returned. The SELECT clause of the query sets the fields of each row.
+type V2AnalyticsGetRuntimeLogsResponseData = []map[string]interface{}
+
 // V2AnalyticsGetVerificationsRequestBody defines model for V2AnalyticsGetVerificationsRequestBody.
 type V2AnalyticsGetVerificationsRequestBody struct {
 	// Query SQL query to execute against your analytics data.
@@ -4428,6 +4450,9 @@ type AnalyticsGetGatewayRequestsJSONRequestBody = V2AnalyticsGetGatewayRequestsR
 
 // AnalyticsGetRatelimitsJSONRequestBody defines body for AnalyticsGetRatelimits for application/json ContentType.
 type AnalyticsGetRatelimitsJSONRequestBody = V2AnalyticsGetRatelimitsRequestBody
+
+// AnalyticsGetRuntimeLogsJSONRequestBody defines body for AnalyticsGetRuntimeLogs for application/json ContentType.
+type AnalyticsGetRuntimeLogsJSONRequestBody = V2AnalyticsGetRuntimeLogsRequestBody
 
 // AnalyticsGetVerificationsJSONRequestBody defines body for AnalyticsGetVerifications for application/json ContentType.
 type AnalyticsGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
