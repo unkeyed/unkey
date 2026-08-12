@@ -66,6 +66,7 @@ import (
 
 	v2AnalyticsGetGatewayRequests "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_gateway_requests"
 	v2AnalyticsGetRatelimits "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_ratelimits"
+	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
@@ -698,6 +699,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2AnalyticsGetGatewayRequests.Handler{
+			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
+		},
+	)
+
+	// v2/analytics.getRuntimeLogs
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AnalyticsGetRuntimeLogs.Handler{
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
 	)
