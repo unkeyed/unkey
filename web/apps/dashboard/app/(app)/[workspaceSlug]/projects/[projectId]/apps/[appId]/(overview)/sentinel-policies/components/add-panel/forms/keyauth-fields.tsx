@@ -309,18 +309,62 @@ export function KeyAuthFields() {
         }
       />
 
-      <FormInput
-        label="Credits per request"
-        requirement="optional"
-        type="number"
-        min={0}
-        placeholder="1"
-        value={credits ?? ""}
-        onChange={(e) => setCredits(toOptionalInt(e.target.value))}
-        descriptionPosition="inline"
-        description="Usage credits deducted per matching request. Defaults to 1. Set to 0 to verify the key without spending credits."
-        error={creditsError?.message}
-      />
+      <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+        <div className="flex items-center justify-between">
+          <FormLabel
+            label="Credit Cost"
+            htmlFor="keyauth-credits"
+            tooltipContent="Override how many usage credits each matching request deducts from the verified key. Only applies to keys that have credits configured; keys with unlimited usage are unaffected."
+          />
+          {credits === undefined && (
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="font-medium"
+              onClick={() => setCredits(0)}
+            >
+              <Plus iconSize="sm-regular" />
+              Add
+            </Button>
+          )}
+        </div>
+        {credits !== undefined && (
+          <>
+            <div className="flex items-center gap-2">
+              <FormInput
+                id="keyauth-credits"
+                type="number"
+                min={0}
+                placeholder="0"
+                // Once added, the override is always a number; an empty input
+                // maps to 0 rather than collapsing the section.
+                value={credits}
+                onChange={(e) => setCredits(toOptionalInt(e.target.value) ?? 0)}
+                className="flex-1"
+                variant={creditsError ? "error" : undefined}
+                aria-invalid={Boolean(creditsError)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Remove credit cost"
+                className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
+                onClick={() => setCredits(undefined)}
+              >
+                <Trash iconSize="sm-regular" />
+              </Button>
+            </div>
+            <FormDescription
+              error={creditsError?.message}
+              descriptionId="keyauth-credits-desc"
+              errorId="keyauth-credits-error"
+              description="Credits deducted from the verified key per matching request. The key must have credits on its account for this to apply. Set to 0 to verify the key without spending credits."
+            />
+          </>
+        )}
+      </fieldset>
 
       <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
         <div className="flex items-center justify-between">
