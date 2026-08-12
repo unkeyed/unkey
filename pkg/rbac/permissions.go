@@ -80,7 +80,7 @@ const (
 	// VerifyKey permits verifying API keys
 	VerifyKey ActionType = "verify_key"
 
-	// ReadAnalytics permits viewing API analytics
+	// ReadAnalytics permits reading the analytics data of a resource with SQL
 	ReadAnalytics ActionType = "read_analytics"
 )
 
