@@ -410,6 +410,48 @@ func TestDefaultAllowedTables_HidesGatewayInternalColumns(t *testing.T) {
 	}
 }
 
+// TestDefaultAllowedTables_HidesRuntimeLogInternalColumns makes sure that the
+// runtime logs grant gives access only to the documented columns. The query
+// parser does not examine columns. Thus this grant is the only control on
+// column access.
+//
+// attributes is the most important exclusion. The JSON type makes approximately
+// one thousand subcolumn files for each part. attributes_text contains the same
+// data, and a query reads it at a much lower cost.
+func TestDefaultAllowedTables_HidesRuntimeLogInternalColumns(t *testing.T) {
+	byName := make(map[string]AllowedTable)
+	for _, table := range DefaultAllowedTables() {
+		byName[table.Name] = table
+	}
+
+	raw, ok := byName["default.runtime_logs_raw_v1"]
+	require.True(t, ok, "runtime logs table must be granted")
+	require.NotEmpty(t, raw.Columns, "runtime logs table must carry a column allow-list")
+
+	// k8s_pod_name is infrastructure data, not customer data. The deployment
+	// endpoints make sure that k8s_name does not reach a response body. This
+	// grant applies the same rule to this table.
+	for _, internalColumn := range []string{"platform", "k8s_pod_name", "attributes", "expires_at"} {
+		require.NotContains(t, raw.Columns, internalColumn)
+	}
+	for _, granted := range []string{
+		"log_id", "time", "inserted_at", "severity", "message",
+		"deployment_id", "region", "attributes_text",
+	} {
+		require.Contains(t, raw.Columns, granted)
+	}
+
+	// The row policy and the filter that the parser adds both use workspace_id.
+	// Thus this column must stay readable.
+	require.Contains(t, raw.Columns, "workspace_id")
+
+	// The documentation tells customers to use these columns to select the data
+	// of one project, app, or environment.
+	for _, scope := range []string{"project_id", "app_id", "environment_id"} {
+		require.Contains(t, raw.Columns, scope)
+	}
+}
+
 // TestValidateIdentifiers_RejectsUnsafeColumns guarantees a malformed column
 // never reaches the interpolated GRANT statement. ClickHouse cannot
 // parameterize identifiers, so this validation is the injection guard.
@@ -480,6 +522,164 @@ func TestGetTimeRetentionFilter_GatewayTables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.table, func(t *testing.T) {
 			require.Equal(t, tt.expected, getTimeRetentionFilter(tt.table, 30))
+		})
+	}
+}
+
+// TestGetTimeRetentionFilter_RuntimeLogsTable makes sure that the runtime logs
+// table uses the branch for raw tables. Its time column is an Int64 that
+// contains unix milliseconds. A DateTime filter would compare milliseconds with
+// seconds. The query would then return no rows and give no error.
+func TestGetTimeRetentionFilter_RuntimeLogsTable(t *testing.T) {
+	require.Equal(t,
+		"time >= toUnixTimestamp(toStartOfDay(now() - INTERVAL 30 DAY)) * 1000",
+		getTimeRetentionFilter("default.runtime_logs_raw_v1", 30),
+	)
+}
+
+// TestConfigureUser_HidesRuntimeLogInternalColumns shows that the column grant
+// on the runtime logs table is a real boundary. It does the same as
+// TestConfigureUser_HidesInternalColumns does for the gateway table.
+//
+// It also tests the condition that the grant depends on. ClickHouse computes
+// attributes_text from attributes with MATERIALIZED. This test makes sure that
+// ClickHouse gives access to the materialized column but refuses the JSON
+// column. If ClickHouse refused both columns, the endpoint would have to grant
+// the JSON column and accept its higher read cost.
+func TestConfigureUser_HidesRuntimeLogInternalColumns(t *testing.T) {
+	ctx := context.Background()
+	clickhouseConfig := containers.ClickHouse(t)
+
+	admin, err := New(Config{URL: clickhouseConfig.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, admin.Close()) })
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	otherWorkspaceID := uid.New(uid.WorkspacePrefix)
+	password := "runtime_logs_password"
+
+	err = admin.ConfigureUser(ctx, UserConfig{
+		WorkspaceID:               workspaceID,
+		Username:                  workspaceID,
+		Password:                  password,
+		AllowedTables:             DefaultAllowedTables(),
+		QuotaDurationSeconds:      3600,
+		MaxQueriesPerWindow:       1000,
+		MaxExecutionTimePerWindow: 3600,
+		MaxQueryExecutionTime:     30,
+		MaxQueryMemoryBytes:       64 * 1024 * 1024,
+		MaxQueryResultRows:        100,
+		RetentionDays:             30,
+	})
+	require.NoError(t, err)
+
+	// There is one row for each workspace. Thus one table shows both the column
+	// visibility and the row isolation. Each internal column has a value that is
+	// not empty. If a column were empty, a probe could get an empty result and
+	// look successful when ClickHouse did not refuse it.
+	now := time.Now().UnixMilli()
+	for _, row := range []struct {
+		workspaceID string
+		message     string
+	}{
+		{workspaceID: workspaceID, message: "kebap served"},
+		{workspaceID: otherWorkspaceID, message: "other workspace log"},
+	} {
+		err = admin.Exec(ctx,
+			"INSERT INTO default.runtime_logs_raw_v1 (log_id, time, inserted_at, severity, message, workspace_id, project_id, environment_id, app_id, deployment_id, k8s_pod_name, region, platform, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			uid.New("log"), now, now, "info", row.message, row.workspaceID,
+			uid.New("proj"), uid.New("env"), uid.New("app"), uid.New("dep"),
+			"pod-abc-123", "local", "k8s", `{"user_id":"usr_kebap"}`,
+		)
+		require.NoError(t, err)
+	}
+
+	workspaceURL, err := url.Parse(clickhouseConfig.HTTPDSN)
+	require.NoError(t, err)
+	workspaceURL.User = url.UserPassword(workspaceID, password)
+	workspaceClient, err := New(Config{URL: workspaceURL.String()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, workspaceClient.Close()) })
+
+	internalColumns := []string{"platform", "k8s_pod_name", "attributes", "expires_at"}
+
+	t.Run("granted columns stay readable", func(t *testing.T) {
+		rows, err := workspaceClient.QueryToMaps(ctx,
+			"SELECT severity, message, deployment_id FROM default.runtime_logs_raw_v1")
+		require.NoError(t, err, "hidden columns must not break the rest of the table")
+		require.Len(t, rows, 1)
+		require.Equal(t, "kebap served", rows[0]["message"].(chcol.Variant).Any())
+	})
+
+	// The decision to publish attributes_text and not attributes depends on
+	// this. ClickHouse stores a MATERIALIZED column on disk. Thus a grant on
+	// that column does not give access to the JSON column that it comes from.
+	t.Run("attributes_text is readable while attributes is not", func(t *testing.T) {
+		rows, err := workspaceClient.QueryToMaps(ctx,
+			"SELECT attributes_text FROM default.runtime_logs_raw_v1")
+		require.NoError(t, err, "the materialized column must be readable on its own")
+		require.Len(t, rows, 1)
+		require.Contains(t, fmt.Sprint(rows[0]["attributes_text"].(chcol.Variant).Any()), "usr_kebap")
+
+		_, err = workspaceClient.QueryToMaps(ctx,
+			"SELECT attributes FROM default.runtime_logs_raw_v1")
+		require.Error(t, err, "the JSON column must stay unreachable")
+	})
+
+	t.Run("row policy still isolates workspaces", func(t *testing.T) {
+		rows, err := workspaceClient.QueryToMaps(ctx,
+			"SELECT message FROM default.runtime_logs_raw_v1")
+		require.NoError(t, err)
+		require.Len(t, rows, 1, "the other workspace's row must stay invisible")
+		require.Equal(t, "kebap served", rows[0]["message"].(chcol.Variant).Any())
+	})
+
+	t.Run("schema introspection hides internal columns", func(t *testing.T) {
+		for _, column := range internalColumns {
+			rows, err := workspaceClient.QueryToMaps(ctx, fmt.Sprintf(
+				"SELECT name FROM system.columns WHERE table = 'runtime_logs_raw_v1' AND name = '%s'", column))
+			if err != nil {
+				continue
+			}
+			require.Empty(t, rows, "system.columns disclosed the internal column %s", column)
+		}
+	})
+
+	t.Run("select star never returns an internal column", func(t *testing.T) {
+		rows, err := workspaceClient.QueryToMaps(ctx,
+			"SELECT * FROM default.runtime_logs_raw_v1")
+		if err != nil {
+			// A refusal of the wildcard is also a safe result.
+			return
+		}
+		for _, row := range rows {
+			for _, column := range internalColumns {
+				require.NotContains(t, row, column, "SELECT * leaked an internal column")
+			}
+		}
+	})
+
+	for _, column := range internalColumns {
+		t.Run("probing/"+column, func(t *testing.T) {
+			probes := map[string]string{
+				"direct select":      fmt.Sprintf("SELECT %s FROM default.runtime_logs_raw_v1", column),
+				"where clause":       fmt.Sprintf("SELECT count() FROM default.runtime_logs_raw_v1 WHERE toString(%s) != ''", column),
+				"aggregate":          fmt.Sprintf("SELECT max(toString(%s)) FROM default.runtime_logs_raw_v1", column),
+				"group by":           fmt.Sprintf("SELECT count() FROM default.runtime_logs_raw_v1 GROUP BY %s", column),
+				"order by":           fmt.Sprintf("SELECT message FROM default.runtime_logs_raw_v1 ORDER BY %s", column),
+				"aliased projection": fmt.Sprintf("SELECT %s AS leaked FROM default.runtime_logs_raw_v1", column),
+				"subquery":           fmt.Sprintf("SELECT count() FROM (SELECT %s FROM default.runtime_logs_raw_v1)", column),
+				"cte":                fmt.Sprintf("WITH probe AS (SELECT %s AS leaked FROM default.runtime_logs_raw_v1) SELECT count() FROM probe", column),
+				"boolean oracle":     fmt.Sprintf("SELECT count() FROM default.runtime_logs_raw_v1 WHERE substring(toString(%s), 1, 1) = 'k'", column),
+				"union":              fmt.Sprintf("SELECT message FROM default.runtime_logs_raw_v1 UNION ALL SELECT toString(%s) FROM default.runtime_logs_raw_v1", column),
+			}
+
+			for name, query := range probes {
+				t.Run(name, func(t *testing.T) {
+					rows, err := workspaceClient.QueryToMaps(ctx, query)
+					require.Error(t, err, "query must not reach %s: %s (returned %v)", column, query, rows)
+				})
+			}
 		})
 	}
 }
