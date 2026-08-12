@@ -5,9 +5,9 @@ import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
+import { redirectToSignIn } from "@/lib/auth/redirect-utils";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
@@ -54,16 +54,6 @@ function WorkspaceContent({
   );
 }
 
-function ImpersonationBanner() {
-  return (
-    <div className="fixed top-0 inset-x-0 z-50 flex justify-center border-t-2 border-error-9">
-      <div className="bg-error-9 flex -mt-1 font-mono items-center gap-2 text-white text-xs rounded-b overflow-hidden shadow-lg select-none pointer-events-none px-1.5 py-0.5">
-        Impersonation Mode. Do not change anything and log out after you are done.
-      </div>
-    </div>
-  );
-}
-
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -81,12 +71,7 @@ export default function Layout({ children }: LayoutProps) {
     const isAuthError = error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN";
 
     if (isAuthError) {
-      const currentPath = window.location.pathname + window.location.search;
-      const signInUrl =
-        currentPath && currentPath !== "/"
-          ? `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`
-          : "/auth/sign-in";
-      router.push(signInUrl as Route);
+      redirectToSignIn(window.location);
       return;
     }
 
@@ -127,7 +112,6 @@ export default function Layout({ children }: LayoutProps) {
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
             </div>
-            {user?.impersonator ? <ImpersonationBanner /> : null}
           </div>
         </div>
       </div>

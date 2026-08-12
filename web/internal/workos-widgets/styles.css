@@ -1,0 +1,562 @@
+/*
+ * Do not import @radix-ui/themes/styles.css here. Its global color tokens use
+ * the same names as the dashboard theme and restyle unrelated Unkey controls
+ * after a managed route is visited. The base token file supplies typography,
+ * spacing, radii, and shadows without the global color palettes; the WorkOS
+ * roots below provide those color tokens locally.
+ */
+@import "@radix-ui/themes/tokens/base.css";
+@import "@radix-ui/themes/layout.css";
+@import "@radix-ui/themes/components.css";
+@import "@radix-ui/themes/utilities.css";
+@import "@workos-inc/widgets/styles.css";
+
+/*
+ * WorkOS Widgets render with Radix Themes, including dialogs and menus that
+ * portal outside the provider. Keep the Radix variables mapped to Unkey's
+ * design tokens in every one of those scopes so no default indigo styling
+ * leaks into the dashboard.
+ */
+.unkey-workos-widgets.woswidgets-root,
+.woswidgets-dialog,
+.woswidgets-dropdown {
+  --woswidgets-accent-color: hsla(var(--grayA-4));
+  --woswidgets-background-color: hsl(var(--background));
+  --woswidgets-border-color: hsla(var(--grayA-6));
+  --woswidgets-foreground-color: hsl(var(--content));
+
+  --color-background: hsl(var(--background));
+  --color-panel: hsl(var(--background));
+  --color-panel-solid: hsl(var(--background));
+  --color-panel-translucent: hsl(var(--background));
+  --color-surface: hsla(var(--grayA-2));
+  --color-overlay: hsl(var(--black) / 30%);
+  --focus-8: hsl(var(--content));
+  --focus-a8: hsla(var(--grayA-8));
+  --accent-contrast: hsl(var(--background));
+  --success-color: hsl(var(--success-9));
+  --gray-1: hsl(var(--background));
+  --gray-2: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 2%);
+  --gray-3: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 6%);
+  --gray-4: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 9%);
+  --gray-5: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 12%);
+  --gray-6: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 15%);
+  --gray-7: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 20%);
+  --gray-8: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 27%);
+  --gray-9: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 45%);
+  --gray-10: color-mix(in srgb, hsl(var(--background)), hsl(var(--content)) 50%);
+  --gray-11: hsla(var(--grayA-11));
+  --gray-12: hsl(var(--content));
+  --gray-a1: hsla(var(--grayA-1));
+  --gray-a2: hsla(var(--grayA-2));
+  --gray-a3: hsla(var(--grayA-3));
+  --gray-a4: hsla(var(--grayA-4));
+  --gray-a5: hsla(var(--grayA-5));
+  --gray-a6: hsla(var(--grayA-6));
+  --gray-a7: hsla(var(--grayA-7));
+  --gray-a8: hsla(var(--grayA-8));
+  --gray-a9: hsla(var(--grayA-9));
+  --gray-a10: hsla(var(--grayA-10));
+  --gray-a11: hsla(var(--grayA-11));
+  --gray-a12: hsla(var(--grayA-12));
+
+  --accent-1: var(--gray-1);
+  --accent-2: var(--gray-2);
+  --accent-3: var(--gray-3);
+  --accent-4: var(--gray-4);
+  --accent-5: var(--gray-5);
+  --accent-6: var(--gray-6);
+  --accent-7: var(--gray-7);
+  --accent-8: var(--gray-8);
+  --accent-9: var(--gray-9);
+  --accent-10: var(--gray-10);
+  --accent-11: var(--gray-11);
+  --accent-12: var(--gray-12);
+  --accent-a1: var(--gray-a1);
+  --accent-a2: var(--gray-a2);
+  --accent-a3: var(--gray-a3);
+  --accent-a4: var(--gray-a4);
+  --accent-a5: var(--gray-a5);
+  --accent-a6: var(--gray-a6);
+  --accent-a7: var(--gray-a7);
+  --accent-a8: var(--gray-a8);
+  --accent-a9: var(--gray-a9);
+  --accent-a10: var(--gray-a10);
+  --accent-a11: var(--gray-a11);
+  --accent-a12: var(--gray-a12);
+
+  --red-1: hsl(var(--error-1));
+  --red-2: hsl(var(--error-2));
+  --red-3: hsl(var(--error-3));
+  --red-4: hsl(var(--error-4));
+  --red-5: hsl(var(--error-5));
+  --red-6: hsl(var(--error-6));
+  --red-7: hsl(var(--error-7));
+  --red-8: hsl(var(--error-8));
+  --red-9: hsl(var(--error-9));
+  --red-10: hsl(var(--error-10));
+  --red-11: hsl(var(--error-11));
+  --red-12: hsl(var(--error-12));
+  --red-a1: hsla(var(--errorA-1));
+  --red-a2: hsla(var(--errorA-2));
+  --red-a3: hsla(var(--errorA-3));
+  --red-a4: hsla(var(--errorA-4));
+  --red-a5: hsla(var(--errorA-5));
+  --red-a6: hsla(var(--errorA-6));
+  --red-a7: hsla(var(--errorA-7));
+  --red-a8: hsla(var(--errorA-8));
+  --red-a9: hsla(var(--errorA-9));
+  --red-a10: hsla(var(--errorA-10));
+  --red-a11: hsla(var(--errorA-11));
+  --red-a12: hsla(var(--errorA-12));
+
+  color: hsl(var(--content));
+  font-family: var(--font-geist-sans);
+}
+
+.woswidgets-widget {
+  color: hsl(var(--content));
+  font-family: var(--font-geist-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.woswidgets-widget .rt-Text:where([data-accent-color="gray"]) {
+  color: hsla(var(--grayA-11));
+}
+
+/*
+ * The widget scope remaps --accent-12 and --gray-* to color-mix ramps for Radix
+ * internals, which only approximate the dashboard's real gray tokens (close in
+ * light mode, visibly off in dark). Capture the real triples outside the scope
+ * so controls that must match @unkey/ui exactly (buttons, inputs) can reference
+ * them as hsl(var(--unkey-*)).
+ */
+:where(body) {
+  --unkey-accent-12: var(--accent-12);
+  --unkey-gray-2: var(--gray-2);
+  --unkey-gray-5: var(--gray-5);
+  --unkey-gray-8: var(--gray-8);
+}
+
+/*
+ * WorkOS DataList rows size to their tallest child, so a row without an Edit
+ * button (e.g. Connected accounts) collapses shorter than the button rows. A
+ * uniform floor keeps every profile row the same height.
+ */
+.unkey-workos-widgets .rt-DataListItem {
+  min-height: 1.5rem;
+}
+
+/* Row labels match native settings-row labels (13px medium, not 14px bold). */
+.unkey-workos-widgets .rt-DataListLabel,
+.unkey-workos-widgets .rt-DataListLabel .rt-Strong,
+.unkey-workos-widgets .rt-Text:where(.rt-r-weight-bold) {
+  color: hsla(var(--grayA-12));
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1rem;
+}
+
+/* Cards and list rows mirror @unkey/ui Card and SettingCardGroup. */
+.unkey-workos-widgets .rt-Card {
+  border-radius: 0.5rem;
+}
+
+.unkey-workos-widgets .rt-Card::before {
+  background-color: hsl(var(--background));
+  backdrop-filter: none;
+}
+
+.unkey-workos-widgets .rt-Card::after {
+  box-shadow: inset 0 0 0 1px hsla(var(--grayA-4));
+}
+
+.unkey-workos-widgets .rt-Separator,
+.woswidgets-card-list-item:not(:first-child) {
+  background-color: hsla(var(--grayA-4));
+  border-color: hsla(var(--grayA-4));
+}
+
+/* Buttons follow the @unkey/ui primary, outline, danger, and icon variants. */
+.woswidgets-button {
+  height: 1.75rem;
+  min-height: 1.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px hsla(var(--grayA-3));
+  font-family: var(--font-geist-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+
+.woswidgets-button[data-woswidgets-element="primary-button"],
+.woswidgets-button--primary {
+  border-color: hsla(var(--grayA-4));
+  background-color: hsl(var(--unkey-accent-12));
+  color: light-dark(white, black);
+}
+
+.woswidgets-button[data-woswidgets-element="primary-button"]:hover:not(:disabled),
+.woswidgets-button--primary:hover:not(:disabled) {
+  background-color: hsla(var(--unkey-accent-12), 0.9);
+}
+
+.woswidgets-button[data-woswidgets-element="primary-button"]:active:not(:disabled),
+.woswidgets-button--primary:active:not(:disabled) {
+  background-color: hsla(var(--unkey-accent-12), 0.8);
+}
+
+.woswidgets-button[data-woswidgets-element="secondary-button"],
+.woswidgets-button--secondary {
+  border-color: hsla(var(--grayA-6));
+  background-color: transparent;
+  color: hsl(var(--content));
+}
+
+.woswidgets-button[data-woswidgets-element="secondary-button"]:hover:not(:disabled),
+.woswidgets-button--secondary:hover:not(:disabled) {
+  background-color: hsla(var(--grayA-2));
+}
+
+.woswidgets-button[data-woswidgets-element="secondary-button"]:active:not(:disabled),
+.woswidgets-button--secondary:active:not(:disabled) {
+  background-color: hsla(var(--grayA-3));
+}
+
+.woswidgets-button[data-woswidgets-element="destructive-button"],
+.woswidgets-button--destructive {
+  border-color: hsl(var(--error-9));
+  background-color: hsl(var(--error-9));
+  color: white;
+}
+
+.woswidgets-button[data-woswidgets-element="destructive-button"]:hover:not(:disabled),
+.woswidgets-button--destructive:hover:not(:disabled) {
+  background-color: hsl(var(--error-10));
+}
+
+.woswidgets-button[data-woswidgets-element="destructive-button"]:active:not(:disabled),
+.woswidgets-button--destructive:active:not(:disabled) {
+  background-color: hsl(var(--error-11));
+}
+
+.woswidgets-button:focus-visible,
+.woswidgets-icon-button:focus-visible {
+  border-color: hsl(var(--content));
+  outline: none;
+  box-shadow: 0 0 0 3px hsla(var(--grayA-5));
+}
+
+.woswidgets-button:disabled,
+.woswidgets-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  border-color: hsla(var(--grayA-4));
+  background-color: hsla(var(--grayA-6));
+  color: hsla(var(--grayA-8));
+  box-shadow: none;
+}
+
+.woswidgets-icon-button {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  margin: 0;
+  padding: 0;
+  border-color: transparent;
+  background-color: transparent;
+  color: hsl(var(--content));
+  box-shadow: none;
+}
+
+.woswidgets-icon-button:hover:not(:disabled) {
+  background-color: hsla(var(--grayA-4));
+}
+
+/* Inputs and selects mirror @unkey/ui Input's height, surface, and focus ring. */
+.woswidgets-text-field,
+.woswidgets-select {
+  min-height: 2.25rem;
+  /*
+   * The real dashboard gray tokens (escaped from the scope's color-mix ramp)
+   * so inputs match @unkey/ui's Input exactly in both themes: solid gray-5
+   * border, gray-2 (light) / black (dark) fill.
+   */
+  border: 1px solid hsl(var(--unkey-gray-5));
+  border-radius: 0.5rem;
+  background-color: light-dark(hsl(var(--unkey-gray-2)), black);
+  color: hsl(var(--content));
+  box-shadow: none;
+  font-family: var(--font-geist-sans);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.woswidgets-text-field:hover:not(:has(input:disabled)),
+.woswidgets-select:hover:not(:disabled) {
+  border-color: hsl(var(--unkey-gray-8));
+}
+
+.woswidgets-text-field:has(input:focus-visible),
+.woswidgets-select:focus-visible,
+.woswidgets-select[data-state="open"] {
+  border-color: hsl(var(--content));
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--unkey-gray-5));
+}
+
+.woswidgets-text-field input::placeholder {
+  color: hsla(var(--grayA-8));
+}
+
+.woswidgets-text-field:has(input:disabled),
+.woswidgets-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Menus use the same surface and highlighted states as @unkey/ui DropdownMenu. */
+.woswidgets-dropdown,
+.woswidgets-select-dropdown {
+  z-index: 200;
+  overflow: hidden;
+  padding: 0.5rem;
+  border: 1px solid hsla(var(--grayA-6));
+  border-radius: 0.5rem;
+  background-color: hsl(var(--background));
+  color: hsl(var(--content));
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.woswidgets-menu-item,
+.woswidgets-select-item {
+  min-height: 2rem;
+  border-radius: 0.375rem;
+  color: hsl(var(--content));
+  font-family: var(--font-geist-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.woswidgets-menu-item:where([data-highlighted]) {
+  outline: none;
+  background-color: hsla(var(--grayA-4));
+  color: hsl(var(--content));
+}
+
+.woswidgets-menu-item[data-woswidgets-element="destructive-menu-item"],
+.woswidgets-menu-item--destructive {
+  color: hsl(var(--error-11));
+}
+
+.woswidgets-menu-item[data-woswidgets-element="destructive-menu-item"]:where(
+    [data-highlighted]
+  ),
+.woswidgets-menu-item--destructive:where([data-highlighted]) {
+  background-color: hsla(var(--errorA-3));
+  color: hsl(var(--error-11));
+}
+
+/*
+ * WorkOS adds its overlay class with document.querySelector(".rt-DialogOverlay"),
+ * which only marks the first overlay when dialogs are nested and misses alert
+ * dialogs entirely (their overlay is rt-AlertDialogOverlay, so e.g. the
+ * remove-user confirm would sit below the z-10 navigation without the explicit
+ * selector). Match each overlay through its own WorkOS dialog content instead.
+ */
+.rt-AlertDialogOverlay:has(.woswidgets-dialog),
+.woswidgets-dialog-overlay,
+.rt-DialogOverlay:has(.woswidgets-dialog) {
+  z-index: 50;
+  background-color: hsl(var(--black) / 30%);
+  backdrop-filter: blur(4px);
+}
+
+/*
+ * Mirrors @unkey/ui DialogContainer: a 16px-radius shell with an opaque header
+ * bar, a grayA-2 tinted body, and an opaque footer zone. The tint is painted on
+ * the dialog itself; the header (title) and footer (trailing action row) lay
+ * opaque background strips over it with negative margins, since the inner DOM
+ * belongs to WorkOS.
+ */
+.woswidgets-dialog {
+  --unkey-dialog-pad-x: 1.5rem;
+  --unkey-dialog-pad-y: 1.5rem;
+  max-width: min(37.5rem, calc(100vw - 2rem));
+  max-height: 90svh;
+  padding: var(--unkey-dialog-pad-y) var(--unkey-dialog-pad-x);
+  border: 1px solid hsla(var(--grayA-4));
+  border-radius: 1rem;
+  background-color: hsl(var(--background));
+  background-image: linear-gradient(hsla(var(--grayA-3)), hsla(var(--grayA-3)));
+  color: hsl(var(--content));
+  box-shadow: 0 25px 25px rgb(0 0 0 / 0.15);
+}
+
+/*
+ * Dialog.Title is a plain Radix Heading, so match by position: a direct child,
+ * or first child of the <form> in dialogs that wrap their body in one.
+ */
+.woswidgets-dialog > .rt-Heading,
+.woswidgets-dialog > form > .rt-Heading {
+  margin: calc(var(--unkey-dialog-pad-y) * -1) calc(var(--unkey-dialog-pad-x) * -1)
+    var(--unkey-dialog-pad-y);
+  padding: 1rem var(--unkey-dialog-pad-x);
+  border-bottom: 1px solid hsla(var(--grayA-4));
+  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  background-color: hsl(var(--background));
+  color: hsl(var(--content));
+  font-family: var(--font-geist-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 2rem;
+}
+
+.woswidgets-dialog .rt-DialogDescription,
+.woswidgets-dialog .rt-AlertDialogDescription {
+  color: hsla(var(--grayA-11));
+  font-family: var(--font-geist-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/*
+ * The action row's position varies between alert and form dialogs, so match it
+ * by shape: a Flex directly holding buttons with justify end/between (every
+ * WorkOS footer sets one). The justify gate keeps mid-body and nested button
+ * groups from painting footer strips of their own.
+ */
+.woswidgets-dialog
+  :is(.rt-r-jc-end, .rt-r-jc-space-between):has(> .woswidgets-button) {
+  margin-top: var(--unkey-dialog-pad-y);
+  margin-right: calc(var(--unkey-dialog-pad-x) * -1);
+  margin-left: calc(var(--unkey-dialog-pad-x) * -1);
+  padding: 1.5rem var(--unkey-dialog-pad-x);
+  border-top: 1px solid hsla(var(--grayA-4));
+  background-color: hsl(var(--background));
+}
+
+/*
+ * Two mutually exclusive ways to reach the dialog's bottom edge (applying both
+ * would strip the gap twice): last-child footers bleed over the dialog's bottom
+ * padding; form-shaped dialogs drop that padding instead. ":has(> form)" also
+ * catches alert dialogs whose action row is a <Flex asChild><form>.
+ */
+.woswidgets-dialog:not(:has(> form))
+  > :is(.rt-r-jc-end, .rt-r-jc-space-between):last-child:has(> .woswidgets-button) {
+  margin-bottom: calc(var(--unkey-dialog-pad-y) * -1);
+  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
+}
+
+.woswidgets-dialog:has(> form) {
+  padding-bottom: 0;
+}
+
+.woswidgets-dialog:has(> form)
+  :is(.rt-r-jc-end, .rt-r-jc-space-between):has(> .woswidgets-button) {
+  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
+}
+
+/* Remaining WorkOS element hooks use their closest @unkey/ui counterparts. */
+.woswidgets-avatar {
+  border: 1px solid hsla(var(--grayA-4));
+  background-color: hsla(var(--grayA-3));
+  color: hsl(var(--content));
+  box-shadow: 0 1px 2px hsla(var(--grayA-3));
+}
+
+.woswidgets-badge {
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background-color: hsla(var(--grayA-3));
+  color: hsla(var(--grayA-11));
+  font-family: var(--font-geist-sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.woswidgets-label {
+  color: hsl(var(--content));
+  font-family: var(--font-geist-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.woswidgets-skeleton {
+  --gray-a3: hsla(var(--grayA-3));
+  --gray-a4: hsla(var(--grayA-4));
+  border-radius: 0.25rem;
+}
+
+.woswidgets-save-button[data-save-state="loading"] {
+  background-color: hsla(var(--grayA-8));
+}
+
+.woswidgets-save-button[data-save-state="done"] {
+  background-color: hsl(var(--success-9));
+}
+
+/* The UsersManagement table matches the bordered dashboard table shell. */
+.unkey-workos-widgets .rt-TableRoot {
+  overflow-x: auto;
+  border: 1px solid hsla(var(--grayA-4));
+  border-radius: 0.5rem;
+  background-color: hsl(var(--background));
+}
+
+.unkey-workos-widgets .rt-TableRootTable {
+  min-width: 38rem;
+  color: hsl(var(--content));
+}
+
+.unkey-workos-widgets .rt-TableHeader {
+  background-color: hsla(var(--grayA-2));
+}
+
+.unkey-workos-widgets .rt-TableRow {
+  color: hsl(var(--content));
+}
+
+.unkey-workos-widgets .rt-TableCell {
+  --table-row-box-shadow: inset 0 -1px hsla(var(--grayA-4));
+  padding: 0.75rem 1rem;
+}
+
+.unkey-workos-widgets .rt-TableColumnHeaderCell {
+  color: hsla(var(--grayA-11));
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 640px) {
+  .woswidgets-widget[data-woswidgets-widget-id="users-management"] > .rt-Grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .woswidgets-widget[data-woswidgets-widget-id="users-management"] > .rt-Grid > .rt-Flex {
+    flex-wrap: wrap;
+  }
+
+  .woswidgets-dialog {
+    --unkey-dialog-pad-x: 1rem;
+    --unkey-dialog-pad-y: 1rem;
+  }
+}
