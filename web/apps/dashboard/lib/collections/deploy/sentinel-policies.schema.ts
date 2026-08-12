@@ -1,8 +1,8 @@
 /**
- * Canonical sentinel policy schemas — single source of truth.
+ * Canonical gateway policy schemas — single source of truth.
  *
  * Wire shape vs. Go service:
- *   The Go sentinel service (svc/sentinel) parses these blobs as protojson with
+ *   The Go Frontline service parses these blobs as protojson with
  *   `DiscardUnknown: true`. Policy is a protobuf oneof keyed on `keyauth | firewall | ...`,
  *   with no `type` discriminator field. We keep a client-side `type` field to drive
  *   zod's discriminated union and the UI router; the Go side silently ignores it.
@@ -197,7 +197,7 @@ export const ratelimitPolicySchema = z
 
 // ── Firewall policy ─────────────────────────────────────────────────────
 
-// Wire values match sentinel.v1.Action enum names. Kept as string literals so
+// Wire values match frontline.v1.Action enum names. Kept as string literals so
 // protojson round-trips them by name rather than numeric value. The MVP only
 // has ACTION_DENY; the enum exists so additional outcomes can land later
 // without changing the schema shape.
@@ -230,7 +230,7 @@ export const openapiPolicySchema = z
   .strict();
 export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
 
-// ── Sentinel policy (discriminated union — extend with new types here) ──
+// ── Gateway policy (discriminated union — extend with new types here) ──
 
 export const sentinelPolicySchema = z.discriminatedUnion("type", [
   keyauthPolicySchema,
@@ -282,5 +282,5 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   if ("openapi" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "openapi" });
   }
-  throw new Error("unknown sentinel policy variant");
+  throw new Error("unknown gateway policy variant");
 }

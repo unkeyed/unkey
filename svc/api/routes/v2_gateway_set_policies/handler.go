@@ -202,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(
 				upsertErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to write sentinel config"),
+				fault.Internal("unable to write gateway policy config"),
 				fault.Public("We're unable to set the policies."),
 			)
 		}

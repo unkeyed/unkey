@@ -21,7 +21,7 @@ type DevTreeGeneratorProps = {
 
 const PRESETS = {
   small: {
-    label: "Small (3 sentinels, 1-3 instances)",
+    label: "Small (3 regions, 1-3 instances)",
     config: {
       sentinels: 3,
       instancesPerSentinel: { min: 1, max: 3 },
@@ -37,7 +37,7 @@ const PRESETS = {
     },
   },
   medium: {
-    label: "Medium (5 sentinels, 2-5 instances)",
+    label: "Medium (5 regions, 2-5 instances)",
     config: {
       sentinels: 5,
       instancesPerSentinel: { min: 2, max: 5 },
@@ -53,7 +53,7 @@ const PRESETS = {
     },
   },
   large: {
-    label: "Large (7 sentinels, 5-10 instances)",
+    label: "Large (7 regions, 5-10 instances)",
     config: {
       sentinels: 7,
       instancesPerSentinel: { min: 5, max: 10 },
@@ -69,7 +69,7 @@ const PRESETS = {
     },
   },
   stress: {
-    label: "Stress Test (7 sentinels, 15-20 instances)",
+    label: "Stress Test (7 regions, 15-20 instances)",
     config: {
       sentinels: 7,
       instancesPerSentinel: { min: 15, max: 20 },
@@ -161,9 +161,9 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         <div className="flex flex-col gap-3 pt-3 border-t border-grayA-4">
           <div className="text-xs font-medium text-gray-11">Custom</div>
 
-          {/* Sentinels*/}
+          {/* Regions */}
           <div className="flex flex-col gap-1">
-            <div className="text-xs text-gray-11">Sentinels: {customConfig.sentinels}</div>
+            <div className="text-xs text-gray-11">Regions: {customConfig.sentinels}</div>
             <input
               type="range"
               min="1"
@@ -185,7 +185,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
             <div className="text-xs text-gray-11">Layout Direction</div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-11 w-20">Sentinels:</span>
+                <span className="text-xs text-gray-11 w-20">Regions:</span>
                 <select
                   value={customConfig.regionDirection}
                   onChange={(e) =>
@@ -221,10 +221,10 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
             </div>
           </div>
 
-          {/* Instances per sentinel */}
+          {/* Instances per region */}
           <div className="flex flex-col gap-1">
             <div className="text-xs text-gray-11">
-              Instances per sentinel: {customConfig.instancesPerSentinel.min}-
+              Instances per region: {customConfig.instancesPerSentinel.min}-
               {customConfig.instancesPerSentinel.max}
             </div>
             <div className="flex gap-2">

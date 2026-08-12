@@ -88,7 +88,7 @@ export const querySentinelLogs = workspaceProcedure
       }
 
       console.error({
-        message: "Failed to fetch sentinel logs",
+        message: "Failed to fetch request logs",
         workspaceId: ctx.workspace.id,
         projectId: input.projectId,
         error: error instanceof Error ? error.message : String(error),

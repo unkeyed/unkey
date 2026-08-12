@@ -34,7 +34,7 @@ type PolicyFormRootProps<T extends FieldValues> = {
 };
 
 /**
- * Compound component for sentinel policy slide-panel forms.
+ * Compound component for gateway policy slide-panel forms.
  *
  * Children are split at render time: `Footer` is pulled out and pinned
  * below the scrollable body so it stays visible regardless of content height.

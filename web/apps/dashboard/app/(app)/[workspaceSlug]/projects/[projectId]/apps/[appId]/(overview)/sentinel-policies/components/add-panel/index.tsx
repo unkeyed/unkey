@@ -92,7 +92,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       description={
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this gateway policy." : "Configure and add a new gateway policy."}
-          <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
+          <DocsLink href="https://www.unkey.com/docs/platform/gateway/policies/overview">
             <span className="text-[13px]">See docs for more</span>
           </DocsLink>
         </div>

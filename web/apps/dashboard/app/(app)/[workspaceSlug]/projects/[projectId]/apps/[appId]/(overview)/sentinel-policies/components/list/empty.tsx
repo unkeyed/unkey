@@ -6,7 +6,7 @@ export function SentinelPoliciesEmpty() {
       <div className="flex items-center justify-center py-16 px-4">
         <Empty className="w-[400px] flex items-start">
           <Empty.Icon className="w-auto" />
-          <Empty.Title>No Sentinel Policies</Empty.Title>
+          <Empty.Title>No policies</Empty.Title>
           <Empty.Description className="text-left">
             Add policies to protect your API with authentication, rate limiting, and more. Policies
             are evaluated sequentially on each incoming request.

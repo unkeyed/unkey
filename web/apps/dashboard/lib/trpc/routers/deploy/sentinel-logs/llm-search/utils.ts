@@ -92,7 +92,7 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
     })
     .join("\n");
 
-  return `You are an expert at converting natural language queries into filters for HTTP sentinel logs. Handle complex queries by breaking them into clear filters. Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters for HTTP request logs. Handle complex queries by breaking them into clear filters. Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
 

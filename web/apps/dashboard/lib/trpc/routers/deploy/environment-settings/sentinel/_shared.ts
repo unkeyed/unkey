@@ -5,9 +5,9 @@ import {
   toWirePolicy,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
 /**
- * Shared helpers for sentinel policy tRPC endpoints.
+ * Shared helpers for gateway policy tRPC endpoints.
  *
- * The DB stores all sentinel policies for an environment as a single JSON blob
+ * The DB stores all gateway policies for an environment as a single JSON blob
  * in `appRuntimeSettings.sentinelConfig`. Per-policy endpoints do read-modify-write
  * on that blob — every mutation re-validates the *entire* policies array before
  * persisting so a corrupted row can never enter the DB.
@@ -97,10 +97,10 @@ export async function loadPolicies(
   try {
     parsed = JSON.parse(Buffer.from(row.sentinelConfig).toString());
   } catch (err) {
-    console.error("corrupt sentinelConfig blob", err);
+    console.error("corrupt policy config blob", err);
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Stored sentinel config is corrupted",
+      message: "Stored policy config is corrupted",
     });
   }
   if (typeof parsed !== "object" || parsed === null) {

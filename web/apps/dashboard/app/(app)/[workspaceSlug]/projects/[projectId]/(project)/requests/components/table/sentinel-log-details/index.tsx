@@ -117,7 +117,7 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   );
 };
 
-// Custom header for sentinel logs
+// Custom header for request logs
 const SentinelLogHeader = ({
   log,
 }: {
@@ -225,7 +225,7 @@ const formatBody = (body: string, headers: string[]): React.ReactNode | string =
 const formatLatencyMetrics = (log: SentinelLogsResponse): React.ReactNode => {
   const instancePercent =
     log.total_latency > 0 ? ((log.instance_latency / log.total_latency) * 100).toFixed(1) : "0.0";
-  const sentinelPercent =
+  const gatewayPercent =
     log.total_latency > 0 ? ((log.sentinel_latency / log.total_latency) * 100).toFixed(1) : "0.0";
 
   return (
@@ -242,10 +242,10 @@ const formatLatencyMetrics = (log: SentinelLogsResponse): React.ReactNode => {
         </span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-gray-11">Sentinel Latency:</span>
+        <span className="text-gray-11">Gateway Latency:</span>
         <span className="font-mono">
           {formatLatency(log.sentinel_latency)}
-          <span className="text-grayA-10 ml-1">({sentinelPercent}%)</span>
+          <span className="text-grayA-10 ml-1">({gatewayPercent}%)</span>
         </span>
       </div>
     </div>

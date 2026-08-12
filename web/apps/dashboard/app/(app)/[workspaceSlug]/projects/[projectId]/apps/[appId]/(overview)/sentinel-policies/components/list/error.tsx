@@ -8,7 +8,7 @@ export function SentinelPoliciesError() {
         <Empty className="w-100 flex items-start">
           <Empty.Title className="text-error-11">Failed to load policies</Empty.Title>
           <Empty.Description className="text-left">
-            Something went wrong while loading sentinel policies. Try refreshing the page.
+            Something went wrong while loading policies. Try refreshing the page.
           </Empty.Description>
         </Empty>
       </div>

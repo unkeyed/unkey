@@ -45,7 +45,7 @@ export default function SentinelPoliciesPage() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Sentinel Policies</PageHeaderTitle>
+          <PageHeaderTitle>Policies</PageHeaderTitle>
           <PageHeaderDescription>
             Middleware policy chains that protect your API. Policies are evaluated in order, drag to
             reorder.

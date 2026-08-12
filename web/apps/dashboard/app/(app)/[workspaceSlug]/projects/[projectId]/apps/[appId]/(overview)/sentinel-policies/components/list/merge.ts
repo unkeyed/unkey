@@ -1,7 +1,7 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 
 /**
- * One row in the merged sentinel policies list. Each row represents a single
+ * One row in the merged gateway policies list. Each row represents a single
  * logical policy id, paired with up to two env-specific instances (envA =
  * production, envB = preview by convention).
  */

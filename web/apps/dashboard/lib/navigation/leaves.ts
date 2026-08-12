@@ -163,7 +163,7 @@ export function buildAppLinks(
     },
     {
       key: "sentinel-policies",
-      label: "Sentinel Policies",
+      label: "Policies",
       href: routes.projects.apps.sentinelPolicies(scope),
       icon: ShieldKey,
       isActive: page === "sentinel-policies",

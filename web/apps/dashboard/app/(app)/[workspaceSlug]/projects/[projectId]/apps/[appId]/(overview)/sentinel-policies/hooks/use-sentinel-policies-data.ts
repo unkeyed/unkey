@@ -18,7 +18,7 @@ type SentinelPoliciesData = {
 };
 
 /**
- * Loads the two env-scoped sentinel policy lists, strips row-only fields,
+ * Loads the two environment-scoped policy lists, strips row-only fields,
  * and merges them into the row shape consumed by `SentinelPoliciesList`.
  */
 export function useSentinelPoliciesData(): SentinelPoliciesData {

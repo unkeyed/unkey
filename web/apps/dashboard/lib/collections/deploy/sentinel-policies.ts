@@ -30,10 +30,10 @@ export async function reorderSentinelPolicies(
     ),
   );
   toast.promise(promise, {
-    loading: "Reordering sentinel policies...",
-    success: "Sentinel policies reordered",
+    loading: "Reordering policies...",
+    success: "Policies reordered",
     error: (err) => ({
-      message: "Failed to reorder sentinel policies",
+      message: "Failed to reorder policies",
       description: err instanceof Error ? err.message : "Unknown error",
     }),
   });
@@ -59,7 +59,7 @@ export type SentinelPolicyRow = SentinelPolicy & {
 export const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
 
 /**
- * Sentinel policies collection — one row per (environment, policy).
+ * Gateway policies collection — one row per (environment, policy).
  *
  * IMPORTANT: All queries MUST filter by environmentId:
  * .where(({ p }) => eq(p.environmentId, environmentId))
@@ -113,10 +113,10 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: plural ? "Adding sentinel policies..." : "Adding sentinel policy...",
-        success: plural ? "Sentinel policies added" : "Sentinel policy added",
+        loading: plural ? "Adding policies..." : "Adding policy...",
+        success: plural ? "Policies added" : "Policy added",
         error: (err) => ({
-          message: plural ? "Failed to add sentinel policies" : "Failed to add sentinel policy",
+          message: plural ? "Failed to add policies" : "Failed to add policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -132,12 +132,10 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: plural ? "Updating sentinel policies..." : "Updating sentinel policy...",
-        success: plural ? "Sentinel policies updated" : "Sentinel policy updated",
+        loading: plural ? "Updating policies..." : "Updating policy...",
+        success: plural ? "Policies updated" : "Policy updated",
         error: (err) => ({
-          message: plural
-            ? "Failed to update sentinel policies"
-            : "Failed to update sentinel policy",
+          message: plural ? "Failed to update policies" : "Failed to update policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -152,12 +150,10 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
       const all = Promise.all(mutations);
       const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: plural ? "Deleting sentinel policies..." : "Deleting sentinel policy...",
-        success: plural ? "Sentinel policies deleted" : "Sentinel policy deleted",
+        loading: plural ? "Deleting policies..." : "Deleting policy...",
+        success: plural ? "Policies deleted" : "Policy deleted",
         error: (err) => ({
-          message: plural
-            ? "Failed to delete sentinel policies"
-            : "Failed to delete sentinel policy",
+          message: plural ? "Failed to delete policies" : "Failed to delete policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
