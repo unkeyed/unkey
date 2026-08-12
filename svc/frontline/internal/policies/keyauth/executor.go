@@ -140,7 +140,7 @@ func (e *Executor) Execute(
 		return nil, fault.New("usage exceeded",
 			fault.Code(codes.Frontline.Auth.UsageExceeded.URN()),
 			fault.Internal("usage limit exceeded"),
-			fault.Public("Usage limit exceeded. No credits remain."),
+			fault.Public("Usage limit exceeded. This API key has no remaining credits."),
 		)
 	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:

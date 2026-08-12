@@ -290,7 +290,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusTooManyRequests,
 			Title:   http.StatusText(http.StatusTooManyRequests),
-			Message: "Usage limit exceeded. No credits remain.",
+			Message: "Usage limit exceeded. This API key has no remaining credits.",
 		}
 	case codes.Frontline.Firewall.Denied.URN():
 		return errorPageInfo{
