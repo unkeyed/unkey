@@ -1,11 +1,13 @@
 "use client";
 
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { cn } from "@/lib/utils";
 import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
+import { UsageCard } from "./usage-card";
 
 export const SIDEBAR_WIDTH_VARS: React.CSSProperties & {
   "--sidebar-width": string;
@@ -19,6 +21,7 @@ type Props = React.ComponentProps<typeof Sidebar>;
 
 export function SidebarV2(props: Props) {
   const { isMobile } = useSidebar();
+  const billingUpgrades = useBillingUIUpgrades();
   if (isMobile) {
     return null;
   }
@@ -34,7 +37,7 @@ export function SidebarV2(props: Props) {
         <SidebarBody />
       </SidebarContent>
       <SidebarFooter className="mx-0 gap-2 border-t-0 p-2">
-        <UsageBanner />
+        {billingUpgrades ? <UsageCard /> : <UsageBanner />}
         <CollapseButton />
       </SidebarFooter>
     </Sidebar>
