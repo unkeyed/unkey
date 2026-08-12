@@ -1,0 +1,62 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+:root {
+  --blume-font-body:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --blume-font-display:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --blume-font-mono:
+    "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/*
+ * Blume's marketing-weight heading scale (h1 at 3rem) shouts on a component
+ * reference. Tighten it to the density the gallery had. Blume declares its own
+ * sizes through :where(), so a plain selector is enough to win.
+ */
+.prose h1 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.prose h2 {
+  border-bottom: 1px solid var(--blume-border);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-top: 3.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.prose h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-top: 2.5rem;
+}
+
+/*
+ * Blume sizes a preview pane from a line-count estimate, then eases it to the
+ * height the frame reports once it loads — so every preview visibly grows on
+ * every page load. Take the correction instantly instead.
+ */
+blume-tabs [data-blume-tab-panel] {
+  transition: none;
+}
+
+/* The previous/next links are already carded; the rule above them is noise. */
+#blume-content > nav {
+  border-top: 0;
+}
+
+/*
+ * The right rail exists to hold the outline. A page with no headings — the
+ * overview — is left with a stranded strip of page actions and a rule above
+ * nothing, so drop the actions when there is no outline to sit under.
+ */
+aside[data-blume-toc]:not(:has(blume-toc a)) [data-blume-page-actions] {
+  display: none;
+}

@@ -20,11 +20,14 @@ import (
 
 // fakeUsageReader ignores the query window and returns whatever rows the test sets.
 type fakeUsageReader struct {
-	mu             sync.Mutex
-	rows           []clickhouse.InstanceMeterUsage
-	activeKeys     []clickhouse.ActiveKeysUsage
-	instanceReads  int
-	activeKeyReads int
+	mu                         sync.Mutex
+	rows                       []clickhouse.InstanceMeterUsage
+	activeKeys                 []clickhouse.ActiveKeysUsage
+	instanceReads              int
+	activeKeyReads             int
+	instanceReadDelay          time.Duration
+	activeInstanceReads        int
+	maxConcurrentInstanceReads int
 }
 
 func (f *fakeUsageReader) set(rows []clickhouse.InstanceMeterUsage) {
@@ -34,6 +37,9 @@ func (f *fakeUsageReader) set(rows []clickhouse.InstanceMeterUsage) {
 	f.activeKeys = nil
 	f.instanceReads = 0
 	f.activeKeyReads = 0
+	f.instanceReadDelay = 0
+	f.activeInstanceReads = 0
+	f.maxConcurrentInstanceReads = 0
 }
 
 func (f *fakeUsageReader) setActiveKeys(rows []clickhouse.ActiveKeysUsage) {
@@ -43,12 +49,14 @@ func (f *fakeUsageReader) setActiveKeys(rows []clickhouse.ActiveKeysUsage) {
 }
 
 func (f *fakeUsageReader) GetInstanceMeterUsage(
-	_ context.Context,
+	ctx context.Context,
 	req clickhouse.GetInstanceMeterUsageRequest,
 ) ([]clickhouse.InstanceMeterUsage, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.instanceReads++
+	f.activeInstanceReads++
+	f.maxConcurrentInstanceReads = max(f.maxConcurrentInstanceReads, f.activeInstanceReads)
+	delay := f.instanceReadDelay
 	workspaceIDs := make(map[string]struct{}, len(req.WorkspaceIDs))
 	for _, workspaceID := range req.WorkspaceIDs {
 		workspaceIDs[workspaceID] = struct{}{}
@@ -59,6 +67,22 @@ func (f *fakeUsageReader) GetInstanceMeterUsage(
 		if (req.WorkspaceID == "" || row.WorkspaceID == req.WorkspaceID) &&
 			(req.WorkspaceIDs == nil || included) {
 			rows = append(rows, row)
+		}
+	}
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		f.activeInstanceReads--
+		f.mu.Unlock()
+	}()
+
+	if delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 	return rows, nil
@@ -90,6 +114,19 @@ func (f *fakeUsageReader) reads() (instance, activeKeys int) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.instanceReads, f.activeKeyReads
+}
+
+func (f *fakeUsageReader) trackInstanceConcurrency(delay time.Duration) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.instanceReadDelay = delay
+	f.maxConcurrentInstanceReads = 0
+}
+
+func (f *fakeUsageReader) maxInstanceConcurrency() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.maxConcurrentInstanceReads
 }
 
 // fakePusher records the meter totals it is asked to push, keyed by customer,

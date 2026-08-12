@@ -99,7 +99,6 @@ async function createKeysForApi(
 
       // Determine key attributes with realistic distributions
       const name = generateKeyName();
-      const ownerId = `user_${generateRandomString(16)}`;
       const meta = Math.random() > 0.3 ? JSON.stringify(generateMetadata()) : null; // 70% chance to have metadata
 
       // Expiration: 25% of keys expire within a year
@@ -129,7 +128,6 @@ async function createKeysForApi(
         workspaceId: workspaceId,
         forWorkspaceId: null,
         name: name,
-        ownerId: ownerId,
         identityId: null,
         meta: meta,
         expires: expires,

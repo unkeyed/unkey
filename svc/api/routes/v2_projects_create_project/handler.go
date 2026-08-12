@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -50,6 +51,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Action:       rbac.CreateProject,
 	}))
 	if err != nil {
+		return err
+	}
+
+	if err = projectgate.CheckSlug(req.Slug); err != nil {
 		return err
 	}
 

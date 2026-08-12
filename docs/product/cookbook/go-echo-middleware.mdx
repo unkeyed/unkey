@@ -171,15 +171,15 @@ func main() {
     {
         api.GET("/data", func(c echo.Context) error {
             result := GetUnkeyResult(c)
-            ownerID := ""
+            identityExternalID := ""
             if result.Identity != nil {
-                ownerID = result.Identity.ExternalID
+                identityExternalID = result.Identity.ExternalID
             }
             return c.JSON(http.StatusOK, map[string]any{
-                "message": "Access granted",
-                "key_id":  *result.KeyID,
-                "owner":   ownerID,
-                "meta":    result.Meta,
+                "message":              "Access granted",
+                "key_id":               *result.KeyID,
+                "identity_external_id": identityExternalID,
+                "meta":                 result.Meta,
             })
         })
 

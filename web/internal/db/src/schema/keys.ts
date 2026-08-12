@@ -48,6 +48,8 @@ export const keys = mysqlTable(
      */
     forWorkspaceId: id("for_workspace_id"),
     name: caseInsensitiveVarchar("name", { length: 256 }),
+    // Deprecated. Keep this column until identity-only application code has
+    // been deployed everywhere, then remove it in a schema-only change.
     ownerId: caseSensitiveVarchar("owner_id", { length: 256 }),
     identityId: id("identity_id"),
     meta: text("meta"),

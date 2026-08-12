@@ -28,6 +28,7 @@ export * from "./components/info-tooltip";
 export * from "./components/inline-link";
 export * from "./components/item";
 export * from "./components/loading";
+export * from "./components/meter";
 export * from "./components/page";
 export * from "./components/resource-list";
 export * from "./components/logo";

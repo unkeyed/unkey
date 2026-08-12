@@ -74,6 +74,9 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
+	if err := s.ensureWorkspaceCanDeploy(ctx, sourceDeployment.WorkspaceID, "rollback"); err != nil {
+		return nil, err
+	}
 
 	logger.Info(
 		"initiating rollback via Restate",

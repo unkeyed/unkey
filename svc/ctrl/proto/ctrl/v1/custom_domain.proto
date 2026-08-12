@@ -1,6 +1,8 @@
 syntax = "proto3";
 package ctrl.v1;
 
+import "ctrl/v1/actor.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Custom domain verification status
@@ -18,16 +20,34 @@ message AddCustomDomainRequest {
   string environment_id = 3;
   string domain = 4;
   string app_id = 5;
+  ActorInfo actor = 6;
+}
+
+// One-click setup at the domain's DNS provider. Discovery yields a provider and
+// its signed redirect URL together or not at all, so the message is absent when
+// the shortcut is unavailable rather than half-filled.
+message DomainConnect {
+  // Provider name (e.g. "Cloudflare").
+  string provider = 1;
+  // Fully signed Domain Connect redirect URL.
+  string url = 2;
 }
 
 message AddCustomDomainResponse {
   string domain_id = 1;
   string target_cname = 2; // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
   CustomDomainStatus status = 3;
-  // Domain Connect provider name (e.g. "Cloudflare"). Empty if unsupported.
-  string domain_connect_provider = 4;
-  // Fully signed Domain Connect redirect URL. Empty if unavailable.
-  string domain_connect_url = 5;
+  // Deprecated: read domain_connect instead. Kept populated so a dashboard
+  // deployed against an older ctrl keeps receiving the values; reserve these
+  // fields once every caller reads domain_connect.
+  string domain_connect_provider = 4 [deprecated = true];
+  string domain_connect_url = 5 [deprecated = true];
+  // Ownership proof token the caller publishes as a TXT record on
+  // "_unkey.<domain>" with the value "unkey-domain-verify=<token>". Required for
+  // apex domains, which cannot carry a CNAME.
+  string verification_token = 6;
+  // Absent when the DNS provider does not support Domain Connect.
+  DomainConnect domain_connect = 7;
 }
 
 message DeleteCustomDomainRequest {

@@ -3,9 +3,20 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
-import { Ban, Bolt, Clone, Dots, Github, Hammer2 } from "@unkey/icons";
+import {
+  ArrowOppositeDirectionY,
+  Ban,
+  Bolt,
+  Clone,
+  Dots,
+  Github,
+  Hammer2,
+  Layers3,
+} from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
+import type { Route } from "next";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
 import type { DeploymentDisplayStatus } from "./status";
@@ -22,13 +33,18 @@ type ProductionCardActionsMenuProps = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
   commitUrl?: string;
+  logsHref: Route;
+  requestsHref: Route;
 };
 
 export function ProductionCardActionsMenu({
   deployment,
   status,
   commitUrl,
+  logsHref,
+  requestsHref,
 }: ProductionCardActionsMenuProps) {
+  const router = useRouter();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const items = useMemo((): MenuItem[] => {
     const stopped = status === "stopped";
@@ -57,6 +73,19 @@ export function ProductionCardActionsMenu({
         divider: true,
       },
       {
+        id: "view-logs",
+        label: "Go to logs",
+        icon: <Layers3 iconSize="md-regular" />,
+        onClick: () => router.push(logsHref),
+      },
+      {
+        id: "view-requests",
+        label: "Go to requests",
+        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        onClick: () => router.push(requestsHref),
+        divider: true,
+      },
+      {
         id: "copy-deployment-id",
         label: "Copy deployment ID",
         icon: <Clone iconSize="md-regular" />,
@@ -79,7 +108,7 @@ export function ProductionCardActionsMenu({
         },
       },
     ];
-  }, [deployment, status, commitUrl, gated, openPaywall]);
+  }, [deployment, status, commitUrl, gated, openPaywall, router, logsHref, requestsHref]);
 
   return (
     <>

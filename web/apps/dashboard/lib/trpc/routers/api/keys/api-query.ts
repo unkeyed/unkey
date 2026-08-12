@@ -19,7 +19,6 @@ type DatabaseKey = Pick<
   | "id"
   | "keyAuthId"
   | "name"
-  | "ownerId"
   | "identityId"
   | "meta"
   | "enabled"
@@ -42,7 +41,6 @@ type KeyDetails = {
   id: DatabaseKey["id"];
   key_auth_id: DatabaseKey["keyAuthId"];
   name: DatabaseKey["name"];
-  owner_id: DatabaseKey["ownerId"];
   identity_id: DatabaseKey["identityId"];
   meta: DatabaseKey["meta"];
   enabled: DatabaseKey["enabled"];
@@ -177,30 +175,24 @@ export async function queryApiKeys({
       }
 
       let externalMatch: SQL<unknown>;
-      let ownerMatch: SQL<unknown>;
       const escaped = escapeLikePattern(value);
       switch (filter.operator) {
         case "contains":
           externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${escaped}%`}) ESCAPE '!'`;
-          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`%${escaped}%`}) ESCAPE '!'`;
           break;
         case "startsWith":
           externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`${escaped}%`}) ESCAPE '!'`;
-          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`${escaped}%`}) ESCAPE '!'`;
           break;
         case "endsWith":
           externalMatch = sql`LOWER(${identities.externalId}) LIKE LOWER(${`%${escaped}`}) ESCAPE '!'`;
-          ownerMatch = sql`LOWER(${keys.ownerId}) LIKE LOWER(${`%${escaped}`}) ESCAPE '!'`;
           break;
         default:
           externalMatch = sql`${identities.externalId} = ${value}`;
-          ownerMatch = sql`${keys.ownerId} = ${value}`;
       }
 
       identityOrs.push(
         sql`EXISTS (SELECT 1 FROM ${identities} WHERE ${identities.id} = ${keys.identityId} AND ${externalMatch})`,
       );
-      identityOrs.push(ownerMatch);
     }
 
     if (identityOrs.length > 0) {
@@ -218,7 +210,6 @@ export async function queryApiKeys({
       id: keys.id,
       keyAuthId: keys.keyAuthId,
       name: keys.name,
-      ownerId: keys.ownerId,
       identityId: keys.identityId,
       meta: keys.meta,
       enabled: keys.enabled,
@@ -348,7 +339,6 @@ export async function queryApiKeys({
     id: k.id,
     keyAuthId: k.keyAuthId,
     name: k.name,
-    ownerId: k.ownerId,
     identityId: k.identityId,
     meta: k.meta,
     enabled: k.enabled,
@@ -416,7 +406,6 @@ export function createKeyDetailsMap(keys: DatabaseKey[]): Map<string, KeyDetails
       id: key.id,
       key_auth_id: key.keyAuthId,
       name: key.name,
-      owner_id: key.ownerId,
       identity_id: key.identityId,
       meta: key.meta,
       enabled: key.enabled,
