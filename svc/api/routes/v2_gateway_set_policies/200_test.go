@@ -134,7 +134,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 	t.Run("set replaces stored policies including variants this API cannot create", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		jwtauth := `{"id":"pol_jwt","name":"legacy jwt","enabled":true,"jwtauth":{}}`
-		seedSentinelConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, jwtauth))
+		seedPolicyConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, jwtauth))
 
 		call(t, makeRequest(env, []openapi.Policy{firewallPolicy("deny", true)}))
 

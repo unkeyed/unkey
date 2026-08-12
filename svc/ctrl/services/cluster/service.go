@@ -49,7 +49,7 @@ type clusterCacheKey struct {
 
 // Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
 // between the control plane and krane agents. It provides streaming RPCs for watching
-// deployment and sentinel changes, point queries for fetching individual resource states,
+// deployment changes, point queries for fetching individual resource states,
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
@@ -58,9 +58,7 @@ type Service struct {
 	bearer  string
 	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
 	// fire on every krane status report once the threshold is met. Keys
-	// are "deployment:<id>". The sentinel path uses the
-	// deploy_status=progressing gate + DB flip as its idempotency
-	// mechanism instead (see maybeNotifySentinelReady).
+	// are "deployment:<id>".
 	notifiedReady *expiringSet[string]
 	// clusterCache memoizes immutable cluster identities for cluster-scoped RPCs.
 	clusterCache cache.Cache[clusterCacheKey, db.FindClusterRow]
@@ -92,7 +90,7 @@ type Config struct {
 	// Database provides read and write access for querying and updating resource state.
 	Database db.Database
 
-	// Restate is the ingress client used to trigger NotifyReady on sentinel virtual objects.
+	// Restate is the ingress client used to trigger durable workflows.
 	Restate *ingress.Client
 
 	// Bearer is the authentication token that agents must provide in the Authorization header.

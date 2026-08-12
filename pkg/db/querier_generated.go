@@ -204,6 +204,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
+	// Returns the sentinel_config of an app's current deployment, scoped to the
+	// workspace. Used by portal.createSession to resolve the keyspaces an
+	// app-mapped portal config grants access to (the keyauth policies carry the
+	// keySpaceIds verified at the gateway).
+	//
+	//  SELECT d.sentinel_config
+	//  FROM apps a
+	//  JOIN deployments d ON a.current_deployment_id = d.id
+	//  WHERE a.id = ?
+	//    AND a.workspace_id = ?
+	FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
@@ -230,17 +241,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	// Returns the sentinel_config of an app's current deployment, scoped to the
-	// workspace. Used by portal.createSession to resolve the keyspaces an
-	// app-mapped portal config grants access to (the keyauth policies carry the
-	// keySpaceIds verified at the gateway).
-	//
-	//  SELECT d.sentinel_config
-	//  FROM apps a
-	//  JOIN deployments d ON a.current_deployment_id = d.id
-	//  WHERE a.id = ?
-	//    AND a.workspace_id = ?
-	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -2818,7 +2818,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
-	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
+	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (

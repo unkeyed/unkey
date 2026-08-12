@@ -160,8 +160,8 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		// Sentinel resources are no longer dispatched — frontline took
-		// over the request path. The outbox row exists during the
+		// This legacy resource type is no longer dispatched. Frontline owns
+		// the request path. The outbox row exists during the
 		// cutover so we just acknowledge it and advance the version.
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 

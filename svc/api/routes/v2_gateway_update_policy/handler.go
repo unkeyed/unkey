@@ -246,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		now := time.Now().UnixMilli()
-		if upsertErr := db.Query.UpsertAppRuntimeSettingsSentinelConfig(ctx, tx, db.UpsertAppRuntimeSettingsSentinelConfigParams{
+		if upsertErr := db.Query.UpsertAppRuntimeSettingsPolicyConfig(ctx, tx, db.UpsertAppRuntimeSettingsPolicyConfigParams{
 			WorkspaceID:    env.WorkspaceID,
 			AppID:          env.AppID,
 			EnvironmentID:  env.ID,

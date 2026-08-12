@@ -80,11 +80,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	}
 }
 
-// seedSentinelConfig overwrites the seeded runtime settings row's blob
+// seedPolicyConfig overwrites the seeded runtime settings row's policy blob
 // directly, bypassing the handler, so tests can set up pre-existing state
 // including policy variants the API cannot create. The environment seeder
 // always creates the row (with the legacy "{}" blob).
-func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
+func seedPolicyConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
 	t.Helper()
 	_, err := h.DB.RW().ExecContext(context.Background(),
 		"UPDATE app_runtime_settings SET sentinel_config = ? WHERE app_id = ? AND environment_id = ?",

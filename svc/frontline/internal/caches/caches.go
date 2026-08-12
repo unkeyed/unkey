@@ -23,7 +23,7 @@ type Caches struct {
 	InstancesByDeployment cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 
 	// DeploymentID -> Parsed gateway policies. Cached to avoid re-parsing
-	// the protojson SentinelConfig on every request.
+	// the persisted policy config on every request.
 	Policies cache.Cache[string, []*frontlinev1.Policy]
 
 	// HostName -> Certificate

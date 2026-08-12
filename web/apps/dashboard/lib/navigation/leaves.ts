@@ -162,11 +162,11 @@ export function buildAppLinks(
       isActive: page === "env-vars",
     },
     {
-      key: "sentinel-policies",
+      key: "policies",
       label: "Policies",
-      href: routes.projects.apps.sentinelPolicies(scope),
+      href: routes.projects.apps.policies(scope),
       icon: ShieldKey,
-      isActive: page === "sentinel-policies",
+      isActive: page === "policies",
     },
     {
       key: "settings",

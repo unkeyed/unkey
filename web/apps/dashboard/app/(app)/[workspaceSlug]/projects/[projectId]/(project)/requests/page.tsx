@@ -1,11 +1,11 @@
 "use client";
 import { PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { useState } from "react";
-import { SentinelLogsControlCloud } from "./components/control-cloud";
-import { SentinelLogsControls } from "./components/controls";
-import { SentinelLogDetails } from "./components/table/sentinel-log-details";
-import { SentinelLogsTable } from "./components/table/sentinel-logs-table";
-import { SentinelLogsProvider } from "./context/sentinel-logs-provider";
+import { RequestLogsControlCloud } from "./components/control-cloud";
+import { RequestLogsControls } from "./components/controls";
+import { RequestLogDetails } from "./components/table/request-log-details";
+import { RequestLogsTable } from "./components/table/request-logs-table";
+import { RequestLogsProvider } from "./context/request-logs-provider";
 
 export default function Page() {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
@@ -17,8 +17,8 @@ export default function Page() {
           <PageHeaderTitle>Requests</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      <SentinelLogsProvider>
-        <SentinelLogsControls />
+      <RequestLogsProvider>
+        <RequestLogsControls />
         <div
           ref={(el) => {
             if (el) {
@@ -27,10 +27,10 @@ export default function Page() {
             }
           }}
         />
-        <SentinelLogsControlCloud />
-        <SentinelLogsTable />
-        <SentinelLogDetails distanceToTop={tableDistanceToTop} />
-      </SentinelLogsProvider>
+        <RequestLogsControlCloud />
+        <RequestLogsTable />
+        <RequestLogDetails distanceToTop={tableDistanceToTop} />
+      </RequestLogsProvider>
     </PageContainer>
   );
 }

@@ -266,7 +266,7 @@ type Config struct {
 	Observability config.Observability `toml:"observability"`
 
 	// DefaultDomain is the fallback domain for system operations.
-	// Used for sentinel deployment and automatic certificate bootstrapping.
+	// Used for automatic certificate bootstrapping.
 	DefaultDomain string `toml:"default_domain" config:"default=unkey.app"`
 
 	// DashboardURL is the base URL of the dashboard, used for constructing links

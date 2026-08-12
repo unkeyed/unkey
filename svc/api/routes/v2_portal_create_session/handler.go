@@ -73,7 +73,7 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 		return []string{portalConfig.KeyAuthID.String}, nil
 	}
 
-	raw, err := db.Query.FindAppSentinelConfigByID(ctx, h.DB.RO(), db.FindAppSentinelConfigByIDParams{
+	raw, err := db.Query.FindAppPolicyConfigByID(ctx, h.DB.RO(), db.FindAppPolicyConfigByIDParams{
 		AppID:       portalConfig.AppID.String,
 		WorkspaceID: workspaceID,
 	})
@@ -92,7 +92,7 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 		)
 	}
 
-	keyspaceIDs, err := keyspacesFromSentinelConfig(raw)
+	keyspaceIDs, err := keyspacesFromPolicyConfig(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +107,10 @@ func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, po
 	return keyspaceIDs, nil
 }
 
-// keyspacesFromSentinelConfig parses a deployment's gateway policy config and returns
+// keyspacesFromPolicyConfig parses a deployment's gateway policy config and returns
 // the deduplicated keyspaces declared across its keyauth policies. Empty or
 // legacy empty-object configs yield no keyspaces.
-func keyspacesFromSentinelConfig(raw []byte) ([]string, error) {
+func keyspacesFromPolicyConfig(raw []byte) ([]string, error) {
 	cfg, err := policyconfig.Parse(raw)
 	if err != nil {
 		return nil, fault.Wrap(err,

@@ -4,7 +4,7 @@ import type { Querier } from "../client";
 // Environment-scoped Frontline request metrics: per-bucket request and error
 // counts for a single app and environment, read from the pre-aggregated
 // frontline_requests_per_* tables. Deployment-scoped request helpers live in
-// sentinel.ts.
+// frontline.ts.
 
 // Interval is the bucket-resolution token callers request. Each maps to a bucket
 // size in [INTERVAL_MS] and a pre-aggregated table in [TABLE_BY_INTERVAL].

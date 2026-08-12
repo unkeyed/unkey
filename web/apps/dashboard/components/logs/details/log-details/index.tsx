@@ -4,9 +4,9 @@ import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { EnrichedRatelimitLog } from "@/components/ratelimit-logs-table";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { type ReactNode, createContext, useContext, useMemo } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
@@ -28,7 +28,7 @@ export type SupportedLogTypes =
   | KeysOverviewLog
   | AuditLog
   | RuntimeLog
-  | SentinelLogsResponse;
+  | RequestLogsResponse;
 
 type LogDetailsContextValue = {
   log: SupportedLogTypes;
