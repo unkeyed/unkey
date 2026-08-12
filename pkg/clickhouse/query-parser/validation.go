@@ -67,6 +67,17 @@ var allowedFunctions = map[string]bool{
 	"startswith": true,
 	"endswith":   true,
 
+	// JSON functions
+	// runtime_logs_raw_v1.attributes_text contains toJSONString(attributes). The
+	// JSON column has no grant. A query that selects attributes_text gets the
+	// full JSON string, and the caller can parse it. This is sufficient to read
+	// the logs, but it is not sufficient to group them. A GROUP BY on one
+	// attribute needs the value as a column.
+	//
+	// The other JSONExtract functions are not in this list. To add a function
+	// later is a compatible change, but to remove one is a breaking change.
+	"jsonextractstring": true,
+
 	// Math functions
 	"round": true,
 	"floor": true,
@@ -100,6 +111,7 @@ var canonicalFunctionNames = map[string]string{
 	"grouparray":               "groupArray",
 	"groupuniqarray":           "groupUniqArray",
 	"uniqexact":                "uniqExact",
+	"jsonextractstring":        "JSONExtractString",
 	"now64":                    "now64",
 	"todate":                   "toDate",
 	"todatetime":               "toDateTime",

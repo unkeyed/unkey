@@ -300,6 +300,39 @@ var gatewayRequestColumns = []string{
 	"frontline_latency",
 }
 
+// runtimeLogColumns lists the columns of runtime_logs_raw_v1 that customers can
+// read. Four columns are not in the list.
+//
+// platform and k8s_pod_name show the Unkey infrastructure. This is the same
+// reason that platform is not in gatewayRequestColumns. The deployment
+// endpoints apply the same rule. Both of them make sure that k8s_name does not
+// appear in a response.
+//
+// expires_at controls the TTL and has no meaning for a customer.
+//
+// attributes is the JSON column. This type makes approximately one thousand
+// subcolumn files for each part. Thus one cold query on it reads one thousand
+// objects only to get the marks. attributes_text contains the same data as a
+// String. The dashboard reads attributes_text, and the ngrambf_v1 index covers
+// only this form.
+var runtimeLogColumns = []string{
+	"log_id",
+	"time",
+	// inserted_at is in the list on purpose. The table has PARTITION BY
+	// toDate(inserted_at), but queries filter on time. Thus a query without a
+	// condition on inserted_at reads the marks of all the partitions.
+	"inserted_at",
+	"severity",
+	"message",
+	"workspace_id",
+	"project_id",
+	"environment_id",
+	"app_id",
+	"deployment_id",
+	"region",
+	"attributes_text",
+}
+
 // DefaultAllowedTables returns the default list of tables for analytics access
 func DefaultAllowedTables() []AllowedTable {
 	return []AllowedTable{
@@ -317,5 +350,7 @@ func DefaultAllowedTables() []AllowedTable {
 		{Name: "default.ratelimits_per_month_v2", Columns: nil},
 		// Gateway requests
 		{Name: "default.frontline_requests_raw_v1", Columns: gatewayRequestColumns},
+		// Runtime logs
+		{Name: "default.runtime_logs_raw_v1", Columns: runtimeLogColumns},
 	}
 }
