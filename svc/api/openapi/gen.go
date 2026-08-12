@@ -1111,7 +1111,9 @@ type Policy struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1142,7 +1144,9 @@ type PolicyResponse struct {
 	// the policy is a no-op and requests pass through unvalidated.
 	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
@@ -1245,11 +1249,21 @@ type RatelimitOverride struct {
 	OverrideId string `json:"overrideId"`
 }
 
-// RatelimitPolicy Rate limits matching requests.
+// RatelimitPolicy Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+// The deprecated `identifier` field is accepted in place of a one-entry
+// `identifiers` list; set exactly one of the two.
 type RatelimitPolicy struct {
-	// Identifier How requests are grouped for rate limiting. Exactly one of `remoteIp`,
-	// `header`, `authenticatedSubject`, `path` or `principalField` must be set.
-	Identifier RatelimitIdentifier `json:"identifier"`
+	// Identifier Deprecated. Accepted for compatibility with old clients. Use
+	// `identifiers` with one entry. Responses always return `identifiers`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Identifier *RatelimitIdentifier `json:"identifier,omitempty"`
+
+	// Identifiers Ordered list of sources that form a compound rate limit key. The
+	// gateway resolves each source for each request. Each unique
+	// combination of resolved values has its own counter. All counters use
+	// the same limit and window. Example: `[authenticatedSubject, path]`
+	// limits each subject separately on each path.
+	Identifiers *[]RatelimitIdentifier `json:"identifiers,omitempty"`
 
 	// Limit Maximum number of requests per window.
 	Limit int64 `json:"limit"`
@@ -2499,7 +2513,9 @@ type V2GatewayUpdatePolicyRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Ratelimit Rate limits matching requests.
+	// Ratelimit Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+	// The deprecated `identifier` field is accepted in place of a one-entry
+	// `identifiers` list; set exactly one of the two.
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
