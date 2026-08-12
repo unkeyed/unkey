@@ -9,7 +9,7 @@ import (
 
 func Test412_UnconfiguredAnalytics(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_logs")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT count() FROM runtime_logs_v1",

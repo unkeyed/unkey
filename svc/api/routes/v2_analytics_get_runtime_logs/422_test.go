@@ -35,7 +35,7 @@ func (resourceLimitManager) GetConnection(context.Context, string) (clickhouse.C
 func Test422_ExceedsMaxMemory(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_logs")
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_analytics")
 
 	route := &Handler{AnalyticsConnectionManager: resourceLimitManager{}}
 	h.Register(route)
