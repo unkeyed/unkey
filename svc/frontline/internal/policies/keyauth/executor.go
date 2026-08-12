@@ -138,9 +138,9 @@ func (e *Executor) Execute(
 		)
 	case keys.StatusUsageExceeded:
 		return nil, fault.New("usage exceeded",
-			fault.Code(codes.Frontline.Auth.RateLimited.URN()),
+			fault.Code(codes.Frontline.Auth.UsageExceeded.URN()),
 			fault.Internal("usage limit exceeded"),
-			fault.Public("Usage limit exceeded. Please try again later."),
+			fault.Public("Usage limit exceeded. No credits remain."),
 		)
 	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:

@@ -477,6 +477,30 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	require.NotNil(t, identity.Meta)
 }
 
+func TestKeyAuth_UsageExceededHasDistinctCode(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, []*frontlinev1.Policy{
+		keyAuthPolicy("auth", []string{s.KeySpaceID}),
+	})
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
+}
+
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
