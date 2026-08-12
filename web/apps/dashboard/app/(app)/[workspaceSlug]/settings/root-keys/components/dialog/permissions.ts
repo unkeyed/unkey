@@ -208,6 +208,10 @@ export const workspacePermissions = {
       description: "Query gateway request data for all projects in this workspace using SQL.",
       permission: "project.*.read_gateway_requests",
     },
+    read_logs: {
+      description: "Query deployment runtime logs for all projects in this workspace using SQL.",
+      permission: "project.*.read_logs",
+    },
   },
   Apps: {
     create_app: {
