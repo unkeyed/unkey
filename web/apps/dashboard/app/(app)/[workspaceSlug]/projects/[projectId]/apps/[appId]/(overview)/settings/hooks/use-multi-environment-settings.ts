@@ -3,7 +3,6 @@
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 
 type MultiEnvironmentSettings = {
@@ -15,45 +14,19 @@ export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
   const { environments, projectId } = useProjectData();
   const appId = useAppId();
 
-  const productionEnvId = useMemo(
-    () => environments.find((e) => e.kind === "production")?.id,
-    [environments],
-  );
-  const previewEnvId = useMemo(
-    () => environments.find((e) => e.kind === "preview")?.id,
-    [environments],
-  );
-
-  const { data: productionData } = useLiveQuery(
+  const { data } = useLiveQuery(
     (q) =>
       q
         .from({ s: collection.environmentSettings })
-        .where(({ s }) =>
-          and(
-            eq(s.projectId, projectId),
-            eq(s.appId, appId),
-            eq(s.environmentId, productionEnvId ?? ""),
-          ),
-        ),
-    [productionEnvId, projectId, appId],
+        .where(({ s }) => and(eq(s.projectId, projectId), eq(s.appId, appId))),
+    [projectId, appId],
   );
 
-  const { data: previewData } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) =>
-          and(
-            eq(s.projectId, projectId),
-            eq(s.appId, appId),
-            eq(s.environmentId, previewEnvId ?? ""),
-          ),
-        ),
-    [previewEnvId, projectId, appId],
-  );
+  const productionEnvId = environments.find((e) => e.kind === "production")?.id;
+  const previewEnvId = environments.find((e) => e.kind === "preview")?.id;
 
-  const production = productionData?.at(0);
-  const preview = previewData?.at(0);
+  const production = data?.find((s) => s.environmentId === productionEnvId);
+  const preview = data?.find((s) => s.environmentId === previewEnvId);
 
   if (!production || !preview) {
     return null;
