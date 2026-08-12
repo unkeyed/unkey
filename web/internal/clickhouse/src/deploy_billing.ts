@@ -89,11 +89,9 @@ export function getDeployMeterUsage(ch: Querier) {
 
   return async (args: {
     workspaceId: string;
-    /** Inclusive lower bound of the billing period, unix millis. */
     periodStart: number;
     /** Inclusive lower bound of the projection window, unix millis. */
     trailingStart: number;
-    /** Exclusive upper bound, unix millis. */
     end: number;
   }): Promise<DeployMeterUsage> => {
     const result = await query({
@@ -116,6 +114,60 @@ export function getDeployMeterUsage(ch: Querier) {
         trailingEgressGiB: 0,
       }
     );
+  };
+}
+
+export const deployUsageByScope = z.object({
+  projectId: z.string(),
+  appId: z.string(),
+  environmentId: z.string(),
+  cpuSeconds: z.number(),
+  memoryGiBHours: z.number(),
+  diskGiBHours: z.number(),
+  egressGiB: z.number(),
+});
+
+export type DeployUsageByScope = z.infer<typeof deployUsageByScope>;
+
+// FINAL is required, not an optimisation: the refresh views append overlapping
+// generations, so summing without it double-counts.
+export function getDeployUsageByScope(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        project_id AS projectId,
+        app_id AS appId,
+        environment_id AS environmentId,
+        sum(cpu_seconds) AS cpuSeconds,
+        sum(memory_gib_hours) AS memoryGiBHours,
+        sum(disk_gib_hours) AS diskGiBHours,
+        sum(network_egress_public_bytes) / pow(1024, 3) AS egressGiB
+      FROM default.instance_usage_per_hour_v1 FINAL
+      WHERE workspace_id = {workspaceId: String}
+        AND time >= toDateTime(fromUnixTimestamp64Milli({periodStart: Int64}))
+        AND time < toDateTime(fromUnixTimestamp64Milli({end: Int64}))
+      GROUP BY project_id, app_id, environment_id
+      ORDER BY cpuSeconds DESC, projectId, appId, environmentId
+      SETTINGS do_not_merge_across_partitions_select_final = 1
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      periodStart: z.int(),
+      end: z.int(),
+    }),
+    schema: deployUsageByScope,
+  });
+
+  return async (args: {
+    workspaceId: string;
+    periodStart: number;
+    end: number;
+  }): Promise<DeployUsageByScope[]> => {
+    const result = await query(args);
+    if (result.err) {
+      throw new Error(`Failed to query deploy usage by scope: ${result.err.message}`);
+    }
+    return result.val;
   };
 }
 

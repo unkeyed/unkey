@@ -31,9 +31,9 @@ describe("routes.projects.logs", () => {
     );
   });
 
-  it("scopes logs to an app", () => {
+  it("scopes logs to an app, prefixing the app id filter with is:", () => {
     expect(routes.projects.logs({ workspaceSlug: ws, projectId, appId })).toBe(
-      "/acme/projects/proj_123/logs?appId=app_456",
+      "/acme/projects/proj_123/logs?appId=is:app_456",
     );
   });
 });
@@ -45,9 +45,9 @@ describe("routes.projects.requests", () => {
     );
   });
 
-  it("builds the since + appId query in order", () => {
+  it("builds the since + appId query in order, prefixing the app id filter with is:", () => {
     expect(routes.projects.requests({ workspaceSlug: ws, projectId, since: "6h", appId })).toBe(
-      "/acme/projects/proj_123/requests?since=6h&appId=app_456",
+      "/acme/projects/proj_123/requests?since=6h&appId=is:app_456",
     );
   });
 

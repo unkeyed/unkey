@@ -72,7 +72,8 @@ func classifyKeyauthError(err error) string {
 	case codes.Frontline.Auth.MissingCredentials.URN(),
 		codes.Frontline.Auth.InvalidKey.URN(),
 		codes.Frontline.Auth.InsufficientPermissions.URN(),
-		codes.Frontline.Auth.RateLimited.URN():
+		codes.Frontline.Auth.RateLimited.URN(),
+		codes.Frontline.Auth.UsageExceeded.URN():
 		return "denied"
 	default:
 		return "error"

@@ -113,10 +113,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
                 id="deployment-all"
                 checked={allChecked}
                 className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectAll();
-                }}
+                onCheckedChange={handleSelectAll}
               />
               <span className="text-xs text-accent-12">
                 {allChecked ? "Unselect All" : "Select All"}
@@ -133,10 +130,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
                   id={`deployment-${row.id}`}
                   checked={checkedIds.has(row.id)}
                   className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggle(row.id);
-                  }}
+                  onCheckedChange={() => toggle(row.id)}
                 />
                 {row.gitBranch && (
                   <span className="text-accent-12 text-xs font-medium truncate">

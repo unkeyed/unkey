@@ -34,7 +34,9 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
+import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
+import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
 import { createApp } from "./deploy/app/create";
 import { deleteApp } from "./deploy/app/delete";
@@ -397,6 +399,8 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
     queryDeployUsage,
+    queryDeployUsageBreakdown,
+    queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
   }),

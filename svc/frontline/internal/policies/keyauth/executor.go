@@ -45,6 +45,7 @@ func (e *Executor) Execute(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
+	appID string,
 	cfg *frontlinev1.KeyAuth,
 ) (*principal.Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
@@ -67,7 +68,11 @@ func (e *Executor) Execute(
 	}
 	// Capture the final verifier state (after any Verify-stage mutations) into
 	// the key_verifications stream regardless of which branch returns below.
-	defer func() { e.keyVerifications.Buffer(verifier.TelemetrySnapshot()) }()
+	defer func() {
+		verification := verifier.TelemetrySnapshot()
+		verification.AppID = appID
+		e.keyVerifications.Buffer(verification)
+	}()
 
 	// Fail fast on states that verification cannot recover from (not found,
 	// disabled, expired, workspace disabled, etc.) before spending a credit.
@@ -133,9 +138,9 @@ func (e *Executor) Execute(
 		)
 	case keys.StatusUsageExceeded:
 		return nil, fault.New("usage exceeded",
-			fault.Code(codes.Frontline.Auth.RateLimited.URN()),
+			fault.Code(codes.Frontline.Auth.UsageExceeded.URN()),
 			fault.Internal("usage limit exceeded"),
-			fault.Public("Usage limit exceeded. Please try again later."),
+			fault.Public("Usage limit exceeded. This API key has no remaining credits."),
 		)
 	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:

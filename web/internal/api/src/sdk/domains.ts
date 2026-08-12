@@ -93,9 +93,9 @@ export class Domains extends ClientSDK {
    * @remarks
    * List the custom domains attached to an environment and their verification status.
    *
-   * The results are in order of domain id, and the response is paginated. When `hasMore` is
-   * true, send the returned `cursor` to get the next page. An environment with no domains
-   * returns an empty array, not a 404.
+   * Results are paginated and sorted by their id. When `hasMore` is true, send the
+   * returned `cursor` to get the next page. An environment with no domains returns an
+   * empty array, not a 404.
    *
    * `status: verified` means the domain is verified. Unkey has configured routing and requested a
    * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.

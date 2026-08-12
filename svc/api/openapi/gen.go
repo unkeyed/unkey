@@ -1502,8 +1502,8 @@ type V2AnalyticsGetVerificationsResponseData = []map[string]interface{}
 
 // V2ApisCreateApiRequestBody defines model for V2ApisCreateApiRequestBody.
 type V2ApisCreateApiRequestBody struct {
-	// Name Unique identifier for this API namespace within your workspace.
-	// Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+	// Name Human-readable name for this API within your workspace.
+	// Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
 	Name string `json:"name"`
 }
 
@@ -3545,10 +3545,15 @@ type V2PermissionsCreateRoleRequestBody struct {
 	// - Related roles that might be used together
 	Description *string `json:"description,omitempty"`
 
-	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+	// Name The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 	//
-	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+	// Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
 	Name string `json:"name"`
+
+	// Permissions Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+	//
+	// Omit this field or provide an empty array to create the role without permissions.
+	Permissions *[]string `json:"permissions,omitempty"`
 }
 
 // V2PermissionsCreateRoleResponseBody defines model for V2PermissionsCreateRoleResponseBody.
@@ -3719,6 +3724,28 @@ type V2PermissionsListRolesResponseBody struct {
 
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
+
+// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+type V2PermissionsSetRolePermissionsRequestBody struct {
+	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+	Permissions []string `json:"permissions"`
+
+	// RoleId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	RoleId ResourceIdentifier `json:"roleId"`
+}
+
+// V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
+type V2PermissionsSetRolePermissionsResponseBody struct {
+	// Data Complete list of permissions now directly assigned to the role.
+	Data V2PermissionsSetRolePermissionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PermissionsSetRolePermissionsResponseData Complete list of permissions now directly assigned to the role.
+type V2PermissionsSetRolePermissionsResponseData = []Permission
 
 // V2PortalCreateSessionRequestBody defines model for V2PortalCreateSessionRequestBody.
 type V2PortalCreateSessionRequestBody struct {
@@ -4530,6 +4557,9 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
+
+// PermissionsSetRolePermissionsJSONRequestBody defines body for PermissionsSetRolePermissions for application/json ContentType.
+type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissionsRequestBody
 
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody

@@ -26,6 +26,8 @@ The `key_verifications_v1` table contains individual verification events as they
 | `key_id`        | String        | Individual API key identifier                                                                                                                      |
 | `outcome`       | String        | Verification result (see [Outcome Values](#outcome-values))                                                                                        |
 | `region`        | String        | Unkey region that handled the verification                                                                                                         |
+| `source`        | String        | Verification origin. `api` means the Verify API, and `gateway` means a gateway API key policy                                                       |
+| `app_id`        | String        | App whose gateway policy verified the key. Empty when `source` is not `gateway`                                                                     |
 | `tags`          | Array(String) | Custom tags added during verification                                                                                                              |
 | `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                          |
 
@@ -60,6 +62,8 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 | `external_id`   | String        | Your user identifier                                                                                                   |
 | `key_id`        | String        | API key identifier                                                                                                     |
 | `outcome`       | String        | Verification outcome (VALID, RATE_LIMITED, INVALID, etc.)                                                              |
+| `source`        | String        | Verification origin (`api` or `gateway`)                                                                               |
+| `app_id`        | String        | App whose gateway policy verified the key. Empty for non-gateway verifications                                        |
 | `tags`          | Array         | Tags associated with verifications                                                                                     |
 | `count`         | UInt64        | Total verification count for this aggregation                                                                          |
 | `spent_credits` | UInt64        | Total credits spent                                                                                                    |
@@ -105,6 +109,24 @@ WHERE external_id = 'user_abc123'
 SELECT COUNT(*) FROM key_verifications_v1
 WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND external_id IN ('user_abc', 'user_xyz')
+```
+
+## Filter gateway verifications by app
+
+Verifications from the gateway use `source = 'gateway'` and include the app ID that ran
+the API key policy. Verifications through the Verify API use `source = 'api'`
+and an empty `app_id`.
+
+```sql
+SELECT
+  app_id,
+  SUM(count) AS verifications
+FROM key_verifications_per_day_v1
+WHERE source = 'gateway'
+  AND app_id != ''
+  AND time >= now() - INTERVAL 30 DAY
+GROUP BY app_id
+ORDER BY verifications DESC
 ```
 
 ## Working with Tags

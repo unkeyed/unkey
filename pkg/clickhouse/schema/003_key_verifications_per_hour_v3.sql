@@ -7,6 +7,7 @@ CREATE TABLE key_verifications_per_hour_v3 (
   key_id String,
   outcome LowCardinality (String),
   source LowCardinality (String),
+  app_id LowCardinality (String),
   tags Array(String),
   count SimpleAggregateFunction(sum, Int64),
   spent_credits SimpleAggregateFunction(sum, Int64),
@@ -27,7 +28,8 @@ ORDER BY
     key_id,
     outcome,
     tags,
-    source
+    source,
+    app_id
   )
 PARTITION BY toStartOfDay(time)
 TTL time + INTERVAL 90 DAY DELETE;
@@ -41,6 +43,7 @@ SELECT
   key_id,
   outcome,
   source,
+  app_id,
   tags,
   sum(count) as count,
   sum(spent_credits) as spent_credits,
@@ -59,5 +62,6 @@ GROUP BY
   key_id,
   outcome,
   source,
+  app_id,
   tags
 ;
