@@ -23,6 +23,7 @@ import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
+  isScheduleUpdateOnly,
 } from "@/lib/stripe/subscriptionUtils";
 import { keepsTeamAfterDelete } from "@/lib/stripe/webhookRouting";
 import {
@@ -442,6 +443,13 @@ export const POST = async (req: Request): Promise<Response> => {
         // its upgrade/downgrade/cancel alert from it, and the API branch below
         // uses it for its skip heuristics and up/downgrade copy.
         const previousAttributes = event.data.previous_attributes;
+
+        // Creating or releasing a schedule leaves the active price and limits
+        // unchanged. The later phase transition carries the item price change
+        // and is reconciled normally.
+        if (isScheduleUpdateOnly(previousAttributes)) {
+          return new Response("OK", { status: 200 });
+        }
 
         // Deploy-matched: mirror the plan, announce the change, and stop. The
         // Deploy subscription never carries API tier/limit state, so there is

@@ -20,6 +20,7 @@ interface PreviousAttributes {
   cancel_at_period_end?: boolean;
   collection_method?: string;
   latest_invoice?: string | Stripe.Invoice | null;
+  schedule?: string | Stripe.SubscriptionSchedule | null;
 
   // Payment method changes (when users update their card)
   default_payment_method?: string | Stripe.PaymentMethod | null;
@@ -161,6 +162,16 @@ export function isCardUpdateOnly(
   }
 
   return false;
+}
+
+/** Attaching or releasing a schedule does not change the active API plan. */
+export function isScheduleUpdateOnly(previousAttributes: PreviousAttributes | undefined): boolean {
+  if (!previousAttributes) {
+    return false;
+  }
+
+  const changedKeys = Object.keys(previousAttributes);
+  return changedKeys.length === 1 && changedKeys[0] === "schedule";
 }
 
 export type { PreviousAttributes };
