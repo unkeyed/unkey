@@ -26,6 +26,7 @@ export const SENTINEL_LIMITS = {
   maxMatchExprsPerPolicy: 10,
   permissionQueryMaxLength: 1000,
   maxRatelimitsPerKeyauth: 10,
+  maxIdentifiersPerRatelimit: 5,
 } as const;
 
 // protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
@@ -167,6 +168,11 @@ const rateLimitIdentifierSchema = z.union([
 ]);
 export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
 
+// A ratelimit carries the `identifiers` list (1-5 dimensions combined into
+// one bucket key). The deprecated single `identifier` is still readable for
+// old stored blobs; the Go side enforces exactly-one at write time and the
+// refine mirrors it so locally constructed blobs fail fast instead of on
+// save. New writes always use `identifiers`.
 export const ratelimitPolicySchema = z
   .object({
     ...policyBase,
@@ -175,9 +181,17 @@ export const ratelimitPolicySchema = z
       .object({
         limit: wireInt64,
         windowMs: wireInt64,
-        identifier: rateLimitIdentifierSchema,
+        identifier: rateLimitIdentifierSchema.optional(),
+        identifiers: z
+          .array(rateLimitIdentifierSchema)
+          .min(1)
+          .max(SENTINEL_LIMITS.maxIdentifiersPerRatelimit)
+          .optional(),
       })
-      .strict(),
+      .strict()
+      .refine((r) => (r.identifier === undefined) !== (r.identifiers === undefined), {
+        message: "Exactly one of identifier or identifiers must be set",
+      }),
   })
   .strict();
 
