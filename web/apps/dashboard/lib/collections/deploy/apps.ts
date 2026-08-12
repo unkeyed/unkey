@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { extractStringFilter } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -41,13 +42,6 @@ export const createAppRequestSchema = z.object({
 export type App = z.infer<typeof schema>;
 export type CreateAppRequestSchema = z.infer<typeof createAppRequestSchema>;
 
-type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
-
-function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
-  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
-  return typeof value === "string" ? value : undefined;
-}
-
 /**
  * Global apps collection.
  *
@@ -59,14 +53,14 @@ export const apps = createCollection<App, string>(
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
       return projectId ? ["apps", projectId] : ["apps"];
     },
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
       const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");

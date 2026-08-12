@@ -3,7 +3,7 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { validateProjectIdInQuery } from "./utils";
+import { extractStringFilter, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -19,13 +19,6 @@ const schema = z.object({
 
 export type Domain = z.infer<typeof schema>;
 
-type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
-
-function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
-  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
-  return typeof value === "string" ? value : undefined;
-}
-
 /**
  * Global domains collection.
  *
@@ -38,8 +31,8 @@ export const domains = createCollection<Domain, string>(
     syncMode: "on-demand",
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
+      const appId = extractStringFilter(filters, "appId");
       if (!projectId) {
         return ["domains"];
       }
@@ -51,8 +44,8 @@ export const domains = createCollection<Domain, string>(
 
       validateProjectIdInQuery(options?.where);
       const { filters } = parseLoadSubsetOptions(options);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const projectId = extractStringFilter(filters, "projectId");
+      const appId = extractStringFilter(filters, "appId");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");

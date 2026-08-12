@@ -7,13 +7,7 @@ import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
-
-type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
-
-function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
-  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
-  return typeof value === "string" ? value : undefined;
-}
+import { extractStringFilter } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -39,7 +33,7 @@ export const envVars = createCollection<EnvVar, string>(
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const appId = extractStringFilter(filters, "appId");
       return appId ? ["envVars", appId] : ["envVars"];
     },
     retry: 3,
@@ -48,7 +42,7 @@ export const envVars = createCollection<EnvVar, string>(
       const options = ctx.meta?.loadSubsetOptions;
 
       const { filters } = parseLoadSubsetOptions(options);
-      const appId = extractStringFilter(filters, "appId", "eq");
+      const appId = extractStringFilter(filters, "appId");
 
       if (!appId) {
         throw new Error("Query must include eq(collection.appId, appId) constraint");
