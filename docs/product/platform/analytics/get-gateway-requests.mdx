@@ -73,19 +73,20 @@ Select the table with the largest interval that gives the data you need. The
 aggregated tables read fewer rows. The raw table shows each request and its
 path, status, and latency.
 
-| Public table | Granularity | Retention | Best for |
+| Public table | Granularity | Maximum history | Best for |
 | --- | --- | --- | --- |
 | `gateway_requests_v1` | Individual request | 7 days | Recent request details and exact request times |
 | `gateway_requests_per_minute_v1` | Minute | 14 days | Recent dashboard charts |
 | `gateway_requests_per_hour_v1` | Hour | 90 days | Daily and weekly trends |
 | `gateway_requests_per_day_v1` | Day | 365 days | Longer reports |
 
-Your workspace retention setting controls the time range that a query can
-request. If you do not add a time filter, Unkey limits the results to your
-workspace retention range. A query can request a range longer than the
-retention of a table, but it then gets only the rows that stay in that table.
-For example, a 30 day query on the raw table can contain partial data, because
-that table keeps 7 days. Select the hour table for a full 30 day range.
+Two limits control the time range of a query: the maximum history of the
+table and the retention setting of your workspace plan. A query gets only the
+rows that satisfy both limits. If you do not add a time filter, Unkey limits
+the results to your workspace retention range. For example, on a plan with 30
+days of retention, a query on the hour table gets at most 30 days of data,
+and a query on the raw table gets at most 7 days, because that table keeps 7
+days. Select the hour table for a full 30 day range.
 
 ## Reference available columns
 
