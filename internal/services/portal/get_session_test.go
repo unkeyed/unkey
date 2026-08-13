@@ -29,29 +29,31 @@ func TestSessionInfo_FieldsExist(t *testing.T) {
 	t.Parallel()
 
 	info := SessionInfo{
-		WorkspaceID:    "ws_123",
-		ExternalID:     "user_456",
-		PortalConfigID: "pc_789",
-		Permissions:    []string{"keys:read", "analytics:read"},
-		Preview:        true,
+		SessionID:   "ps_001",
+		WorkspaceID: "ws_123",
+		ExternalID:  "user_456",
+		PortalID:    "pc_789",
+		Scopes:      []string{"keys:read", "analytics:read"},
+		Preview:     true,
 	}
 
+	require.Equal(t, "ps_001", info.SessionID)
 	require.Equal(t, "ws_123", info.WorkspaceID)
 	require.Equal(t, "user_456", info.ExternalID)
-	require.Equal(t, "pc_789", info.PortalConfigID)
-	require.Equal(t, []string{"keys:read", "analytics:read"}, info.Permissions)
+	require.Equal(t, "pc_789", info.PortalID)
+	require.Equal(t, []string{"keys:read", "analytics:read"}, info.Scopes)
 	require.True(t, info.Preview)
 }
 
-func TestSessionInfo_NilPermissions(t *testing.T) {
+func TestSessionInfo_NilScopes(t *testing.T) {
 	t.Parallel()
 
 	info := SessionInfo{
-		WorkspaceID:    "ws_123",
-		ExternalID:     "user_456",
-		PortalConfigID: "pc_789",
+		WorkspaceID: "ws_123",
+		ExternalID:  "user_456",
+		PortalID:    "pc_789",
 	}
 
-	require.Nil(t, info.Permissions)
+	require.Nil(t, info.Scopes)
 	require.False(t, info.Preview)
 }

@@ -14,13 +14,15 @@ const insertPortalSession = `-- name: InsertPortalSession :exec
 INSERT INTO portal_sessions (
     id,
     workspace_id,
-    portal_config_id,
+    portal_id,
     external_id,
-    permissions,
+    scopes,
     preview,
-    expires_at,
+    exchange_code_hash,
+    exchange_code_expires_at,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -33,28 +35,33 @@ INSERT INTO portal_sessions (
 `
 
 type InsertPortalSessionParams struct {
-	ID             string          `db:"id"`
-	WorkspaceID    string          `db:"workspace_id"`
-	PortalConfigID string          `db:"portal_config_id"`
-	ExternalID     string          `db:"external_id"`
-	Permissions    json.RawMessage `db:"permissions"`
-	Preview        bool            `db:"preview"`
-	ExpiresAt      int64           `db:"expires_at"`
-	CreatedAt      int64           `db:"created_at"`
+	ID                    string          `db:"id"`
+	WorkspaceID           string          `db:"workspace_id"`
+	PortalID              string          `db:"portal_id"`
+	ExternalID            string          `db:"external_id"`
+	Scopes                json.RawMessage `db:"scopes"`
+	Preview               bool            `db:"preview"`
+	ExchangeCodeHash      string          `db:"exchange_code_hash"`
+	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
+	CreatedAt             int64           `db:"created_at"`
 }
 
-// InsertPortalSession
+// Creates a session in the `pending` state: an exchange code was minted, no
+// access token has been issued yet. Only the code's hash is stored; the code
+// itself is returned to the caller once and never persisted.
 //
 //	INSERT INTO portal_sessions (
 //	    id,
 //	    workspace_id,
-//	    portal_config_id,
+//	    portal_id,
 //	    external_id,
-//	    permissions,
+//	    scopes,
 //	    preview,
-//	    expires_at,
+//	    exchange_code_hash,
+//	    exchange_code_expires_at,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -68,11 +75,12 @@ func (q *Queries) InsertPortalSession(ctx context.Context, db DBTX, arg InsertPo
 	_, err := db.ExecContext(ctx, insertPortalSession,
 		arg.ID,
 		arg.WorkspaceID,
-		arg.PortalConfigID,
+		arg.PortalID,
 		arg.ExternalID,
-		arg.Permissions,
+		arg.Scopes,
 		arg.Preview,
-		arg.ExpiresAt,
+		arg.ExchangeCodeHash,
+		arg.ExchangeCodeExpiresAt,
 		arg.CreatedAt,
 	)
 	return err

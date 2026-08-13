@@ -27,13 +27,13 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	// Seed a portal config so we isolate validation errors.
+	// Seed a portal so we isolate validation errors.
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalConfigID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          portalConfigID,
+	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
+		ID:          portalID,
 		WorkspaceID: workspaceID,
 		Slug:        "test-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
@@ -49,12 +49,12 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	validPerms := []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"}
+	validScopes := []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"}
 
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
-			Permissions: validPerms,
+			Portal:     "test-portal",
+			Scopes:     validScopes,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -63,9 +63,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty externalId", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
+			Portal:     "test-portal",
 			ExternalId:  "",
-			Permissions: validPerms,
+			Scopes:     validScopes,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -75,7 +75,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	t.Run("missing slug", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId:  "user_123",
-			Permissions: validPerms,
+			Scopes:     validScopes,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -84,9 +84,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty slug", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "",
+			Portal:     "",
 			ExternalId:  "user_123",
-			Permissions: validPerms,
+			Scopes:     validScopes,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -95,7 +95,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing permissions", func(t *testing.T) {
 		req := handler.Request{
-			Slug:       "test-portal",
+			Portal:     "test-portal",
 			ExternalId: "user_123",
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -105,9 +105,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty permissions array", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
+			Portal:     "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -118,9 +118,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("unknown capability rejected", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
+			Portal:     "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:destroy"},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:destroy"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -129,9 +129,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
+			Portal:     "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"api.*.read_key"},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -140,9 +140,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("mixed valid and invalid rejected", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
+			Portal:     "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read", "api.*.read_key"},
+			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)

@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertPortalConfig is the base query for bulk insert
-const bulkInsertPortalConfig = `INSERT INTO portal_configurations ( id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at ) VALUES %s`
+// bulkInsertPortal is the base query for bulk insert
+const bulkInsertPortal = `INSERT INTO portals ( id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, branding, created_at, updated_at ) VALUES %s`
 
-// InsertPortalConfigs performs bulk insert in a single query
-func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error {
+// InsertPortals performs bulk insert in a single query
+func (q *BulkQueries) InsertPortals(ctx context.Context, db DBTX, args []InsertPortalParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -21,10 +21,10 @@ func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []I
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertPortalConfig, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertPortal, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
@@ -36,6 +36,7 @@ func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []I
 		allArgs = append(allArgs, arg.KeyAuthID)
 		allArgs = append(allArgs, arg.Enabled)
 		allArgs = append(allArgs, arg.ReturnUrl)
+		allArgs = append(allArgs, arg.Branding)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

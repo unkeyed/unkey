@@ -1,5 +1,5 @@
--- name: InsertPortalConfig :exec
-INSERT INTO portal_configurations (
+-- name: InsertPortal :exec
+INSERT INTO portals (
     id,
     workspace_id,
     slug,
@@ -7,6 +7,7 @@ INSERT INTO portal_configurations (
     key_auth_id,
     enabled,
     return_url,
+    branding,
     created_at,
     updated_at
 ) VALUES (
@@ -17,6 +18,7 @@ INSERT INTO portal_configurations (
     sqlc.narg(key_auth_id),
     sqlc.arg(enabled),
     sqlc.narg(return_url),
+    sqlc.narg(branding),
     sqlc.arg(created_at),
     sqlc.narg(updated_at)
 );

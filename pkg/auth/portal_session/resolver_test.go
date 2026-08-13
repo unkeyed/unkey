@@ -19,8 +19,8 @@ type stubPortal struct {
 	info  *portal.SessionInfo
 }
 
-func (s stubPortal) GetSession(_ context.Context, token string) (*portal.SessionInfo, error) {
-	if token != s.token {
+func (s stubPortal) GetSession(_ context.Context, accessToken string) (*portal.SessionInfo, error) {
+	if accessToken != s.token {
 		return nil, errors.New("invalid portal session")
 	}
 	return s.info, nil
@@ -33,11 +33,12 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	resolver := NewResolver(stubPortal{
 		token: "portal_session_123",
 		info: &portal.SessionInfo{
-			WorkspaceID:    "ws_123",
-			ExternalID:     "customer_123",
-			PortalConfigID: "pc_123",
-			KeyspaceIDs:    []string{"ks_1"},
-			Permissions:    []string{"keys:reroll"},
+			SessionID:   "ps_123",
+			WorkspaceID: "ws_123",
+			ExternalID:  "customer_123",
+			PortalID:    "pc_123",
+			KeyspaceIDs: []string{"ks_1"},
+			Scopes:      []string{"keys:reroll"},
 		},
 	})
 
@@ -54,13 +55,15 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, "ws_123", principal.WorkspaceID)
 	source, ok := principal.Source.(authprincipal.PortalSessionSource)
 	require.True(t, ok)
-	require.Equal(t, "portal_session_123", source.SessionID)
-	require.Equal(t, "pc_123", source.PortalConfigID)
+	// The row handle, not the cookie value: the cookie carries the bearer token.
+	require.Equal(t, "ps_123", source.SessionID)
+	require.NotEqual(t, "portal_session_123", source.SessionID)
+	require.Equal(t, "pc_123", source.PortalID)
 
 	// Portal principals carry the product capability directly. Resource scope is
 	// enforced separately by portal handlers.
 	expected := []string{portalrbac.CapKeysReroll}
-	require.Equal(t, expected, source.Permissions)
+	require.Equal(t, expected, source.Scopes)
 	require.Equal(t, expected, principal.Permissions)
 }
 

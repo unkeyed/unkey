@@ -26,7 +26,11 @@ const (
 	OrgPrefix                 Prefix = "org"
 
 	// Portal prefixes
-	PortalSessionTokenPrefix Prefix = "pst"
+	//
+	// The wire values are unchanged by the portal rename: prefixes are opaque,
+	// and they are the one part that would alter issued credentials and stored
+	// data rather than code. Only the Go identifiers follow the new vocabulary.
+	PortalExchangeCodePrefix Prefix = "pst"
 	PortalSessionPrefix      Prefix = "ps"
 	PortalConfigPrefix       Prefix = "pc"
 

@@ -6,5 +6,5 @@ properties:
   meta:
     $ref: "../../../../common/Meta.yaml"
   data:
-    $ref: "./V2PortalExchangeSessionResponseData.yaml"
+    $ref: "./V2PortalExchangeCodeResponseData.yaml"
 additionalProperties: false

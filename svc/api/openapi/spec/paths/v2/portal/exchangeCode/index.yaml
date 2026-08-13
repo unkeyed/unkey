@@ -2,38 +2,38 @@ post:
   x-excluded: true
   tags:
     - portal
-  summary: Exchange session token
+  summary: Exchange portal code
   description: |
-    Exchange a short-lived session token for a long-lived browser session.
+    Exchange a short-lived code for a long-lived portal access token.
 
-    This endpoint is unauthenticated. The session token itself serves as proof of authorization.
-    Each token can only be exchanged once; subsequent attempts return 401.
+    This endpoint is unauthenticated. The code itself serves as proof of authorization.
+    Each code can only be redeemed once; subsequent attempts return 401.
 
-    The returned browser session token is valid for 24 hours and should be stored as an
+    The returned access token is valid for 24 hours and should be stored as an
     httpOnly cookie or used in the Authorization header for subsequent API calls.
-  operationId: portal.exchangeSession
-  x-speakeasy-name-override: exchangeSession
+  operationId: portal.exchangeCode
+  x-speakeasy-name-override: exchangeCode
   security: []
   requestBody:
     content:
       application/json:
         schema:
-          "$ref": "./V2PortalExchangeSessionRequestBody.yaml"
+          "$ref": "./V2PortalExchangeCodeRequestBody.yaml"
     required: true
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "./V2PortalExchangeSessionResponseBody.yaml"
+            "$ref": "./V2PortalExchangeCodeResponseBody.yaml"
       description: |
-        Session exchanged successfully. Use the returned token for subsequent API calls.
+        Code exchanged successfully. Use the returned access token for subsequent API calls.
       headers:
         Cache-Control:
           schema:
             type: string
             example: no-store
-          description: Prevents caching of the session token response.
+          description: Prevents caching of the access token response.
         Pragma:
           schema:
             type: string
@@ -46,7 +46,7 @@ post:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
     "401":
-      description: Unauthorized — session is invalid, expired, or already exchanged
+      description: Unauthorized — code is invalid, expired, or already redeemed
       content:
         application/json:
           schema:

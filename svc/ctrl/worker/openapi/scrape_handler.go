@@ -169,7 +169,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.UpsertOpenApiSpec(runCtx, db.UpsertOpenApiSpecParams{
 			ID:             uid.New(uid.OpenApiSpecPrefix),
-			PortalConfigID: sql.NullString{Valid: false},
+			PortalID:       sql.NullString{Valid: false},
 			WorkspaceID:    deployment.WorkspaceID,
 			DeploymentID:   sql.NullString{Valid: true, String: deploymentID},
 			Content:        specBody,

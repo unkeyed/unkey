@@ -169,12 +169,12 @@ const (
 	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
-// Defines values for V2PortalCreateSessionRequestBodyPermissions.
+// Defines values for V2PortalCreateSessionRequestBodyScopes.
 const (
-	AnalyticsRead V2PortalCreateSessionRequestBodyPermissions = "analytics:read"
-	KeysCreate    V2PortalCreateSessionRequestBodyPermissions = "keys:create"
-	KeysRead      V2PortalCreateSessionRequestBodyPermissions = "keys:read"
-	KeysReroll    V2PortalCreateSessionRequestBodyPermissions = "keys:reroll"
+	AnalyticsRead V2PortalCreateSessionRequestBodyScopes = "analytics:read"
+	KeysCreate    V2PortalCreateSessionRequestBodyScopes = "keys:create"
+	KeysRead      V2PortalCreateSessionRequestBodyScopes = "keys:read"
+	KeysReroll    V2PortalCreateSessionRequestBodyScopes = "keys:reroll"
 )
 
 // App defines model for App.
@@ -3775,31 +3775,29 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Permissions The capabilities granted to the end user in the Portal, from a fixed
-	// vocabulary. All capabilities are scoped to this end user: key capabilities
-	// (`keys:*`) apply only to keys the end user owns within the keyspace
-	// configured on the portal configuration, and `analytics:read` returns only
-	// the end user's own verification events. An end user can never see another
-	// identity's keys or analytics.
-	//
-	// Tab visibility is derived from the capabilities:
-	// - Keys tab: any `keys:*` capability
-	// - Analytics tab: `analytics:read`
-	// - Docs tab: visible when any capability is present
-	Permissions []V2PortalCreateSessionRequestBodyPermissions `json:"permissions"`
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Portal ResourceIdentifier `json:"portal"`
 
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
 
-	// Slug The human-readable slug of the portal configuration to create the session against.
-	// Identifies which app's portal the end user will access.
-	// Must be 3-64 characters, lowercase alphanumeric and hyphens only,
-	// must not start or end with a hyphen, and must not contain consecutive hyphens.
-	Slug string `json:"slug"`
+	// Scopes The capabilities granted to the end user in the Portal, from a fixed
+	// vocabulary. All capabilities are scoped to this end user: key capabilities
+	// (`keys:*`) apply only to keys the end user owns within the keyspace
+	// configured on the portal, and `analytics:read` returns only the end user's
+	// own verification events. An end user can never see another identity's keys
+	// or analytics.
+	//
+	// Tab visibility is derived from the scopes:
+	// - Keys tab: any `keys:*` scope
+	// - Analytics tab: `analytics:read`
+	// - Docs tab: visible when any scope is present
+	Scopes []V2PortalCreateSessionRequestBodyScopes `json:"scopes"`
 }
 
-// V2PortalCreateSessionRequestBodyPermissions defines model for V2PortalCreateSessionRequestBody.Permissions.
-type V2PortalCreateSessionRequestBodyPermissions string
+// V2PortalCreateSessionRequestBodyScopes defines model for V2PortalCreateSessionRequestBody.Scopes.
+type V2PortalCreateSessionRequestBodyScopes string
 
 // V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.
 type V2PortalCreateSessionResponseBody struct {
@@ -3811,35 +3809,37 @@ type V2PortalCreateSessionResponseBody struct {
 
 // V2PortalCreateSessionResponseData defines model for V2PortalCreateSessionResponseData.
 type V2PortalCreateSessionResponseData struct {
-	// SessionId The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
-	SessionId string `json:"sessionId"`
+	// Id The portal session's identifier. Not a credential: it is safe to log and
+	// to store against your own records of the end user's visit.
+	Id string `json:"id"`
 
-	// Url The full portal URL with the session parameter. Redirect the end user to this URL.
+	// Url The full portal URL to redirect the end user to. Carries a single-use
+	// exchange code that is valid for 15 minutes.
 	Url string `json:"url"`
 }
 
-// V2PortalExchangeSessionRequestBody defines model for V2PortalExchangeSessionRequestBody.
-type V2PortalExchangeSessionRequestBody struct {
-	// SessionId The session token ID received from `portal.createSession`.
-	// Must be valid, unexpired, and not previously exchanged.
-	SessionId string `json:"sessionId"`
+// V2PortalExchangeCodeRequestBody defines model for V2PortalExchangeCodeRequestBody.
+type V2PortalExchangeCodeRequestBody struct {
+	// Code The exchange code carried by the portal URL from `portal.createSession`.
+	// Must be valid, unexpired, and not previously redeemed.
+	Code string `json:"code"`
 }
 
-// V2PortalExchangeSessionResponseBody defines model for V2PortalExchangeSessionResponseBody.
-type V2PortalExchangeSessionResponseBody struct {
-	Data V2PortalExchangeSessionResponseData `json:"data"`
+// V2PortalExchangeCodeResponseBody defines model for V2PortalExchangeCodeResponseBody.
+type V2PortalExchangeCodeResponseBody struct {
+	Data V2PortalExchangeCodeResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
 
-// V2PortalExchangeSessionResponseData defines model for V2PortalExchangeSessionResponseData.
-type V2PortalExchangeSessionResponseData struct {
-	// ExpiresAt Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
-	ExpiresAt int64 `json:"expiresAt"`
+// V2PortalExchangeCodeResponseData defines model for V2PortalExchangeCodeResponseData.
+type V2PortalExchangeCodeResponseData struct {
+	// AccessToken The portal access token. Store this as an httpOnly cookie for subsequent portal requests.
+	AccessToken string `json:"accessToken"`
 
-	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
-	Token string `json:"token"`
+	// ExpiresAt Unix timestamp in milliseconds when the access token expires (24 hours from creation).
+	ExpiresAt int64 `json:"expiresAt"`
 }
 
 // V2PortalGetVerificationsDataPoint defines model for V2PortalGetVerificationsDataPoint.
@@ -4586,8 +4586,8 @@ type PermissionsSetRolePermissionsJSONRequestBody = V2PermissionsSetRolePermissi
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
 
-// PortalExchangeSessionJSONRequestBody defines body for PortalExchangeSession for application/json ContentType.
-type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
+// PortalExchangeCodeJSONRequestBody defines body for PortalExchangeCode for application/json ContentType.
+type PortalExchangeCodeJSONRequestBody = V2PortalExchangeCodeRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody

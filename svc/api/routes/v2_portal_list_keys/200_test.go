@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -241,30 +242,48 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 	h.Register(route, h.PortalMiddleware()...)
 
 	setup := setupPortalSessionTest(t, h)
+	ctx := context.Background()
 	sessionID := uid.New(uid.PortalSessionPrefix)
-	permissions, err := json.Marshal(struct {
+	exchangeCode := uid.New(uid.PortalExchangeCodePrefix)
+	accessToken := uid.New(uid.PortalSessionPrefix)
+
+	scopes, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`
-		Permissions []string `json:"permissions"`
+		Scopes      []string `json:"scopes"`
 	}{
 		KeyspaceIDs: []string{setup.keySpaceID},
-		Permissions: []string{"keys:read"},
+		Scopes:      []string{"keys:read"},
 	})
 	require.NoError(t, err)
 
-	expiresAt := h.Clock.Now().Add(time.Minute)
-	require.NoError(t, db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    setup.workspace.ID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     setup.identity1ExternalID,
-		Permissions:    permissions,
-		ExpiresAt:      expiresAt.UnixMilli(),
-		CreatedAt:      h.Clock.Now().UnixMilli(),
+	now := h.Clock.Now()
+	require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
+		ID:                    sessionID,
+		WorkspaceID:           setup.workspace.ID,
+		PortalID:              uid.New(uid.PortalConfigPrefix),
+		ExternalID:            setup.identity1ExternalID,
+		Scopes:                scopes,
+		ExchangeCodeHash:      hash.Sha256(exchangeCode),
+		ExchangeCodeExpiresAt: now.Add(time.Minute).UnixMilli(),
+		CreatedAt:             now.UnixMilli(),
 	}))
+
+	// An access token that falls due one minute from now.
+	redeemed, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
+		AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+		AccessTokenCreatedAt: sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
+		AccessTokenExpiresAt: sql.NullInt64{Int64: now.Add(time.Minute).UnixMilli(), Valid: true},
+		ExchangeCodeHash:     hash.Sha256(exchangeCode),
+		Now:                  now.UnixMilli(),
+	})
+	require.NoError(t, err)
+	affected, err := redeemed.RowsAffected()
+	require.NoError(t, err)
+	require.Equal(t, int64(1), affected)
 
 	headers := http.Header{
 		"Content-Type": {"application/json"},
-		"Cookie":       {"portal_session=" + sessionID},
+		"Cookie":       {"portal_session=" + accessToken},
 	}
 	warm := testutil.CallRoute[Request, Response](h, route, headers, Request{})
 	require.Equal(t, http.StatusOK, warm.Status)
@@ -274,4 +293,5 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, expired.Status)
 	require.Equal(t, "The portal session is invalid or has expired.", expired.Body.Error.Detail)
 	require.NotContains(t, expired.RawBody, sessionID)
+	require.NotContains(t, expired.RawBody, accessToken)
 }

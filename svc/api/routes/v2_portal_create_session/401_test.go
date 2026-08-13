@@ -21,9 +21,9 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	req := handler.Request{
-		Slug:        "test-portal",
-		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Portal:     "test-portal",
+		ExternalId: "user_123",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {

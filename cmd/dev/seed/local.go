@@ -96,7 +96,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
 	regionID := uid.New(uid.RegionPrefix)
-	portalConfigID := fmt.Sprintf("portal_%s", slug)
+	portalID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -541,35 +541,33 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to insert key permissions: %w", err)
 		}
 
-		// Optionally seed portal configuration and branding.
+		// Optionally seed a portal, branding included.
 		if cmd.Bool("portal") {
-			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
-				ID:          portalConfigID,
+			branding, brandingErr := json.Marshal(map[string]string{
+				"logoUrl":      "https://avatars.githubusercontent.com/u/138932600",
+				"primaryColor": "#2563eb",
+			})
+			if brandingErr != nil {
+				return fmt.Errorf("failed to marshal portal branding: %w", brandingErr)
+			}
+
+			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
+				ID:          portalID,
 				WorkspaceID: workspaceID,
 				Slug:        "awesome",
 				AppID:       sql.NullString{Valid: true, String: appID},
 				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:     true,
 				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
+				Branding:    branding,
 				CreatedAt:   now,
 				UpdatedAt:   sql.NullInt64{},
 			})
 			if err != nil && !db.IsDuplicateKeyError(err) {
-				return fmt.Errorf("failed to create portal config: %w", err)
+				return fmt.Errorf("failed to create portal: %w", err)
 			}
 
-			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
-				PortalConfigID: portalConfigID,
-				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
-				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
-				CreatedAt:      now,
-				UpdatedAt:      sql.NullInt64{},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create portal branding: %w", err)
-			}
-
-			logger.Info("portal seeded", "portalConfigId", portalConfigID)
+			logger.Info("portal seeded", "portalId", portalID)
 		}
 
 		return nil
@@ -600,7 +598,7 @@ UNKEY_ROOT_KEY=%s
 		)
 
 		if cmd.Bool("portal") {
-			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+			envContent += fmt.Sprintf("UNKEY_PORTAL_ID=%s\n", portalID)
 		}
 
 		// Ensure directory exists

@@ -35,15 +35,15 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	}
 
 	req := handler.Request{
-		Slug:        "nonexistent-portal",
+		Portal:     "nonexistent-portal",
 		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
-	require.NotContains(t, res.RawBody, req.Slug)
+	require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, req.Portal)
 	require.NotContains(t, res.RawBody, req.ExternalId)
 }
 
@@ -58,13 +58,13 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	}
 	h.Register(route)
 
-	// Create a portal config in workspace A (the default user workspace).
+	// Create a portal in workspace A (the default user workspace).
 	workspaceA := h.Resources().UserWorkspace.ID
-	portalConfigID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
-		ID:          portalConfigID,
+	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
+		ID:          portalID,
 		WorkspaceID: workspaceA,
 		Slug:        "cross-workspace-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
@@ -82,16 +82,16 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyB)},
 	}
 
-	// Use workspace A's portal config slug while authenticated as workspace B.
+	// Use workspace A's portal slug while authenticated as workspace B.
 	req := handler.Request{
-		Slug:        "cross-workspace-portal",
+		Portal:     "cross-workspace-portal",
 		ExternalId:  "user_123",
-		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
-	require.NotContains(t, res.RawBody, portalConfigID)
+	require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, portalID)
 	require.NotContains(t, res.RawBody, workspaceA)
 }
