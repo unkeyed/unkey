@@ -34,7 +34,9 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
+import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
+import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryUsage } from "./billing/query-usage";
 import { createApp } from "./deploy/app/create";
 import { deleteApp } from "./deploy/app/delete";
@@ -76,6 +78,21 @@ import { updateWatchPaths } from "./deploy/environment-settings/build/update-wat
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
+import { create as createFirewallPolicy } from "./deploy/environment-settings/policies/firewall/create";
+import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/policies/firewall/delete";
+import { update as updateFirewallPolicy } from "./deploy/environment-settings/policies/firewall/update";
+import { generateRegex } from "./deploy/environment-settings/policies/generate-regex";
+import { create as createKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/create";
+import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/delete";
+import { update as updateKeyauthPolicy } from "./deploy/environment-settings/policies/keyauth/update";
+import { list as listPolicies } from "./deploy/environment-settings/policies/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/policies/openapi/update";
+import { create as createRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/create";
+import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/delete";
+import { update as updateRatelimitPolicy } from "./deploy/environment-settings/policies/ratelimit/update";
+import { reorder as reorderPolicies } from "./deploy/environment-settings/policies/reorder";
 import { updateCommand } from "./deploy/environment-settings/runtime/update-command";
 import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
 import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
@@ -86,21 +103,6 @@ import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
-import { create as createFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/create";
-import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/delete";
-import { update as updateFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/update";
-import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
-import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
-import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
-import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
-import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
-import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
-import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
-import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
-import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
-import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
-import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
-import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
@@ -123,11 +125,11 @@ import { updateProject } from "./deploy/project/update";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
+import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
+import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
-import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
-import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
 import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
@@ -397,6 +399,8 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
     queryDeployUsage,
+    queryDeployUsageBreakdown,
+    queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
   }),
@@ -457,9 +461,9 @@ export const router = t.router({
       get: getEnvironmentSettings,
       getAvailableRegions,
       getAvailableKeyspaces,
-      sentinel: t.router({
-        list: listSentinelPolicies,
-        reorder: reorderSentinelPolicies,
+      policies: t.router({
+        list: listPolicies,
+        reorder: reorderPolicies,
         keyauth: t.router({
           create: createKeyauthPolicy,
           update: updateKeyauthPolicy,
@@ -543,9 +547,9 @@ export const router = t.router({
       stop: stopDeployment,
       wake: wakeDeployment,
     }),
-    sentinelLogs: t.router({
-      query: querySentinelLogs,
-      llmSearch: sentinelLogsLlmSearch,
+    requestLogs: t.router({
+      query: queryRequestLogs,
+      llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({
       query: queryRuntimeLogs,

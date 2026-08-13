@@ -9,7 +9,8 @@ import { workspaceProcedure } from "../../trpc";
 export const createNamespace = workspaceProcedure
   .input(
     z.object({
-      name: z.string().min(1).max(50),
+      // 512 matches the ratelimit_namespaces.name column and the API.
+      name: z.string().min(1).max(512),
     }),
   )
   .mutation(async ({ input, ctx }) => {

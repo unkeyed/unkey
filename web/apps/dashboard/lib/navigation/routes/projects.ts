@@ -89,9 +89,9 @@ export const projectRoutes = {
       );
     },
 
-    sentinelPolicies(scope: AppScope): Route {
+    policies(scope: AppScope): Route {
       return buildRoute(
-        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/sentinel-policies",
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
         appParams(scope),
       );
     },

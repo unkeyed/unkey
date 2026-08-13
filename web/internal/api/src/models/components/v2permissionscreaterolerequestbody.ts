@@ -6,11 +6,11 @@ import * as z from "zod/v3";
 
 export type V2PermissionsCreateRoleRequestBody = {
   /**
-   * The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+   * The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
    *
    * @remarks
    *
-   * Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+   * Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
    */
   name: string;
   /**
@@ -29,12 +29,21 @@ export type V2PermissionsCreateRoleRequestBody = {
    * - Related roles that might be used together
    */
   description?: string | undefined;
+  /**
+   * Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+   *
+   * @remarks
+   *
+   * Omit this field or provide an empty array to create the role without permissions.
+   */
+  permissions?: Array<string> | undefined;
 };
 
 /** @internal */
 export type V2PermissionsCreateRoleRequestBody$Outbound = {
   name: string;
   description?: string | undefined;
+  permissions?: Array<string> | undefined;
 };
 
 /** @internal */
@@ -45,6 +54,7 @@ export const V2PermissionsCreateRoleRequestBody$outboundSchema: z.ZodType<
 > = z.object({
   name: z.string(),
   description: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
 });
 
 export function v2PermissionsCreateRoleRequestBodyToJSON(

@@ -60,7 +60,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	t.Run("policy id from another environment", func(t *testing.T) {
 		other := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, other,
+		seedPolicyConfig(t, h, other,
 			`{"policies":[{"id":"pol_foreign","name":"KEBAP","enabled":true,"firewall":{"action":"ACTION_DENY"}}]}`)
 		call(t, makeRequest(env, "pol_foreign"))
 	})

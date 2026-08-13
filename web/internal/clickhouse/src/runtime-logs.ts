@@ -42,6 +42,7 @@ const runtimeLogsQueryParamsSchema = runtimeLogsCountParamsSchema.extend({
 });
 
 export const runtimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -57,6 +58,7 @@ export type RuntimeLog = z.infer<typeof runtimeLog>;
 // JSON column: JSON fans out into ~1k subcolumn files per part, so on CH
 // Cloud cold queries pay ~1k S3 GetObjects for the marks alone.
 const runtimeLogRow = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -122,12 +124,12 @@ export function getRuntimeLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT
-          time, severity, message, deployment_id,
+          log_id, time, severity, message, deployment_id,
           region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
 
-        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC
+        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC, log_id DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}
         SETTINGS

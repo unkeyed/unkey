@@ -5,12 +5,18 @@ properties:
   name:
     type: string
     minLength: 1
-    maxLength: 512
-    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+    # No character pattern: role names are human-readable labels today and the
+    # dashboard lets users create names with spaces.
+    #
+    # 128 matches permissions.slug (varchar(128)) rather than the wider
+    # roles.name column (varchar(512)), so this field does not have to narrow
+    # later when roles start accepting slugs. Keep this value in step with the
+    # other role endpoints and the dashboard role editor.
+    maxLength: 128
     description: |
-      The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+      The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
-      Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+      Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
     example: "support.readonly"
   description:
     type: string
@@ -28,6 +34,18 @@ properties:
       - Any security considerations or limitations
       - Related roles that might be used together
     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+  permissions:
+    type: array
+    description: |
+      Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+      Omit this field or provide an empty array to create the role without permissions.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+      description: Specify the permission by its slug.
 additionalProperties: false
 examples:
   adminRole:
@@ -42,3 +60,6 @@ examples:
     value:
       name: editor
       description: Can create and edit content but not manage users
+      permissions:
+        - content.read
+        - content.write

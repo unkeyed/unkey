@@ -46,6 +46,7 @@ import (
 	v2PermissionsGetRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_get_role"
 	v2PermissionsListPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
 	v2PermissionsListRoles "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
+	v2PermissionsSetRolePermissions "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_set_role_permissions"
 
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
@@ -503,6 +504,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2PermissionsDeleteRole.Handler{
 
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/permissions.setRolePermissions
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2PermissionsSetRolePermissions.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},

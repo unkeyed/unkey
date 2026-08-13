@@ -69,11 +69,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	}
 }
 
-// seedSentinelConfig overwrites the seeded runtime settings row's blob
+// seedPolicyConfig overwrites the seeded runtime settings row's policy blob
 // directly, bypassing the write handler, so tests can set up pre-existing
 // state including shapes the API cannot create. The environment seeder
 // always creates the row (with the legacy "{}" blob).
-func seedSentinelConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
+func seedPolicyConfig(t *testing.T, h *testutil.Harness, env seededEnv, blob string) {
 	t.Helper()
 	_, err := h.DB.RW().ExecContext(context.Background(),
 		"UPDATE app_runtime_settings SET sentinel_config = ? WHERE app_id = ? AND environment_id = ?",
@@ -102,7 +102,7 @@ func seedFirewallPolicies(t *testing.T, h *testutil.Harness, env seededEnv, n in
 		docs = append(docs, fmt.Sprintf(
 			`{"id":%q,"name":"KEBAP %d","enabled":true,"firewall":{"action":"ACTION_DENY"}}`, id, i))
 	}
-	seedSentinelConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, strings.Join(docs, ",")))
+	seedPolicyConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, strings.Join(docs, ",")))
 	return ids
 }
 

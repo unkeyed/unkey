@@ -42,7 +42,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("explicit empty policies blob returns empty list", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env, `{"policies":[]}`)
+		seedPolicyConfig(t, h, env, `{"policies":[]}`)
 		res := call(t, makeRequest(env))
 		require.Empty(t, res.Body.Data)
 	})
@@ -62,7 +62,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 		// protojson wire shape, including int64-as-string, exactly as the
 		// write path stores it.
-		seedSentinelConfig(t, h, env, `{"policies":[
+		seedPolicyConfig(t, h, env, `{"policies":[
 			{"id":"pol_keyauth","name":"keyauth KEBAP","enabled":true,
 				"match":[
 					{"path":{"path":{"prefix":"/internal/","ignoreCase":true}}},
@@ -140,8 +140,13 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.NotNil(t, ratelimit.Ratelimit)
 		require.Equal(t, int64(100), ratelimit.Ratelimit.Limit)
 		require.Equal(t, int64(60000), ratelimit.Ratelimit.WindowMs)
-		require.NotNil(t, ratelimit.Ratelimit.Identifier.PrincipalField)
-		require.Equal(t, "sub", ratelimit.Ratelimit.Identifier.PrincipalField.Path)
+		// The blob stores the deprecated single identifier; the response
+		// renders it as a one-entry identifiers array.
+		require.Nil(t, ratelimit.Ratelimit.Identifier)
+		identifiers := ptr.SafeDeref(ratelimit.Ratelimit.Identifiers)
+		require.Len(t, identifiers, 1)
+		require.NotNil(t, identifiers[0].PrincipalField)
+		require.Equal(t, "sub", identifiers[0].PrincipalField.Path)
 
 		firewall := res.Body.Data[2]
 		require.Equal(t, "pol_firewall", firewall.Id)
@@ -160,7 +165,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("every ratelimit identifier source maps", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env, `{"policies":[
+		seedPolicyConfig(t, h, env, `{"policies":[
 			{"id":"pol_ip","name":"ip","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"remoteIp":{}}}},
 			{"id":"pol_hdr","name":"hdr","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"header":{"name":"X-Tenant"}}}},
 			{"id":"pol_sub","name":"sub","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"authenticatedSubject":{}}}},
@@ -169,11 +174,19 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 		res := call(t, makeRequest(env))
 		require.Len(t, res.Body.Data, 4)
-		require.NotNil(t, res.Body.Data[0].Ratelimit.Identifier.RemoteIp)
-		require.NotNil(t, res.Body.Data[1].Ratelimit.Identifier.Header)
-		require.Equal(t, "X-Tenant", res.Body.Data[1].Ratelimit.Identifier.Header.Name)
-		require.NotNil(t, res.Body.Data[2].Ratelimit.Identifier.AuthenticatedSubject)
-		require.NotNil(t, res.Body.Data[3].Ratelimit.Identifier.Path)
+		// Legacy stored single identifiers render as one-entry arrays.
+		identifierAt := func(i int) openapi.RatelimitIdentifier {
+			t.Helper()
+			require.Nil(t, res.Body.Data[i].Ratelimit.Identifier)
+			identifiers := ptr.SafeDeref(res.Body.Data[i].Ratelimit.Identifiers)
+			require.Len(t, identifiers, 1)
+			return identifiers[0]
+		}
+		require.NotNil(t, identifierAt(0).RemoteIp)
+		require.NotNil(t, identifierAt(1).Header)
+		require.Equal(t, "X-Tenant", identifierAt(1).Header.Name)
+		require.NotNil(t, identifierAt(2).AuthenticatedSubject)
+		require.NotNil(t, identifierAt(3).Path)
 	})
 
 	t.Run("returns every policy in stored order", func(t *testing.T) {

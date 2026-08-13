@@ -35,13 +35,30 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
+const testAppID = "app_test"
+
+type testEngine struct {
+	*policies.Engine
+}
+
+func (e *testEngine) Evaluate(
+	ctx context.Context,
+	sess *zen.Session,
+	req *http.Request,
+	workspaceID string,
+	configuredPolicies []*frontlinev1.Policy,
+) (policies.Result, error) {
+	return e.Engine.Evaluate(ctx, sess, req, workspaceID, testAppID, configuredPolicies)
+}
+
 // testHarness holds all real services needed for integration tests.
 type testHarness struct {
-	t          *testing.T
-	db         db.Database
-	keyService keys.KeyService
-	engine     *policies.Engine
-	clk        clock.Clock
+	t                  *testing.T
+	db                 db.Database
+	keyService         keys.KeyService
+	engine             *testEngine
+	clk                clock.Clock
+	verificationEvents <-chan schema.KeyVerification
 }
 
 func newTestHarness(t *testing.T) *testHarness {
@@ -118,20 +135,37 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
+	verificationEvents := make(chan schema.KeyVerification, 100)
+	keyVerifications := batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "test_key_verifications",
+		BatchSize:     1,
+		BufferSize:    100,
+		FlushInterval: time.Hour,
+		Drop:          false,
+		Consumers:     1,
+		Flush: func(_ context.Context, verifications []schema.KeyVerification) {
+			for _, verification := range verifications {
+				verificationEvents <- verification
+			}
+		},
+	})
+	t.Cleanup(keyVerifications.Close)
+
 	eng, err := policies.New(policies.Config{
 		KeyService:       keyService,
 		RateLimiter:      rateLimiter,
 		Clock:            clk,
-		KeyVerifications: batch.NewNoop[schema.KeyVerification](),
+		KeyVerifications: keyVerifications,
 	})
 	require.NoError(t, err)
 
 	return &testHarness{
-		t:          t,
-		db:         database,
-		keyService: keyService,
-		engine:     eng,
-		clk:        clk,
+		t:                  t,
+		db:                 database,
+		keyService:         keyService,
+		engine:             &testEngine{Engine: eng},
+		clk:                clk,
+		verificationEvents: verificationEvents,
 	}
 }
 
@@ -386,6 +420,13 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, schema.SourceGateway, verification.Source)
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 
 	// Subject falls back to key ID when no external ID is set
 	require.Equal(t, principal.PrincipalVersion, result.Principal.Version)
@@ -434,6 +475,30 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	require.NotEmpty(t, identity.ExternalID)
 	require.Equal(t, identity.ExternalID, result.Principal.Subject)
 	require.NotNil(t, identity.Meta)
+}
+
+func TestKeyAuth_UsageExceededHasDistinctCode(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 0, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+
+	_, err = h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, []*frontlinev1.Policy{
+		keyAuthPolicy("auth", []string{s.KeySpaceID}),
+	})
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.UsageExceeded.URN(), urn)
 }
 
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {
@@ -508,6 +573,13 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 
 	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.Error(t, err)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, testAppID, verification.AppID)
+		require.Equal(t, keys.StatusDisabled, keys.KeyStatus(verification.Outcome))
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
 }
 
 func TestKeyAuth_WrongKeySpace(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 )
 
 // Source values for [KeyVerification.Source]: where a verification originated.
-// Billing rollups exclude SourceGateway (Deploy traffic is metered
+// Billing rollups exclude SourceGateway (gateway traffic is metered
 // separately); analytics keep both.
 const (
 	SourceAPI     = "api"
@@ -28,7 +28,10 @@ type KeyVerification struct {
 	Region      string `ch:"region" json:"region"`
 	// Source distinguishes verification origin (e.g. api vs gateway). Column
 	// DEFAULTs to 'api' for rows written before it existed.
-	Source       string   `ch:"source" json:"source"`
+	Source string `ch:"source" json:"source"`
+	// AppID identifies the app whose gateway ran the verification. It is empty
+	// for verifications that did not originate from the gateway.
+	AppID        string   `ch:"app_id" json:"app_id"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`

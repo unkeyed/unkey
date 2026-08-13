@@ -18,6 +18,6 @@ GRANT INSERT ON default.audit_logs_raw_v1       TO ctrl;  -- ctrl-worker AuditLo
 -- Reads
 GRANT SELECT ON default.billable_verifications_per_month_v2 TO ctrl;  -- ctrl-worker quotacheck
 GRANT SELECT ON default.billable_ratelimits_per_month_v2    TO ctrl;  -- ctrl-worker quotacheck
-GRANT SELECT ON default.sentinel_requests_raw_v1            TO ctrl;  -- ctrl-worker scale-down idle previews
+GRANT SELECT ON default.frontline_requests_per_15m_v1       TO ctrl;  -- ctrl-worker scale-down idle previews
 GRANT SELECT ON default.key_last_used_v1                    TO ctrl;  -- ctrl-worker key-last-used sync
 ```

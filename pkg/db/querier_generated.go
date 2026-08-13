@@ -105,6 +105,11 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE permission_id = ?
 	DeleteManyRolePermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyRolePermissionsByRoleAndPermissionIDs
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE role_id = ? AND permission_id IN (/*SLICE:permission_ids*/?)
+	DeleteManyRolePermissionsByRoleAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteManyRolePermissionsByRoleAndPermissionIDsParams) error
 	//DeleteManyRolePermissionsByRoleID
 	//
 	//  DELETE FROM roles_permissions
@@ -199,6 +204,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
+	// Returns the sentinel_config of an app's current deployment, scoped to the
+	// workspace. Used by portal.createSession to resolve the keyspaces an
+	// app-mapped portal config grants access to (the keyauth policies carry the
+	// keySpaceIds verified at the gateway).
+	//
+	//  SELECT d.sentinel_config
+	//  FROM apps a
+	//  JOIN deployments d ON a.current_deployment_id = d.id
+	//  WHERE a.id = ?
+	//    AND a.workspace_id = ?
+	FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
@@ -225,17 +241,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	// Returns the sentinel_config of an app's current deployment, scoped to the
-	// workspace. Used by portal.createSession to resolve the keyspaces an
-	// app-mapped portal config grants access to (the keyauth policies carry the
-	// keySpaceIds verified at the gateway).
-	//
-	//  SELECT d.sentinel_config
-	//  FROM apps a
-	//  JOIN deployments d ON a.current_deployment_id = d.id
-	//  WHERE a.id = ?
-	//    AND a.workspace_id = ?
-	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -780,6 +785,15 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
+	//FindPermissionsBySlugsForUpdate
+	//
+	//  SELECT id, name, slug, description
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	//  ORDER BY slug
+	//  FOR UPDATE
+	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
 	//FindPortalConfigByWorkspaceAndSlug
 	//
 	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
@@ -1899,6 +1913,15 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListDirectPermissionsByRoleID
+	//
+	//  SELECT p.id, p.name, p.slug, p.description
+	//  FROM roles_permissions rp
+	//  JOIN permissions p ON rp.permission_id = p.id
+	//  WHERE rp.role_id = ?
+	//  ORDER BY p.slug
+	//  FOR UPDATE
+	ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]ListDirectPermissionsByRoleIDRow, error)
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
@@ -2201,6 +2224,8 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ?
+	//    -- The default project is an internal ownership container, not a user-visible project.
+	//    AND BINARY slug != 'default'
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
@@ -2325,6 +2350,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	//LockRoleByIDAndWorkspaceID
+	//
+	//  SELECT id, name
+	//  FROM roles
+	//  WHERE id = ? AND workspace_id = ?
+	//  FOR UPDATE
+	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2786,7 +2818,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
-	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
+	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -2888,6 +2920,29 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
+	// Inserts a permission or leaves the existing workspace/slug row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+	//
+	//  INSERT INTO permissions (
+	//    id,
+	//    workspace_id,
+	//    project_id,
+	//    name,
+	//    slug,
+	//    description,
+	//    created_at_m
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE slug = slug
+	UpsertPermission(ctx context.Context, db DBTX, arg UpsertPermissionParams) error
 	//UpsertPortalBranding
 	//
 	//  INSERT INTO portal_branding (

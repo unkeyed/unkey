@@ -3,23 +3,23 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { SentinelLogsDateTime } from "./components/sentinel-logs-datetime";
-import { SentinelLogsFilters } from "./components/sentinel-logs-filters";
-import { SentinelLogsLiveSwitch } from "./components/sentinel-logs-live-switch";
-import { SentinelLogsRefresh } from "./components/sentinel-logs-refresh";
-import { SentinelLogsSearch } from "./components/sentinel-logs-search";
+import { RequestLogsDateTime } from "./components/request-logs-datetime";
+import { RequestLogsFilters } from "./components/request-logs-filters";
+import { RequestLogsLiveSwitch } from "./components/request-logs-live-switch";
+import { RequestLogsRefresh } from "./components/request-logs-refresh";
+import { RequestLogsSearch } from "./components/request-logs-search";
 
-export function SentinelLogsControls() {
+export function RequestLogsControls() {
   return (
     <ControlsContainer>
       <ControlsLeft>
-        <SentinelLogsSearch />
-        <SentinelLogsFilters />
-        <SentinelLogsDateTime />
+        <RequestLogsSearch />
+        <RequestLogsFilters />
+        <RequestLogsDateTime />
       </ControlsLeft>
       <ControlsRight>
-        <SentinelLogsLiveSwitch />
-        <SentinelLogsRefresh />
+        <RequestLogsLiveSwitch />
+        <RequestLogsRefresh />
       </ControlsRight>
     </ControlsContainer>
   );

@@ -3,10 +3,6 @@ title: Generate a Dockerfile with AI
 description: "Use this prompt with Claude Code, Cursor, or Windsurf to generate a Dockerfile and .dockerignore tuned for Unkey's runtime."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey's runtime constraints (reading `PORT`, handling `SIGTERM`, build secrets via mount).
 
 ## How to use it

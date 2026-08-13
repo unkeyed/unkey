@@ -310,8 +310,10 @@ const (
 	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:frontline:client:invalid_key"
 	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:frontline:client:insufficient_permissions"
-	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	// RateLimited represents a 429 error - a configured request rate limit was exceeded.
 	UnkeyFrontlineErrorsAuthRateLimited URN = "err:frontline:client:rate_limited"
+	// UsageExceeded represents a 429 error - the credential has no remaining credits.
+	UnkeyFrontlineErrorsAuthUsageExceeded URN = "err:frontline:client:usage_exceeded"
 
 	// Firewall
 

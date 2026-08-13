@@ -1,12 +1,14 @@
 import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
-import { getActiveKeysUsage, getDeployMeterUsage } from "./deploy_billing";
+import { getActiveKeysUsage, getDeployMeterUsage, getDeployUsageByScope } from "./deploy_billing";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
   type DeployMeterUsage,
   deployMeterUsage,
+  type DeployUsageByScope,
+  deployUsageByScope,
 } from "./deploy_billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getInstanceEvents } from "./instance-events";
@@ -106,15 +108,15 @@ import {
   getResourceSummary,
 } from "./resources";
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
-import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
   getRegionRps,
-  getSentinelLogs,
-} from "./sentinel";
+  getRequestLogs,
+} from "./frontline";
+import { getEnvironmentRequests } from "./frontline/environment-requests";
+import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -299,6 +301,7 @@ export class ClickHouse {
       billableVerifications: getBillableVerifications(this.querier),
       billableRatelimits: getBillableRatelimits(this.querier),
       deployMeterUsage: getDeployMeterUsage(this.querier),
+      deployUsageByScope: getDeployUsageByScope(this.querier),
       activeKeysUsage: getActiveKeysUsage(this.querier),
     };
   }
@@ -381,9 +384,9 @@ export class ClickHouse {
       requests: getEnvironmentRequests(this.querier),
     };
   }
-  public get sentinel() {
+  public get frontline() {
     return {
-      logs: getSentinelLogs(this.querier),
+      logs: getRequestLogs(this.querier),
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),

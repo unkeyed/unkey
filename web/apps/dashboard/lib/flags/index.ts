@@ -32,6 +32,18 @@ export const deployBilling = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+export const billingUIUpgrades = flag<boolean, Entities>({
+  key: "billing-ui-upgrades",
+  description: "Show the split Billing / Usage / Limits settings pages. Requires deploy-billing.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 export const showDarksoulsSuccessBanner = flag<boolean, Entities>({
   key: "show-darksouls-success-banner",
   description: "Show the animated deployment success easter egg.",

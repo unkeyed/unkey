@@ -1,0 +1,286 @@
+/**
+ * Canonical gateway policy schemas — single source of truth.
+ *
+ * Wire shape vs. Go service:
+ *   The Go Frontline service parses these blobs as protojson with
+ *   `DiscardUnknown: true`. Policy is a protobuf oneof keyed on `keyauth | firewall | ...`,
+ *   with no `type` discriminator field. We keep a client-side `type` field to drive
+ *   zod's discriminated union and the UI router; the Go side silently ignores it.
+ *
+ *   `keyauth` and `firewall` are supported today. Add a new branch by extending the
+ *   discriminated union below and wiring it through `fromWirePolicy` — the
+ *   collection's per-type routing will pick it up.
+ */
+import { z } from "zod";
+
+// ── Limits ──────────────────────────────────────────────────────────────
+
+// Every limit must stay >= its counterpart in the API spec
+// (svc/api/openapi/spec: setPolicies policies maxItems, Policy.match
+// maxItems, KeyauthPolicy keyspaces/ratelimits maxItems, permissionQuery
+// maxLength). savePolicies re-validates whole configs, so a lower value
+// here breaks reading back or editing API-written blobs.
+export const POLICY_LIMITS = {
+  maxPolicies: 50,
+  maxKeyspacesPerPolicy: 5,
+  maxMatchExprsPerPolicy: 10,
+  permissionQueryMaxLength: 1000,
+  maxRatelimitsPerKeyauth: 10,
+  maxIdentifiersPerRatelimit: 5,
+} as const;
+
+// protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
+// the dashboard writes plain numbers. Accept both, normalize to number.
+const wireInt64 = z
+  .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
+  .pipe(z.number().int().min(1));
+
+// ── String match (protojson oneof: exact | prefix | regex) ──────────────
+
+export const stringMatchModeSchema = z.enum(["exact", "prefix", "regex"]);
+export type StringMatchMode = z.infer<typeof stringMatchModeSchema>;
+
+const stringMatchBase = { ignoreCase: z.boolean().optional() } as const;
+const stringMatchValue = z.string().min(1);
+
+export const stringMatchSchema = z.union([
+  z.object({ ...stringMatchBase, exact: stringMatchValue }).strict(),
+  z.object({ ...stringMatchBase, prefix: stringMatchValue }).strict(),
+  z.object({ ...stringMatchBase, regex: stringMatchValue }).strict(),
+]);
+export type StringMatch = z.infer<typeof stringMatchSchema>;
+
+// ── Match expressions (protojson oneof: path | method | header | queryParam) ─
+
+const httpMethod = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
+
+export const matchExprSchema = z.union([
+  z.object({ path: z.object({ path: stringMatchSchema }).strict() }).strict(),
+  z
+    .object({
+      method: z.object({ methods: z.array(httpMethod).min(1) }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      header: z
+        .object({ name: z.string().min(1) })
+        .and(
+          z.union([z.object({ present: z.literal(true) }), z.object({ value: stringMatchSchema })]),
+        ),
+    })
+    .strict(),
+  z
+    .object({
+      queryParam: z
+        .object({ name: z.string().min(1) })
+        .and(
+          z.union([z.object({ present: z.literal(true) }), z.object({ value: stringMatchSchema })]),
+        ),
+    })
+    .strict(),
+]);
+export type MatchExpr = z.infer<typeof matchExprSchema>;
+
+// ── Key location (protojson oneof: bearer | header | queryParam) ────────
+
+export const keyLocationSchema = z.union([
+  z.object({ bearer: z.object({}).strict() }).strict(),
+  z
+    .object({
+      header: z
+        .object({
+          name: z.string().min(1),
+          stripPrefix: z.string().optional(),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      queryParam: z.object({ name: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
+export type KeyLocation = z.infer<typeof keyLocationSchema>;
+
+// ── Common policy fields ────────────────────────────────────────────────
+
+const policyBase = {
+  id: z.string().min(1),
+  name: z.string().min(1),
+  enabled: z.boolean(),
+  match: z.array(matchExprSchema).max(POLICY_LIMITS.maxMatchExprsPerPolicy).optional(),
+} as const;
+
+// ── KeyAuth policy ──────────────────────────────────────────────────────
+
+// Mirrors frontline.v1.KeyRatelimit. `name` references a rate limit configured
+// on the key (or its identity). `limit` + `duration` (ms) together define an
+// inline override that need not exist on the key; the Go service only honors an
+// override when BOTH are present, so we enforce both-or-neither here to avoid a
+// silently-ignored partial override. `cost` defaults to 1 on the wire.
+export const keyauthRatelimitSchema = z
+  .object({
+    name: z.string().min(1),
+    limit: wireInt64.optional(),
+    duration: wireInt64.optional(),
+    cost: wireInt64.optional(),
+  })
+  .strict()
+  .refine((r) => (r.limit === undefined) === (r.duration === undefined), {
+    message: "Limit and duration must be set together",
+    path: ["limit"],
+  });
+export type KeyauthRatelimit = z.infer<typeof keyauthRatelimitSchema>;
+
+export const keyauthPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("keyauth"),
+    keyauth: z
+      .object({
+        keySpaceIds: z.array(z.string().min(1)).min(1).max(POLICY_LIMITS.maxKeyspacesPerPolicy),
+        locations: z.array(keyLocationSchema).optional(),
+        permissionQuery: z.string().max(POLICY_LIMITS.permissionQueryMaxLength).optional(),
+        ratelimits: z
+          .array(keyauthRatelimitSchema)
+          .max(POLICY_LIMITS.maxRatelimitsPerKeyauth)
+          .optional(),
+      })
+      .strict(),
+  })
+  .strict();
+export type KeyauthPolicy = z.infer<typeof keyauthPolicySchema>;
+
+// ── RateLimit policy ───────────────────────────────────────────────────
+
+const rateLimitIdentifierSchema = z.union([
+  z.object({ remoteIp: z.object({}).strict() }).strict(),
+  z.object({ header: z.object({ name: z.string().min(1) }).strict() }).strict(),
+  z.object({ authenticatedSubject: z.object({}).strict() }).strict(),
+  z.object({ path: z.object({}).strict() }).strict(),
+  z
+    .object({
+      principalField: z.object({ path: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
+export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
+
+// A ratelimit carries the `identifiers` list (1-5 dimensions combined into
+// one bucket key). The deprecated single `identifier` is still readable for
+// old stored blobs; the Go side enforces exactly-one at write time and the
+// refine mirrors it so locally constructed blobs fail fast instead of on
+// save. New writes always use `identifiers`.
+export const ratelimitPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("ratelimit"),
+    ratelimit: z
+      .object({
+        limit: wireInt64,
+        windowMs: wireInt64,
+        identifier: rateLimitIdentifierSchema.optional(),
+        identifiers: z
+          .array(rateLimitIdentifierSchema)
+          .min(1)
+          .max(POLICY_LIMITS.maxIdentifiersPerRatelimit)
+          .optional(),
+      })
+      .strict()
+      .refine((r) => (r.identifier === undefined) !== (r.identifiers === undefined), {
+        message: "Exactly one of identifier or identifiers must be set",
+      }),
+  })
+  .strict();
+
+// ── Firewall policy ─────────────────────────────────────────────────────
+
+// Wire values match frontline.v1.Action enum names. Kept as string literals so
+// protojson round-trips them by name rather than numeric value. The MVP only
+// has ACTION_DENY; the enum exists so additional outcomes can land later
+// without changing the schema shape.
+export const firewallActionSchema = z.enum(["ACTION_DENY"]);
+export type FirewallAction = z.infer<typeof firewallActionSchema>;
+
+export const firewallPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("firewall"),
+    firewall: z
+      .object({
+        action: firewallActionSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
+export type FirewallPolicy = z.infer<typeof firewallPolicySchema>;
+
+// ── OpenAPI Validation policy ──────────────────────────────────────────
+
+export const openapiPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("openapi"),
+    openapi: z.object({}).strict(),
+  })
+  .strict();
+export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
+
+// ── Gateway policy (discriminated union — extend with new types here) ──
+
+export const policySchema = z.discriminatedUnion("type", [
+  keyauthPolicySchema,
+  ratelimitPolicySchema,
+  firewallPolicySchema,
+  openapiPolicySchema,
+]);
+export type Policy = z.infer<typeof policySchema>;
+export type PolicyType = Policy["type"];
+
+// ── Top-level config blob (what's stored in appRuntimeSettings.sentinelConfig) ──
+
+export const policiesConfigSchema = z
+  .object({
+    policies: z.array(policySchema).max(POLICY_LIMITS.maxPolicies),
+  })
+  .strict();
+export type PoliciesConfig = z.infer<typeof policiesConfigSchema>;
+
+/**
+ * Strip the client-side `type` discriminator before serializing to the wire.
+ * Go's protojson parser uses `DiscardUnknown: true`, so it would tolerate the
+ * extra field — but we keep the on-disk blob clean so it round-trips through
+ * any future stricter parser.
+ */
+export function toWirePolicy(p: Policy): Record<string, unknown> {
+  const { type: _type, ...rest } = p;
+  return rest;
+}
+
+/**
+ * Re-attach the client-side `type` discriminator when reading a blob back.
+ * Looks at which oneof key is present and infers `type`.
+ */
+export function fromWirePolicy(raw: unknown): Policy {
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error("policy must be an object");
+  }
+  const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
+  if ("keyauth" in obj) {
+    return policySchema.parse({ ...obj, type: "keyauth" });
+  }
+  if ("ratelimit" in obj) {
+    return policySchema.parse({ ...obj, type: "ratelimit" });
+  }
+  if ("firewall" in obj) {
+    return policySchema.parse({ ...obj, type: "firewall" });
+  }
+  if ("openapi" in obj) {
+    return policySchema.parse({ ...obj, type: "openapi" });
+  }
+  throw new Error("unknown gateway policy variant");
+}

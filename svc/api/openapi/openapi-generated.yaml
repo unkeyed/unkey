@@ -217,12 +217,11 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 256
                     description: |
-                        Unique identifier for this API namespace within your workspace.
-                        Use descriptive names like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-                    example: payment-service-production
+                        Human-readable name for this API within your workspace.
+                        Use descriptive names like 'Payment Service (prod)' or 'user-api-dev' to clearly identify purpose and environment.
+                    example: Payment Service (prod)
             additionalProperties: false
         V2ApisCreateApiResponseBody:
             type: object
@@ -1654,7 +1653,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -1697,9 +1697,8 @@ components:
                         Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 255
-                        pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysAddRolesResponseBody:
@@ -1792,8 +1791,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -1808,8 +1806,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -2027,7 +2025,8 @@ components:
                         After removal, verification checks for these permissions will fail unless granted through roles.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -2070,9 +2069,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysRemoveRolesResponseBody:
@@ -2166,7 +2164,8 @@ components:
                         Any permissions that do not exist will be auto created if the root key has permissions, otherwise this operation will fail with a 403 error.
                     items:
                         type: string
-                        minLength: 3
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: Specify the permission by its slug.
             additionalProperties: false
@@ -2209,9 +2208,8 @@ components:
                         Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
                     items:
                         type: string
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                        minLength: 3
-                        maxLength: 255
+                        minLength: 1
+                        maxLength: 128
                         description: Specify the role by name.
             additionalProperties: false
         V2KeysSetRolesResponseBody:
@@ -2381,8 +2379,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
-                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        maxLength: 128
                         description: |
                             Assigns existing roles to this key for permission management through role-based access control.
                             Roles must already exist in your workspace before assignment.
@@ -2396,8 +2393,8 @@ components:
                     maxItems: 1000
                     items:
                         type: string
-                        minLength: 3
-                        maxLength: 100
+                        minLength: 1
+                        maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                         description: |
                             Grants specific permissions directly to this key without requiring role membership.
@@ -2550,7 +2547,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 128
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
                         Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
@@ -2595,12 +2592,11 @@ components:
                 name:
                     type: string
                     minLength: 1
-                    maxLength: 512
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    maxLength: 128
                     description: |
-                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'billing_manager'.
+                        The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
-                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'manager.analytics'
+                        Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
                     example: "support.readonly"
                 description:
                     type: string
@@ -2618,6 +2614,18 @@ components:
                         - Any security considerations or limitations
                         - Related roles that might be used together
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
+                permissions:
+                    type: array
+                    description: |
+                        Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
+
+                        Omit this field or provide an empty array to create the role without permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                        description: Specify the permission by its slug.
             additionalProperties: false
         V2PermissionsCreateRoleResponseBody:
             type: object
@@ -2637,9 +2645,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Specifies which permission to permanently delete from your workspace.
 
@@ -2675,9 +2683,8 @@ components:
             properties:
                 role:
                     type: string
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
-                    minLength: 3
-                    maxLength: 255
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2712,9 +2719,9 @@ components:
             properties:
                 permission:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z][a-zA-Z0-9._-]*$"
+                    minLength: 1
+                    maxLength: 128
+                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
                     example: perm_1234567890abcdef
@@ -2737,9 +2744,8 @@ components:
             properties:
                 role:
                     type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+                    minLength: 1
+                    maxLength: 128
                     description: |
                         Unique identifier of the role to permanently delete from your workspace.
                         Must either be a valid role ID that begins with 'role_' or the given role name and exists within your workspace.
@@ -2843,6 +2849,34 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2PermissionsSetRolePermissionsRequestBody:
+            type: object
+            required:
+                - roleId
+                - permissions
+            properties:
+                roleId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: The ID of the role whose directly assigned permissions will be replaced.
+                permissions:
+                    type: array
+                    description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
+            additionalProperties: false
+        V2PermissionsSetRolePermissionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PermissionsSetRolePermissionsResponseData"
         V2PortalCreateSessionRequestBody:
             type: object
             required:
@@ -3171,7 +3205,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override.
@@ -3184,7 +3218,7 @@ components:
                         After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3215,7 +3249,7 @@ components:
                     description: The id or name of the namespace containing the override.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 identifier:
                     description: |-
                         The exact identifier pattern for the override you want to retrieve. This must match exactly as it was specified when creating the override.
@@ -3228,7 +3262,7 @@ components:
                         This field is used to look up the specific override configuration for this pattern.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
             required:
                 - namespace
                 - identifier
@@ -3249,7 +3283,7 @@ components:
                 namespace:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: The id or name of the namespace.
                     example: sms.sign_up
                 cost:
@@ -3277,7 +3311,7 @@ components:
                 identifier:
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                     description: |
                         Defines the scope of rate limiting by identifying the entity being limited.
                         Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits.
@@ -3335,7 +3369,7 @@ components:
                     description: The id or name of the rate limit namespace to list overrides for.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 cursor:
                     description: Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value in the pagination object that can be used here.
                     type: string
@@ -3401,7 +3435,7 @@ components:
                     description: The ID or name of the rate limit namespace.
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 duration:
                     description: |-
                         The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero.
@@ -3431,7 +3465,7 @@ components:
                         More detailed information on wildcard pattern rules is available at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
                     type: string
                     minLength: 1
-                    maxLength: 255
+                    maxLength: 512
                 limit:
                     description: |-
                         The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s).
@@ -3607,7 +3641,7 @@ components:
                 name:
                     type: string
                     minLength: 3
-                    maxLength: 255
+                    maxLength: 256
                     description: |
                         The internal name of this API as specified during creation.
                         Used for organization and identification within your workspace.
@@ -5151,7 +5185,6 @@ components:
             required:
                 - limit
                 - windowMs
-                - identifier
             properties:
                 limit:
                     type: integer
@@ -5164,14 +5197,34 @@ components:
                     minimum: 1
                     description: Window duration in milliseconds.
                 identifier:
-                    "$ref": "#/components/schemas/RatelimitIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/RatelimitIdentifier"
+                    deprecated: true
+                    description: |-
+                        Deprecated. Accepted for compatibility with old clients. Use
+                        `identifiers` with one entry. Responses always return `identifiers`.
+                identifiers:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/RatelimitIdentifier"
+                    minItems: 1
+                    maxItems: 5
+                    description: |-
+                        Ordered list of sources that form a compound rate limit key. The
+                        gateway resolves each source for each request. Each unique
+                        combination of resolved values has its own counter. All counters use
+                        the same limit and window. Example: `[authenticatedSubject, path]`
+                        limits each subject separately on each path.
             additionalProperties: false
-            description: Rate limits matching requests.
+            description: |-
+                Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+                The deprecated `identifier` field is accepted in place of a one-entry
+                `identifiers` list; set exactly one of the two.
             example:
                 limit: 100
                 windowMs: 60000
-                identifier:
-                    remoteIp: {}
+                identifiers:
+                    - remoteIp: {}
         FirewallPolicy:
             type: object
             required:
@@ -5731,7 +5784,7 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
                     description: |
                         Assigns existing roles to this key for permission management through role-based access control.
                         Roles must already exist in your workspace before assignment.
@@ -5746,7 +5799,8 @@ components:
                     items:
                         type: string
                         minLength: 1
-                        maxLength: 100
+                        maxLength: 128
+                        pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
                         Grants specific permissions directly to this key without requiring role membership.
                         Wildcard permissions like `documents.*` grant access to all sub-permissions including `documents.read` and `documents.write`.
@@ -6274,6 +6328,11 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        V2PermissionsSetRolePermissionsResponseData:
+            type: array
+            description: Complete list of permissions now directly assigned to the role.
+            items:
+                "$ref": "#/components/schemas/Permission"
         V2PortalCreateSessionResponseData:
             type: object
             required:
@@ -12453,14 +12512,20 @@ paths:
     /v2/permissions.createRole:
         post:
             description: |
-                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+                Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
 
                 **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
 
                 **Required Permissions**
 
-                Your root key must have the following permission:
+                Your root key must always have:
                 - `rbac.*.create_role`
+
+                When `permissions` is not empty, it must also have:
+                - `rbac.*.add_permission_to_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
             operationId: permissions.createRole
             requestBody:
                 content:
@@ -12471,6 +12536,9 @@ paths:
                                 value:
                                     description: Can read and write content
                                     name: content.editor
+                                    permissions:
+                                        - content.read
+                                        - content.write
                             withoutDescription:
                                 summary: Role without description
                                 value:
@@ -12932,6 +13000,73 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/permissions.setRolePermissions:
+        post:
+            description: |
+                Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
+
+                **Required Permissions**
+
+                Your root key must have:
+                - `rbac.*.add_permission_to_role`
+                - `rbac.*.remove_permission_from_role`
+
+                When any requested permission slug does not exist, it must also have:
+                - `rbac.*.create_permission`
+            operationId: permissions.setRolePermissions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PermissionsSetRolePermissionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PermissionsSetRolePermissionsResponseBody'
+                    description: Permissions set successfully.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Role not found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            summary: Set role permissions
+            tags:
+                - permissions
+            x-speakeasy-name-override: setRolePermissions
     /v2/portal.createSession:
         post:
             description: |
