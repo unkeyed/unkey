@@ -203,6 +203,15 @@ local_resource(
 )
 
 local_resource(
+    'gitlab-credentials',
+    'if [ -f ./.env.gitlab ]; then kubectl -n unkey create secret generic gitlab-credentials --from-env-file=./.env.gitlab -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping gitlab-credentials (no .env.gitlab file)"; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.gitlab'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
     'domain-connect-credentials',
     '''if [ -f ./.domain-connect-private-key.pem ]; then kubectl -n unkey create secret generic domain-connect-credentials \
       --from-file=UNKEY_DOMAIN_CONNECT_PRIVATE_KEY=./.domain-connect-private-key.pem \

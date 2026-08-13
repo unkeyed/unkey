@@ -28,6 +28,7 @@ type BulkQuerier interface {
 	InsertDeploymentTopologies(ctx context.Context, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, args []InsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, args []InsertGithubRepoConnectionParams) error
+	UpsertGitlabRepoConnection(ctx context.Context, args []UpsertGitlabRepoConnectionParams) error
 	InsertIdentities(ctx context.Context, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, args []InsertIdentityRatelimitParams) error
 	InsertFrontlineRoutes(ctx context.Context, args []InsertFrontlineRouteParams) error

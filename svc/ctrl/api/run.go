@@ -32,6 +32,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/api/gitlabconnect"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
 	gitlabwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/gitlab"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
@@ -312,6 +313,17 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitLab webhook handler registered")
 	} else {
 		logger.Info("GitLab webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.GitLab.ClientID != "" && cfg.GitLab.ClientSecret != "" {
+		mux.Handle("GET /poc/gitlab/", gitlabconnect.New(database, gitlabconnect.Config{
+			ClientID:         cfg.GitLab.ClientID,
+			ClientSecret:     cfg.GitLab.ClientSecret,
+			RedirectBaseURL:  cfg.GitLab.RedirectBaseURL,
+			PublicWebhookURL: cfg.GitLab.PublicWebhookURL,
+			WebhookSecret:    cfg.GitLab.WebhookSecret,
+		}))
+		logger.Info("GitLab connect POC registered")
 	}
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {

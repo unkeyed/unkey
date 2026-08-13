@@ -35,9 +35,14 @@ data:
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
     # GitLab POC: shared secret for /webhooks/gitlab. Hardcoded like auth_token
-    # above; local dev only.
+    # above; local dev only. OAuth fields come from the optional
+    # gitlab-credentials secret (dev/.env.gitlab); empty disables /poc/gitlab.
     [gitlab]
     webhook_secret = "gitlab-local-dev-secret"
+    client_id = "${UNKEY_GITLAB_CLIENT_ID}"
+    client_secret = "${UNKEY_GITLAB_CLIENT_SECRET}"
+    redirect_base_url = "http://localhost:7091"
+    public_webhook_url = "${UNKEY_GITLAB_PUBLIC_WEBHOOK_URL}"
 
     # Stripe webhook for the month-end Deploy billing close. Both come from the
     # optional stripe-credentials secret (dev/.env.stripe); empty leaves
@@ -117,6 +122,11 @@ spec:
             # secretKeyRef per key, so new stripe keys need no manifest change.
             - secretRef:
                 name: stripe-credentials
+                optional: true
+            # GitLab OAuth credentials for the /poc/gitlab connect flow
+            # (dev/.env.gitlab).
+            - secretRef:
+                name: gitlab-credentials
                 optional: true
           volumeMounts:
             - name: config

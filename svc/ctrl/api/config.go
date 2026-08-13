@@ -46,13 +46,29 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
-// GitLabConfig holds GitLab webhook integration settings for webhook-triggered
-// deployments. POC: webhooks are registered manually per project in GitLab and
-// share one secret token; there is no GitLab App equivalent.
+// GitLabConfig holds GitLab integration settings for webhook-triggered
+// deployments. POC: one shared webhook secret; the OAuth fields drive the
+// /poc/gitlab connect flow which registers project webhooks via the API.
 type GitLabConfig struct {
 	// WebhookSecret is the secret token GitLab sends verbatim in the
 	// X-Gitlab-Token header. Empty disables the /webhooks/gitlab route.
 	WebhookSecret string `toml:"webhook_secret"`
+
+	// ClientID is the GitLab OAuth application id. Empty disables the
+	// /poc/gitlab connect flow.
+	ClientID string `toml:"client_id"`
+
+	// ClientSecret is the GitLab OAuth application secret.
+	ClientSecret string `toml:"client_secret"`
+
+	// RedirectBaseURL is the externally reachable base URL of this ctrl-api
+	// for the OAuth callback, e.g. "http://localhost:7091" in local dev.
+	RedirectBaseURL string `toml:"redirect_base_url"`
+
+	// PublicWebhookURL is the publicly reachable base URL GitLab must deliver
+	// webhooks to (the ngrok tunnel in local dev). The connect flow registers
+	// "<PublicWebhookURL>/webhooks/gitlab" on the selected project.
+	PublicWebhookURL string `toml:"public_webhook_url"`
 }
 
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
