@@ -6,6 +6,13 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 
 export function useAppFilterOptions(): AppFilterOption[] {
+  return useAppFilterOptionsWithLoading().options;
+}
+
+export function useAppFilterOptionsWithLoading(): {
+  options: AppFilterOption[];
+  isLoading: boolean;
+} {
   const { projectId } = useProjectData();
 
   const apps = useLiveQuery(
@@ -13,7 +20,7 @@ export function useAppFilterOptions(): AppFilterOption[] {
     [projectId],
   );
 
-  return useMemo(
+  const options = useMemo(
     () =>
       (apps.data ?? []).map((app, i) => ({
         id: i,
@@ -23,6 +30,8 @@ export function useAppFilterOptions(): AppFilterOption[] {
       })),
     [apps.data],
   );
+
+  return { options, isLoading: apps.isLoading };
 }
 
 export function useAppNameById(): Map<string, string> {

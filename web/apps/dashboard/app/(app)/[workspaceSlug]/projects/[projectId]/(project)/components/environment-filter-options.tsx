@@ -1,6 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useMemo } from "react";
 import { useAppNameById } from "./app-filter-options";
 
 // Logs and requests are project-wide and every app has e.g. a "production"
@@ -9,13 +10,17 @@ export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
   const { environments } = useProjectData();
   const appNameById = useAppNameById();
 
-  return environments.map((environment, i) => ({
-    id: i,
-    slug: environment.slug,
-    appName: appNameById.get(environment.appId) ?? null,
-    environmentId: environment.id,
-    checked: false,
-  }));
+  return useMemo(
+    () =>
+      environments.map((environment, i) => ({
+        id: i,
+        slug: environment.slug,
+        appName: appNameById.get(environment.appId) ?? null,
+        environmentId: environment.id,
+        checked: false,
+      })),
+    [environments, appNameById],
+  );
 }
 
 export function renderEnvironmentOption(option: EnvironmentFilterOption) {
