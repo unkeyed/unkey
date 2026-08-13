@@ -76,6 +76,13 @@ export function getErrorToast(
         "We encountered an issue on our end. Please try again later or contact support at support@unkey.com.",
     };
   }
+  // Covers connection, timeout, and abort errors: the request never got a response.
+  if (error instanceof errors.HTTPClientError) {
+    return {
+      message: "Connection Problem",
+      description: "Check your internet connection and try again.",
+    };
+  }
   return {
     message: fallbackMessage,
     description: getErrorMessage(error),

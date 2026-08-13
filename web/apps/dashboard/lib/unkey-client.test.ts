@@ -1,5 +1,9 @@
 import type { BaseError } from "@unkey/api/models/components";
-import { ForbiddenErrorResponse, PreconditionFailedErrorResponse } from "@unkey/api/models/errors";
+import {
+  ConnectionError,
+  ForbiddenErrorResponse,
+  PreconditionFailedErrorResponse,
+} from "@unkey/api/models/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "./unkey-client";
 
@@ -111,6 +115,15 @@ describe("getErrorToast", () => {
     expect(getErrorToast(error, "Failed to Delete App")).toEqual({
       message: "Permission Denied",
       description: "Missing one of these permissions: app.*.delete_app",
+    });
+  });
+
+  it("reports network failures as connection problems", () => {
+    const error = new ConnectionError("fetch failed", { cause: new TypeError("fetch failed") });
+
+    expect(getErrorToast(error, "Failed to Delete App")).toEqual({
+      message: "Connection Problem",
+      description: "Check your internet connection and try again.",
     });
   });
 
