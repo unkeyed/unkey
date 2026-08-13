@@ -60,6 +60,18 @@ describe("errorLogDetail", () => {
     expect(detail).not.toContain("Acme Corp");
   });
 
+  it("describes a codeless auth failure with a fixed string, keeping its message out of the logs", () => {
+    const authError = {
+      success: false,
+      message: "Could not update organization 'Acme Corp'",
+    };
+
+    const detail = errorLogDetail(authError);
+
+    expect(detail).toBe("auth error: no code");
+    expect(detail).not.toContain("Acme Corp");
+  });
+
   it("reduces a mysql2 server error to its symbolic code, keeping quoted bound values out of the logs", () => {
     const driverError = mysqlServerError(
       "Duplicate entry 'Acme Corp' for key 'name'",

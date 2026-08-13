@@ -35,6 +35,7 @@ export function errorLogDetail(err: unknown): string {
     if (code !== undefined) {
       return `error code: ${code}`;
     }
+    return "auth error: no code";
   }
   if (!(err instanceof Error)) {
     const code = typeof err === "object" && err !== null ? stringCode(err) : undefined;

@@ -4,7 +4,7 @@ import { and, db, eq, isNull, schema } from "@/lib/db";
 import { logOperation } from "@/lib/logging/structured-logger";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
+import { ratelimit, requireWorkspaceAdmin, withRatelimit, workspaceProcedure } from "../../trpc";
 import { errorLogDetail, wrapUnexpectedError } from "../utils/errors";
 import {
   providerNameMatches,
@@ -19,6 +19,7 @@ const conflictErrorMessage =
   "The workspace name changed while your request was in flight. Refresh to see the current name and try again.";
 
 export const changeWorkspaceName = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .use(requireWorkspaceAdmin)
   .input(
     z.object({
@@ -109,11 +110,28 @@ export const changeWorkspaceName = workspaceProcedure
             .where(
               and(
                 eq(schema.workspaces.id, input.workspaceId),
+                isNull(schema.workspaces.deletedAtM),
                 workspaceNameByteEquals(previousName),
               ),
             );
 
           if (renamed[0].affectedRows === 0) {
+            // Zero rows means either a concurrent rename or a concurrent
+            // soft delete; a re-read tells them apart so a deleted workspace
+            // is not misreported as a name conflict.
+            const live = await tx.query.workspaces.findFirst({
+              columns: { id: true },
+              where: and(
+                eq(schema.workspaces.id, input.workspaceId),
+                isNull(schema.workspaces.deletedAtM),
+              ),
+            });
+            if (live === undefined) {
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Workspace not found",
+              });
+            }
             throw new TRPCError({
               code: "CONFLICT",
               message: conflictErrorMessage,
