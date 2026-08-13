@@ -44,7 +44,7 @@ type Querier interface {
 	// counter-delta vs time-integration rules and the sample-gap handling.
 	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
 
-	// GetDeploymentRequestCount returns the number of sentinel requests routed to a
+	// GetDeploymentRequestCount returns the number of gateway requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)

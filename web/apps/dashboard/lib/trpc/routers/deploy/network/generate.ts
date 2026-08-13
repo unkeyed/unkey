@@ -12,11 +12,8 @@ import { mapRegionToFlag } from "./utils";
 const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
 const generatorConfigSchema = z.object({
-  // Field names kept as `sentinels` / `instancesPerSentinel` to match the
-  // existing dev tree-generator UI sliders. Semantically these are now
-  // regions and instances per region.
-  sentinels: z.number().min(1).max(7),
-  instancesPerSentinel: z.object({
+  regions: z.number().min(1).max(7),
+  instancesPerRegion: z.object({
     min: z.number().min(0).max(20),
     max: z.number().min(0).max(20),
   }),
@@ -63,7 +60,7 @@ export const generateDeploymentTree = workspaceProcedure
       const getRandomInt = (min: number, max: number) =>
         Math.floor(Math.random() * (max - min + 1)) + min;
 
-      const selectedRegions = regions.slice(0, input.sentinels);
+      const selectedRegions = regions.slice(0, input.regions);
 
       const tree: DeploymentNode = {
         id: "internet",
@@ -72,8 +69,8 @@ export const generateDeploymentTree = workspaceProcedure
         metadata: { type: "origin" },
         children: selectedRegions.map((regionId): RegionNode => {
           const instanceCount = getRandomInt(
-            input.instancesPerSentinel.min,
-            input.instancesPerSentinel.max,
+            input.instancesPerRegion.min,
+            input.instancesPerRegion.max,
           );
           const regionHealth = getRandomHealth();
 

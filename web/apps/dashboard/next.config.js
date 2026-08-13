@@ -138,6 +138,15 @@ const nextConfig = {
     return config;
   },
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  async redirects() {
+    return [
+      {
+        source: "/:workspaceSlug/projects/:projectId/apps/:appId/sentinel-policies",
+        destination: "/:workspaceSlug/projects/:projectId/apps/:appId/policies",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

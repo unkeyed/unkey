@@ -1,0 +1,36 @@
+import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
+import type { RequestLogsRequest } from "@unkey/clickhouse/src/frontline";
+
+export function transformRequestLogsFilters(params: Omit<RequestLogsRequest, "workspaceId">) {
+  let since: string;
+  let startTime: number;
+  let endTime: number;
+  if (params.since !== null && params.since !== "") {
+    since = params.since;
+    startTime = getTimestampFromRelative(since);
+    endTime = Date.now();
+  } else if (params.startTime !== null && params.endTime !== null) {
+    since = "";
+    startTime = params.startTime;
+    endTime = params.endTime;
+  } else {
+    since = DEFAULT_LOGS_SINCE;
+    startTime = getTimestampFromRelative(since);
+    endTime = Date.now();
+  }
+
+  return {
+    projectId: params.projectId,
+    appId: params.appId ?? [],
+    deploymentId: params.deploymentId ?? [],
+    environmentId: params.environmentId ?? [],
+    limit: params.limit,
+    startTime,
+    endTime,
+    since,
+    statusCodes: params.statusCodes ?? [],
+    methods: params.methods ?? [],
+    paths: params.paths ?? [],
+    page: params.page,
+  };
+}

@@ -1,5 +1,5 @@
 // Package status returns whatever HTTP status the caller asks for via
-// the URL path. Useful for exercising sentinel's handling of upstream
+// the URL path. Useful for exercising Frontline's handling of upstream
 // errors (502, 429, etc.) without needing an upstream that actually
 // fails.
 package status

@@ -37,7 +37,7 @@ export const getInstanceRps = workspaceProcedure
       }
 
       try {
-        const result = await clickhouse.sentinel.rps.byInstance({
+        const result = await clickhouse.frontline.rps.byInstance({
           workspaceId: ctx.workspace.id,
           deploymentId: instance.deploymentId,
           environmentId: instance.deployment.environmentId,
