@@ -95,9 +95,13 @@ func (e *Executor) Execute(
 	// Deduct one credit per request unless the policy overrides the cost.
 	// A cost of 0 verifies the key without spending credits (e.g. read-only
 	// routes or gateways that only prove the key is valid before proxying).
-	credits := int64(1)
-	if cfg.Credits != nil {
-		credits = cfg.GetCredits()
+	credits := ptr.SafeDeref(cfg.Credits, 1)
+	if credits < 0 {
+		return nil, fault.New("negative credits cost in keyauth policy",
+			fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
+			fault.Internal(fmt.Sprintf("negative credits cost: %d", credits)),
+			fault.Public("Service configuration error."),
+		)
 	}
 	verifyOpts := []keys.VerifyOption{keys.WithCredits(credits)}
 	if pq := cfg.GetPermissionQuery(); pq != "" {
