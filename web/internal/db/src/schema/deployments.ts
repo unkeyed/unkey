@@ -123,6 +123,7 @@ export const deployments = mysqlTable(
       "unknown",
       "github",
       "gitlab",
+      "bitbucket",
       "api",
       "cli",
       "dashboard",

@@ -56,6 +56,15 @@ const (
 	// stay provider-agnostic; BuildKit only sends a secret to the host its name
 	// carries, so the wrong-host entry is never transmitted.
 	gitlabAuthTokenSecretID = "GIT_AUTH_TOKEN.gitlab.com"
+
+	// bitbucketAuthTokenSecretID is the bitbucket.org counterpart.
+	bitbucketAuthTokenSecretID = "GIT_AUTH_TOKEN.bitbucket.org"
+
+	// bitbucketAuthHeaderSecretID switches BuildKit's bitbucket.org clone auth
+	// from basic (which hardcodes the x-access-token username GitHub expects)
+	// to a bearer Authorization header, which Bitbucket accepts for OAuth
+	// access tokens. Only consulted for bitbucket.org fetches.
+	bitbucketAuthHeaderSecretID = "GIT_AUTH_HEADER.bitbucket.org"
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -384,8 +393,11 @@ func buildGitContextURL(params gitBuildParams) string {
 	buildRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
 
 	host := "github.com"
-	if params.Provider == "gitlab" {
+	switch params.Provider {
+	case "gitlab":
 		host = "gitlab.com"
+	case "bitbucket":
+		host = "bitbucket.org"
 	}
 
 	if contextPath != "" {
@@ -623,8 +635,10 @@ func (w *Workflow) buildGitSolverOptions(
 	envVars map[string]string,
 ) client.SolveOpt {
 	secrets := map[string][]byte{
-		gitAuthTokenSecretID:    []byte(githubToken),
-		gitlabAuthTokenSecretID: []byte(githubToken),
+		gitAuthTokenSecretID:        []byte(githubToken),
+		gitlabAuthTokenSecretID:     []byte(githubToken),
+		bitbucketAuthTokenSecretID:  []byte(githubToken),
+		bitbucketAuthHeaderSecretID: []byte("bearer"),
 	}
 	envFile := buildEnvFileSecret(envVars)
 
@@ -816,6 +830,32 @@ func (w *Workflow) resolveCloneToken(ctx context.Context, params gitBuildParams,
 			))
 		}
 		return githubclient.InstallationToken{Token: conn.AccessToken.String, ExpiresAt: time.Time{}}, false, nil
+	}
+
+	// Bitbucket POC: the connection row stores the OAuth REFRESH token
+	// (Bitbucket access tokens expire after two hours), so exchange it for a
+	// fresh access token here. Fork builds never reach here: Bitbucket pull
+	// request events are not handled yet.
+	if params.Provider == "bitbucket" {
+		conn, err := w.db.FindGithubRepoConnectionByAppId(ctx, params.AppID)
+		if err != nil {
+			return noToken, false, fmt.Errorf("failed to load bitbucket connection for app %s: %w", params.AppID, err)
+		}
+		if !conn.AccessToken.Valid || conn.AccessToken.String == "" {
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"bitbucket connection for app %s has no refresh token", params.AppID,
+			))
+		}
+		if w.bitbucketConfig.ClientID == "" || w.bitbucketConfig.ClientSecret == "" {
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"bitbucket OAuth consumer is not configured on the worker",
+			))
+		}
+		token, err := refreshBitbucketToken(ctx, w.bitbucketConfig, conn.AccessToken.String)
+		if err != nil {
+			return noToken, false, fmt.Errorf("failed to refresh bitbucket token for app %s: %w", params.AppID, err)
+		}
+		return githubclient.InstallationToken{Token: token, ExpiresAt: time.Time{}}, false, nil
 	}
 
 	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {

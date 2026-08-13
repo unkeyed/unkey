@@ -30,6 +30,14 @@ type RegistryConfig struct {
 	Password   string
 }
 
+// BitbucketConfig holds the OAuth consumer credentials used to refresh
+// Bitbucket clone tokens at build time (POC): connection rows store refresh
+// tokens because Bitbucket access tokens expire after two hours.
+type BitbucketConfig struct {
+	ClientID     string
+	ClientSecret string
+}
+
 // Workflow orchestrates deployment lifecycle operations.
 //
 // This workflow manages the complete deployment lifecycle including deploying new versions,
@@ -53,6 +61,7 @@ type Workflow struct {
 	// Build dependencies
 	depotConfig                     DepotConfig
 	registryConfig                  RegistryConfig
+	bitbucketConfig                 BitbucketConfig
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
 	buildSteps                      *batch.BatchProcessor[schema.BuildStepV1]
@@ -82,6 +91,10 @@ type Config struct {
 
 	// RegistryConfig provides credentials for the container registry.
 	RegistryConfig RegistryConfig
+
+	// BitbucketConfig provides the OAuth consumer for build-time clone token
+	// refresh (POC). Zero value disables Bitbucket builds.
+	BitbucketConfig BitbucketConfig
 
 	// BuildPlatform specifies the target platform for all builds.
 	BuildPlatform BuildPlatform
@@ -119,6 +132,7 @@ func New(cfg Config) *Workflow {
 		github:                          cfg.GitHub,
 		depotConfig:                     cfg.DepotConfig,
 		registryConfig:                  cfg.RegistryConfig,
+		bitbucketConfig:                 cfg.BitbucketConfig,
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,
 		buildSteps:                      cfg.BuildSteps,

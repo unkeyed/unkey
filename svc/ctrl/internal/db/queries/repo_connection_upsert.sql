@@ -1,7 +1,8 @@
--- name: UpsertGitlabRepoConnection :exec
--- POC: writes a GitLab connection into the shared connections table, replacing
--- whatever connection the app had (app_id is unique). installation_id and
--- repository_id both carry the GitLab project id.
+-- name: UpsertRepoConnection :exec
+-- POC: writes a non-GitHub provider connection into the shared connections
+-- table, replacing whatever connection the app had (app_id is unique).
+-- installation_id and repository_id both carry the provider's repo identifier
+-- (GitLab: project id; Bitbucket: FNV hash of the repo UUID).
 INSERT INTO github_repo_connections (
     workspace_id,
     project_id,
@@ -20,7 +21,7 @@ VALUES (
     sqlc.arg(installation_id),
     sqlc.arg(repository_id),
     sqlc.arg(repository_full_name),
-    'gitlab',
+    sqlc.arg(provider),
     sqlc.arg(access_token),
     sqlc.arg(created_at)
 )

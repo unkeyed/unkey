@@ -10,6 +10,7 @@ export * from "./icons/arrows-to-all-directions";
 export * from "./icons/arrows-to-center";
 export * from "./icons/ban";
 export * from "./icons/bars-filter";
+export * from "./icons/bitbucket";
 export * from "./icons/bolt";
 export * from "./icons/bolt-slash";
 export * from "./icons/book-2";

@@ -90,7 +90,11 @@ export type V2GatewayUpdatePolicyRequestBody = {
    */
   keyauth?: KeyauthPolicy | undefined;
   /**
-   * Rate limits matching requests.
+   * Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+   *
+   * @remarks
+   * The deprecated `identifier` field is accepted in place of a one-entry
+   * `identifiers` list; set exactly one of the two.
    */
   ratelimit?: RatelimitPolicy | undefined;
   /**

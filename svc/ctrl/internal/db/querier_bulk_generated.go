@@ -28,7 +28,6 @@ type BulkQuerier interface {
 	InsertDeploymentTopologies(ctx context.Context, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, args []InsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, args []InsertGithubRepoConnectionParams) error
-	UpsertGitlabRepoConnection(ctx context.Context, args []UpsertGitlabRepoConnectionParams) error
 	InsertIdentities(ctx context.Context, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, args []InsertIdentityRatelimitParams) error
 	InsertFrontlineRoutes(ctx context.Context, args []InsertFrontlineRouteParams) error
@@ -43,6 +42,7 @@ type BulkQuerier interface {
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
+	UpsertRepoConnection(ctx context.Context, args []UpsertRepoConnectionParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
 	InsertWorkspaceBillings(ctx context.Context, args []InsertWorkspaceBillingParams) error

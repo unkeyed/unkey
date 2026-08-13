@@ -392,6 +392,8 @@ func railpackSecrets(githubToken string, envVars map[string]string) map[string][
 	if githubToken != "" {
 		secrets[gitAuthTokenSecretID] = []byte(githubToken)
 		secrets[gitlabAuthTokenSecretID] = []byte(githubToken)
+		secrets[bitbucketAuthTokenSecretID] = []byte(githubToken)
+		secrets[bitbucketAuthHeaderSecretID] = []byte("bearer")
 	}
 	for k, v := range envVars {
 		secrets[k] = []byte(v)

@@ -7,7 +7,7 @@ CREATE TABLE `github_repo_connections` (
 	`repository_id` bigint NOT NULL,
 	`repository_full_name` varchar(500) NOT NULL,
 	`provider` varchar(32) NOT NULL DEFAULT 'github',
-	`access_token` varchar(512),
+	`access_token` text,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_repo_connections_pk` PRIMARY KEY(`pk`),

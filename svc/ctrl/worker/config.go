@@ -156,6 +156,17 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
+// BitbucketConfig holds the Bitbucket OAuth consumer credentials the deploy
+// worker needs to refresh clone tokens at build time: Bitbucket access tokens
+// expire after two hours, so connection rows store refresh tokens (POC).
+type BitbucketConfig struct {
+	// ClientID is the Bitbucket OAuth consumer key.
+	ClientID string `toml:"client_id"`
+
+	// ClientSecret is the Bitbucket OAuth consumer secret.
+	ClientSecret string `toml:"client_secret"`
+}
+
 // DeployGateConfig gates webhook-triggered deployments on a synced Compute
 // plan or manual override.
 type DeployGateConfig struct {
@@ -306,6 +317,10 @@ type Config struct {
 
 	// GitHub configures GitHub App integration for webhook-triggered deployments.
 	GitHub *GitHubConfig `toml:"github"`
+
+	// Bitbucket configures the OAuth consumer used to refresh Bitbucket clone
+	// tokens at build time (POC).
+	Bitbucket BitbucketConfig `toml:"bitbucket"`
 
 	// DeployGate configures the entitlement gate for webhook deployments.
 	DeployGate DeployGateConfig `toml:"deploy_gate"`

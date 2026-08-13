@@ -73,6 +73,13 @@ data:
     # Controlled via UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS in .env.github.
     allow_unauthenticated_deployments = true
 
+    # Bitbucket POC: OAuth consumer used to refresh clone tokens at build time
+    # (connection rows store refresh tokens; access tokens live two hours).
+    # From the optional bitbucket-credentials secret (dev/.env.bitbucket).
+    [bitbucket]
+    client_id = "${UNKEY_BITBUCKET_CLIENT_ID}"
+    client_secret = "${UNKEY_BITBUCKET_CLIENT_SECRET}"
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -166,6 +173,12 @@ spec:
                   optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
               value: "false"
+          envFrom:
+            # Bitbucket OAuth consumer for build-time clone token refresh
+            # (dev/.env.bitbucket).
+            - secretRef:
+                name: bitbucket-credentials
+                optional: true
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

@@ -494,6 +494,7 @@ const (
 	DeploymentsTriggerUnknown   DeploymentsTrigger = "unknown"
 	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
 	DeploymentsTriggerGitlab    DeploymentsTrigger = "gitlab"
+	DeploymentsTriggerBitbucket DeploymentsTrigger = "bitbucket"
 	DeploymentsTriggerApi       DeploymentsTrigger = "api"
 	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
 	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"

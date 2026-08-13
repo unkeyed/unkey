@@ -240,13 +240,14 @@ func (h *handler) selectProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to look up app", http.StatusInternalServerError)
 		return
 	}
-	err = h.db.UpsertGitlabRepoConnection(r.Context(), db.UpsertGitlabRepoConnectionParams{
+	err = h.db.UpsertRepoConnection(r.Context(), db.UpsertRepoConnectionParams{
 		WorkspaceID:        app.WorkspaceID,
 		ProjectID:          app.ProjectID,
 		AppID:              app.ID,
 		InstallationID:     projectID,
 		RepositoryID:       projectID,
 		RepositoryFullName: picked.PathWithNamespace,
+		Provider:           "gitlab",
 		AccessToken:        sql.NullString{String: cloneToken, Valid: cloneToken != ""},
 		CreatedAt:          time.Now().UnixMilli(),
 	})

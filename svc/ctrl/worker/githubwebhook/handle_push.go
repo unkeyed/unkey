@@ -476,8 +476,12 @@ func providerOrDefault(provider string) string {
 }
 
 func triggerForProvider(provider string) db.DeploymentsTrigger {
-	if providerOrDefault(provider) == "gitlab" {
+	switch providerOrDefault(provider) {
+	case "gitlab":
 		return db.DeploymentsTriggerGitlab
+	case "bitbucket":
+		return db.DeploymentsTriggerBitbucket
+	default:
+		return db.DeploymentsTriggerGithub
 	}
-	return db.DeploymentsTriggerGithub
 }

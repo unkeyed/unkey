@@ -1,8 +1,24 @@
-import { BracketsCurly, Github, Gitlab, Laptop2, SquareTerminal, Unkey } from "@unkey/icons";
+import {
+  Bitbucket,
+  BracketsCurly,
+  Github,
+  Gitlab,
+  Laptop2,
+  SquareTerminal,
+  Unkey,
+} from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import type { ReactNode } from "react";
 
-type DeploymentTrigger = "unknown" | "github" | "gitlab" | "api" | "cli" | "dashboard" | "unkey";
+type DeploymentTrigger =
+  | "unknown"
+  | "github"
+  | "gitlab"
+  | "bitbucket"
+  | "api"
+  | "cli"
+  | "dashboard"
+  | "unkey";
 
 type DeploymentTriggerBadgeProps = {
   trigger: DeploymentTrigger;
@@ -19,6 +35,7 @@ type Spec = { label: string; icon: ReactNode };
 const SPECS: Record<Exclude<DeploymentTrigger, "unknown">, Spec> = {
   github: { label: "GitHub", icon: <Github iconSize="sm-regular" /> },
   gitlab: { label: "GitLab", icon: <Gitlab iconSize="sm-regular" /> },
+  bitbucket: { label: "Bitbucket", icon: <Bitbucket iconSize="sm-regular" /> },
   dashboard: { label: "Dashboard", icon: <Laptop2 iconSize="sm-regular" /> },
   api: { label: "API", icon: <BracketsCurly iconSize="sm-regular" /> },
   cli: { label: "CLI", icon: <SquareTerminal iconSize="sm-regular" /> },
@@ -33,6 +50,7 @@ function formatActor(trigger: DeploymentTrigger, triggeredBy?: string | null): s
   switch (trigger) {
     case "github":
     case "gitlab":
+    case "bitbucket":
       return `Pushed by @${triggeredBy}`;
     case "dashboard":
     case "unkey":

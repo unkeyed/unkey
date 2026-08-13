@@ -44,6 +44,16 @@ data:
     redirect_base_url = "http://localhost:7091"
     public_webhook_url = "${UNKEY_GITLAB_PUBLIC_WEBHOOK_URL}"
 
+    # Bitbucket POC: HMAC key for /webhooks/bitbucket signature verification.
+    # OAuth fields come from the optional bitbucket-credentials secret
+    # (dev/.env.bitbucket); empty disables /poc/bitbucket.
+    [bitbucket]
+    webhook_secret = "bitbucket-local-dev-secret"
+    client_id = "${UNKEY_BITBUCKET_CLIENT_ID}"
+    client_secret = "${UNKEY_BITBUCKET_CLIENT_SECRET}"
+    redirect_base_url = "http://localhost:7091"
+    public_webhook_url = "${UNKEY_BITBUCKET_PUBLIC_WEBHOOK_URL}"
+
     # Stripe webhook for the month-end Deploy billing close. Both come from the
     # optional stripe-credentials secret (dev/.env.stripe); empty leaves
     # /webhooks/stripe unregistered. The webhook_secret is whatever
@@ -127,6 +137,11 @@ spec:
             # (dev/.env.gitlab).
             - secretRef:
                 name: gitlab-credentials
+                optional: true
+            # Bitbucket OAuth credentials for the /poc/bitbucket connect flow
+            # (dev/.env.bitbucket).
+            - secretRef:
+                name: bitbucket-credentials
                 optional: true
           volumeMounts:
             - name: config

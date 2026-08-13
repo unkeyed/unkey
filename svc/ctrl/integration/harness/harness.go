@@ -265,6 +265,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
 		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
+		BitbucketConfig:                 deploy.BitbucketConfig{ClientID: "", ClientSecret: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
 	})

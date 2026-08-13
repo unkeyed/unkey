@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { projects } from "./projects";
 import { id } from "./util/id";
@@ -44,9 +44,11 @@ export const githubRepoConnections = mysqlTable(
     // Which SCM the connection belongs to. GitLab connections reuse this
     // table: installation_id and repository_id both hold the GitLab project id.
     provider: varchar("provider", { length: 32 }).notNull().default("github"),
-    // POC only: plaintext GitLab access token used to clone. Must move to
-    // vault-backed encrypted storage before this leaves local development.
-    accessToken: varchar("access_token", { length: 512 }),
+    // POC only: plaintext clone credential (GitLab access token / Bitbucket
+    // refresh token). Text, not varchar: Atlassian refresh tokens exceed 512
+    // chars. Must move to vault-backed encrypted storage before this leaves
+    // local development.
+    accessToken: text("access_token"),
     ...lifecycleDates,
   },
   (table) => [index("installation_id_idx").on(table.installationId)],

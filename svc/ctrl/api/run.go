@@ -32,7 +32,9 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/api/bitbucketconnect"
 	"github.com/unkeyed/unkey/svc/ctrl/api/gitlabconnect"
+	bitbucketwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/bitbucket"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
 	gitlabwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/gitlab"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
@@ -324,6 +326,24 @@ func Run(ctx context.Context, cfg Config) error {
 			WebhookSecret:    cfg.GitLab.WebhookSecret,
 		}))
 		logger.Info("GitLab connect POC registered")
+	}
+
+	if cfg.Bitbucket.WebhookSecret != "" {
+		mux.Handle("POST /webhooks/bitbucket", bitbucketwebhook.New(restateClient, cfg.Bitbucket.WebhookSecret))
+		logger.Info("Bitbucket webhook handler registered")
+	} else {
+		logger.Info("Bitbucket webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.Bitbucket.ClientID != "" && cfg.Bitbucket.ClientSecret != "" {
+		mux.Handle("GET /poc/bitbucket/", bitbucketconnect.New(database, bitbucketconnect.Config{
+			ClientID:         cfg.Bitbucket.ClientID,
+			ClientSecret:     cfg.Bitbucket.ClientSecret,
+			RedirectBaseURL:  cfg.Bitbucket.RedirectBaseURL,
+			PublicWebhookURL: cfg.Bitbucket.PublicWebhookURL,
+			WebhookSecret:    cfg.Bitbucket.WebhookSecret,
+		}))
+		logger.Info("Bitbucket connect POC registered")
 	}
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {

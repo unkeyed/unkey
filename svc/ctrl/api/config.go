@@ -71,6 +71,33 @@ type GitLabConfig struct {
 	PublicWebhookURL string `toml:"public_webhook_url"`
 }
 
+// BitbucketConfig holds Bitbucket Cloud integration settings for
+// webhook-triggered deployments. POC: one shared webhook secret; the OAuth
+// fields drive the /poc/bitbucket connect flow which registers repository
+// webhooks via the API.
+type BitbucketConfig struct {
+	// WebhookSecret is the HMAC key Bitbucket signs deliveries with
+	// (X-Hub-Signature). Empty disables the /webhooks/bitbucket route.
+	WebhookSecret string `toml:"webhook_secret"`
+
+	// ClientID is the Bitbucket OAuth consumer key. Empty disables the
+	// /poc/bitbucket connect flow.
+	ClientID string `toml:"client_id"`
+
+	// ClientSecret is the Bitbucket OAuth consumer secret.
+	ClientSecret string `toml:"client_secret"`
+
+	// RedirectBaseURL is the externally reachable base URL of this ctrl-api
+	// for the OAuth callback, e.g. "http://localhost:7091" in local dev.
+	RedirectBaseURL string `toml:"redirect_base_url"`
+
+	// PublicWebhookURL is the publicly reachable base URL Bitbucket must
+	// deliver webhooks to (the ngrok tunnel in local dev). The connect flow
+	// registers "<PublicWebhookURL>/webhooks/bitbucket" on the selected
+	// repository.
+	PublicWebhookURL string `toml:"public_webhook_url"`
+}
+
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
 // close: the invoice.created webhook claims renewal invoices of Deploy
 // workspaces (auto_advance off) and dispatches the closing flow to the
@@ -163,6 +190,10 @@ type Config struct {
 
 	// GitLab configures GitLab webhook integration. See [GitLabConfig].
 	GitLab GitLabConfig `toml:"gitlab"`
+
+	// Bitbucket configures Bitbucket Cloud webhook integration. See
+	// [BitbucketConfig].
+	Bitbucket BitbucketConfig `toml:"bitbucket"`
 
 	// Stripe configures the Stripe webhook for the month-end Deploy billing
 	// close. See [StripeConfig].

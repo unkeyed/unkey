@@ -258,6 +258,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		BitbucketConfig:                 deploy.BitbucketConfig(cfg.Bitbucket),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,

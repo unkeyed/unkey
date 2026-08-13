@@ -212,6 +212,15 @@ local_resource(
 )
 
 local_resource(
+    'bitbucket-credentials',
+    'if [ -f ./.env.bitbucket ]; then kubectl -n unkey create secret generic bitbucket-credentials --from-env-file=./.env.bitbucket -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping bitbucket-credentials (no .env.bitbucket file)"; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.bitbucket'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
     'domain-connect-credentials',
     '''if [ -f ./.domain-connect-private-key.pem ]; then kubectl -n unkey create secret generic domain-connect-credentials \
       --from-file=UNKEY_DOMAIN_CONNECT_PRIVATE_KEY=./.domain-connect-private-key.pem \
