@@ -14,14 +14,14 @@ export const openapiSpecs = mysqlTable(
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     deploymentId: id("deployment_id"),
-    portalConfigId: id("portal_config_id"),
+    portalId: id("portal_id"),
     content: longblob("content").notNull(),
     ...lifecycleDates,
   },
   (table) => [
     uniqueIndex("idx_openapi_specs_on_deployment_id").on(table.deploymentId),
     uniqueIndex("workspace_deployment_idx").on(table.workspaceId, table.deploymentId),
-    uniqueIndex("workspace_portal_config_idx").on(table.workspaceId, table.portalConfigId),
+    uniqueIndex("workspace_portal_idx").on(table.workspaceId, table.portalId),
   ],
 );
 
