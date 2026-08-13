@@ -99,7 +99,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 	t.Run("null match clears expressions", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env,
+		seedPolicyConfig(t, h, env,
 			`{"policies":[{"id":"pol_kebap","name":"KEBAP","enabled":true,`+
 				`"match":[{"path":{"path":{"prefix":"/internal/"}}}],`+
 				`"firewall":{"action":"ACTION_DENY"}}]}`)
@@ -116,7 +116,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 
 	t.Run("switch rule variant preserves id and match", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env,
+		seedPolicyConfig(t, h, env,
 			`{"policies":[{"id":"pol_kebap","name":"KEBAP","enabled":true,`+
 				`"match":[{"path":{"path":{"prefix":"/api/"}}}],`+
 				`"ratelimit":{"limit":"100","windowMs":"60000","identifier":{"remoteIp":{}}}}]}`)

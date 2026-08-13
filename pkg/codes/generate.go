@@ -90,7 +90,7 @@ type ErrorCodeInfo struct {
 	URN         string
 	Name        string
 	Description string
-	Domain      string // "User", "Auth", "Data", "App", "Sentinel"
+	Domain      string
 }
 
 // extractComments parses source files to get documentation comments
@@ -249,14 +249,6 @@ func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 	skipped := 0
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel errors (internal, not surfaced to callers). Frontline
-		// errors ARE documented: frontline returns the URN to callers and the
-		// rendered error page links to its docs page.
-		if errCode.Domain == "Sentinel" {
-			skipped++
-			continue
-		}
-
 		// Parse URN to get file path
 		// Example: err:user:bad_request:client_closed_request -> user/bad_request/client_closed_request.mdx
 		parts := strings.Split(errCode.URN, ":")
@@ -316,11 +308,6 @@ func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 	// Build a set of valid file paths from error codes
 	validPaths := make(map[string]bool)
 	for _, errCode := range errorCodes {
-		// Skip sentinel errors (frontline errors are documented).
-		if errCode.Domain == "Sentinel" {
-			continue
-		}
-
 		parts := strings.Split(errCode.URN, ":")
 		if len(parts) < 4 || parts[0] != "err" {
 			continue
@@ -459,11 +446,6 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	}
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel errors (frontline errors are documented).
-		if errCode.Domain == "Sentinel" {
-			continue
-		}
-
 		parts := strings.Split(errCode.URN, ":")
 		if len(parts) < 4 {
 			continue

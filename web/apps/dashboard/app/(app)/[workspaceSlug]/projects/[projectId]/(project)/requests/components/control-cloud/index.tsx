@@ -1,7 +1,7 @@
 import { useAppNameById } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-filter-options";
 import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
-import { useSentinelLogsFilters } from "../../hooks/use-sentinel-logs-filters";
+import { useRequestLogsFilters } from "../../hooks/use-request-logs-filters";
 
 const formatFieldName = (field: string): string => {
   switch (field) {
@@ -67,8 +67,8 @@ const formatValue = (value: string | number, field: string, appName?: string): s
   return String(value);
 };
 
-export const SentinelLogsControlCloud = () => {
-  const { filters, updateFilters, removeFilter } = useSentinelLogsFilters();
+export const RequestLogsControlCloud = () => {
+  const { filters, updateFilters, removeFilter } = useRequestLogsFilters();
   const appNameById = useAppNameById();
   return (
     <ControlCloud

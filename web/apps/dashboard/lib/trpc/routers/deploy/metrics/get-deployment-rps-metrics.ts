@@ -29,7 +29,7 @@ export const getDeploymentRpsMetrics = workspaceProcedure
         });
       }
 
-      const result = await clickhouse.sentinel.rps.timeseries({
+      const result = await clickhouse.frontline.rps.timeseries({
         workspaceId: ctx.workspace.id,
         projectId: deployment.projectId,
         deploymentId: input.deploymentId,

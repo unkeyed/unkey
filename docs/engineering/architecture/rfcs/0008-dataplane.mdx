@@ -24,7 +24,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
 
 ```ascii
 ┌─────────────────────┐     ┌─────────┐
-│ Sentinel             │     │         │
+│ Frontline             │     │         │
 │ ┌───────────────┐   │────►│   S3    │
 │ │ Memory Cache  │   │     │         │
 │ └───────────────┘   │     │         │
@@ -44,7 +44,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
 
 ```ascii
 ┌─────────────────────┐
-│ Sentinel             │
+│ Frontline             │
 │ ┌───────────────┐   │──┐
 │ │ Memory Cache  │   │  │
 │ └───────────────┘   │  │
@@ -53,7 +53,7 @@ We need to design a globally distributed architecture for Unkey where the datapl
          │ Gossip        │    ┌─────────┐
          ▼               ├───►│         │
 ┌─────────────────────┐  │    │   S3    │
-│ Sentinel             │  │    │         │
+│ Frontline             │  │    │         │
 │ ┌───────────────┐   │──┘    └─────────┘
 │ │ Memory Cache  │   │
 │ └───────────────┘   │
@@ -76,29 +76,29 @@ If we had global fast and efficient eviction, we could set much higher TTLs.
 
 ```ascii
 ┌─────────────────┐
-│ Sentinel 1       │───┐
+│ Frontline 1       │───┐
 └─────────────────┘   │
                       │
 ┌─────────────────┐   │    ┌────────────┐
-│ Sentinel 2       │───┼───►│   Load     │    ┌────────────┐
+│ Frontline 2       │───┼───►│   Load     │    ┌────────────┐
 └─────────────────┘   │    │  Balancer  │───►│ Cache      │──┐
                       │    │            │    │ Node 1     │  │
 ┌─────────────────┐   │    │            │    └────────────┘  │
-│ Sentinel 3       │───┤    │            │                    │    ┌─────────┐
+│ Frontline 3       │───┤    │            │                    │    ┌─────────┐
 └─────────────────┘   │    │            │                    ├───►│   S3    │
                       ├───►│            │    ┌────────────┐  │    └─────────┘
 ┌─────────────────┐   │    │            │───►│ Cache      │──┘
-│ Sentinel 4       │───┤    │            │    │ Node 2     │
+│ Frontline 4       │───┤    │            │    │ Node 2     │
 └─────────────────┘   │    └────────────┘    └────────────┘
                       │
 ┌─────────────────┐   │
-│ Sentinel n       │───┘
+│ Frontline n       │───┘
 └─────────────────┘
 ```
 
-Sentinels still use an in-memory SWR cache. The cache nodes help reduce the cost
+Frontline instances still use an in-memory SWR cache. The cache nodes help reduce the cost
 and latency of S3, but will likely have the same freshness/staleness as the
-sentinels. TBD..
+Frontline instances. TBD..
 
 Everything here, except the S3 bucket, would be duplicated per region.
 
@@ -113,14 +113,14 @@ Everything here, except the S3 bucket, would be duplicated per region.
 ### 4. DynamoDB Global Tables + Caching
 
 
-Option 4A: Direct DynamoDB + Sentinel Memory Cache
-- Each sentinel maintains a local memory SWR cache with a TTL of 10s
+Option 4A: Direct DynamoDB + Frontline Memory Cache
+- Each Frontline instance maintains a local memory SWR cache with a TTL of 10s
 - DynamoDB serves as source of truth
 - Automatic multi-region replication handled by AWS
 
 ```ascii
 ┌─────────────────────┐     ┌──────────────────┐
-│ Sentinel (US)        │     │  DynamoDB        │
+│ Frontline (US)        │     │  DynamoDB        │
 │ ┌───────────────┐   │────►│  (US-WEST-1)     │
 │ │ Memory Cache  │   │     │                  │
 │ └───────────────┘   │     └──────────────────┘
@@ -129,7 +129,7 @@ Option 4A: Direct DynamoDB + Sentinel Memory Cache
                                    │ Replication
                                    │
 ┌─────────────────────┐            ▼
-│ Sentinel (EU)        │     ┌──────────────────┐
+│ Frontline (EU)        │     ┌──────────────────┐
 │ ┌───────────────┐   │────►│  DynamoDB        │
 │ │ Memory Cache  │   │     │  (EU-WEST-1)     │
 │ └───────────────┘   │     │                  │
@@ -145,17 +145,17 @@ These cache nodes would be dumb, they only cache reads for 10s and don't have an
 
 ```ascii
 ┌─────────────────┐
-│ Sentinel 1       │───┐
+│ Frontline 1       │───┐
 └─────────────────┘   │
                       │    ┌────────────┐
 ┌─────────────────┐   │    │   Load     │    ┌────────────┐
-│ Sentinel 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
+│ Frontline 2       │───┼───►│  Balancer  │───►│ Cache      │──┐
 └─────────────────┘   │    │            │    │ Node 1     │  │    ┌──────────────┐
                       │    │            │    └────────────┘  ├───►│  DynamoDB    │
                       │    │            │                    │    │  Global      │
                       │    │            │    ┌────────────┐  │    │  Tables      │
 ┌─────────────────┐   │    │            │───►│ Cache      │──┘    └──────────────┘
-│ Sentinel n       │───┘    └────────────┘    │ Node 2     │
+│ Frontline n       │───┘    └────────────┘    │ Node 2     │
 └─────────────────┘                          └────────────┘
 ```
 

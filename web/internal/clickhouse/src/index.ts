@@ -108,15 +108,15 @@ import {
   getResourceSummary,
 } from "./resources";
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
-import { getEnvironmentRequests } from "./frontline/environment-requests";
-import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
   getRegionRps,
-  getSentinelLogs,
-} from "./sentinel";
+  getRequestLogs,
+} from "./frontline";
+import { getEnvironmentRequests } from "./frontline/environment-requests";
+import { getRuntimeLogs } from "./runtime-logs";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
 import {
@@ -384,9 +384,9 @@ export class ClickHouse {
       requests: getEnvironmentRequests(this.querier),
     };
   }
-  public get sentinel() {
+  public get frontline() {
     return {
-      logs: getSentinelLogs(this.querier),
+      logs: getRequestLogs(this.querier),
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),

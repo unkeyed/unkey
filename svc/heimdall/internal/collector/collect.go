@@ -218,9 +218,8 @@ func (c *Collector) buildKranePodLookup() (map[string]podInfo, bool) {
 //
 // managed-by=krane is required unconditionally. It used to be checked only for
 // component=deployment, which made any pod merely labelled component=sentinel
-// billable with a workspace id read straight off its labels — an implicit trust
-// boundary for whoever could create such a pod. Sentinels are gone, so the
-// branch is removed rather than guarded.
+// billable with a workspace id read straight off its labels. The legacy branch
+// is removed rather than guarded.
 //
 // The workspace label must be non-empty. Without it heimdall wrote rows with
 // workspace_id = "", which the billing push silently skips for want of a

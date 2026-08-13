@@ -79,7 +79,7 @@ type Config struct {
 //
 //	r := runner.New()
 //	shutdown, err := otel.InitGrafana(ctx, otel.Config{
-//	    GrafanaEndpoint: "https://otlp-sentinel-prod-us-east-0.grafana.net/otlp",
+//	    GrafanaEndpoint: "https://otlp-frontline-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
 //	})
 //

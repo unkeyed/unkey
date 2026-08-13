@@ -42,7 +42,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("explicit empty policies blob returns empty list", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env, `{"policies":[]}`)
+		seedPolicyConfig(t, h, env, `{"policies":[]}`)
 		res := call(t, makeRequest(env))
 		require.Empty(t, res.Body.Data)
 	})
@@ -62,7 +62,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 		// protojson wire shape, including int64-as-string, exactly as the
 		// write path stores it.
-		seedSentinelConfig(t, h, env, `{"policies":[
+		seedPolicyConfig(t, h, env, `{"policies":[
 			{"id":"pol_keyauth","name":"keyauth KEBAP","enabled":true,
 				"match":[
 					{"path":{"path":{"prefix":"/internal/","ignoreCase":true}}},
@@ -165,7 +165,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("every ratelimit identifier source maps", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedSentinelConfig(t, h, env, `{"policies":[
+		seedPolicyConfig(t, h, env, `{"policies":[
 			{"id":"pol_ip","name":"ip","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"remoteIp":{}}}},
 			{"id":"pol_hdr","name":"hdr","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"header":{"name":"X-Tenant"}}}},
 			{"id":"pol_sub","name":"sub","enabled":true,"ratelimit":{"limit":"1","windowMs":"1000","identifier":{"authenticatedSubject":{}}}},
