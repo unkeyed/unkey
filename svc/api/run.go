@@ -548,8 +548,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	// Wait for either OS signals or context cancellation, then shutdown
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx, runner.WithTimeout(time.Minute)); err != nil {
-		logger.Error("Shutdown failed", "error", err)
 		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
