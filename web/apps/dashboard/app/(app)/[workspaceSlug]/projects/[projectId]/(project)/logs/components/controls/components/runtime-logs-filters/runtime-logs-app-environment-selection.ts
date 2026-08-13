@@ -7,6 +7,21 @@ export type AppEnvironmentSelection = {
 
 type EnvironmentIdsByApp = ReadonlyMap<string, readonly string[]>;
 
+export function groupEnvironmentsByApp<T extends { appId: string; slug: string }>(
+  environments: readonly T[],
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const environment of environments) {
+    const appEnvironments = grouped.get(environment.appId) ?? [];
+    appEnvironments.push(environment);
+    grouped.set(environment.appId, appEnvironments);
+  }
+  for (const appEnvironments of grouped.values()) {
+    appEnvironments.sort((left, right) => left.slug.localeCompare(right.slug));
+  }
+  return grouped;
+}
+
 export function getAppEnvironmentSelection(
   filters: RuntimeLogsFilterValue[],
 ): AppEnvironmentSelection {
