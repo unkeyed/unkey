@@ -3,10 +3,6 @@ title: CLI vs GitHub integration
 description: "Choose between deploying with `unkey deploy` and the GitHub integration. Understand the trade-offs in build control, automation, and CI/CD flexibility."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 Unkey gives you two first-class ways to ship code: connect a [GitHub repository](/build-and-deploy/github) and let Unkey build and deploy on every push, or build the image yourself and push it with [`unkey deploy`](/build-and-deploy/cli). Both produce the same deployment artifact, an immutable version running in an [environment](/environments/overview) with a commit-scoped domain. The difference is who owns the build.
 
 This page helps you pick the right path.

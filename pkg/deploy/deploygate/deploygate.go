@@ -13,6 +13,8 @@
 package deploygate
 
 import (
+	"database/sql"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -21,6 +23,42 @@ import (
 // Each check takes its own input holding exactly the fields it needs. Status and
 // DesiredState are typed to the shared pkg/mysql/types enums that the generated db
 // row fields already use, so callers pass their db row fields directly without casting.
+
+// Entitled reports whether a workspace has a synced Compute plan or a manual
+// plan override. Empty values do not grant access.
+func Entitled(plan, override sql.NullString) bool {
+	return isSet(plan) || isSet(override)
+}
+
+func isSet(value sql.NullString) bool {
+	return value.Valid && value.String != ""
+}
+
+// CheckWorkspacePlan validates that a workspace has a Compute plan or manual
+// override. Callers may run this in observe mode while plan enforcement rolls
+// out; spend suspension is checked separately because it is always enforced.
+func CheckWorkspacePlan(plan, override sql.NullString) error {
+	if Entitled(plan, override) {
+		return nil
+	}
+
+	return fault.New(
+		"workspace has no Compute plan",
+		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+		fault.Internal("deploygate rejected action: workspace has no Compute plan"),
+		fault.Public("The workspace has no active Compute plan."),
+	)
+}
+
+// CheckWorkspaceSpend validates that a workspace is allowed to start or
+// activate compute under its configured spend cap.
+func CheckWorkspaceSpend(suspended bool) error {
+	if !suspended {
+		return nil
+	}
+
+	return startFault(StartSpendSuspended)
+}
 
 // PromoteInput is the state CheckPromoteTarget needs.
 type PromoteInput struct {
@@ -303,9 +341,7 @@ func CheckStartTarget(in StartInput) error {
 		return startFault(StartNotStopped)
 	case in.EnvironmentKind.IsProduction():
 		return startFault(StartIsProduction)
-	case in.SpendSuspended:
-		return startFault(StartSpendSuspended)
 	default:
-		return nil
+		return CheckWorkspaceSpend(in.SpendSuspended)
 	}
 }
