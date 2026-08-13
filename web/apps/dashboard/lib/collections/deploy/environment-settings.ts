@@ -1,5 +1,5 @@
 "use client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import type {
@@ -332,10 +332,7 @@ async function dispatchSettingsMutations(
     toast.promise(mutation, {
       loading: "Saving settings...",
       success: "Settings updated",
-      error: (err) => ({
-        message: "Failed to update settings",
-        description: getErrorMessage(err),
-      }),
+      error: (err) => getErrorToast(err, "Failed to update settings"),
     });
   }
   await trackSave(mutation);
