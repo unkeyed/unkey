@@ -86,6 +86,7 @@ export * from "./icons/folder-cloud";
 export * from "./icons/folder-link";
 export * from "./icons/gauge";
 export * from "./icons/gear";
+export * from "./icons/gitea";
 export * from "./icons/github";
 export * from "./icons/gitlab";
 export * from "./icons/grid";

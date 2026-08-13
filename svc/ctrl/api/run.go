@@ -36,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/api/gitlabconnect"
 	bitbucketwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/bitbucket"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	giteawebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/gitea"
 	gitlabwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/gitlab"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -344,6 +345,13 @@ func Run(ctx context.Context, cfg Config) error {
 			WebhookSecret:    cfg.Bitbucket.WebhookSecret,
 		}))
 		logger.Info("Bitbucket connect POC registered")
+	}
+
+	if cfg.Gitea.WebhookSecret != "" {
+		mux.Handle("POST /webhooks/gitea", giteawebhook.New(restateClient, cfg.Gitea.WebhookSecret))
+		logger.Info("Gitea webhook handler registered")
+	} else {
+		logger.Info("Gitea webhook handler not registered, no webhook secret configured")
 	}
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {

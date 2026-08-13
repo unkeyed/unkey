@@ -1,0 +1,87 @@
+# Local-dev Gitea instance for the self-hosted SCM provider POC.
+# Not loaded by the Tiltfile; apply by hand:
+#   kubectl apply -f dev/k8s/manifests/gitea.yaml
+# Webhooks reach ctrl-api cluster-internally; clone traffic from Depot build
+# machines comes in through an ngrok tunnel pointed at a port-forward.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitea-data
+  namespace: unkey
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: unkey
+  labels:
+    app: gitea
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gitea
+  template:
+    metadata:
+      labels:
+        app: gitea
+    spec:
+      containers:
+        - name: gitea
+          image: gitea/gitea:1.24-rootless
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GITEA__database__DB_TYPE
+              value: sqlite3
+            - name: GITEA__security__INSTALL_LOCK
+              value: "true"
+            - name: GITEA__server__HTTP_PORT
+              value: "3000"
+            - name: GITEA__webhook__ALLOWED_HOST_LIST
+              # Gitea blocks webhooks to private addresses by default; the
+              # ctrl-api service is cluster-internal.
+              value: "*"
+            - name: GITEA__service__DISABLE_REGISTRATION
+              value: "true"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/gitea
+            - name: config
+              mountPath: /etc/gitea
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gitea-data
+        - name: config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  namespace: unkey
+  labels:
+    app: gitea
+spec:
+  selector:
+    app: gitea
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http

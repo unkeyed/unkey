@@ -178,7 +178,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 
 		// One machine, two solves: plan generation, then the image build.
 		depotBuildID, err := w.withDepotBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
-			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars, railpackConfig)
+			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.CloneHost, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build prepare solver options: %w", optErr))
 			}
@@ -189,7 +189,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 				return restate.TerminalError(fmt.Errorf("railpack prepare failed: %w", planErr))
 			}
 
-			buildOptions, optErr := w.buildRailpackSolverOptions(bctx.GitContextURL, planDir, bctx.ImageName, params.ProjectID, bctx.GithubToken, bctx.EnvVars, railpackConfig)
+			buildOptions, optErr := w.buildRailpackSolverOptions(bctx.GitContextURL, planDir, bctx.ImageName, params.ProjectID, bctx.GithubToken, bctx.CloneHost, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build solver options: %w", optErr))
 			}
@@ -247,7 +247,7 @@ func buildRailpackPrepareDockerfile(frontendImage, builderImage string, envKeys,
 // only output is the plan JSON, exported back to planDir on the worker.
 // The dockerfile.v0 frontend fetches the git context on the build machine.
 func (w *Workflow) buildRailpackPrepareSolverOptions(
-	gitContextURL, prepareDir, planDir, githubToken string,
+	gitContextURL, prepareDir, planDir, githubToken, cloneHost string,
 	envVars, railpackConfig map[string]string,
 ) (client.SolveOpt, error) {
 	prepareFS, err := fsutil.NewFS(prepareDir)
@@ -257,7 +257,7 @@ func (w *Workflow) buildRailpackPrepareSolverOptions(
 
 	// Railpack command overrides are mounted as secrets in the prepare solve
 	// only — they must not reach the image build solve or the container runtime.
-	secrets := railpackSecrets(githubToken, envVars)
+	secrets := railpackSecrets(githubToken, cloneHost, envVars)
 	for k, v := range railpackConfig {
 		secrets[k] = []byte(v)
 	}
@@ -298,7 +298,7 @@ func (w *Workflow) buildRailpackPrepareSolverOptions(
 // frontend image, which reads the plan from the "dockerfile" local mount and
 // fetches the application source from the git context on the build machine.
 func (w *Workflow) buildRailpackSolverOptions(
-	gitContextURL, planDir, imageName, projectID, githubToken string,
+	gitContextURL, planDir, imageName, projectID, githubToken, cloneHost string,
 	envVars, railpackConfig map[string]string,
 ) (client.SolveOpt, error) {
 	planFS, err := fsutil.NewFS(planDir)
@@ -327,7 +327,7 @@ func (w *Workflow) buildRailpackSolverOptions(
 	}
 	// Railpack adds every prepare --env name to the plan's secrets list, so the
 	// frontend expects the command overrides here too, alongside the env vars.
-	secrets := railpackSecrets(githubToken, envVars)
+	secrets := railpackSecrets(githubToken, cloneHost, envVars)
 	for k, v := range railpackConfig {
 		secrets[k] = []byte(v)
 	}
@@ -387,12 +387,18 @@ func hashRailpackPrepareInputs(envVars, railpackConfig map[string]string) string
 // solve: the git auth token for the context fetch (when authenticated) and
 // each env var by name. Railpack registers env var names as build secrets in
 // the plan, and both solves mount the values from the session by name.
-func railpackSecrets(githubToken string, envVars map[string]string) map[string][]byte {
+func railpackSecrets(githubToken, cloneHost string, envVars map[string]string) map[string][]byte {
 	secrets := make(map[string][]byte, len(envVars)+2)
 	if githubToken != "" {
 		secrets[gitAuthTokenSecretID] = []byte(githubToken)
 		secrets[gitlabAuthTokenSecretID] = []byte(githubToken)
 		secrets[bitbucketAuthHeaderSecretID] = []byte(bitbucketCloneAuthHeader(githubToken))
+		// Self-hosted providers have no fixed host, so the secret id is
+		// derived from the connection's host. Duplicating a const id is
+		// harmless.
+		if cloneHost != "" {
+			secrets["GIT_AUTH_TOKEN."+cloneHost] = []byte(githubToken)
+		}
 	}
 	for k, v := range envVars {
 		secrets[k] = []byte(v)

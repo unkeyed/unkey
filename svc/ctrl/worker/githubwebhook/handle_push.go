@@ -481,6 +481,8 @@ func triggerForProvider(provider string) db.DeploymentsTrigger {
 		return db.DeploymentsTriggerGitlab
 	case "bitbucket":
 		return db.DeploymentsTriggerBitbucket
+	case "gitea":
+		return db.DeploymentsTriggerGitea
 	default:
 		return db.DeploymentsTriggerGithub
 	}

@@ -672,6 +672,7 @@ const (
 	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
 	DeploymentsTriggerGitlab    DeploymentsTrigger = "gitlab"
 	DeploymentsTriggerBitbucket DeploymentsTrigger = "bitbucket"
+	DeploymentsTriggerGitea     DeploymentsTrigger = "gitea"
 	DeploymentsTriggerApi       DeploymentsTrigger = "api"
 	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
 	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"
@@ -1263,6 +1264,7 @@ type GithubRepoConnection struct {
 	RepositoryFullName string         `db:"repository_full_name"`
 	Provider           string         `db:"provider"`
 	AccessToken        sql.NullString `db:"access_token"`
+	ProviderHost       sql.NullString `db:"provider_host"`
 	CreatedAt          int64          `db:"created_at"`
 	UpdatedAt          sql.NullInt64  `db:"updated_at"`
 }

@@ -1,6 +1,7 @@
 import {
   Bitbucket,
   BracketsCurly,
+  Gitea,
   Github,
   Gitlab,
   Laptop2,
@@ -15,6 +16,7 @@ type DeploymentTrigger =
   | "github"
   | "gitlab"
   | "bitbucket"
+  | "gitea"
   | "api"
   | "cli"
   | "dashboard"
@@ -36,6 +38,7 @@ const SPECS: Record<Exclude<DeploymentTrigger, "unknown">, Spec> = {
   github: { label: "GitHub", icon: <Github iconSize="sm-regular" /> },
   gitlab: { label: "GitLab", icon: <Gitlab iconSize="sm-regular" /> },
   bitbucket: { label: "Bitbucket", icon: <Bitbucket iconSize="sm-regular" /> },
+  gitea: { label: "Gitea", icon: <Gitea iconSize="sm-regular" /> },
   dashboard: { label: "Dashboard", icon: <Laptop2 iconSize="sm-regular" /> },
   api: { label: "API", icon: <BracketsCurly iconSize="sm-regular" /> },
   cli: { label: "CLI", icon: <SquareTerminal iconSize="sm-regular" /> },
@@ -51,6 +54,7 @@ function formatActor(trigger: DeploymentTrigger, triggeredBy?: string | null): s
     case "github":
     case "gitlab":
     case "bitbucket":
+    case "gitea":
       return `Pushed by @${triggeredBy}`;
     case "dashboard":
     case "unkey":

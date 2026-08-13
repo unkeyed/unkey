@@ -409,6 +409,7 @@ const (
 	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
 	DeploymentsTriggerGitlab    DeploymentsTrigger = "gitlab"
 	DeploymentsTriggerBitbucket DeploymentsTrigger = "bitbucket"
+	DeploymentsTriggerGitea     DeploymentsTrigger = "gitea"
 	DeploymentsTriggerApi       DeploymentsTrigger = "api"
 	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
 	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"

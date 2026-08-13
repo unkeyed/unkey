@@ -63,7 +63,7 @@ func TestBuildGitContextURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.want, buildGitContextURL(tt.params))
+			require.Equal(t, tt.want, buildGitContextURL(tt.params, "github.com"))
 		})
 	}
 }
@@ -214,13 +214,13 @@ func TestBuildGitSolverOptions_EnvSecretGating(t *testing.T) {
 	}
 
 	t.Run("nil env registers no env secret", func(t *testing.T) {
-		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", nil)
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#refs/pull/1/head", "Dockerfile", "img:tag", "ghs_token", "github.com", nil)
 		require.NotContains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.NotContains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})
 
 	t.Run("non-empty env registers env secret", func(t *testing.T) {
-		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", map[string]string{"FOO": "bar"})
+		opts := w.buildGitSolverOptions("linux/amd64", "https://github.com/acme/app.git#deadbeef", "Dockerfile", "img:tag", "ghs_token", "github.com", map[string]string{"FOO": "bar"})
 		require.Contains(t, opts.FrontendAttrs, "label:org.unkey.env-hash")
 		require.Contains(t, opts.FrontendAttrs, "build-arg:UNKEY_SECRETS_ID")
 	})

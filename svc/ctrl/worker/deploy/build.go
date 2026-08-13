@@ -224,6 +224,12 @@ type gitBuildContext struct {
 	// GitContextURL is the BuildKit git context the build machine fetches.
 	GitContextURL string
 
+	// CloneHost is the host BuildKit fetches the git context from. Fixed per
+	// provider for cloud SCMs; read from the connection row for self-hosted
+	// ones (Gitea). Drives the host-suffixed auth secret id, so the credential
+	// is only ever sent to this host.
+	CloneHost string
+
 	// ImageName is the fully qualified registry tag to push.
 	ImageName string
 }
@@ -268,6 +274,11 @@ func (w *Workflow) runGitBuild(
 		if err != nil {
 			return nil, err
 		}
+
+		cloneHost, err := w.resolveCloneHost(runCtx, params)
+		if err != nil {
+			return nil, err
+		}
 		githubToken := ""
 		if !tokenless {
 			githubToken = ghToken.Token
@@ -290,7 +301,8 @@ func (w *Workflow) runGitBuild(
 			DepotProjectID: depotProjectID,
 			GithubToken:    githubToken,
 			EnvVars:        envVars,
-			GitContextURL:  buildGitContextURL(params),
+			GitContextURL:  buildGitContextURL(params, cloneHost),
+			CloneHost:      cloneHost,
 			ImageName:      fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID),
 		})
 	}, restate.WithName(runName),
@@ -346,7 +358,7 @@ func (w *Workflow) buildDockerImageFromGit(
 		if bctx.GithubToken == "" {
 			solverOptions = w.buildSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.EnvVars)
 		} else {
-			solverOptions = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
+			solverOptions = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.CloneHost, bctx.EnvVars)
 		}
 
 		return w.solveOnDepotMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
@@ -378,7 +390,7 @@ func validateShellEnvKeys(envVars map[string]string) error {
 // Only a concrete fork commit SHA (a dashboard deploy of a fork ref, where
 // PrNumber is 0) is fetched directly from ForkRepository. The context path is
 // normalized: leading slashes are stripped and "." means the repository root.
-func buildGitContextURL(params gitBuildParams) string {
+func buildGitContextURL(params gitBuildParams, host string) string {
 	contextPath := strings.TrimSpace(params.ContextPath)
 	contextPath = strings.TrimPrefix(contextPath, "/")
 	if contextPath == "." {
@@ -390,14 +402,6 @@ func buildGitContextURL(params gitBuildParams) string {
 		ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
 	}
 	buildRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
-
-	host := "github.com"
-	switch params.Provider {
-	case "gitlab":
-		host = "gitlab.com"
-	case "bitbucket":
-		host = "bitbucket.org"
-	}
 
 	if contextPath != "" {
 		return fmt.Sprintf("https://%s/%s.git#%s:%s", host, buildRepo, ref, contextPath)
@@ -630,13 +634,18 @@ func (w *Workflow) buildSolverOptions(
 // buildGitSolverOptions constructs the buildkit solver configuration for a git context build.
 // It includes GitHub token authentication via the secrets provider.
 func (w *Workflow) buildGitSolverOptions(
-	platform, gitContextURL, dockerfilePath, imageName, githubToken string,
+	platform, gitContextURL, dockerfilePath, imageName, githubToken, cloneHost string,
 	envVars map[string]string,
 ) client.SolveOpt {
 	secrets := map[string][]byte{
 		gitAuthTokenSecretID:        []byte(githubToken),
 		gitlabAuthTokenSecretID:     []byte(githubToken),
 		bitbucketAuthHeaderSecretID: []byte(bitbucketCloneAuthHeader(githubToken)),
+	}
+	// Self-hosted providers have no fixed host, so the secret id is derived
+	// from the connection's host. A duplicate of a const id above is harmless.
+	if cloneHost != "" {
+		secrets["GIT_AUTH_TOKEN."+cloneHost] = []byte(githubToken)
 	}
 	envFile := buildEnvFileSecret(envVars)
 
@@ -793,6 +802,31 @@ func (w *Workflow) processBuildStatus(
 	}
 }
 
+// resolveCloneHost returns the host BuildKit fetches the git context from.
+// Cloud providers have a fixed host; self-hosted ones (Gitea) store the
+// instance host on the connection row.
+func (w *Workflow) resolveCloneHost(ctx context.Context, params gitBuildParams) (string, error) {
+	switch params.Provider {
+	case "gitlab":
+		return "gitlab.com", nil
+	case "bitbucket":
+		return "bitbucket.org", nil
+	case "gitea":
+		conn, err := w.db.FindGithubRepoConnectionByAppId(ctx, params.AppID)
+		if err != nil {
+			return "", fmt.Errorf("failed to load gitea connection for app %s: %w", params.AppID, err)
+		}
+		if !conn.ProviderHost.Valid || conn.ProviderHost.String == "" {
+			return "", restate.TerminalError(fmt.Errorf(
+				"gitea connection for app %s has no provider host", params.AppID,
+			))
+		}
+		return conn.ProviderHost.String, nil
+	default:
+		return "github.com", nil
+	}
+}
+
 // resolveCloneToken decides which credential BuildKit gets for cloning the
 // source, least-privilege in three tiers:
 //
@@ -866,6 +900,22 @@ func (w *Workflow) resolveCloneToken(ctx context.Context, params gitBuildParams,
 			}
 		}
 		return githubclient.InstallationToken{Token: tokens.AccessToken, ExpiresAt: time.Time{}}, false, nil
+	}
+
+	// Gitea POC: like GitLab, the clone credential is the access token stored
+	// on the connection row. Fork builds never reach here: Gitea pull request
+	// events are not handled yet.
+	if params.Provider == "gitea" {
+		conn, err := w.db.FindGithubRepoConnectionByAppId(ctx, params.AppID)
+		if err != nil {
+			return noToken, false, fmt.Errorf("failed to load gitea connection for app %s: %w", params.AppID, err)
+		}
+		if !conn.AccessToken.Valid || conn.AccessToken.String == "" {
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"gitea connection for app %s has no access token", params.AppID,
+			))
+		}
+		return githubclient.InstallationToken{Token: conn.AccessToken.String, ExpiresAt: time.Time{}}, false, nil
 	}
 
 	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {

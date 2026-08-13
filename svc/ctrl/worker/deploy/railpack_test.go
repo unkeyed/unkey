@@ -109,12 +109,16 @@ func TestHashRailpackPrepareInputs(t *testing.T) {
 }
 
 func TestRailpackSecrets(t *testing.T) {
-	secrets := railpackSecrets("gh-token", map[string]string{"FOO": "bar"})
+	secrets := railpackSecrets("gh-token", "github.com", map[string]string{"FOO": "bar"})
 	require.Equal(t, []byte("gh-token"), secrets[gitAuthTokenSecretID])
 	require.Equal(t, []byte("bar"), secrets["FOO"])
 
+	// A self-hosted host gets its own derived secret id.
+	secrets = railpackSecrets("gh-token", "git.kebap.example", map[string]string{"FOO": "bar"})
+	require.Equal(t, []byte("gh-token"), secrets["GIT_AUTH_TOKEN.git.kebap.example"])
+
 	// Unauthenticated mode (public repos) must not register an empty token.
-	secrets = railpackSecrets("", map[string]string{"FOO": "bar"})
+	secrets = railpackSecrets("", "github.com", map[string]string{"FOO": "bar"})
 	require.NotContains(t, secrets, gitAuthTokenSecretID)
 	require.Len(t, secrets, 1)
 }

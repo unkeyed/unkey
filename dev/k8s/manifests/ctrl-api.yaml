@@ -54,6 +54,12 @@ data:
     redirect_base_url = "http://localhost:7091"
     public_webhook_url = "${UNKEY_BITBUCKET_PUBLIC_WEBHOOK_URL}"
 
+    # Gitea POC: HMAC key for /webhooks/gitea signature verification. The
+    # local Gitea instance (dev/k8s/manifests/gitea.yaml) delivers webhooks
+    # cluster-internally, so no public URL is needed.
+    [gitea]
+    webhook_secret = "gitea-local-dev-secret"
+
     # Stripe webhook for the month-end Deploy billing close. Both come from the
     # optional stripe-credentials secret (dev/.env.stripe); empty leaves
     # /webhooks/stripe unregistered. The webhook_secret is whatever

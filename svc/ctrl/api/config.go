@@ -98,6 +98,17 @@ type BitbucketConfig struct {
 	PublicWebhookURL string `toml:"public_webhook_url"`
 }
 
+// GiteaConfig holds Gitea integration settings for webhook-triggered
+// deployments. POC: one shared webhook secret; the webhook is registered by
+// hand in the Gitea UI or API, there is no connect flow yet. Gitea is
+// self-hosted, so no instance host lives in config: each connection row
+// carries its own provider_host.
+type GiteaConfig struct {
+	// WebhookSecret is the HMAC key Gitea signs deliveries with
+	// (X-Gitea-Signature). Empty disables the /webhooks/gitea route.
+	WebhookSecret string `toml:"webhook_secret"`
+}
+
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
 // close: the invoice.created webhook claims renewal invoices of Deploy
 // workspaces (auto_advance off) and dispatches the closing flow to the
@@ -194,6 +205,10 @@ type Config struct {
 	// Bitbucket configures Bitbucket Cloud webhook integration. See
 	// [BitbucketConfig].
 	Bitbucket BitbucketConfig `toml:"bitbucket"`
+
+	// Gitea configures self-hosted Gitea webhook integration. See
+	// [GiteaConfig].
+	Gitea GiteaConfig `toml:"gitea"`
 
 	// Stripe configures the Stripe webhook for the month-end Deploy billing
 	// close. See [StripeConfig].

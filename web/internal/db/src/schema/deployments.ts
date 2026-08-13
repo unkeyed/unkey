@@ -124,6 +124,7 @@ export const deployments = mysqlTable(
       "github",
       "gitlab",
       "bitbucket",
+      "gitea",
       "api",
       "cli",
       "dashboard",

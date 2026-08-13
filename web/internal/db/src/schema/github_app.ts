@@ -49,6 +49,11 @@ export const githubRepoConnections = mysqlTable(
     // chars. Must move to vault-backed encrypted storage before this leaves
     // local development.
     accessToken: text("access_token"),
+    // Host of the SCM instance for self-hosted providers (e.g. a customer's
+    // Gitea). Null for cloud providers with a fixed host (github.com,
+    // gitlab.com, bitbucket.org). Drives the clone URL and the host-suffixed
+    // BuildKit auth secret id.
+    providerHost: varchar("provider_host", { length: 255 }),
     ...lifecycleDates,
   },
   (table) => [index("installation_id_idx").on(table.installationId)],

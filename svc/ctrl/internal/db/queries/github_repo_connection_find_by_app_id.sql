@@ -9,6 +9,7 @@ SELECT
     repository_full_name,
     provider,
     access_token,
+    provider_host,
     created_at,
     updated_at
 FROM github_repo_connections
