@@ -5175,6 +5175,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/KeyRatelimit"
                     description: Rate limits applied during key verification.
+                credits:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |-
+                        Usage credits a matching request deducts from the verified key. Defaults
+                        to 1. Set to 0 to verify the key without spending credits, or to a higher
+                        value to charge more per request. Keys with unlimited usage are
+                        unaffected.
             additionalProperties: false
             description: Verifies Unkey API keys on matching requests.
             example:

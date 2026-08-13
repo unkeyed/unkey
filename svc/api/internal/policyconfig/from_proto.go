@@ -137,6 +137,7 @@ func mapKeyauthFromProto(policyID string, k *frontlinev1.KeyAuth) (*openapi.Keya
 	out := &openapi.KeyauthPolicy{
 		Keyspaces:       k.GetKeySpaceIds(),
 		PermissionQuery: k.PermissionQuery,
+		Credits:         k.Credits,
 		Locations:       nil,
 		Ratelimits:      nil,
 	}

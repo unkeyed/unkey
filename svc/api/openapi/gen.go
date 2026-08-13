@@ -948,6 +948,12 @@ type KeyResponseData struct {
 
 // KeyauthPolicy Verifies Unkey API keys on matching requests.
 type KeyauthPolicy struct {
+	// Credits Usage credits a matching request deducts from the verified key. Defaults
+	// to 1. Set to 0 to verify the key without spending credits, or to a higher
+	// value to charge more per request. Keys with unlimited usage are
+	// unaffected.
+	Credits *int64 `json:"credits,omitempty"`
+
 	// Keyspaces Keyspaces to verify keys against, referenced by id. All keyspaces must
 	// belong to your workspace.
 	Keyspaces []string `json:"keyspaces"`

@@ -35,6 +35,12 @@ const wireInt64 = z
   .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
   .pipe(z.number().int().min(1));
 
+// Like wireInt64 but allows 0, for fields where zero is meaningful (e.g. a
+// keyauth credits override of 0 verifies the key without spending credits).
+const wireInt64NonNegative = z
+  .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
+  .pipe(z.number().int().min(0));
+
 // ── String match (protojson oneof: exact | prefix | regex) ──────────────
 
 export const stringMatchModeSchema = z.enum(["exact", "prefix", "regex"]);
@@ -147,6 +153,9 @@ export const keyauthPolicySchema = z
           .array(keyauthRatelimitSchema)
           .max(POLICY_LIMITS.maxRatelimitsPerKeyauth)
           .optional(),
+        // Usage credits deducted per matching request. Defaults to 1 on the
+        // wire; 0 verifies the key without spending credits.
+        credits: wireInt64NonNegative.optional(),
       })
       .strict(),
   })

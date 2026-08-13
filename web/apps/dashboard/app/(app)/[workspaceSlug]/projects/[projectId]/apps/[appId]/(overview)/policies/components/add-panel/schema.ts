@@ -183,6 +183,10 @@ const keyauthFormSchema = z.object({
   locations: z.array(keyLocationFormSchema),
   permissionQuery: z.string().max(POLICY_LIMITS.permissionQueryMaxLength),
   ratelimits: z.array(keyauthRatelimitFormSchema).max(POLICY_LIMITS.maxRatelimitsPerKeyauth),
+  // Usage credits deducted per matching request. Undefined leaves the wire
+  // field unset, which the gateway treats as the default cost of 1; 0 verifies
+  // the key without spending credits.
+  credits: z.number().int().min(0, "Credits cannot be negative").optional(),
 });
 
 export const rateLimitIdentifierSourceSchema = z.enum([
@@ -290,6 +294,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       locations: [],
       permissionQuery: "",
       ratelimits: [],
+      credits: undefined,
     }))
     .with("ratelimit", () => ({
       ...base,
@@ -414,6 +419,7 @@ export function toPolicy(
           locations,
           permissionQuery: v.permissionQuery,
           ...(ratelimits.length > 0 ? { ratelimits } : {}),
+          ...(v.credits !== undefined ? { credits: v.credits } : {}),
         },
         match: matchExprs,
       };
@@ -567,6 +573,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
         ratelimits,
+        credits: p.keyauth.credits,
       };
     })
     .with({ type: "ratelimit" }, (p) => {

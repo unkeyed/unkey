@@ -13,7 +13,7 @@ To enable API key authentication for your deployment:
 2. Click **Add policy**.
 3. Select **Key Auth** as the policy type.
 4. Choose one or more keyspaces to verify against.
-5. Optionally configure [match conditions](/platform/gateway/policies/overview#match-expressions), a custom [key location](#key-location), or a [permission query](#permission-query).
+5. Optionally configure [match conditions](/platform/gateway/policies/overview#match-expressions), a custom [key location](#key-location), a [permission query](#permission-query), or a [credit cost](#credit-cost).
 6. Select which environments (production, preview, or both) to enable the policy for.
 7. Save the policy.
 
@@ -26,7 +26,7 @@ The gateway extracts the API key from the `Authorization` header (as a Bearer to
 1. **Existence.** The key must belong to one of the configured keyspaces.
 2. **Status.** The key must not be disabled or revoked.
 3. **Expiration.** The key must not have passed its expiration timestamp.
-4. **Credits.** If remaining credits are configured, at least one credit must be available. Verification deducts one credit.
+4. **Credits.** If remaining credits are configured, the key must have enough to cover the request's [credit cost](#credit-cost). Verification deducts that cost (one credit by default). A cost of `0` skips this check.
 5. **Rate limits.** All rate limit configurations attached to the key are evaluated. See [rate limiting](/platform/gateway/policies/rate-limiting) for details on response headers and behavior.
 6. **Permissions.** If a permission query is configured, the key must satisfy it.
 
@@ -51,6 +51,15 @@ Permission queries support `AND` and `OR` operators:
 - `api.read AND api.write` requires both permissions
 - `api.read OR api.write` requires either permission
 
+## Credit cost
+
+By default, each verified request deducts one credit from the key's remaining usage. Set a credit cost on a policy to charge a different amount per route:
+
+- Set the cost to `0` to verify the key without spending any credits. This is useful for read-only endpoints, or when you only want the gateway to confirm the key is valid before proxying to a backend that meters usage itself.
+- Set the cost higher than `1` to charge more for expensive endpoints (for example, `3` credits per request).
+
+Keys with unlimited remaining usage are unaffected regardless of the cost. When the cost exceeds the key's remaining credits, the request receives a `429` response.
+
 ## Error responses
 
 | Scenario                          | Status | Description                       |
@@ -59,3 +68,4 @@ Permission queries support `AND` and `OR` operators:
 | Invalid, disabled, or expired key | 401    | The API key failed verification    |
 | Insufficient permissions          | 403    | The key lacks required permissions |
 | Rate limit exceeded               | 429    | The key's rate limit was exceeded  |
+| Usage limit exceeded              | 429    | The key lacks enough credits to cover the request cost |

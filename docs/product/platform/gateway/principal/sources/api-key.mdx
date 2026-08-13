@@ -23,6 +23,10 @@ When the [Principal's](/platform/gateway/principal/overview) `type` is `"API_KEY
   Unix timestamp in **milliseconds** when the key expires. Absent when the key has no expiry. The gateway already rejects expired keys, so if this field is present the key is still valid. Your application can use it to warn users about upcoming expiration.
 </ResponseField>
 
+<ResponseField name="source.key.credits" type="integer">
+  The number of credits remaining after this request's cost was deducted. Absent when the key has unlimited credits. A value of `0` is included (it means the key just spent its last credit), so your application can distinguish "no credits left" from "unlimited".
+</ResponseField>
+
 <ResponseField name="source.key.meta" type="object" required>
   Custom key-value metadata attached to the key. This is the same metadata you set through the Unkey API when creating or updating the key. Use it to pass per-key attributes to your application, for example an environment label or a customer tier. Empty `{}` when no metadata is set.
 </ResponseField>
@@ -52,6 +56,7 @@ When the [Principal's](/platform/gateway/principal/overview) `type` is `"API_KEY
       "keySpaceId": "ks_abc123",
       "name": "ACME Production Key",
       "expiresAt": 1717200000000,
+      "credits": 4900,
       "meta": {
         "environment": "production"
       },
