@@ -2,7 +2,7 @@
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
@@ -82,11 +82,13 @@ export const envVars = createCollection<EnvVar, string>(
       toast.promise(mutation, {
         loading: "Updating environment variable...",
         success: "Environment variable updated",
-        error: (err) => ({
-          message: "Failed to update environment variable",
-          // The fallback carries the message of the rename check below.
-          description: getErrorMessage(err, err instanceof Error ? err.message : undefined),
-        }),
+        error: (err) =>
+          getErrorToast(
+            err,
+            "Failed to update environment variable",
+            // The fallback carries the message of the rename check below.
+            err instanceof Error ? err.message : undefined,
+          ),
       });
 
       await trackSave(mutation);
@@ -103,10 +105,8 @@ export const envVars = createCollection<EnvVar, string>(
       toast.promise(mutation, {
         loading: `Deleting ${count === 1 ? "environment variable" : `${count} environment variables`}...`,
         success: `${count === 1 ? "Environment variable" : `${count} environment variables`} deleted`,
-        error: (err) => ({
-          message: `Failed to delete environment variable${count === 1 ? "" : "s"}`,
-          description: getErrorMessage(err),
-        }),
+        error: (err) =>
+          getErrorToast(err, `Failed to delete environment variable${count === 1 ? "" : "s"}`),
       });
 
       await trackSave(mutation);
