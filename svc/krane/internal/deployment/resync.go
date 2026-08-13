@@ -2,6 +2,8 @@ package deployment
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"time"
 
 	"connectrpc.com/connect"
@@ -29,26 +31,68 @@ import (
 func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 	repeat.Every(30*time.Second, func() {
 		logger.Info("running actual state resync")
-		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
-			status, err := c.buildDeploymentStatus(ctx, rs)
-			if err != nil {
-				logger.Error("actual state resync: unable to build deployment status", "error", err.Error(), "replicaSet", rs.Name)
-				return
-			}
-			reported, err := c.reportIfChanged(ctx, status)
-			if err != nil {
-				logger.Error("actual state resync: unable to report deployment status", "error", err.Error(), "replicaSet", rs.Name)
-				return
-			}
-			if reported {
-				// Resync found drift the watch didn't deliver. This is the
-				// "pod watch missed an event" smoking-gun signal — a
-				// healthy cluster should see this counter stay flat.
-				metrics.ResyncCorrectionsTotal.WithLabelValues("deployment").Inc()
-				logger.Info("actual state resync: reported changed deployment status", "replicaSet", rs.Name)
-			}
-		})
+		c.resyncActualState(ctx)
 	})
+}
+
+func (c *Controller) resyncActualState(ctx context.Context) {
+	replicaSets, err := c.reportDeploymentInventory(ctx)
+	if err != nil {
+		logger.Error("actual state resync: unable to report complete deployment inventory", "error", err.Error())
+	}
+
+	// A partial list is still useful for refreshing observed pod state. It is
+	// only unsafe as an authoritative inventory, which was skipped above.
+	conc.ForEach(ctx, replicaSets, func(ctx context.Context, rs *appsv1.ReplicaSet) {
+		status, err := c.buildDeploymentStatus(ctx, rs)
+		if err != nil {
+			logger.Error("actual state resync: unable to build deployment status", "error", err.Error(), "replicaSet", rs.Name)
+			return
+		}
+		reported, err := c.reportIfChanged(ctx, status)
+		if err != nil {
+			logger.Error("actual state resync: unable to report deployment status", "error", err.Error(), "replicaSet", rs.Name)
+			return
+		}
+		if reported {
+			// Resync found drift the watch didn't deliver. This is the
+			// "pod watch missed an event" smoking-gun signal — a
+			// healthy cluster should see this counter stay flat.
+			metrics.ResyncCorrectionsTotal.WithLabelValues("deployment").Inc()
+			logger.Info("actual state resync: reported changed deployment status", "replicaSet", rs.Name)
+		}
+	})
+}
+
+func (c *Controller) reportDeploymentInventory(ctx context.Context) ([]appsv1.ReplicaSet, error) {
+	// Hold status reports until the complete inventory is accepted. Otherwise
+	// a watch event for a ReplicaSet created during the list could be upserted
+	// first and then incorrectly removed by the older inventory.
+	c.statusReportMu.Lock()
+	defer c.statusReportMu.Unlock()
+
+	replicaSets, err := c.listReplicaSets(ctx)
+	if err != nil {
+		return replicaSets, err
+	}
+
+	deploymentIDs := make([]string, 0, len(replicaSets))
+	for i := range replicaSets {
+		deploymentID, ok := labels.GetDeploymentID(replicaSets[i].Labels)
+		if !ok {
+			return replicaSets, fmt.Errorf("replicaSet %s is missing deployment ID", replicaSets[i].Name)
+		}
+		deploymentIDs = append(deploymentIDs, deploymentID)
+	}
+	sort.Strings(deploymentIDs)
+	err = c.sendDeploymentStatus(ctx, &ctrlv1.ReportDeploymentStatusRequest{
+		Change: &ctrlv1.ReportDeploymentStatusRequest_Inventory_{
+			Inventory: &ctrlv1.ReportDeploymentStatusRequest_Inventory{
+				DeploymentIds: deploymentIDs,
+			},
+		},
+	})
+	return replicaSets, err
 }
 
 // runDesiredStateResyncLoop periodically reconciles every deployment ReplicaSet
@@ -62,18 +106,24 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
 		logger.Info("running desired state resync")
-		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
+		replicaSets, err := c.listReplicaSets(ctx)
+		if err != nil {
+			logger.Error("desired state resync: unable to list all replicaSets", "error", err.Error())
+		}
+		conc.ForEach(ctx, replicaSets, func(ctx context.Context, rs *appsv1.ReplicaSet) {
 			c.reconcileDesiredState(ctx, rs)
 		})
 	})
 }
 
-// forEachReplicaSet paginates through all krane-managed deployment ReplicaSets
-// and calls fn for each one concurrently.
-func (c *Controller) forEachReplicaSet(ctx context.Context, fn func(ctx context.Context, rs *appsv1.ReplicaSet)) {
+// listReplicaSets paginates through all krane-managed deployment ReplicaSets.
+// On a later-page failure it returns the partial list and an error, allowing
+// callers to process known resources without treating the list as authoritative.
+func (c *Controller) listReplicaSets(ctx context.Context) ([]appsv1.ReplicaSet, error) {
+	replicaSets := []appsv1.ReplicaSet{}
 	cursor := ""
 	for {
-		replicaSets, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
+		page, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
 			LabelSelector: labels.New().
 				ManagedByKrane().
 				ComponentDeployment().
@@ -81,15 +131,14 @@ func (c *Controller) forEachReplicaSet(ctx context.Context, fn func(ctx context.
 			Continue: cursor,
 		})
 		if err != nil {
-			logger.Error("unable to list replicaSets", "error", err.Error())
-			return
+			return replicaSets, err
 		}
 
-		conc.ForEach(ctx, replicaSets.Items, fn)
+		replicaSets = append(replicaSets, page.Items...)
 
-		cursor = replicaSets.Continue
+		cursor = page.Continue
 		if cursor == "" {
-			break
+			return replicaSets, nil
 		}
 	}
 }

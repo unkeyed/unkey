@@ -160,10 +160,23 @@ type Querier interface {
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
+	// Removes stale instance rows for deployment ReplicaSets absent from a
+	// complete regional inventory. Call DeleteRegionInstances for an empty
+	// inventory because NOT IN (NULL) intentionally matches no rows.
+	//
+	//  DELETE FROM instances
+	//  WHERE instances.region_id = ?
+	//    AND instances.deployment_id NOT IN (/*SLICE:live_deployment_ids*/?)
+	DeleteInstancesNotInDeploymentInventory(ctx context.Context, arg DeleteInstancesNotInDeploymentInventoryParams) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
 	DeleteProjectById(ctx context.Context, id string) error
+	//DeleteRegionInstances
+	//
+	//  DELETE FROM instances
+	//  WHERE instances.region_id = ?
+	DeleteRegionInstances(ctx context.Context, regionID string) error
 	// Removes the given workspaces along with everything scoped to them.
 	//
 	// Integration tests share one MySQL container across test processes and across

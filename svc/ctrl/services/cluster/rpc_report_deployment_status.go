@@ -33,11 +33,12 @@ var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
 // This is the feedback loop for convergence: agents report what's actually running so the
 // control plane can track instance health and detect drift from desired state.
 //
-// The request contains either an Update or Delete change. For Update, the method upserts
-// all reported instances and garbage-collects any instances in the database that were not
-// included in the report. For Delete, all instances for the deployment in that region are
-// removed. Both operations run within a retryable transaction to handle transient database
-// errors using [db.TxRetry].
+// The request contains an Update, Delete, or Inventory change. For Update, the method
+// upserts all reported instances and garbage-collects any instances in the database that
+// were not included in the report. For Delete, all instances for the deployment in that
+// region are removed. A complete Inventory removes instances belonging to ReplicaSets no
+// longer present in the region. All operations run within a retryable transaction to handle
+// transient database errors using [db.TxRetry].
 //
 // Instance status is mapped from proto values to database enums via [ctrlDeploymentStatusToDbStatus].
 // Unspecified or unknown statuses default to inactive.
@@ -63,7 +64,11 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		)
 	}()
 
-	logger.Info("reporting deployment status", "req", req.Msg)
+	if inventory := req.Msg.GetInventory(); inventory != nil {
+		logger.Info("reporting deployment inventory", "replica_sets", len(inventory.GetDeploymentIds()))
+	} else {
+		logger.Info("reporting deployment status", "req", req.Msg)
+	}
 
 	cluster, err := s.resolveCluster(ctx, req.Msg.GetCluster())
 	if err != nil {
@@ -153,6 +158,16 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					}
 				}
 			}
+
+		case *ctrlv1.ReportDeploymentStatusRequest_Inventory_:
+			queries := db.NewQueries(tx)
+			if len(msg.Inventory.GetDeploymentIds()) == 0 {
+				return queries.DeleteRegionInstances(ctx, cluster.Region.ID)
+			}
+			return queries.DeleteInstancesNotInDeploymentInventory(ctx, db.DeleteInstancesNotInDeploymentInventoryParams{
+				RegionID:          cluster.Region.ID,
+				LiveDeploymentIds: msg.Inventory.GetDeploymentIds(),
+			})
 		}
 		return nil
 	})
