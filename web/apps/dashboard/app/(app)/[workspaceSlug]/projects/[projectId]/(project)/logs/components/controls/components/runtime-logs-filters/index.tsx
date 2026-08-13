@@ -13,11 +13,12 @@ import { trpc } from "@/lib/trpc/client";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   type AppEnvironmentSelection,
   createAppEnvironmentFilters,
   getAppEnvironmentSelection,
+  groupEnvironmentsByApp,
   isEntireAppSelected,
   toggleAppSelection,
   toggleEnvironmentSelection,
@@ -27,7 +28,7 @@ import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
 import { RuntimeLogsMessageFilter } from "./runtime-logs-message-filter";
 import { RuntimeLogsRegionFilter } from "./runtime-logs-region-filter";
-import { RuntimeLogsSeverityFilter } from "./runtime-logs-severity-filter";
+import { RuntimeLogsSeverityFilter, severityOptions } from "./runtime-logs-severity-filter";
 
 const FILTER_ITEMS: FilterItemConfig[] = [
   {
@@ -78,21 +79,30 @@ export function RuntimeLogsFilters() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
   const apps = useAppFilterOptions();
   const { deployments, environments, projectId } = useProjectData();
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery();
-  const { data: instances } = trpc.deploy.runtimeLogs.listInstances.useQuery({ projectId });
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  // Region and instance options are only needed once the popover opens; keep
+  // the rate-limited queries off the logs page critical path.
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
+    undefined,
+    { enabled: isPopoverOpen },
+  );
+  const { data: instances } = trpc.deploy.runtimeLogs.listInstances.useQuery(
+    { projectId },
+    { enabled: isPopoverOpen },
+  );
 
-  const environmentIdsByApp = useMemo(() => {
-    const grouped = new Map<string, string[]>();
-    for (const app of apps) {
-      grouped.set(
-        app.appId,
-        environments
-          .filter((environment) => environment.appId === app.appId)
-          .map((environment) => environment.id),
-      );
-    }
-    return grouped;
-  }, [apps, environments]);
+  const environmentsByAppId = useMemo(() => groupEnvironmentsByApp(environments), [environments]);
+
+  const environmentIdsByApp = useMemo(
+    () =>
+      new Map(
+        apps.map((app) => [
+          app.appId,
+          (environmentsByAppId.get(app.appId) ?? []).map((environment) => environment.id),
+        ]),
+      ),
+    [apps, environmentsByAppId],
+  );
 
   const appEnvironmentSelection = useMemo(() => getAppEnvironmentSelection(filters), [filters]);
 
@@ -136,9 +146,7 @@ export function RuntimeLogsFilters() {
       filters.some((filter) => filter.field === field && String(filter.value) === value);
 
     const appItems: FilterSearchItem[] = apps.flatMap((app) => {
-      const appEnvironments = environments
-        .filter((environment) => environment.appId === app.appId)
-        .toSorted((left, right) => left.slug.localeCompare(right.slug));
+      const appEnvironments = environmentsByAppId.get(app.appId) ?? [];
       const environmentIds = appEnvironments.map((environment) => environment.id);
 
       return [
@@ -178,17 +186,14 @@ export function RuntimeLogsFilters() {
       ];
     });
 
-    const severityItems: FilterSearchItem[] = ["ERROR", "WARN", "INFO", "DEBUG"].map(
-      (severity) => ({
-        kind: "option",
-        id: `severity:${severity}`,
-        label: severity.charAt(0) + severity.slice(1).toLowerCase(),
-        path: ["Severity"],
-        keywords: severity === "WARN" ? ["warning"] : undefined,
-        checked: isFilterSelected("severity", severity),
-        onSelect: () => toggleFilter("severity", severity),
-      }),
-    );
+    const severityItems: FilterSearchItem[] = severityOptions.map((option) => ({
+      kind: "option",
+      id: `severity:${option.severity}`,
+      label: option.label,
+      path: ["Severity"],
+      checked: isFilterSelected("severity", option.severity),
+      onSelect: () => toggleFilter("severity", option.severity),
+    }));
 
     const deploymentItems: FilterSearchItem[] = deployments.map((deployment) => ({
       kind: "option",
@@ -227,7 +232,7 @@ export function RuntimeLogsFilters() {
     apps,
     availableRegions,
     deployments,
-    environments,
+    environmentsByAppId,
     filters,
     instances,
     toggleFilter,
@@ -250,6 +255,8 @@ export function RuntimeLogsFilters() {
       items={FILTER_ITEMS}
       searchItems={searchItems}
       activeFilters={filters}
+      open={isPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
       getFilterCount={(field) =>
         filters.filter(
           (filter) =>

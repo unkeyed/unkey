@@ -154,9 +154,10 @@ export const FiltersPopover = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    setFocusedSearchIndex(matchingSearchItems.length > 0 ? 0 : null);
-  }, [matchingSearchItems.length]);
+  const activeSearchIndex =
+    matchingSearchItems.length === 0
+      ? null
+      : Math.min(focusedSearchIndex ?? 0, matchingSearchItems.length - 1);
 
   useEffect(() => {
     if (!activeFilter && lastFocusedIndex !== null && isOpen) {
@@ -215,10 +216,6 @@ export const FiltersPopover = ({
       targetElement.tagName === "INPUT" ||
       targetElement.tagName === "TEXTAREA" ||
       targetElement.isContentEditable;
-
-    if (isInputFocused && e.key !== "Escape") {
-      return;
-    }
 
     // If a filter item popover is active, only handle ArrowLeft (outside inputs)
     if (activeFilter) {
@@ -315,26 +312,28 @@ export const FiltersPopover = ({
                   if (event.key === "Escape") {
                     return;
                   }
+                  // With no query the main filter list owns navigation keys;
+                  // with a query the search results own them.
+                  if (!search.trim()) {
+                    return;
+                  }
                   event.stopPropagation();
 
-                  if (matchingSearchItems.length === 0) {
+                  if (activeSearchIndex === null) {
                     return;
                   }
                   if (event.key === "ArrowDown") {
                     event.preventDefault();
-                    setFocusedSearchIndex((current) =>
-                      current === null ? 0 : (current + 1) % matchingSearchItems.length,
-                    );
+                    setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
                   } else if (event.key === "ArrowUp") {
                     event.preventDefault();
-                    setFocusedSearchIndex((current) =>
-                      current === null
-                        ? matchingSearchItems.length - 1
-                        : (current - 1 + matchingSearchItems.length) % matchingSearchItems.length,
+                    setFocusedSearchIndex(
+                      (activeSearchIndex - 1 + matchingSearchItems.length) %
+                        matchingSearchItems.length,
                     );
-                  } else if (event.key === "Enter" && focusedSearchIndex !== null) {
+                  } else if (event.key === "Enter") {
                     event.preventDefault();
-                    const item = matchingSearchItems[focusedSearchIndex];
+                    const item = matchingSearchItems[activeSearchIndex];
                     if (item) {
                       activateSearchItem(item);
                     }
@@ -360,10 +359,15 @@ export const FiltersPopover = ({
                     <button
                       key={item.id}
                       type="button"
+                      ref={
+                        activeSearchIndex === index
+                          ? (node) => node?.scrollIntoView({ block: "nearest" })
+                          : undefined
+                      }
                       className={cn(
                         "flex h-9 w-full items-center gap-2 rounded-md px-2 text-left outline-hidden",
                         "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-accent-7",
-                        focusedSearchIndex === index && "bg-gray-3",
+                        activeSearchIndex === index && "bg-gray-3",
                         item.kind === "option" && item.checked && "bg-gray-3",
                       )}
                       aria-pressed={item.kind === "option" ? item.checked : undefined}
