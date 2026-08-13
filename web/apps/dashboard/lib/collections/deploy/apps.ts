@@ -1,4 +1,4 @@
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -89,10 +89,7 @@ export const apps = createCollection<App, string>(
         success: "App deleted successfully",
         error: (err) => {
           console.error("Failed to delete app", err);
-          return {
-            message: "Failed to Delete App",
-            description: getErrorMessage(err),
-          };
+          return getErrorToast(err, "Failed to Delete App");
         },
       });
 
@@ -117,10 +114,7 @@ export const apps = createCollection<App, string>(
         success: "App created successfully",
         error: (err) => {
           console.error("Failed to create app", err);
-          return {
-            message: "Failed to Create App",
-            description: getErrorMessage(err),
-          };
+          return getErrorToast(err, "Failed to Create App");
         },
       });
 
