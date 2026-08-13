@@ -11,11 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestSetPoliciesSuccessfully(t *testing.T) {
@@ -133,15 +135,20 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 
 	t.Run("set replaces stored policies including variants this API cannot create", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		jwtauth := `{"id":"pol_jwt","name":"legacy jwt","enabled":true,"jwtauth":{}}`
-		seedPolicyConfig(t, h, env, fmt.Sprintf(`{"policies":[%s]}`, jwtauth))
+		legacyPolicyID := uid.New(uid.PolicyPrefix)
+		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      legacyPolicyID,
+			Name:    "legacy jwt",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Jwtauth{Jwtauth: &frontlinev1.JWTAuth{}},
+		}}})
 
 		call(t, makeRequest(env, []openapi.Policy{firewallPolicy("deny", true)}))
 
 		stored := readStoredPolicies(t, h, env)
 		require.Len(t, stored, 1)
 		require.Contains(t, string(stored[0]), `"name":"deny"`)
-		require.NotContains(t, readStoredBlob(t, h, env), "pol_jwt")
+		require.NotContains(t, readStoredBlob(t, h, env), legacyPolicyID)
 	})
 
 	t.Run("second set replaces the first and regenerates ids", func(t *testing.T) {

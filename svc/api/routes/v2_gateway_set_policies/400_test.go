@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -113,7 +114,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 
 	t.Run("client-supplied id is rejected by the schema", func(t *testing.T) {
 		res := rawPolicy(t, map[string]any{
-			"name": "with id", "enabled": true, "id": "pol_client",
+			"name": "with id", "enabled": true, "id": uid.New(uid.PolicyPrefix),
 			"firewall": map[string]any{"action": "ACTION_DENY"},
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)

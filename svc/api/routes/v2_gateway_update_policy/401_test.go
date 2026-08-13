@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
 )
@@ -22,10 +23,10 @@ func TestUpdatePolicyUnauthorized(t *testing.T) {
 	}
 	req := makeRequest(seededEnv{
 		workspaceID:   "",
-		projectID:     "payments",
-		appID:         "payments-api",
-		environmentID: "env_1234abcd",
-	}, "pol_000")
+		projectID:     uid.New(uid.ProjectPrefix),
+		appID:         uid.New(uid.AppPrefix),
+		environmentID: uid.New(uid.EnvironmentPrefix),
+	}, uid.New(uid.PolicyPrefix))
 	req.Name = ptr.P("KEBAP")
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)

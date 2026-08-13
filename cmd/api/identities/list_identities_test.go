@@ -41,7 +41,7 @@ func TestListIdentities(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithResponse[openapi.V2IdentitiesListIdentitiesRequestBody](t, Cmd(), tt.args, `{"meta":{"requestId":"test"},"data":[]}`)
+			req := util.CaptureRequestWithData[openapi.V2IdentitiesListIdentitiesRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

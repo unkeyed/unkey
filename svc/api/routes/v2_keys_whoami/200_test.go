@@ -44,10 +44,12 @@ func TestGetKeyByKey(t *testing.T) {
 	})
 
 	// Create test identity with ratelimit using testutil helper
+	identityMeta, err := json.Marshal(map[string]string{"role": "admin"})
+	require.NoError(t, err)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_user",
-		Meta:        []byte(`{"role": "admin"}`),
+		Meta:        identityMeta,
 		Ratelimits: []seed.CreateRatelimitRequest{
 			{
 				WorkspaceID: workspace.ID,
