@@ -28,6 +28,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -81,6 +82,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -130,6 +132,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -202,6 +205,7 @@ type KeySource struct {
 	KeySpaceID  string         `json:"keySpaceId"`
 	Name        string         `json:"name,omitempty"`
 	ExpiresAt   int64          `json:"expiresAt,omitempty"` // unix milliseconds
+	Credits     *int64         `json:"credits,omitempty"`   // remaining, nil when unlimited
 	Meta        map[string]any `json:"meta"`
 	Roles       []string       `json:"roles,omitempty"`
 	Permissions []string       `json:"permissions,omitempty"`

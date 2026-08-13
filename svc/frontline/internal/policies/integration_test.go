@@ -442,6 +442,9 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, key.Meta)
 	require.Empty(t, key.Roles)
 	require.Empty(t, key.Permissions)
+	// The seeded key has unlimited credits (RemainingRequests NULL), so the
+	// principal omits the credits field entirely.
+	require.Nil(t, key.Credits)
 }
 
 func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
@@ -536,6 +539,13 @@ func TestKeyAuth_CreditsOverrideZero_DoesNotSpend(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
 	require.Equal(t, s.KeyID, result.Principal.Subject)
+
+	// The zero-cost override spends nothing, so the key's balance is still 0.
+	// A limited key surfaces its remaining credits on the principal.
+	key := result.Principal.Source.Key
+	require.NotNil(t, key)
+	require.NotNil(t, key.Credits)
+	require.Equal(t, int64(0), *key.Credits)
 }
 
 // A credits override above the key's remaining usage rejects the request with
