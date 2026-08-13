@@ -57,13 +57,12 @@ const (
 	// carries, so the wrong-host entry is never transmitted.
 	gitlabAuthTokenSecretID = "GIT_AUTH_TOKEN.gitlab.com"
 
-	// bitbucketAuthTokenSecretID is the bitbucket.org counterpart.
-	bitbucketAuthTokenSecretID = "GIT_AUTH_TOKEN.bitbucket.org"
-
-	// bitbucketAuthHeaderSecretID switches BuildKit's bitbucket.org clone auth
-	// from basic (which hardcodes the x-access-token username GitHub expects)
-	// to a bearer Authorization header, which Bitbucket accepts for OAuth
-	// access tokens. Only consulted for bitbucket.org fetches.
+	// bitbucketAuthHeaderSecretID carries a full "Bearer <token>" header value
+	// for bitbucket.org fetches. Bitbucket cannot use the GIT_AUTH_TOKEN path:
+	// BuildKit hardcodes basic auth with the x-access-token username GitHub
+	// expects, while Bitbucket demands x-token-auth. Header secrets shadow
+	// token secrets for their host, and BuildKit sends the value verbatim
+	// after "Authorization: ", so the scheme must be part of the value.
 	bitbucketAuthHeaderSecretID = "GIT_AUTH_HEADER.bitbucket.org"
 )
 
@@ -637,8 +636,7 @@ func (w *Workflow) buildGitSolverOptions(
 	secrets := map[string][]byte{
 		gitAuthTokenSecretID:        []byte(githubToken),
 		gitlabAuthTokenSecretID:     []byte(githubToken),
-		bitbucketAuthTokenSecretID:  []byte(githubToken),
-		bitbucketAuthHeaderSecretID: []byte("bearer"),
+		bitbucketAuthHeaderSecretID: []byte(bitbucketCloneAuthHeader(githubToken)),
 	}
 	envFile := buildEnvFileSecret(envVars)
 
@@ -851,11 +849,23 @@ func (w *Workflow) resolveCloneToken(ctx context.Context, params gitBuildParams,
 				"bitbucket OAuth consumer is not configured on the worker",
 			))
 		}
-		token, err := refreshBitbucketToken(ctx, w.bitbucketConfig, conn.AccessToken.String)
+		tokens, err := refreshBitbucketToken(ctx, w.bitbucketConfig, conn.AccessToken.String)
 		if err != nil {
 			return noToken, false, fmt.Errorf("failed to refresh bitbucket token for app %s: %w", params.AppID, err)
 		}
-		return githubclient.InstallationToken{Token: token, ExpiresAt: time.Time{}}, false, nil
+		// Persist the rotated refresh token before using the access token: a
+		// crash after this point must not leave the row holding the consumed
+		// one, or reuse detection revokes the token family on the next build.
+		if tokens.RefreshToken != "" && tokens.RefreshToken != conn.AccessToken.String {
+			if err := w.db.UpdateRepoConnectionAccessToken(ctx, db.UpdateRepoConnectionAccessTokenParams{
+				AppID:       params.AppID,
+				AccessToken: sql.NullString{String: tokens.RefreshToken, Valid: true},
+				UpdatedAt:   sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			}); err != nil {
+				return noToken, false, fmt.Errorf("failed to persist rotated bitbucket refresh token for app %s: %w", params.AppID, err)
+			}
+		}
+		return githubclient.InstallationToken{Token: tokens.AccessToken, ExpiresAt: time.Time{}}, false, nil
 	}
 
 	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
