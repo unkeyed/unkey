@@ -377,8 +377,10 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	h.t.Helper()
 
 	sessionID := uid.New(uid.PortalSessionPrefix)
-	exchangeCode := uid.New(uid.PortalExchangeCodePrefix)
-	accessToken := uid.New(uid.PortalSessionPrefix)
+	// Credentials are minted the way the handlers mint them (crypto/rand), so
+	// tests exercise realistic values rather than math/rand ids.
+	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
 
 	scopesJSON, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`

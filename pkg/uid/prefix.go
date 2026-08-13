@@ -27,10 +27,16 @@ const (
 
 	// Portal prefixes
 	//
-	// The wire values are unchanged by the portal rename: prefixes are opaque,
-	// and they are the one part that would alter issued credentials and stored
-	// data rather than code. Only the Go identifiers follow the new vocabulary.
+	// A portal session carries three distinct values, and they must not share a
+	// prefix: `ps_` is the non-secret row handle (safe to log, referenced by
+	// audit logs), while `pst_` and `pat_` are bearer credentials. Same-prefix
+	// values are how the wrong one ends up in a log line.
+	//
+	// `pst_` and `pc_` keep their existing values through the portal rename:
+	// prefixes are opaque, and they are the one part that would alter issued
+	// credentials and stored data rather than code.
 	PortalExchangeCodePrefix Prefix = "pst"
+	PortalAccessTokenPrefix  Prefix = "pat"
 	PortalSessionPrefix      Prefix = "ps"
 	PortalConfigPrefix       Prefix = "pc"
 

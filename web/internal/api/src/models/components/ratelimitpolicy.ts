@@ -7,14 +7,79 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import {
+  AuthenticatedSubjectKey,
+  AuthenticatedSubjectKey$inboundSchema,
+  AuthenticatedSubjectKey$Outbound,
+  AuthenticatedSubjectKey$outboundSchema,
+} from "./authenticatedsubjectkey.js";
+import {
+  HeaderKey,
+  HeaderKey$inboundSchema,
+  HeaderKey$Outbound,
+  HeaderKey$outboundSchema,
+} from "./headerkey.js";
+import {
+  PathKey,
+  PathKey$inboundSchema,
+  PathKey$Outbound,
+  PathKey$outboundSchema,
+} from "./pathkey.js";
+import {
+  PrincipalFieldKey,
+  PrincipalFieldKey$inboundSchema,
+  PrincipalFieldKey$Outbound,
+  PrincipalFieldKey$outboundSchema,
+} from "./principalfieldkey.js";
+import {
   RatelimitIdentifier,
   RatelimitIdentifier$inboundSchema,
   RatelimitIdentifier$Outbound,
   RatelimitIdentifier$outboundSchema,
 } from "./ratelimitidentifier.js";
+import {
+  RemoteIpKey,
+  RemoteIpKey$inboundSchema,
+  RemoteIpKey$Outbound,
+  RemoteIpKey$outboundSchema,
+} from "./remoteipkey.js";
 
 /**
- * Rate limits matching requests.
+ * Deprecated. Accepted for compatibility with old clients. Use
+ *
+ * @remarks
+ * `identifiers` with one entry. Responses always return `identifiers`.
+ *
+ * @deprecated class: This will be removed in a future release, please migrate away from it as soon as possible.
+ */
+export type Identifier = {
+  /**
+   * Rate limit by the client's IP address.
+   */
+  remoteIp?: RemoteIpKey | undefined;
+  /**
+   * Rate limit by the value of a request header.
+   */
+  header?: HeaderKey | undefined;
+  /**
+   * Rate limit by the authenticated subject (e.g. the verified key).
+   */
+  authenticatedSubject?: AuthenticatedSubjectKey | undefined;
+  /**
+   * Rate limit by the request path.
+   */
+  path?: PathKey | undefined;
+  /**
+   * Rate limit by a field extracted from the authenticated principal.
+   */
+  principalField?: PrincipalFieldKey | undefined;
+};
+
+/**
+ * Rate limits matching requests. Set `identifiers` with 1 to 5 sources.
+ *
+ * @remarks
+ * The deprecated `identifier` field is accepted in place of a one-entry
+ * `identifiers` list; set exactly one of the two.
  */
 export type RatelimitPolicy = {
   /**
@@ -26,13 +91,72 @@ export type RatelimitPolicy = {
    */
   windowMs: number;
   /**
-   * How requests are grouped for rate limiting. Exactly one of `remoteIp`,
+   * Deprecated. Accepted for compatibility with old clients. Use
    *
    * @remarks
-   * `header`, `authenticatedSubject`, `path` or `principalField` must be set.
+   * `identifiers` with one entry. Responses always return `identifiers`.
+   *
+   * @deprecated field: This will be removed in a future release, please migrate away from it as soon as possible.
    */
-  identifier: RatelimitIdentifier;
+  identifier?: Identifier | undefined;
+  /**
+   * Ordered list of sources that form a compound rate limit key. The
+   *
+   * @remarks
+   * gateway resolves each source for each request. Each unique
+   * combination of resolved values has its own counter. All counters use
+   * the same limit and window. Example: `[authenticatedSubject, path]`
+   * limits each subject separately on each path.
+   */
+  identifiers?: Array<RatelimitIdentifier> | undefined;
 };
+
+/** @internal */
+export const Identifier$inboundSchema: z.ZodType<
+  Identifier,
+  z.ZodTypeDef,
+  unknown
+> = z.object({
+  remoteIp: RemoteIpKey$inboundSchema.optional(),
+  header: HeaderKey$inboundSchema.optional(),
+  authenticatedSubject: AuthenticatedSubjectKey$inboundSchema.optional(),
+  path: PathKey$inboundSchema.optional(),
+  principalField: PrincipalFieldKey$inboundSchema.optional(),
+});
+/** @internal */
+export type Identifier$Outbound = {
+  remoteIp?: RemoteIpKey$Outbound | undefined;
+  header?: HeaderKey$Outbound | undefined;
+  authenticatedSubject?: AuthenticatedSubjectKey$Outbound | undefined;
+  path?: PathKey$Outbound | undefined;
+  principalField?: PrincipalFieldKey$Outbound | undefined;
+};
+
+/** @internal */
+export const Identifier$outboundSchema: z.ZodType<
+  Identifier$Outbound,
+  z.ZodTypeDef,
+  Identifier
+> = z.object({
+  remoteIp: RemoteIpKey$outboundSchema.optional(),
+  header: HeaderKey$outboundSchema.optional(),
+  authenticatedSubject: AuthenticatedSubjectKey$outboundSchema.optional(),
+  path: PathKey$outboundSchema.optional(),
+  principalField: PrincipalFieldKey$outboundSchema.optional(),
+});
+
+export function identifierToJSON(identifier: Identifier): string {
+  return JSON.stringify(Identifier$outboundSchema.parse(identifier));
+}
+export function identifierFromJSON(
+  jsonString: string,
+): SafeParseResult<Identifier, SDKValidationError> {
+  return safeParse(
+    jsonString,
+    (x) => Identifier$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'Identifier' from JSON`,
+  );
+}
 
 /** @internal */
 export const RatelimitPolicy$inboundSchema: z.ZodType<
@@ -42,13 +166,15 @@ export const RatelimitPolicy$inboundSchema: z.ZodType<
 > = z.object({
   limit: z.number().int(),
   windowMs: z.number().int(),
-  identifier: RatelimitIdentifier$inboundSchema,
+  identifier: z.lazy(() => Identifier$inboundSchema).optional(),
+  identifiers: z.array(RatelimitIdentifier$inboundSchema).optional(),
 });
 /** @internal */
 export type RatelimitPolicy$Outbound = {
   limit: number;
   windowMs: number;
-  identifier: RatelimitIdentifier$Outbound;
+  identifier?: Identifier$Outbound | undefined;
+  identifiers?: Array<RatelimitIdentifier$Outbound> | undefined;
 };
 
 /** @internal */
@@ -59,7 +185,8 @@ export const RatelimitPolicy$outboundSchema: z.ZodType<
 > = z.object({
   limit: z.number().int(),
   windowMs: z.number().int(),
-  identifier: RatelimitIdentifier$outboundSchema,
+  identifier: z.lazy(() => Identifier$outboundSchema).optional(),
+  identifiers: z.array(RatelimitIdentifier$outboundSchema).optional(),
 });
 
 export function ratelimitPolicyToJSON(

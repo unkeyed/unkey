@@ -244,8 +244,8 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 	setup := setupPortalSessionTest(t, h)
 	ctx := context.Background()
 	sessionID := uid.New(uid.PortalSessionPrefix)
-	exchangeCode := uid.New(uid.PortalExchangeCodePrefix)
-	accessToken := uid.New(uid.PortalSessionPrefix)
+	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
 
 	scopes, err := json.Marshal(struct {
 		KeyspaceIDs []string `json:"keyspaceIds"`

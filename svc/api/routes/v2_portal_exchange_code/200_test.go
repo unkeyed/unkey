@@ -22,7 +22,7 @@ import (
 func seedPendingSession(t *testing.T, h *testutil.Harness, workspaceID, portalID, externalID string) string {
 	t.Helper()
 
-	code := uid.New(uid.PortalExchangeCodePrefix)
+	code := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
 	scopes, err := json.Marshal(map[string]any{
 		"keyspaceIds": []string{uid.New(uid.KeySpacePrefix)},
 		"scopes":      []string{"keys:read"},
@@ -103,7 +103,7 @@ func TestExchangeCodeSuccess(t *testing.T) {
 	t.Run("stores the access token only as a hash", func(t *testing.T) {
 		code := seedPendingSession(t, h, workspaceID, portalID, "user_hashed")
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req(code))
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Code: code})
 		require.Equal(t, 200, res.Status)
 
 		accessToken := res.Body.Data.AccessToken
@@ -121,11 +121,11 @@ func TestExchangeCodeSuccess(t *testing.T) {
 		code := seedPendingSession(t, h, workspaceID, portalID, "user_single_use")
 
 		// First exchange succeeds.
-		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req(code))
+		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Code: code})
 		require.Equal(t, 200, res1.Status)
 
 		// Second exchange must fail: access_token_hash is no longer NULL.
-		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req(code))
+		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Code: code})
 		require.Equal(t, 401, res2.Status)
 	})
 
@@ -138,7 +138,7 @@ func TestExchangeCodeSuccess(t *testing.T) {
 		var wg sync.WaitGroup
 		for i := range attempts {
 			wg.Go(func() {
-				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req(code))
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Code: code})
 				statuses[i] = res.Status
 			})
 		}
@@ -154,8 +154,4 @@ func TestExchangeCodeSuccess(t *testing.T) {
 		}
 		require.Equal(t, 1, won, "exactly one redemption may succeed")
 	})
-}
-
-func req(code string) handler.Request {
-	return handler.Request{Code: code}
 }

@@ -58,7 +58,7 @@ func TestExchangeCodeUnauthorized(t *testing.T) {
 	})
 
 	t.Run("expired code", func(t *testing.T) {
-		code := uid.New(uid.PortalExchangeCodePrefix)
+		code := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
 
 		// A session whose exchange code expired an hour ago.
 		require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
@@ -80,7 +80,7 @@ func TestExchangeCodeUnauthorized(t *testing.T) {
 	})
 
 	t.Run("already redeemed code", func(t *testing.T) {
-		code := uid.New(uid.PortalExchangeCodePrefix)
+		code := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
 
 		require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 			ID:                    uid.New(uid.PortalSessionPrefix),
@@ -95,7 +95,7 @@ func TestExchangeCodeUnauthorized(t *testing.T) {
 
 		// Redeem it out of band.
 		redeemed, err := db.Query.ExchangePortalSessionCode(ctx, h.DB.RW(), db.ExchangePortalSessionCodeParams{
-			AccessTokenHash:      sql.NullString{String: hash.Sha256(uid.New(uid.PortalSessionPrefix)), Valid: true},
+			AccessTokenHash:      sql.NullString{String: hash.Sha256(string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()), Valid: true},
 			AccessTokenCreatedAt: sql.NullInt64{Int64: now, Valid: true},
 			AccessTokenExpiresAt: sql.NullInt64{Int64: now + int64(24*time.Hour/time.Millisecond), Valid: true},
 			ExchangeCodeHash:     hash.Sha256(code),

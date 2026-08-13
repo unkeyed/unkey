@@ -27,24 +27,24 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Exchange session token
+ * Exchange portal code
  *
  * @remarks
- * Exchange a short-lived session token for a long-lived browser session.
+ * Exchange a short-lived code for a long-lived portal access token.
  *
- * This endpoint is unauthenticated. The session token itself serves as proof of authorization.
- * Each token can only be exchanged once; subsequent attempts return 401.
+ * This endpoint is unauthenticated. The code itself serves as proof of authorization.
+ * Each code can only be redeemed once; subsequent attempts return 401.
  *
- * The returned browser session token is valid for 24 hours and should be stored as an
+ * The returned access token is valid for 24 hours and should be stored as an
  * httpOnly cookie or used in the Authorization header for subsequent API calls.
  */
-export function portalExchangeSession(
+export function portalExchangeCode(
   client: UnkeyCore,
-  request: components.V2PortalExchangeSessionRequestBody,
+  request: components.V2PortalExchangeCodeRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    operations.PortalExchangeSessionResponse,
+    operations.PortalExchangeCodeResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -68,12 +68,12 @@ export function portalExchangeSession(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PortalExchangeSessionRequestBody,
+  request: components.V2PortalExchangeCodeRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      operations.PortalExchangeSessionResponse,
+      operations.PortalExchangeCodeResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.TooManyRequestsErrorResponse
@@ -93,7 +93,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PortalExchangeSessionRequestBody$outboundSchema.parse(value),
+      components.V2PortalExchangeCodeRequestBody$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -102,7 +102,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/portal.exchangeSession")();
+  const path = pathToFunc("/v2/portal.exchangeCode")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -112,7 +112,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "portal.exchangeSession",
+    operationID: "portal.exchangeCode",
     oAuth2Scopes: null,
 
     resolvedSecurity: null,
@@ -165,7 +165,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    operations.PortalExchangeSessionResponse,
+    operations.PortalExchangeCodeResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -179,7 +179,7 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.PortalExchangeSessionResponse$inboundSchema, {
+    M.json(200, operations.PortalExchangeCodeResponse$inboundSchema, {
       hdrs: true,
       key: "Result",
     }),

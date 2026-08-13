@@ -9,19 +9,19 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import * as components from "../components/index.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
-export type PortalExchangeSessionResponse = {
+export type PortalExchangeCodeResponse = {
   headers: { [k: string]: Array<string> };
-  result: components.V2PortalExchangeSessionResponseBody;
+  result: components.V2PortalExchangeCodeResponseBody;
 };
 
 /** @internal */
-export const PortalExchangeSessionResponse$inboundSchema: z.ZodType<
-  PortalExchangeSessionResponse,
+export const PortalExchangeCodeResponse$inboundSchema: z.ZodType<
+  PortalExchangeCodeResponse,
   z.ZodTypeDef,
   unknown
 > = z.object({
   Headers: z.record(z.array(z.string())).default({}),
-  Result: components.V2PortalExchangeSessionResponseBody$inboundSchema,
+  Result: components.V2PortalExchangeCodeResponseBody$inboundSchema,
 }).transform((v) => {
   return remap$(v, {
     "Headers": "headers",
@@ -29,12 +29,12 @@ export const PortalExchangeSessionResponse$inboundSchema: z.ZodType<
   });
 });
 
-export function portalExchangeSessionResponseFromJSON(
+export function portalExchangeCodeResponseFromJSON(
   jsonString: string,
-): SafeParseResult<PortalExchangeSessionResponse, SDKValidationError> {
+): SafeParseResult<PortalExchangeCodeResponse, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) => PortalExchangeSessionResponse$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'PortalExchangeSessionResponse' from JSON`,
+    (x) => PortalExchangeCodeResponse$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'PortalExchangeCodeResponse' from JSON`,
   );
 }

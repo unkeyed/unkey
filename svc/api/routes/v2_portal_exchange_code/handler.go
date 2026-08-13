@@ -59,9 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	nowMs := time.Now().UnixMilli()
 	exchangeCodeHash := hash.Sha256(req.Code)
 
-	// The access token is a bearer credential: returned once here, stored only
-	// as a hash.
-	accessToken := uid.New(uid.PortalSessionPrefix)
+	// The access token is a bearer credential: crypto/rand via uid.Secure (never
+	// uid.New, which is math/rand), returned once here, stored only as a hash.
+	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
 	accessTokenExpiresAt := nowMs + int64(accessTokenTTL/time.Millisecond)
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {

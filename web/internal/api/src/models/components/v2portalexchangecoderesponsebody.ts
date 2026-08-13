@@ -8,35 +8,34 @@ import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
 import {
-  V2PortalExchangeSessionResponseData,
-  V2PortalExchangeSessionResponseData$inboundSchema,
-} from "./v2portalexchangesessionresponsedata.js";
+  V2PortalExchangeCodeResponseData,
+  V2PortalExchangeCodeResponseData$inboundSchema,
+} from "./v2portalexchangecoderesponsedata.js";
 
-export type V2PortalExchangeSessionResponseBody = {
+export type V2PortalExchangeCodeResponseBody = {
   /**
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
   meta: Meta;
-  data: V2PortalExchangeSessionResponseData;
+  data: V2PortalExchangeCodeResponseData;
 };
 
 /** @internal */
-export const V2PortalExchangeSessionResponseBody$inboundSchema: z.ZodType<
-  V2PortalExchangeSessionResponseBody,
+export const V2PortalExchangeCodeResponseBody$inboundSchema: z.ZodType<
+  V2PortalExchangeCodeResponseBody,
   z.ZodTypeDef,
   unknown
 > = z.object({
   meta: Meta$inboundSchema,
-  data: V2PortalExchangeSessionResponseData$inboundSchema,
+  data: V2PortalExchangeCodeResponseData$inboundSchema,
 });
 
-export function v2PortalExchangeSessionResponseBodyFromJSON(
+export function v2PortalExchangeCodeResponseBodyFromJSON(
   jsonString: string,
-): SafeParseResult<V2PortalExchangeSessionResponseBody, SDKValidationError> {
+): SafeParseResult<V2PortalExchangeCodeResponseBody, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) =>
-      V2PortalExchangeSessionResponseBody$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'V2PortalExchangeSessionResponseBody' from JSON`,
+    (x) => V2PortalExchangeCodeResponseBody$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'V2PortalExchangeCodeResponseBody' from JSON`,
   );
 }
