@@ -1,4 +1,4 @@
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -72,10 +72,7 @@ export const projects = createCollection<Project, string>(
         success: "Project deleted successfully",
         error: (err) => {
           console.error("Failed to delete project", err);
-          return {
-            message: "Failed to Delete Project",
-            description: getErrorMessage(err),
-          };
+          return getErrorToast(err, "Failed to Delete Project");
         },
       });
 
@@ -96,10 +93,7 @@ export const projects = createCollection<Project, string>(
         success: "Project created successfully",
         error: (err) => {
           console.error("Failed to create project", err);
-          return {
-            message: "Failed to Create Project",
-            description: getErrorMessage(err),
-          };
+          return getErrorToast(err, "Failed to Create Project");
         },
       });
       const result = await mutation;
@@ -123,10 +117,7 @@ export const projects = createCollection<Project, string>(
         success: "Project updated successfully",
         error: (err) => {
           console.error("Failed to update project", err);
-          return {
-            message: "Failed to Update Project",
-            description: getErrorMessage(err),
-          };
+          return getErrorToast(err, "Failed to Update Project");
         },
       });
 
