@@ -1,6 +1,24 @@
-import { ForbiddenErrorResponse } from "@unkey/api/models/errors";
+import type { BaseError } from "@unkey/api/models/components";
+import { ForbiddenErrorResponse, PreconditionFailedErrorResponse } from "@unkey/api/models/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getErrorMessage, getUnkeyClient } from "./unkey-client";
+import { getErrorMessage, getErrorToast, getUnkeyClient } from "./unkey-client";
+
+function makeErrorResponse<T>(
+  Ctor: new (
+    data: { error: BaseError; meta: { requestId: string } },
+    httpMeta: { body: string; request: Request; response: Response },
+  ) => T,
+  error: BaseError,
+): T {
+  return new Ctor(
+    { error, meta: { requestId: "req_123" } },
+    {
+      body: "",
+      request: new Request("https://api.unkey.com/v2/apps.deleteApp"),
+      response: new Response(null, { status: error.status }),
+    },
+  );
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -63,5 +81,43 @@ describe("getErrorMessage", () => {
 
   it("returns the fallback for non-SDK errors", () => {
     expect(getErrorMessage(new Error("Network request failed"), "Try again")).toBe("Try again");
+  });
+});
+
+describe("getErrorToast", () => {
+  it("recognizes delete protection", () => {
+    const error = makeErrorResponse(PreconditionFailedErrorResponse, {
+      detail: "This app has delete protection enabled. Disable it before attempting to delete.",
+      status: 412,
+      title: "Precondition Failed",
+      type: "https://unkey.com/docs/errors/unkey/application/protected_resource",
+    });
+
+    expect(getErrorToast(error, "Failed to Delete App")).toEqual({
+      message: "Delete Protection Enabled",
+      description:
+        "This app has delete protection enabled. Disable it before attempting to delete.",
+    });
+  });
+
+  it("titles by error class and keeps the API detail", () => {
+    const error = makeErrorResponse(ForbiddenErrorResponse, {
+      detail: "Missing one of these permissions: app.*.delete_app",
+      status: 403,
+      title: "Insufficient Permissions",
+      type: "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
+    });
+
+    expect(getErrorToast(error, "Failed to Delete App")).toEqual({
+      message: "Permission Denied",
+      description: "Missing one of these permissions: app.*.delete_app",
+    });
+  });
+
+  it("falls back to the operation title for unrecognized errors", () => {
+    expect(getErrorToast(new Error("Network request failed"), "Failed to Delete App")).toEqual({
+      message: "Failed to Delete App",
+      description: "An unexpected error occurred. Please try again later.",
+    });
   });
 });
