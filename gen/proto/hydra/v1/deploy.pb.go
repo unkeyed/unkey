@@ -399,7 +399,11 @@ type GitSource struct {
 	// Custom build command for Railpack builds (RAILPACK_BUILD_CMD). Empty means
 	// Railpack auto-detects the command. Lets monorepos scope the build to a
 	// single app. Ignored when dockerfile_path is set.
-	BuildCommand  string `protobuf:"bytes,9,opt,name=build_command,json=buildCommand,proto3" json:"build_command,omitempty"`
+	BuildCommand string `protobuf:"bytes,9,opt,name=build_command,json=buildCommand,proto3" json:"build_command,omitempty"`
+	// SCM provider: "github" (default when empty) or "gitlab". Selects the clone
+	// host and how clone credentials are obtained. For gitlab, installation_id
+	// holds the GitLab project id.
+	Provider      string `protobuf:"bytes,10,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -493,6 +497,13 @@ func (x *GitSource) GetForkRepository() string {
 func (x *GitSource) GetBuildCommand() string {
 	if x != nil {
 		return x.BuildCommand
+	}
+	return ""
+}
+
+func (x *GitSource) GetProvider() string {
+	if x != nil {
+		return x.Provider
 	}
 	return ""
 }
@@ -1013,7 +1024,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1cNotifyInstancesReadyResponse\x12\x1a\n" +
 	"\bresolved\x18\x01 \x01(\bR\bresolved\"#\n" +
 	"\vDockerImage\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"\xc2\x02\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"\xde\x02\n" +
 	"\tGitSource\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x1e\n" +
 	"\n" +
@@ -1026,7 +1037,9 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
 	"\tpr_number\x18\a \x01(\x03R\bprNumber\x12'\n" +
 	"\x0ffork_repository\x18\b \x01(\tR\x0eforkRepository\x12#\n" +
-	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xf2\x01\n" +
+	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\x12\x1a\n" +
+	"\bprovider\x18\n" +
+	" \x01(\tR\bprovider\"\xf2\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
 	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +

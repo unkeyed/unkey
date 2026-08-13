@@ -38,6 +38,7 @@ message HandlePushRequest {
   bool is_fork_pr = 13; // true when triggered by a fork pull_request event
   int64 pr_number = 14; // PR number for fork PRs; 0 for direct pushes
   string fork_repository_full_name = 15; // fork repo (e.g. "contributor/repo"); empty for direct pushes
+  string provider = 16; // SCM provider: "github" (default when empty) or "gitlab"
 }
 
 message HandlePushResponse {}

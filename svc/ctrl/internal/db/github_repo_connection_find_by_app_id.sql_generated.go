@@ -18,6 +18,8 @@ SELECT
     installation_id,
     repository_id,
     repository_full_name,
+    provider,
+    access_token,
     created_at,
     updated_at
 FROM github_repo_connections
@@ -34,6 +36,8 @@ WHERE app_id = ?
 //	    installation_id,
 //	    repository_id,
 //	    repository_full_name,
+//	    provider,
+//	    access_token,
 //	    created_at,
 //	    updated_at
 //	FROM github_repo_connections
@@ -49,6 +53,8 @@ func (q *Queries) FindGithubRepoConnectionByAppId(ctx context.Context, appID str
 		&i.InstallationID,
 		&i.RepositoryID,
 		&i.RepositoryFullName,
+		&i.Provider,
+		&i.AccessToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

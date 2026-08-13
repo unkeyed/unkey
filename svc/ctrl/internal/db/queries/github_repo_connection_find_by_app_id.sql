@@ -7,6 +7,8 @@ SELECT
     installation_id,
     repository_id,
     repository_full_name,
+    provider,
+    access_token,
     created_at,
     updated_at
 FROM github_repo_connections

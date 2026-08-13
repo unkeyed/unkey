@@ -34,6 +34,11 @@ data:
     app_id = ${UNKEY_GITHUB_APP_ID}
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
+    # GitLab POC: shared secret for /webhooks/gitlab. Hardcoded like auth_token
+    # above; local dev only.
+    [gitlab]
+    webhook_secret = "gitlab-local-dev-secret"
+
     # Stripe webhook for the month-end Deploy billing close. Both come from the
     # optional stripe-credentials secret (dev/.env.stripe); empty leaves
     # /webhooks/stripe unregistered. The webhook_secret is whatever

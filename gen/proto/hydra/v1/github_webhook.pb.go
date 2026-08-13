@@ -39,6 +39,7 @@ type HandlePushRequest struct {
 	IsForkPr               bool                   `protobuf:"varint,13,opt,name=is_fork_pr,json=isForkPr,proto3" json:"is_fork_pr,omitempty"`                                            // true when triggered by a fork pull_request event
 	PrNumber               int64                  `protobuf:"varint,14,opt,name=pr_number,json=prNumber,proto3" json:"pr_number,omitempty"`                                              // PR number for fork PRs; 0 for direct pushes
 	ForkRepositoryFullName string                 `protobuf:"bytes,15,opt,name=fork_repository_full_name,json=forkRepositoryFullName,proto3" json:"fork_repository_full_name,omitempty"` // fork repo (e.g. "contributor/repo"); empty for direct pushes
+	Provider               string                 `protobuf:"bytes,16,opt,name=provider,proto3" json:"provider,omitempty"`                                                               // SCM provider: "github" (default when empty) or "gitlab"
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -178,6 +179,13 @@ func (x *HandlePushRequest) GetForkRepositoryFullName() string {
 	return ""
 }
 
+func (x *HandlePushRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
 type HandlePushResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -218,7 +226,7 @@ var File_hydra_v1_github_webhook_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\n" +
-	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xdd\x04\n" +
+	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xf9\x04\n" +
 	"\x11HandlePushRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12#\n" +
 	"\rrepository_id\x18\x02 \x01(\x03R\frepositoryId\x120\n" +
@@ -237,7 +245,8 @@ const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\n" +
 	"is_fork_pr\x18\r \x01(\bR\bisForkPr\x12\x1b\n" +
 	"\tpr_number\x18\x0e \x01(\x03R\bprNumber\x129\n" +
-	"\x19fork_repository_full_name\x18\x0f \x01(\tR\x16forkRepositoryFullName\"\x14\n" +
+	"\x19fork_repository_full_name\x18\x0f \x01(\tR\x16forkRepositoryFullName\x12\x1a\n" +
+	"\bprovider\x18\x10 \x01(\tR\bprovider\"\x14\n" +
 	"\x12HandlePushResponse2g\n" +
 	"\x14GitHubWebhookService\x12I\n" +
 	"\n" +

@@ -17,6 +17,7 @@ INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
 INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = ?
   AND gc.repository_id = ?
+  AND gc.provider = ?
   AND CASE
     WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
@@ -28,6 +29,7 @@ WHERE gc.installation_id = ?
 type ListEnvVarsForRepoConnectionsParams struct {
 	InstallationID int64  `db:"installation_id"`
 	RepositoryID   int64  `db:"repository_id"`
+	Provider       string `db:"provider"`
 	IsForkPr       int64  `db:"is_fork_pr"`
 	Branch         string `db:"branch"`
 }
@@ -47,6 +49,7 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //	INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
+//	  AND gc.provider = ?
 //	  AND CASE
 //	    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
@@ -57,6 +60,7 @@ func (q *Queries) ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnv
 	rows, err := q.db.QueryContext(ctx, listEnvVarsForRepoConnections,
 		arg.InstallationID,
 		arg.RepositoryID,
+		arg.Provider,
 		arg.IsForkPr,
 		arg.Branch,
 	)

@@ -119,7 +119,15 @@ export const deployments = mysqlTable(
 
     // What surface triggered this deployment.
     // "unknown" is used for historical rows inserted before this column existed.
-    trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])
+    trigger: mysqlEnum("trigger", [
+      "unknown",
+      "github",
+      "gitlab",
+      "api",
+      "cli",
+      "dashboard",
+      "unkey",
+    ])
       .notNull()
       .default("unknown"),
 

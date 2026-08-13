@@ -503,6 +503,8 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      provider,
+	//      access_token,
 	//      created_at,
 	//      updated_at
 	//  FROM github_repo_connections
@@ -1477,6 +1479,7 @@ type Querier interface {
 	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
+	//    AND gc.provider = ?
 	//    AND CASE
 	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
@@ -1567,7 +1570,7 @@ type Querier interface {
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
-	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
+	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.provider, gc.access_token, gc.created_at, gc.updated_at,
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
@@ -1587,6 +1590,7 @@ type Querier interface {
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
+	//    AND gc.provider = ?
 	ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	// ListRunningDeploymentsByBranch returns deployments in the same app,
 	// environment, and branch whose desired state is running, excluding one

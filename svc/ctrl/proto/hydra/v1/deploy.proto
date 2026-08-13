@@ -117,6 +117,11 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
+
+  // SCM provider: "github" (default when empty) or "gitlab". Selects the clone
+  // host and how clone credentials are obtained. For gitlab, installation_id
+  // holds the GitLab project id.
+  string provider = 10;
 }
 
 message DeployRequest {

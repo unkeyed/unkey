@@ -19,4 +19,5 @@ INNER JOIN environments e ON e.app_id = a.id
 INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 WHERE gc.installation_id = sqlc.arg(installation_id)
-  AND gc.repository_id = sqlc.arg(repository_id);
+  AND gc.repository_id = sqlc.arg(repository_id)
+  AND gc.provider = sqlc.arg(provider);

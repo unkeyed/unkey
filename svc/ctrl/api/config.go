@@ -46,6 +46,15 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
+// GitLabConfig holds GitLab webhook integration settings for webhook-triggered
+// deployments. POC: webhooks are registered manually per project in GitLab and
+// share one secret token; there is no GitLab App equivalent.
+type GitLabConfig struct {
+	// WebhookSecret is the secret token GitLab sends verbatim in the
+	// X-Gitlab-Token header. Empty disables the /webhooks/gitlab route.
+	WebhookSecret string `toml:"webhook_secret"`
+}
+
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
 // close: the invoice.created webhook claims renewal invoices of Deploy
 // workspaces (auto_advance off) and dispatches the closing flow to the
@@ -135,6 +144,9 @@ type Config struct {
 
 	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
 	GitHub GitHubConfig `toml:"github"`
+
+	// GitLab configures GitLab webhook integration. See [GitLabConfig].
+	GitLab GitLabConfig `toml:"gitlab"`
 
 	// Stripe configures the Stripe webhook for the month-end Deploy billing
 	// close. See [StripeConfig].

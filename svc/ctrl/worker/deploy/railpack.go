@@ -388,9 +388,10 @@ func hashRailpackPrepareInputs(envVars, railpackConfig map[string]string) string
 // each env var by name. Railpack registers env var names as build secrets in
 // the plan, and both solves mount the values from the session by name.
 func railpackSecrets(githubToken string, envVars map[string]string) map[string][]byte {
-	secrets := make(map[string][]byte, len(envVars)+1)
+	secrets := make(map[string][]byte, len(envVars)+2)
 	if githubToken != "" {
 		secrets[gitAuthTokenSecretID] = []byte(githubToken)
+		secrets[gitlabAuthTokenSecretID] = []byte(githubToken)
 	}
 	for k, v := range envVars {
 		secrets[k] = []byte(v)

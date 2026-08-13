@@ -6,6 +6,7 @@ INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
 INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = sqlc.arg(installation_id)
   AND gc.repository_id = sqlc.arg(repository_id)
+  AND gc.provider = sqlc.arg(provider)
   AND CASE
     WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN e.kind = 'preview'
     WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')

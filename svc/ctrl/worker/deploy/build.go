@@ -50,6 +50,12 @@ const (
 	// token to github.com; BuildKit's git source looks up the host-suffixed
 	// name first. Shared by the Dockerfile and Railpack build paths.
 	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
+
+	// gitlabAuthTokenSecretID is the gitlab.com counterpart. The clone token is
+	// registered under both host-suffixed names so the solver-option builders
+	// stay provider-agnostic; BuildKit only sends a secret to the host its name
+	// carries, so the wrong-host entry is never transmitted.
+	gitlabAuthTokenSecretID = "GIT_AUTH_TOKEN.gitlab.com"
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -171,6 +177,9 @@ type buildResult struct {
 // gitBuildParams holds the inputs for building a container image from a Git
 // repository, including the exact commit and the build context location.
 type gitBuildParams struct {
+	// Provider is the SCM the source lives on: "github" (default when empty)
+	// or "gitlab". Selects the clone host and the clone credential source.
+	Provider       string
 	InstallationID int64
 	Repository     string
 	ForkRepository string
@@ -247,7 +256,7 @@ func (w *Workflow) runGitBuild(
 		// tokenless means no GIT_AUTH_TOKEN secret is registered, so
 		// fork-controlled build instructions cannot mount a GitHub credential.
 		// Env vars are still injected as the env secret on both paths.
-		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
+		ghToken, tokenless, err := w.resolveCloneToken(runCtx, params, isForkBuild)
 		if err != nil {
 			return nil, err
 		}
@@ -374,10 +383,15 @@ func buildGitContextURL(params gitBuildParams) string {
 	}
 	buildRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
 
-	if contextPath != "" {
-		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
+	host := "github.com"
+	if params.Provider == "gitlab" {
+		host = "gitlab.com"
 	}
-	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+
+	if contextPath != "" {
+		return fmt.Sprintf("https://%s/%s.git#%s:%s", host, buildRepo, ref, contextPath)
+	}
+	return fmt.Sprintf("https://%s/%s.git#%s", host, buildRepo, ref)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -609,7 +623,8 @@ func (w *Workflow) buildGitSolverOptions(
 	envVars map[string]string,
 ) client.SolveOpt {
 	secrets := map[string][]byte{
-		gitAuthTokenSecretID: []byte(githubToken),
+		gitAuthTokenSecretID:    []byte(githubToken),
+		gitlabAuthTokenSecretID: []byte(githubToken),
 	}
 	envFile := buildEnvFileSecret(envVars)
 
@@ -784,8 +799,24 @@ func (w *Workflow) processBuildStatus(
 // fails fast with a terminal error instead of a confusing git failure
 // mid-build. An inconclusive visibility probe never falls back to the
 // tokenless path.
-func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (githubclient.InstallationToken, bool, error) {
+func (w *Workflow) resolveCloneToken(ctx context.Context, params gitBuildParams, isForkBuild bool) (githubclient.InstallationToken, bool, error) {
 	var noToken githubclient.InstallationToken
+
+	// GitLab POC: the clone credential is the access token stored on the
+	// connection row, no minting or scoping involved. Fork builds never reach
+	// here: GitLab merge request events are not handled yet.
+	if params.Provider == "gitlab" {
+		conn, err := w.db.FindGithubRepoConnectionByAppId(ctx, params.AppID)
+		if err != nil {
+			return noToken, false, fmt.Errorf("failed to load gitlab connection for app %s: %w", params.AppID, err)
+		}
+		if !conn.AccessToken.Valid || conn.AccessToken.String == "" {
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"gitlab connection for app %s has no access token", params.AppID,
+			))
+		}
+		return githubclient.InstallationToken{Token: conn.AccessToken.String, ExpiresAt: time.Time{}}, false, nil
+	}
 
 	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
 		logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",

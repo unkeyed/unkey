@@ -493,6 +493,7 @@ type DeploymentsTrigger string
 const (
 	DeploymentsTriggerUnknown   DeploymentsTrigger = "unknown"
 	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
+	DeploymentsTriggerGitlab    DeploymentsTrigger = "gitlab"
 	DeploymentsTriggerApi       DeploymentsTrigger = "api"
 	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
 	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"
@@ -898,15 +899,17 @@ type FrontlineRoute struct {
 }
 
 type GithubRepoConnection struct {
-	Pk                 uint64        `db:"pk"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	AppID              string        `db:"app_id"`
-	InstallationID     int64         `db:"installation_id"`
-	RepositoryID       int64         `db:"repository_id"`
-	RepositoryFullName string        `db:"repository_full_name"`
-	CreatedAt          int64         `db:"created_at"`
-	UpdatedAt          sql.NullInt64 `db:"updated_at"`
+	Pk                 uint64         `db:"pk"`
+	WorkspaceID        string         `db:"workspace_id"`
+	ProjectID          string         `db:"project_id"`
+	AppID              string         `db:"app_id"`
+	InstallationID     int64          `db:"installation_id"`
+	RepositoryID       int64          `db:"repository_id"`
+	RepositoryFullName string         `db:"repository_full_name"`
+	Provider           string         `db:"provider"`
+	AccessToken        sql.NullString `db:"access_token"`
+	CreatedAt          int64          `db:"created_at"`
+	UpdatedAt          sql.NullInt64  `db:"updated_at"`
 }
 
 type Instance struct {

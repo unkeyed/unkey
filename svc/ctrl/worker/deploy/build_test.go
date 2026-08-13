@@ -255,7 +255,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
 
-		token, tokenless, err := w.resolveCloneToken(gitBuildParams{InstallationID: 1, Repository: base}, false)
+		token, tokenless, err := w.resolveCloneToken(t.Context(), gitBuildParams{InstallationID: 1, Repository: base}, false)
 		require.NoError(t, err)
 		require.False(t, tokenless)
 		require.NotEmpty(t, token.Token)
@@ -267,7 +267,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh, allowUnauthenticatedDeployments: true}
 
-		_, tokenless, err := w.resolveCloneToken(gitBuildParams{Repository: base}, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), gitBuildParams{Repository: base}, true)
 		require.NoError(t, err)
 		require.True(t, tokenless)
 		require.Empty(t, gh.probed)
@@ -278,7 +278,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{public: map[string]bool{base: true}}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(forkPR, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), forkPR, true)
 		require.NoError(t, err)
 		require.True(t, tokenless)
 		require.Equal(t, []string{base}, gh.probed)
@@ -288,7 +288,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(forkPR, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), forkPR, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
 		require.Equal(t, []string{base}, gh.scopedTo)
@@ -298,7 +298,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{probeErr: fmt.Errorf("rate limited")}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(forkPR, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), forkPR, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
 		require.Equal(t, []string{base}, gh.scopedTo)
@@ -308,7 +308,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{public: map[string]bool{"contributor/app": true}}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(differentOwnerForkRef, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), differentOwnerForkRef, true)
 		require.NoError(t, err)
 		require.True(t, tokenless)
 		require.Equal(t, []string{"contributor/app"}, gh.probed)
@@ -318,7 +318,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(sameOwnerForkRef, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), sameOwnerForkRef, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
 		require.Equal(t, []string{"acme/app-fork"}, gh.scopedTo)
@@ -337,7 +337,7 @@ func TestResolveCloneToken(t *testing.T) {
 			ForkRepository: "Acme/app-fork",
 			PrNumber:       0,
 		}
-		_, tokenless, err := w.resolveCloneToken(casingDrift, true)
+		_, tokenless, err := w.resolveCloneToken(t.Context(), casingDrift, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
 		require.Equal(t, []string{"Acme/app-fork"}, gh.scopedTo)
@@ -347,7 +347,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
 
-		_, _, err := w.resolveCloneToken(differentOwnerForkRef, true)
+		_, _, err := w.resolveCloneToken(t.Context(), differentOwnerForkRef, true)
 		require.Error(t, err)
 		require.True(t, restate.IsTerminalError(err))
 		require.Contains(t, err.Error(), "contributor/app")
@@ -358,7 +358,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{probeErr: fmt.Errorf("rate limited")}
 		w := &Workflow{github: gh}
 
-		_, _, err := w.resolveCloneToken(differentOwnerForkRef, true)
+		_, _, err := w.resolveCloneToken(t.Context(), differentOwnerForkRef, true)
 		require.Error(t, err)
 		require.False(t, restate.IsTerminalError(err))
 		require.Empty(t, gh.scopedTo)

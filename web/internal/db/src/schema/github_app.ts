@@ -41,6 +41,12 @@ export const githubRepoConnections = mysqlTable(
     repositoryFullName: varchar("repository_full_name", {
       length: 500,
     }).notNull(),
+    // Which SCM the connection belongs to. GitLab connections reuse this
+    // table: installation_id and repository_id both hold the GitLab project id.
+    provider: varchar("provider", { length: 32 }).notNull().default("github"),
+    // POC only: plaintext GitLab access token used to clone. Must move to
+    // vault-backed encrypted storage before this leaves local development.
+    accessToken: varchar("access_token", { length: 512 }),
     ...lifecycleDates,
   },
   (table) => [index("installation_id_idx").on(table.installationId)],

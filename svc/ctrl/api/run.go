@@ -33,6 +33,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	gitlabwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/gitlab"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -304,6 +305,13 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.GitLab.WebhookSecret != "" {
+		mux.Handle("POST /webhooks/gitlab", gitlabwebhook.New(restateClient, cfg.GitLab.WebhookSecret))
+		logger.Info("GitLab webhook handler registered")
+	} else {
+		logger.Info("GitLab webhook handler not registered, no webhook secret configured")
 	}
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {

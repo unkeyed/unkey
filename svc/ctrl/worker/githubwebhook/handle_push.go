@@ -34,6 +34,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	)
 
 	branch := req.GetBranch()
+	provider := providerOrDefault(req.GetProvider())
 
 	// Single query: connections + apps + projects + environments + build/runtime settings
 	// Selects the production environment for the default branch and preview for others.
@@ -44,6 +45,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
+			Provider:       provider,
 		})
 	}, restate.WithName("list deploy contexts"))
 	if err != nil {
@@ -131,6 +133,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
+			Provider:       provider,
 		})
 	}, restate.WithName("list env vars"))
 	if err != nil {
@@ -145,8 +148,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	//     with an empty commits array.
 	// When files aren't available, fetch from the GitHub API so watch-path
 	// matching doesn't skip deploys for lack of a diff.
+	// The commit-files API client is GitHub's; GitLab pushes proceed with
+	// whatever the webhook payload carried (POC: no GitLab API client yet).
 	changedFiles := req.GetChangedFiles()
-	if len(changedFiles) == 0 && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
+	if len(changedFiles) == 0 && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments && provider == "github" {
 		logger.Info("fetching commit files from GitHub",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
@@ -264,6 +269,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
+					Provider:       provider,
 					InstallationId: repo.InstallationID,
 					Repository:     repo.RepositoryFullName,
 					CommitSha:      req.GetAfter(),
@@ -406,7 +412,7 @@ func insertDeploymentRecord(
 			Healthcheck:                   runtimeSettings.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
-			DeploymentTrigger:             db.DeploymentsTriggerGithub,
+			DeploymentTrigger:             triggerForProvider(req.GetProvider()),
 			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
 			TriggerReason:                 sql.NullString{Valid: false},
 		}); txErr != nil {
@@ -458,4 +464,20 @@ func boolToInt64(b bool) int64 {
 		return 1
 	}
 	return 0
+}
+
+// providerOrDefault maps an empty provider to "github": requests predating the
+// field (or sent by the GitHub receiver, which never sets it) are GitHub's.
+func providerOrDefault(provider string) string {
+	if provider == "" {
+		return "github"
+	}
+	return provider
+}
+
+func triggerForProvider(provider string) db.DeploymentsTrigger {
+	if providerOrDefault(provider) == "gitlab" {
+		return db.DeploymentsTriggerGitlab
+	}
+	return db.DeploymentsTriggerGithub
 }

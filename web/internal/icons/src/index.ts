@@ -86,6 +86,7 @@ export * from "./icons/folder-link";
 export * from "./icons/gauge";
 export * from "./icons/gear";
 export * from "./icons/github";
+export * from "./icons/gitlab";
 export * from "./icons/grid";
 export * from "./icons/grid-circle";
 export * from "./icons/grid-dots-vertical";

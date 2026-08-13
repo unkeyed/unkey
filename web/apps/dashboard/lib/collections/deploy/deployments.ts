@@ -64,7 +64,7 @@ export const deploymentSchema = z.object({
     })
     .nullable(),
   shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
-  trigger: z.enum(["unknown", "github", "api", "cli", "dashboard", "unkey"]),
+  trigger: z.enum(["unknown", "github", "gitlab", "api", "cli", "dashboard", "unkey"]),
   triggeredBy: z.string().nullable(),
   triggerReason: z.string().nullable(),
   createdAt: z.number(),

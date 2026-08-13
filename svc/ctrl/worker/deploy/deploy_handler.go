@@ -404,6 +404,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		}
 
 		params := gitBuildParams{
+			Provider:       source.Git.GetProvider(),
 			InstallationID: source.Git.GetInstallationId(),
 			Repository:     source.Git.GetRepository(),
 			ForkRepository: forkRepo,
@@ -977,6 +978,18 @@ func (w *Workflow) initGitHubStatus(
 		logger.Info(
 			"no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
+		)
+
+		return reporter
+	}
+
+	// Status reporting speaks the GitHub API; other providers have no
+	// equivalent wired up yet, so their deployments proceed silently.
+	if repoConn.Provider != "github" {
+		logger.Info(
+			"non-github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"provider", repoConn.Provider,
 		)
 
 		return reporter

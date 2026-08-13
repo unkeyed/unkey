@@ -383,7 +383,7 @@ type Querier interface {
 	//      updated_at
 	//  FROM github_repo_connections
 	//  WHERE app_id = ?
-	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
+	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (FindGithubRepoConnectionByAppIdRow, error)
 	//FindIdentitiesByExternalId
 	//
 	//  SELECT pk, id, external_id, workspace_id, project_id, environment, meta, deleted, created_at, updated_at
