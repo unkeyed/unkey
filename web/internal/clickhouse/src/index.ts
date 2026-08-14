@@ -1,7 +1,12 @@
 import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
-import { getActiveKeysUsage, getDeployMeterUsage, getDeployUsageByScope } from "./deploy_billing";
+import {
+  getActiveKeysByApp,
+  getActiveKeysUsage,
+  getDeployMeterUsage,
+  getDeployUsageByScope,
+} from "./deploy_billing";
 export {
   type ActiveKeysUsage,
   activeKeysUsage,
@@ -9,6 +14,8 @@ export {
   deployMeterUsage,
   type DeployUsageByScope,
   deployUsageByScope,
+  type ActiveKeysByApp,
+  activeKeysByApp,
 } from "./deploy_billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getInstanceEvents } from "./instance-events";
@@ -302,6 +309,7 @@ export class ClickHouse {
       billableRatelimits: getBillableRatelimits(this.querier),
       deployMeterUsage: getDeployMeterUsage(this.querier),
       deployUsageByScope: getDeployUsageByScope(this.querier),
+      activeKeysByApp: getActiveKeysByApp(this.querier),
       activeKeysUsage: getActiveKeysUsage(this.querier),
     };
   }

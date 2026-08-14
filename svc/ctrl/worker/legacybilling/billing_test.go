@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	stripe "github.com/stripe/stripe-go/v86"
 	"github.com/stripe/stripe-go/v86/form"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestBuildInvoiceItemsUsesFullFixedPricesAndTierUsage protects fixed fees from
@@ -224,7 +225,10 @@ func TestReconcileExistingInvoiceLinesResumesPartialDraft(t *testing.T) {
 	require.ErrorContains(t, err, "does not match the expected specification")
 
 	existing.Metadata["charge_spec"] = invoiceItemSpec(expected[0], periodStart, periodEnd)
-	existing.LastResponse.RawJSON = []byte(`{"pricing":{"unit_amount_decimal":"5000"}}`)
+	existing.LastResponse.RawJSON, err = json.Marshal(map[string]any{
+		"pricing": map[string]string{"unit_amount_decimal": "5000"},
+	})
+	require.NoError(t, err)
 	_, err = reconcileExistingInvoiceLines("in_123", "ws_123", "2026-07", periodStart, periodEnd, expected, []*stripe.InvoiceLineItem{existing})
 	require.ErrorContains(t, err, `unit amount is "5000", expected "2500"`)
 }
@@ -267,7 +271,9 @@ func TestValidateConfig(t *testing.T) {
 // TestWorkspaceInputIsJournalSerializable protects billing state from being
 // lost when Restate records and replays the MySQL step result.
 func TestWorkspaceInputIsJournalSerializable(t *testing.T) {
-	expected := workspaceInput{Name: "Acme", CustomerID: "cus_123", Subscriptions: []byte(`{"plan":true}`)}
+	subscriptions, err := json.Marshal(map[string]bool{"plan": true})
+	require.NoError(t, err)
+	expected := workspaceInput{Name: "Acme", CustomerID: uid.New("cus"), Subscriptions: subscriptions}
 
 	encoded, err := json.Marshal(expected)
 	require.NoError(t, err)
