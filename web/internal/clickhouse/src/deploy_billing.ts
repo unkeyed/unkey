@@ -179,24 +179,38 @@ export const activeKeysByApp = z.object({
 export type ActiveKeysByApp = z.infer<typeof activeKeysByApp>;
 
 /**
- * The same distinct-key count getActiveKeysUsage returns, split by the app that
- * verified the key. uniqExact per app does not sum to the workspace total: a key
- * verified through two apps counts in both. Attribution, not a split of the bill.
+ * The same distinct-key count getActiveKeysUsage returns, partitioned by app:
+ * each key is assigned to the one app that verified it most this month, so the
+ * per-app counts sum to the workspace total the invoice bills.
  *
  * app_id is only written from the release on 2026-08-11, so verifications before
- * it carry an empty app_id and group under "".
+ * it carry an empty app_id; a key with any attributed verifications goes to its
+ * busiest real app, and only never-attributed keys group under "".
  */
 export function getActiveKeysByApp(ch: Querier) {
   const query = ch.query({
     query: `
       SELECT
-        app_id AS appId,
-        toInt64(uniqExact(key_id)) AS activeKeys
-      FROM default.key_verifications_per_month_v3
-      WHERE time = makeDate({year: Int32}, {month: Int32}, 1)
-        AND source = 'gateway'
-        AND workspace_id = {workspaceId: String}
-      GROUP BY app_id
+        assignedAppId AS appId,
+        toInt64(count()) AS activeKeys
+      FROM (
+        SELECT
+          key_id,
+          argMax(app_id, (app_id != '', verifications, app_id)) AS assignedAppId
+        FROM (
+          SELECT
+            key_id,
+            app_id,
+            sum(count) AS verifications
+          FROM default.key_verifications_per_month_v3
+          WHERE time = makeDate({year: Int32}, {month: Int32}, 1)
+            AND source = 'gateway'
+            AND workspace_id = {workspaceId: String}
+          GROUP BY key_id, app_id
+        )
+        GROUP BY key_id
+      )
+      GROUP BY assignedAppId
       ORDER BY activeKeys DESC, appId
     `,
     params: z.object({
