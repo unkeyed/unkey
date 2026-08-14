@@ -13,11 +13,12 @@ const ITEMS = [
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
+  { segment: "usage", label: "Usage", getHref: routes.settings.usage },
   { segment: "limits", label: "Limits", getHref: routes.settings.limits },
   { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;
 
-const BILLING_UPGRADE_SEGMENTS: ReadonlySet<string> = new Set(["limits"]);
+const BILLING_UPGRADE_SEGMENTS: ReadonlySet<string> = new Set(["usage", "limits"]);
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceNavigation();

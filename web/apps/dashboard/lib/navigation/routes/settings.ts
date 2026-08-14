@@ -36,6 +36,10 @@ export const settingsRoutes = {
     );
   },
 
+  usage({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/usage", { workspaceSlug });
+  },
+
   limits({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
   },

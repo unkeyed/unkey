@@ -171,6 +171,72 @@ export function getDeployUsageByScope(ch: Querier) {
   };
 }
 
+export const activeKeysByApp = z.object({
+  appId: z.string(),
+  activeKeys: z.number(),
+});
+
+export type ActiveKeysByApp = z.infer<typeof activeKeysByApp>;
+
+/**
+ * Counts this month's active keys, per app.
+ *
+ * One key can be verified through many apps, but billing only charges it
+ * once. So each key is counted for exactly one app here: the app that
+ * verified it the most. That way the per-app counts add up to the same
+ * total the invoice charges for (the number getActiveKeysUsage returns).
+ *
+ * We only started recording which app verified a key on 2026-08-11, so
+ * older rows have no app on them. A key seen with a real app since then
+ * counts for that app. A key never seen with one counts under "".
+ */
+export function getActiveKeysByApp(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        assignedAppId AS appId,
+        toInt64(count()) AS activeKeys
+      FROM (
+        SELECT
+          key_id,
+          argMax(app_id, (app_id != '', verifications, app_id)) AS assignedAppId
+        FROM (
+          SELECT
+            key_id,
+            app_id,
+            sum(count) AS verifications
+          FROM default.key_verifications_per_month_v3
+          WHERE time = makeDate({year: Int32}, {month: Int32}, 1)
+            AND source = 'gateway'
+            AND workspace_id = {workspaceId: String}
+          GROUP BY key_id, app_id
+        )
+        GROUP BY key_id
+      )
+      GROUP BY assignedAppId
+      ORDER BY activeKeys DESC, appId
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      year: z.number().int(),
+      month: z.number().int().min(1).max(12),
+    }),
+    schema: activeKeysByApp,
+  });
+
+  return async (args: {
+    workspaceId: string;
+    year: number;
+    month: number;
+  }): Promise<ActiveKeysByApp[]> => {
+    const result = await query(args);
+    if (result.err) {
+      throw new Error(`Failed to query active keys by app: ${result.err.message}`);
+    }
+    return result.val;
+  };
+}
+
 export const activeKeysUsage = z.object({
   activeKeys: z.number(),
 });
