@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 type FilterOption<T extends string = string> = {
   id: T;
   label: string;
+  placeholder?: string;
 };
 
 type FilterOperatorInputProps<T extends string> = {
@@ -147,7 +148,9 @@ export const FilterOperatorInput = <T extends string>({
               setText(e.target.value);
               setError(null);
             }}
-            placeholder="Enter text"
+            placeholder={
+              options.find((option) => option.id === selectedOption)?.placeholder ?? "Enter text"
+            }
             onKeyDown={handleTextareaKeyDown}
             aria-invalid={error !== null}
             aria-describedby={error ? "filter-operator-error" : undefined}

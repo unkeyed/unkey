@@ -5,6 +5,10 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
 } from "@/hooks/use-paginated-list-query";
+import {
+  type RuntimeLogsFilterValue,
+  parseRuntimeLogsAttributeMatch,
+} from "@/lib/schemas/runtime-logs.filter.schema";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
@@ -24,6 +28,23 @@ type UseRuntimeLogsQueryParams = {
 
 const REALTIME_DATA_LIMIT = 100;
 const PREFETCH_PAGES_AHEAD = 2;
+
+function toAttributesQuery(
+  filter: RuntimeLogsFilterValue | undefined,
+):
+  | { operator: "contains"; value: string }
+  | { operator: "is"; path: string; value: string }
+  | null {
+  if (!filter) {
+    return null;
+  }
+  if (filter.operator === "contains") {
+    return { operator: "contains", value: String(filter.value) };
+  }
+
+  const match = parseRuntimeLogsAttributeMatch(String(filter.value));
+  return match ? { operator: "is", ...match } : null;
+}
 
 export function useRuntimeLogsQuery({
   limit = 50,
@@ -143,7 +164,7 @@ export function useRuntimeLogsQuery({
       severity: severityFilters.length > 0 ? { filters: severityFilters } : null,
       region: regionFilters.length > 0 ? { filters: regionFilters } : null,
       message: messageFilter ? String(messageFilter.value) : null,
-      attributes: attributesFilter ? String(attributesFilter.value) : null,
+      attributes: toAttributesQuery(attributesFilter),
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
       environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };

@@ -13,7 +13,24 @@ export const dashboardRuntimeLog = z.object({
 
 export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
-const indexedTextFilter = z.string().trim().min(3).nullable();
+const indexedText = z.string().trim().min(3);
+
+const attributesFilter = z.discriminatedUnion("operator", [
+  z.object({
+    operator: z.literal("contains"),
+    value: indexedText,
+  }),
+  z.object({
+    operator: z.literal("is"),
+    path: z
+      .string()
+      .trim()
+      .min(1)
+      .max(512)
+      .refine((path) => path.split(".").every((segment) => segment.length > 0)),
+    value: indexedText.max(2_048),
+  }),
+]);
 
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
@@ -53,8 +70,8 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  message: indexedTextFilter,
-  attributes: indexedTextFilter.optional().default(null),
+  message: indexedText.nullable(),
+  attributes: attributesFilter.nullable().optional().default(null),
   instanceId: z
     .object({
       filters: z.array(

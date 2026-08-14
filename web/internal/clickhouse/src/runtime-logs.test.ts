@@ -35,6 +35,7 @@ const baseRequest: RuntimeLogsRequest = {
   region: null,
   message: null,
   attributes: null,
+  attributeMatch: null,
   k8sPodNames: [],
   page: 1,
 };
@@ -64,6 +65,38 @@ describe("getRuntimeLogs", () => {
       });
     }
   });
+
+  it("prefilters exact attribute matches before verifying the JSON path", async () => {
+    const ch = new CapturingQuerier();
+
+    await getRuntimeLogs(ch)({
+      ...baseRequest,
+      attributeMatch: { path: 'request.custom"id', value: "token=xyz%_" },
+    });
+
+    expect(ch.queries).toHaveLength(2);
+    for (const query of ch.queries) {
+      expect(query).toContain(
+        "lower(attributes_text) LIKE concat('%', lower({attributeMatchPathSearch: String}), '%')",
+      );
+      expect(query).toContain(
+        "lower(attributes_text) LIKE concat('%', lower({attributeMatchSearch: String}), '%')",
+      );
+      expect(query).toContain(
+        "JSON_VALUE(attributes_text, {attributeMatchPath: String}) = {attributeMatchValue: String}",
+      );
+      expect(query).not.toContain('request.custom"id');
+      expect(query).not.toContain("token=xyz");
+    }
+    for (const params of ch.params) {
+      expect(params).toMatchObject({
+        attributeMatchPath: '$."request"."custom\\"id"',
+        attributeMatchPathSearch: 'custom\\\\"id',
+        attributeMatchSearch: "token=xyz\\%\\_",
+        attributeMatchValue: "token=xyz%_",
+      });
+    }
+  });
 });
 
 describe("runtimeLogsRequestSchema", () => {
@@ -84,6 +117,18 @@ describe("runtimeLogsRequestSchema", () => {
       runtimeLogsRequestSchema.safeParse({
         ...baseRequest,
         attributes: "key",
+      }).success,
+    ).toBe(true);
+    expect(
+      runtimeLogsRequestSchema.safeParse({
+        ...baseRequest,
+        attributeMatch: { path: "request.id", value: "xy" },
+      }).success,
+    ).toBe(false);
+    expect(
+      runtimeLogsRequestSchema.safeParse({
+        ...baseRequest,
+        attributeMatch: { path: "request.id", value: "xyz" },
       }).success,
     ).toBe(true);
   });

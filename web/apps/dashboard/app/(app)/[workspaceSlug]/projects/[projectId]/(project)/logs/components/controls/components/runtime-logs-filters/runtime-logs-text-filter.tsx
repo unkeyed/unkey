@@ -2,24 +2,45 @@
 
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import {
+  type RuntimeLogsFilterOperator,
+  parseRuntimeLogsAttributeMatch,
+} from "@/lib/schemas/runtime-logs.filter.schema";
 
-const OPTIONS = [{ id: "contains" as const, label: "contains" }];
+const MESSAGE_OPTIONS = [{ id: "contains" as const, label: "contains" }];
+const ATTRIBUTE_OPTIONS = [
+  {
+    id: "contains" as const,
+    label: "contains",
+    placeholder: "Enter attribute text",
+  },
+  {
+    id: "is" as const,
+    label: "matches",
+    placeholder: "request.id = xyz",
+  },
+];
 
 type RuntimeLogsTextFilterProps = {
   field: "message" | "attributes";
   label: string;
 };
 
-const validateIndexedText = (_operator: "contains", value: string): string | null =>
-  value.length < 3 ? "Enter at least 3 characters." : null;
+const validateIndexedText = (operator: RuntimeLogsFilterOperator, value: string): string | null => {
+  if (operator === "is" && parseRuntimeLogsAttributeMatch(value) === null) {
+    return "Use path = value with a value of at least 3 characters.";
+  }
+  return value.length < 3 ? "Enter at least 3 characters." : null;
+};
 
 export const RuntimeLogsTextFilter = ({ field, label }: RuntimeLogsTextFilterProps) => {
   const { filters, updateFilters } = useRuntimeLogsFilters();
 
   const activeFilter = filters.find((filter) => filter.field === field);
   const defaultText = activeFilter ? String(activeFilter.value) : "";
+  const options = field === "attributes" ? ATTRIBUTE_OPTIONS : MESSAGE_OPTIONS;
 
-  const handleApply = (_operator: string, text: string) => {
+  const handleApply = (operator: RuntimeLogsFilterOperator, text: string) => {
     const otherFilters = filters.filter((filter) => filter.field !== field);
     const newFilters = text
       ? [
@@ -27,7 +48,7 @@ export const RuntimeLogsTextFilter = ({ field, label }: RuntimeLogsTextFilterPro
           {
             id: crypto.randomUUID(),
             field,
-            operator: "contains" as const,
+            operator,
             value: text,
           },
         ]
@@ -36,10 +57,10 @@ export const RuntimeLogsTextFilter = ({ field, label }: RuntimeLogsTextFilterPro
   };
 
   return (
-    <FilterOperatorInput
+    <FilterOperatorInput<RuntimeLogsFilterOperator>
       label={label}
-      options={OPTIONS}
-      defaultOption="contains"
+      options={options}
+      defaultOption={activeFilter?.operator ?? "contains"}
       defaultText={defaultText}
       validate={validateIndexedText}
       onApply={handleApply}

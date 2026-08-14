@@ -173,6 +173,16 @@ Result: [
   }
 ]
 
+Query: "find logs where request.id is xyz"
+Result: [
+  {
+    field: "attributes",
+    filters: [
+      { operator: "is", value: "request.id = xyz" }
+    ]
+  }
+]
+
 # Time Range Filtering
 Query: "show all debug logs from yesterday"
 Result: [
@@ -315,6 +325,7 @@ ${operatorsByField}
   • Nx[d] for days (e.g., 1d, 7d)
 - severity must be exactly one of: ERROR, WARN, INFO, DEBUG (case-sensitive)
 - message operator "contains" for substring matching, "is" for exact match
+- attributes operator "contains" searches all attribute text; "is" matches path = value
 - deploymentId: exact deployment ID string
 - region: exact region name string (e.g., "us-east-1", "eu-west-1")
 - instanceId: exact instance ID string
@@ -353,7 +364,7 @@ Output Validation:
 3. Values must match field constraints:
    - severity: must be ERROR, WARN, INFO, or DEBUG
    - message: a string with at least 3 characters
-   - attributes: a string with at least 3 characters
+   - attributes: at least 3 characters; exact matches use path = value
    - since: valid duration string (e.g., "1h", "30m", "2d")
    - startTime/endTime: valid timestamp in milliseconds
 
