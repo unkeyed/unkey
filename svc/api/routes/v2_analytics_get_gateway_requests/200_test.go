@@ -29,6 +29,31 @@ func Test200_RawRequests(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// Test200_GatewayLatencyReadsTheAlias guarantees the public name of the gateway
+// overhead column returns the stored value. The column is an ALIAS, thus only
+// the grant on the alias makes it readable.
+func Test200_GatewayLatencyReadsTheAlias(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
+	bufferRequest(t, h, schema.FrontlineRequest{
+		WorkspaceID:      workspaceID,
+		Path:             "/kebap",
+		ResponseStatus:   200,
+		TotalLatency:     42,
+		FrontlineLatency: 7,
+	})
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
+			Query: "SELECT total_latency, gateway_latency FROM gateway_requests_v1",
+		})
+		require.Equal(c, 200, res.Status, "response: %s", res.RawBody)
+		require.Len(c, res.Body.Data, 1)
+		require.EqualValues(c, 42, res.Body.Data[0]["total_latency"])
+		require.EqualValues(c, 7, res.Body.Data[0]["gateway_latency"])
+	}, 30*time.Second, time.Second)
+}
+
 // Test200_WorkspaceIsolation guarantees the injected workspace filter hides
 // another workspace's traffic even when the query asks for every row.
 func Test200_WorkspaceIsolation(t *testing.T) {

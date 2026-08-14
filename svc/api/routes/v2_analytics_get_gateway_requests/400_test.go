@@ -46,7 +46,7 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
-	for _, column := range []string{"instance_address", "frontline_id", "platform"} {
+	for _, column := range []string{"instance_address", "frontline_id", "platform", "frontline_latency"} {
 		t.Run(column, func(t *testing.T) {
 			for _, query := range []string{
 				"SELECT " + column + " FROM gateway_requests_v1",

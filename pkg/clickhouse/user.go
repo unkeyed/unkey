@@ -268,6 +268,10 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 // customers can read. It does not include instance_address, frontline_id, and
 // platform. These three columns show the Unkey infrastructure and have no
 // meaning for the workspace that made the traffic.
+//
+// gateway_latency is an ALIAS of frontline_latency. The grant names the alias
+// and not the source. Thus a customer query uses the public name, and the
+// internal service name stays unreachable.
 var gatewayRequestColumns = []string{
 	"request_id",
 	"time",
@@ -292,7 +296,7 @@ var gatewayRequestColumns = []string{
 	"ip_address",
 	"total_latency",
 	"instance_latency",
-	"frontline_latency",
+	"gateway_latency",
 }
 
 // runtimeLogColumns lists the columns of runtime_logs_raw_v1 that customers can

@@ -148,9 +148,9 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 		{workspaceID: otherWorkspaceID, path: "/other"},
 	} {
 		err = admin.Exec(ctx,
-			"INSERT INTO default.frontline_requests_raw_v1 (request_id, time, workspace_id, project_id, app_id, environment_id, frontline_id, instance_address, platform, method, host, path, response_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO default.frontline_requests_raw_v1 (request_id, time, workspace_id, project_id, app_id, environment_id, frontline_id, instance_address, platform, method, host, path, response_status, frontline_latency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			uid.New("req"), now, row.workspaceID, uid.New("proj"), uid.New("app"), uid.New("env"),
-			"frontline_secret", "10.1.2.3", "k8s", "GET", "example.com", row.path, 200,
+			"frontline_secret", "10.1.2.3", "k8s", "GET", "example.com", row.path, 200, int64(7),
 		)
 		require.NoError(t, err)
 	}
@@ -162,7 +162,7 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, workspaceClient.Close()) })
 
-	internalColumns := []string{"instance_address", "frontline_id", "platform"}
+	internalColumns := []string{"instance_address", "frontline_id", "platform", "frontline_latency"}
 
 	t.Run("granted columns stay readable", func(t *testing.T) {
 		rows, err := workspaceClient.QueryToMaps(ctx,
@@ -170,6 +170,16 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 		require.NoError(t, err, "hidden columns must not break the rest of the table")
 		require.Len(t, rows, 1)
 		require.Equal(t, "/kebap", rows[0]["path"].(chcol.Variant).Any())
+	})
+
+	t.Run("gateway_latency alias reads the frontline value", func(t *testing.T) {
+		// The grant names the ALIAS column, so the public name must return the
+		// stored value while the source column stays behind the grant.
+		rows, err := workspaceClient.QueryToMaps(ctx,
+			"SELECT gateway_latency FROM default.frontline_requests_raw_v1")
+		require.NoError(t, err, "the aliased latency must be readable under its public name")
+		require.Len(t, rows, 1)
+		require.EqualValues(t, 7, rows[0]["gateway_latency"].(chcol.Variant).Any())
 	})
 
 	t.Run("row policy still isolates workspaces", func(t *testing.T) {
@@ -204,10 +214,16 @@ func TestConfigureUser_HidesInternalColumns(t *testing.T) {
 					// table. SHOW COLUMNS is answered, but lists only those columns.
 					return
 				}
-				serialized := fmt.Sprint(rows)
-				for _, column := range internalColumns {
-					require.NotContains(t, serialized, column,
-						"%q disclosed the internal column %s", query, column)
+				// Only the column names are checked. The metadata of the granted
+				// gateway_latency column names frontline_latency as its ALIAS
+				// expression, which discloses a name and no data, the same as the
+				// ACCESS_DENIED error messages this test already accepts.
+				for _, row := range rows {
+					fieldName := fmt.Sprint(row["field"])
+					for _, column := range internalColumns {
+						require.NotContains(t, fieldName, column,
+							"%q disclosed the internal column %s", query, column)
+					}
 				}
 			})
 		}
@@ -377,10 +393,10 @@ func TestDefaultAllowedTables_HidesGatewayInternalColumns(t *testing.T) {
 	require.True(t, ok, "gateway raw table must be granted")
 	require.NotEmpty(t, raw.Columns, "gateway raw table must carry a column allow-list")
 
-	for _, internalColumn := range []string{"instance_address", "frontline_id", "platform"} {
+	for _, internalColumn := range []string{"instance_address", "frontline_id", "platform", "frontline_latency"} {
 		require.NotContains(t, raw.Columns, internalColumn)
 	}
-	for _, granted := range []string{"path", "response_status", "total_latency", "ip_address", "request_body"} {
+	for _, granted := range []string{"path", "response_status", "total_latency", "ip_address", "request_body", "gateway_latency"} {
 		require.Contains(t, raw.Columns, granted)
 	}
 

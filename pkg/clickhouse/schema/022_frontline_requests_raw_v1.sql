@@ -35,6 +35,9 @@ CREATE TABLE frontline_requests_raw_v1 (
   instance_latency Int64,
   -- Milliseconds - frontline overhead
   frontline_latency Int64,
+  -- Public name of frontline_latency. The analytics grant names this alias, thus
+  -- a customer query never sees the internal service name
+  gateway_latency Int64 ALIAS frontline_latency,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
