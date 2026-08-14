@@ -165,6 +165,90 @@ func Test200_AggregateQuery(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// Test200_EmptyResultAggregate guarantees an aggregate with no matching row
+// answers 200 with null. ClickHouse gives NaN for such a query. JSON has no
+// encoding for NaN. Thus the value must become null before the response.
+func Test200_EmptyResultAggregate(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/kebap", ResponseStatus: 200, TotalLatency: 120})
+
+	// The window closes before the row exists. Thus the range stays empty after
+	// the buffer flushes.
+	emptyRange := "time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 2 DAY) AND time < toUnixTimestamp64Milli(now64(3) - INTERVAL 1 DAY)"
+
+	for name, tc := range map[string]struct {
+		query    string
+		expected any
+	}{
+		"quantile with no match": {
+			query:    "SELECT quantile(0.95)(total_latency) AS value FROM gateway_requests_v1 WHERE path = '/absent'",
+			expected: nil,
+		},
+		"quantile over empty range": {
+			query:    "SELECT quantile(0.95)(total_latency) AS value FROM gateway_requests_v1 WHERE " + emptyRange,
+			expected: nil,
+		},
+		"average over empty range": {
+			query:    "SELECT avg(total_latency) AS value FROM gateway_requests_v1 WHERE " + emptyRange,
+			expected: nil,
+		},
+		"division over empty range": {
+			query:    "SELECT sum(total_latency) / count() AS value FROM gateway_requests_v1 WHERE " + emptyRange,
+			expected: nil,
+		},
+		"division by zero": {
+			query:    "SELECT sum(total_latency) / countIf(response_status = 599) AS value FROM gateway_requests_v1",
+			expected: nil,
+		},
+		"merge on rollup with no match": {
+			query:    "SELECT quantileTDigestMerge(0.95)(latency_p95) AS value FROM gateway_requests_per_minute_v1 WHERE response_status = 599",
+			expected: nil,
+		},
+		"merge on rollup over empty range": {
+			query:    "SELECT quantileTDigestMerge(0.95)(latency_p95) AS value FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 2 DAY AND time < now() - INTERVAL 1 DAY",
+			expected: nil,
+		},
+		"nullable non-finite value": {
+			query:    "SELECT if(1, total_latency / 0, NULL) AS value FROM gateway_requests_v1",
+			expected: nil,
+		},
+		"array keeps finite values": {
+			query:    "SELECT groupArray(total_latency) AS value FROM gateway_requests_v1",
+			expected: []any{float64(120)},
+		},
+		"grouped rows keep finite values": {
+			query:    "SELECT path, quantile(0.95)(total_latency) AS value FROM gateway_requests_v1 GROUP BY path",
+			expected: float64(120),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: tc.query})
+				require.Equal(c, 200, res.Status, "response: %s", res.RawBody)
+				require.Len(c, res.Body.Data, 1)
+				require.Equal(c, tc.expected, res.Body.Data[0]["value"])
+			}, 30*time.Second, time.Second)
+		})
+	}
+
+	// The percentile example in docs/product/platform/analytics has three columns
+	// and an app filter. Each column must give null when no row matches.
+	t.Run("documented percentile query", func(t *testing.T) {
+		res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: `
+			SELECT
+			  quantileTDigestMerge(0.5)(latency_p50) AS p50,
+			  quantileTDigestMerge(0.95)(latency_p95) AS p95,
+			  quantileTDigestMerge(0.99)(latency_p99) AS p99
+			FROM gateway_requests_per_hour_v1
+			WHERE app_id = 'app_absent'
+			  AND time >= now() - INTERVAL 24 HOUR`,
+		})
+		require.Equal(t, 200, res.Status, "response: %s", res.RawBody)
+		require.Equal(t, []map[string]any{{"p50": nil, "p95": nil, "p99": nil}}, res.Body.Data)
+	})
+}
+
 // Test200_LatencyPercentileFromRollup guarantees the merge function documented
 // in the spec reads the aggregate states in a rollup table.
 func Test200_LatencyPercentileFromRollup(t *testing.T) {
