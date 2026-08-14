@@ -179,13 +179,16 @@ export const activeKeysByApp = z.object({
 export type ActiveKeysByApp = z.infer<typeof activeKeysByApp>;
 
 /**
- * The same distinct-key count getActiveKeysUsage returns, partitioned by app:
- * each key is assigned to the one app that verified it most this month, so the
- * per-app counts sum to the workspace total the invoice bills.
+ * Counts this month's active keys, per app.
  *
- * app_id is only written from the release on 2026-08-11, so verifications before
- * it carry an empty app_id; a key with any attributed verifications goes to its
- * busiest real app, and only never-attributed keys group under "".
+ * One key can be verified through many apps, but billing only charges it
+ * once. So each key is counted for exactly one app here: the app that
+ * verified it the most. That way the per-app counts add up to the same
+ * total the invoice charges for (the number getActiveKeysUsage returns).
+ *
+ * We only started recording which app verified a key on 2026-08-11, so
+ * older rows have no app on them. A key seen with a real app since then
+ * counts for that app. A key never seen with one counts under "".
  */
 export function getActiveKeysByApp(ch: Querier) {
   const query = ch.query({
