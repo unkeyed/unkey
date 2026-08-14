@@ -73,60 +73,50 @@ function byCostDescending(a: Priced, b: Priced): number {
 }
 
 export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): ComputeTree {
-  const projects = new Map<string, Map<string, UsageEnvironment[]>>();
-  const projectNames = new Map<string, string>();
-  const appNames = new Map<string, string>();
-  const gateways = new Map<string, UsageGateway>();
+  const gatewayByProject = Map.groupBy(gateway, (row) => row.projectId);
+  const usageByProject = Map.groupBy(usage, (row) => row.projectId);
+  const projectIds = new Set([...gatewayByProject.keys(), ...usageByProject.keys()]);
 
-  for (const row of gateway) {
-    projectNames.set(row.projectId, label(row.projectId, row.projectName));
-    if (!projects.has(row.projectId)) {
-      projects.set(row.projectId, new Map<string, UsageEnvironment[]>());
-    }
-    const current = gateways.get(row.projectId) ?? { activeKeys: 0, microCents: 0 };
-    gateways.set(row.projectId, {
-      activeKeys: current.activeKeys + row.activeKeys,
-      microCents: current.microCents + row.grossMicroCents,
-    });
-  }
+  const tree = [...projectIds].map((projectId): UsageProject => {
+    const usageRows = usageByProject.get(projectId) ?? [];
+    const gatewayRows = gatewayByProject.get(projectId) ?? [];
 
-  for (const row of usage) {
-    projectNames.set(row.projectId, label(row.projectId, row.projectName));
-    appNames.set(row.appId, label(row.appId, row.appName));
+    const appNodes = [...Map.groupBy(usageRows, (row) => row.appId)]
+      .map(([appId, rows]): UsageApp => {
+        const environments = rows
+          .map(
+            (row): UsageEnvironment => ({
+              environmentId: row.environmentId,
+              name: label(row.environmentId, row.environmentSlug),
+              cpuHours: row.cpuSeconds / SECONDS_PER_HOUR,
+              memoryGiBHours: row.memoryGiBHours,
+              egressGiB: row.egressGiB,
+              diskGiBHours: row.diskGiBHours,
+              microCents: row.grossMicroCents,
+            }),
+          )
+          .sort(byCostDescending);
+        return {
+          appId,
+          name: label(appId, rows[0]?.appName ?? null),
+          environments,
+          ...rollUp(environments),
+        };
+      })
+      .sort(byCostDescending);
 
-    const apps = projects.get(row.projectId) ?? new Map<string, UsageEnvironment[]>();
-    const environments = apps.get(row.appId) ?? [];
-    environments.push({
-      environmentId: row.environmentId,
-      name: label(row.environmentId, row.environmentSlug),
-      cpuHours: row.cpuSeconds / SECONDS_PER_HOUR,
-      memoryGiBHours: row.memoryGiBHours,
-      egressGiB: row.egressGiB,
-      diskGiBHours: row.diskGiBHours,
-      microCents: row.grossMicroCents,
-    });
-    apps.set(row.appId, environments);
-    projects.set(row.projectId, apps);
-  }
-
-  const tree = [...projects.entries()].map(([projectId, apps]): UsageProject => {
-    const appNodes = [...apps.entries()].map(([appId, environments]): UsageApp => {
-      environments.sort(byCostDescending);
-      return {
-        appId,
-        name: appNames.get(appId) ?? UNATTRIBUTED,
-        environments,
-        ...rollUp(environments),
-      };
-    });
-    appNodes.sort(byCostDescending);
-
-    const projectGateway = gateways.get(projectId) ?? { activeKeys: 0, microCents: 0 };
+    const projectGateway = gatewayRows.reduce<UsageGateway>(
+      (total, row) => ({
+        activeKeys: total.activeKeys + row.activeKeys,
+        microCents: total.microCents + row.grossMicroCents,
+      }),
+      { activeKeys: 0, microCents: 0 },
+    );
     const compute = rollUp(appNodes);
 
     return {
       projectId,
-      name: projectNames.get(projectId) ?? UNATTRIBUTED,
+      name: label(projectId, usageRows[0]?.projectName ?? gatewayRows[0]?.projectName ?? null),
       apps: appNodes,
       gateway: projectGateway,
       ...compute,

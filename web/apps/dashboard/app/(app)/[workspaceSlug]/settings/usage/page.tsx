@@ -56,12 +56,16 @@ export default function UsagePage() {
     notFound();
   }
 
-  if (isLoading || !workspace) {
+  if (isLoading) {
     return (
       <Shell>
         <PageLoading message="Loading usage..." />
       </Shell>
     );
+  }
+
+  if (!workspace) {
+    notFound();
   }
 
   const compute = hasComputePlan ? (

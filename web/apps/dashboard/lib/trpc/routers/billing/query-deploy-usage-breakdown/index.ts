@@ -43,11 +43,14 @@ async function resolveScopeNames(
   usage: Array<{ projectId: string; appId: string; environmentId: string }>,
   keys: Array<{ appId: string }>,
 ) {
-  const ids = (values: Array<string>) =>
-    Array.from(new Set(values.filter((value) => value !== "")));
+  const ids = (...lists: Array<Array<string>>) =>
+    Array.from(new Set(lists.flat().filter((value) => value !== "")));
   // Gateway apps need resolving too: an app can verify keys in a period it ran
   // no compute in, so it appears here without a usage row to carry it.
-  const appIds = ids([...usage.map((row) => row.appId), ...keys.map((row) => row.appId)]);
+  const appIds = ids(
+    usage.map((row) => row.appId),
+    keys.map((row) => row.appId),
+  );
   const environmentIds = ids(usage.map((row) => row.environmentId));
 
   const [apps, environments] = await Promise.all([
@@ -76,10 +79,10 @@ async function resolveScopeNames(
 
   const appProjects = new Map(apps.map((app) => [app.id, app.projectId]));
 
-  const projectIds = ids([
-    ...usage.map((row) => row.projectId),
-    ...keys.map((row) => appProjects.get(row.appId) ?? ""),
-  ]);
+  const projectIds = ids(
+    usage.map((row) => row.projectId),
+    keys.map((row) => appProjects.get(row.appId) ?? ""),
+  );
   const projects =
     projectIds.length === 0
       ? []
