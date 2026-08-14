@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { buildIdSchema, ratelimitActions, unkeyPermissionValidation } from "./permissions";
+import {
+  auditActions,
+  buildIdSchema,
+  ratelimitActions,
+  unkeyPermissionValidation,
+} from "./permissions";
 
 describe("apiIdSchema", () => {
   const testCases = [
@@ -31,5 +36,16 @@ describe("ratelimit permissions", () => {
     expect(
       unkeyPermissionValidation.safeParse("ratelimit.rl_12345678.read_analytics").success,
     ).toBe(false);
+  });
+});
+
+describe("audit permissions", () => {
+  test("includes read_audit_log", () => {
+    expect(auditActions.safeParse("read_audit_log").success).toBe(true);
+    expect(unkeyPermissionValidation.safeParse("audit.*.read_audit_log").success).toBe(true);
+  });
+
+  test("rejects unknown audit actions", () => {
+    expect(unkeyPermissionValidation.safeParse("audit.*.write_audit_log").success).toBe(false);
   });
 });

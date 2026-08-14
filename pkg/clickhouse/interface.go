@@ -59,6 +59,11 @@ type Querier interface {
 	// only after ClickHouse confirms the insert so the caller can safely
 	// mark the source MySQL rows as exported.
 	InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error
+
+	// ListAuditLogs reads a single ascending, keyset-paginated page of audit
+	// events for a workspace, ordered on (inserted_at, event_id). Used by the
+	// /v2/audit.getLogs SIEM endpoint.
+	ListAuditLogs(ctx context.Context, req ListAuditLogsRequest) ([]schema.AuditLogV1, error)
 }
 
 type ClickHouse interface {

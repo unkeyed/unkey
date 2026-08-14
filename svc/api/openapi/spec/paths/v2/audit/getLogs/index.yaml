@@ -1,0 +1,59 @@
+post:
+  tags:
+    - audit
+  security:
+    - bearer: []
+  x-speakeasy-name-override: getLogs
+  operationId: audit.getLogs
+  summary: Retrieve audit logs
+  description: |
+    Retrieve workspace audit logs as a stable, SIEM-friendly JSON stream for ingestion into tools like Splunk, Datadog, Elastic, or Microsoft Sentinel.
+
+    Results are returned in ascending order and paginated with an opaque cursor. For gap-free incremental sync, poll continuously and always pass the `cursor` from the previous response; the watermark only moves forward, so no events are skipped or duplicated. Use `start` and `end` only for one-time backfill windows, not for ongoing sync.
+
+    Access requires the `audit.*.read_audit_log` permission on the root key. The effective time window is clamped to your plan's audit-log retention.
+
+    Note: `outcome` is currently always `success` because only successful platform mutations are recorded today; the absence of failures does not imply none occurred. The `meta` fields are pass-through and must not be assumed to be free of sensitive values.
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AuditGetLogsRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AuditGetLogsResponseBody.yaml"
+      description: Audit logs retrieved successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid request parameters, such as a malformed cursor or time range
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Invalid authentication credentials
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "429":
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+      description: Rate limit exceeded
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Failed to retrieve audit logs

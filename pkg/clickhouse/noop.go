@@ -54,6 +54,11 @@ func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) er
 	return nil
 }
 
+// ListAuditLogs implements the Querier interface but always returns an empty slice.
+func (n *noop) ListAuditLogs(ctx context.Context, req ListAuditLogsRequest) ([]schema.AuditLogV1, error) {
+	return nil, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

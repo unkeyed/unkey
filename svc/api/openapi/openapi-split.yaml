@@ -100,6 +100,8 @@ security:
 tags:
   - name: analytics
     description: Analytics query operations
+  - name: audit
+    description: Audit log operations
   - name: apis
     description: API management operations
   - name: apps
@@ -139,6 +141,10 @@ paths:
     $ref: "./spec/paths/v2/analytics/getRatelimits/index.yaml"
   /v2/analytics.getVerifications:
     $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
+
+  # Audit Log Endpoints
+  /v2/audit.getLogs:
+    $ref: "./spec/paths/v2/audit/getLogs/index.yaml"
 
   # API Endpoints
   /v2/apis.createApi:

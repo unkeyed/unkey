@@ -6,6 +6,7 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
@@ -14,6 +15,11 @@ import (
 const (
 	BearerScopes        = "bearer.Scopes"
 	PortalSessionScopes = "portalSession.Scopes"
+)
+
+// Defines values for AuditLogOutcome.
+const (
+	Success AuditLogOutcome = "success"
 )
 
 // Defines values for DeploymentAction.
@@ -247,6 +253,81 @@ type AppGitUpdateInput struct {
 	// the Unkey GitHub App installed with access to it.
 	Repository *string `json:"repository,omitempty"`
 }
+
+// AuditLog A single audit-log event in a stable, SIEM-friendly shape.
+type AuditLog struct {
+	// Actor Who performed the event.
+	Actor struct {
+		// Id Identifier of the actor.
+		Id string `json:"id"`
+
+		// Meta Pass-through metadata about the actor. Do not assume this is free of sensitive values.
+		Meta *map[string]interface{} `json:"meta,omitempty"`
+
+		// Name Display name of the actor, when known.
+		Name *string `json:"name,omitempty"`
+
+		// Type Kind of actor (e.g. `root_key`, `user`, `system`).
+		Type string `json:"type"`
+	} `json:"actor"`
+
+	// AuditLogId Unique, immutable identifier for this event. Use it to deduplicate defensively across retries.
+	AuditLogId string `json:"auditLogId"`
+
+	// Context Request context the event was captured in.
+	Context struct {
+		// IpAddress Source IP address of the request. Maps to OCSF `src_endpoint.ip` / ECS `source.ip`.
+		IpAddress *string `json:"ipAddress,omitempty"`
+
+		// UserAgent User agent of the request. Maps to ECS `user_agent.original`.
+		UserAgent *string `json:"userAgent,omitempty"`
+	} `json:"context"`
+
+	// CorrelationId Groups events that resulted from one logical action. Empty for single-event flows.
+	CorrelationId *string `json:"correlationId,omitempty"`
+
+	// Description Human-readable summary of what happened.
+	Description string `json:"description"`
+
+	// Event Event type in `noun.verb` form. Maps to OCSF `activity_id` / ECS `event.action`.
+	Event string `json:"event"`
+
+	// InsertedAt When the event became visible for reading (RFC3339 / ISO 8601, UTC). This is the axis the pagination cursor advances on.
+	InsertedAt time.Time `json:"insertedAt"`
+
+	// Meta Pass-through event metadata. Do not assume this is free of sensitive values.
+	Meta *map[string]interface{} `json:"meta,omitempty"`
+
+	// Outcome Result of the event. Currently always `success`: only successful platform mutations are recorded today, so the absence of failures does not imply none occurred. Modeled now so failure events can be added without a breaking change. Maps to OCSF `status_id` / ECS `event.outcome`.
+	Outcome AuditLogOutcome `json:"outcome"`
+
+	// Resources The resources this event acted on. Maps to OCSF `resources[]` / ECS `event.target`.
+	Resources []struct {
+		// Id Resource identifier.
+		Id string `json:"id"`
+
+		// Meta Pass-through metadata about the resource. Do not assume this is free of sensitive values.
+		Meta *map[string]interface{} `json:"meta,omitempty"`
+
+		// Name Resource display name, when known.
+		Name *string `json:"name,omitempty"`
+
+		// Type Resource type (e.g. `key`, `api`, `identity`).
+		Type string `json:"type"`
+	} `json:"resources"`
+
+	// Source Origin of the event. `platform` for events Unkey emits about your resources; `customer` is reserved for future customer-emitted events.
+	Source string `json:"source"`
+
+	// Time When the event occurred (RFC3339 / ISO 8601, UTC, millisecond precision). Maps to OCSF `time_dt` / ECS `@timestamp`.
+	Time time.Time `json:"time"`
+
+	// Version Schema version of this event object. Lets consumers adapt if the shape evolves.
+	Version string `json:"version"`
+}
+
+// AuditLogOutcome Result of the event. Currently always `success`: only successful platform mutations are recorded today, so the absence of failures does not imply none occurred. Modeled now so failure events can be added without a breaking change. Maps to OCSF `status_id` / ECS `event.outcome`.
+type AuditLogOutcome string
 
 // AuthenticatedSubjectKey Rate limit by the authenticated subject (e.g. the verified key).
 type AuthenticatedSubjectKey = map[string]interface{}
@@ -1788,6 +1869,48 @@ type V2AppsUpdateAppResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2AuditGetLogsRequestBody defines model for V2AuditGetLogsRequestBody.
+type V2AuditGetLogsRequestBody struct {
+	// ActorId Restrict results to events performed by this actor (root key id, user id, or system identifier).
+	ActorId *string `json:"actorId,omitempty"`
+
+	// Cursor Pagination cursor from a previous response. Include this when fetching the next page.
+	// For gap-free incremental sync, keep polling with the latest cursor; the watermark only moves forward.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// End Only return events at or before this time (RFC3339 / ISO 8601, UTC).
+	End *time.Time `json:"end,omitempty"`
+
+	// Event Restrict results to these event types (e.g. `key.create`, `api.delete`). Matches any of the listed values.
+	Event *[]string `json:"event,omitempty"`
+
+	// Limit Maximum number of audit events to return in a single response.
+	// Results exceeding this limit are paginated, with a cursor provided for fetching subsequent pages.
+	Limit *int `json:"limit,omitempty"`
+
+	// ResourceType Restrict results to events touching a resource of this type (e.g. `key`, `api`, `identity`).
+	ResourceType *string `json:"resourceType,omitempty"`
+
+	// Start Only return events at or after this time (RFC3339 / ISO 8601, UTC).
+	// Intended for one-time backfill windows; ongoing sync should follow the cursor instead.
+	// Clamped to your plan's audit-log retention.
+	Start *time.Time `json:"start,omitempty"`
+}
+
+// V2AuditGetLogsResponseBody defines model for V2AuditGetLogsResponseBody.
+type V2AuditGetLogsResponseBody struct {
+	Data V2AuditGetLogsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2AuditGetLogsResponseData defines model for V2AuditGetLogsResponseData.
+type V2AuditGetLogsResponseData = []AuditLog
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
@@ -4432,6 +4555,9 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
+
+// AuditGetLogsJSONRequestBody defines body for AuditGetLogs for application/json ContentType.
+type AuditGetLogsJSONRequestBody = V2AuditGetLogsRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody

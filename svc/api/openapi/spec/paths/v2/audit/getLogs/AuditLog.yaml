@@ -1,0 +1,124 @@
+type: object
+additionalProperties: false
+required:
+  - auditLogId
+  - version
+  - time
+  - insertedAt
+  - event
+  - description
+  - outcome
+  - source
+  - actor
+  - resources
+  - context
+description: A single audit-log event in a stable, SIEM-friendly shape.
+properties:
+  auditLogId:
+    description: Unique, immutable identifier for this event. Use it to deduplicate defensively across retries.
+    type: string
+    example: log_2c9a8f...
+  version:
+    description: Schema version of this event object. Lets consumers adapt if the shape evolves.
+    type: string
+    example: v1
+  time:
+    description: When the event occurred (RFC3339 / ISO 8601, UTC, millisecond precision). Maps to OCSF `time_dt` / ECS `@timestamp`.
+    type: string
+    format: date-time
+    example: "2026-08-13T09:12:00.123Z"
+  insertedAt:
+    description: When the event became visible for reading (RFC3339 / ISO 8601, UTC). This is the axis the pagination cursor advances on.
+    type: string
+    format: date-time
+    example: "2026-08-13T09:12:00.789Z"
+  event:
+    description: Event type in `noun.verb` form. Maps to OCSF `activity_id` / ECS `event.action`.
+    type: string
+    example: key.create
+  description:
+    description: Human-readable summary of what happened.
+    type: string
+    example: Created key key_123 in API api_456
+  outcome:
+    description: |
+      Result of the event. Currently always `success`: only successful platform mutations are recorded today, so the absence of failures does not imply none occurred. Modeled now so failure events can be added without a breaking change. Maps to OCSF `status_id` / ECS `event.outcome`.
+    type: string
+    enum:
+      - success
+    example: success
+  source:
+    description: Origin of the event. `platform` for events Unkey emits about your resources; `customer` is reserved for future customer-emitted events.
+    type: string
+    example: platform
+  actor:
+    type: object
+    additionalProperties: false
+    required:
+      - type
+      - id
+    description: Who performed the event.
+    properties:
+      type:
+        description: Kind of actor (e.g. `root_key`, `user`, `system`).
+        type: string
+        example: root_key
+      id:
+        description: Identifier of the actor.
+        type: string
+        example: root_abc
+      name:
+        description: Display name of the actor, when known.
+        type: string
+        example: CI root key
+      meta:
+        description: Pass-through metadata about the actor. Do not assume this is free of sensitive values.
+        type: object
+        additionalProperties: true
+  resources:
+    description: The resources this event acted on. Maps to OCSF `resources[]` / ECS `event.target`.
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - id
+      properties:
+        type:
+          description: Resource type (e.g. `key`, `api`, `identity`).
+          type: string
+          example: key
+        id:
+          description: Resource identifier.
+          type: string
+          example: key_123
+        name:
+          description: Resource display name, when known.
+          type: string
+          example: my key
+        meta:
+          description: Pass-through metadata about the resource. Do not assume this is free of sensitive values.
+          type: object
+          additionalProperties: true
+  context:
+    type: object
+    additionalProperties: false
+    description: Request context the event was captured in.
+    properties:
+      ipAddress:
+        description: Source IP address of the request. Maps to OCSF `src_endpoint.ip` / ECS `source.ip`.
+        type: string
+        example: 1.2.3.4
+      userAgent:
+        description: User agent of the request. Maps to ECS `user_agent.original`.
+        type: string
+        example: unkey-cli/1.0
+  correlationId:
+    description: Groups events that resulted from one logical action. Empty for single-event flows.
+    type: string
+    example: corr_xyz
+  meta:
+    description: Pass-through event metadata. Do not assume this is free of sensitive values.
+    type: object
+    additionalProperties: true

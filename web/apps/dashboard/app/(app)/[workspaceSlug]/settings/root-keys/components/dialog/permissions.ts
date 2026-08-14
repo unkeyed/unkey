@@ -127,6 +127,12 @@ export const workspacePermissions = {
       permission: "ratelimit.*.delete_override",
     },
   },
+  Audit: {
+    read_audit_log: {
+      description: "Read audit logs for this workspace, e.g. for SIEM ingestion.",
+      permission: "audit.*.read_audit_log",
+    },
+  },
   Permissions: {
     create_role: {
       description: "Create a new role in this workspace",

@@ -1,0 +1,148 @@
+---
+title: SIEM Integration
+description: "Stream Unkey audit logs into your SIEM (Splunk, Datadog, Elastic, Microsoft Sentinel, Panther) with the /v2/audit.getLogs API for gap-free incremental sync."
+---
+
+The `/v2/audit.getLogs` API returns your workspace audit logs as a stable, well-documented JSON stream designed for ingestion into a SIEM. Use it for continuous security monitoring, investigations, and compliance evidence.
+
+Rather than emitting a vendor-specific schema, Unkey returns clean structured JSON and documents how each field maps to the two common normalization schemas, OCSF and ECS. Every major SIEM normalizes incoming JSON into its own model, so this approach maps cleanly everywhere without locking you into one standard.
+
+## Access
+
+The endpoint requires a root key with the `audit.*.read_audit_log` permission. Grant it to a dedicated root key used only by your SIEM connector.
+
+The visible time window is bounded by your plan's audit-log retention. Requests for older data are floored to that cutoff.
+
+## How incremental sync works
+
+The endpoint is cursor-paginated and ordered so that a connector can poll forever without missing or duplicating events:
+
+- Results are returned in ascending order on a visibility watermark.
+- Each response includes a `pagination.cursor` (when more data exists) and `pagination.hasMore`.
+- To sync, keep polling and always pass the previous response's `cursor`. The watermark only moves forward, so late-arriving events are never skipped.
+- Deduplicate defensively on `auditLogId`. It is unique and immutable.
+
+Use `start` and `end` (RFC3339) only for a one-time backfill of a fixed window. Do not use them for ongoing sync, which must follow the cursor.
+
+## Reference polling loop
+
+```bash
+#!/usr/bin/env bash
+# Poll Unkey audit logs and forward each event to your SIEM.
+# Persist CURSOR between runs so sync resumes without gaps.
+
+UNKEY_ROOT_KEY="unkey_xxx"
+CURSOR=""            # load the last saved cursor here on startup
+
+while true; do
+  body='{"limit":100}'
+  if [ -n "$CURSOR" ]; then
+    body="{\"limit\":100,\"cursor\":\"$CURSOR\"}"
+  fi
+
+  response=$(curl -s https://api.unkey.com/v2/audit.getLogs \
+    -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+    -H "Content-Type: application/json" \
+    -d "$body")
+
+  # Forward each event to your SIEM, deduplicating on auditLogId.
+  echo "$response" | jq -c '.data[]' | while read -r event; do
+    forward_to_siem "$event"   # replace with your SIEM ingestion call
+  done
+
+  has_more=$(echo "$response" | jq -r '.pagination.hasMore')
+  next=$(echo "$response" | jq -r '.pagination.cursor // empty')
+  if [ -n "$next" ]; then
+    CURSOR="$next"             # persist this value
+  fi
+
+  # When caught up, wait before polling again.
+  if [ "$has_more" != "true" ]; then
+    sleep 30
+  fi
+done
+```
+
+## Rate limits
+
+The endpoint is subject to your workspace request rate limit. When you exceed it, the API returns `429 Too Many Requests` with a `Retry-After` header. Back off for the indicated interval before polling again. A page size of up to 500 events keeps a busy workspace within a comfortable polling budget.
+
+## Event schema
+
+Each item in `data` has this shape:
+
+```json
+{
+  "auditLogId": "log_2c9a8f",
+  "version": "v1",
+  "time": "2026-08-13T09:12:00.123Z",
+  "insertedAt": "2026-08-13T09:12:00.789Z",
+  "event": "key.create",
+  "description": "Created key key_123 in API api_456",
+  "outcome": "success",
+  "source": "platform",
+  "actor": { "type": "root_key", "id": "root_abc", "name": "CI root key" },
+  "resources": [{ "type": "key", "id": "key_123", "name": "my key" }],
+  "context": { "ipAddress": "1.2.3.4", "userAgent": "unkey-cli/1.0" },
+  "correlationId": "corr_xyz",
+  "meta": {}
+}
+```
+
+<Note>
+`outcome` is currently always `success`. Only successful platform mutations are recorded today, so the absence of failure events does not imply that no failures occurred. Do not build alerts that assume a `failure` value exists yet.
+</Note>
+
+<Warning>
+The `meta`, `actor.meta`, and `resources[].meta` fields are pass-through metadata. Treat them as potentially sensitive and do not assume they are free of secrets when routing them downstream.
+</Warning>
+
+## OCSF field mapping
+
+For SIEMs that normalize to the Open Cybersecurity Schema Framework:
+
+| Unkey field | OCSF |
+| --- | --- |
+| `auditLogId` | `metadata.uid` |
+| `version` | `metadata.version` |
+| `time` | `time_dt` |
+| `insertedAt` | `metadata.processed_time` |
+| `event` | `activity_id` (with `class_uid`) |
+| `description` | `message` |
+| `outcome` | `status_id` |
+| `source` | `metadata.product` |
+| `actor.id` / `actor.name` | `actor.user.uid` / `actor.user.name` |
+| `resources[]` | `resources[]` |
+| `context.ipAddress` | `src_endpoint.ip` |
+| `context.userAgent` | `http_request.user_agent` |
+| `correlationId` | `metadata.correlation_uid` |
+
+## ECS field mapping
+
+For SIEMs that normalize to the Elastic Common Schema:
+
+| Unkey field | ECS |
+| --- | --- |
+| `auditLogId` | `event.id` |
+| `version` | `ecs.version` |
+| `time` | `@timestamp` |
+| `insertedAt` | `event.ingested` |
+| `event` | `event.action` (with `event.category`) |
+| `description` | `message` |
+| `outcome` | `event.outcome` |
+| `source` | `event.provider` |
+| `actor.id` / `actor.name` | `user.id` / `user.name` |
+| `resources[]` | `event.target` |
+| `context.ipAddress` | `source.ip` |
+| `context.userAgent` | `user_agent.original` |
+| `correlationId` | `trace.id` |
+
+## Filters
+
+Narrow the stream with optional request fields. These compose with pagination:
+
+- `event`: only the listed event types (for example `["key.create", "key.delete"]`).
+- `actorId`: only events performed by a specific actor.
+- `resourceType`: only events touching a resource of a given type (for example `key`).
+
+For the full list of event types, see [Event Types](/audit-log/types).

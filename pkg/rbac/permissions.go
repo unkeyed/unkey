@@ -42,6 +42,11 @@ const (
 	// project, app, or api (e.g. installing the Unkey GitHub App). There is one
 	// workspace per root key, so permissions use the "*" id.
 	Workspace ResourceType = "workspace"
+
+	// Audit represents audit-log resources. Reads are workspace-wide today
+	// (a single bucket exists), so permissions use the "*" id:
+	// audit.*.read_audit_log. Per-bucket scoping can be added later.
+	Audit ResourceType = "audit"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -91,6 +96,14 @@ const (
 	// (minting the install URL and binding the resulting installation). It is a
 	// workspace-wide action, so it is granted as workspace.*.install_github.
 	InstallGithub ActionType = "install_github"
+)
+
+// Predefined audit actions. These constants define operations that can be
+// performed on audit-log resources.
+const (
+	// ReadAuditLog permits reading audit logs, e.g. via /v2/audit.getLogs. It is
+	// a workspace-wide action today, granted as audit.*.read_audit_log.
+	ReadAuditLog ActionType = "read_audit_log"
 )
 
 // Predefined rate limiting actions. These constants define operations

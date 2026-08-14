@@ -359,7 +359,8 @@
             "icon": "scroll",
             "pages": [
               "audit-log/introduction",
-              "audit-log/types"
+              "audit-log/types",
+              "audit-log/siem-integration"
             ]
           },
           {
