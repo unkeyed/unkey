@@ -25,7 +25,7 @@ When the argument is `check`:
 3. Report:
    - **Missing commands**: endpoints in the spec that have no CLI command
    - **Stale commands**: CLI commands whose descriptions no longer match the OpenAPI spec (compare verbatim, ignoring markdown stripping)
-   - **Flag mismatches**: request body fields in the spec that are missing as CLI flags, or CLI flags that no longer exist in the spec
+   - **Flag mismatches**: request body fields in the spec that are missing as CLI flags, CLI flags that no longer exist in the spec, leaves without exactly one explicit `--body` flag, or request-building flags without `cli.MutuallyExclusive("body")`. Do not require mutual exclusion on operational flags.
    - **Type mismatches**: flag types that don't match the OpenAPI property types (e.g., spec says integer but flag is string)
 4. Output a summary with file paths and specific lines that need attention
 5. Do NOT modify any files in this mode
@@ -51,9 +51,15 @@ Parse all paths from the OpenAPI spec. They look like `/v2/{group}.{action}`.
 
 Group them by resource:
 - `apis` — endpoints matching `apis.*`
+- `apps` — endpoints matching `apps.*`
+- `deployments` — endpoints matching `deployments.*`
+- `environments` — endpoints matching `environments.*`
+- `gateway` — endpoints matching `gateway.*`
 - `keys` — endpoints matching `keys.*`
 - `identities` — endpoints matching `identities.*`
 - `permissions` — endpoints matching `permissions.*`
+- `portal` — bearer-authenticated endpoints matching `portal.*`; exclude browser-session, cookie-authenticated, and unauthenticated operations
+- `projects` — endpoints matching `projects.*`
 - `ratelimit` — endpoints matching `ratelimit.*`
 - `analytics` — endpoints matching `analytics.*`
 
@@ -70,7 +76,7 @@ cmd/api/
 │   ├── client.go                  # CreateClient, APIAction
 │   ├── output.go                  # Output
 │   ├── errors.go                  # FormatError
-│   └── flags.go                   # RootKeyFlag, APIURLFlag, ConfigFlag, OutputFlag
+│   └── flags.go                   # Shared flags
 ├── apis/
 │   ├── root.go                    # Cmd (group command), registers leaf commands
 │   ├── create_api.go
@@ -110,6 +116,8 @@ The variable name is unexported: `createAPICmd`, `verifyKeyCmd`, `listOverridesC
 ### Register new groups
 
 After creating a new group subpackage, import it in `cmd/api/root.go` and add `{group}.Cmd` to the `Commands` slice. Only add entries that don't already exist.
+
+Each leaf command explicitly declares one fresh `--body` flag. Group commands and `cmd/api.Cmd()` do not add or decorate body flags. Every request-building flag on the leaf must include `cli.MutuallyExclusive("body")`. Operational flags for authentication, API URL, configuration, and output must not include that option.
 
 ### Disclaimer
 
@@ -184,19 +192,37 @@ Copy the entire OpenAPI path `description` field verbatim, with these adjustment
 Use the `Examples` field ([]string) on the Command struct. Each entry is one example invocation.
 These are rendered in a separate EXAMPLES section at the bottom of --help output.
 Always use `--flag=value` syntax (not `--flag value`) in examples for clarity.
+Every example must pass all required flags and satisfy `RequireOneOf` or any
+action-level source/update requirement. Use realistic IDs and slugs, and use
+syntactically valid JSON that satisfies the referenced schema. Run examples
+through command parsing in tests when practical.
 
 ### Flag descriptions
 Use a short, one-sentence summary of the OpenAPI property `description`. Since every command links to full docs, flag descriptions should be concise — just enough to know what the flag does. Do NOT copy the full multi-sentence OpenAPI description.
+For ID-or-slug selectors, say so explicitly. For pagination, document the
+cursor's source and the authoritative default or bounds from the schema. For
+closed enums, list every valid choice.
+
+### Closed enums
+
+Validate closed enum-backed request-building flags before making an API call.
+Build allowed values from generated SDK constants rather than duplicating
+string literals. Use `cli.Enum` for scalar values. For comma-separated enum
+lists, use `cli.StringSlice` with `cli.Validate` to validate every parsed value,
+and include all choices in help. This validation does not apply to `--body`,
+which continues to be decoded by the SDK.
 
 ## Flag mapping
 
-Every leaf command MUST include these four flags first:
+Every leaf command includes these operational flags:
 ```go
 util.RootKeyFlag(),
 util.APIURLFlag(),
 util.ConfigFlag(),
 util.OutputFlag(),
 ```
+
+Add one explicit `cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive.")` to the leaf. Keep flag order consistent with existing commands.
 
 Then map OpenAPI request body properties to CLI flags:
 
@@ -215,16 +241,22 @@ if cmd.FlagIsSet("enabled") {
 }
 ```
 | `array of strings` | `[]string` | `cli.StringSlice("name", "desc")` | `cmd.StringSlice("name")` |
-| `object` / `map` / nested | complex | `cli.String("name-json", "JSON: ...")` | `json.Unmarshal` |
+| `object` / `map` / nested | complex | `cli.String("domain-name", "Domain value as a JSON object or array.")` | `json.Unmarshal` |
 
-**JSON flags**: For complex types exposed as `--*-json` flags, keep the flag description focused on what the field does. Show the JSON shape in the command's `Examples` field instead, with realistic values. Every command that has JSON flags MUST include at least one example showing their usage.
+**JSON flags**: Name complex flags after their domain field, such as `--meta`, `--credits`, or `--ratelimits`. Do not add a `-json` suffix. The CLI help description and product docs MUST explicitly state that the value is encoded as JSON, using wording such as "as JSON," "JSON object," or "JSON array." Show the JSON shape in the command's `Examples` field with realistic values. Every command that has JSON flags MUST include at least one example showing its usage.
+
+Keep cohesive domain objects together instead of expanding their nested fields
+into separate flags. In particular, `gateway.updatePolicy` uses one `--policy`
+JSON object for all mutable policy fields, while `gateway.setPolicies` uses one
+`--policies` JSON array. Project, app, environment, and policy ID remain separate
+selector flags.
 
 **Flag naming**: Convert camelCase property names to kebab-case: `apiId` → `api-id`, `externalId` → `external-id`.
 
 ## Action pattern
 
 Every leaf command uses a plain `func(ctx, cmd) error` action. No wrappers — each command
-explicitly creates the client, times the call, formats errors, and prints output:
+explicitly creates the client, formats errors, and prints output:
 
 ```go
 Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -233,10 +265,16 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
         return err
     }
 
-    // Build request from flags
-    req := components.V2ApisCreateAPIRequestBody{
-        Name: cmd.String("name"),  // required: assign directly
+    if cmd.FlagIsSet("body") {
+        body := cmd.String("body")
+        res, err := util.SendBody(ctx, client.Apis.CreateAPI, body)
+        if err != nil {
+            return err
+        }
+        return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
     }
+
+    req := components.V2ApisCreateAPIRequestBody{Name: cmd.String("name")}
 
     // Optional string:
     if v := cmd.String("prefix"); v != "" {
@@ -250,8 +288,8 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
 
     // Optional bool — look up the default in the OpenAPI spec (check `default:` on the property).
     // Use cli.Bool with cli.Default and ptr.P from pkg/ptr:
-    req.Enabled = ptr.P(cmd.Bool("enabled"))   // default: true in spec
-    req.Decrypt = ptr.P(cmd.Bool("decrypt"))   // default: false in spec
+    req.Enabled = ptr.P(cmd.Bool("enabled")) // default: true in spec
+    req.Decrypt = ptr.P(cmd.Bool("decrypt")) // default: false in spec
 
     // For partial-update endpoints where omitting a bool means "don't change":
     if cmd.FlagIsSet("enabled") {
@@ -264,24 +302,29 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
     }
 
     // JSON field (complex object):
-    if v := cmd.String("meta-json"); v != "" {
+    if v := cmd.String("meta"); v != "" {
         var meta map[string]any
         if err := json.Unmarshal([]byte(v), &meta); err != nil {
-            return fmt.Errorf("invalid JSON for --meta-json: %w", err)
+            return fmt.Errorf("invalid JSON for --meta: %w", err)
         }
         req.Meta = meta
     }
 
-    // Call SDK and handle errors
-    start := time.Now()
     res, err := client.Apis.CreateAPI(ctx, req)
     if err != nil {
         return fmt.Errorf("%s", util.FormatError(err))
     }
-
-    return util.Output(cmd, res.V2ApisCreateAPIResponseBody, time.Since(start))
+    return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
 },
 ```
+
+Every leaf command explicitly declares `cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive.")`. Add `cli.MutuallyExclusive("body")` to every endpoint request-building flag, including optional pagination, filter, and boolean flags. Do not add it to `util.RootKeyFlag()`, `util.APIURLFlag()`, `util.ConfigFlag()`, or `util.OutputFlag()`.
+
+Explicitly supplied `--body` JSON is decoded and sent by `util.SendBody` using the endpoint's exact generated SDK request type. Branch on `cmd.FlagIsSet("body")` immediately after client creation and before normal request construction, JSON parsing, and action-level validation. Pass `cmd.String("body")` and the generated SDK method directly, for example `client.Apis.CreateAPI`. Do not wrap the method in a closure. An explicitly empty body activates body mode and is rejected as invalid JSON. Mutual exclusion waives required and `RequireOneOf` checks for request-building flags. `SendBody` applies standard SDK error formatting; request schema and business validation belong to the API.
+
+Authentication and transport/output flags remain active. Root-key and config bearer authentication still apply, while `--api-url` and `--output` retain their normal behavior. Do not generate browser-session or cookie-authenticated commands; this CLI supports bearer-authenticated API operations only.
+
+Generated union and slice request types are inferred from the direct SDK method value and are supported when they implement normal JSON unmarshalling.
 
 ## Reference implementation
 
@@ -335,13 +378,13 @@ like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and en
 Whether the key is active for verification.
 </ParamField>
 
-<ParamField body="--meta-json" type="JSON string">
+<ParamField body="--meta" type="JSON string">
 Arbitrary JSON metadata returned during key verification.
 </ParamField>
 
 For JSON flags, use an Expandable to show the schema:
 
-<ParamField body="--credits-json" type="JSON string">
+<ParamField body="--credits" type="JSON string">
 Credit and refill configuration.
 <Expandable title="JSON schema">
   <ResponseField name="remaining" type="integer" required>
@@ -371,6 +414,7 @@ Include this exact section on every command doc:
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format — use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -382,7 +426,7 @@ unkey api apis create-api --name=payment-service-prod
 unkey api apis create-api --name=user-api-dev --output=json
 ```
 ```bash With JSON flags
-unkey api keys create-key --api-id=api_123 --meta-json='{"plan":"pro"}'
+unkey api keys create-key --api-id=api_123 --meta='{"plan":"pro"}'
 ```
 </CodeGroup>
 ```
@@ -430,7 +474,9 @@ unkey api keys create-key --api-id=api_123 --meta-json='{"plan":"pro"}'
 When running in `check` mode, also report:
 - **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/product/cli/`
 - **Missing from nav**: Doc files that exist but aren't registered in `docs.json`
-- **Missing tests**: CLI command files with no corresponding `_test.go` file
+- **Missing tests**: CLI command files with no corresponding `_test.go` file. Do not require per-leaf body-mode tests unless the command has structurally unusual request construction.
+- **Body flag ownership**: A leaf command that does not explicitly define exactly one `--body` flag.
+- **Body-mode gating**: A leaf that does not declare its own `--body`, mark every request-building flag with `cli.MutuallyExclusive("body")`, or branch on `cmd.FlagIsSet("body")` before ordinary request-flag parsing and validation.
 
 ## Step 6: Write tests
 
@@ -488,6 +534,8 @@ For each command, write test cases covering:
 - **Boolean omission on update endpoints**: verify omitting `--enabled` does NOT send an `enabled` field (for partial-update commands using `FlagIsSet`)
 - **JSON flags**: verify complex objects unmarshal correctly into the expected nested structs
 
+The root integration suite in `cmd/api/root_test.go` owns shared `--body` behavior, including one explicit fresh flag per leaf, typed unmarshalling and SDK re-serialization, malformed JSON rejection (including an explicitly empty body), mutual exclusion with request-building flags, required and `RequireOneOf` waiver, and bearer authentication. Keep unusual generated unions and custom action-level validation covered by tests proving the body branch runs before ordinary request construction and validation.
+
 ### Types
 
 - Import request types from `github.com/unkeyed/unkey/svc/api/openapi` (e.g., `openapi.V2KeysCreateKeyRequestBody`)
@@ -509,7 +557,8 @@ See `cmd/api/keys/create_key_test.go` and `cmd/api/keys/update_key_test.go` for 
 ### Audit mode test check
 
 When running in `check` mode, also report:
-- **Missing tests**: CLI command files with no corresponding `_test.go` file
+- **Missing tests**: CLI command files with no corresponding `_test.go` file for request-building behavior
+- **Missing unusual body-mode tests**: Structurally unusual commands whose typed body branch, mutual exclusion, or required-check waiver is not covered
 
 ## Step 7: Verify
 

@@ -1,0 +1,32 @@
+---
+title: "set-policies"
+description: "Atomically replace an environment's gateway policies"
+---
+
+Replace an environment's complete ordered policy list. An empty list removes every policy. The operation is atomic and accepts at most 50 policies.
+
+## Usage
+```bash
+unkey api gateway set-policies [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>Application ID or slug.</ParamField>
+<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+<ParamField body="--policies" type="JSON string" required>
+The complete policy list in evaluation order. Each policy requires `name` and `enabled`, and exactly one of `keyauth`, `ratelimit`, `firewall`, or `openapi`.
+<Expandable title="JSON schema"><ResponseField name="name" type="string" required>Dashboard name.</ResponseField><ResponseField name="enabled" type="boolean" required>Whether evaluation is enabled.</ResponseField><ResponseField name="match" type="array">Optional path, method, header, or query parameter match expressions.</ResponseField><ResponseField name="keyauth" type="object">Keyspaces, locations, permission query, and rate limits.</ResponseField><ResponseField name="ratelimit" type="object">Limit, windowMs, and identifier.</ResponseField><ResponseField name="firewall" type="object">Firewall action.</ResponseField><ResponseField name="openapi" type="object">OpenAPI validation configuration.</ResponseField></Expandable>
+</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format, use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api gateway set-policies --project=payments --app=payments-api --environment=production --policies='[{"name":"Block internal","enabled":true,"firewall":{"action":"ACTION_DENY"}}]'
+```
+See the [API reference](/api-reference/gateway/set-policies).

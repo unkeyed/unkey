@@ -1,0 +1,28 @@
+---
+title: "create-session"
+description: "Create a short-lived Customer Portal session"
+---
+
+Create a session ID valid for 15 minutes and exchangeable exactly once for a 24-hour browser session. Redirect the end user to the returned URL.
+
+## Usage
+```bash
+unkey api portal create-session [flags]
+```
+## Flags
+<ParamField body="--slug" type="string" required>The 3-64 character lowercase portal configuration slug.</ParamField>
+<ParamField body="--external-id" type="string" required>The end user's identifier in your system.</ParamField>
+<ParamField body="--permissions" type="string[]" required>Capabilities: `keys:read`, `keys:create`, `keys:reroll`, and `analytics:read`.</ParamField>
+<ParamField body="--preview" type="bool" default="false">Create a preview session for testing.</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format, use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api portal create-session --slug=my-portal --external-id=user_123 --permissions=keys:read,keys:reroll
+```

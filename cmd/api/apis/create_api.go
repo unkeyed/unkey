@@ -3,7 +3,6 @@ package apis
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -29,11 +28,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 			"unkey api apis create-api --name=user-api-dev",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("name", "The name for the new API namespace.", cli.Required()),
+			cli.String("name", "The name for the new API namespace.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -41,7 +41,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Apis.CreateAPI, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
+			}
+
 			res, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{
 				Name: cmd.String("name"),
 			})
@@ -49,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
 
-			return util.Output(cmd, res.V2ApisCreateAPIResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
 		},
 	}
 }
