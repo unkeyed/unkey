@@ -36,6 +36,28 @@ type Handler struct {
 func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string   { return "/v2/portal.exchangeCode" }
 
+// exchangeAlreadyClaimed reports whether the session behind exchangeCodeHash was
+// already redeemed with accessTokenHash, meaning an earlier attempt of this same
+// call committed before the caller saw a transient failure.
+//
+// A false result covers every genuine rejection: no such code, or a code
+// redeemed by some other request. Both keep the caller's undifferentiated 401.
+func exchangeAlreadyClaimed(ctx context.Context, tx db.DBTX, exchangeCodeHash, accessTokenHash string) (bool, error) {
+	session, err := db.Query.FindPortalSessionByExchangeCodeHash(ctx, tx, exchangeCodeHash)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error checking whether portal code was already redeemed"),
+			fault.Public("Failed to exchange session."),
+		)
+	}
+
+	return session.AccessTokenHash.Valid && session.AccessTokenHash.String == accessTokenHash, nil
+}
+
 // Handle exchanges a short-lived code for a long-lived access token.
 //
 // The code and the token are two credentials on one session row, so the
@@ -61,12 +83,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// The access token is a bearer credential: crypto/rand via uid.Secure (never
 	// uid.New, which is math/rand), returned once here, stored only as a hash.
+	//
+	// Minted once, outside the retry loop, so every attempt writes the same hash.
+	// That is what makes a replayed attempt recognizable below.
 	accessToken := string(uid.PortalAccessTokenPrefix) + "_" + uid.Secure()
+	accessTokenHash := hash.Sha256(accessToken)
 	accessTokenExpiresAt := nowMs + int64(accessTokenTTL/time.Millisecond)
 
+	// TxRetry runs the closure again on a transient error. Counting attempts
+	// keeps the replay lookup off the first pass, where no earlier attempt can
+	// have committed, so an unauthenticated flood of bogus codes still costs one
+	// query rather than two. TxRetry loops synchronously, so a plain int needs no
+	// synchronization.
+	attempt := 0
+
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		attempt++
+
 		exchangeRes, txErr := db.Query.ExchangePortalSessionCode(ctx, tx, db.ExchangePortalSessionCodeParams{
-			AccessTokenHash:      sql.NullString{String: hash.Sha256(accessToken), Valid: true},
+			AccessTokenHash:      sql.NullString{String: accessTokenHash, Valid: true},
 			AccessTokenCreatedAt: sql.NullInt64{Int64: nowMs, Valid: true},
 			AccessTokenExpiresAt: sql.NullInt64{Int64: accessTokenExpiresAt, Valid: true},
 			ExchangeCodeHash:     exchangeCodeHash,
@@ -92,7 +127,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Zero rows covers every rejection the predicate encodes — unknown code,
 		// already redeemed, or expired — and they are deliberately not
 		// distinguished to the caller.
+		//
+		// It also covers one success: TxRetry re-runs this closure on a transient
+		// connection error, which is exactly the class where the commit may in
+		// fact have landed. A replayed attempt then finds access_token_hash
+		// already set and would reject a token this very call had persisted,
+		// burning the single-use code and locking the user out with no way to
+		// retry. Distinguish that case by the hash: only this call knows the
+		// plaintext it minted, so a stored hash equal to ours means our own
+		// earlier attempt won.
 		if rowsAffected == 0 {
+			if attempt > 1 {
+				claimedByThisCall, replayErr := exchangeAlreadyClaimed(ctx, tx, exchangeCodeHash, accessTokenHash)
+				if replayErr != nil {
+					return replayErr
+				}
+				if claimedByThisCall {
+					// The committed attempt wrote the audit log in the same
+					// transaction, so it is already durable. Do not write a second.
+					return nil
+				}
+			}
+
 			return fault.New("invalid or expired code",
 				fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 				fault.Internal("exchange code not found, already redeemed, or expired"),

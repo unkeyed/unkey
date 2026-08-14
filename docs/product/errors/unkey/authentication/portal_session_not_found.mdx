@@ -25,10 +25,10 @@ noindex: true
 
 This error is returned by `POST /v2/portal.exchangeCode` and any portal-authenticated endpoint when the supplied credential cannot be resolved to a usable session. There are four common reasons:
 
-- **Expired code** — The exchange code carried by the portal URL is valid for **15 minutes**. After that it can no longer be redeemed.
-- **Already-redeemed code** — Codes are **single-use**. Once the portal redeems one, the same code cannot be redeemed again.
-- **Expired access token** — After exchange, the access token is valid for **24 hours**. Once it expires, requests using it return this error.
-- **Revoked session** — A session that has been explicitly revoked returns this error even before its natural expiry.
+- **Expired code**: The exchange code carried by the portal URL is valid for **15 minutes**. After that it can no longer be redeemed.
+- **Already-redeemed code**: Codes are **single-use**. Once the portal redeems one, the same code cannot be redeemed again.
+- **Expired access token**: After exchange, the access token is valid for **24 hours**. Once it expires, requests using it return this error.
+- **Revoked session**: A session that has been explicitly revoked returns this error even before its natural expiry.
 
 The exchange endpoint deliberately does not distinguish between these cases in its response. An unknown code, an expired one, and one that was already redeemed all produce the same message, so a caller cannot probe which codes exist.
 
@@ -64,7 +64,7 @@ if (request.url.searchParams.get("reason") === "session_expired") {
 ## Common Mistakes
 
 - **Reusing a code**: Codes are single-use. Generate a new session for every redirect.
-- **Storing codes**: Don't persist exchange codes — they are short-lived credentials meant to be consumed immediately, and they are not recoverable from Unkey once issued.
+- **Storing codes**: Don't persist exchange codes. They are short-lived credentials meant to be consumed immediately, and they are not recoverable from Unkey once issued.
 - **Confusing `id` with the code**: `portal.createSession` returns a non-secret `id` alongside the `url`. The `id` identifies the session for your own records; it is not a credential and cannot be exchanged.
 - **Long-running tabs**: Users who keep the portal open beyond 24 hours need a fresh session.
 

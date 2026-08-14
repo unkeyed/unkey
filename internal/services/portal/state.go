@@ -32,9 +32,15 @@ const (
 //
 // The legal combinations are documented alongside the table definition in
 // web/internal/db/src/schema/portal_sessions.ts; Vitess cannot enforce them, so
-// this is the single place that interprets them. A row with an access token but
-// no created-at timestamp is corrupt rather than a sixth state — the caller
-// asserts on that separately instead of this function inventing a meaning.
+// this is the single place that interprets them.
+//
+// A row with an access token but a missing timestamp is corrupt rather than a
+// sixth state, and this function does not invent one: a missing expiry fails
+// closed to StateExpired, because returning StateActive would make an unbounded
+// credential out of a malformed row. That is a safe answer, not an accurate
+// one, so callers must pair this with the corrupt-row assert in GetSession,
+// which is what surfaces the fault to operators instead of letting it read as
+// an ordinary expired session.
 func stateOf(row db.PortalSession, nowMs int64) State {
 	if row.RevokedAt.Valid {
 		return StateRevoked
@@ -47,7 +53,7 @@ func stateOf(row db.PortalSession, nowMs int64) State {
 		return StateCodeExpired
 	}
 
-	if row.AccessTokenExpiresAt.Valid && row.AccessTokenExpiresAt.Int64 <= nowMs {
+	if !row.AccessTokenExpiresAt.Valid || row.AccessTokenExpiresAt.Int64 <= nowMs {
 		return StateExpired
 	}
 

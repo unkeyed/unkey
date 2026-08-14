@@ -260,7 +260,7 @@ func TestPortalSessionIsRejectedAfterCachedSessionExpires(t *testing.T) {
 	require.NoError(t, db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    sessionID,
 		WorkspaceID:           setup.workspace.ID,
-		PortalID:              uid.New(uid.PortalConfigPrefix),
+		PortalID:              uid.New(uid.PortalPrefix),
 		ExternalID:            setup.identity1ExternalID,
 		Scopes:                scopes,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),

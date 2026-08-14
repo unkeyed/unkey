@@ -31,10 +31,12 @@ import { workspaces } from "./workspaces";
  *   code_expired  exchange_code_hash set, access_token_hash NULL, code expired unused
  *   active        access_token_hash set, not expired, not revoked
  *   expired       access_token_hash set, access_token_expires_at passed
- *   revoked       revoked_at set (takes precedence over expired)
+ *   revoked       revoked_at set (takes precedence over expired, and over corrupt)
  *
- * `access_token_hash` set with `access_token_created_at` NULL is corrupt, not a
- * state.
+ * `access_token_hash` set with either `access_token_created_at` or
+ * `access_token_expires_at` NULL is corrupt, not a state. A missing expiry is
+ * read as expired rather than active so a malformed row can never authenticate,
+ * and the reader reports the corruption separately.
  */
 export const portalSessions = mysqlTable(
   "portal_sessions",

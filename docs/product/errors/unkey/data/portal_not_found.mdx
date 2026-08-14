@@ -54,9 +54,9 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
 
 ## Common Mistakes
 
-- **Slug case sensitivity**: Slugs are lowercase. `My-Portal` will not match `my-portal`.
 - **Wrong root key**: Using a root key from a different workspace returns this error rather than a 401, because the lookup is workspace-scoped.
-- **Hyphen rules**: Slugs cannot start or end with a hyphen, and cannot contain underscores or other punctuation.
+- **Malformed rather than missing**: A value that is not a valid identifier returns a 400 naming the rule it broke, not this error. `My-Portal`, `my--portal`, and `-portal` are all rejected that way. A slug is 3-64 characters, lowercase alphanumeric and hyphens, and cannot start or end with a hyphen or contain consecutive hyphens.
+- **Underscores mean id, not slug**: A value containing an underscore is read as a portal id (`pc_3ZfN2abcd`) and is not held to the slug rules. So `my_portal` is a lookup for an id that does not exist, which returns this error.
 
 ## Related Errors
 

@@ -31,7 +31,7 @@ This error occurs when a request was made to an endpoint that requires a [Custom
 Common causes include:
 
 - The user's browser has cookies disabled or blocked for the portal domain.
-- The session was never established — the user landed on the portal without going through `POST /v2/portal.exchangeCode`.
+- The session was never established: the user landed on the portal without going through `POST /v2/portal.exchangeCode`.
 - A backend integration is calling a portal-only endpoint with a root key instead of a portal access token.
 - The session cookie was cleared or the user opened the portal in a private/incognito window with stripped state.
 
@@ -67,7 +67,7 @@ await fetch("https://api.unkey.com/v2/...", {
 - **Calling portal endpoints with a root key**: Root keys authenticate backend requests, not portal endpoints. Use a portal session.
 - **Sending the `id` instead of the access token**: `portal.createSession` returns a non-secret `id`. It identifies the session but does not authenticate it.
 - **Missing `credentials: "include"`**: Cross-origin browser requests omit cookies by default.
-- **Expired session not refreshed**: After 24 hours the access token expires — your backend must create a new session.
+- **Expired session not refreshed**: After 24 hours the access token expires, so your backend must create a new session.
 - **Direct navigation to the portal**: Users must arrive via your backend redirect, not by visiting the portal URL directly.
 
 ## Related Errors

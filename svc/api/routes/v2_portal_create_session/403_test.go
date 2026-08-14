@@ -28,7 +28,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	// Insert a disabled portal.

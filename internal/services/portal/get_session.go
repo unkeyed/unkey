@@ -52,24 +52,35 @@ func (s *service) GetSession(ctx context.Context, accessToken string) (*SessionI
 	// State is derived here rather than filtered in SQL: the row is cached, so a
 	// query-time predicate would pin expiry and revocation to whatever was true
 	// at fill time. Revocation therefore takes effect within the cache TTL.
-	if state := stateOf(row, s.clock.Now().UnixMilli()); state != StateActive {
+	state := stateOf(row, s.clock.Now().UnixMilli())
+
+	// Revocation outranks corruption. It is a deliberate, expected end state, so
+	// a revoked row is rejected the same way whatever its timestamps look like;
+	// reporting an internal error for it would page someone over a session that
+	// was shut off on purpose.
+	if state == StateRevoked {
 		return nil, invalidSessionError("portal session is " + string(state))
 	}
 
-	// An access token hash without its issue timestamp is a corrupt row, not a
-	// state the caller should be asked to interpret.
-	if !row.AccessTokenCreatedAt.Valid {
+	// An access token hash without both of its timestamps is a corrupt row, not
+	// a state the caller should be asked to interpret. Asserted before the
+	// remaining states because stateOf fails closed on a missing expiry, which
+	// would otherwise bury the fault as an ordinary expired session. The guard on
+	// AccessTokenHash is load-bearing: a pending row legitimately carries neither
+	// timestamp.
+	if row.AccessTokenHash.Valid && (!row.AccessTokenCreatedAt.Valid || !row.AccessTokenExpiresAt.Valid) {
 		return nil, fault.New("corrupt portal session row",
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("access_token_hash is set but access_token_created_at is NULL"),
+			fault.Internal("access_token_hash is set but access_token_created_at or access_token_expires_at is NULL"),
 			fault.Public("An internal error occurred."),
 		)
 	}
 
-	// The scopes column stores the simplified capability model as a JSON object
-	// {keyspaceIds, scopes:[verbs]}, written by portal.createSession. The
-	// resolver expands the verbs into RBAC via portalrbac.
-	grant, err := db.UnmarshalNullableJSONTo[storedGrant](row.Scopes)
+	if state != StateActive {
+		return nil, invalidSessionError("portal session is " + string(state))
+	}
+
+	grant, err := db.UnmarshalNullableJSONTo[Grant](row.Scopes)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -99,11 +110,4 @@ func invalidSessionError(internal string) error {
 		fault.Internal(internal),
 		fault.Public("The portal session is invalid or has expired."),
 	)
-}
-
-// storedGrant is the JSON object shape stored on the portal session's scopes
-// column. It must stay in sync with the shape written by portal.createSession.
-type storedGrant struct {
-	KeyspaceIDs []string `json:"keyspaceIds"`
-	Scopes      []string `json:"scopes"`
 }

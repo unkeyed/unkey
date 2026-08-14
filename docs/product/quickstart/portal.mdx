@@ -12,7 +12,7 @@ today: `portal.createSession` requires a portal on your workspace, and there is
 no way to create one yet.
 </Warning>
 
-The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation — without you building any UI.
+The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation, without you building any UI.
 
 Authentication uses a Stripe-style flow: your backend creates a session, redirects the user to a URL carrying a single-use code, and the portal exchanges that code for an access token.
 
@@ -45,9 +45,9 @@ Enable the Customer Portal for your workspace in the Unkey dashboard.
 Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
 </Note>
 
-When configuring your portal, you'll choose a slug — a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either that slug or the portal's ID when creating sessions.
+When configuring your portal, you'll choose a slug: a short, human-readable identifier like `my-portal` or `billing-dashboard`. You can pass either that slug or the portal's ID when creating sessions.
 
-Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, and cannot start or end with a hyphen.
+Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, cannot start or end with a hyphen, and cannot contain consecutive hyphens. A value containing an underscore is treated as a portal ID rather than a slug.
 
 Optionally, you can customize branding with your logo and brand colors.
 
@@ -83,8 +83,8 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
 });
 
 const { data } = await response.json();
-// data.id   — the session's identifier (not a credential)
-// data.url  — portal URL carrying a single-use code, valid 15 minutes
+// data.id   is the session's identifier (not a credential)
+// data.url  is the portal URL carrying a single-use code, valid 15 minutes
 ```
 
 ```go Go
@@ -128,7 +128,7 @@ to keep against your own records of the visit.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
+| `preview` | `boolean` | Shows a "Preview mode" banner, useful for testing as a specific user |
 
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createSession \
@@ -181,11 +181,11 @@ The API requires at least one scope. An empty `scopes` array is rejected with HT
 
 | Value | Prefix | Lifetime | Usage |
 |-------|--------|----------|-------|
-| Session id | `ps_` | — | Not a credential; identifies the session |
+| Session id | `ps_` | n/a | Not a credential; identifies the session |
 | Exchange code | `pst_` | 15 minutes | Single-use, carried by the portal URL |
 | Access token | `pat_` | 24 hours | httpOnly cookie, sent on portal API calls |
 
-Both credentials are stored only as hashes, so they cannot be recovered from Unkey — the code exists only in the URL you were given, and the access token only in the user's cookie.
+Both credentials are stored only as hashes, so they cannot be recovered from Unkey. The code exists only in the URL you were given, and the access token only in the user's cookie.
 
 Re-authenticating creates a new session with a fresh code rather than extending an existing one.
 

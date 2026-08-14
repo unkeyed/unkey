@@ -123,7 +123,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 
 	// App-mapped portal: app_id set, key_auth_id left null.
 	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalConfigPrefix),
+		ID:          uid.New(uid.PortalPrefix),
 		WorkspaceID: workspaceID,
 		Slug:        "app-portal",
 		AppID:       sql.NullString{Valid: true, String: app.ID},

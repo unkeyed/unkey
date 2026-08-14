@@ -43,7 +43,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	// A keyspace-mapped portal: the session is scoped to this keyspace, derived

@@ -52,7 +52,7 @@ func TestExchangeCodeSuccess(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{

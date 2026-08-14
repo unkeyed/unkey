@@ -60,7 +60,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	// Create a portal in workspace A (the default user workspace).
 	workspaceA := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{

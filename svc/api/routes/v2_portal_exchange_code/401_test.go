@@ -25,7 +25,7 @@ func TestExchangeCodeUnauthorized(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalConfigPrefix)
+	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
 	// Seed the portal the sessions belong to.

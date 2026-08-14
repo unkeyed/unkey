@@ -397,7 +397,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:                    sessionID,
 		WorkspaceID:           workspaceID,
-		PortalID:              uid.New(uid.PortalConfigPrefix),
+		PortalID:              uid.New(uid.PortalPrefix),
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
 		Preview:               false,
