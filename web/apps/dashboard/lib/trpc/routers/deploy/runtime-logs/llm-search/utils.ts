@@ -86,6 +86,8 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
       let constraints = "";
       if (field === "severity") {
         constraints = " and must be one of: ERROR, WARN, INFO, DEBUG";
+      } else if (field === "message" || field === "attributes") {
+        constraints = " and its value must contain at least 3 characters";
       }
       return `- ${field} accepts ${operators} operator${
         config.operators.length > 1 ? "s" : ""
@@ -156,6 +158,17 @@ Result: [
     field: "message",
     filters: [
       { operator: "contains", value: "deployment failed" }
+    ]
+  }
+]
+
+# Attribute Filtering
+Query: "find logs with tenant_id in attributes"
+Result: [
+  {
+    field: "attributes",
+    filters: [
+      { operator: "contains", value: "tenant_id" }
     ]
   }
 ]
@@ -339,7 +352,8 @@ Output Validation:
 2. Filters must have: operator, value
 3. Values must match field constraints:
    - severity: must be ERROR, WARN, INFO, or DEBUG
-   - message: any string
+   - message: a string with at least 3 characters
+   - attributes: a string with at least 3 characters
    - since: valid duration string (e.g., "1h", "30m", "2d")
    - startTime/endTime: valid timestamp in milliseconds
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "./client";
+import { escapeLikePattern } from "./util";
 
 export const TIMESERIES_WINDOW_HOURS = 6;
 export const TIMESERIES_INTERVAL_MINUTES = 15;
@@ -65,6 +66,18 @@ const rpsResponseSchema = z.object({ avg_rps: z.number() });
 // callers coalesce to 0; the previous z.number() crashed the request.
 const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 
+const pathFilterSchema = z.discriminatedUnion("operator", [
+  z.object({
+    operator: z.literal("is"),
+    value: z.string().min(1).max(2_048),
+  }),
+  z.object({
+    operator: z.enum(["startsWith", "contains"]),
+    // The path ngram index uses trigrams, so shorter values cannot use it.
+    value: z.string().min(3).max(2_048),
+  }),
+]);
+
 // ─────────────────────────────────────────────────────────────
 // Logs
 // ─────────────────────────────────────────────────────────────
@@ -81,15 +94,11 @@ export const requestLogsRequestSchema = z.object({
   since: z.string().nullable().default(null),
   statusCodes: z.array(z.number().int()).nullable().default(null),
   methods: z.array(z.string()).nullable().default(null),
-  paths: z
-    .array(
-      z.object({
-        operator: z.literal("contains"),
-        value: z.string(),
-      }),
-    )
-    .nullable()
-    .default(null),
+  paths: z.array(pathFilterSchema).nullable().default(null),
+  host: z.array(z.string().min(1).max(512)).nullable().default(null),
+  requestId: z.array(z.string().min(1).max(512)).nullable().default(null),
+  region: z.array(z.string().min(1).max(256)).nullable().default(null),
+  userAgent: z.array(z.string().min(3).max(512)).nullable().default(null),
   // 1-based page for offset pagination. Defaults to 1 (offset 0).
   page: z.number().int().min(1).default(1),
 });
@@ -122,64 +131,77 @@ export type RequestLogsResponse = z.infer<typeof requestLogsResponseSchema>;
 
 export function getRequestLogs(ch: Querier) {
   return async (args: RequestLogsRequest) => {
-    // Build path filter conditions
-    let pathConditions = "TRUE";
-    const pathParams: Record<string, z.ZodString> = {};
+    const wheres = [
+      "workspace_id = {workspaceId: String}",
+      "project_id = {projectId: String}",
+      "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
+    ];
+    const dynamicParamSchemas: Record<string, z.ZodString> = {};
+    const dynamicParamValues: Record<string, string> = {};
 
-    if (args.paths && args.paths.length > 0) {
-      const conditions = args.paths.map((_, i) => {
-        const key = `pathValue${i}`;
-        pathParams[key] = z.string();
-        return `position(path, {${key}: String}) > 0`;
+    if (args.appId.length > 0) {
+      wheres.push("app_id IN {appId: Array(String)}");
+    }
+    if (args.deploymentId.length > 0) {
+      wheres.push("deployment_id IN {deploymentId: Array(String)}");
+    }
+    if (args.environmentId.length > 0) {
+      wheres.push("environment_id IN {environmentId: Array(String)}");
+    }
+    if (args.statusCodes !== null && args.statusCodes.length > 0) {
+      // Class codes (200, 300, 400, 500) and exact codes can be mixed.
+      wheres.push(`(
+        response_status IN {statusCodes: Array(Int32)}
+        OR intDiv(response_status, 100) * 100 IN {statusCodes: Array(Int32)}
+      )`);
+    }
+    if (args.methods !== null && args.methods.length > 0) {
+      wheres.push("method IN {methods: Array(String)}");
+    }
+    if (args.host !== null && args.host.length > 0) {
+      wheres.push("host IN {host: Array(String)}");
+    }
+    if (args.requestId !== null && args.requestId.length > 0) {
+      wheres.push("request_id IN {requestId: Array(String)}");
+    }
+    if (args.region !== null && args.region.length > 0) {
+      wheres.push("region IN {region: Array(String)}");
+    }
+    if (args.paths !== null && args.paths.length > 0) {
+      const pathConditions = args.paths.map((pathFilter, index) => {
+        const key = `pathValue${index}`;
+        dynamicParamSchemas[key] = z.string();
+        dynamicParamValues[key] = pathFilter.value;
+
+        switch (pathFilter.operator) {
+          case "is":
+            return `path = {${key}: String}`;
+          case "startsWith":
+            return `startsWith(path, {${key}: String})`;
+          case "contains":
+            dynamicParamValues[key] = escapeLikePattern(pathFilter.value);
+            return `path LIKE concat('%', {${key}: String}, '%')`;
+        }
       });
-      pathConditions = `(${conditions.join(" OR ")})`;
+      wheres.push(`(${pathConditions.join(" OR ")})`);
+    }
+    if (args.userAgent !== null && args.userAgent.length > 0) {
+      const userAgentConditions = args.userAgent.map((value, index) => {
+        const key = `userAgentValue${index}`;
+        dynamicParamSchemas[key] = z.string();
+        dynamicParamValues[key] = escapeLikePattern(value);
+        // lower() on both sides keeps the ngrambf_v1 skip index eligible.
+        return `lower(user_agent) LIKE concat('%', lower({${key}: String}), '%')`;
+      });
+      wheres.push(`(${userAgentConditions.join(" OR ")})`);
     }
 
-    // Build base filters (workspace + project only)
-    const baseFilter = `
-      workspace_id = {workspaceId: String}
-      AND project_id = {projectId: String}
-    `;
-
-    const filterConditions = `
-      ${baseFilter}
-      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-      AND (CASE WHEN length({appId: Array(String)}) > 0
-           THEN app_id IN {appId: Array(String)}
-           ELSE TRUE END)
-      AND (CASE WHEN length({deploymentId: Array(String)}) > 0
-           THEN deployment_id IN {deploymentId: Array(String)}
-           ELSE TRUE END)
-      AND (CASE WHEN length({environmentId: Array(String)}) > 0
-           THEN environment_id IN {environmentId: Array(String)}
-           ELSE TRUE END)
-      -- Class codes (200,300,400,500) match via intDiv: intDiv(404,100)*100=400.
-      -- Specific codes (401,503) match via exact IN; their class won't be in the array.
-      AND (CASE WHEN length({statusCodes: Array(Int32)}) > 0
-           THEN (
-             response_status IN {statusCodes: Array(Int32)}
-             OR intDiv(response_status, 100) * 100 IN {statusCodes: Array(Int32)}
-           )
-           ELSE TRUE END)
-      AND (CASE WHEN length({methods: Array(String)}) > 0
-           THEN method IN {methods: Array(String)}
-           ELSE TRUE END)
-      AND ${pathConditions}
-    `;
-
-    // Convert path params to actual values
-    const pathValues: Record<string, string> = {};
-    if (args.paths) {
-      args.paths.forEach((p, i) => {
-        pathValues[`pathValue${i}`] = p.value;
-      });
-    }
+    const filterConditions = wheres.join("\n      AND ");
+    const queryParamsSchema = requestLogsRequestSchema.extend(dynamicParamSchemas);
 
     const totalQuery = ch.query({
       query: `SELECT count(*) as total_count FROM ${TABLE} WHERE ${filterConditions}`,
-      params: requestLogsRequestSchema.extend(
-        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
-      ),
+      params: queryParamsSchema,
       schema: z.object({ total_count: z.number().int() }),
     });
 
@@ -204,16 +226,15 @@ export function getRequestLogs(ch: Querier) {
         SETTINGS
           query_plan_optimize_lazy_materialization = 1,
           query_plan_max_limit_for_lazy_materialization = ${LAZY_MATERIALIZATION_MAX_LIMIT}`,
-      params: requestLogsRequestSchema.extend({
+      params: queryParamsSchema.extend({
         offset: z.number().int(),
-        ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
       }),
       schema: requestLogsResponseSchema,
     });
 
     return {
-      totalQuery: totalQuery({ ...args, ...pathValues } as never),
-      logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
+      totalQuery: totalQuery({ ...args, ...dynamicParamValues } as never),
+      logsQuery: logsQuery({ ...args, ...dynamicParamValues, offset } as never),
     };
   };
 }

@@ -55,6 +55,7 @@ export function transformFilters(
     region,
     environmentId,
     message: params.message,
+    attributes: params.attributes,
     page: params.page,
   };
 }

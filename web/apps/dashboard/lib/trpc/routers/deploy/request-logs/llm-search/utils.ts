@@ -1,4 +1,7 @@
-import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
+import {
+  requestLogsFilterFieldConfig,
+  requestLogsFilterOutputSchema,
+} from "@/lib/schemas/request-logs.filter.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import z from "zod";
@@ -33,7 +36,7 @@ export async function getStructuredSearchFromLLM(
         json_schema: {
           name: "request-logs-ai-search",
           strict: true,
-          schema: z.toJSONSchema(filterOutputSchema, { target: "draft-7" }),
+          schema: z.toJSONSchema(requestLogsFilterOutputSchema, { target: "draft-7" }),
         },
       },
     });
@@ -77,7 +80,7 @@ export async function getStructuredSearchFromLLM(
 }
 
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(logsFilterFieldConfig)
+  const operatorsByField = Object.entries(requestLogsFilterFieldConfig)
     .map(([field, config]) => {
       const operators = config.operators.join(", ");
       let constraints = "";
@@ -231,7 +234,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "contains", value: "staging" }
+      { operator: "is", value: "staging" }
     ]
   }
 ]
@@ -251,7 +254,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "contains", value: "production" }
+      { operator: "is", value: "production" }
     ]
   },
   {
@@ -335,7 +338,7 @@ Result: [
   {
     field: "environmentId",
     filters: [
-      { operator: "contains", value: "production" }
+      { operator: "is", value: "production" }
     ]
   }
 ]
@@ -382,9 +385,10 @@ ${operatorsByField}
   • Nx[d] for days (e.g., 1d, 7d)
 - status must be between 200-599
 - methods must be exactly one of: GET, POST, PUT, DELETE, PATCH (case-sensitive)
-- paths uses "contains" operator for substring matching
+- paths uses "is" for exact paths, "startsWith" for route prefixes, and "contains" for substrings
+- path startsWith/contains values and userAgent contains values must have at least 3 characters
 - deploymentId matches a full, exact deployment id only (operator "is"); emit it only when the user gives an explicit id, never inferred from keywords
-- environmentId uses "contains" for flexible matching
+- appId, deploymentId, and environmentId use "is"
 - since and startTime/endTime are mutually exclusive - prefer since for relative time
 - For multiple time ranges mentioned, use the longest duration
 

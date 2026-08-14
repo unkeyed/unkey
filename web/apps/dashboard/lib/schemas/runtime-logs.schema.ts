@@ -13,6 +13,8 @@ export const dashboardRuntimeLog = z.object({
 
 export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
+const indexedTextFilter = z.string().trim().min(3).nullable();
+
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
   appId: z.array(z.string()).optional().default([]),
@@ -51,7 +53,8 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  message: z.string().nullable(),
+  message: indexedTextFilter,
+  attributes: indexedTextFilter.optional().default(null),
   instanceId: z
     .object({
       filters: z.array(

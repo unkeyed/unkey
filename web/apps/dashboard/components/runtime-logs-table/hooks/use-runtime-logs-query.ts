@@ -127,6 +127,7 @@ export function useRuntimeLogsQuery({
       .map((f) => String(f.value))
       .filter(Boolean);
     const messageFilter = filters.find((f) => f.field === "message");
+    const attributesFilter = filters.find((f) => f.field === "attributes");
 
     return {
       projectId: params.projectId,
@@ -142,6 +143,7 @@ export function useRuntimeLogsQuery({
       severity: severityFilters.length > 0 ? { filters: severityFilters } : null,
       region: regionFilters.length > 0 ? { filters: regionFilters } : null,
       message: messageFilter ? String(messageFilter.value) : null,
+      attributes: attributesFilter ? String(attributesFilter.value) : null,
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
       environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };

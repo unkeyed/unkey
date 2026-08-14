@@ -104,9 +104,11 @@ export function useRequestLogsQuery({
     const pathFilters = filters
       .filter((f) => f.field === "paths")
       .map((f) => ({
-        operator: "contains" as const,
+        operator: f.operator,
         value: String(f.value),
       }));
+    const valuesFor = (field: "host" | "requestId" | "region" | "userAgent") =>
+      filters.filter((filter) => filter.field === field).map((filter) => String(filter.value));
 
     const appIdFilters = filters
       .filter((f) => f.field === "appId")
@@ -133,6 +135,10 @@ export function useRequestLogsQuery({
       statusCodes: statusFilters.length > 0 ? statusFilters : null,
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
+      host: valuesFor("host"),
+      requestId: valuesFor("requestId"),
+      region: valuesFor("region"),
+      userAgent: valuesFor("userAgent"),
     };
   }, [filters, limit, projectId, effectivePage, timeWindow]);
 

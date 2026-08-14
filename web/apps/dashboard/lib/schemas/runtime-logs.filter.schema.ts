@@ -24,7 +24,11 @@ export const runtimeLogsFilterFieldConfig: RuntimeLogsFilterFieldConfigs = {
   },
   message: {
     type: "string",
-    operators: ["is", "contains"],
+    operators: ["contains"],
+  },
+  attributes: {
+    type: "string",
+    operators: ["contains"],
   },
   startTime: {
     type: "number",
@@ -66,6 +70,7 @@ export const runtimeLogsFilterOperatorEnum = z.enum(["is", "contains"]);
 export const runtimeLogsFilterFieldEnum = z.enum([
   "severity",
   "message",
+  "attributes",
   "startTime",
   "endTime",
   "since",
@@ -89,6 +94,7 @@ export type RuntimeLogsFilterField = z.infer<typeof runtimeLogsFilterFieldEnum>;
 export type RuntimeLogsFilterFieldConfigs = {
   severity: StringConfig<RuntimeLogsFilterOperator>;
   message: StringConfig<RuntimeLogsFilterOperator>;
+  attributes: StringConfig<RuntimeLogsFilterOperator>;
   startTime: NumberConfig<RuntimeLogsFilterOperator>;
   endTime: NumberConfig<RuntimeLogsFilterOperator>;
   since: StringConfig<RuntimeLogsFilterOperator>;
@@ -108,6 +114,7 @@ export type RuntimeLogsFilterValue = FilterValue<RuntimeLogsFilterField, Runtime
 export type RuntimeLogsQuerySearchParams = {
   severity: RuntimeLogsFilterUrlValue[] | null;
   message: RuntimeLogsFilterUrlValue[] | null;
+  attributes: RuntimeLogsFilterUrlValue[] | null;
   startTime?: number | null;
   endTime?: number | null;
   since?: string | null;

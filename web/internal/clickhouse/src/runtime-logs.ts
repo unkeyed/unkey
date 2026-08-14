@@ -2,6 +2,7 @@ import { Err, Ok, type Result } from "@unkey/error";
 import { z } from "zod";
 import type { QueryError } from "./client/error";
 import type { Querier } from "./client/interface";
+import { escapeLikePattern } from "./util";
 
 const TABLE = "default.runtime_logs_raw_v1";
 
@@ -24,7 +25,8 @@ export const runtimeLogsRequestSchema = z.object({
   endTime: z.int(),
   severity: z.array(z.string()).nullable(),
   region: z.array(z.string()).nullable(),
-  message: z.string().nullable(),
+  message: z.string().trim().min(3).nullable(),
+  attributes: z.string().trim().min(3).nullable(),
   k8sPodNames: z.array(z.string()),
   // 1-based page for offset pagination. Defaults to 1 (offset 0).
   page: z.number().int().min(1).default(1),
@@ -106,7 +108,11 @@ export function getRuntimeLogs(ch: Querier) {
     }
     if (args.message !== null && args.message !== "") {
       // lower() on both sides keeps the ngrambf_v1 skip index eligible.
-      wheres.push("positionCaseInsensitive(lower(message), lower({message: String})) > 0");
+      wheres.push("lower(message) LIKE concat('%', lower({message: String}), '%')");
+    }
+    if (args.attributes !== null && args.attributes !== "") {
+      // Search the indexed materialized String, not the expensive dynamic JSON column.
+      wheres.push("lower(attributes_text) LIKE concat('%', lower({attributes: String}), '%')");
     }
     if (args.k8sPodNames.length > 0) {
       wheres.push("k8s_pod_name IN {k8sPodNames: Array(String)}");
@@ -120,6 +126,11 @@ export function getRuntimeLogs(ch: Querier) {
 
     const partitionStartTime = args.startTime - INGESTION_LAG_GRACE_MS;
     const partitionEndTime = args.endTime + INGESTION_LAG_GRACE_MS;
+    const escapedArgs = {
+      ...args,
+      message: args.message === null ? null : escapeLikePattern(args.message),
+      attributes: args.attributes === null ? null : escapeLikePattern(args.attributes),
+    };
 
     const logsQuery = ch.query({
       query: `
@@ -141,7 +152,7 @@ export function getRuntimeLogs(ch: Querier) {
     });
 
     const rowsPromise = logsQuery({
-      ...args,
+      ...escapedArgs,
       limit: pageSize,
       offset,
       partitionStartTime,
@@ -166,8 +177,8 @@ export function getRuntimeLogs(ch: Querier) {
         params: runtimeLogsCountParamsSchema,
         schema: z.object({ total_count: z.int() }),
       });
-      totalResult = totalQuery({ ...args, partitionStartTime, partitionEndTime }).then((res) =>
-        res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0),
+      totalResult = totalQuery({ ...escapedArgs, partitionStartTime, partitionEndTime }).then(
+        (res) => (res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0)),
       );
     }
 

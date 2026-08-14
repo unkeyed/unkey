@@ -5,20 +5,28 @@ import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 
 const OPTIONS = [{ id: "contains" as const, label: "contains" }];
 
-export const RuntimeLogsMessageFilter = () => {
+type RuntimeLogsTextFilterProps = {
+  field: "message" | "attributes";
+  label: string;
+};
+
+const validateIndexedText = (_operator: "contains", value: string): string | null =>
+  value.length < 3 ? "Enter at least 3 characters." : null;
+
+export const RuntimeLogsTextFilter = ({ field, label }: RuntimeLogsTextFilterProps) => {
   const { filters, updateFilters } = useRuntimeLogsFilters();
 
-  const messageFilter = filters.find((f) => f.field === "message");
-  const defaultText = messageFilter ? String(messageFilter.value) : "";
+  const activeFilter = filters.find((filter) => filter.field === field);
+  const defaultText = activeFilter ? String(activeFilter.value) : "";
 
   const handleApply = (_operator: string, text: string) => {
-    const otherFilters = filters.filter((f) => f.field !== "message");
+    const otherFilters = filters.filter((filter) => filter.field !== field);
     const newFilters = text
       ? [
           ...otherFilters,
           {
             id: crypto.randomUUID(),
-            field: "message" as const,
+            field,
             operator: "contains" as const,
             value: text,
           },
@@ -29,10 +37,11 @@ export const RuntimeLogsMessageFilter = () => {
 
   return (
     <FilterOperatorInput
-      label="Message"
+      label={label}
       options={OPTIONS}
       defaultOption="contains"
       defaultText={defaultText}
+      validate={validateIndexedText}
       onApply={handleApply}
     />
   );

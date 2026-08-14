@@ -1,5 +1,5 @@
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
-import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
+import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useState } from "react";
@@ -13,7 +13,7 @@ type StatusOption = {
   checked: boolean;
 };
 
-const RANGE_OPTIONS: StatusOption[] = [
+export const requestStatusOptions: StatusOption[] = [
   { id: 1, status: 200, display: "2xx", label: "Success", color: "bg-success-9", checked: false },
   { id: 2, status: 300, display: "3xx", label: "Redirect", color: "bg-info-8", checked: false },
   { id: 3, status: 400, display: "4xx", label: "Warning", color: "bg-warning-8", checked: false },
@@ -29,7 +29,10 @@ export const RequestStatusFilter = () => {
     const activeStatuses = new Set(
       filters.filter((f) => f.field === "status").map((f) => Number(f.value)),
     );
-    return RANGE_OPTIONS.map((opt) => ({ ...opt, checked: activeStatuses.has(opt.status) }));
+    return requestStatusOptions.map((opt) => ({
+      ...opt,
+      checked: activeStatuses.has(opt.status),
+    }));
   });
 
   const [customCode, setCustomCode] = useState(() => {
@@ -71,7 +74,7 @@ export const RequestStatusFilter = () => {
   const handleApply = useCallback(() => {
     const otherFilters = filters.filter((f) => f.field !== "status");
 
-    const rangeFilters: LogsFilterValue[] = checkboxes
+    const rangeFilters: RequestLogsFilterValue[] = checkboxes
       .filter((c) => c.checked)
       .map((c) => ({
         id: crypto.randomUUID(),
@@ -81,7 +84,7 @@ export const RequestStatusFilter = () => {
         metadata: { colorClass: c.color },
       }));
 
-    const exactFilters: LogsFilterValue[] = [];
+    const exactFilters: RequestLogsFilterValue[] = [];
     if (customCode !== "") {
       if (!codeMeta.label) {
         setCodeError(true);
