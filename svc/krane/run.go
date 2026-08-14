@@ -161,6 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
+	r.Defer(func() error { fingerprintCache.Close(); return nil })
 
 	// Cache for deduplicating per-container lifecycle events keyed by
 	// (pod_uid, container_name, restart_count, event_kind). The same life
@@ -176,6 +177,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
 	}
+	r.Defer(func() error { instanceEventDedupCache.Close(); return nil })
 
 	// Cache for deduplicating pod watch lag samples per (pod UID,
 	// transition time). Entries auto-expire so deleted pods don't
@@ -190,6 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
 	}
+	r.Defer(func() error { deploymentTransitionsCache.Close(); return nil })
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{

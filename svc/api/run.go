@@ -323,6 +323,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+	r.Defer(caches.Close)
 
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
