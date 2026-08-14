@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleInfo } from "@unkey/icons";
+import { P, match } from "@unkey/match";
 import {
   Badge,
   InfoTooltip,
@@ -43,14 +44,11 @@ export function LimitItem({ row }: { row: LimitRow }) {
 }
 
 function LimitValue({ row }: { row: LimitRow }) {
-  const usage = row.usage;
+  const breached = row.status !== "ok";
 
-  if (!usage) {
-    return <span className="text-right tabular-nums">{row.limit}</span>;
-  }
-
-  if (usage.state === "loading") {
-    return (
+  return match(row.usage)
+    .with(P.nullish, () => <span className="text-right tabular-nums">{row.limit}</span>)
+    .with({ state: "loading" }, () => (
       <>
         <div className="flex items-baseline justify-between gap-3">
           <Skeleton className="h-3 w-14" />
@@ -58,36 +56,30 @@ function LimitValue({ row }: { row: LimitRow }) {
         </div>
         <Skeleton className="h-1.5 w-full rounded-full" />
       </>
-    );
-  }
-
-  if (usage.state === "error") {
-    return (
+    ))
+    .with({ state: "error" }, () => (
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-xs text-gray-9">Usage unavailable</span>
         <span className="tabular-nums">{row.limit}</span>
       </div>
-    );
-  }
-
-  const breached = row.status !== "ok";
-
-  return (
-    <Meter
-      aria-label={row.name}
-      value={usage.value}
-      max={Math.max(usage.max, 1)}
-      className="gap-1.5"
-    >
-      <MeterHeader className="gap-3">
-        <MeterValue className={breached ? "text-error-11" : "font-normal text-gray-11"}>
-          {() => usage.label}
-        </MeterValue>
-        <span className="tabular-nums">{row.limit}</span>
-      </MeterHeader>
-      <MeterTrack>
-        <MeterIndicator className={breached ? "bg-error-9" : undefined} />
-      </MeterTrack>
-    </Meter>
-  );
+    ))
+    .with({ state: "ready" }, (usage) => (
+      <Meter
+        aria-label={row.name}
+        value={usage.value}
+        max={Math.max(usage.max, 1)}
+        className="gap-1.5"
+      >
+        <MeterHeader className="gap-3">
+          <MeterValue className={breached ? "text-error-11" : "font-normal text-gray-11"}>
+            {() => usage.label}
+          </MeterValue>
+          <span className="tabular-nums">{row.limit}</span>
+        </MeterHeader>
+        <MeterTrack>
+          <MeterIndicator className={breached ? "bg-error-9" : undefined} />
+        </MeterTrack>
+      </Meter>
+    ))
+    .exhaustive();
 }
