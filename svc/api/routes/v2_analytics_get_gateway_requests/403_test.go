@@ -8,14 +8,15 @@ import (
 )
 
 // Test403_UnrelatedPermissions guarantees no permission other than the gateway
-// analytics wildcard can read this data. The analytics wildcards of the sibling
-// endpoints must not carry over, because they scope different datasets.
+// request wildcard can read this data. The analytics wildcards of the other
+// resources must not carry over, because they scope different datasets.
 func Test403_UnrelatedPermissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 
 	for _, permission := range []string{
 		"project.*.read_project",
 		"project.*.read_deployment",
+		"project.*.read_analytics",
 		"api.*.read_analytics",
 		"ratelimit.*.read_analytics",
 	} {

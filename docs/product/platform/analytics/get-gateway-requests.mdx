@@ -12,8 +12,9 @@ reference](/api-reference/analytics/query-gateway-request-data).
 
 ## Authenticate the request
 
-Use a root key with the `project.*.read_analytics` permission. This permission
-gives access to the gateway request data of all projects in the workspace.
+Use a root key with the `project.*.read_gateway_requests` permission. This
+permission gives access to the gateway request data of all projects in the
+workspace.
 
 Unkey limits each query to the workspace of the root key. A query cannot read
 the data of a different workspace, and it cannot remove this filter.
