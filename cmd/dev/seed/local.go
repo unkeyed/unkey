@@ -551,11 +551,16 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				return fmt.Errorf("failed to marshal portal branding: %w", brandingErr)
 			}
 
+			// Keyspace-mapped, not app-mapped: a portal must reference exactly
+			// one of key_auth_id or app_id, and portal.createSession rejects a
+			// portal that sets both. App-mapping additionally resolves its
+			// keyspaces from the app's current deployment, which this seed does
+			// not create, so the keyspace is the only mapping that works here.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 				ID:          portalID,
 				WorkspaceID: workspaceID,
 				Slug:        "awesome",
-				AppID:       sql.NullString{Valid: true, String: appID},
+				AppID:       sql.NullString{Valid: false},
 				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:     true,
 				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},

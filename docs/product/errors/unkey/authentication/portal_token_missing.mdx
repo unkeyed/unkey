@@ -1,6 +1,8 @@
 ---
 title: "portal_token_missing"
-description: "A request to a portal-authenticated endpoint was made without a portal session token. Provide the session cookie or session header from the portal."
+description: "A request to a portal-authenticated endpoint was made without a portal access token. Provide the session cookie or access token from the portal."
+hidden: true
+noindex: true
 ---
 
 <Danger>`err:unkey:authentication:portal_token_missing`</Danger>
@@ -21,34 +23,34 @@ description: "A request to a portal-authenticated endpoint was made without a po
 
 ## What Happened?
 
-This error occurs when a request was made to an endpoint that requires a [Customer Portal](/quickstart/portal) session, but no session token was supplied. Portal-authenticated endpoints expect either:
+This error occurs when a request was made to an endpoint that requires a [Customer Portal](/quickstart/portal) session, but no access token was supplied. Portal-authenticated endpoints expect either:
 
-- An `httpOnly` session cookie set by the portal after a successful session exchange, or
-- An `Authorization: Bearer <portal-session-token>` header on direct API calls from a browser session.
+- An `httpOnly` session cookie set by the portal after a successful code exchange, or
+- An `Authorization: Bearer <portal-access-token>` header on direct API calls from a browser session.
 
 Common causes include:
 
 - The user's browser has cookies disabled or blocked for the portal domain.
-- The session was never created — the user landed on the portal without going through `POST /v2/portal.exchangeSession`.
-- A backend integration is calling a portal-only endpoint with a root key instead of a portal session token.
+- The session was never established — the user landed on the portal without going through `POST /v2/portal.exchangeCode`.
+- A backend integration is calling a portal-only endpoint with a root key instead of a portal access token.
 - The session cookie was cleared or the user opened the portal in a private/incognito window with stripped state.
 
 ## How To Fix
 
 Make sure the user has an active portal session before calling portal endpoints:
 
-1. From your backend, call `POST /v2/portal.createSession` with your root key to create a session.
-2. Redirect the user to the returned `url`. The portal will exchange the short-lived session ID for a 24-hour browser session.
-3. Subsequent requests from the browser must include the portal session cookie or token.
+1. From your backend, call `POST /v2/portal.createSession` with your root key.
+2. Redirect the user to the returned `url`. The portal will redeem the code it carries for a 24-hour access token.
+3. Subsequent requests from the browser must include the portal session cookie or access token.
 
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "slug": "my-portal",
+    "portal": "my-portal",
     "externalId": "user_123",
-    "permissions": ["api.*.read_key"]
+    "scopes": ["keys:read"]
   }'
 ```
 
@@ -63,12 +65,13 @@ await fetch("https://api.unkey.com/v2/...", {
 ## Common Mistakes
 
 - **Calling portal endpoints with a root key**: Root keys authenticate backend requests, not portal endpoints. Use a portal session.
+- **Sending the `id` instead of the access token**: `portal.createSession` returns a non-secret `id`. It identifies the session but does not authenticate it.
 - **Missing `credentials: "include"`**: Cross-origin browser requests omit cookies by default.
-- **Expired session not refreshed**: After 24 hours the session expires — your backend must create a new one.
+- **Expired session not refreshed**: After 24 hours the access token expires — your backend must create a new session.
 - **Direct navigation to the portal**: Users must arrive via your backend redirect, not by visiting the portal URL directly.
 
 ## Related Errors
 
-- [err:unkey:authentication:portal_session_not_found](./portal_session_not_found) - When a portal session token is provided but invalid or expired
+- [err:unkey:authentication:portal_session_not_found](./portal_session_not_found) - When a portal credential is provided but invalid, expired, or already used
 - [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided to a non-portal endpoint
-- [err:unkey:data:portal_config_not_found](../data/portal_config_not_found) - When the portal configuration referenced by `slug` does not exist
+- [err:unkey:data:portal_not_found](../data/portal_not_found) - When the portal referenced by `portal` does not exist

@@ -36,7 +36,7 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 
 	req := handler.Request{
 		Portal:     "nonexistent-portal",
-		ExternalId:  "user_123",
+		ExternalId: "user_123",
 		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 
@@ -85,7 +85,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	// Use workspace A's portal slug while authenticated as workspace B.
 	req := handler.Request{
 		Portal:     "cross-workspace-portal",
-		ExternalId:  "user_123",
+		ExternalId: "user_123",
 		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 	}
 

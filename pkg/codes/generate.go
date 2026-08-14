@@ -279,15 +279,21 @@ func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 			description = "Error occurred"
 		}
 
-		// Create MDX file with basic template
+		// Create MDX file with basic template. An unreleased code's page is
+		// scaffolded hidden so a new one cannot be published by accident.
+		visibility := ""
+		if unreleasedURNs[errCode.URN] {
+			visibility = "hidden: true\nnoindex: true\n"
+		}
+
 		content := fmt.Sprintf(`---
 title: "%s"
 description: "%s"
----
+%s---
 
 <Danger>`+"`%s`"+`</Danger>
 
-`, errCode.Name, description, errCode.URN)
+`, errCode.Name, description, visibility, errCode.URN)
 
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filePath, err)
@@ -305,7 +311,9 @@ description: "%s"
 func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 	baseDocsPath := filepath.Join("..", "..", "docs", "product", "errors")
 
-	// Build a set of valid file paths from error codes
+	// Build a set of valid file paths from error codes. Unreleased codes count
+	// as valid: their pages are maintained ahead of launch and must not be
+	// swept away as orphans just because they are absent from the navigation.
 	validPaths := make(map[string]bool)
 	for _, errCode := range errorCodes {
 		parts := strings.Split(errCode.URN, ":")
@@ -360,6 +368,29 @@ func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
 	}
 
 	return nil
+}
+
+// unreleasedURNs are error codes for features that have not launched. Their
+// pages are kept in the repo and maintained, but are left out of the docs
+// navigation, and each page carries `hidden: true` and `noindex: true` so it
+// stays out of the sidebar, site search, sitemaps, and AI assistant context.
+//
+// This exists because the exclusion would otherwise not stick: this generator
+// rewrites the navigation on every run, so hand-editing docs.json is undone by
+// the next `mise run generate`.
+//
+// Note this is unlisting, not access control. Mintlify still serves these pages
+// to anyone who knows the exact URL, and its authentication features do not
+// cover a custom docs subpath. Do not put anything here that would be harmful
+// to read early — only things that are merely not announced yet.
+//
+// At launch, delete the feature's entries here, drop `hidden`/`noindex` from
+// its pages, and re-run `go generate ./pkg/codes` to list them.
+var unreleasedURNs = map[string]bool{
+	// Customer Portal — see ENG-3118. Remove all three at portal launch.
+	"err:unkey:data:portal_not_found":                   true,
+	"err:unkey:authentication:portal_session_not_found": true,
+	"err:unkey:authentication:portal_token_missing":     true,
 }
 
 // updateDocsJSON updates the docs.json navigation to include all error pages
@@ -446,6 +477,10 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	}
 
 	for _, errCode := range errorCodes {
+		if unreleasedURNs[errCode.URN] {
+			continue
+		}
+
 		parts := strings.Split(errCode.URN, ":")
 		if len(parts) < 4 {
 			continue
