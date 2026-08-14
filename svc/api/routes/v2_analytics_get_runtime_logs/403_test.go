@@ -7,14 +7,17 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
-// read_analytics on another resource must not reach the analytics data of a
-// project. Each resource keeps its own datasets.
+// No permission other than the runtime logs wildcard can read this data. The
+// gateway request wildcard must not carry over, because it scopes a different
+// dataset.
 func Test403_UnrelatedPermissions(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 
 	for _, permission := range []string{
 		"api.*.read_analytics",
 		"ratelimit.*.read_analytics",
+		"project.*.read_analytics",
+		"project.*.read_gateway_requests",
 		"project.*.read_project",
 		"project.*.read_deployment",
 	} {

@@ -52,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	wildcard := rbac.Tuple{ResourceType: rbac.Project, ResourceID: "*", Action: rbac.ReadAnalytics}
+	wildcard := rbac.Tuple{ResourceType: rbac.Project, ResourceID: "*", Action: rbac.ReadRuntimeLogs}
 	if !slices.Contains(p.Permissions, wildcard.String()) {
 		return p.Authorize(rbac.T(wildcard))
 	}
