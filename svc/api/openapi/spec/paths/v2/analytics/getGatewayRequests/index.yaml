@@ -8,7 +8,7 @@ post:
   summary: Query gateway request data
   description: |
     A query can use only these four public aliases: `gateway_requests_v1`, `gateway_requests_per_minute_v1`, `gateway_requests_per_hour_v1`, or `gateway_requests_per_day_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.
-    The root key must have the `project.*.read_analytics` permission.
+    The root key must have the `project.*.read_gateway_requests` permission.
     Unkey limits each query to the workspace of the root key. To get the data for one project, app, or environment, add a filter on `project_id`, `app_id`, or `environment_id`.
     The workspace retention period and the workspace query limits apply.
     For the tables, the columns, and more query examples, see [Query gateway request analytics](/platform/analytics/get-gateway-requests).

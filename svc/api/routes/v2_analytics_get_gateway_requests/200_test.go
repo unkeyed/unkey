@@ -15,7 +15,7 @@ import (
 // the public alias.
 func Test200_RawRequests(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 	row := bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/kebap", Method: "GET", ResponseStatus: 200})
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -34,7 +34,7 @@ func Test200_RawRequests(t *testing.T) {
 func Test200_WorkspaceIsolation(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/mine", ResponseStatus: 200})
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: otherWorkspace.ID, Path: "/theirs", ResponseStatus: 200})
@@ -52,7 +52,7 @@ func Test200_WorkspaceIsolation(t *testing.T) {
 // one project, app, or environment with its own filter.
 func Test200_ScopeColumnsAreQueryable(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
 	mine := bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/wanted", ResponseStatus: 200})
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/unwanted", ResponseStatus: 200})
@@ -78,7 +78,7 @@ func Test200_ScopeColumnsAreQueryable(t *testing.T) {
 func Test200_WorkspaceFilterCannotEscapeWithOr(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspace := h.CreateWorkspace()
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/mine", ResponseStatus: 200})
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: otherWorkspace.ID, Path: "/theirs", ResponseStatus: 200})
@@ -108,7 +108,7 @@ func Test200_WorkspaceFilterCannotEscapeWithOr(t *testing.T) {
 // window succeeds, including at the exact limit and with no time filter at all.
 func Test200_RetentionBoundary(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/kebap", ResponseStatus: 200})
 
 	// The default workspace retention is 30 days. The raw table stores time as
@@ -135,7 +135,7 @@ func Test200_CustomRetentionAllowsLongerRange(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	h.SetupAnalytics(workspace.ID, testutil.WithRetentionDays(90))
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_gateway_requests")
 	route := &Handler{AnalyticsConnectionManager: h.AnalyticsConnectionManager}
 	h.Register(route)
 
@@ -149,7 +149,7 @@ func Test200_CustomRetentionAllowsLongerRange(t *testing.T) {
 // against the raw table.
 func Test200_AggregateQuery(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
 	for range 3 {
 		bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/orders", ResponseStatus: 500, TotalLatency: 42})
@@ -170,7 +170,7 @@ func Test200_AggregateQuery(t *testing.T) {
 // encoding for NaN. Thus the value must become null before the response.
 func Test200_EmptyResultAggregate(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/kebap", ResponseStatus: 200, TotalLatency: 120})
 
 	// The window closes before the row exists. Thus the range stays empty after
@@ -253,7 +253,7 @@ func Test200_EmptyResultAggregate(t *testing.T) {
 // in the spec reads the aggregate states in a rollup table.
 func Test200_LatencyPercentileFromRollup(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 	bufferRequest(t, h, schema.FrontlineRequest{WorkspaceID: workspaceID, Path: "/slow", ResponseStatus: 200, TotalLatency: 120})
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

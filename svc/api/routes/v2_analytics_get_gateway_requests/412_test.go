@@ -11,7 +11,7 @@ import (
 // workspace has no analytics setup.
 func Test412_UnconfiguredAnalytics(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
-	rootKey := h.CreateRootKey(workspaceID, "project.*.read_analytics")
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
 
 	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{
 		Query: "SELECT count() FROM gateway_requests_v1",

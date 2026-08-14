@@ -80,7 +80,7 @@ export const projectActions = z.enum([
   "create_deployment",
   "read_deployment",
   "generate_upload_url",
-  "read_analytics",
+  "read_gateway_requests",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app", "connect_repository"]);
 export const workspaceActions = z.enum(["install_github"]);
