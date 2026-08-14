@@ -54,8 +54,17 @@ type Caches struct {
 	WorkspaceByOrgID cache.Cache[string, db.Workspace]
 }
 
-// Close shuts down the caches and cleans up resources.
+// Close stops the background revalidation workers and metrics reporters of
+// every cache in the set. The caches must not be used after Close.
 func (c *Caches) Close() error {
+	c.RatelimitNamespace.Close()
+	c.VerificationKeyByHash.Close()
+	c.LiveApiByID.Close()
+	c.ClickhouseSetting.Close()
+	c.ApiToKeyAuthRow.Close()
+	c.WorkspaceLimits.Close()
+	c.PortalSession.Close()
+	c.WorkspaceByOrgID.Close()
 	return nil
 }
 
