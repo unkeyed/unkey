@@ -7,6 +7,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_update_policy"
@@ -65,7 +66,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 	t.Run("invalid permission query", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
-			Keyspaces:       []string{"ks_kebap"},
+			Keyspaces:       []string{uid.New(uid.KeySpacePrefix)},
 			PermissionQuery: ptr.P("documents.read AND NOT other"),
 		}
 		res := callTyped(t, req)
@@ -75,7 +76,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 	t.Run("keyauth ratelimit limit without duration", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
-			Keyspaces:  []string{"ks_kebap"},
+			Keyspaces:  []string{uid.New(uid.KeySpacePrefix)},
 			Ratelimits: ptr.P([]openapi.KeyRatelimit{{Name: "burst", Limit: ptr.P(int64(10))}}),
 		}
 		res := callTyped(t, req)

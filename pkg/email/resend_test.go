@@ -3,7 +3,6 @@ package email
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,7 +19,6 @@ func TestResendSend(t *testing.T) {
 			gotContentType = r.Header.Get("Content-Type")
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
 			w.WriteHeader(http.StatusOK)
-			_, _ = io.WriteString(w, `{"id":"email_1"}`)
 		}))
 		defer srv.Close()
 
@@ -80,7 +78,6 @@ func TestResendSend(t *testing.T) {
 	t.Run("non-2xx is an error", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			_, _ = io.WriteString(w, `{"message":"template not published"}`)
 		}))
 		defer srv.Close()
 
