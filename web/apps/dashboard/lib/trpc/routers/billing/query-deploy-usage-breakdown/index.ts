@@ -45,37 +45,46 @@ async function resolveScopeNames(
 ) {
   const ids = (...lists: Array<Array<string>>) =>
     Array.from(new Set(lists.flat().filter((value) => value !== "")));
-  // Gateway apps need resolving too: an app can verify keys in a period it ran
-  // no compute in, so it appears here without a usage row to carry it.
-  const appIds = ids(
-    usage.map((row) => row.appId),
-    keys.map((row) => row.appId),
-  );
   const environmentIds = ids(usage.map((row) => row.environmentId));
-
-  const [apps, environments] = await Promise.all([
-    appIds.length === 0
-      ? []
-      : db
-          .select({
-            id: schema.apps.id,
-            name: schema.apps.name,
-            projectId: schema.apps.projectId,
-          })
-          .from(schema.apps)
-          .where(and(eq(schema.apps.workspaceId, workspaceId), inArray(schema.apps.id, appIds))),
+  const environments =
     environmentIds.length === 0
       ? []
-      : db
-          .select({ id: schema.environments.id, slug: schema.environments.slug })
+      : await db
+          .select({
+            id: schema.environments.id,
+            slug: schema.environments.slug,
+            appId: schema.environments.appId,
+          })
           .from(schema.environments)
           .where(
             and(
               eq(schema.environments.workspaceId, workspaceId),
               inArray(schema.environments.id, environmentIds),
             ),
-          ),
-  ]);
+          );
+
+  const environmentApps = new Map(
+    environments.map((environment) => [environment.id, environment.appId]),
+  );
+  // Gateway apps need resolving too: an app can verify keys in a period it ran
+  // no compute in, so it appears here without a usage row to carry it.
+  const appIds = ids(
+    usage.map((row) =>
+      row.appId === "" ? (environmentApps.get(row.environmentId) ?? "") : row.appId,
+    ),
+    keys.map((row) => row.appId),
+  );
+  const apps =
+    appIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: schema.apps.id,
+            name: schema.apps.name,
+            projectId: schema.apps.projectId,
+          })
+          .from(schema.apps)
+          .where(and(eq(schema.apps.workspaceId, workspaceId), inArray(schema.apps.id, appIds)));
 
   const appProjects = new Map(apps.map((app) => [app.id, app.projectId]));
 
@@ -98,6 +107,7 @@ async function resolveScopeNames(
 
   return {
     appProjects,
+    environmentApps,
     projectNames: new Map(projects.map((project) => [project.id, project.name])),
     appNames: new Map(apps.map((app) => [app.id, app.name])),
     environmentSlugs: new Map(
@@ -132,11 +142,8 @@ export const queryDeployUsageBreakdown = workspaceProcedure
         return { usage: [], gateway: [] };
       }
 
-      const { appProjects, projectNames, appNames, environmentSlugs } = await resolveScopeNames(
-        ctx.workspace.id,
-        usage,
-        keys,
-      );
+      const { appProjects, environmentApps, projectNames, appNames, environmentSlugs } =
+        await resolveScopeNames(ctx.workspace.id, usage, keys);
 
       const gateway = keys.map((row) => {
         const projectId = appProjects.get(row.appId) ?? "";
@@ -149,24 +156,29 @@ export const queryDeployUsageBreakdown = workspaceProcedure
         };
       });
 
-      const usageRows = usage.map((row) => ({
-        projectId: row.projectId,
-        projectName: projectNames.get(row.projectId) ?? null,
-        appId: row.appId,
-        appName: appNames.get(row.appId) ?? null,
-        environmentId: row.environmentId,
-        environmentSlug: environmentSlugs.get(row.environmentId) ?? null,
-        cpuSeconds: row.cpuSeconds,
-        memoryGiBHours: row.memoryGiBHours,
-        diskGiBHours: row.diskGiBHours,
-        egressGiB: row.egressGiB,
-        grossMicroCents: priceComputeMeterMicroCents({
+      const usageRows = usage.map((row) => {
+        // TODO: Remove this fallback after all instance usage rows include app_id.
+        const appId = row.appId === "" ? (environmentApps.get(row.environmentId) ?? "") : row.appId;
+
+        return {
+          projectId: row.projectId,
+          projectName: projectNames.get(row.projectId) ?? null,
+          appId,
+          appName: appNames.get(appId) ?? null,
+          environmentId: row.environmentId,
+          environmentSlug: environmentSlugs.get(row.environmentId) ?? null,
           cpuSeconds: row.cpuSeconds,
           memoryGiBHours: row.memoryGiBHours,
           diskGiBHours: row.diskGiBHours,
           egressGiB: row.egressGiB,
-        }),
-      }));
+          grossMicroCents: priceComputeMeterMicroCents({
+            cpuSeconds: row.cpuSeconds,
+            memoryGiBHours: row.memoryGiBHours,
+            diskGiBHours: row.diskGiBHours,
+            egressGiB: row.egressGiB,
+          }),
+        };
+      });
 
       return { usage: usageRows, gateway };
     } catch (err) {
