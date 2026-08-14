@@ -100,7 +100,11 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
         return;
       }
       setShowPlanModal(false);
-      toast.success("API plan changed");
+      toast.success(
+        result.kind === "scheduled"
+          ? `API plan downgrade scheduled for ${new Date(result.effectiveAt).toLocaleDateString()}`
+          : "API plan changed",
+      );
       await revalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -273,17 +277,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
             detail: `${formatNumber(product.quotas.requestsPerMonth)} requests/month`,
           }))}
           currentId={currentProduct?.id ?? null}
-          // Informational: downgrading below this month's usage means requests
-          // beyond the smaller quota get rejected once it is exhausted.
-          warningFor={(option) => {
-            const target = products.find((p) => p.id === option.id);
-            return target && used > target.quotas.requestsPerMonth
-              ? `Your usage this month (${formatNumber(used)}) already exceeds the ${formatNumber(
-                  target.quotas.requestsPerMonth,
-                )} requests ${target.name} includes.`
-              : null;
-          }}
-          changeNote="Takes effect immediately; the prorated difference is invoiced right away."
+          changeNote="Upgrades take effect immediately and are prorated. Downgrades start next billing period; your current plan stays active and no refund is issued."
           submittingId={
             createSubscription.isLoading
               ? createSubscription.variables?.productId
