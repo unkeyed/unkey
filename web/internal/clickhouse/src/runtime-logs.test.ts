@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import type { QueryError } from "./client/error";
 import type { Querier } from "./client/interface";
-import {
-  type RuntimeLogsRequest,
-  getRuntimeLogs,
-  runtimeLogsRequestSchema,
-} from "./runtime-logs";
+import { type RuntimeLogsRequest, getRuntimeLogs, runtimeLogsRequestSchema } from "./runtime-logs";
 
 class CapturingQuerier implements Querier {
   public readonly queries: string[] = [];
