@@ -1,29 +1,38 @@
-type: object
-required:
-  - project
-  - name
-  - slug
-properties:
-  project:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  name:
-    type: string
-    minLength: 1
-    maxLength: 256
-    description: |
-      Human-readable name for this app.
-      Use a descriptive name like 'Payments API' to identify its purpose.
-    example: Payments API
-  slug:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  git:
-    "$ref": "../../../../common/AppGitCreateInput.yaml"
-  docker:
-    "$ref": "../../../../common/AppDockerInput.yaml"
-additionalProperties: false
 oneOf:
-  - required: [git]
-  - required: [docker]
+  - type: object
+    required: [project, name, slug, git]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 256
+        description: Human-readable name for this app.
+        example: Payments API
+      slug:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      git:
+        "$ref": "../../../../common/AppGitCreateInput.yaml"
+      docker: false
+    additionalProperties: false
+  - type: object
+    required: [project, name, slug, docker]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 256
+        description: Human-readable name for this app.
+        example: Payments API
+      slug:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      docker:
+        "$ref": "../../../../common/AppDockerInput.yaml"
+      git: false
+    additionalProperties: false
 description: |
   Create an app with exactly one source: `git` or `docker`.
 examples:

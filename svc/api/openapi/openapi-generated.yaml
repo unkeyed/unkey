@@ -422,34 +422,49 @@ components:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2AppsCreateAppRequestBody:
-            type: object
-            required:
-                - project
-                - name
-                - slug
-            properties:
-                project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    description: |
-                        Human-readable name for this app.
-                        Use a descriptive name like 'Payments API' to identify its purpose.
-                    example: Payments API
-                slug:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                git:
-                    "$ref": "#/components/schemas/AppGitCreateInput"
-                docker:
-                    "$ref": "#/components/schemas/AppDockerInput"
-            additionalProperties: false
             oneOf:
-                - required:
+                - type: object
+                  required:
+                    - project
+                    - name
+                    - slug
                     - git
-                - required:
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    name:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                        description: Human-readable name for this app.
+                        example: Payments API
+                    slug:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    git:
+                        "$ref": "#/components/schemas/AppGitCreateInput"
+                    docker: {}
+                  additionalProperties: false
+                - type: object
+                  required:
+                    - project
+                    - name
+                    - slug
                     - docker
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    name:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                        description: Human-readable name for this app.
+                        example: Payments API
+                    slug:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    docker:
+                        "$ref": "#/components/schemas/AppDockerInput"
+                    git: {}
+                  additionalProperties: false
             description: |
                 Create an app with exactly one source: `git` or `docker`.
         V2AppsCreateAppResponseBody:
@@ -570,52 +585,66 @@ components:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2AppsUpdateAppRequestBody:
-            type: object
-            required:
-                - project
-                - app
-            properties:
-                project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                app:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    description: |
-                        New human-readable name for the app.
-                        Omit this field to leave the current name unchanged.
-                    example: Payments API
-                slug:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                git:
-                    description: |
-                        Connect, reconfigure, or disconnect this app's GitHub repository.
-                        Omit to leave unchanged, set null to disconnect, or set an object with a
-                        "repository" to connect or replace it and/or a "defaultBranch" to set which
-                        branch it tracks. Fields are independent, so send only the one you change.
-                    anyOf:
-                        - "$ref": "#/components/schemas/AppGitUpdateInput"
-                        - type: "null"
-                docker:
-                    description: |
-                        Change the default image reference for a Docker-sourced app. This does not
-                        create a deployment. Image updates cannot be combined with other changes,
-                        and source switching is not supported.
-                    allOf:
-                        - "$ref": "#/components/schemas/AppDockerInput"
-                deleteProtection:
-                    type: boolean
-                    description: |
-                        Enable or disable delete protection for the app.
-                        Omit this field to leave the current setting unchanged.
-                    example: true
-            additionalProperties: false
             oneOf:
-                - required:
+                - type: object
+                  required:
+                    - project
+                    - app
                     - docker
-                - anyOf:
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    app:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    docker:
+                        description: |
+                            Change the default image reference for a Docker-sourced app. This does not
+                            create a deployment. Image updates cannot be combined with other changes,
+                            and source switching is not supported.
+                        allOf:
+                            - "$ref": "#/components/schemas/AppDockerInput"
+                    name: {}
+                    slug: {}
+                    git: {}
+                    deleteProtection: {}
+                  additionalProperties: false
+                - type: object
+                  required:
+                    - project
+                    - app
+                  properties:
+                    project:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    app:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    name:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                        description: |
+                            New human-readable name for the app.
+                            Omit this field to leave the current name unchanged.
+                        example: Payments API
+                    slug:
+                        "$ref": "#/components/schemas/ResourceIdentifier"
+                    git:
+                        description: |
+                            Connect, reconfigure, or disconnect this app's GitHub repository.
+                            Omit to leave unchanged, set null to disconnect, or set an object with a
+                            "repository" to connect or replace it and/or a "defaultBranch" to set which
+                            branch it tracks. Fields are independent, so send only the one you change.
+                        anyOf:
+                            - "$ref": "#/components/schemas/AppGitUpdateInput"
+                            - type: "null"
+                    deleteProtection:
+                        type: boolean
+                        description: |
+                            Enable or disable delete protection for the app.
+                            Omit this field to leave the current setting unchanged.
+                        example: true
+                    docker: {}
+                  additionalProperties: false
+                  anyOf:
                     - required:
                         - name
                     - required:

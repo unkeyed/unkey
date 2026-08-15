@@ -24,9 +24,6 @@ export type V2AppsCreateAppRequestBody2 = {
   project: string;
   /**
    * Human-readable name for this app.
-   *
-   * @remarks
-   * Use a descriptive name like 'Payments API' to identify its purpose.
    */
   name: string;
   /**
@@ -37,18 +34,12 @@ export type V2AppsCreateAppRequestBody2 = {
    */
   slug: string;
   /**
-   * Connect a GitHub repository to the app on creation. Omit to create the app
-   *
-   * @remarks
-   * without a repository and connect one later with apps.updateApp.
-   */
-  git?: AppGitCreateInput | undefined;
-  /**
    * Configure Docker as the app source.
    *
    * @remarks
    */
   docker: AppDockerInput;
+  git?: never | undefined;
 };
 
 export type V2AppsCreateAppRequestBody1 = {
@@ -61,9 +52,6 @@ export type V2AppsCreateAppRequestBody1 = {
   project: string;
   /**
    * Human-readable name for this app.
-   *
-   * @remarks
-   * Use a descriptive name like 'Payments API' to identify its purpose.
    */
   name: string;
   /**
@@ -80,12 +68,7 @@ export type V2AppsCreateAppRequestBody1 = {
    * without a repository and connect one later with apps.updateApp.
    */
   git: AppGitCreateInput;
-  /**
-   * Configure Docker as the app source.
-   *
-   * @remarks
-   */
-  docker?: AppDockerInput | undefined;
+  docker?: never | undefined;
 };
 
 /**
@@ -102,8 +85,8 @@ export type V2AppsCreateAppRequestBody2$Outbound = {
   project: string;
   name: string;
   slug: string;
-  git?: AppGitCreateInput$Outbound | undefined;
   docker: AppDockerInput$Outbound;
+  git?: never | undefined;
 };
 
 /** @internal */
@@ -115,8 +98,8 @@ export const V2AppsCreateAppRequestBody2$outboundSchema: z.ZodType<
   project: z.string(),
   name: z.string(),
   slug: z.string(),
-  git: AppGitCreateInput$outboundSchema.optional(),
   docker: AppDockerInput$outboundSchema,
+  git: z.never().optional(),
 });
 
 export function v2AppsCreateAppRequestBody2ToJSON(
@@ -135,7 +118,7 @@ export type V2AppsCreateAppRequestBody1$Outbound = {
   name: string;
   slug: string;
   git: AppGitCreateInput$Outbound;
-  docker?: AppDockerInput$Outbound | undefined;
+  docker?: never | undefined;
 };
 
 /** @internal */
@@ -148,7 +131,7 @@ export const V2AppsCreateAppRequestBody1$outboundSchema: z.ZodType<
   name: z.string(),
   slug: z.string(),
   git: AppGitCreateInput$outboundSchema,
-  docker: AppDockerInput$outboundSchema.optional(),
+  docker: z.never().optional(),
 });
 
 export function v2AppsCreateAppRequestBody1ToJSON(

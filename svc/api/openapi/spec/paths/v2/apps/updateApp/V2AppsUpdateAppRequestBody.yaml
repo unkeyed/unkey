@@ -1,45 +1,62 @@
-type: object
-required:
-  - project
-  - app
-properties:
-  project:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  app:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  name:
-    type: string
-    minLength: 1
-    maxLength: 256
-    description: |
-      New human-readable name for the app.
-      Omit this field to leave the current name unchanged.
-    example: Payments API
-  slug:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-  git:
-    description: |
-      Connect, reconfigure, or disconnect this app's GitHub repository.
-      Omit to leave unchanged, set null to disconnect, or set an object with a
-      "repository" to connect or replace it and/or a "defaultBranch" to set which
-      branch it tracks. Fields are independent, so send only the one you change.
+oneOf:
+  - type: object
+    required: [project, app, docker]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      app:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      docker:
+        description: |
+          Change the default image reference for a Docker-sourced app. This does not
+          create a deployment. Image updates cannot be combined with other changes,
+          and source switching is not supported.
+        allOf:
+          - "$ref": "../../../../common/AppDockerInput.yaml"
+      name: false
+      slug: false
+      git: false
+      deleteProtection: false
+    additionalProperties: false
+  - type: object
+    required: [project, app]
+    properties:
+      project:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      app:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      name:
+        type: string
+        minLength: 1
+        maxLength: 256
+        description: |
+          New human-readable name for the app.
+          Omit this field to leave the current name unchanged.
+        example: Payments API
+      slug:
+        "$ref": "../../../../common/ResourceIdentifier.yaml"
+      git:
+        description: |
+          Connect, reconfigure, or disconnect this app's GitHub repository.
+          Omit to leave unchanged, set null to disconnect, or set an object with a
+          "repository" to connect or replace it and/or a "defaultBranch" to set which
+          branch it tracks. Fields are independent, so send only the one you change.
+        anyOf:
+          - "$ref": "../../../../common/AppGitUpdateInput.yaml"
+          - type: "null"
+      deleteProtection:
+        type: boolean
+        description: |
+          Enable or disable delete protection for the app.
+          Omit this field to leave the current setting unchanged.
+        example: true
+      docker: false
+    additionalProperties: false
     anyOf:
-      - "$ref": "../../../../common/AppGitUpdateInput.yaml"
-      - type: "null"
-  docker:
-    description: |
-      Change the default image reference for a Docker-sourced app. This does not
-      create a deployment. Image updates cannot be combined with other changes,
-      and source switching is not supported.
-    allOf:
-      - "$ref": "../../../../common/AppDockerInput.yaml"
-  deleteProtection:
-    type: boolean
-    description: |
-      Enable or disable delete protection for the app.
-      Omit this field to leave the current setting unchanged.
-    example: true
-additionalProperties: false
+      - required: [name]
+      - required: [slug]
+      - required: [git]
+      - required: [deleteProtection]
 examples:
   rename:
     summary: Rename an app by ID
@@ -94,10 +111,3 @@ examples:
       app: app_1234abcd
       docker:
         image: ghcr.io/acme/payments:v2.0.0
-oneOf:
-  - required: [docker]
-  - anyOf:
-      - required: [name]
-      - required: [slug]
-      - required: [git]
-      - required: [deleteProtection]

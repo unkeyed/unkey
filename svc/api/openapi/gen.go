@@ -1780,11 +1780,8 @@ type V2AppsCreateAppRequestBody struct {
 
 	// Git Connect a GitHub repository to the app on creation. Omit to create the app
 	// without a repository and connect one later with apps.updateApp.
-	Git *AppGitCreateInput `json:"git,omitempty"`
-
-	// Name Human-readable name for this app.
-	// Use a descriptive name like 'Payments API' to identify its purpose.
-	Name string `json:"name"`
+	Git  *AppGitCreateInput `json:"git,omitempty"`
+	Name string             `json:"name"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -1890,26 +1887,13 @@ type V2AppsListAppsResponseBody struct {
 type V2AppsUpdateAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	App ResourceIdentifier `json:"app"`
+	App              ResourceIdentifier `json:"app"`
+	DeleteProtection *bool              `json:"deleteProtection,omitempty"`
 
-	// DeleteProtection Enable or disable delete protection for the app.
-	// Omit this field to leave the current setting unchanged.
-	DeleteProtection *bool `json:"deleteProtection,omitempty"`
-
-	// Docker Change the default image reference for a Docker-sourced app. This does not
-	// create a deployment. Image updates cannot be combined with other changes,
-	// and source switching is not supported.
-	Docker *AppDockerInput `json:"docker,omitempty"`
-
-	// Git Connect, reconfigure, or disconnect this app's GitHub repository.
-	// Omit to leave unchanged, set null to disconnect, or set an object with a
-	// "repository" to connect or replace it and/or a "defaultBranch" to set which
-	// branch it tracks. Fields are independent, so send only the one you change.
-	Git nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
-
-	// Name New human-readable name for the app.
-	// Omit this field to leave the current name unchanged.
-	Name *string `json:"name,omitempty"`
+	// Docker Configure Docker as the app source.
+	Docker *AppDockerInput                      `json:"docker,omitempty"`
+	Git    nullable.Nullable[AppGitUpdateInput] `json:"git,omitempty"`
+	Name   *string                              `json:"name,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
