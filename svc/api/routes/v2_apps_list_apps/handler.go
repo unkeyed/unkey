@@ -116,11 +116,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if row.SourceType == db.AppsSourceTypeDocker {
 			docker = &openapi.AppDocker{Image: row.DockerImageReference.String}
 		}
+		sourceType := openapi.AppSourceType("")
+		if row.SourceType == db.AppsSourceTypeGit || row.SourceType == db.AppsSourceTypeDocker {
+			sourceType = openapi.AppSourceType(row.SourceType)
+		}
 		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			SourceType:          openapi.AppSourceType(row.SourceType),
+			SourceType:          sourceType,
 			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.GithubDefaultBranch.String),
 			Docker:              docker,
 			CurrentDeploymentId: row.CurrentDeploymentID.String,

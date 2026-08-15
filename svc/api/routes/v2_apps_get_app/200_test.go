@@ -66,6 +66,8 @@ func TestGetAppSuccessfully(t *testing.T) {
 			require.True(t, strings.HasPrefix(res.Body.Data.Id, "app_"), "id should have app_ prefix: %s", res.Body.Data.Id)
 			require.Equal(t, "Payments API", res.Body.Data.Name)
 			require.Equal(t, appSlug, res.Body.Data.Slug)
+			require.Empty(t, res.Body.Data.SourceType)
+			require.NotContains(t, res.RawBody, `"sourceType"`)
 			require.Nil(t, res.Body.Data.Git, "seeded app has no repo connection")
 			require.Empty(t, res.Body.Data.CurrentDeploymentId, "freshly seeded app has no active deployment")
 			require.False(t, res.Body.Data.IsRolledBack)

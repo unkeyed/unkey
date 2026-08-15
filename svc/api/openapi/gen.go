@@ -18,9 +18,8 @@ const (
 
 // Defines values for AppSourceType.
 const (
-	Docker  AppSourceType = "docker"
-	Git     AppSourceType = "git"
-	Unknown AppSourceType = "unknown"
+	Docker AppSourceType = "docker"
+	Git    AppSourceType = "git"
 )
 
 // Defines values for DeploymentAction.
@@ -218,8 +217,8 @@ type App struct {
 	// Chosen at creation time.
 	Slug string `json:"slug"`
 
-	// SourceType The configured source used to create deployments. `unknown` means the
-	// source could not be classified.
+	// SourceType The configured source used to create deployments. Omitted for historical
+	// apps whose source could not be classified.
 	SourceType AppSourceType `json:"sourceType,omitempty"`
 
 	// UpdatedAt Unix timestamp in milliseconds when the app was last updated.
@@ -227,8 +226,8 @@ type App struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
-// AppSourceType The configured source used to create deployments. `unknown` means the
-// source could not be classified.
+// AppSourceType The configured source used to create deployments. Omitted for historical
+// apps whose source could not be classified.
 type AppSourceType string
 
 // AppDocker defines model for AppDocker.

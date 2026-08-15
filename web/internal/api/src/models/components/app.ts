@@ -11,21 +11,20 @@ import { AppDocker, AppDocker$inboundSchema } from "./appdocker.js";
 import { AppGit, AppGit$inboundSchema } from "./appgit.js";
 
 /**
- * The configured source used to create deployments. `unknown` means the
+ * The configured source used to create deployments. Omitted for historical
  *
  * @remarks
- * source could not be classified.
+ * apps whose source could not be classified.
  */
 export const SourceType = {
-  Unknown: "unknown",
   Git: "git",
   Docker: "docker",
 } as const;
 /**
- * The configured source used to create deployments. `unknown` means the
+ * The configured source used to create deployments. Omitted for historical
  *
  * @remarks
- * source could not be classified.
+ * apps whose source could not be classified.
  */
 export type SourceType = ClosedEnum<typeof SourceType>;
 
@@ -50,10 +49,10 @@ export type App = {
    */
   slug: string;
   /**
-   * The configured source used to create deployments. `unknown` means the
+   * The configured source used to create deployments. Omitted for historical
    *
    * @remarks
-   * source could not be classified.
+   * apps whose source could not be classified.
    */
   sourceType?: SourceType | undefined;
   /**

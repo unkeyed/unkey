@@ -26,12 +26,11 @@ properties:
   sourceType:
     type: string
     enum:
-      - unknown
       - git
       - docker
     description: |
-      The configured source used to create deployments. `unknown` means the
-      source could not be classified.
+      The configured source used to create deployments. Omitted for historical
+      apps whose source could not be classified.
     example: docker
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true

@@ -76,12 +76,14 @@ func TestListAppsSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Len(t, res.Body.Data, len(seeded))
 		require.False(t, res.Body.Pagination.HasMore)
+		require.NotContains(t, res.RawBody, `"sourceType"`)
 
 		for _, a := range res.Body.Data {
 			slug, ok := seeded[a.Id]
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
+			require.Empty(t, a.SourceType)
 			require.Nil(t, a.Git, "seeded app has no repo connection")
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")

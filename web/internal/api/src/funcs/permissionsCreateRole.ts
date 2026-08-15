@@ -30,14 +30,20 @@ import { Result } from "../types/fp.js";
  * Create role
  *
  * @remarks
- * Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+ * Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys. Permission slugs supplied in `permissions` are attached during creation. Missing permissions are created automatically.
  *
  * **Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
  *
  * **Required Permissions**
  *
- * Your root key must have the following permission:
+ * Your root key must always have:
  * - `rbac.*.create_role`
+ *
+ * When `permissions` is not empty, it must also have:
+ * - `rbac.*.add_permission_to_role`
+ *
+ * When any requested permission slug does not exist, it must also have:
+ * - `rbac.*.create_permission`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

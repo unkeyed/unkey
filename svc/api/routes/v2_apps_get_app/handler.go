@@ -112,6 +112,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		docker = &openapi.AppDocker{Image: dockerSource.ImageReference}
 	}
+	sourceType := openapi.AppSourceType("")
+	if app.SourceType == db.AppsSourceTypeGit || app.SourceType == db.AppsSourceTypeDocker {
+		sourceType = openapi.AppSourceType(app.SourceType)
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -121,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  app.ID,
 			Name:                app.Name,
 			Slug:                app.Slug,
-			SourceType:          openapi.AppSourceType(app.SourceType),
+			SourceType:          sourceType,
 			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
 			Docker:              docker,
 			CurrentDeploymentId: app.CurrentDeploymentID.String,

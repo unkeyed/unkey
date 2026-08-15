@@ -13,14 +13,66 @@ INNER JOIN `github_repo_connections` AS `connection` ON `connection`.`app_id` = 
 SET `app`.`source_type` = 'git'
 WHERE `app`.`source_type` = 'unknown';
 
--- A durable build ID is written only by the Git build path. Do not infer
--- Docker provenance from its absence: failed Git builds can lack one, and old
--- image redeployments may carry copied Git metadata.
+-- A durable build ID is written only by the Git build path.
 UPDATE `deployments`
 SET `source` = 'git'
 WHERE `source` = 'unknown'
   AND `build_id` IS NOT NULL
   AND `build_id` <> '';
+
+-- A deployment is safely identifiable as Docker-sourced when it has no Depot
+-- build ID and its image is outside Unkey's Depot registry. Both checks are
+-- required: failed Git builds can lack a build ID, while old Git redeployments
+-- can reuse a Depot image without copying the original build ID.
+UPDATE `deployments`
+SET `source` = 'docker'
+WHERE `source` = 'unknown'
+  AND (`build_id` IS NULL OR `build_id` = '')
+  AND COALESCE(NULLIF(`requested_image`, ''), NULLIF(`image`, ''), NULLIF(`resolved_image`, '')) IS NOT NULL
+  AND COALESCE(NULLIF(`requested_image`, ''), NULLIF(`image`, ''), NULLIF(`resolved_image`, '')) NOT LIKE 'registry.depot.dev/%';
+
+-- Use the newest safely classified Docker deployment as the app's configured
+-- default image. Repository-connected apps remain Git-sourced even if they
+-- previously received an explicit Docker deployment.
+INSERT INTO `app_docker_sources` (
+  `workspace_id`,
+  `app_id`,
+  `image_reference`,
+  `created_at`,
+  `updated_at`
+)
+SELECT
+  `app`.`workspace_id`,
+  `app`.`id`,
+  `candidate`.`image_reference`,
+  `candidate`.`created_at`,
+  `candidate`.`updated_at`
+FROM `apps` AS `app`
+INNER JOIN (
+  SELECT
+    `deployment`.`app_id`,
+    COALESCE(NULLIF(`deployment`.`requested_image`, ''), NULLIF(`deployment`.`image`, ''), NULLIF(`deployment`.`resolved_image`, '')) AS `image_reference`,
+    `deployment`.`created_at`,
+    `deployment`.`updated_at`,
+    ROW_NUMBER() OVER (
+      PARTITION BY `deployment`.`app_id`
+      ORDER BY `deployment`.`created_at` DESC, `deployment`.`pk` DESC
+    ) AS `row_number`
+  FROM `deployments` AS `deployment`
+  WHERE `deployment`.`source` = 'docker'
+) AS `candidate` ON `candidate`.`app_id` = `app`.`id` AND `candidate`.`row_number` = 1
+LEFT JOIN `github_repo_connections` AS `connection` ON `connection`.`app_id` = `app`.`id`
+LEFT JOIN `app_docker_sources` AS `docker_source` ON `docker_source`.`app_id` = `app`.`id`
+WHERE `app`.`source_type` = 'unknown'
+  AND `connection`.`app_id` IS NULL
+  AND `docker_source`.`app_id` IS NULL;
+
+UPDATE `apps` AS `app`
+INNER JOIN `app_docker_sources` AS `docker_source` ON `docker_source`.`app_id` = `app`.`id`
+LEFT JOIN `github_repo_connections` AS `connection` ON `connection`.`app_id` = `app`.`id`
+SET `app`.`source_type` = 'docker'
+WHERE `app`.`source_type` = 'unknown'
+  AND `connection`.`app_id` IS NULL;
 
 -- Backfill the additive resolved-image column. Verify no legacy-only values
 -- remain before removing the image column in a later schema change.

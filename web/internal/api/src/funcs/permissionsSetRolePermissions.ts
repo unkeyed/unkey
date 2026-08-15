@@ -27,36 +27,27 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * List domains
+ * Set role permissions
  *
  * @remarks
- * List the custom domains attached to an environment and their verification status.
- *
- * Results are paginated and sorted by their id. When `hasMore` is true, send the
- * returned `cursor` to get the next page. An environment with no domains returns an
- * empty array, not a 404.
- *
- * `status: verified` means the domain is verified. Unkey has configured routing and requested a
- * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
- * The flag shows which records Unkey has read back, so you can see which records are still
- * missing without a second call. Some providers hide a record from DNS lookups, for example a
- * proxied or flattened routing record. Such a record stays `false` while it serves traffic.
+ * Atomically replaces all permissions directly assigned to a role. An empty `permissions` array removes every permission from the role. Permissions that do not exist are created when the caller has permission to create them.
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
- * - `environment.*.read_domain` (to read domains in any environment)
- * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+ * Your root key must have:
+ * - `rbac.*.add_permission_to_role`
+ * - `rbac.*.remove_permission_from_role`
  *
- * If set, this operation will use {@link Security.rootKey} from the global security.
+ * When any requested permission slug does not exist, it must also have:
+ * - `rbac.*.create_permission`
  */
-export function domainsListDomains(
+export function permissionsSetRolePermissions(
   client: UnkeyCore,
-  request: components.V2DomainsListDomainsRequestBody,
+  request: components.V2PermissionsSetRolePermissionsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2DomainsListDomainsResponseBody,
+    components.V2PermissionsSetRolePermissionsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -82,12 +73,12 @@ export function domainsListDomains(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2DomainsListDomainsRequestBody,
+  request: components.V2PermissionsSetRolePermissionsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2DomainsListDomainsResponseBody,
+      components.V2PermissionsSetRolePermissionsResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -109,7 +100,8 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2DomainsListDomainsRequestBody$outboundSchema.parse(value),
+      components.V2PermissionsSetRolePermissionsRequestBody$outboundSchema
+        .parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -118,7 +110,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/domains.listDomains")();
+  const path = pathToFunc("/v2/permissions.setRolePermissions")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -127,12 +119,12 @@ async function $do(
 
   const secConfig = await extractSecurity(client._options.rootKey);
   const securityInput = secConfig == null ? {} : { rootKey: secConfig };
-  const requestSecurity = resolveGlobalSecurity(securityInput, [0]);
+  const requestSecurity = resolveGlobalSecurity(securityInput);
 
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "domains.listDomains",
+    operationID: "permissions.setRolePermissions",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -186,7 +178,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2DomainsListDomainsResponseBody,
+    components.V2PermissionsSetRolePermissionsResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -202,12 +194,17 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2DomainsListDomainsResponseBody$inboundSchema),
+    M.json(
+      200,
+      components.V2PermissionsSetRolePermissionsResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
+    M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
+      ctype: "application/problem+json",
+    }),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
     M.fail("4XX"),
     M.fail("5XX"),
