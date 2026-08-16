@@ -163,7 +163,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Cache for deduplicating per-container lifecycle events keyed by
-	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// (pod_uid, container_name, restart_count, event_kind, reason). The same life
 	// is visible on every pod-watch tick until kubelet GCs the pod, so
 	// dedup must outlive the eviction grace period to be useful.
 	instanceEventDedupCache, err := cache.New(cache.Config[string, struct{}]{

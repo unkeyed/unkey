@@ -15,9 +15,11 @@ import (
 // status report for the control plane.
 //
 // The report includes each pod's cluster-local DNS address, CPU and memory limits,
-// and health status. Pods without an IP address are excluded since they can't
-// receive traffic yet. The address format is "{ip-with-dashes}.{namespace}.pod.cluster.local:{port}"
-// which enables in-cluster DNS resolution without a headless Service.
+// and health status. Pending pods without an IP address are included with an empty
+// address so ctrl can retain their instance row and attach startup failures such as
+// ErrImagePull. Once assigned, the address format is
+// "{ip-with-dashes}.{namespace}.pod.cluster.local:{port}", which enables in-cluster
+// DNS resolution without a headless Service.
 //
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
@@ -50,16 +52,15 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" {
-			continue
-		}
-
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, containerPort),
+			Address:       "",
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
+		}
+		if pod.Status.PodIP != "" {
+			instance.Address = fmt.Sprintf("%s.%s.pod.cluster.local:%d", strings.ReplaceAll(pod.Status.PodIP, ".", "-"), pod.Namespace, containerPort)
 		}
 		if containers := pod.Spec.Containers; len(containers) > 0 {
 			if limits := containers[0].Resources.Limits; limits != nil {

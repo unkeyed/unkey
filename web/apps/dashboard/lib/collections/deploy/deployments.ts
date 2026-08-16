@@ -87,6 +87,7 @@ export const deploymentSchema = z.object({
       reason: z.string().nullable(),
       finishedAt: z.number().nullable(),
       statusReason: z.string().nullable(),
+      statusMessage: z.string().nullable(),
     })
     .nullable(),
 });
