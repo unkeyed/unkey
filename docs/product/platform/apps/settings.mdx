@@ -95,9 +95,13 @@ Set the minimum and maximum to the same value to pin instance count and disable 
 
 Production and preview environments can use different ranges. For example, you might run production with a range of `2 – 4` for redundancy and headroom while keeping preview at `1 – 1` to reduce cost.
 
-<Note>
-  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The maximum depends on your Compute plan:
+
+| Plan          | Maximum instances per region |
+| ------------- | ---------------------------- |
+| Starter plan  | 4                            |
+| Pro plan      | 8                            |
+| Business plan | 16                           |
 
 ### Autoscaling
 
@@ -117,12 +121,13 @@ CPU allocation for each instance. Available options:
 | 1/2 vCPU  | 500        |
 | 1 vCPU    | 1,000      |
 | 2 vCPU    | 2,000      |
+| 4 vCPU    | 4,000      |
+| 8 vCPU    | 8,000      |
+| 16 vCPU   | 16,000     |
 
 Defaults to 1/4 vCPU.
 
-<Note>
-  During the beta, the maximum is 2 vCPU. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 2 vCPU per instance, the Pro plan supports up to 8 vCPU, and the Business plan supports up to 16 vCPU.
 
 ### Memory
 
@@ -133,10 +138,11 @@ Memory allocation for each instance. Available options:
 - 1 GiB
 - 2 GiB
 - 4 GiB
+- 8 GiB
+- 16 GiB
+- 32 GiB
 
-<Note>
-  During the beta, the maximum is 4 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
-</Note>
+The Starter plan supports up to 2 GiB per instance, the Pro plan supports up to 8 GiB, and the Business plan supports up to 32 GiB.
 
 ### Storage
 
