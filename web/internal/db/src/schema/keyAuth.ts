@@ -13,7 +13,7 @@ export const keyAuth = mysqlTable(
     pk: primaryKey(),
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
-    projectId: id("project_id").notNull().default(""),
+    projectId: id("project_id").notNull(),
 
     ...lifecycleDatesMigration,
 
