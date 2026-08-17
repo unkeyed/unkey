@@ -99,7 +99,7 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Create apps",
 		description: "Allows creating apps in a project.",
 		permissions: []permissionGrant{
-			{resource: "projects/*", action: action(rbacpermissions.CreateApp{})},
+			{resource: "projects/*/apps/*", action: action(rbacpermissions.CreateApp{})},
 		},
 	},
 	"apps:delete": {
