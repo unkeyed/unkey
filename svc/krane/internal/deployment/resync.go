@@ -79,7 +79,7 @@ func (c *Controller) reportDeploymentInventory(ctx context.Context) ([]appsv1.Re
 	deploymentIDs := make([]string, 0, len(replicaSets))
 	for i := range replicaSets {
 		deploymentID, ok := labels.GetDeploymentID(replicaSets[i].Labels)
-		if !ok {
+		if !ok || deploymentID == "" {
 			return replicaSets, fmt.Errorf("replicaSet %s is missing deployment ID", replicaSets[i].Name)
 		}
 		deploymentIDs = append(deploymentIDs, deploymentID)

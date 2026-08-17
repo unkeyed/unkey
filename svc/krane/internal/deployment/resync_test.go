@@ -60,25 +60,39 @@ func TestResyncActualStateReportsEmptyRegionalInventory(t *testing.T) {
 	require.Empty(t, calls[0].GetInventory().GetDeploymentIds())
 }
 
-func TestResyncActualStateSkipsInventoryWhenReplicaSetHasNoDeploymentID(t *testing.T) {
-	replicaSet := newManagedReplicaSet("deployment-a")
-	delete(replicaSet.Labels, labels.LabelKeyDeploymentID)
-	cluster := &testutil.MockClusterClient{}
-	controller := New(Config{
-		ClientSet:    fake.NewSimpleClientset(replicaSet),
-		Cluster:      cluster,
-		CellID:       "cell_1",
-		Platform:     "aws",
-		Region:       "us-east-1",
-		Fingerprints: cache.NewNoopCache[string, string](),
-	})
+func TestResyncActualStateSkipsInventoryForInvalidDeploymentID(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		deleteLabel bool
+	}{
+		{name: "missing", deleteLabel: true},
+		{name: "empty"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			replicaSet := newManagedReplicaSet("deployment-a")
+			if test.deleteLabel {
+				delete(replicaSet.Labels, labels.LabelKeyDeploymentID)
+			} else {
+				replicaSet.Labels[labels.LabelKeyDeploymentID] = ""
+			}
+			cluster := &testutil.MockClusterClient{}
+			controller := New(Config{
+				ClientSet:    fake.NewSimpleClientset(replicaSet),
+				Cluster:      cluster,
+				CellID:       "cell_1",
+				Platform:     "aws",
+				Region:       "us-east-1",
+				Fingerprints: cache.NewNoopCache[string, string](),
+			})
 
-	controller.resyncActualState(context.Background())
+			controller.resyncActualState(context.Background())
 
-	calls := cluster.DeploymentStatusCalls()
-	require.Len(t, calls, 1)
-	require.Nil(t, calls[0].GetInventory())
-	require.Equal(t, "deployment-a", calls[0].GetUpdate().GetK8SName())
+			calls := cluster.DeploymentStatusCalls()
+			require.Len(t, calls, 1)
+			require.Nil(t, calls[0].GetInventory())
+			require.Equal(t, "deployment-a", calls[0].GetUpdate().GetK8SName())
+		})
+	}
 }
 
 func TestResyncActualStateSkipsInventoryAfterPartialList(t *testing.T) {
