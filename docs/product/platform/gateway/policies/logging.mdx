@@ -3,10 +3,6 @@ title: Logging
 description: "Enable request and response logging through the gateway for debugging and observability. Record full HTTP headers, bodies, and metadata."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The logging policy records the full HTTP request and response for every matched request. Use it to debug issues, audit API usage, and understand traffic patterns without adding instrumentation to your application.
 
 ## What gets logged
@@ -40,6 +36,25 @@ The gateway captures the following for each request:
 | Total latency      | End-to-end time from when the gateway received the request   |
 | Instance latency   | Time your app spent processing the request                |
 | Gateway latency    | Overhead added by the gateway (policy evaluation, routing)   |
+
+## Redact body fields
+
+When an OpenAPI validation policy matches a request, the logging policy reads
+`x-unkey-redact` from the OpenAPI specification.
+
+Set `x-unkey-redact: true` on a sensitive JSON property. The gateway replaces
+its value with `[REDACTED]` in stored request and response bodies.
+
+```yaml
+properties:
+  token:
+    type: string
+    x-unkey-redact: true
+```
+
+Omit `x-unkey-redact` when a field does not need redaction. A value of `false`
+has the same effect. The gateway always redacts authorization headers and
+credentials that a KeyAuth policy defines.
 
 ## View logs
 

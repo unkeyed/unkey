@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("unable to read sentinel config"),
+			fault.Internal("unable to read gateway policy config"),
 			fault.Public("We're unable to list the policies."),
 		)
 	}
@@ -106,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("stored sentinel config is not valid protojson"),
+			fault.Internal("stored gateway policy config is not valid protojson"),
 			fault.Public("We're unable to list the policies."),
 		)
 	}

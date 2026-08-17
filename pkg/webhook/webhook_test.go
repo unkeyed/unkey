@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // staticVerifier returns a fixed event, or an error when the body says so. It
@@ -38,18 +40,19 @@ func post(t *testing.T, rec *Receiver, body string) *httptest.ResponseRecorder {
 }
 
 func TestReceiver(t *testing.T) {
+	eventID := uid.New(uid.TestPrefix)
 	newReceiver := func(eventType string) *Receiver {
-		return New("test", staticVerifier{event: Event{ID: "evt_1", Type: eventType, Payload: []byte(`{}`)}})
+		return New("test", staticVerifier{event: Event{ID: eventID, Type: eventType}})
 	}
 
 	t.Run("handled event returns 200", func(t *testing.T) {
 		called := false
 		rec := newReceiver("thing.created").On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			called = true
-			require.Equal(t, "evt_1", e.ID)
+			require.Equal(t, eventID, e.ID)
 			return nil
 		})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 		require.True(t, called)
 	})
 
@@ -57,21 +60,21 @@ func TestReceiver(t *testing.T) {
 		rec := newReceiver("thing.created").On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			return fmt.Errorf("%w: not ours", ErrIgnore)
 		})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 	})
 
 	t.Run("handler error returns 500 so the provider retries", func(t *testing.T) {
 		rec := newReceiver("thing.created").On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			return errors.New("downstream broke")
 		})
-		require.Equal(t, http.StatusInternalServerError, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusInternalServerError, post(t, rec, "").Code)
 	})
 
 	t.Run("bad request returns 400 without retry", func(t *testing.T) {
 		rec := newReceiver("thing.created").On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			return fmt.Errorf("%w: malformed", ErrBadRequest)
 		})
-		require.Equal(t, http.StatusBadRequest, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
 	})
 
 	t.Run("unregistered event type is acknowledged", func(t *testing.T) {
@@ -79,7 +82,7 @@ func TestReceiver(t *testing.T) {
 			t.Fatal("handler must not run for other event types")
 			return nil
 		})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 	})
 
 	t.Run("verification failure returns 401", func(t *testing.T) {
@@ -97,7 +100,7 @@ func TestReceiver(t *testing.T) {
 				called = true
 				return nil
 			})
-			require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+			require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 			require.True(t, called, eventType)
 		}
 	})
@@ -119,7 +122,7 @@ func TestReceiver(t *testing.T) {
 				got = e.Type
 				return nil
 			})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 		require.Equal(t, "thing.deleted", got)
 	})
 
@@ -127,14 +130,14 @@ func TestReceiver(t *testing.T) {
 		rec := newReceiver("thing.deleted").Default(func(ctx context.Context, e Event) error {
 			return errors.New("downstream broke")
 		})
-		require.Equal(t, http.StatusInternalServerError, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusInternalServerError, post(t, rec, "").Code)
 	})
 
 	t.Run("default handler can ignore via ErrIgnore", func(t *testing.T) {
 		rec := newReceiver("thing.deleted").Default(func(ctx context.Context, e Event) error {
 			return fmt.Errorf("%w: not ours", ErrIgnore)
 		})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 	})
 
 	t.Run("middleware runs outermost-first in Use order", func(t *testing.T) {
@@ -153,7 +156,7 @@ func TestReceiver(t *testing.T) {
 				order = append(order, "handler")
 				return nil
 			})
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 		// The first Use wraps outermost, so it runs before the second.
 		require.Equal(t, []string{"first", "second", "handler"}, order)
 	})
@@ -167,7 +170,7 @@ func TestReceiver(t *testing.T) {
 
 	t.Run("body over the size limit returns 413", func(t *testing.T) {
 		rec := New("test",
-			staticVerifier{event: Event{ID: "evt_1", Type: "thing.created", Payload: []byte(`{}`)}},
+			staticVerifier{event: Event{ID: eventID, Type: "thing.created"}},
 			WithMaxBodySize(8),
 		).On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			t.Fatal("handler must not run for oversized bodies")
@@ -179,7 +182,7 @@ func TestReceiver(t *testing.T) {
 	t.Run("WithMaxBodySize raises the limit", func(t *testing.T) {
 		called := false
 		rec := New("test",
-			staticVerifier{event: Event{ID: "evt_1", Type: "thing.created", Payload: []byte(`{}`)}},
+			staticVerifier{event: Event{ID: eventID, Type: "thing.created"}},
 			WithMaxBodySize(128),
 		).On([]string{"thing.created"}, func(ctx context.Context, e Event) error {
 			called = true
@@ -191,9 +194,10 @@ func TestReceiver(t *testing.T) {
 }
 
 func TestTyped(t *testing.T) {
-	newReceiver := func(payload string) *Receiver {
+	eventID := uid.New(uid.TestPrefix)
+	newReceiver := func(payload []byte) *Receiver {
 		return New("test", staticVerifier{
-			event: Event{ID: "evt_1", Type: "thing.created", Payload: []byte(payload)},
+			event: Event{ID: eventID, Type: "thing.created", Payload: payload},
 		})
 	}
 
@@ -203,25 +207,27 @@ func TestTyped(t *testing.T) {
 
 	t.Run("handler receives the parsed payload", func(t *testing.T) {
 		var got thing
-		rec := newReceiver(`{"name":"box"}`).On(
+		payload, err := json.Marshal(thing{Name: "box"})
+		require.NoError(t, err)
+		rec := newReceiver(payload).On(
 			[]string{"thing.created"},
 			Typed(func(ctx context.Context, e Event, payload thing) error {
 				got = payload
 				return nil
 			}),
 		)
-		require.Equal(t, http.StatusOK, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusOK, post(t, rec, "").Code)
 		require.Equal(t, "box", got.Name)
 	})
 
 	t.Run("malformed payload is a 400 bad request", func(t *testing.T) {
-		rec := newReceiver(`not json`).On(
+		rec := newReceiver([]byte(`not json`)).On(
 			[]string{"thing.created"},
 			Typed(func(ctx context.Context, e Event, payload thing) error {
 				t.Fatal("handler must not run for unparseable payloads")
 				return nil
 			}),
 		)
-		require.Equal(t, http.StatusBadRequest, post(t, rec, "{}").Code)
+		require.Equal(t, http.StatusBadRequest, post(t, rec, "").Code)
 	})
 }

@@ -65,8 +65,11 @@ type frontlineAuth struct {
 	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	InsufficientPermissions Code
 
-	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	// RateLimited represents a 429 error - a configured request rate limit was exceeded.
 	RateLimited Code
+
+	// UsageExceeded represents a 429 error - the credential has no remaining credits.
+	UsageExceeded Code
 }
 
 // frontlineFirewall defines errors raised by the Firewall policy.
@@ -134,6 +137,7 @@ var Frontline = UnkeyFrontlineErrors{
 		InvalidKey:              Code{SystemFrontline, CategoryClient, "invalid_key"},
 		InsufficientPermissions: Code{SystemFrontline, CategoryClient, "insufficient_permissions"},
 		RateLimited:             Code{SystemFrontline, CategoryClient, "rate_limited"},
+		UsageExceeded:           Code{SystemFrontline, CategoryClient, "usage_exceeded"},
 	},
 	Firewall: frontlineFirewall{
 		Denied: Code{SystemFrontline, CategoryClient, "firewall_denied"},

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
+import { toast } from "./toaster";
 
 const unixMicroToDate = (unix: string | number): Date => {
   return fromUnixTime(Number(unix) / 1000 / 1000);
@@ -136,9 +137,15 @@ const TimestampInfo: React.FC<{
       <span
         onClick={(e) => {
           e.stopPropagation();
-          navigator.clipboard.writeText(value);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1000);
+          navigator.clipboard
+            .writeText(value)
+            .then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1000);
+            })
+            .catch(() => {
+              toast.error("Failed to copy to clipboard");
+            });
         }}
         className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
       >

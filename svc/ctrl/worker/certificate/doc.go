@@ -48,7 +48,7 @@
 //
 // Private keys are encrypted using the vault service before storage. The encryption
 // is workspace-scoped via keyring isolation. Certificates themselves are stored
-// unencrypted for fast retrieval by sentinels that terminate TLS.
+// unencrypted for fast retrieval by Frontline during TLS termination.
 //
 // # Error Handling
 //

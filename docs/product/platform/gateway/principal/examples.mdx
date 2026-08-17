@@ -3,10 +3,6 @@ title: Framework examples
 description: "Code examples for reading the gateway Principal object in Hono, Next.js, Express, and Go. Parse the forwarded identity in your framework."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 These examples show how to parse the [Principal](/platform/gateway/principal/overview) from the `X-Unkey-Principal` header in common frameworks using API key authentication.
 
 <CodeGroup>
@@ -28,6 +24,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -81,6 +78,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -130,6 +128,7 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
+      credits?: number;
       meta: Record<string, unknown>;
       roles?: string[];
       permissions?: string[];
@@ -202,6 +201,7 @@ type KeySource struct {
 	KeySpaceID  string         `json:"keySpaceId"`
 	Name        string         `json:"name,omitempty"`
 	ExpiresAt   int64          `json:"expiresAt,omitempty"` // unix milliseconds
+	Credits     *int64         `json:"credits,omitempty"`   // remaining, nil when unlimited
 	Meta        map[string]any `json:"meta"`
 	Roles       []string       `json:"roles,omitempty"`
 	Permissions []string       `json:"permissions,omitempty"`

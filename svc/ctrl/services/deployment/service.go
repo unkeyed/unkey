@@ -57,9 +57,10 @@ type Config struct {
 	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
-	// EnforceDeployGate hard-blocks deployment creation for workspaces with
-	// no Deploy entitlement (same switch as project creation). False runs in
-	// observe mode: logs what it would block but allows creation.
+	// EnforceDeployGate hard-blocks deployment actions that create, start, or
+	// activate compute for workspaces with no Deploy entitlement (same switch as
+	// project creation). False runs the plan check in observe mode. Spend-cap
+	// suspension is always enforced.
 	EnforceDeployGate bool
 }
 

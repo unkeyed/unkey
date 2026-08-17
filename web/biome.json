@@ -87,7 +87,8 @@
       ".trigger",
       "**/*.css",
       "**/*.astro",
-      "**/.astro/**"
+      "**/.blume/**",
+      "**/.blume-verify/**"
     ]
   },
   "formatter": {
@@ -113,7 +114,8 @@
       "**/routeTree.gen.ts",
       "**/*.css",
       "**/*.astro",
-      "**/.astro/**"
+      "**/.blume/**",
+      "**/.blume-verify/**"
     ]
   },
   "organizeImports": {
@@ -133,7 +135,8 @@
       "./apps/docs/docs.json",
       "**/routeTree.gen.ts",
       "**/*.astro",
-      "**/.astro/**"
+      "**/.blume/**",
+      "**/.blume-verify/**"
     ]
   },
   "css": {
@@ -185,6 +188,16 @@
         "**/route.ts",
         "**/*.config.*"
       ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["./apps/design/examples/**", "./apps/design/docs/**/meta.ts"],
       "linter": {
         "rules": {
           "style": {

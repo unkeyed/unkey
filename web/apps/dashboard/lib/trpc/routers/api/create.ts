@@ -12,7 +12,8 @@ export const createApi = workspaceProcedure
       name: z
         .string()
         .min(3, "Keyspace names must contain at least 3 characters")
-        .max(50, "Keyspace names must contain at most 50 characters"),
+        // 256 matches the apis.name column and apis.createApi in the API.
+        .max(256, "Keyspace names cannot exceed 256 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {

@@ -7,6 +7,7 @@ import { Analytics } from "./analytics.js";
 import { Apis } from "./apis.js";
 import { Apps } from "./apps.js";
 import { Deployments } from "./deployments.js";
+import { Domains } from "./domains.js";
 import { Environments } from "./environments.js";
 import { Gateway } from "./gateway.js";
 import { Github } from "./github.js";
@@ -42,6 +43,11 @@ export class Unkey extends ClientSDK {
   private _deployments?: Deployments;
   get deployments(): Deployments {
     return (this._deployments ??= new Deployments(this._options));
+  }
+
+  private _domains?: Domains;
+  get domains(): Domains {
+    return (this._domains ??= new Domains(this._options));
   }
 
   private _environments?: Environments;

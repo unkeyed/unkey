@@ -8,7 +8,7 @@ import { SIGN_IN_URL } from "./lib/auth/types";
 export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
   const url = new URL(req.url);
 
-  // Special redirect for sentinel.new
+  // Preserve the retired domain and route for inbound compatibility.
   if (url.host === "sentinel.new") {
     return NextResponse.redirect("https://app.unkey.com/sentinel-new");
   }

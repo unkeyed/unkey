@@ -556,7 +556,7 @@ describe("usePaginatedNavigation", () => {
   });
 
   it("suspends the clamp and the prefetch when disabled, but still guards onPageChange", () => {
-    // Live-tail views (sentinel, ratelimit logs) pin themselves to page 1 and
+    // Live-tail views (request and ratelimit logs) pin themselves to page 1 and
     // hide the footer, so both clamping the pinned page and warming pages the
     // user cannot reach are wasted work while live.
     const prefetch = vi.fn();

@@ -10,6 +10,12 @@ import (
 )
 
 type Querier interface {
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -99,6 +105,11 @@ type Querier interface {
 	//  DELETE FROM roles_permissions
 	//  WHERE permission_id = ?
 	DeleteManyRolePermissionsByPermissionID(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteManyRolePermissionsByRoleAndPermissionIDs
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE role_id = ? AND permission_id IN (/*SLICE:permission_ids*/?)
+	DeleteManyRolePermissionsByRoleAndPermissionIDs(ctx context.Context, db DBTX, arg DeleteManyRolePermissionsByRoleAndPermissionIDsParams) error
 	//DeleteManyRolePermissionsByRoleID
 	//
 	//  DELETE FROM roles_permissions
@@ -193,6 +204,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
+	// Returns the sentinel_config of an app's current deployment, scoped to the
+	// workspace. Used by portal.createSession to resolve the keyspaces an
+	// app-mapped portal config grants access to (the keyauth policies carry the
+	// keySpaceIds verified at the gateway).
+	//
+	//  SELECT d.sentinel_config
+	//  FROM apps a
+	//  JOIN deployments d ON a.current_deployment_id = d.id
+	//  WHERE a.id = ?
+	//    AND a.workspace_id = ?
+	FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
 	// into deployment_topology at deploy time.
@@ -219,17 +241,6 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
-	// Returns the sentinel_config of an app's current deployment, scoped to the
-	// workspace. Used by portal.createSession to resolve the keyspaces an
-	// app-mapped portal config grants access to (the keyauth policies carry the
-	// keySpaceIds verified at the gateway).
-	//
-	//  SELECT d.sentinel_config
-	//  FROM apps a
-	//  JOIN deployments d ON a.current_deployment_id = d.id
-	//  WHERE a.id = ?
-	//    AND a.workspace_id = ?
-	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -239,6 +250,70 @@ type Querier interface {
 	//  JOIN `limits` l ON c.workspace_id = l.workspace_id
 	//  WHERE c.workspace_id = ?
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
+	//FindCustomDomainById
+	//
+	//  SELECT
+	//      id,
+	//      domain,
+	//      verification_token,
+	//      target_cname
+	//  FROM custom_domains
+	//  WHERE id = ?
+	//  LIMIT 1
+	FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error)
+	// Identifier is either a domain id or a domain name. Each UNION branch hits its own
+	// unique index (custom_domains_id_unique, unique_domain_workspace_idx) as a point
+	// lookup; a single OR predicate would scan every domain in the workspace instead.
+	// Names are stored lowercase, so the name half is lowered here rather than left to the
+	// column's collation. The id half is compared as given: ids are case-sensitive.
+	//
+	//  (SELECT
+	//      cd_by_id.id,
+	//      cd_by_id.project_id,
+	//      cd_by_id.app_id,
+	//      cd_by_id.environment_id,
+	//      cd_by_id.domain,
+	//      cd_by_id.verification_status,
+	//      cd_by_id.verification_token,
+	//      cd_by_id.ownership_verified,
+	//      cd_by_id.cname_verified,
+	//      cd_by_id.target_cname,
+	//      cd_by_id.verification_error,
+	//      cd_by_id.last_checked_at,
+	//      cd_by_id.created_at,
+	//      cd_by_id.updated_at
+	//  FROM custom_domains cd_by_id
+	//  WHERE cd_by_id.id = ? AND cd_by_id.workspace_id = ?
+	//  LIMIT 1)
+	//  UNION ALL
+	//  (SELECT
+	//      cd_by_name.id,
+	//      cd_by_name.project_id,
+	//      cd_by_name.app_id,
+	//      cd_by_name.environment_id,
+	//      cd_by_name.domain,
+	//      cd_by_name.verification_status,
+	//      cd_by_name.verification_token,
+	//      cd_by_name.ownership_verified,
+	//      cd_by_name.cname_verified,
+	//      cd_by_name.target_cname,
+	//      cd_by_name.verification_error,
+	//      cd_by_name.last_checked_at,
+	//      cd_by_name.created_at,
+	//      cd_by_name.updated_at
+	//  FROM custom_domains cd_by_name
+	//  WHERE cd_by_name.workspace_id = ? AND cd_by_name.domain = LOWER(?)
+	//  LIMIT 1)
+	//  LIMIT 1
+	FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg FindCustomDomainByIdentifierParams) (FindCustomDomainByIdentifierRow, error)
+	// Covered by unique_domain_workspace_idx.
+	//
+	//  SELECT id
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND domain = ?
+	//  LIMIT 1
+	FindCustomDomainIDByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainIDByWorkspaceAndDomainParams) (string, error)
 	// FindDefaultProjectByWorkspaceID resolves only the exact lowercase default slug.
 	// BINARY prevents case-insensitive collations from accepting a different project.
 	//
@@ -391,7 +466,7 @@ type Querier interface {
 	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
 	//  FROM `keys` k
 	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
+	FindKeyByID(ctx context.Context, db DBTX, id string) (FindKeyByIDRow, error)
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
@@ -710,6 +785,15 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
+	//FindPermissionsBySlugsForUpdate
+	//
+	//  SELECT id, name, slug, description
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	//  ORDER BY slug
+	//  FOR UPDATE
+	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
 	//FindPortalConfigByWorkspaceAndSlug
 	//
 	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
@@ -1025,6 +1109,42 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, db DBTX, arg InsertClickhouseWorkspaceSettingsParams) error
+	//InsertCustomDomain
+	//
+	//  INSERT INTO custom_domains (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      challenge_type,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1689,6 +1809,33 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListCustomDomainsByEnvironment
+	//
+	//  SELECT
+	//      id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      domain,
+	//      verification_status,
+	//      verification_token,
+	//      ownership_verified,
+	//      cname_verified,
+	//      target_cname,
+	//      verification_error,
+	//      last_checked_at,
+	//      created_at,
+	//      updated_at
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND environment_id = ?
+	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error)
 	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
@@ -1766,6 +1913,15 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListDirectPermissionsByRoleID
+	//
+	//  SELECT p.id, p.name, p.slug, p.description
+	//  FROM roles_permissions rp
+	//  JOIN permissions p ON rp.permission_id = p.id
+	//  WHERE rp.role_id = ?
+	//  ORDER BY p.slug
+	//  FOR UPDATE
+	ListDirectPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]ListDirectPermissionsByRoleIDRow, error)
 	// An app has only a handful of environments, so this returns all of them
 	// without pagination.
 	//
@@ -2068,6 +2224,8 @@ type Querier interface {
 	//      updated_at
 	//  FROM projects
 	//  WHERE workspace_id = ?
+	//    -- The default project is an internal ownership container, not a user-visible project.
+	//    AND BINARY slug != 'default'
 	//    AND id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?) OR LOWER(slug) LIKE LOWER(?))
@@ -2192,6 +2350,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	//LockRoleByIDAndWorkspaceID
+	//
+	//  SELECT id, name
+	//  FROM roles
+	//  WHERE id = ? AND workspace_id = ?
+	//  FOR UPDATE
+	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2383,6 +2548,12 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
+	//UpdateCustomDomainsMax
+	//
+	//  UPDATE `limits`
+	//  SET custom_domains_max = ?
+	//  WHERE workspace_id = ?
+	UpdateCustomDomainsMax(ctx context.Context, db DBTX, arg UpdateCustomDomainsMaxParams) error
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
@@ -2647,7 +2818,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      sentinel_config = VALUES(sentinel_config),
 	//      updated_at = VALUES(updated_at)
-	UpsertAppRuntimeSettingsSentinelConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsSentinelConfigParams) error
+	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsPolicyConfigParams) error
 	//UpsertGithubRepoConnection
 	//
 	//  INSERT INTO github_repo_connections (
@@ -2749,6 +2920,29 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
+	// Inserts a permission or leaves the existing workspace/slug row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+	//
+	//  INSERT INTO permissions (
+	//    id,
+	//    workspace_id,
+	//    project_id,
+	//    name,
+	//    slug,
+	//    description,
+	//    created_at_m
+	//  )
+	//  VALUES (
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?,
+	//    ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE slug = slug
+	UpsertPermission(ctx context.Context, db DBTX, arg UpsertPermissionParams) error
 	//UpsertPortalBranding
 	//
 	//  INSERT INTO portal_branding (

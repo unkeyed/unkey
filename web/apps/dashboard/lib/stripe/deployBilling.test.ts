@@ -23,6 +23,7 @@ type StripeEnv = NonNullable<ReturnType<typeof stripeEnv>>;
 // lookup_key -> resolved active price id, the mapping Stripe would return.
 const ID: Record<string, string> = {
   lk_starter: "price_starter",
+  lk_starter_concurrent: "price_starter_concurrent",
   lk_pro: "price_pro",
   lk_business: "price_business",
   lk_cpu: "price_cpu",
@@ -52,14 +53,14 @@ function envWith(overrides: Partial<StripeEnv> = {}): StripeEnv {
 
 // Stripe whose prices.list returns the active price for each known lookup_key.
 function stubStripe() {
+  const list = vi.fn(async ({ lookup_keys }: { lookup_keys: string[] }) => ({
+    data: lookup_keys.filter((k) => ID[k]).map((k) => ({ id: ID[k], lookup_key: k })),
+  }));
   mockedGetStripeClient.mockReturnValue({
-    prices: {
-      list: vi.fn(async ({ lookup_keys }: { lookup_keys: string[] }) => ({
-        data: lookup_keys.filter((k) => ID[k]).map((k) => ({ id: ID[k], lookup_key: k })),
-      })),
-    },
+    prices: { list },
     // Test double; only prices.list is exercised here.
   } as unknown as ReturnType<typeof getStripeClient>);
+  return list;
 }
 
 const CONFIG: DeployBillingConfig = {
@@ -82,10 +83,12 @@ function item(id: string, priceId: string) {
 }
 
 describe("deployBillingConfig", () => {
+  let listPrices: ReturnType<typeof stubStripe>;
+
   beforeEach(() => {
     mockedStripeEnv.mockReset();
     mockedGetStripeClient.mockReset();
-    stubStripe();
+    listPrices = stubStripe();
   });
 
   it("resolves lookup_keys to active price ids when fully configured", async () => {
@@ -128,6 +131,23 @@ describe("deployBillingConfig", () => {
       envWith({ STRIPE_LOOKUP_DEPLOY_BUSINESS: "lk_business_archived" }),
     );
     expect(await deployBillingConfig()).toBeNull();
+  });
+
+  it("coalesces concurrent Stripe catalog resolutions", async () => {
+    // Use a distinct key so this test cannot hit the module's successful cache.
+    mockedStripeEnv.mockReturnValue(
+      envWith({ STRIPE_LOOKUP_DEPLOY_STARTER: "lk_starter_concurrent" }),
+    );
+
+    const [first, second, third] = await Promise.all([
+      deployBillingConfig(),
+      deployBillingConfig(),
+      deployBillingConfig(),
+    ]);
+
+    expect(listPrices).toHaveBeenCalledTimes(1);
+    expect(first).toBe(second);
+    expect(second).toBe(third);
   });
 });
 

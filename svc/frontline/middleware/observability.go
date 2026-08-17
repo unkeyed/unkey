@@ -286,6 +286,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusTooManyRequests),
 			Message: "Rate limit exceeded. Please try again later.",
 		}
+	case codes.Frontline.Auth.UsageExceeded.URN():
+		return errorPageInfo{
+			Status:  http.StatusTooManyRequests,
+			Title:   http.StatusText(http.StatusTooManyRequests),
+			Message: "Usage limit exceeded. This API key has no remaining credits.",
+		}
 	case codes.Frontline.Firewall.Denied.URN():
 		return errorPageInfo{
 			Status:  http.StatusForbidden,

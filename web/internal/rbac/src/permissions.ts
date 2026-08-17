@@ -1,10 +1,8 @@
 /**
  * The database takes care of isolating roles between workspaces.
- * That's why we can assume the highest scope of a role is an `api` or later `sentinel`
  *
  * role identifiers can look like this:
  * - `api_id.xxx`
- * - `sentinel_id.xxx`
  *
  */
 import { z } from "zod";
@@ -100,6 +98,8 @@ export const environmentActions = z.enum([
   "set_policies",
   "update_policy",
   "read_policies",
+  "create_domain",
+  "read_domain",
 ]);
 
 // Resources that require an ID (resource.id.action format)

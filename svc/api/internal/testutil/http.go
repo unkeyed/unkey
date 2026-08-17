@@ -461,6 +461,11 @@ func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Enviro
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
 }
 
+// CreateCustomDomain attaches a custom domain to an environment.
+func (h *Harness) CreateCustomDomain(req seed.CreateCustomDomainRequest) db.FindCustomDomainByIdRow {
+	return h.seeder.CreateCustomDomain(h.t.Context(), req)
+}
+
 // CreateDeployment creates a deployment within a project and environment.
 func (h *Harness) CreateDeployment(req seed.CreateDeploymentRequest) db.Deployment {
 	return h.seeder.CreateDeployment(context.Background(), req)

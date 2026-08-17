@@ -18,7 +18,7 @@ export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
   deploymentId: z.array(z.string()),
   environmentId: z.array(z.string()),
-  appId: z.string().nullable(),
+  appId: z.array(z.string()),
   limit: z.int().min(1).max(MAX_PAGE_SIZE),
   startTime: z.int(),
   endTime: z.int(),
@@ -42,6 +42,7 @@ const runtimeLogsQueryParamsSchema = runtimeLogsCountParamsSchema.extend({
 });
 
 export const runtimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -57,6 +58,7 @@ export type RuntimeLog = z.infer<typeof runtimeLog>;
 // JSON column: JSON fans out into ~1k subcolumn files per part, so on CH
 // Cloud cold queries pay ~1k S3 GetObjects for the marks alone.
 const runtimeLogRow = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -86,9 +88,9 @@ export function getRuntimeLogs(ch: Querier) {
                 AND toDate(fromUnixTimestamp64Milli({partitionEndTime: Int64}))`,
     ];
 
-    // null appId = project-wide (every app); a value scopes to one app.
-    if (args.appId !== null) {
-      wheres.push("app_id = {appId: String}");
+    // An empty appId array matches all apps of the project.
+    if (args.appId.length > 0) {
+      wheres.push("app_id IN {appId: Array(String)}");
     }
     if (args.environmentId.length > 0) {
       wheres.push("environment_id IN {environmentId: Array(String)}");
@@ -122,12 +124,12 @@ export function getRuntimeLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT
-          time, severity, message, deployment_id,
+          log_id, time, severity, message, deployment_id,
           region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
 
-        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC
+        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC, log_id DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}
         SETTINGS

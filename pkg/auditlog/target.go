@@ -20,4 +20,5 @@ const (
 	ProjectResourceType            AuditLogResourceType = "project"
 	AppResourceType                AuditLogResourceType = "app"
 	EnvironmentResourceType        AuditLogResourceType = "environment"
+	DomainResourceType             AuditLogResourceType = "domain"
 )

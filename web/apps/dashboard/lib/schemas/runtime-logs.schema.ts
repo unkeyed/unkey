@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const dashboardRuntimeLog = z.object({
+  log_id: z.string(),
   time: z.int(),
   severity: z.string(),
   message: z.string(),
@@ -14,7 +15,7 @@ export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
-  appId: z.string().nullable().optional(),
+  appId: z.array(z.string()).optional().default([]),
   deploymentId: z.array(z.string()).optional().default([]),
   environmentId: z
     .object({

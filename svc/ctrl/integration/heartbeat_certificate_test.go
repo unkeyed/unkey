@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -79,8 +80,7 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	// rather than skip forever. Simulate the partial state by deleting the
 	// challenge, then heartbeat from a fresh replica (cold cache) so the check
 	// hits the DB rather than the first instance's cached "provisioned" entry.
-	_, err = h.DB.RW().ExecContext(ctx, "DELETE FROM acme_challenges WHERE domain_id = ?", domain.ID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.DeleteAcmeChallengeByDomainID(ctx, domain.ID))
 	require.Equal(t, 0, countAcmeChallenges(ctx, t, h.DB, domain.ID))
 
 	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
@@ -92,8 +92,11 @@ func TestHeartbeatProvisionsCertificates(t *testing.T) {
 	// 'waiting'/expiring-'verified') and nothing else resets. A heartbeat from a
 	// fresh replica must flip it back to 'waiting' so issuance is retried rather
 	// than stuck forever.
-	_, err = h.DB.RW().ExecContext(ctx, "UPDATE acme_challenges SET status = 'failed' WHERE domain_id = ?", domain.ID)
-	require.NoError(t, err)
+	require.NoError(t, h.DB.UpdateAcmeChallengeStatus(ctx, db.UpdateAcmeChallengeStatusParams{
+		Status:    db.AcmeChallengesStatusFailed,
+		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		DomainID:  domain.ID,
+	}))
 
 	heartbeat(newHeartbeatService(t, h.DB, bearer, regionalDomain))
 	require.Equal(t, 1, countAcmeChallenges(ctx, t, h.DB, domain.ID))

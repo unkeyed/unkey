@@ -25,9 +25,9 @@ const (
 	LabelComponent  = "app.kubernetes.io/component"
 	LabelWorkspace  = "unkey.com/workspace.id"
 	LabelProject    = "unkey.com/project.id"
+	LabelApp        = "unkey.com/app.id"
 	LabelEnv        = "unkey.com/environment.id"
 	LabelDeployment = "unkey.com/deployment.id"
-	LabelSentinel   = "unkey.com/sentinel.id"
 )
 
 type Config struct {
@@ -282,6 +282,7 @@ func (c *Collector) emitLifecycleCheckpoint(podUID, kind string) {
 		NodeID:                     c.nodeName,
 		WorkspaceID:                info.workspaceID,
 		ProjectID:                  info.projectID,
+		AppID:                      info.appID,
 		EnvironmentID:              info.environmentID,
 		ResourceType:               info.resourceType,
 		ResourceID:                 info.resourceID,
@@ -403,7 +404,7 @@ func terminatedTransition(old, new *corev1.ContainerStatus) bool {
 	return false
 }
 
-// findPodByUID locates a krane/sentinel pod on this node by UID. Returns nil
+// findPodByUID locates a krane pod on this node by UID. Returns nil
 // if the UID doesn't match a billable pod.
 func (c *Collector) findPodByUID(uid string) *corev1.Pod {
 	all, err := c.podLister.List(labels.Everything())

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -43,10 +44,12 @@ func TestRerollKeySuccess(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
+	identityMeta, err := json.Marshal(map[string]string{"name": "Test User"})
+	require.NoError(t, err)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
 		ExternalID:  "test_123",
-		Meta:        []byte(`{"name": "Test User"}`),
+		Meta:        identityMeta,
 		Ratelimits: []seed.CreateRatelimitRequest{
 			{
 				Name:        "default-enterprise",
