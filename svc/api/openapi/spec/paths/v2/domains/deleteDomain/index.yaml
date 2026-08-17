@@ -1,0 +1,168 @@
+post:
+  tags:
+    - domains
+  summary: Delete domain
+  description: |
+    Delete a custom domain from your workspace.
+
+    Address the domain by its id or by its name. Names are unique per workspace, so
+    `api.acme.com` is enough.
+
+    Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+    records at your provider stay in place.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.delete_domain` (to delete domains in any environment)
+    - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
+  operationId: domains.deleteDomain
+  x-speakeasy-name-override: deleteDomain
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DomainsDeleteDomainRequestBody.yaml"
+        examples:
+          byName:
+            summary: Delete by domain name
+            description: The name is unique per workspace. It addresses the domain on its own.
+            value:
+              domain: api.acme.com
+          byId:
+            summary: Delete by domain ID
+            description: Uses the id that domains.createDomain returned.
+            value:
+              domain: dom_1234abcd
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully deleted the domain.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DomainsDeleteDomainResponseBody.yaml"
+          examples:
+            success:
+              summary: Domain deleted
+              description: The domain and its routing were removed before the response returned.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidIdentifier:
+              summary: Identifier too short
+              description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The domain identifier must be between 4 and 253 characters.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.domain
+                      message: minLength must be at least 4 characters
+                      fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+          examples:
+            invalidRootKey:
+              summary: Root key not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unauthorized
+                  detail: The provided root key is invalid.
+                  status: 401
+                  type: unauthorized
+    "403":
+      description: |
+        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
+        discover which domains exist.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            keyDisabled:
+              summary: Root key disabled
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: The provided root key is disabled.
+                  status: 403
+                  type: forbidden
+    "404":
+      description: |
+        Not Found - The domain does not exist in your workspace, it was already deleted, or your
+        root key may not delete it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            domainNotFound:
+              summary: Domain not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested domain does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            rateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                  status: 429
+                  type: rate-limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+          examples:
+            internalError:
+              summary: Unexpected server error
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Internal Server Error
+                  detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                  status: 500
+                  type: internal-server-error
