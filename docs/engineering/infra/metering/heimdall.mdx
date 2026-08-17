@@ -33,7 +33,7 @@ This is the part most people get wrong. The rest of the doc explains why.
 
 ## Why snapshots and not rates
 
-The short version: snapshots of cumulative kernel counters are idempotent under duplicate writes; rate or delta rows aren't. For the full walkthrough of the pipeline (counter vs gauge, the five stages from kernel to chart, why duplicates are invariant) see [metrics-architecture](./metrics-architecture). For the citation-heavy defence against "just write deltas" proposals specifically, see [why-counters-not-deltas](./why-counters-not-deltas).
+The short version: snapshots of cumulative kernel counters are idempotent under duplicate writes; rate or delta rows aren't. For the full walkthrough of the pipeline (counter vs gauge, the five stages from kernel to chart, why duplicates are invariant) see [metrics-architecture](/infra/metering/metrics-architecture). For the citation-heavy defence against "just write deltas" proposals specifically, see [why-counters-not-deltas](/infra/metering/why-counters-not-deltas).
 
 The rest of this doc covers what's specific to heimdall as an agent: how a tick works, the network metering, the ClickHouse layout, and the local-dev TopoLVM setup.
 

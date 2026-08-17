@@ -1,0 +1,13 @@
+{
+  "name": "@unkey/engineering-docs",
+  "private": true,
+  "scripts": {
+    "build": "blume build",
+    "check": "blume check --strict --isolated",
+    "dev": "blume dev --host 0.0.0.0",
+    "validate": "blume validate --strict"
+  },
+  "dependencies": {
+    "blume": "1.5.1"
+  }
+}

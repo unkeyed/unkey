@@ -72,7 +72,7 @@ flowchart LR
 
 A file at `/sys/fs/cgroup/.../cpu.stat` contains `usage_usec`, the total microseconds of CPU this container has used since it was created. The kernel writes it for its own bookkeeping. We just `cat` it (basically).
 
-For network, we can't read a file because the kernel doesn't expose per-pod byte counts to userspace. Instead we run a tiny program inside the kernel that counts bytes as packets flow past. It writes into an in-memory table we can read. See [ebpf-primer](./ebpf-primer) if you want to understand how that works.
+For network, we can't read a file because the kernel doesn't expose per-pod byte counts to userspace. Instead we run a tiny program inside the kernel that counts bytes as packets flow past. It writes into an in-memory table we can read. See [ebpf-primer](/infra/metering/ebpf-primer) if you want to understand how that works.
 
 Either way, the kernel is doing the counting. We are only sampling.
 
@@ -181,7 +181,7 @@ Four reasons, in order of importance:
 
 If any row ever gets written twice (network retry, rolling update, backfill), `sum(interval_usage)` double-counts. You can't dedupe after the fact without a perfect unique key, and we don't have one.
 
-With the snapshot model, `max - min` ignores duplicates automatically. Writing the same row twice gives the same answer as writing it once. This is the biggest reason and the full argument lives in [why-counters-not-deltas](./why-counters-not-deltas).
+With the snapshot model, `max - min` ignores duplicates automatically. Writing the same row twice gives the same answer as writing it once. This is the biggest reason and the full argument lives in [why-counters-not-deltas](/infra/metering/why-counters-not-deltas).
 
 ### 2. Pod exits straddle bucket edges
 
@@ -291,7 +291,7 @@ Product decisions that come up in every UI conversation:
 
 <AccordionGroup>
   <Accordion title="Why don't we just write one row per 15 seconds saying 'container X used Y CPU'?">
-    Because a duplicate row would inflate any sum built on top. See the "Why not just write..." section above, or the full defence in [why-counters-not-deltas](./why-counters-not-deltas).
+    Because a duplicate row would inflate any sum built on top. See the "Why not just write..." section above, or the full defence in [why-counters-not-deltas](/infra/metering/why-counters-not-deltas).
   </Accordion>
 
   <Accordion title="What's in the currently-filling bucket?">
@@ -318,7 +318,7 @@ Product decisions that come up in every UI conversation:
 ## Where to look in the code
 
 - `svc/heimdall/internal/collector/`. The Go sampler: 5-second tick, CRI watcher, pod informer.
-- `svc/heimdall/internal/network/`. The BPF byte counter side. See [ebpf-primer](./ebpf-primer).
+- `svc/heimdall/internal/network/`. The BPF byte counter side. See [ebpf-primer](/infra/metering/ebpf-primer).
 - `svc/heimdall/internal/checkpoint/`. The `InstanceCheckpoint` row struct and the `ContainerUID()` helper.
 - `pkg/clickhouse/schema/`. Table, materialized view, and migration files.
 - `web/internal/clickhouse/src/resources.ts`. `buildHybridQuery()`, the MV-plus-raw-tip pattern.
@@ -326,6 +326,6 @@ Product decisions that come up in every UI conversation:
 
 ## Related docs
 
-- [why-counters-not-deltas](./why-counters-not-deltas). The narrow defence of the `max - min` design with citations from Prometheus, OpenTelemetry, GCP, RRDtool, the Linux kernel.
-- [heimdall](./heimdall). The agent's internal design: CRI watcher, informer backup, network-specific details.
-- [ebpf-primer](./ebpf-primer). Background on eBPF for anyone touching the network metering code.
+- [why-counters-not-deltas](/infra/metering/why-counters-not-deltas). The narrow defence of the `max - min` design with citations from Prometheus, OpenTelemetry, GCP, RRDtool, the Linux kernel.
+- [heimdall](/infra/metering/heimdall). The agent's internal design: CRI watcher, informer backup, network-specific details.
+- [ebpf-primer](/infra/metering/ebpf-primer). Background on eBPF for anyone touching the network metering code.

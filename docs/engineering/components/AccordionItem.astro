@@ -1,0 +1,23 @@
+---
+import AccordionItem from "blume/components/content/AccordionItem.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  defaultOpen?: boolean;
+  id?: string;
+  icon?: string;
+}
+
+const { defaultOpen, description, icon, id, title } = Astro.props;
+---
+
+<AccordionItem
+  defaultOpen={defaultOpen}
+  description={description}
+  icon={icon}
+  id={id}
+  title={title}
+>
+  <slot />
+</AccordionItem>

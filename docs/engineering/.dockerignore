@@ -1,0 +1,5 @@
+.blume
+.blume-verify
+.git
+dist
+node_modules

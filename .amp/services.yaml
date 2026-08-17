@@ -77,3 +77,13 @@ services:
     portal:
       title: Design System
       description: Unkey UI components and design patterns.
+
+  engineering-docs:
+    command: >-
+      AMP_ORB=1
+      "$HOME/.local/bin/mise" exec --
+      npm --prefix docs/engineering run dev -- --port "$PORT"
+    port: 4322
+    portal:
+      title: Engineering Docs
+      description: Local Blume preview of the Unkey engineering documentation.

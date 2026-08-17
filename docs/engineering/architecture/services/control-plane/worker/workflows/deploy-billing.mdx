@@ -53,7 +53,7 @@ The worker references Stripe only by stable meter event names, never by generate
 | Disk   | `disk_gib_seconds`    | GiB-seconds       |
 | Egress | `egress_public_gib`   | binary GiB (2^30) |
 
-These names are the contract between the worker and the Stripe catalog managed in the infra repo. The meter definitions and prices live there, not in this service. See [Stripe catalog setup](#stripe-catalog-setup-infra-repo).
+These names are the contract between the worker and the Stripe catalog managed in the infra repo. The meter definitions and prices live there, not in this service. See [Stripe catalog setup](#stripe-catalog-infra-repo).
 
 ### Why it's safe to re-run
 

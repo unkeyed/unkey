@@ -1,0 +1,60 @@
+---
+interface Props {
+  name: string;
+  type: string;
+  default?: string;
+  required?: boolean;
+  deprecated?: boolean;
+}
+
+const {
+  name,
+  type,
+  default: defaultValue,
+  required = false,
+  deprecated = false,
+} = Astro.props;
+---
+
+<div class="field">
+  <div class="field-heading">
+    <code>{name}</code>
+    <span class="field-type">{type}</span>
+    {required && <span class="field-badge">required</span>}
+    {deprecated && <span class="field-badge">deprecated</span>}
+    {defaultValue && <span class="field-default">default: <code>{defaultValue}</code></span>}
+  </div>
+  <div class="field-description"><slot /></div>
+</div>
+
+<style>
+  .field {
+    border-top: 1px solid var(--blume-border);
+    padding-block: 1rem;
+  }
+
+  .field-heading {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .field-type,
+  .field-default {
+    color: var(--blume-muted-foreground);
+    font-size: 0.8125rem;
+  }
+
+  .field-badge {
+    border: 1px solid var(--blume-border);
+    border-radius: 9999px;
+    color: var(--blume-muted-foreground);
+    font-size: 0.6875rem;
+    padding: 0.0625rem 0.375rem;
+  }
+
+  .field-description {
+    margin-top: 0.5rem;
+  }
+</style>

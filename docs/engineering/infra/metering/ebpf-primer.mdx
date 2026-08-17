@@ -35,14 +35,14 @@ Per-pod network byte accounting on a Kubernetes node is a place where eBPF is ge
 | tc-eBPF on the host-side veth | What we shipped first. Silently broken on EKS with Cilium in BPF host-routing mode: `bpf_redirect_peer` punts packets straight into the pod netns, bypassing the host-side veth entirely. RX/TX on `lxc<hash>` read ~zero while the pod moves MB/s. See heimdall.mdx for the full postmortem. |
 | tc-eBPF on the pod-side eth0 (what we do) | Sees every real L3 packet regardless of runtime (runc or gVisor) and regardless of CNI routing choices, because pod-side eth0 is the one interface every packet must cross. Attaches per-pod by entering the pod's CNI netns. Gives us per-packet classification in ~100ns. |
 
-Our program does the bare minimum: skip the Ethernet header, read the IP header, classify destination IP as RFC1918/public, `__sync_fetch_and_add` into one of four counter slots in a shared map keyed by the pod's netns cookie (`bpf_get_netns_cookie`, a stable per-netns 64-bit identifier). It returns `TC_ACT_UNSPEC` (non-terminating; see [heimdall.mdx](./heimdall) for why this matters with Cilium in the chain), never modifies the packet, and runs alongside Cilium's own programs without interfering. Userspace (the Go side) periodically reads the map and writes the raw counter values to ClickHouse. Same pattern as CPU/memory; the only difference is that the counters live in a BPF map instead of a sysfs file.
+Our program does the bare minimum: skip the Ethernet header, read the IP header, classify destination IP as RFC1918/public, `__sync_fetch_and_add` into one of four counter slots in a shared map keyed by the pod's netns cookie (`bpf_get_netns_cookie`, a stable per-netns 64-bit identifier). It returns `TC_ACT_UNSPEC` (non-terminating; see [heimdall.mdx](/infra/metering/heimdall) for why this matters with Cilium in the chain), never modifies the packet, and runs alongside Cilium's own programs without interfering. Userspace (the Go side) periodically reads the map and writes the raw counter values to ClickHouse. Same pattern as CPU/memory; the only difference is that the counters live in a BPF map instead of a sysfs file.
 
 ## What eBPF gives us that no other tool does
 
 - **Per-packet execution at native speed.** Our program runs for every packet crossing the pod's veth, adding roughly 100ns of overhead. At 100k packets/second that's 10ms of CPU per second. Unmeasurable in practice.
 - **Namespace-aware.** The hook runs in the right context to see the pod's real packets, before or after Cilium's datapath depending on where we attach and how we chain.
 - **Shared userspace/kernel state via maps.** A BPF map is a kernel data structure accessible from both the BPF program and userspace through file descriptors. We atomically increment counters in the program; Go reads them with `map.Lookup()`. No IPC, no syscalls per packet.
-- **Safe under the customer load path.** Because of the verifier, our code is structurally incapable of breaking customer pod networking. [See the Safety invariants section of heimdall.mdx](./heimdall#safety-invariants).
+- **Safe under the customer load path.** Because of the verifier, our code is structurally incapable of breaking customer pod networking. [See the Safety invariants section of heimdall.mdx](/infra/metering/heimdall#safety-invariants).
 
 ## Further reading
 
@@ -62,4 +62,4 @@ Our program does the bare minimum: skip the Ethernet header, read the IP header,
 - `svc/heimdall/internal/network/sandbox_linux.go`. Resolves each pod's CNI netns through containerd.
 - `svc/heimdall/internal/network/veth_linux.go`. Enters the pod netns via `setns`, finds the pod-side eth0, reads the netns cookie via `SO_NETNS_COOKIE`, and attaches both TCX programs in-netns.
 
-See [heimdall.mdx](./heimdall) for how the whole thing fits together.
+See [heimdall.mdx](/infra/metering/heimdall) for how the whole thing fits together.
