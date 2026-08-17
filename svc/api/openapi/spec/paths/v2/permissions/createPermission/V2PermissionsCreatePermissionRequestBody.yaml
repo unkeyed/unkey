@@ -23,8 +23,8 @@ properties:
     maxLength: 128
     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     description: |
-      Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
-      Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
+      Creates an identifier for this permission that can be used in APIs and integrations.
+      Must contain only letters, numbers, underscores, colons, hyphens, periods, and asterisks.
       Slugs are often used in REST endpoints, configuration files, and external integrations.
       Should closely match the name but in a format suitable for technical usage.
       Must be unique within your workspace to ensure reliable permission lookups.

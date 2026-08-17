@@ -2549,8 +2549,8 @@ components:
                     maxLength: 128
                     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
-                        Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
-                        Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
+                        Creates an identifier for this permission that can be used in APIs and integrations.
+                        Must contain only letters, numbers, underscores, colons, hyphens, periods, and asterisks.
                         Slugs are often used in REST endpoints, configuration files, and external integrations.
                         Should closely match the name but in a format suitable for technical usage.
                         Must be unique within your workspace to ensure reliable permission lookups.
@@ -2723,7 +2723,7 @@ components:
                     maxLength: 128
                     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
                     description: |
-                        The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+                        The ID or slug of the permission to retrieve. It must refer to a permission that exists within your workspace.
                     example: perm_1234567890abcdef
             additionalProperties: false
         V2PermissionsGetPermissionResponseBody:

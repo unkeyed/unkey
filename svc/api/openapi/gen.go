@@ -3525,8 +3525,8 @@ type V2PermissionsCreatePermissionRequestBody struct {
 	// Examples: 'users.read', 'billing.write', 'analytics.view', 'admin.manage'
 	Name string `json:"name"`
 
-	// Slug Creates a URL-safe identifier for this permission that can be used in APIs and integrations.
-	// Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens.
+	// Slug Creates an identifier for this permission that can be used in APIs and integrations.
+	// Must contain only letters, numbers, underscores, colons, hyphens, periods, and asterisks.
 	// Slugs are often used in REST endpoints, configuration files, and external integrations.
 	// Should closely match the name but in a format suitable for technical usage.
 	// Must be unique within your workspace to ensure reliable permission lookups.
@@ -3652,7 +3652,7 @@ type V2PermissionsDeleteRoleResponseBody struct {
 
 // V2PermissionsGetPermissionRequestBody defines model for V2PermissionsGetPermissionRequestBody.
 type V2PermissionsGetPermissionRequestBody struct {
-	// Permission The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with 'perm_' and exists within your workspace.
+	// Permission The ID or slug of the permission to retrieve. It must refer to a permission that exists within your workspace.
 	Permission string `json:"permission"`
 }
 

@@ -23,7 +23,7 @@ unkey api permissions delete-permission [flags]
 ## Flags
 
 <ParamField body="--permission" type="string" required>
-The permission ID or slug to permanently delete from your workspace. Must be 3-255 characters, start with a letter, and contain only letters, numbers, dots, hyphens, and underscores.
+The permission ID or slug to permanently delete from your workspace. Must be 1-128 characters and contain only letters, numbers, underscores, colons, hyphens, periods, and asterisks.
 
 WARNING: Deleting a permission has immediate and irreversible consequences:
 - All API keys with this permission will lose that access immediately
