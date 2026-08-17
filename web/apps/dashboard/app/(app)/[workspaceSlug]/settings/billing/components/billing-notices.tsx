@@ -1,6 +1,6 @@
 "use client";
 
-import { formatMs } from "@/lib/ms";
+import { formatDate } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -98,8 +98,8 @@ function ScheduledCancellation({
     <AlertBanner variant="warning">
       <TriangleWarning2 iconSize="md-regular" />
       <AlertBannerDescription>
-        Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
-        {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the free tier.
+        Your API plan ends on {formatDate(cancelAt)}. Afterwards your workspace will move to the
+        free tier.
       </AlertBannerDescription>
       <AlertBannerActions>
         <AdminGate isAdmin={isAdmin}>
