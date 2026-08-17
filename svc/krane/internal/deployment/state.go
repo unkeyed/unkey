@@ -52,9 +52,6 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodSucceeded {
-			continue
-		}
 		if pod.Status.PodIP == "" {
 			continue
 		}
@@ -93,6 +90,8 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 			} else {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
 			}
+		case corev1.PodFailed, corev1.PodSucceeded:
+			continue
 		case corev1.PodUnknown:
 			instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED
 		}
