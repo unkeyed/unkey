@@ -32,6 +32,19 @@ func TestExtractUserFriendlyError(t *testing.T) {
 			input:    `Code: 60. DB::Exception: Table default.nonexistent doesn't exist. (UNKNOWN_TABLE) (version 25.6.4.12)`,
 			expected: "Invalid analytics query",
 		},
+		// ClickHouse answers this for SELECT * on a table with a column grant,
+		// because it expands the star to every physical column.
+		{
+			name:     "column outside the grant",
+			input:    `code: 497, message: ws_test: Not enough privileges. To execute this query, it's necessary to have the grant SELECT(path, platform) ON default.frontline_requests_raw_v1. (Missing permissions: SELECT(platform) ON default.frontline_requests_raw_v1)`,
+			expected: "The query reads a column that is not available. Select only the documented columns instead of *",
+		},
+		// The Go driver answers this for a percentile column of a rollup table.
+		{
+			name:     "aggregate state column",
+			input:    `read data: failed to decode block: clickhouse: unsupported column type "AggregateFunction(quantileTDigest(0.5), Float64)"`,
+			expected: "The query selects an aggregate state column. Use quantileTDigestMerge to read a percentile from it",
+		},
 	}
 
 	for _, tt := range tests {

@@ -268,6 +268,11 @@ func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 // customers can read. It does not include instance_address, frontline_id, and
 // platform. These three columns show the Unkey infrastructure and have no
 // meaning for the workspace that made the traffic.
+//
+// workspace_id must stay in the list. The query parser injects
+// `<table>.workspace_id = '<ws>'` into each query, and ClickHouse denies a query
+// that names a column with no SELECT grant, even when the column appears only in
+// WHERE. See injectWorkspaceFilterOnSelect in pkg/clickhouse/query-parser.
 var gatewayRequestColumns = []string{
 	"request_id",
 	"time",

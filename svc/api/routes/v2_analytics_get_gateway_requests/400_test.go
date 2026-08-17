@@ -61,6 +61,38 @@ func Test400_InternalColumnsAreUnreachable(t *testing.T) {
 	}
 }
 
+// Test400_MessagesNameTheFix guarantees the two ClickHouse failures that a
+// caller reaches on these tables give an actionable message instead of the
+// generic one.
+//
+// SELECT * fails because ClickHouse expands the star to every physical column,
+// which includes the columns outside the grant. A percentile column fails
+// because the driver cannot decode an aggregate state.
+func Test400_MessagesNameTheFix(t *testing.T) {
+	h, route, workspaceID := newRoute(t, true)
+	rootKey := h.CreateRootKey(workspaceID, "project.*.read_gateway_requests")
+
+	for name, testCase := range map[string]struct {
+		query   string
+		message string
+	}{
+		"select star on the raw table": {
+			query:   "SELECT * FROM gateway_requests_v1",
+			message: "Select only the documented columns instead of *",
+		},
+		"aggregate state column": {
+			query:   "SELECT latency_p95 FROM gateway_requests_per_hour_v1 WHERE time >= now() - INTERVAL 1 DAY",
+			message: "Use quantileTDigestMerge to read a percentile from it",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: testCase.query})
+			require.Equal(t, 400, res.Status, "response: %s", res.RawBody)
+			require.Contains(t, res.RawBody, testCase.message)
+		})
+	}
+}
+
 // Test400_ErrorsDoNotDiscloseInternals guarantees a rejection never returns the
 // rewritten SQL, the physical table names, or the injected workspace filter.
 func Test400_ErrorsDoNotDiscloseInternals(t *testing.T) {
