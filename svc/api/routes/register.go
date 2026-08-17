@@ -403,8 +403,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsPromoteDeployment.Handler{
-			DB:         svc.Database,
-			CtrlClient: svc.CtrlDeploymentClient,
+			DB:      svc.Database,
+			Restate: svc.Restate,
 		},
 	)
 
