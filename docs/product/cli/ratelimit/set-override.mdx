@@ -26,11 +26,11 @@ unkey api ratelimit set-override [flags]
 ## Flags
 
 <ParamField body="--namespace" type="string" required>
-The ID or name of the rate limit namespace. Must be 1-255 characters.
+The ID or name of the rate limit namespace. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--identifier" type="string" required>
-Identifier of the entity receiving this custom rate limit. This can be a specific user ID, an IP address, an email domain, or any other string that identifies the target entity. Must be 1-255 characters.
+Identifier of the entity receiving this custom rate limit. This can be a specific user ID, an IP address, an email domain, or any other string that identifies the target entity. Must be 1-512 characters.
 
 Wildcards (`*`) can be used to create pattern-matching rules that apply to multiple identifiers. For example:
 - `premium_*` matches all identifiers starting with `premium_`
