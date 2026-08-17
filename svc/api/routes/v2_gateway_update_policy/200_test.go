@@ -154,6 +154,40 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Len(t, ptr.SafeDeref(policies[0].Match), 1)
 	})
 
+	t.Run("switch rule variant to logging", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		policyID := uid.New(uid.PolicyPrefix)
+		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+			Id:      policyID,
+			Name:    "KEBAP",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
+				Action: frontlinev1.Action_ACTION_DENY,
+			}},
+		}}})
+
+		req := makeRequest(env, policyID)
+		req.Logging = &openapi.LoggingPolicy{
+			RequestHeaders:  ptr.P(true),
+			ResponseHeaders: ptr.P(false),
+			RequestBody:     ptr.P(true),
+			ResponseBody:    ptr.P(false),
+			Query:           ptr.P(true),
+		}
+		call(t, req)
+
+		policies := list(t, env)
+		require.Len(t, policies, 1)
+		require.Equal(t, policyID, policies[0].Id)
+		require.NotNil(t, policies[0].Logging)
+		require.Equal(t, ptr.P(true), policies[0].Logging.RequestHeaders, "capture flags must survive storage")
+		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseHeaders, "capture flags must survive storage")
+		require.Equal(t, ptr.P(true), policies[0].Logging.RequestBody, "capture flags must survive storage")
+		require.Equal(t, ptr.P(false), policies[0].Logging.ResponseBody, "capture flags must survive storage")
+		require.Equal(t, ptr.P(true), policies[0].Logging.Query, "capture flags must survive storage")
+		require.Nil(t, policies[0].Firewall, "old rule must be gone")
+	})
+
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)

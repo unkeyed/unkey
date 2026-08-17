@@ -40,6 +40,7 @@ const POLICY_TYPE_LABELS: Record<Policy["type"], string> = {
   ratelimit: "Rate Limit",
   firewall: "Firewall",
   openapi: "OpenAPI Validation",
+  logging: "Logging",
 };
 
 export function PolicyRow({

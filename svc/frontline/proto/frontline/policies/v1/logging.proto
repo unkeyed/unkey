@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package frontline.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/frontline/v1;frontlinev1";
+
+// Logging adds request data — headers, query data, and bodies — to the
+// request log (ClickHouse) for matching requests.
+//
+// The gateway always writes a base log row for every proxied request:
+// request id, workspace/project/app/environment/deployment ids, method,
+// host, path, response status, and latency breakdown. You cannot turn the
+// base row off — the dashboard's traffic and latency charts are built
+// from it.
+//
+// A logging policy adds more request data on top, scoped to matching
+// requests. Each capture setting is a separate opt-in: request headers,
+// response headers, request body, response body, and query data. Without
+// an enabled matching logging policy, the gateway stores only the base row.
+//
+// An empty match list matches every request — an enabled logging policy
+// with no match expressions captures the configured extras for all traffic
+// in the environment.
+//
+// The gateway redacts sensitive values before storage regardless of this
+// policy's configuration: it always redacts the Authorization header and
+// any header or query parameter configured as a KeyAuth key location.
+message Logging {
+  // Capture request headers, the user agent, and the client IP. User agent
+  // and client IP live here because they identify the client.
+  bool request_headers = 1;
+
+  // Capture response headers.
+  bool response_headers = 2;
+
+  // Capture the request body, up to the capture limit.
+  bool request_body = 3;
+
+  // Capture the response body, up to the capture limit.
+  bool response_body = 4;
+
+  // Capture the query string and query parameters. Query data lives here
+  // rather than in the base row because URLs can contain secrets
+  // (e.g. ?api_key=...).
+  bool query = 5;
+}

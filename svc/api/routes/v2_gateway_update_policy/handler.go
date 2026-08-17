@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Multi-variant requests are rejected by the exactly-one check when the
 	// merged policy is validated below.
-	ruleProvided := req.Keyauth != nil || req.Ratelimit != nil || req.Firewall != nil || req.Openapi != nil
+	ruleProvided := req.Keyauth != nil || req.Ratelimit != nil || req.Firewall != nil || req.Openapi != nil || req.Logging != nil
 	if !ruleProvided && req.Name == nil && req.Enabled == nil && !req.Match.IsSpecified() {
 		return fault.New(
 			"empty update",
@@ -179,6 +179,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Ratelimit: existing.Ratelimit,
 			Firewall:  existing.Firewall,
 			Openapi:   existing.Openapi,
+			Logging:   existing.Logging,
 		}
 		if req.Name != nil {
 			patched.Name = *req.Name
@@ -199,6 +200,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			patched.Ratelimit = req.Ratelimit
 			patched.Firewall = req.Firewall
 			patched.Openapi = req.Openapi
+			patched.Logging = req.Logging
 		}
 
 		updated, convErr := policyconfig.PolicyToProto("policy", patched)

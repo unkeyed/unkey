@@ -1175,6 +1175,179 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// --- Logging integration tests ---
+
+func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Name:    "Log /api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{
+				RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true,
+			}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.True(t, result.LogResponseHeaders)
+	require.True(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+// TestLogging_CaptureFlagsAreIndependent pins that every capture flag is a
+// separate opt-in: enabling one direction/kind must not turn on the others.
+func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-response-body",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
+}
+
+// TestLogging_NoMatchConditionsCapturesEveryRequest pins the catch-all
+// semantics: a policy with an empty match list matches every request, so a
+// logging policy without match conditions turns capture on for all traffic.
+func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/any/path/at/all", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-everything",
+			Name:    "Log everything",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.True(t, result.LogResponseHeaders)
+	require.True(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+// TestLogging_MultipleMatchingPoliciesUnionFlags pins that capture flags from
+// several matching logging policies are OR-ed together rather than one policy
+// overriding another.
+func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-request-headers",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true}},
+		},
+		{
+			Id:      "log-response-body",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.True(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.True(t, result.LogResponseBody)
+	require.True(t, result.LogQuery)
+}
+
+func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(true),
+			Match: []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
+				}}},
+			},
+			Config: &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
+}
+
+func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	sess := newSession(t, req)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "log-api",
+			Enabled: proto.Bool(false),
+			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
+		},
+	}
+
+	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	require.NoError(t, err)
+	require.False(t, result.LogRequestHeaders)
+	require.False(t, result.LogResponseHeaders)
+	require.False(t, result.LogRequestBody)
+	require.False(t, result.LogResponseBody)
+	require.False(t, result.LogQuery)
+}
+
 func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
