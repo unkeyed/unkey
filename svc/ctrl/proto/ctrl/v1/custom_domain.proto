@@ -54,6 +54,7 @@ message DeleteCustomDomainRequest {
   string workspace_id = 1;
   string project_id = 2;
   string domain = 3;
+  ActorInfo actor = 4;
 }
 
 message DeleteCustomDomainResponse {}

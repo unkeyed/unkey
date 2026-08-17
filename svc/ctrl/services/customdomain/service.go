@@ -320,7 +320,7 @@ func (s *Service) DeleteCustomDomain(
 	}
 
 	// Delete in transaction: frontline route, ACME challenge, custom domain
-	err = db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		// Delete the frontline route only if it belongs to this caller's project.
 		// frontline_routes enforces UNIQUE(fully_qualified_domain_name), so exactly
 		// one route exists per FQDN, owned by whichever project verified it. Scoping
@@ -342,6 +342,33 @@ func (s *Service) DeleteCustomDomain(
 		// Delete custom domain
 		if deleteErr := db.NewQueries(tx).DeleteCustomDomainByID(txCtx, domain.ID); deleteErr != nil {
 			return fmt.Errorf("failed to delete custom domain: %w", deleteErr)
+		}
+
+		a := req.Msg.GetActor()
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   req.Msg.GetWorkspaceId(),
+				Event:         auditlog.DomainDeleteEvent,
+				Display:       fmt.Sprintf("Deleted custom domain %s", domain.Domain),
+				ActorID:       a.GetId(),
+				ActorName:     a.GetName(),
+				ActorType:     actor.AuditType(a.GetType()),
+				ActorMeta:     actor.Meta(a.GetMeta()),
+				RemoteIP:      a.GetRemoteIp(),
+				UserAgent:     a.GetUserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          domain.ID,
+						Type:        auditlog.DomainResourceType,
+						Meta:        map[string]any{"domain": domain.Domain, "projectId": domain.ProjectID, "appId": domain.AppID, "environmentId": domain.EnvironmentID},
+						Name:        domain.Domain,
+						DisplayName: domain.Domain,
+					},
+				},
+			},
+		}); txErr != nil {
+			return fmt.Errorf("failed to insert audit log: %w", txErr)
 		}
 
 		return nil

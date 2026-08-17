@@ -1,3 +1,4 @@
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
@@ -57,6 +58,12 @@ export const deleteCustomDomain = workspaceProcedure
         workspaceId: ctx.workspace.id,
         projectId: input.projectId,
         domain: input.domain,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
       });
 
       return { success: true };

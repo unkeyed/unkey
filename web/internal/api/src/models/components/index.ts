@@ -125,6 +125,8 @@ export * from "./v2deploymentsstopdeploymentresponsebody.js";
 export * from "./v2domainscreatedomainrequestbody.js";
 export * from "./v2domainscreatedomainresponsebody.js";
 export * from "./v2domainscreatedomainresponsedata.js";
+export * from "./v2domainsdeletedomainrequestbody.js";
+export * from "./v2domainsdeletedomainresponsebody.js";
 export * from "./v2domainsgetdomainrequestbody.js";
 export * from "./v2domainsgetdomainresponsebody.js";
 export * from "./v2domainslistdomainsrequestbody.js";
