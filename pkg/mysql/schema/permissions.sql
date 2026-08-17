@@ -2,7 +2,7 @@ CREATE TABLE `permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT '',
+	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(512) NOT NULL,
 	`slug` varchar(128) NOT NULL,
 	`description` varchar(512),
