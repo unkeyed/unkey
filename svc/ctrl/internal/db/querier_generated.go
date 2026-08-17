@@ -553,7 +553,7 @@ type Querier interface {
 	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
 	//  FROM `keys` k
 	//  WHERE k.id = ?
-	FindKeyByID(ctx context.Context, id string) (FindKeyByIDRow, error)
+	FindKeyByID(ctx context.Context, id string) (Key, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
 	// you only need the ID for a subsequent mutation and do not need the full
 	// verification payload with roles, permissions, and rate limits.
