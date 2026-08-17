@@ -2194,6 +2194,24 @@ type V2DomainsListDomainsResponseBody struct {
 	Pagination Pagination `json:"pagination"`
 }
 
+// V2DomainsVerifyDomainRequestBody defines model for V2DomainsVerifyDomainRequestBody.
+type V2DomainsVerifyDomainRequestBody struct {
+	// Domain Identifies a domain by its name or by its ID. Send the fully qualified domain name, such as
+	// 'api.acme.com', without a scheme, port, or path, or send the domain ID that
+	// domains.createDomain returns. You can send an internationalized name in Unicode or in
+	// Punycode form. Both forms address the same domain.
+	Domain string `json:"domain"`
+}
+
+// V2DomainsVerifyDomainResponseBody defines model for V2DomainsVerifyDomainResponseBody.
+type V2DomainsVerifyDomainResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -4491,6 +4509,9 @@ type DomainsGetDomainJSONRequestBody = V2DomainsGetDomainRequestBody
 
 // DomainsListDomainsJSONRequestBody defines body for DomainsListDomains for application/json ContentType.
 type DomainsListDomainsJSONRequestBody = V2DomainsListDomainsRequestBody
+
+// DomainsVerifyDomainJSONRequestBody defines body for DomainsVerifyDomain for application/json ContentType.
+type DomainsVerifyDomainJSONRequestBody = V2DomainsVerifyDomainRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody

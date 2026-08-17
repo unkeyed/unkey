@@ -101,6 +101,7 @@ export const environmentActions = z.enum([
   "create_domain",
   "read_domain",
   "delete_domain",
+  "verify_domain",
 ]);
 
 // Resources that require an ID (resource.id.action format)
