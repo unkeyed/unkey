@@ -22,6 +22,16 @@ func jwtJWKSAuth(jwksURL string) AuthConfig {
 	}
 }
 
+func configWithAuth(auth AuthConfig) *Config {
+	return &Config{
+		Auth: AuthConfigs{auth},
+		Restate: RestateConfig{
+			URL:    "https://restate.example.com",
+			APIKey: "restate-test-key",
+		},
+	}
+}
+
 // TestConfig_ValidateJWTSecretMinimumLength verifies the API rejects JWT
 // secrets shorter than the HS256 entropy requirement (256 bits). Accepting a
 // shorter secret would weaken signature security across every token signed or
@@ -60,7 +70,7 @@ func TestConfig_ValidateJWTSecretMinimumLength(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := &Config{Auth: AuthConfigs{jwtSecretsAuth(tt.secrets)}}
+			cfg := configWithAuth(jwtSecretsAuth(tt.secrets))
 			err := cfg.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
@@ -113,7 +123,7 @@ func TestConfig_ValidateJWTJWKSURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			cfg := &Config{Auth: AuthConfigs{jwtJWKSAuth(tt.url)}}
+			cfg := configWithAuth(jwtJWKSAuth(tt.url))
 			err := cfg.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
@@ -146,10 +156,10 @@ func TestConfig_ValidateJWTIssuer(t *testing.T) {
 func TestConfig_ValidateJWTJWKSAcceptsAnyIssuer(t *testing.T) {
 	t.Parallel()
 
-	cfg := &Config{Auth: AuthConfigs{JWTAuthConfig{
+	cfg := configWithAuth(JWTAuthConfig{
 		Issuer:  "https://auth.acme.com",
 		JWKSURL: "https://auth.acme.com/.well-known/jwks.json",
-	}}}
+	})
 
 	require.NoError(t, cfg.Validate())
 }
@@ -160,11 +170,11 @@ func TestConfig_ValidateJWTJWKSAcceptsAnyIssuer(t *testing.T) {
 func TestConfig_ValidateAcceptsWorkOSProvider(t *testing.T) {
 	t.Parallel()
 
-	cfg := &Config{Auth: AuthConfigs{JWTAuthConfig{
+	cfg := configWithAuth(JWTAuthConfig{
 		Issuer:   "https://auth.acme.com/user_management/client_123",
 		JWKSURL:  "https://auth.acme.com/sso/jwks/client_123",
 		Provider: "workos",
-	}}}
+	})
 
 	require.NoError(t, cfg.Validate())
 }
@@ -267,6 +277,10 @@ primary = "unkey:password@tcp(mysql:3306)/unkey"
 [control]
 url = "http://control:7091"
 token = "control-token"
+
+[restate]
+url = "https://restate.example.com"
+api_key = "restate-test-key"
 `))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown is not valid")
@@ -317,6 +331,10 @@ primary = "unkey:password@tcp(mysql:3306)/unkey"
 [control]
 url = "http://control:7091"
 token = "control-token"
+
+[restate]
+url = "https://restate.example.com"
+api_key = "restate-test-key"
 `))
 
 	require.NoError(t, err)
@@ -332,4 +350,91 @@ token = "control-token"
 	rootKeyAuth, ok := cfg.Auth[2].(RootKeyAuthConfig)
 	require.True(t, ok)
 	require.True(t, rootKeyAuth.enabled())
+}
+
+// TestConfig_ValidateRequiresRestateCredentials guarantees the API cannot
+// start with the local ingress default or silently omit production ingress
+// authentication. Local configurations use an explicit dummy key because
+// their Restate server has authentication disabled.
+func TestConfig_ValidateRequiresRestateCredentials(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		restate RestateConfig
+		wantErr string
+	}{
+		{
+			name:    "missing URL",
+			restate: RestateConfig{URL: "", APIKey: "restate-key"},
+			wantErr: "restate.url is required",
+		},
+		{
+			name:    "missing API key",
+			restate: RestateConfig{URL: "https://restate.example.com", APIKey: ""},
+			wantErr: "restate.api_key is required",
+		},
+		{
+			name:    "relative URL",
+			restate: RestateConfig{URL: "restate:8080", APIKey: "restate-key"},
+			wantErr: "restate.url must be an absolute HTTP(S) URL",
+		},
+		{
+			name:    "unsupported URL scheme",
+			restate: RestateConfig{URL: "ftp://restate.example.com", APIKey: "restate-key"},
+			wantErr: "restate.url must be an absolute HTTP(S) URL",
+		},
+		{
+			name:    "URL with trailing slash",
+			restate: RestateConfig{URL: "https://restate.example.com/", APIKey: "restate-key"},
+			wantErr: "restate.url must not include a path, query, or fragment",
+		},
+		{
+			name:    "URL with query",
+			restate: RestateConfig{URL: "https://restate.example.com?region=us", APIKey: "restate-key"},
+			wantErr: "restate.url must not include a path, query, or fragment",
+		},
+		{
+			name:    "URL with empty query",
+			restate: RestateConfig{URL: "https://restate.example.com?", APIKey: "restate-key"},
+			wantErr: "restate.url must not include a path, query, or fragment",
+		},
+		{
+			name:    "URL with empty fragment",
+			restate: RestateConfig{URL: "https://restate.example.com#", APIKey: "restate-key"},
+			wantErr: "restate.url must not include a path, query, or fragment",
+		},
+		{
+			name:    "whitespace API key",
+			restate: RestateConfig{URL: "https://restate.example.com", APIKey: "  "},
+			wantErr: "restate.api_key is required",
+		},
+		{
+			name:    "API key with surrounding whitespace",
+			restate: RestateConfig{URL: "https://restate.example.com", APIKey: " restate-key "},
+			wantErr: "restate.api_key must not have surrounding whitespace",
+		},
+		{
+			name:    "configured",
+			restate: RestateConfig{URL: "https://restate.example.com", APIKey: "restate-key"},
+			wantErr: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := &Config{
+				Auth:    AuthConfigs{RootKeyAuthConfig{Enabled: nil}},
+				Restate: test.restate,
+			}
+			err := cfg.Validate()
+			if test.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, test.wantErr)
+		})
+	}
 }

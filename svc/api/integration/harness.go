@@ -189,6 +189,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				URL:   "http://control:7091",
 				Token: "your-local-dev-key",
 			},
+			Restate: api.RestateConfig{
+				URL:    "http://restate:8080",
+				APIKey: "test-restate-auth-disabled",
+			},
 			Pprof: &sharedconfig.PprofConfig{
 				Username: "unkey",
 				Password: "password",
