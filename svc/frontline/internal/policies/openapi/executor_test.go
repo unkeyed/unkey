@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http/httptest"
 	"testing"
 
@@ -76,6 +77,10 @@ func TestExecute_ValidRequest(t *testing.T) {
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
+
+	forwardedBody, err := io.ReadAll(req.Body)
+	require.NoError(t, err)
+	require.Equal(t, body, forwardedBody)
 }
 
 func TestExecute_InvalidRequest(t *testing.T) {
