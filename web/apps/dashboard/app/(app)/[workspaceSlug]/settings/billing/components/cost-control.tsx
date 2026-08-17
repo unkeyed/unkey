@@ -3,6 +3,7 @@
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { Ban, Cube, Envelope, Nodes } from "@unkey/icons";
+import { P, match } from "@unkey/match";
 import {
   AlertBanner,
   AlertBannerDescription,
@@ -99,23 +100,25 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
         </ItemHeader>
 
         <div className="px-4 pb-4">
-          {isLoading ? (
-            <Skeleton className="h-9 w-28" />
-          ) : isError ? (
-            <AlertBanner variant="warning">
-              <AlertBannerDescription>
-                The spend controls could not be loaded.
-              </AlertBannerDescription>
-            </AlertBanner>
-          ) : budgetCents === null ? (
-            <AlertBanner>
-              <AlertBannerDescription>No spend controls are enabled yet</AlertBannerDescription>
-            </AlertBanner>
-          ) : (
-            <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
-              {formatDollars(budgetCents)}
-            </span>
-          )}
+          {match({ isLoading, isError, budgetCents })
+            .with({ isLoading: true }, () => <Skeleton className="h-9 w-28" />)
+            .with({ isError: true }, () => (
+              <AlertBanner variant="warning">
+                <AlertBannerDescription>
+                  The spend controls could not be loaded.
+                </AlertBannerDescription>
+              </AlertBanner>
+            ))
+            .with({ budgetCents: P.number }, ({ budgetCents }) => (
+              <span className="font-semibold text-3xl text-gray-12 tabular-nums tracking-tight">
+                {formatDollars(budgetCents)}
+              </span>
+            ))
+            .otherwise(() => (
+              <AlertBanner>
+                <AlertBannerDescription>No spend controls are enabled yet</AlertBannerDescription>
+              </AlertBanner>
+            ))}
         </div>
 
         {budgetCents !== null ? (
