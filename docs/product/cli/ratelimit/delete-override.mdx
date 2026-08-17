@@ -26,11 +26,11 @@ unkey api ratelimit delete-override [flags]
 ## Flags
 
 <ParamField body="--namespace" type="string" required>
-The id or name of the namespace containing the override. Must be 1-255 characters.
+The id or name of the namespace containing the override. Must be 1-512 characters.
 </ParamField>
 
 <ParamField body="--identifier" type="string" required>
-The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Case-sensitive. Must be 1-255 characters.
+The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Case-sensitive. Must be 1-512 characters.
 
 After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
 </ParamField>
