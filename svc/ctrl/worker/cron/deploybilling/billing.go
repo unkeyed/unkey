@@ -36,6 +36,9 @@ const (
 	// maxConcurrentInstanceUsageShards limits the actual ClickHouse calls while
 	// retaining eight disjoint shards to bound each query's input.
 	maxConcurrentInstanceUsageShards = 2
+	// usageReadMaxAttempts prevents one failed journaled ClickHouse read from
+	// retrying forever and wedging its period virtual object.
+	usageReadMaxAttempts = 5
 )
 
 // instanceUsageQueries is process-wide rather than invocation-local because
@@ -189,7 +192,10 @@ func FleetMeterValues(
 				)
 			}
 			return instanceMeterUsageShardResult{Shard: shard, Rows: rows}, nil
-		}, restate.WithName(fmt.Sprintf("get period usage shard %d/%d", shard+1, len(shards))))
+		},
+			restate.WithName(fmt.Sprintf("get period usage shard %d/%d", shard+1, len(shards))),
+			restate.WithMaxRetryAttempts(usageReadMaxAttempts),
+		)
 	}
 
 	rowsByShard := make([][]clickhouse.InstanceMeterUsage, len(shards))
@@ -216,7 +222,7 @@ func FleetMeterValues(
 			Year:         p.Year,
 			Month:        p.Month,
 		})
-	}, restate.WithName("get active keys"))
+	}, restate.WithName("get active keys"), restate.WithMaxRetryAttempts(usageReadMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("get active keys: %w", err)
 	}

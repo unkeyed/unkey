@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
@@ -299,12 +300,14 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
 	restateCfg := containers.Restate(t,
-		hydrav1.NewCronServiceServer(cronSvc),
+		hydrav1.NewCronServiceServer(cronSvc).
+			ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()),
 		// The deploy billing orchestrator (push and close) fans out to this
 		// per-workspace push service, so it must be bound for those handlers to
 		// route end to end.
 		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
-		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
