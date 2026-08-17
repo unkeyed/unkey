@@ -1,6 +1,7 @@
 package cron_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -135,5 +136,23 @@ func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
 		instanceReads, _ := reader.reads()
 		require.Equal(t, 8, instanceReads)
 		require.Equal(t, 2, reader.maxInstanceConcurrency())
+	})
+
+	t.Run("failed usage read does not wedge the period object", func(t *testing.T) {
+		reader.set(nil)
+		seedBudgetedWorkspace(t, h, uid.New("cus"), 1_000_000)
+		reader.failInstanceReads(errors.New("forced usage read failure"))
+
+		started := time.Now()
+		_, err := run()
+		require.ErrorContains(t, err, "forced usage read failure")
+		require.Less(t, time.Since(started), 10*time.Second)
+		instanceReads, _ := reader.reads()
+		require.Equal(t, 5, instanceReads)
+
+		reader.set(nil)
+		resp, err := run()
+		require.NoError(t, err)
+		require.Equal(t, int32(0), resp.GetWorkspacesDispatched())
 	})
 }
