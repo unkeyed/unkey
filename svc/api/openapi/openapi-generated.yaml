@@ -873,6 +873,35 @@ components:
                 data:
                     "$ref": "#/components/schemas/V2DomainsCreateDomainResponseData"
             additionalProperties: false
+        V2DomainsDeleteDomainRequestBody:
+            type: object
+            required:
+                - domain
+            properties:
+                domain:
+                    type: string
+                    minLength: 4
+                    maxLength: 253
+                    description: |
+                        Identifies a domain by its Unkey ID or by its name. Pass a 'dom_'-prefixed ID, or a fully
+                        qualified domain name such as 'api.acme.com' without a scheme, port, or path. You can give an
+                        internationalized name in Unicode or Punycode form. Both forms address the same domain.
+
+                        Domain names are unique per workspace, so the name alone addresses the domain. You do not
+                        need to supply a project, app, or environment.
+                    example: api.acme.com
+            additionalProperties: false
+        V2DomainsDeleteDomainResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2DomainsGetDomainRequestBody:
             type: object
             required:
@@ -9095,6 +9124,175 @@ paths:
                 - domains
             x-speakeasy-name-override: createDomain
             x-unkey-idempotency: conditionally-idempotent
+    /v2/domains.deleteDomain:
+        post:
+            description: |
+                Delete a custom domain from your workspace.
+
+                Address the domain by its id or by its name. Names are unique per workspace, so
+                `api.acme.com` is enough.
+
+                Unkey stops serving the domain. Later requests fail with a certificate error. The DNS
+                records at your provider stay in place.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.delete_domain` (to delete domains in any environment)
+                - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
+            operationId: domains.deleteDomain
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byId:
+                                description: Uses the id that domains.createDomain returned.
+                                summary: Delete by domain ID
+                                value:
+                                    domain: dom_1234abcd
+                            byName:
+                                description: The name is unique per workspace. It addresses the domain on its own.
+                                summary: Delete by domain name
+                                value:
+                                    domain: api.acme.com
+                        schema:
+                            $ref: '#/components/schemas/V2DomainsDeleteDomainRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: The domain and its routing were removed before the response returned.
+                                    summary: Domain deleted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DomainsDeleteDomainResponseBody'
+                    description: |
+                        Successfully deleted the domain.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidIdentifier:
+                                    description: The schema only bounds the identifier's length. An identifier that is neither a valid name nor a stored id returns a 404.
+                                    summary: Identifier too short
+                                    value:
+                                        error:
+                                            detail: The domain identifier must be between 4 and 253 characters.
+                                            errors:
+                                                - fix: Pass a domain name such as 'api.acme.com' or an id such as 'dom_1234abcd'
+                                                  location: body.domain
+                                                  message: minLength must be at least 4 characters
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            examples:
+                                invalidRootKey:
+                                    summary: Root key not found
+                                    value:
+                                        error:
+                                            detail: The provided root key is invalid.
+                                            status: 401
+                                            title: Unauthorized
+                                            type: unauthorized
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                keyDisabled:
+                                    summary: Root key disabled
+                                    value:
+                                        error:
+                                            detail: The provided root key is disabled.
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
+                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
+                        discover which domains exist.
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                domainNotFound:
+                                    summary: Domain not found
+                                    value:
+                                        error:
+                                            detail: The requested domain does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The domain does not exist in your workspace, it was already deleted, or your
+                        root key may not delete it.
+                "429":
+                    content:
+                        application/json:
+                            examples:
+                                rateLimited:
+                                    summary: Workspace rate limit exceeded
+                                    value:
+                                        error:
+                                            detail: You have exceeded the rate limit for this operation. Retry after the window resets.
+                                            status: 429
+                                            title: Too Many Requests
+                                            type: rate-limited
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            examples:
+                                internalError:
+                                    summary: Unexpected server error
+                                    value:
+                                        error:
+                                            detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
+                                            status: 500
+                                            title: Internal Server Error
+                                            type: internal-server-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Delete domain
+            tags:
+                - domains
+            x-speakeasy-name-override: deleteDomain
+            x-unkey-idempotency: idempotent
     /v2/domains.getDomain:
         post:
             description: |
